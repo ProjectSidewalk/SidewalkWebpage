@@ -4,7 +4,7 @@
 		module="mimepull"
 		revision="1.9.4"
 		status="release"
-		publication="20131112024917"
+		publication="20131112104917"
 	>
 		<license name="CDDL 1.1" url="https://glassfish.java.net/public/CDDL+GPL_1_1.html" />
 		<license name="GPL2 w/ CPE" url="https://glassfish.java.net/public/CDDL+GPL_1_1.html" />

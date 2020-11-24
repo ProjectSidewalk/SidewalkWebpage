@@ -4,7 +4,7 @@
 		module="jetty-http"
 		revision="8.1.12.v20130726"
 		status="release"
-		publication="20130726095727"
+		publication="20130726165727"
 	>
 		<description homepage="http://www.eclipse.org/jetty" />
 		<m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>2.0</m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>

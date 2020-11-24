@@ -4,7 +4,7 @@
 		module="maven-artifact"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065037"
+		publication="20140617135037"
 	>
 		<description homepage="" />
 		<m:dependency.management__org.apache.maven.plugin-tools__maven-plugin-annotations__scope>provided</m:dependency.management__org.apache.maven.plugin-tools__maven-plugin-annotations__scope>

@@ -273,10 +273,10 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
-leaderboard.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
 leaderboard.header.accuracy = Accuracy
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
-leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific

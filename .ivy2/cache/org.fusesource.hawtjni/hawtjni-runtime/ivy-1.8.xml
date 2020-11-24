@@ -4,7 +4,7 @@
 		module="hawtjni-runtime"
 		revision="1.8"
 		status="release"
-		publication="20130513055423"
+		publication="20130513125423"
 	>
 		<description homepage="">
 		The API that projects using HawtJNI should build against.

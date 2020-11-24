@@ -4,7 +4,7 @@
 		module="async-http-client"
 		revision="1.8.15"
 		status="release"
-		publication="20141128060500"
+		publication="20141128140500"
 	>
 		<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="http://github.com/AsyncHttpClient/async-http-client">

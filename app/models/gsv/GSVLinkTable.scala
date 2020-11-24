@@ -21,17 +21,17 @@ object GSVLinkTable {
 
   /**
     * This method checks if the link already exists or not.
+    *
     * @param panoramaId Google Street View panorama id
-    * @return
     */
   def linkExists(panoramaId: String, targetPanoramaId: String): Boolean = db.withTransaction { implicit session =>
-    gsvLinks.list.filter(x => x.gsvPanoramaId == panoramaId && x.targetGsvPanoramaId == targetPanoramaId).nonEmpty
+    gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).list.nonEmpty
   }
 
   /**
-    * Save a GSVLink object
+    * Save a GSVLink object.
+    *
     * @param link GSVLink object
-    * @return
     */
   def save(link: GSVLink): String = db.withTransaction { implicit session =>
     gsvLinks += link

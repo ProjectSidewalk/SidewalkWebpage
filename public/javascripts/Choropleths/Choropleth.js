@@ -56,6 +56,19 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         }
     }
 
+    if (params.popupType === 'issueCounts') {
+        $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
+            // Append label counts to region data with map/reduce.
+            let labelData = _.map(polygonRateData, function(region) {
+                let regionLabel = _.find(labelCounts, function(x) { return x.region_id === region.region_id });
+                return regionLabel ? regionLabel : { regionId: region.region_id, labels: {} };
+            });
+            initializeChoropleth(polygonRateData, labelData);
+        });
+    } else {
+        initializeChoropleth(polygonRateData, 'NA');
+    }
+
     // Renders the neighborhood polygons, colored by completion percentage.
     function initializeChoroplethNeighborhoodPolygons(map, rates, layers, labelData) {
          // Default region color, used to check if any regions are missing data.
@@ -196,7 +209,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 else if (milesLeft === 0) distanceLeft = '<1';
                 else if (milesLeft === 1) distanceLeft = '1';
                 else distanceLeft = '>1';
-                let activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=' + target;
+                let activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=audit';
                 postToWebpageActivity(activity);
             });
         }
@@ -297,19 +310,6 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_SurfaceProblem.png"></td>'+
                '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Obstacle.png"></td>'+
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
-    }
-
-    if (params.popupType === 'issueCounts') {
-        $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
-            // Append label counts to region data with map/reduce.
-            let labelData = _.map(polygonRateData, function(region) {
-                let regionLabel = _.find(labelCounts, function(x){ return x.region_id === region.region_id });
-                return regionLabel ? regionLabel : {};
-            });
-            initializeChoropleth(polygonRateData, labelData);
-        });
-    } else {
-        initializeChoropleth(polygonRateData, 'NA');
     }
 
     /**

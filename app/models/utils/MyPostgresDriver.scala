@@ -20,7 +20,6 @@ with PgPostGISSupport {
   override lazy val Implicit = new ImplicitsPlus {}
   override val simple = new SimpleQLPlus {}
 
-  //////
   trait ImplicitsPlus extends Implicits
   with ArrayImplicits
   with DateTimeImplicits
@@ -34,8 +33,6 @@ with PgPostGISSupport {
   with ImplicitsPlus
   with SearchAssistants
   with PostGISAssistants
-
-
 }
 
 object MyPostgresDriver extends MyPostgresDriver with PgPostGISSupport {
@@ -46,5 +43,4 @@ object MyPostgresDriver extends MyPostgresDriver with PgPostGISSupport {
   override val simple = new Implicits with SimpleQLPlus with PostGISImplicits with PostGISAssistants
 
   val plainImplicits = new Implicits with PostGISPlainImplicits
-
 }

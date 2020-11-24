@@ -37,7 +37,7 @@ function Keyboard(menuUI) {
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);
-            svv.panorama.getCurrentLabel().validate(action, svv.panorama, comment);
+            svv.panorama.getCurrentLabel().validate(action, comment);
             svv.panorama.setProperty('validationTimestamp', timestamp);
             status.keyPressed = true;
         }

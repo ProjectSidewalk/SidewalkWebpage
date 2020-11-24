@@ -5,6 +5,8 @@
   "surface-problem-caps": "Surface Problem",
   "no-sidewalk-caps": "No Sidewalk",
   "severity": "Severity: ",
+  "tags": "Tags: ",
+  "user-description": "User Description: ",
   "temporary": "Temporary",
   "top-ui": {
     "title": {

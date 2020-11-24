@@ -4,7 +4,7 @@
 		module="slf4j-simple"
 		revision="1.7.7"
 		status="release"
-		publication="20140404041257"
+		publication="20140404111257"
 	>
 		<description homepage="http://www.slf4j.org">
 		SLF4J Simple binding

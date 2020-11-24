@@ -4,7 +4,7 @@
 		module="objenesis"
 		revision="1.0"
 		status="release"
-		publication="20070516153006"
+		publication="20070516223006"
 	>
 		<license name="MIT License" url="http://objenesis.googlecode.com/svn/docs/license.html" />
 		<description homepage="http://objenesis.googlecode.com/svn/docs/index.html">

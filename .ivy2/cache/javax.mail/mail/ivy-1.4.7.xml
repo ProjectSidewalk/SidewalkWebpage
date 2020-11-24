@@ -4,7 +4,7 @@
 		module="mail"
 		revision="1.4.7"
 		status="release"
-		publication="20130308173818"
+		publication="20130309013818"
 	>
 		<description homepage="" />
 		<m:properties__mail.version>1.4.7</m:properties__mail.version>

@@ -4,7 +4,7 @@
 		module="maven-parent"
 		revision="24"
 		status="release"
-		publication="20140327144915"
+		publication="20140327214915"
 	>
 		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://maven.apache.org/">

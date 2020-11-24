@@ -3,8 +3,6 @@ package models.gsv
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.lifted.ForeignKeyQuery
-
 case class GSVProjection(gsvPanoramaId: String, projectionType: String, panoYawDeg: Double, tiltYawDeg: Double, tiltPitchDeg: Double)
 
 class GSVProjectionTable(tag: Tag) extends Table[GSVProjection](tag, Some("sidewalk"), "gsv_projection") {

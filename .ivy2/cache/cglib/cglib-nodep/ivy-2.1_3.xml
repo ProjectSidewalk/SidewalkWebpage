@@ -4,7 +4,7 @@
 		module="cglib-nodep"
 		revision="2.1_3"
 		status="release"
-		publication="20051108141406"
+		publication="20051108221406"
 	>
 		<description homepage="http://cglib.sourceforge.net/" />
 	</info>

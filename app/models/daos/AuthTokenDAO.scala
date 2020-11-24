@@ -1,11 +1,8 @@
 package models.daos
 
 import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
-
 import models.AuthToken
-import org.joda.time.DateTime
 
 import scala.concurrent.Future
 

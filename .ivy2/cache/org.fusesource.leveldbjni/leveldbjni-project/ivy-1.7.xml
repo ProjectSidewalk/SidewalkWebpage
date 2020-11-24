@@ -4,7 +4,7 @@
 		module="leveldbjni-project"
 		revision="1.7"
 		status="release"
-		publication="20130513061115"
+		publication="20130513131115"
 	>
 		<license name="The BSD 3-Clause License" url="http://www.opensource.org/licenses/BSD-3-Clause" />
 		<description homepage="http://${forge-project-id}.fusesource.org">

@@ -228,12 +228,12 @@ html {
     width: 700px;
 }
 
-#validation-agree-button-0 {
+#validation-agree-button {
     background-color: #78C8AB;
     color: #2C293E;
 }
 
-.animate-button-0:active {
+.animate-button:active {
     -webkit-transition: all 0.3s ease-in;
     transition: all 0.3s ease-in;
     -webkit-animation-name: confirm-press;
@@ -259,12 +259,12 @@ html {
     }
 }
 
-#validation-disagree-button-0 {
+#validation-disagree-button {
     background-color: #EB7350;
     color: #2C293E;
 }
 
-#validation-not-sure-button-0 {
+#validation-not-sure-button {
     background-color: #FDD68D;
     color: #2C293E;
 }

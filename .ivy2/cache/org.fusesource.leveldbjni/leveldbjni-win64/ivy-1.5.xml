@@ -4,7 +4,7 @@
 		module="leveldbjni-win64"
 		revision="1.5"
 		status="release"
-		publication="20130123143052"
+		publication="20130123223052"
 	>
 		<description homepage="">
 		The leveldbjni Windows 64 bit native libraries

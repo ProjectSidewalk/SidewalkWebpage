@@ -4,7 +4,7 @@
 		module="commons-exec"
 		revision="1.1"
 		status="release"
-		publication="20101019141142"
+		publication="20101019211142"
 	>
 		<description homepage="http://commons.apache.org/exec/">
 		A library to reliably execute external processes from within the JVM

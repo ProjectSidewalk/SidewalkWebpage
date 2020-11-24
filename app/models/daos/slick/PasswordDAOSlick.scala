@@ -8,7 +8,6 @@ import scala.concurrent.Future
 import models.daos.slick.DBTableDefinitions._
 import scala.slick.driver.PostgresDriver.simple._
 
-
 /**
  * The DAO to store the password information.
  */

@@ -13,10 +13,7 @@
 
 @main(title, Some("/mobile")) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
@@ -42,7 +39,7 @@
     <div id="mobile-viewer">
         <div id="svv-panorama-holder">
             <div id="svv-panorama-outline">
-                <div id="svv-panorama-0">
+                <div id="svv-panorama">
                     <div id="view-control-layer-mobile" style="z-index: 2">
                         <div id="label-description-box"></div>
                     </div>
@@ -50,13 +47,13 @@
             </div>
         </div>
         <div id="validation-button-holder">
-            <button id="validation-disagree-button-0" class="validation-button">
+            <button id="validation-disagree-button" class="validation-button">
                 ✗ @Messages("validate.mission.complete.disagree")
             </button>
-            <button id="validation-not-sure-button-0" class="validation-button">
+            <button id="validation-not-sure-button" class="validation-button">
                 ? @Messages("validate.mission.complete.not.sure")
             </button>
-            <button id="validation-agree-button-0" class="validation-button">
+            <button id="validation-agree-button" class="validation-button">
                 ✓ @Messages("validate.mission.complete.agree")
             </button>
         </div>
@@ -200,7 +197,6 @@
             param.completedValidations = @completedValidations;
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
-            param.canvasCount = 1;
             param.language = "@lang.code";
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",

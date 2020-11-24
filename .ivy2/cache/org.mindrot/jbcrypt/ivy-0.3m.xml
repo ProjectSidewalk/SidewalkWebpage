@@ -4,7 +4,7 @@
 		module="jbcrypt"
 		revision="0.3m"
 		status="release"
-		publication="20100516194639"
+		publication="20100517024639"
 	>
 		<license name="ISC/BSD License" />
 		<description homepage="http://www.mindrot.org/">

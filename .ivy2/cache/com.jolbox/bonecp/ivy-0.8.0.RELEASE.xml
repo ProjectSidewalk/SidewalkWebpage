@@ -4,7 +4,7 @@
 		module="bonecp"
 		revision="0.8.0.RELEASE"
 		status="release"
-		publication="20131023044844"
+		publication="20131023114844"
 	>
 		<description homepage="">
 		Lightweight connection pool.

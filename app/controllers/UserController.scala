@@ -7,7 +7,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.UserFormats._
 import forms._
 import models.user._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -28,8 +27,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Handles the Sign In action.
-   *
-   * @return The result to display.
    */
   def signIn(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
@@ -54,8 +51,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Handles the Sign Up action.
-   *
-   * @return The result to display.
    */
   def signUp(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
@@ -80,11 +75,8 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Handles the Sign Out action.
-   *
-   * @return The result to display.
    */
   def signOut(url: String) = SecuredAction.async { implicit request =>
-//    val result = Future.successful(Redirect(routes.UserController.index()))
 
     // TODO: Find a better fix for issue #1026
     // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
@@ -96,8 +88,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Handles the 'forgot password' action
-   *
-   * @return The result to display
    */
   def forgotPassword(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
@@ -115,15 +105,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
 
-  def userProfile(username: String) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => Future.successful(Ok(s"Hello $username!"))
-      case None => Future.successful(Redirect("/"))
-    }
-  }
-
-
-  // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp
+  // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
   def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
     val submission = request.body.validate[String]
@@ -142,7 +124,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, submission, timestamp))
         }
-
         Future.successful(Ok(Json.obj()))
       }
     )
