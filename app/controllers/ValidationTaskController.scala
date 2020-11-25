@@ -181,22 +181,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * Gets the metadata for a specific label in the database.
-    *
-    * @param labelId  label_id for this label
-    * @return Label metadata containing GSV metadata and label type
-    */
-  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-    LabelTable.find(labelId) match {
-      case Some(labelPointObj) =>
-        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleLabelForValidation(labelId)
-        val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
-        Future.successful(Ok(labelMetadataJson))
-      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
-    }
-  }
-
-  /**
     * Gets a list of new labels to validate if the mission is complete.
     *
     * @param user
