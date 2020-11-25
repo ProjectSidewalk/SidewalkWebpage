@@ -113,7 +113,7 @@
                             </a>
                         </li>
                         <li>
-                            <a id="developer-api-link-btn" href='@routes.ApplicationController.developer'>@Messages("footer.api")</a>
+                            <a id="navbar-api-btn" href='@routes.ApplicationController.developer'>@Messages("footer.api")</a>
                         </li>
                     </ul>
                 </li>
@@ -179,64 +179,53 @@ $(document).ready(function () {
         });
     }
 
-    // The rest of this script logs whichever button is hit in the navbar
-    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
+    // The rest of this script logs whichever button is hit in the navbar.
+    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>".
     $("#navbar-brand").on('click', function(){
         logWebpageActivity("Click_module=PSLogo");
     });
-
     $("#navbar-sign-in-btn").on('click', function(){
         logWebpageActivity("Click_module=SignIn");
     });
-
     $("#navbar-start-btn").on('click', function(){
         logWebpageActivity("Click_module=StartExploring");
     });
-
     $("#navbar-validate-btn").on('click', function(){
         logWebpageActivity("Click_module=StartValidating");
     });
-
     $("#navbar-guide-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelingGuide");
     });
-    
     $("#navbar-retake-tutorial-btn").on('click', function(){
         logWebpageActivity("Click_module=RetakeTutorial");
     });
-
     $("#navbar-help-btn").on('click', function() {
         logWebpageActivity("Click_module=Help");
     });
 
-    // Following buttons are in the Data Drop Down Menu!!!
+    // The following buttons are in the Data Drop Down Menu!!!
     $("#navbar-results-btn").on('click', function() {
-        logWebpageActivity("Click_module=ResultsMap");
+        logWebpageActivity("Click_module=Results");
     });
-
     $("#navbar-labelmap-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelMap");
     });
-
     $("#navbar-leaderboard-btn").on('click', function() {
         logWebpageActivity("Click_module=Leaderboard");
     }); 
-
-    $("#developer-api-link-btn").on('click', function() {
+    $("#navbar-api-btn").on('click', function() {
         logWebpageActivity("Click_module=SidewalkAPI");
     });
     
-    // Following buttons are in the User Drop Down Menu!!!
+    // The following buttons are in the User Drop Down Menu!!!
     $("#navbar-sign-out-btn").on('click', function() {
         logWebpageActivity("Click_module=SignOut");
     });
-   
     $("#navbar-admin-btn").on('click', function() {
-        logWebpageActivity("Click_module=Admin");
+        logWebpageActivity("Click_module=ToAdmin");
     });
-
     $("#navbar-dashboard-btn").on('click', function() {
-        logWebpageActivity("Click_module=Dashboard")
+        logWebpageActivity("Click_module=ToDashboard")
     });
 });
 </script>

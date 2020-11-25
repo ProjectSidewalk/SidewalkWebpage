@@ -34,7 +34,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           else MissionTable.getDistanceAudited(user.userId)
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Dashboard", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
         Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user), auditedDistance)))
       case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }

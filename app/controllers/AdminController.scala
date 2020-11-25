@@ -42,13 +42,11 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      request.identity match {
-        case Some(user) =>
-          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-          val ipAddress: String = request.remoteAddress
-          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
-        case None =>
-                
+      if (request.identity.nonEmpty) {
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+        val user: User = request.identity.get
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
       }
       Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
     } else {

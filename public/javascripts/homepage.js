@@ -205,7 +205,7 @@ $( document ).ready(function() {
     // Triggered when 'Results Map' in index page is clicked.
     // Logs "Click_module=ResultsMap_location=Index"
     $(".ps-skyline-overlay-btn").on("click", function() {
-        logWebpageActivity("Click_module=ResultsMap_location=Index")
+        logWebpageActivity("Click_module=Results_location=Index")
     });
 
     // Triggered when the city or mapathon links are clicked.
