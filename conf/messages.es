@@ -275,3 +275,6 @@ leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
 leaderboard.header.accuracy = Precisión
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
+leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
+leaderboard.encouragement = 
+leaderboard.encouragement.no.user = 

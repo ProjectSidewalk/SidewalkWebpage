@@ -1223,6 +1223,7 @@ kbd {
     justify-content: center;
     text-align: center;
     align-items: top;
+    width: 100%;
 }
 
 /*

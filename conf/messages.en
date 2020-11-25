@@ -277,3 +277,6 @@ leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
 leaderboard.header.accuracy = Accuracy
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
+leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
+leaderboard.encouragement = Want to make it into the Top 10? Check your <a href= '@routes.UserProfileController.userProfile(user.get.username)'>user dashboard</a>! 
+leaderboard.encouragement.no.user = Sign in to track your progess!
