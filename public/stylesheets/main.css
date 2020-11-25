@@ -1225,11 +1225,20 @@ kbd {
     align-items: center;
 }
 
-.validation-comment-box {
+#validation-button-holder {
+    display: flex;
+    justify-content: space-between;
+}
+
+#validation-comment-holder {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+#validation-label-comment {
     height: 33px;
-    width: 100%;
+    width: 453px;
     background-color: "#F5F5F5";
-    margin-top: 5px;
     color: black;
     border-radius: 5px;
     padding: 5px;
@@ -1238,6 +1247,19 @@ kbd {
     border-color: grey;
     resize: none;    
     outline: none;
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
+#comment-submit-button {
+    height: 33px;
+    width: 80px;
+    background-color: white;
+    margin-right: 2px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+    vertical-align: middle;
 }
 
 /*

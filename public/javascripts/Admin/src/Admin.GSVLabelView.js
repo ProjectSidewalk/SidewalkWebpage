@@ -25,22 +25,27 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px">' +
                         '</div>' +
+                        '<h3>Is this label correct?</h3>' +
                         '<div id="validation-button-holder">' +
-                            '<h3>Is this label correct?</h3>' +
                             '<button id="validation-agree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Agree' +
                             '</button>' +
                             '<button id="validation-disagree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Disagree' +
                             '</button>' +
                             '<button id="validation-not-sure-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Not sure' +
                             '</button>' +
                         '</div>' +
-                        '<textarea id="validation-label-comment" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                        '<div id="validation-comment-holder">' +
+                            '<textarea id="validation-label-comment" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                            '<button id="comment-submit-button" class="submit-button">' +
+                                'Submit' +
+                            '</button>' +
+                        '</div>' +
                         '<div class="modal-footer">' +
                             '<table class="table table-striped" style="font-size:small; margin-bottom: 0">' +
                                 '<tr>' +
