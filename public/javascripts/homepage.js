@@ -105,7 +105,7 @@ function switchToVideo(vidnum){
         document.getElementById("vid1").pause();
     }
 
-    // Reset auto-advance counter
+    // Reset auto-advance counter.
     numTicks = 0;
 }
 
@@ -137,8 +137,7 @@ var requiredTicks = [18, 22, 17];
 var curVideo = 1;
 var numTicks = 0;
 
-// Advances to the next instruction video if the instruction videos are in the user's viewport
-// and enough "ticks" have gone by
+// Advances to next instruction video if the videos are in the user's viewport and enough "ticks" have gone by.
 function autoAdvanceLaptopVideos() {
     numTicks++;
 
@@ -156,57 +155,54 @@ function autoAdvanceLaptopVideos() {
 
 $( document ).ready(function() {
 
-    // Triggered upon clicking tabs in "How you can help" section
+    // Triggered upon clicking tabs in "How you can help" section.
     // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
-    // Gets tab number as a string (i.e. "1", "2", or "3")
     $("#firstnumbox").on('click', function(e){
         switchToVideo(1);
         autoAdvanceLaptop = false;
         logWebpageActivity("Click_module=HowYouCanHelp_tab=1");
     });
-
     $("#secondnumbox").on('click', function(e){
         switchToVideo(2);
         autoAdvanceLaptop = false;
         logWebpageActivity("Click_module=HowYouCanHelp_tab=2");
     });
-
     $("#thirdnumbox").on('click', function(e){
         switchToVideo(3);
         autoAdvanceLaptop = false;
         logWebpageActivity("Click_module=HowYouCanHelp_tab=3");
     });
 
-    // Triggered when images in Collaborators section are clicked
+    // Triggered when images in Collaborators section are clicked.
     // Logs "Click_module=Collaborator_type=<"img">_source=<"makeability" or "ligapeatonal">
     $("#collaborators-container").on('click', 'a', function(e){
         var type = e.currentTarget.id.split('-')[1];
         var source = e.currentTarget.id.split('-')[0];
-        logWebpageActivity("Click_module=Collaborator_type="+type+"_source="+source);
+        logWebpageActivity("Click_module=Collaborator_type=" + type + "_source=" + source);
     });
 
-    // Triggered when links in Press section are clicked
+    // Triggered when links in Press section are clicked.
     // Logs "Click_module=Press_type=<"img" or "text">_source=<"technically," "curbed," or "diamondback">"
     $("#press-container").on('click', '.newslink', function(e){
         var type = e.currentTarget.id.split('-')[1];
         var source = e.currentTarget.id.split('-')[0];
-        logWebpageActivity("Click_module=Press_type="+type+"_source="+source);
+        logWebpageActivity("Click_module=Press_type=" + type + "_source=" + source);
     });
 
-    // Triggered when twitter links are clicked
+    // Triggered when twitter links are clicked.
     // Logs "Click_module=Quotes_author=<"microsoftdesign" or "kpkindc">"
     $("#quotebox-container").on('click', 'a', function(e){
         var author = e.currentTarget.id.split('-')[0];
-        logWebpageActivity("Click_module=Quotes_author="+author);
+        logWebpageActivity("Click_module=Quotes_author=" + author);
     });
 
-    // Triggered when 'Start Exploring' in video container is clicked
+    // Triggered when 'Start Exploring' in video container is clicked.
     // Logs "Click_module=StartExploring_location=Index"
     $(".body-start-btn").on("click", function(){
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
-    // Triggered when 'Results Map' in index page is clicked
+    // Triggered when 'Results Map' in index page is clicked.
     // Logs "Click_module=ResultsMap_location=Index"
     $(".ps-skyline-overlay-btn").on("click", function() {
         logWebpageActivity("Click_module=ResultsMap_location=Index")
@@ -220,11 +216,11 @@ $( document ).ready(function() {
         if (cityName === "mapathonLink"){
             logWebpageActivity("Click_module=mapathonLink");
         }else{
-            logWebpageActivity("Click_module=OtherCityLink_City="+cityName);
+            logWebpageActivity("Click_module=OtherCityLink_City=" + cityName);
         }
     });
 
-    // Setup video lazyPlay
+    // Setup video lazyPlay.
     $(window).on("scroll", onScroll);
 
     vidBanner = $('#vidbanner')[0];
@@ -237,24 +233,24 @@ $( document ).ready(function() {
         $('#vid3')[0]
     ];
 
-    // Auto advance instruction videos
+    // Auto advance instruction videos.
     switchToVideo(DEFAULT_VIDEO);
     setInterval(autoAdvanceLaptopVideos, TICK_SIZE);
 });
 
 var pausedVideos = {};
 
-// Wrappers around lazyPlayVideos()
+// Wrappers around lazyPlayVideos().
 var lazyPlayVideosThrottled = _.throttle(lazyPlayVideos, 300);
 var lazyPlayVideosDebounced = _.debounce(lazyPlayVideos, 600);
 
-// Triggered when the user scrolls
+// Triggered when the user scrolls.
 function onScroll() {
-    lazyPlayVideosThrottled(); // While scrolling, run the check every 300ms
-    lazyPlayVideosDebounced(); // After scrolling, make sure we run the check
+    lazyPlayVideosThrottled(); // While scrolling, run the check every 300ms.
+    lazyPlayVideosDebounced(); // After scrolling, make sure we run the check.
 }
 
-// lazyPlays our main videos
+// lazyPlays our main videos.
 function lazyPlayVideos() {
     lazyPlay(vidBanner, bannerVid);
 
@@ -263,8 +259,7 @@ function lazyPlayVideos() {
     }
 }
 
-// Pauses a video if a certain element is outside of the viewport.
-// Plays the video otherwise.
+// Pauses a video if a certain element is outside of the viewport, plays the video otherwise.
 function lazyPlay(el, video) {
     if (isElementVerticallyVisible(el)) {
         if (!isVideoPlaying(video)) {
@@ -279,12 +274,12 @@ function lazyPlay(el, video) {
     }
 }
 
-// Returns true if the given video is playing
+// Returns true if the given video is playing.
 function isVideoPlaying(video) {
     return !pausedVideos[video.id];
 }
 
-// Returns true if the given element is in the vertical viewport
+// Returns true if the given element is in the vertical viewport.
 function isElementVerticallyVisible(el) {
     var rect = el.getBoundingClientRect();
     var windowHeight = (window.innerHeight || document.documentElement.clientHeight);
