@@ -19,6 +19,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
             weight: 2
         },
         webpageActivity: 'Click_module=UserMap_regionId=',
+        defaultZoomIncrease: -1.0,
         polygonFillMode: 'singleColor',
         zoomControl: true,
         scrollWheelZoom: true,
