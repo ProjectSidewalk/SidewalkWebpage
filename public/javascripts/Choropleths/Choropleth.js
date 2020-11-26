@@ -12,6 +12,7 @@
  * @param params.mouseoutStyle style changes to make when mousing out of a neighborhood.
  * @param params.polygonFillMode one of 'singleColor', 'completionRate', or 'issueCount'.
  * @param params.webpageActivity string showing how to represent the choropleth in logging.
+ * @param params.defaultZoomIncrease {number} amount to increase default zoom, increments of 0.5.
  * @param params.zoomSlider {boolean} whether to include zoom slider.
  * @param params.clickData {boolean} whether clicks should be logged when it takes you to the audit page.
  * @param params.scrollWheelZoom {boolean} whether to allow zooming with the scroll wheel.
@@ -30,6 +31,9 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         'SurfaceProblem': 'Surface Problems',
         'Obstacle': 'Obstacles',
     };
+
+    params.defaultZoomIncrease = params.defaultZoomIncrease ? params.defaultZoomIncrease : 0;
+    mapParamData.default_zoom = mapParamData.default_zoom + params.defaultZoomIncrease;
     
     // Create base map.
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
