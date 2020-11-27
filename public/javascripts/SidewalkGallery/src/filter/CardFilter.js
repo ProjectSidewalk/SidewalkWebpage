@@ -111,13 +111,14 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     function unapplyTags(labelType) {
         if (labelType != null) {
             console.log("tags unapplied");
-            console.log(tagsByType[labelType]);
+            console.log(labelType);
             tagsByType[labelType].unapplyTags();
         }
     }
 
     function clearCurrentTags() {
         uiCardFilter.tags.empty();
+        unapplyTags(status.currentLabelType);
         currentTags = new TagBucket();
     }
 

@@ -57,6 +57,11 @@
 function CardSortMenu(uiCardSortMenu) {
     let self = this;
 
+    let orderCodes = {
+        sort_LeastSevere: 0,
+        sort_MostSevere: 1 
+    }
+
     let status = {
         severity: 1,
         sortType: "none"
@@ -74,8 +79,10 @@ function CardSortMenu(uiCardSortMenu) {
         let sortType = $(this).val();
         setStatus("sortType", sortType);
 
+        console.log("sort clicked");
+
         //TODO: Can we do this without referencing sg namespace?
-        sg.cardContainer.sortCards();
+        sg.cardContainer.sortCards(orderCodes[sortType]);
     }
 
     // TODO: perhaps remove this if no other status added

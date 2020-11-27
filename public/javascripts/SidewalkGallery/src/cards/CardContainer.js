@@ -8,6 +8,12 @@ function CardContainer(uiCardContainer) {
 
     const cardsPerPage = 9;
 
+    const cardPadding = 25;
+
+    let status = {
+        order: 0
+    };
+
     let labelTypeIds = {
         CurbRamp: 1,
         NoCurbRamp: 2,
@@ -28,7 +34,7 @@ function CardContainer(uiCardContainer) {
 
     let pagewidth;
 
-    const cardPadding = 15;
+    //const cardPadding = 15;
 
     let cardsByType = {
         Assorted: null,
@@ -193,6 +199,7 @@ function CardContainer(uiCardContainer) {
 
         const numCards = numCardsInBucket(bucket);
         let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
+        appliedSeverities = appliedSeverities > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
 
         if (numCards < cardsPerPage * currentPage) {
             console.log("grabbed more cards of severity and tag, rendering afterwards");
@@ -242,7 +249,9 @@ function CardContainer(uiCardContainer) {
         let appliedTags = sg.tagContainer.getAppliedTagNames();
 
         if (appliedTags.length > 0) {
+            // TODO: fix this edge case!!!
             let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
+            appliedSeverities = appliedSeverities > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
             fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
                 console.log("got new labels");
                 currentCards = cardsByType[currentLabelType].copy();
@@ -258,10 +267,14 @@ function CardContainer(uiCardContainer) {
     }
 
 
-    function sortCards() {
+    function sortCards(order) {
         // uiCardContainer.holder.empty();
         // currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
         //
+        // render();
+        // console.log("sort cards in card container called");
+        // // Write a sorting query for backend
+        // setStatus("order", order);
         // render();
     }
 
@@ -269,6 +282,11 @@ function CardContainer(uiCardContainer) {
      * Renders current cards
      */
     function render() {
+        // https://stackoverflow.com/questions/11071314/javascript-execute-after-all-images-have-loaded
+        // ^^^
+        // Useful link for loading then showing all iamges at once rather than weird card "shells"
+         
+        // TODO: consider a build query model, discuss with Aroosh
         uiCardContainer.holder.empty();
         pagewidth = uiCardContainer.holder.width();
         const cardWidth = pagewidth/3 - cardPadding;
@@ -280,18 +298,39 @@ function CardContainer(uiCardContainer) {
         let severities = sg.tagContainer.getSeverities();
 
         let noSeverities = !sg.tagContainer.isSeverityApplied();
+
+        let imagesToLoad = [];
+        let imagePromises = [];
         //console.time('render cards');
         for (let i = 0; i < severities.length; i++){
             if (severities[i].getActive() || noSeverities){
                 let subBucket = cardBucket[severities[i].getSeverity()];
                 for (let j = 0; j < subBucket.length; j++) {
                     if (num >= cardsPerPage * currentPage) break;
-                    if (num >= start) subBucket[j].renderSize(uiCardContainer.holder, cardWidth);
+                    if (num >= start) {
+                        imagesToLoad.push(subBucket[j]);
+                        imagePromises.push(subBucket[j].loadImage());
+                    }
+
                     num++;
                 }
             }
         }
-        //console.timeEnd('render cards');
+
+        console.log("images pushed to subbucket: " + imagesToLoad.length);
+        Promise.all(imagePromises).then(() => {
+            console.log("all images loaded");
+            imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
+        });
+        // We can put a call to start the loading gif here and end the gif in the 'then' statement of the promise
+    }
+
+    function setStatus(key, value) {
+        if (key in status) {
+            status[key] = value;
+        } else {
+            throw self.className + ": Illegal status name.";
+        }
     }
 
     /**

@@ -16,10 +16,30 @@
 }
 
 #gallery-validation-button-holder {
-    display: flex;
+    /* display: flex;
     flex-flow: row wrap;
     /* Then we define how is distributed the remaining space */
-    justify-content: space-around;
+    /*justify-content: space-around; */
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    position: absolute;
+    bottom: 61px;
+    left: 5px;
+    right: 5px;
+    height: 20%;
+}
+
+#gallery-card-agree-button {
+    background-color: green;
+}
+
+#gallery-card-disagree-button {
+    background-color: red;
+}
+
+#gallery-card-not-sure-button {
+    background-color:orange;
 }
 
 .label-icon {
@@ -38,13 +58,22 @@ p.label-severity, p.label-tags {
 }
 
 .validation-button {
+    color: white;
     width: 33%;
-  opacity: 0;
-  transition: .3s ease;
+    opacity: 0;
+    transition: .3s ease;
 }
 
 .gallery-card:hover .validation-button {
-  opacity: 1;
+    opacity: 0.5;
+}
+
+.validation-button:hover .validation-button {
+    opacity: 1;
+}
+
+.gallery-card:hover .validation-button:focus {
+    opacity: 1;
 }
 
 

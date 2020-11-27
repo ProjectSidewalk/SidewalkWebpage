@@ -12,7 +12,7 @@ function TagBucket(bucket) {
     }
 
     function unapplyTags() {
-        bucket.forEach(tag => tag.unapply);
+        bucket.forEach(tag => tag.unapply());
     }
 
     function getTags() {

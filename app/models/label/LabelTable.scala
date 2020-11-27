@@ -779,8 +779,7 @@ object LabelTable {
 
   /**
    * Retrieve n random labels of assorted types. 
-   * TODO: Currently, we just select n / (# of label types) labels for each label type. However, we may want to change this to fit the 
-   * actual distribution of label types
+   * TODO: Fix this to work with all label types, not just 3
    *
    * @param n              Number of labels to grab 
    * @param loadedLabelIds Label Ids of labels already grabbed
@@ -824,7 +823,7 @@ object LabelTable {
 
     Logger.debug("got past randomization")
 
-    val labelTypesAsStrings = Set("CurbRamp", "NoCurbRamp", "Obstacle")
+    val labelTypesAsStrings = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other", "Occlusion", "NoSidewalk", "Problem")
 
 // TODO: change from 1 to 3 to the whole range of label types
     for (labelType <- labelTypesAsStrings) {

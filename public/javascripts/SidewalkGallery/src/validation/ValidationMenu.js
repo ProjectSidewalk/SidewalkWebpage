@@ -22,7 +22,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
     let notSureButton = overlay.find("#gallery-card-not-sure-button");
 
     function _init() {
-        // TODO: instantiate UI
+        // TODO: compress this code
         agreeButton.click(function() {
             validateLabel("Agree");
         });

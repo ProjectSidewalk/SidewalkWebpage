@@ -41,7 +41,11 @@ function Card (params, imageUrl) {
         h:0
     }
 
-    let labelIcon;
+    // Icon for label
+    const labelIcon = new Image();
+
+    // The static pano image
+    const panoImage = new Image();
 
     function _init (param) {
         for (let attrName in param) {
@@ -49,19 +53,20 @@ function Card (params, imageUrl) {
         }
 
         let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
-        labelIcon = new Image();
         labelIcon.src = iconUrl.iconImagePath;
         labelIcon.className = "label-icon";
         let iconCoords = getIconCoords();
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
-    
+
         let imageId = "label_id_" + properties.label_id;
+        panoImage.id = imageId;
+        panoImage.className = "static-gallery-image";
 
         // TODO: Can we modularize this in some separate HTML
         //  file so we don't have to use template string?
+        //             <img id="${imageId}" class="static-gallery-image">
         const cardHtml = `
-            <img id="${imageId}" class="static-gallery-image">
             <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
             <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
         `;
@@ -70,6 +75,7 @@ function Card (params, imageUrl) {
         card.className = "gallery-card";
         card.innerHTML = cardHtml;
 
+        card.prepend(panoImage);
         card.appendChild(labelIcon);
 
         validationMenu = new ValidationMenu(card, properties);
@@ -86,26 +92,13 @@ function Card (params, imageUrl) {
         width = w;
         card.style.width = w + "px";
 
-        img = card.querySelector("#label_id_" + properties.label_id);
         imageDim.w = w - 10;
-        imageDim.h = imageDim.w/1.333;        
+        imageDim.h = imageDim.w/(4/3);//1.333;        
 
         let iconCoords = getIconCoords();
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
     }
-
-    // function getImageProcess(src) {
-    //     return new Promise((resolve, reject) => {
-    //         console.log("grabbing image");
-    //         let img = document.getElementById("label_id_" + properties.label_id);
-    //         img.onload = () => resolve;
-    //         img.onerror = reject;
-    //         img.src = src;
-    //         status.imageFetched = true;
-    //         console.log(status.imageFetched);
-    //     });
-    // }
 
     /**
      * This function returns labelId property
@@ -147,52 +140,37 @@ function Card (params, imageUrl) {
     }
 
     /**
+     * Loads the pano image from url
+     */
+    function loadImage() {
+        return new Promise(resolve => {
+            if (!status.imageFetched) {
+                let img = panoImage;
+                img.onload = () => {
+                    status.imageFetched = true;
+                    resolve(true);
+                    //cardContainer.append(card);
+                };
+    
+                img.src = imageUrl;
+            } else {
+                resolve(true);
+            }
+        });
+    }
+
+    /**
      * This method renders the card
      * @param cardContainer
      * @returns {self}
      */
     function render (cardContainer) {
-
-        // let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
-        // let labelIcon = new Image();
-        // labelIcon.src = iconUrl.iconImagePath;
-        // labelIcon.className = "label-icon";
-        // let iconCoords = getIconCoords();
-        // labelIcon.style.left = iconCoords.x + "px";
-        // labelIcon.style.top = iconCoords.y + "px";
-
-        // let imageId = "label_id_" + properties.label_id;
-
-        // // TODO: Can we modularize this in some separate HTML
-        // //  file so we don't have to use template string?
-        // const cardHtml = `
-        //     <img id="${imageId}" class="static-gallery-image" width="${width}" height="${height}">
-        //     <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
-        //     <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
-        // `;
-
-        // card.innerHTML = cardHtml;
-
-        // card.appendChild(labelIcon);
-        // validationMenu = new ValidationMenu(card, properties);
-
-
+        // TODO: should there be a safety check here to make sure pano is loaded?
+        panoImage.width = imageDim.w;
+        panoImage.height = imageDim.h;
         cardContainer.append(card);
 
-        
-
-        if (!status.imageFetched) {
-            let img = document.getElementById("label_id_" + properties.label_id);
-            img.onload = () => {
-                status.imageFetched = true;
-                cardContainer.append(card);
-            };
-
-            img.src = imageUrl;
-        } else {
-            cardContainer.append(card);
-        }
-
+        // TODO: what is this for?
         setStatus("visibility", "visible");
         //card.visiblility = status.visibility;
     }
@@ -234,6 +212,7 @@ function Card (params, imageUrl) {
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.getStatus = getStatus;
+    self.loadImage = loadImage;
     self.render = render;
     self.renderSize = renderSize;
     self.setProperty = setProperty;
