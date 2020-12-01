@@ -335,7 +335,7 @@
                             <p></p>
                         </div>
                         <div style="display:none;">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClickNoText.png")' id="double-click-icon" width="400" alt="Double click icon"/>
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClick.png")' id="double-click-icon" width="400" alt="Double click icon"/>
                             <p id="double-click-overlay-text-1">@Messages("audit.tutorial.double.click.line.1")</p>
                             <p id="double-click-overlay-text-2">@Messages("audit.tutorial.double.click.line.2")</p>
                         </div>
@@ -747,17 +747,16 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
-                <table style="width:100%;">
-                    <tbody><tr> 
-                        <th style="text-align:center; width:25%">@Html(Messages("curb.ramps"))</th>
-                        <th style="text-align:center; width:25%">@Html(Messages("missing.ramps"))</th>
-                        <th style="text-align:center; width:25%">@Html(Messages("obstacles"))  </th>
-                        <th style="text-align:center; width:25%">@Html(Messages("surface.problems"))</th>
+                <table class="tutorial-table">
+                    <tr> 
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("curb.ramps"))</td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("missing.ramps"))</td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("obstacles")) </td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("surface.problems"))</td>
                     </tr>
-                    
-                </tbody></table>
+                </table>
                 <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v3.png")' id="onboarding-example-image-1"
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
 
@@ -793,41 +792,36 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.end.1"))</p>
-                <table style="width:100%;">
-                    <tbody><tr>
-                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.accessible"))</th>
-                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.inaccessible"))</th>
-                    </tr>
-                </tbody></table>
-                <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' id="onboarding-example-image-2"
-                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
-                </p>
                 
-                <table style="width:100%;  font-size:65%;">
-                    <tbody><tr>
-                        <th style="text-align:center; width:50%;">@Html(Messages("audit.tutorial.complete.photoLabel.1"))</th>
-                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.complete.photoLabel.2"))</th>
+                
+                <table class="tutorial-table">
+                    <tr>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.accessible"))</th>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
                     </tr>
-                </tbody></table>
-                <p></p>
-                <table style="width:100%">
-                    <tbody><tr>
-                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.inaccessible"))</th>
-                        <th style="text-align:center;width:50%">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    <tr>
+                        <td colspan=2><img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' id="onboarding-example-image-2"
+                            alt="@Messages("audit.tutorial.examples")"></td>
                     </tr>
-                </tbody></table>
-                <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' id="onboarding-example-image-2"
-                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
-                </p>
-
-                <table style="width:100%; font-size:65%;">
-                    <tbody><tr>
-                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.complete.photoLabel.3"))</th>
-                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.complete.photoLabel.4"))</th>
+                    <tr>
+                        <td class="tutorial-table-cell">@Html(Messages("audit.tutorial.examples.curb.ramp"))</td>
+                        <td class="tutorial-table-cell">@Html(Messages("audit.tutorial.examples.missing.ramp"))</td>
                     </tr>
-                </tbody></table>
+                    <tr height="15px"></tr>
+                    <tr>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    </tr>
+                    <tr>
+                        <td colspan=2><img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' id="onboarding-example-image-2"
+                            alt="@Messages("audit.tutorial.examples")" ></td>
+                    </tr>
+                    <tr>
+                        <td class="tutorial-table-cell">@Html(Messages("audit.tutorial.examples.obstacle"))</td>
+                        <td class="tutorial-table-cell">@Html(Messages("audit.tutorial.examples.surface.problem"))</td>
+                    </tr>
+                </table>
+                
                 <p></p>
                 <p>@Html(Messages("audit.tutorial.end.2"))</p>
             </div>

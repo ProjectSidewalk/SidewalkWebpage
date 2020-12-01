@@ -119,3 +119,19 @@
 #onboarding-example-image-1, #onboarding-example-image-2 {
     width: 980px;
 }
+
+.tutorial-table {
+    width: 100%;
+}
+
+.tutorial-table-cell {
+    text-align:center; 
+}
+
+.tutorial-cell-intro {
+    width: 25%;
+}
+
+.tutorial-cell-end {
+    width: 50%
+}
