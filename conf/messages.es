@@ -14,6 +14,7 @@ thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
+start.exploring = ¡Empieza a explorar!
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -276,5 +277,5 @@ leaderboard.header.distance = Distancia
 leaderboard.header.accuracy = Precisión
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
-leaderboard.encouragement = 
-leaderboard.encouragement.no.user = 
+leaderboard.encouragement = ¿Quieres entrar en el Top 10? 
+leaderboard.encouragement.no.user = ¡Regístrate para seguir tu progreso!

@@ -167,7 +167,7 @@
 
 <h4 style="text-align: center">
     @if(user && user.get.role.getOrElse("") != "Anonymous"){
-        @Html(Messages("leaderboard.encouragement"))
+        @Messages("leaderboard.encouragement") <a href="@routes.AuditController.audit()">@Messages("start.exploring")</a>
     }else{
         @Html(Messages("leaderboard.encouragement.no.user"))
     }
