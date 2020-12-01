@@ -15,16 +15,16 @@ function AdminGSVLabelView(admin) {
 
     function _resetModal() {
         var modalText =
-            '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
-                '<div class="modal-dialog" role="document" style="width: 570px">'+
-                    '<div class="modal-content">'+
+            '<div class="modal fade" id="label-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
+                '<div class="modal-dialog" role="document" style="width: 570px">' +
+                    '<div class="modal-content">' +
                         '<div class="modal-header">'+
                             '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-                            '<h4 class="modal-title" id="myModalLabel"></h4>'+
-                        '</div>'+
-                        '<div class="modal-body">'+
-                            '<div id="svholder" style="width: 540px; height:360px">'+
-                        '</div>'+
+                            '<h4 class="modal-title" id="myModalLabel"></h4>' +
+                        '</div>' +
+                        '<div class="modal-body">' +
+                            '<div id="svholder" style="width: 540px; height:360px">' +
+                        '</div>' +
                         '<div id="validation-button-holder">' +
                             '<h3>Is this label correct?</h3>' +
                             '<button id="validation-agree-button" class="validation-button"' +
@@ -40,40 +40,40 @@ function AdminGSVLabelView(admin) {
                                 'Not sure' +
                             '</button>' +
                         '</div>' +
-                        '<div class="modal-footer">'+
+                        '<div class="modal-footer">' +
                             '<table class="table table-striped" style="font-size:small; margin-bottom: 0">'+
-                                '<tr>'+
-                                    '<th>Label Type</th>'+
-                                    '<td id="label-type-value"></td>'+
-                                '</tr>'+
                                 '<tr>' +
-                                    '<th>Severity</th>'+
-                                    '<td id="severity"></td>'+
-                                '</tr>'+
+                                    '<th>Label Type</th>' +
+                                    '<td id="label-type-value"></td>' +
+                                '</tr>' +
                                 '<tr>' +
-                                    '<th>Temporary</th>'+
-                                    '<td id="temporary"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Tags</th>'+
-                                    '<td colspan="3" id="tags"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Description</th>'+
-                                    '<td colspan="3" id="label-description"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Validations</th>'+
-                                    '<td colspan="3" id="label-validations"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Time Submitted</th>'+
-                                    '<td id="timestamp" colspan="3"></td>'+
-                                '</tr>'+
-                                    '<th>Image Date</th>'+
-                                    '<td id="image-date" colspan="3"></td>'+
-            '                   </tr>'+
-                                '<tr>'+
+                                    '<th>Severity</th>' +
+                                    '<td id="severity"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Temporary</th>' +
+                                    '<td id="temporary"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Tags</th>' +
+                                    '<td colspan="3" id="tags"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Description</th>' +
+                                    '<td colspan="3" id="label-description"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Validations</th>' + 
+                                    '<td colspan="3" id="label-validations"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Time Submitted</th>' +
+                                    '<td id="timestamp" colspan="3"></td>' +
+                                '</tr>' +
+                                    '<th>Image Date</th>' +
+                                    '<td id="image-date" colspan="3"></td>' +
+            '                   </tr>' +
+                                '<tr>' +
                                     '<th>Pano ID</th>' +
                                     '<td id="pano-id" colspan="3"></td>' +
                                 '</tr>';
