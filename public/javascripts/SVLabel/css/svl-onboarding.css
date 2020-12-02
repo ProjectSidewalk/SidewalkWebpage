@@ -135,3 +135,7 @@
 .tutorial-cell-end {
     width: 50%
 }
+
+.tutorial-spacer {
+    padding-bottom: 20px;
+}

@@ -1,3 +1,4 @@
+  
 @import models.user.User
 @import models.region.RegionTable
 @import models.region.NamedRegion
@@ -747,8 +748,16 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
+                <table class="tutorial-table">
+                    <tr> 
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("curb.ramps"))</td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("missing.ramps"))</td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("obstacles")) </td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("surface.problems"))</td>
+                    </tr>
+                </table>
                 <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v2.png")' id="onboarding-example-image-1"
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
 
@@ -784,10 +793,34 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.end.1"))</p>
-                <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
-                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
-                </p>
+                
+                <table class="tutorial-table">
+                    <tr>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.accessible"))</th>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    </tr>
+                    <tr>
+                        <td colspan=2><img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' id="onboarding-example-image-2"
+                            alt="@Messages("audit.tutorial.examples")"></td>
+                    </tr>
+                    <tr >
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.curb.ramp"))</td>
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.missing.ramp"))</td>
+                    </tr>
+                    <tr>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    </tr>
+                    <tr>
+                        <td colspan=2><img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' id="onboarding-example-image-2"
+                            alt="@Messages("audit.tutorial.examples")" ></td>
+                    </tr>
+                    <tr>
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.obstacle"))</td>
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.surface.problem"))</td>
+                    </tr>
+                </table>
+                
                 <p>@Html(Messages("audit.tutorial.end.2"))</p>
             </div>
         </div>
@@ -814,7 +847,6 @@
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
-
 
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
