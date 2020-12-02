@@ -160,7 +160,7 @@
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
 $(document).ready(function () {
-    function logWebpageActivity(activity){
+    function logWebpageActivity(activity) {
         var currentRoute = window.location.pathname;
         var url = "/userapi/logWebpageActivity";
         var async = false;
@@ -181,22 +181,22 @@ $(document).ready(function () {
 
     // The rest of this script logs whichever button is hit in the navbar.
     // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>".
-    $("#navbar-brand").on('click', function(){
+    $("#navbar-brand").on('click', function() {
         logWebpageActivity("Click_module=PSLogo");
     });
-    $("#navbar-sign-in-btn").on('click', function(){
+    $("#navbar-sign-in-btn").on('click', function() {
         logWebpageActivity("Click_module=SignIn");
     });
-    $("#navbar-start-btn").on('click', function(){
+    $("#navbar-start-btn").on('click', function() {
         logWebpageActivity("Click_module=StartExploring");
     });
-    $("#navbar-validate-btn").on('click', function(){
+    $("#navbar-validate-btn").on('click', function() {
         logWebpageActivity("Click_module=StartValidating");
     });
     $("#navbar-guide-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelingGuide");
     });
-    $("#navbar-retake-tutorial-btn").on('click', function(){
+    $("#navbar-retake-tutorial-btn").on('click', function() {
         logWebpageActivity("Click_module=RetakeTutorial");
     });
     $("#navbar-help-btn").on('click', function() {
