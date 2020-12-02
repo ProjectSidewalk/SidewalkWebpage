@@ -30,9 +30,9 @@
                         @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username){
                             <td class="leaderboard-table-font">
                                 <a href='@routes.UserProfileController.userProfile(user.get.username)'>
-                                    <b>
+                                    <u>
                                         @{stat.asInstanceOf[LeaderboardStat].username} 
-                                    </b>
+                                    </u>
                                 </a>
                             </td>
                         }else{
@@ -109,9 +109,9 @@
                             @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username){
                                 <td class="leaderboard-table-font">
                                     <a href='@routes.UserProfileController.userProfile(user.get.username)'>
-                                        <b>
+                                        <u>
                                             @{stat.asInstanceOf[LeaderboardStat].username} 
-                                        </b>
+                                        </u>
                                     </a>
                                 </td>
                             }else{
@@ -168,7 +168,7 @@
 
 <h4 style="text-align: center">
     @if(user && user.get.role.getOrElse("") != "Anonymous"){
-        @Messages("leaderboard.encouragement") <a href="@routes.AuditController.audit()">@Messages("start.exploring")</a>
+        @Messages("leaderboard.encouragement") <a href="@routes.AuditController.audit()"><u>@Messages("start.exploring")</u></a>
     }else{
         @Messages("leaderboard.encouragement.no.user")
     }
