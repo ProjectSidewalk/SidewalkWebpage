@@ -18,6 +18,7 @@ thanks = Thanks!
 username = Username
 loading = Loading...
 loading.encouragement = Let's do this!
+double.click.icon = Double Click Icon
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys

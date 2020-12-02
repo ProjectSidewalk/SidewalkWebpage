@@ -18,6 +18,7 @@ thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
+double.click.icon = Icono de doble clic
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
