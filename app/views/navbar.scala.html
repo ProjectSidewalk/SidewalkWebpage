@@ -179,6 +179,45 @@ $(document).ready(function () {
         });
     }
 
+
+    var isNavbarBuggedTimerInstantiated = false;
+    var clearTime = null;
+    function fixBuggyNavbar() {
+        var _bugged = $("#navbar").hasClass("collapsing");
+        isNavbarBuggedTimerInstantiated = false;
+        if(_bugged) {
+            console.log("BUGGED");
+            $("#navbar").removeClass("collapsing");
+            console.log($("#navbar").height());
+            if($("#navbar").height() != 0) {
+                $("#navbar").addClass("collapse in");
+                $(".navbar-toggle").removeClass
+            } else {
+                $("#navbar").addClass("collapse");
+            }
+        }
+    }
+    $(document).click(function (event) {
+        
+        var clickover = $(event.target);
+        var _opened = $("#navbar").hasClass("navbar-collapse collapse in");
+        if (_opened === true && !clickover.hasClass("navbar-toggle")) {
+            $("button.navbar-toggle").click();
+        }
+
+        //console.log("i was clicked");
+        if(!isNavbarBuggedTimerInstantiated) {
+            clearTime = setTimeout(fixBuggyNavbar, 900); 
+            isNavbarBuggedTimerInstantiated = true;
+        } else {
+            clearTimeout(clearTime);
+            console.log("cleared timer");
+            clearTime = setTimeout(fixBuggyNavbar, 900); 
+        }
+        
+    });
+
+
     // Triggered when 'Sign In' in navbar is clicked
     // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
     $("#sign-in-button").on('click', function(){
