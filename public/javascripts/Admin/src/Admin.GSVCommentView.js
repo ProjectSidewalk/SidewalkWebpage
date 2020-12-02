@@ -21,9 +21,9 @@ function AdminGSVCommentView(admin) {
                         '</div>' +
                         '<div id="button-holder">' + 
                         '</div>' +
+                    '</div>' +
                 '</div>' +
-                '</div>' +
-                '</div>';       
+            '</div>';       
         
         self.modal = $(modalText);
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
