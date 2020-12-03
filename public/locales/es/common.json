@@ -24,6 +24,7 @@
     "percent-complete": "{{percent}}% Completa"
   },
   "label-map": {
-    "add-comment": "Agrega un comentario aquí..."
+    "add-comment": "Agrega un comentario aquí...",
+    "submit": "Enviar"
   }
 }

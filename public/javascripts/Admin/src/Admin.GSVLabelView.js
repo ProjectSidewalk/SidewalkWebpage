@@ -43,7 +43,7 @@ function AdminGSVLabelView(admin) {
                         '<div id="validation-comment-holder">' +
                             '<textarea id="validation-label-comment" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
                             '<button id="comment-submit-button" class="submit-button">' +
-                                'Submit' +
+                                i18next.t('label-map.submit') +
                             '</button>' +
                         '</div>' +
                         '<div class="modal-footer">' +

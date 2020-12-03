@@ -24,6 +24,7 @@
     "percent-complete": "{{percent}}% Complete"
   },
   "label-map": {
-    "add-comment": "Add comment here..."
+    "add-comment": "Add comment here...",
+    "submit": "Submit"
   }
 }
