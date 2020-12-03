@@ -74,7 +74,7 @@ function Admin(_, $, difficultRegionIds) {
     }
 
     function initializeAdminGSVCommentWindow(){
-        $('.showCommentLocation').click(function(e) { 
+        $('.show-comment-location').click(function(e) { 
             e.preventDefault();
             self.adminGSVCommentView.showCommentGSV(this.innerHTML, $(this).data('heading'), $(this).data('pitch'), $(this).data('zoom'), $(this).data('labelId'));
         });
