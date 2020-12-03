@@ -93,11 +93,11 @@
                     </li>
                 }
                 <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
-                    <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
+                    <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                         @Messages("navbar.data")
                         <b class="caret"></b>
                     </a>
-                    <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                    <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
                         <li>
                             <a id="navbar-results-btn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
@@ -108,7 +108,7 @@
                             </li>
                         }
                         <li>
-                            <a id="navbar-leaderboard-btn" href='@routes.ApplicationController.leaderboard' role="menuitem">
+                            <a id="navbar-leaderboard-btn" href='@routes.ApplicationController.leaderboard'>
                             @Messages("navbar.leaderboard")
                             </a>
                         </li>
@@ -121,12 +121,11 @@
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
-                        
-                        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
+                        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
                             @user.get.username
                             <b class="caret"></b>
                         </a>
-                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-label="User options for @user.get.username">
                             <li role="presentation">
                                 <a id="navbar-dashboard-btn" href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
                                     @Messages("navbar.dashboard")
