@@ -168,8 +168,8 @@
 
 <h4 id="leaderboard-encouragement">
     @if(user && user.get.role.getOrElse("") != "Anonymous"){
-        @Messages("leaderboard.encouragement") <a href="/audit"><u>@Messages("start.exploring")</u></a>
+        @Html(Messages("leaderboard.encouragement"))
     }else{
-        <a href="/signUp"><u>@Messages("leaderboard.encouragement.no.user")</u></a>
+        @Html(Messages("leaderboard.encouragement.no.user"))
     }
 </h4>

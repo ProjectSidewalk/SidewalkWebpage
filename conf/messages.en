@@ -14,7 +14,6 @@ thanks = Thanks!
 username = Username
 loading = Loading...
 loading.encouragement = Let's do this!
-start.exploring = Start exploring!
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -279,5 +278,5 @@ leaderboard.header.distance = Distance
 leaderboard.header.accuracy = Accuracy
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
-leaderboard.encouragement = Want to make it into the Top 10? 
-leaderboard.encouragement.no.user = Sign up to track your progess!
+leaderboard.encouragement = Want to make it into the Top 10? <a href="/audit"><u>Start exploring!</u></a>
+leaderboard.encouragement.no.user = <a href="/signUp"><u>Sign up to track your progress!</u></a>
