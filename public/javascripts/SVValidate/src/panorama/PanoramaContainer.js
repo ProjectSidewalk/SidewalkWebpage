@@ -113,6 +113,7 @@ function PanoramaContainer (labelList) {
      */
     function reset () {
         setProperty('progress', 0);
+        loadNewLabelOntoPanorama();
     }
 
     /**
@@ -137,24 +138,6 @@ function PanoramaContainer (labelList) {
     function setProperty (key, value) {
         properties[key] = value;
         return this;
-    }
-
-    /**
-     * Retrieves a label with a given id from the database and adds it to the label list.
-     * NOTE: Currently unused, but may be useful later.
-     * @param labelId   label_id of the desired label.
-     */
-    function setLabelWithId (labelId) {
-        let labelUrl = "/label/geo/" + labelId;
-        $.ajax({
-            url: labelUrl,
-            async: false,
-            dataType: 'json',
-            success: function (labelMetadata) {
-                let label = _createSingleLabel(labelMetadata);
-                labels.push(label);
-            }
-        });
     }
 
     /**

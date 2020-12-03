@@ -57,18 +57,18 @@
                     </div>
                         <br><br>
                     <div class="row" id="numbersrow">
-                        <div class="col-sm-4" onclick="switchToVideo(1); autoAdvanceLaptop = false;">
+                        <div class="col-sm-4">
                             <div id="firstnumbox">
                             <span class="stepnumber" id="number1">01</span><br><span id="word1" class="stepword">@Messages("landing.how.you.help.explore")</span>
                             </div>
                         </div>
 
-                        <div class="col-sm-4" onclick="switchToVideo(2); autoAdvanceLaptop = false;">
+                        <div class="col-sm-4">
                             <div id="secondnumbox">
                             <span class="stepnumber" id="number2">02</span><br><span id="word2" class="stepword">@Messages("landing.how.you.help.find")</span>
                             </div>
                             </div>
-                        <div class="col-sm-4" onclick="switchToVideo(3); autoAdvanceLaptop = false;">
+                        <div class="col-sm-4">
                             <div id="thirdnumbox">
                             <span class="stepnumber" id="number3">03</span><br><span id="word3" class="stepword">@Messages("landing.how.you.help.assess")</span>
                             </div>
@@ -206,18 +206,18 @@
             </div>
             <section class="collaborator-images-container">
                 <div class="collaborator-image">
-                    <a href="https://makeabilitylab.cs.washington.edu/">
+                    <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
                         <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability_Logo'>
                     </a>
                 </div>
                 <div class="collaborator-image">
-                    <a href="https://ligapeatonal.org/">
+                    <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
                         <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
                     </a>
                 </div>
                 @if("Columbus"== cityName){
                     <div class="collaborator-image">
-                        <a href="https://www.meetup.com/OpenColumbus/">
+                        <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
                             <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
                         </a>
                     </div>

@@ -304,7 +304,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(v.label_id)
         |FROM sidewalk.label_validation v
-        |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date""".stripMargin
+        |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date""".stripMargin
     )
     countQuery.list.head
   }
@@ -316,7 +316,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(v.label_id)
         |FROM sidewalk.label_validation v
-        |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day""".stripMargin
+        |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date - interval '1' day""".stripMargin
     )
     countQuery.list.head
   }
@@ -328,7 +328,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT COUNT(v.label_id)
         |FROM sidewalk.label_validation v
-        |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
+        |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
         |   AND v.validation_result = $result""".stripMargin
     )
     countQuery.list.head
@@ -341,7 +341,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT COUNT(v.label_id)
          |FROM sidewalk.label_validation v
-         |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day
+         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date - interval '1' day
          |   AND v.validation_result = $result""".stripMargin
     )
     countQuery.list.head

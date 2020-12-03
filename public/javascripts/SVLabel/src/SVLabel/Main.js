@@ -216,7 +216,7 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        $("#toolbar-onboarding-link").on('click', function () {
+        $("#navbar-retake-tutorial-btn").on('click', function () {
             window.location.replace('/audit?retakeTutorial=true');
         });
 

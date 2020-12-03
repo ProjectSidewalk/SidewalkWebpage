@@ -54,7 +54,7 @@ function Admin(_, $, difficultRegionIds) {
             weight: 2
         },
         polygonFillMode: 'singleColor',
-        scrollWheel: true,
+        scrollWheelZoom: true,
         zoomControl: true,
         mapName: 'label-map',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'

@@ -103,7 +103,6 @@ object AuditTaskTable {
 
   val db = play.api.db.slick.DB
   val auditTasks = TableQuery[AuditTaskTable]
-  val labels = TableQuery[LabelTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
@@ -159,7 +158,7 @@ object AuditTaskTable {
     val countTasksQuery = Q.queryNA[Int](
       """SELECT COUNT(audit_task_id)
         |FROM sidewalk.audit_task
-        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND audit_task.completed = TRUE""".stripMargin
     )
     countTasksQuery.list.head
@@ -172,7 +171,7 @@ object AuditTaskTable {
     val countTasksQuery = Q.queryNA[Int](
       """SELECT COUNT(audit_task_id)
         |FROM sidewalk.audit_task
-        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
         |    AND audit_task.completed = TRUE""".stripMargin
     )
     countTasksQuery.list.head
@@ -250,8 +249,7 @@ object AuditTaskTable {
     } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
 
     val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.leftJoin(labels).on(_._3 === _.auditTaskId)
-      if _labels.deleted === false
+      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithoutDeletedOrOnboarding).on(_._3 === _.auditTaskId)
     } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val tasksWithLabels = for {

@@ -149,14 +149,6 @@ object LabelTable {
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
 
   /**
-    * Find a label.
-    */
-  def find(labelId: Int): Option[Label] = db.withSession { implicit session =>
-    val labelList = labels.filter(_.labelId === labelId).list
-    labelList.headOption
-  }
-
-  /**
     * Find all labels with given regionId and userId.
     */
   def resumeMiniMap(regionId: Int, userId: UUID): List[MiniMapResumeMetadata] = db.withSession { implicit session =>
@@ -199,7 +191,7 @@ object LabelTable {
       """SELECT COUNT(label.label_id)
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND label.deleted = false""".stripMargin
     )
     countQuery.list.head
@@ -216,7 +208,7 @@ object LabelTable {
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
+                         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin
@@ -233,7 +225,7 @@ object LabelTable {
       """SELECT COUNT(label.label_id)
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
         |    AND label.deleted = false""".stripMargin
     )
     countQuery.list.head
@@ -248,7 +240,7 @@ object LabelTable {
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+                         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin
@@ -267,7 +259,7 @@ object LabelTable {
   def countLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val _labels = for {
-      (_tasks, _labels) <- tasks.innerJoin(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+      (_tasks, _labels) <- tasks.innerJoin(labelsWithoutDeletedOrOnboarding).on(_.auditTaskId === _.auditTaskId)
     } yield _labels
     _labels.length.run
   }
@@ -442,6 +434,7 @@ object LabelTable {
         |			) AS lb_big
         |WHERE u.user_id = ?
         |      AND lb1.deleted = FALSE
+        |      AND lb1.tutorial = FALSE
         |      AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
         |      AND lb1.audit_task_id = at.audit_task_id
         |      AND lb1.label_id = lb_big.label_id
@@ -509,28 +502,6 @@ object LabelTable {
     val metadataWithTags: LabelMetadata =
       metadata.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
     labelAndValidationsToMetadata(metadataWithTags, getValidationsFromLabelId(metadataWithTags.labelId))
-  }
-
-  /**
-    * Retrieves a label with a given labelID for validation.
-    *
-    * @param labelId  Label ID for label to retrieve.
-    * @return         LabelValidationMetadata object.
-    */
-  def retrieveSingleLabelForValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
-    val validationLabelsQuery = Q.query[Int, LabelValidationMetadataWithoutTags] (
-      """SELECT lb.label_id, lt.label_type, lb.gsv_panorama_id, lp.heading, lp.pitch,
-        |       lp.zoom, lp.canvas_x, lp.canvas_y, lp.canvas_width, lp.canvas_height,
-        |       ls.severity, lte.temporary, ld.description
-        |FROM label AS lb
-        |INNER JOIN label_type AS lt ON lb.label_type_id = lt.label_type_id
-        |INNER JOIN label_point AS lp ON lb.label_id = label_point.label_id
-        |LEFT JOIN label_severity AS ls ON lb.label_id = ls.label_id
-        |LEFT JOIN label_description AS ld ON lb.label_id = ld.label_id
-        |LEFT JOIN label_temporariness AS lte ON lb.label_id = lte.label_id
-        |WHERE lb.label_id = ?""".stripMargin
-    )
-    validationLabelsQuery(labelId).list.map(label => labelAndTagsToLabelValidationMetadata(label, getTagsFromLabelId(label.labelId))).head
   }
 
   /**
@@ -957,7 +928,7 @@ object LabelTable {
    */
   def selectLocationsOfLabelsByUserId(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
     val _labels = for {
-      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
+      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeletedOrOnboarding on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
