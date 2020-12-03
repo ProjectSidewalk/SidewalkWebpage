@@ -266,7 +266,7 @@ function AdminGSVLabelView(admin) {
         if (self.admin) {
             self.modalLabelId.html(labelMetadata['label_id']);
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
-                labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
+                labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
                 labelMetadata['username'] + "</a>");
         }
     }
