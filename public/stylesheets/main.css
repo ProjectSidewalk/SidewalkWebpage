@@ -1235,7 +1235,7 @@ kbd {
     padding-bottom: 5px;
 }
 
-#validation-label-comment {
+#comment-textarea {
     height: 33px;
     width: 453px;
     background-color: "#F5F5F5";
@@ -1251,7 +1251,7 @@ kbd {
     margin-right: 2px;
 }
 
-#comment-submit-button {
+#comment-button {
     height: 33px;
     width: 80px;
     background-color: white;

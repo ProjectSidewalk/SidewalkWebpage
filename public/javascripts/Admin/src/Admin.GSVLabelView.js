@@ -41,8 +41,8 @@ function AdminGSVLabelView(admin) {
                             '</button>' +
                         '</div>' +
                         '<div id="validation-comment-holder">' +
-                            '<textarea id="validation-label-comment" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                            '<button id="comment-submit-button" class="submit-button">' +
+                            '<textarea id="comment-textarea" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                            '<button id="comment-button" class="submit-button">' +
                                 i18next.t('label-map.submit') +
                             '</button>' +
                         '</div>' +
@@ -128,8 +128,8 @@ function AdminGSVLabelView(admin) {
             _validateLabel("NotSure");
         });
 
-        self.commentButton = self.modal.find("#comment-submit-button");
-        self.commentTextArea = self.modal.find("#validation-label-comment");
+        self.commentButton = self.modal.find("#comment-button");
+        self.commentTextArea = self.modal.find("#comment-textarea");
         self.commentButton.click(function() {
             var comment = self.commentTextArea.val();
             if (comment) {
