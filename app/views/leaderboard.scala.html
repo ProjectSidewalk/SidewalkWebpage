@@ -168,8 +168,8 @@
 
 <h4 id="leaderboard-encouragement">
     @if(user && user.get.role.getOrElse("") != "Anonymous"){
-        @Messages("leaderboard.encouragement") <a href="@routes.AuditController.audit()"><u>@Messages("start.exploring")</u></a>
+        @Messages("leaderboard.encouragement") <a href="/audit"><u>@Messages("start.exploring")</u></a>
     }else{
-        @Messages("leaderboard.encouragement.no.user")
+        <a href="/signUp">@Messages("leaderboard.encouragement.no.user")</a>
     }
 </h4>
