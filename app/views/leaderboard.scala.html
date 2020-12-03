@@ -27,7 +27,7 @@
                         <th class="leaderboard-table-font" scope="row">@{
                             i + 1
                         }</th>
-                        @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username){
+                        @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username) {
                             <td class="leaderboard-table-font">
                                 <a href='@routes.UserProfileController.userProfile(user.get.username)'>
                                     <u>
@@ -35,7 +35,7 @@
                                     </u>
                                 </a>
                             </td>
-                        }else{
+                        }else {
                             <td class="leaderboard-table-font">@{
                                 stat.asInstanceOf[LeaderboardStat].username
                             }</td>
@@ -106,7 +106,7 @@
                             <th class="leaderboard-table-font" scope="row">@{
                                 i + 1
                             }</th>
-                            @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username){
+                            @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username) {
                                 <td class="leaderboard-table-font">
                                     <a href='@routes.UserProfileController.userProfile(user.get.username)'>
                                         <u>
@@ -114,7 +114,7 @@
                                         </u>
                                     </a>
                                 </td>
-                            }else{
+                            }else {
                                 <td class="leaderboard-table-font">@{
                                     stat.asInstanceOf[LeaderboardStat].username
                                 }</td>
@@ -166,13 +166,10 @@
     }
 </div>
 
-<h4 style="text-align: center">
+<h4 id="leaderboard-encouragement">
     @if(user && user.get.role.getOrElse("") != "Anonymous"){
         @Messages("leaderboard.encouragement") <a href="@routes.AuditController.audit()"><u>@Messages("start.exploring")</u></a>
     }else{
         @Messages("leaderboard.encouragement.no.user")
     }
 </h4>
-
-
-

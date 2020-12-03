@@ -1226,6 +1226,10 @@ kbd {
     width: 100%;
 }
 
+#leaderboard-encouragement {
+    text-align: center;
+}
+
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
