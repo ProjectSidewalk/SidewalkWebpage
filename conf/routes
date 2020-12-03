@@ -103,7 +103,8 @@ POST    /task                                                @controllers.TaskCo
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
-POST    /validationLabelMap                                  @controllers.ValidationTaskController.postLabelMap
+POST    /labelmap/validate                                   @controllers.ValidationTaskController.postLabelMapValidation
+POST    /labelmap/comment                                    @controllers.ValidationTaskController.postLabelMapComment
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()

@@ -19,6 +19,9 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 
+import formats.json.CommentSubmissionFormats._
+import java.time.Instant
+
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -131,7 +134,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
    */
-  def postLabelMap = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def postLabelMapValidation = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val userId: UUID = request.identity.get.userId
     var submission = request.body.validate[LabelMapValidationSubmission]
     submission.fold(
@@ -150,6 +153,36 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
           new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.isMobile))
         Future.successful(Ok(Json.obj("status" -> "Success")))
+      }
+    )
+  }
+
+  /**
+    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
+    */
+  def postLabelMapComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[LabelMapValidationCommentSubmission]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val userId: UUID = request.identity.get.userId
+
+        // Get the (or create a) mission_id for this user_id and label_type_id.
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+        val mission: Mission =
+          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
+        
+        val ipAddress: String = request.remoteAddress
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
+        val comment = ValidationTaskComment(0, mission.missionId, submission.labelId, userId.toString,
+          ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+          submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
+
+        val commentId: Int = ValidationTaskCommentTable.save(comment)
+        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
       }
     )
   }

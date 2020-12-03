@@ -128,6 +128,15 @@ function AdminGSVLabelView(admin) {
             _validateLabel("NotSure");
         });
 
+        self.commentButton = self.modal.find("#comment-submit-button");
+        self.commentTextArea = self.modal.find("#validation-label-comment");
+        self.commentButton.click(function() {
+            var comment = self.commentTextArea.val();
+            if (comment) {
+                _submitComment(comment);
+            }
+        });
+
         self.modalTitle = self.modal.find("#myModalLabel");
         self.modalTimestamp = self.modal.find("#timestamp");
         self.modalLabelTypeValue = self.modal.find("#label-type-value");
@@ -201,7 +210,7 @@ function AdminGSVLabelView(admin) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: "/validationLabelMap",
+            url: "/labelmap/validate",
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -210,6 +219,46 @@ function AdminGSVLabelView(admin) {
             },
             error: function (result) {
                 console.error(result);
+            }
+        });
+    }
+
+    /**
+     * Submit a comment as a POST request.
+     * @private
+     */
+    function _submitComment(comment) {
+        var userPov = self.panorama.panorama.getPov();
+        var zoom = self.panorama.panorama.getZoom();
+        var pos = self.panorama.panorama.getPosition();
+
+        let data = {
+            label_id: self.panorama.label.labelId,
+            label_type: self.panorama.label.label_type,
+            comment: comment,
+            gsv_panorama_id: self.panorama.panoId,
+            heading: userPov.heading,
+            pitch: userPov.pitch,
+            zoom: zoom,
+            lat: pos.lat(),
+            lng: pos.lng(),
+        };
+
+        // Submit the comment via POST request.
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/labelmap/comment",
+            type: 'POST',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                self.commentTextArea.val('');
+            },
+            error: function(xhr, textStatus, error){
+                console.error(xhr.statusText);
+                console.error(textStatus);
+                console.error(error);
             }
         });
     }
