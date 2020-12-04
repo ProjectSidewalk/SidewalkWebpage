@@ -1159,7 +1159,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             } else {
                 // Double click to walk. First check whether Street View is available at the point where user has
-                // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
+                // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (50 meters),
                 // then jump to the scene
                 if (!status.disableWalking) {
                     var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),

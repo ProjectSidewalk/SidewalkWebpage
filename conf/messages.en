@@ -93,6 +93,7 @@ audit.ribbon.zoom.out = Zoom Out
 audit.left.ui.sound = Sound
 audit.left.ui.feedback = Feedback
 audit.left.ui.jump = Jump
+audit.left.ui.stuck = Stuck
 audit.left.ui.jump.title = Jump to another location because:
 audit.left.ui.jump.button.explore = I want to explore another area!
 audit.left.ui.jump.button.unavailable = I cannot go the direction you want me to walk.

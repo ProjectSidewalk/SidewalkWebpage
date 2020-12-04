@@ -626,6 +626,7 @@ function Main (params) {
         svl.ui.leftColumn.muteIcon = $("#left-column-mute-icon");
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
+        svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
         svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 

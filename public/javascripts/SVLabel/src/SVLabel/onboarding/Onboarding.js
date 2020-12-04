@@ -103,6 +103,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         ribbon.unlockDisableMode();
 
         $("#left-column-jump-button").addClass('disabled');
+        $("#left-column-stuck-button").addClass('disabled');
 
         compass.hideMessage();
 
