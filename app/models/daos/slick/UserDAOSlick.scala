@@ -487,7 +487,7 @@ object UserDAOSlick {
     // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int)).
     val signInTimesAndCounts =
       WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignIn"))
-        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).min, group.length) }
+        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max, group.length) }
         .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
 
     // Map(user_id: String -> mission_count: Int).
@@ -543,6 +543,9 @@ object UserDAOSlick {
         if (otherValidatedTotal == 0) 0f
         else otherValidatedAgreed * 1.0 / otherValidatedTotal
 
+      if (u.userId == "ccbb092e-d8ba-4717-959f-e35bd768aa2e") {
+        print(signUpTimes.get(u.userId))
+      }
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
