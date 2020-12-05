@@ -543,9 +543,6 @@ object UserDAOSlick {
         if (otherValidatedTotal == 0) 0f
         else otherValidatedAgreed * 1.0 / otherValidatedTotal
 
-      if (u.userId == "ccbb092e-d8ba-4717-959f-e35bd768aa2e") {
-        print(signUpTimes.get(u.userId))
-      }
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
