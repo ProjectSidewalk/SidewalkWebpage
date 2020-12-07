@@ -108,7 +108,7 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
                     // If all else fails, jump to a new street.
                     tracker.push("ModalStuck_GSVNotAvailable");
                     form.skip(currentTask, "GSVNotAvailable");
-                    // TODO show alert saying that we had to move them to a new street.
+                    svl.stuckAlert.stuckSkippedStreet();
                 }
             } else if (status === google.maps.StreetViewStatus.OK) {
                 // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
@@ -120,7 +120,7 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
                     currPos.geometry.coordinates[0]
                 );
                 tracker.push('ModalStuck_Unstuck');
-                svl.stuckAlert.showStuckAlert();
+                svl.stuckAlert.stuckClicked();
             }
         };
 
