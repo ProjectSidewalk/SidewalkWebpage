@@ -120,7 +120,7 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
                     currPos.geometry.coordinates[0]
                 );
                 tracker.push('ModalStuck_Unstuck');
-                // TODO show alert saying that if they are still stuck, they can click again.
+                svl.stuckAlert.showStuckAlert();
             }
         };
 

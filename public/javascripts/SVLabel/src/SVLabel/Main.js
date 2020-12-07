@@ -122,6 +122,7 @@ function Main (params) {
         svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
+        svl.stuckAlert = new StuckAlert(svl.alert);
         svl.navigationModel._mapService = svl.map;
 
         svl.statusField = new StatusField(svl.ui.status);
