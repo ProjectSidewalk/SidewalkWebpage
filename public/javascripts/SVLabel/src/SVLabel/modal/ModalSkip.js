@@ -3,18 +3,9 @@
  * Todo. Too many dependencies. Break down the features.
  * Todo. handling uiLeftColumn (menu on the left side of the interface) should be LeftMenu's responsibility
  * Todo. Some of the responsibilities in `_handleClickOK` method should be delegated to ModalModel or other modules.
- * @param form
- * @param modalModel
- * @param navigationModel
- * @param onboardingModel
- * @param ribbonMenu
- * @param taskContainer
- * @param tracker
- * @param uiLeftColumn
- * @param uiModalSkip
  * @constructor
  */
-function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
+function ModalSkip(form, modalModel, navigationModel, streetViewService, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
     var self = this;
     var status = {
         disableClickOK: true
@@ -37,6 +28,10 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
         self.showSkipMenu();
     };
 
+    function _turfPointToGoogleLatLng(point) {
+        return new google.maps.LatLng(point.geometry.coordinates[1], point.geometry.coordinates[0]);
+    }
+
     /**
      * Callback for clicking stuck button.
      */
@@ -57,7 +52,7 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
         // Remove the part of the street geometry that you've already passed using lineSlice.
         var remainder = turf.lineSlice(currPos, streetEndpoint, streetEdge);
         currPos = turf.point([remainder.geometry.coordinates[0][0], remainder.geometry.coordinates[0][1]]);
-        var gLatLng = new google.maps.LatLng(currPos.geometry.coordinates[1], currPos.geometry.coordinates[0]);
+        var gLatLng = _turfPointToGoogleLatLng(currPos);
 
         // Save the current pano ID as one that you're stuck at.
         if (!stuckPanos.includes(currentPano)) stuckPanos.push(currentPano);
@@ -66,7 +61,9 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
         var MAX_DIST = 10;
         // Set how far to move forward along the street for each new attempt at finding imagery to 10 meters.
         var DIST_INCREMENT = 0.01;
-        // Create temporary vars.
+
+        var GSV_SRC = google.maps.StreetViewSource.OUTDOOR;
+        var GSV_OK = google.maps.StreetViewStatus.OK;
         var line;
         var end;
 
@@ -75,12 +72,12 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
         var callback = function(streetViewPanoramaData, status) {
             // If there is no imagery here that we haven't already been stuck in, either try further down the street,
             // try with a larger radius, or just jump to a new street if all else fails.
-            if (status !== google.maps.StreetViewStatus.OK || stuckPanos.includes(streetViewPanoramaData.location.pano)) {
+            if (status !== GSV_OK || stuckPanos.includes(streetViewPanoramaData.location.pano)) {
 
                 // If there is room to move forward then try again, recursively calling getPanorama with this callback.
                 if (turf.length(remainder) > 0) {
                     // Save the current pano ID as one that doesn't work.
-                    if (status === google.maps.StreetViewStatus.OK) {
+                    if (status === GSV_OK) {
                         stuckPanos.push(streetViewPanoramaData.location.pano);
                     }
                     // Set `currPos` to be `DIST_INCREMENT` further down the street. Use `lineSliceAlong` to find that
@@ -89,28 +86,20 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
                     end = line.geometry.coordinates.length - 1;
                     currPos = turf.point([line.geometry.coordinates[end][0], line.geometry.coordinates[end][1]]);
                     remainder = turf.lineSlice(currPos, streetEndpoint, remainder);
-                    gLatLng = new google.maps.LatLng(currPos.geometry.coordinates[1], currPos.geometry.coordinates[0]);
-                    svl.streetViewService.getPanorama({
-                        location: gLatLng,
-                        radius: MAX_DIST,
-                        source: google.maps.StreetViewSource.OUTDOOR
-                    }, callback);
-                } else if (MAX_DIST === 10 && status !== google.maps.StreetViewStatus.OK) {
+                    gLatLng = _turfPointToGoogleLatLng(currPos);
+                    streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
+                } else if (MAX_DIST === 10 && status !== GSV_OK) {
                     // If we get to the end of the street, increase the radius a bit to try and drop them at the end.
                     MAX_DIST = 25;
-                    gLatLng = new google.maps.LatLng(currPos.geometry.coordinates[1], currPos.geometry.coordinates[0]);
-                    svl.streetViewService.getPanorama({
-                        location: gLatLng,
-                        radius: MAX_DIST,
-                        source: google.maps.StreetViewSource.OUTDOOR
-                    }, callback);
+                    gLatLng = _turfPointToGoogleLatLng(currPos);
+                    streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
                 } else {
                     // If all else fails, jump to a new street.
                     tracker.push("ModalStuck_GSVNotAvailable");
                     form.skip(currentTask, "GSVNotAvailable");
                     svl.stuckAlert.stuckSkippedStreet();
                 }
-            } else if (status === google.maps.StreetViewStatus.OK) {
+            } else if (status === GSV_OK) {
                 // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
                 stuckPanos.push(streetViewPanoramaData.location.pano);
                 // Move them to the new pano we found.
@@ -125,11 +114,7 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
         };
 
         // Initial call to getPanorama with using the recursive callback function.
-        svl.streetViewService.getPanorama({
-            location: gLatLng,
-            radius: MAX_DIST,
-            source: google.maps.StreetViewSource.OUTDOOR
-        }, callback);
+        streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
     }
 
     /**
