@@ -28,8 +28,16 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
         self.showSkipMenu();
     };
 
-    function _turfPointToGoogleLatLng(point) {
+    this._turfPointToGoogleLatLng = function(point) {
         return new google.maps.LatLng(point.geometry.coordinates[1], point.geometry.coordinates[0]);
+    }
+
+    this.enableStuckButton = function() {
+        uiLeftColumn.stuck.on('click', this._handleClickStuck);
+    }
+
+    this.disableStuckButton = function() {
+        uiLeftColumn.stuck.off('click');
     }
 
     /**
@@ -39,6 +47,7 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
         e.preventDefault();
         tracker.push('ModalStuck_ClickStuck');
         svl.modalComment.hide();
+        self.disableStuckButton();
         // TODO show loading icon.
 
         // Grab street geometry and current location.
@@ -52,7 +61,7 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
         // Remove the part of the street geometry that you've already passed using lineSlice.
         var remainder = turf.lineSlice(currPos, streetEndpoint, streetEdge);
         currPos = turf.point([remainder.geometry.coordinates[0][0], remainder.geometry.coordinates[0][1]]);
-        var gLatLng = _turfPointToGoogleLatLng(currPos);
+        var gLatLng = self._turfPointToGoogleLatLng(currPos);
 
         // Save the current pano ID as one that you're stuck at.
         if (!stuckPanos.includes(currentPano)) stuckPanos.push(currentPano);
@@ -86,18 +95,19 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
                     end = line.geometry.coordinates.length - 1;
                     currPos = turf.point([line.geometry.coordinates[end][0], line.geometry.coordinates[end][1]]);
                     remainder = turf.lineSlice(currPos, streetEndpoint, remainder);
-                    gLatLng = _turfPointToGoogleLatLng(currPos);
+                    gLatLng = self._turfPointToGoogleLatLng(currPos);
                     streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
                 } else if (MAX_DIST === 10 && status !== GSV_OK) {
                     // If we get to the end of the street, increase the radius a bit to try and drop them at the end.
                     MAX_DIST = 25;
-                    gLatLng = _turfPointToGoogleLatLng(currPos);
+                    gLatLng = self._turfPointToGoogleLatLng(currPos);
                     streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
                 } else {
                     // If all else fails, jump to a new street.
                     tracker.push("ModalStuck_GSVNotAvailable");
                     form.skip(currentTask, "GSVNotAvailable");
                     svl.stuckAlert.stuckSkippedStreet();
+                    window.setTimeout(function() { self.enableStuckButton(); }, 1000);
                 }
             } else if (status === GSV_OK) {
                 // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
@@ -110,6 +120,7 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
                 );
                 tracker.push('ModalStuck_Unstuck');
                 svl.stuckAlert.stuckClicked();
+                window.setTimeout(function() { self.enableStuckButton(); }, 1000);
             }
         };
 
@@ -244,5 +255,5 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
     uiModalSkip.redirect.bind("click", this._handleClickRedirect);
     uiModalSkip.explore.bind("click", this._handleClickExplore);
     uiLeftColumn.jump.on('click', this._handleClickJump);
-    uiLeftColumn.stuck.on('click', this._handleClickStuck);
+    self.enableStuckButton();
 }
