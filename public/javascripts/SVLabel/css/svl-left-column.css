@@ -26,3 +26,9 @@
     font-weight: bold;
     text-align: center;
 }
+
+#stuck-button-icon {
+    display: block;
+    font-size: 2.5em;
+    margin-bottom: 7px;
+}
