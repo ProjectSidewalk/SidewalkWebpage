@@ -35,7 +35,7 @@ function Main (params) {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         sg.ribbonMenu = new RibbonMenu(sg.ui.ribbonMenu);
-        sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
+        // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
 
