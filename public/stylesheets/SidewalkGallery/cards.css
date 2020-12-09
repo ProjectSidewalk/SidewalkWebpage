@@ -2,10 +2,10 @@
     position: relative;
     display: inline-block;
     border-style: solid;
-    border-width: 2px;
+    border-width: 1px;
     padding: 5px;
     border-radius: 5px;
-    margin: 5px;
+    margin: 2px;
     width: 360px;
     height: auto;
 }
@@ -24,7 +24,7 @@
     flex-flow: row wrap;
     justify-content: center;
     position: absolute;
-    bottom: 61px;
+    bottom: 60px;
     left: 5px;
     right: 5px;
     height: 10%;
