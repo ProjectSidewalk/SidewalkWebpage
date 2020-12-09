@@ -27,19 +27,22 @@
     bottom: 61px;
     left: 5px;
     right: 5px;
-    height: 20%;
+    height: 10%;
 }
 
 #gallery-card-agree-button {
     background-color: green;
+    width: 33%;
 }
 
 #gallery-card-disagree-button {
     background-color: red;
+    width: 34%;
 }
 
 #gallery-card-not-sure-button {
     background-color:orange;
+    width: 33%;
 }
 
 .label-icon {
@@ -59,7 +62,6 @@ p.label-severity, p.label-tags {
 
 .validation-button {
     color: white;
-    width: 33%;
     opacity: 0;
     transition: .3s ease;
 }
