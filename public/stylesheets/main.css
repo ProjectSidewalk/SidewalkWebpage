@@ -1237,7 +1237,7 @@ kbd {
 
 #comment-textarea {
     height: 33px;
-    width: 453px;
+    width: 395px;
     background-color: "#F5F5F5";
     color: black;
     border-radius: 5px;
@@ -1253,8 +1253,8 @@ kbd {
 
 #comment-button {
     height: 33px;
-    width: 80px;
-    background-color: white;
+    width: 138px;
+    background-color: #f9f9f9;
     margin-right: 2px;
     border-radius: 5px;
     border-width: 2px;
