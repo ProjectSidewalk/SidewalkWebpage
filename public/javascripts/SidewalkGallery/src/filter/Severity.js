@@ -35,7 +35,7 @@ function Severity (params){
         toggleActive();
 
         if (active){
-            severityElement.setAttribute("style", "background-color: coral");
+            severityElement.setAttribute("style", "background-color: blue");
         } else {
             severityElement.setAttribute("style", "background-color: none");
         }
