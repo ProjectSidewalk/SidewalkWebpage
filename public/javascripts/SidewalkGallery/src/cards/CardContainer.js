@@ -302,7 +302,7 @@ function CardContainer(uiCardContainer) {
         let imagesToLoad = [];
         let imagePromises = [];
         //console.time('render cards');
-        for (let i = 0; i < severities.length; i++){
+        for (let i = severities.length - 1; i >= 0; i--){
             if (severities[i].getActive() || noSeverities){
                 let subBucket = cardBucket[severities[i].getSeverity()];
                 for (let j = 0; j < subBucket.length; j++) {
