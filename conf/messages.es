@@ -68,7 +68,7 @@ footer.api = Sidewalk API
 footer.connect = CONECTA
 footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
-footer.designed.operated = Project Sidewalk está diseñado y operado por el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a href="http://www.cs.uw.edu/">Universidad de Washington</a>
+footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 
 audit.tutorial.welcome.1 = En <span class="bold">Project Sidewalk,</span> viajarás virtualmente por ciudades completando misiones para encontrar y etiquetar las características de accesibilidad y las problemáticas del entorno urbano, que incluyen: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, problemas en superficie.
@@ -278,3 +278,6 @@ leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
 leaderboard.header.accuracy = Precisión
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
+leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
+leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a href="/audit"><u>¡Empieza a explorar!</u></a>
+leaderboard.encouragement.no.user = ¡<a href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
