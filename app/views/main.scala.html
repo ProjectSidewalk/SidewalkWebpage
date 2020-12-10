@@ -72,15 +72,13 @@
             <meta name="viewport" content="width=device-width, initial-scale=1">
         </head>
     }
+    @if(url.get == "/audit") {
+        <script type="text/javascript">
+                document.getElementsByTagName("body")[0].style.overflow = "hidden";
+                document.getElementById("wrap").style.padding = "0 0 35px";
+        </script>
+    }
     @if(url.get == "/audit" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
-
-        @if(url.get == "/audit") {
-            <script type="text/javascript">
-                    document.getElementsByTagName("body")[0].style.overflow = "hidden";
-                    document.getElementById("wrap").style.padding = "0 0 35px";
-            </script>
-        }
-
         <!-- footer code found in app/views/footer.scala.html -->
         @footer()
     } else {

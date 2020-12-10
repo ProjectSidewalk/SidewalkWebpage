@@ -29,7 +29,6 @@
         </div>
     </div>
     <br class="clear">
-
     <div id="title-bar-holder">
         <!--<button id="back-button" class="button back-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>-->
         <div id="upper-menu-title-bar"></div>
@@ -38,7 +37,6 @@
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
         </button>
     </div>
-
     <div id="mobile-viewer">
         <div id="svv-panorama-holder">
             <div id="svv-panorama-outline">
@@ -65,7 +63,6 @@
             <div id="modal-mission-foreground" class="modal-foreground">
                 @if(user && user.get.role.getOrElse("") != "Anonymous") {
                     <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButtonMobile">@{user.get.username}</button>
-
                 } else {
                     <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButtonMobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
                 }
@@ -114,6 +111,7 @@
                 </div>
             </div>
         </div>
+
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">

@@ -79,7 +79,6 @@
                         <a class="navbar-button navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
                 }
-
                 @if(url.isDefined && url.get != "/validate") {
                     <li class="active navbar-lnk">
                         <a class="navbar-button navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
