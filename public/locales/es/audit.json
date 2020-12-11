@@ -136,7 +136,6 @@
                 "garage-entrance": "entrada a cochera (<tag-underline>g</tag-underline>)",
                 "stairs": "escalones (<tag-underline>r</tag-underline>)",
                 "street-vendor": "comercio ambulante (<tag-underline>d</tag-underline>)",
-                "large-step": "desnive<tag-underline>l</tag-underline>",
                 "bumpy": "textura irregular (<tag-underline>p</tag-underline>)",
                 "uneven-slanted": "dispareja (<tag-underline>u</tag-underline>)",
                 "cracks": "grietas (<tag-underline>k</tag-underline>)",
@@ -150,7 +149,9 @@
                 "gravel-dirt-road": "camino <tag-underline>d</tag-underline>e tierra",
                 "shared-pedestrian-car-space": "<tag-underline>p</tag-underline>lataforma única",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
-                "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús"
+                "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús",
+                "narrow-obstacle": "muy angosta (<tag-underline>w</tag-underline>)",
+                "height-difference": "desnive<tag-underline>l</tag-underline>"
             },
             "tooltip": {
                 "passable": "Transitable",

@@ -352,10 +352,15 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.street-vendor')
                     },
-                    'large step': {
+                    'height difference': {
                         keyNumber: 76,
                         keyChar: 'L',
-                        text: i18next.t('center-ui.context-menu.tag.large-step')
+                        text: i18next.t('center-ui.context-menu.tag.height-difference')
+                    },
+                    'narrow': {
+                        keyNumber: 87,
+                        keyChar: 'W',
+                        text: i18next.t('center-ui.context-menu.tag.narrow-obstacle')
                     }
                 }
             },
@@ -406,6 +411,11 @@ function UtilitiesMisc (JSON) {
                         keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.very-broken')
+                    },
+                    'height difference': {
+                        keyNumber: 76,
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.height-difference')
                     }
                 }
             },
