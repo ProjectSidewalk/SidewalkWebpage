@@ -1551,15 +1551,6 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "parameters": null
             },
             "panoId": panoId,
-            "annotations": [
-                {
-                    "type": "double-click",
-                    "x": -600,
-                    "y": -403,
-                    "width": 100,
-                    "originalPov": {}
-                }
-            ],
             "transition": function () {
                 var completedRate = 36 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
@@ -1747,7 +1738,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "instruction-2": {
             "properties": {
                 "action": "Instruction",
-                "blinks": ["jump"],
+                "blinks": ["stuck"],
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1],
                 "maxLabelCount": 7
@@ -1757,7 +1748,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "fade-direction": "fadeInRight",
                 "arrow": "left",
-                "top": 240,
+                "top": 235,
                 "left": 5
             },
             "panoId": afterWalkPanoId,

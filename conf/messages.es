@@ -18,7 +18,6 @@ thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
-double.click.icon = Icono de doble clic
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -88,8 +87,6 @@ audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Los obstáculos
 audit.tutorial.examples.surface.problem = Las banquetas con <span style="color:orange">problemas en la superficie</span> pueden no ser transitables.
 audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <b>etiqueta los siguientes atributos de accesibilidad, en Google Street View</b>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
 audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
-audit.tutorial.double.click.line.1 = Haz doble
-audit.tutorial.double.click.line.2 = clic aquí
 audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente

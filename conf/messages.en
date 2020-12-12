@@ -18,7 +18,6 @@ thanks = Thanks!
 username = Username
 loading = Loading...
 loading.encouragement = Let's do this!
-double.click.icon = Double Click Icon
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -88,8 +87,6 @@ audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstacles</span
 audit.tutorial.examples.surface.problem = Sidewalks with <span style="color:orange">surface problems</span> may not be navigable
 audit.tutorial.end.1 = Great! You’ve learned how to use the interface! Now, go ahead and <span class="bold">label the following accessibility attributes in Google Street View</span> that significantly affect how wheelchair users move about the city:
 audit.tutorial.end.2 = Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
-audit.tutorial.double.click.line.1 = Double Click
-audit.tutorial.double.click.line.2 = Here
 audit.tutorial.examples = Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.
 
 audit.ribbon.find.and.label = Find and label the following

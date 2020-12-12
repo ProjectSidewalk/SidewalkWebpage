@@ -196,13 +196,13 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
     };
 
     /**
-     * Blink the jump button.
+     * Blink the stuck button.
      * Todo. This should be moved LeftMenu.js
      */
     this.blink = function() {
         self.stopBlinking();
         blinkInterval = window.setInterval(function () {
-            uiLeftColumn.jump.toggleClass("highlight-100");
+            uiLeftColumn.stuck.toggleClass("highlight-100");
         }, 500);
     };
 
@@ -244,7 +244,7 @@ function ModalSkip(form, modalModel, navigationModel, streetViewService, onboard
      */
     this.stopBlinking = function() {
         window.clearInterval(blinkInterval);
-        uiLeftColumn.jump.removeClass("highlight-100");
+        uiLeftColumn.stuck.removeClass("highlight-100");
     };
 
     // Initialize
