@@ -10,11 +10,11 @@
     height: 90px;
     font-size: 8pt;
     border: 2px #ccc solid;
-    padding: 15px 0 0 0;
+    padding: 12px 0 0 0;
 }
 
 #left-column-button-holder img {
-    width: 30px;
+    width: 36px;
 }
 
 #left-column-button-holder .popover-title{
@@ -25,10 +25,4 @@
     font-size: 18px;
     font-weight: bold;
     text-align: center;
-}
-
-#stuck-button-icon {
-    display: block;
-    font-size: 2.5em;
-    margin-bottom: 7px;
 }
