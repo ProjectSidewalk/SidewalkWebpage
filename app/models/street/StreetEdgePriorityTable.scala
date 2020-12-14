@@ -1,22 +1,17 @@
 package models.street
 
 import models.audit.AuditTaskTable
-import models.daos.slick.DBTableDefinitions.UserTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json._
-
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
-import scala.math.exp
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
 case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double){
   /**
-    * Converts a StreetEdgePriority object into the JSON format
-    *
-    * @return
+    * Converts a StreetEdgePriority object into the JSON format.
     */
   def toJSON: JsObject = {
     Json.obj("streetEdgeId" -> streetEdgeId, "priority" -> priority)
@@ -37,7 +32,6 @@ class StreetEdgePriorityTable(tag: slick.lifted.Tag) extends Table[StreetEdgePri
 object StreetEdgePriorityTable {
   val db = play.api.db.slick.DB
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
-  val userTable = TableQuery[UserTable]
 
   implicit val streetEdgePriorityParameterConverter = GetResult(r => {
     StreetEdgePriorityParameter(r.nextInt, r.nextDouble)
@@ -49,65 +43,10 @@ object StreetEdgePriorityTable {
     * @param streetEdgePriority
     * @return
     */
-  def save(streetEdgePriority: StreetEdgePriority) = db.withTransaction { implicit session =>
+  def save(streetEdgePriority: StreetEdgePriority): Int = db.withTransaction { implicit session =>
     val streetEdgePriorityId: Int =
       (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
     streetEdgePriorityId
-  }
-
-  /**
-    * Update the priority attribute of a single streetEdge.
-    *
-    * @param streetEdgeId
-    * @param priority
-    * @return
-    */
-  def updateSingleStreetEdgePriority(streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
-    val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId} yield edg.priority
-    q.update(priority)
-  }
-
-  def getSingleStreetEdgePriority(streetEdgeId: Int): Double = db.withTransaction { implicit session =>
-    streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId}.map(_.priority).list.head
-  }
-
-  def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>
-    streetEdgePriorities.map(_.priority).update(priority)
-  }
-
-  /**
-    * Helper logistic function to convert a double float to a number between 0 and 1.
-    *
-    * @param z
-    * @return
-    */
-  def logisticFunction(z: Double): Double = db.withTransaction { implicit session =>
-    return exp(-z) / (1 + exp(-z))
-  }
-
-  /**
-    * Helper function to normalize the priorityParameter of a list of StreetEdgePriorityParameter objects to between 0
-    * and 1. This uses the min-max normalization method. If there is no variation in the values (i.e. min value = max
-    * value) then just use 1/(number of values).
-    *
-    * @param priorityParamTable
-    * @return
-    */
-  def normalizePriorityParamMinMax(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
-    val maxParam: Double = priorityParamTable.map(_.priorityParameter).max
-    val minParam: Double = priorityParamTable.map(_.priorityParameter).min
-    val numParam: Double = priorityParamTable.length.toDouble
-    maxParam.equals(minParam) match {
-      case false =>
-        priorityParamTable.map {
-          x => x.copy(priorityParameter = (x.priorityParameter - minParam) / (maxParam - minParam))
-        }
-      case true =>
-        // When the max priority parameter value is the same as the min priority parmeter value then normalization will
-        // encounter a divide by zero error. In this case we just assign a normalized priority value of 1/(length of
-        // array) for each street edge.
-        priorityParamTable.map{x => x.copy(priorityParameter = 1/numParam)}
-    }
   }
 
   /**
@@ -177,17 +116,12 @@ object StreetEdgePriorityTable {
     }
   }
 
-  def listAll: List[StreetEdgePriority] = db.withTransaction { implicit session =>
-    streetEdgePriorities.list
-  }
-
-
   /**
     * Functions that generate parameters for street edge priority evaluation.
     */
 
   /**
-    * Returns 1 if good_user_audit_count = 0, o/w 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
+    * Returns 1 if good_user_audit_count = 0, o/w 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count).
     *
     *  - assign each user as "good" or "bad" based on their labeling frequency
     *    - compute total distance audited by each user, and total label count for each user

@@ -68,7 +68,7 @@ footer.api = Sidewalk API
 footer.connect = CONNECT
 footer.email = Email Us
 footer.funding = WE ARE PROUDLY FUNDED BY
-footer.designed.operated = Project Sidewalk is designed and operated by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a href="http://www.cs.uw.edu/">University of Washington</a>
+footer.designed.operated = Project Sidewalk is designed and operated by the <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Version {0} | Last Updated: <span class = "timestamp date">{1}</span>
 
 audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing missions to find and label accessibility features and problems in the environment, including:
@@ -273,10 +273,13 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
-leaderboard.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
 leaderboard.header.accuracy = Accuracy
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
+leaderboard.encouragement = Want to make it into the Top 10? <a href="/audit"><u>Start exploring!</u></a>
+leaderboard.encouragement.no.user = <a href="/signUp"><u>Sign up</u></a> to track your progress!

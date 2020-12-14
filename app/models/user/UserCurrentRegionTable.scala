@@ -4,9 +4,7 @@ import models.region.{NamedRegion, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
-
 import models.mission.MissionTable
-
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -24,7 +22,6 @@ object UserCurrentRegionTable {
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
   val regions = TableQuery[RegionTable]
 
-  val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
   val experiencedUserMileageThreshold = 2.0
@@ -38,9 +35,6 @@ object UserCurrentRegionTable {
 
   /**
     * Checks if the given user is "experienced" (have audited at least 2 miles).
-    *
-    * @param userId
-    * @return
     */
   def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
     MissionTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
@@ -48,8 +42,6 @@ object UserCurrentRegionTable {
 
   /**
     * Select an easy region w/ high avg street priority where the user hasn't completed all missions; assign it to them.
-    * @param userId
-    * @return
     */
   def assignEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     val newRegion: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion(userId)
@@ -59,9 +51,6 @@ object UserCurrentRegionTable {
 
   /**
     * Select a region with high avg street priority, where the user hasn't completed all missions; assign it to them.
-    *
-    * @param userId
-    * @return
     */
   def assignRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
@@ -73,13 +62,10 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Returns the region id that is currently assigned to the given user
-    *
-    * @param userId user id
-    * @return
+    * Returns the region id that is currently assigned to the given user.
     */
   def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
-    // Get rid of deleted regions
+    // Get rid of deleted regions.
     val ucr = for {
       (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
     } yield ucr
@@ -89,9 +75,6 @@ object UserCurrentRegionTable {
 
   /**
     * Check if a user has been assigned to some region.
-    *
-    * @param userId user id
-    * @return
     */
   def isAssigned(userId: UUID): Boolean = db.withSession { implicit session =>
     val _userCurrentRegions = for {
@@ -103,7 +86,7 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Update the current region
+    * Update the current region.
     *
     * Reference:
     * http://slick.typesafe.com/doc/2.1.0/queries.html#updating
@@ -142,7 +125,7 @@ object UserCurrentRegionTable {
     * @param userId user ID
     * @return
     */
-  def delete(userId: UUID) = db.withSession { implicit session =>
+  def delete(userId: UUID): Int = db.withSession { implicit session =>
     userCurrentRegions.filter(_.userId === userId.toString).delete
   }
 }

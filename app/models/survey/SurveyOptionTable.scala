@@ -2,7 +2,6 @@ package models.survey
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class SurveyOption(surveyOptionId: Int, surveyQuestionId: Int, surveyDisplayRank: Option[Int])
@@ -20,10 +19,4 @@ class SurveyOptionTable(tag: Tag) extends Table[SurveyOption](tag, Some("sidewal
 object SurveyOptionTable {
   val db = play.api.db.slick.DB
   val surveyOptions = TableQuery[SurveyOptionTable]
-
-  def save(surveyOption: SurveyOption): Int = db.withTransaction { implicit session =>
-    val surveyOptionId: Int =
-      (surveyOptions returning surveyOptions.map(_.surveyOptionId)) += surveyOption
-    surveyOptionId
-  }
 }

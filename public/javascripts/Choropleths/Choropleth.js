@@ -12,6 +12,7 @@
  * @param params.mouseoutStyle style changes to make when mousing out of a neighborhood.
  * @param params.polygonFillMode one of 'singleColor', 'completionRate', or 'issueCount'.
  * @param params.webpageActivity string showing how to represent the choropleth in logging.
+ * @param params.defaultZoomIncrease {number} amount to increase default zoom, increments of 0.5.
  * @param params.zoomSlider {boolean} whether to include zoom slider.
  * @param params.clickData {boolean} whether clicks should be logged when it takes you to the audit page.
  * @param params.scrollWheelZoom {boolean} whether to allow zooming with the scroll wheel.
@@ -30,6 +31,9 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         'SurfaceProblem': 'Surface Problems',
         'Obstacle': 'Obstacles',
     };
+
+    params.defaultZoomIncrease = params.defaultZoomIncrease ? params.defaultZoomIncrease : 0;
+    mapParamData.default_zoom = mapParamData.default_zoom + params.defaultZoomIncrease;
     
     // Create base map.
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
@@ -54,6 +58,19 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         function reset() {
             choropleth.setView([mapParamData.city_center.lat, mapParamData.city_center.lng], mapParamData.default_zoom);
         }
+    }
+
+    if (params.popupType === 'issueCounts') {
+        $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
+            // Append label counts to region data with map/reduce.
+            let labelData = _.map(polygonRateData, function(region) {
+                let regionLabel = _.find(labelCounts, function(x) { return x.region_id === region.region_id });
+                return regionLabel ? regionLabel : { regionId: region.region_id, labels: {} };
+            });
+            initializeChoropleth(polygonRateData, labelData);
+        });
+    } else {
+        initializeChoropleth(polygonRateData, 'NA');
     }
 
     // Renders the neighborhood polygons, colored by completion percentage.
@@ -196,8 +213,8 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 else if (milesLeft === 0) distanceLeft = '<1';
                 else if (milesLeft === 1) distanceLeft = '1';
                 else distanceLeft = '>1';
-                let activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=' + target;
-                postToWebpageActivity(activity);
+                let activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=audit';
+                logWebpageActivity(activity);
             });
         }
         return polygonData;
@@ -299,19 +316,6 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
     }
 
-    if (params.popupType === 'issueCounts') {
-        $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
-            // Append label counts to region data with map/reduce.
-            let labelData = _.map(polygonRateData, function(region) {
-                let regionLabel = _.find(labelCounts, function(x){ return x.region_id === region.region_id });
-                return regionLabel ? regionLabel : {};
-            });
-            initializeChoropleth(polygonRateData, labelData);
-        });
-    } else {
-        initializeChoropleth(polygonRateData, 'NA');
-    }
-
     /**
      * Takes data and initializes the choropleth with it.
      * 
@@ -329,9 +333,9 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     }
 
     // Makes POST request that logs `activity` in WebpageActivityTable.
-    function postToWebpageActivity(activity) {
+    function logWebpageActivity(activity) {
         $.ajax({
-            async: true,
+            async: false,
             contentType: 'application/json; charset=utf-8',
             url: '/userapi/logWebpageActivity',
             type: 'post',

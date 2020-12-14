@@ -1,6 +1,5 @@
 package controllers
 
-
 import collection.immutable.Seq
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -11,7 +10,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.Inject
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable}
-
 import math._
 import models.region._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}

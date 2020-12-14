@@ -4,7 +4,7 @@
 		module="maven-model-builder"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065101"
+		publication="20140617135101"
 	>
 		<description homepage="">
 		The effective model builder, with inheritance, profile activation, interpolation, ...

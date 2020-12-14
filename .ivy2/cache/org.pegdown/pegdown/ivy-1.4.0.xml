@@ -4,7 +4,7 @@
 		module="pegdown"
 		revision="1.4.0"
 		status="release"
-		publication="20130624115140"
+		publication="20130624185140"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://pegdown.org">

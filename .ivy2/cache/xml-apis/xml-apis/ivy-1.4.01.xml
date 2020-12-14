@@ -4,7 +4,7 @@
 		module="xml-apis"
 		revision="1.4.01"
 		status="release"
-		publication="20110819171111"
+		publication="20110820001111"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<license name="The SAX License" url="http://www.saxproject.org/copying.html" />

@@ -1,6 +1,6 @@
 @import models.user._
 
-@(min: Int,url: Option[String] = Some("/"))(implicit lang: Lang)
+@(min: Int, user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
@@ -8,7 +8,7 @@
 <div class="leaderboard-container">
     <div class="item leaderboard-table">
         <h1 class="leaderboard-header">@Messages("leaderboard.overall.title")</h1>
-        <h5 class="leaderboard-detail">@Messages("leaderboard.detail")</h5>
+        <h5 class="leaderboard-detail">@Messages("leaderboard.overall.detail")</h5>
         <div class="panel panel-default">
             <table class="table table-bordered leaderboard-table-striped">
                 <thead class="leaderboard-table-header">
@@ -27,9 +27,19 @@
                         <th class="leaderboard-table-font" scope="row">@{
                             i + 1
                         }</th>
-                        <td class="leaderboard-table-font">@{
-                            stat.asInstanceOf[LeaderboardStat].username
-                        }</td>
+                        @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username) {
+                            <td class="leaderboard-table-font">
+                                <a href='@routes.UserProfileController.userProfile(user.get.username)'>
+                                    <u>
+                                        @{stat.asInstanceOf[LeaderboardStat].username} 
+                                    </u>
+                                </a>
+                            </td>
+                        }else {
+                            <td class="leaderboard-table-font">@{
+                                stat.asInstanceOf[LeaderboardStat].username
+                            }</td>
+                        }
                         <td class="leaderboard-table-font">@{
                             stat.asInstanceOf[LeaderboardStat].labelCount
                         }</td>
@@ -77,15 +87,12 @@
     @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
             <h1 class="leaderboard-header">@Messages("leaderboard.weekly.title")</h1>
+            <h5>@Messages("leaderboard.weekly.detail")</h5>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboard-table-header">
                         <tr>
-                            <th class="leaderboard-table-font weekly-cell" scope="col">#
-                                <span class="weekly-tooltip">
-                                    @Messages("leaderboard.tooltip.weekly.reset")
-                                </span>
-                            </th>
+                            <th class="leaderboard-table-font" scope="col">#</th>
                             <th class="leaderboard-table-font" scope="col">@Messages("username")</th>
                             <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.labels")</th>
                             <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.missions")</th>
@@ -99,9 +106,19 @@
                             <th class="leaderboard-table-font" scope="row">@{
                                 i + 1
                             }</th>
-                            <td class="leaderboard-table-font">@{
-                                stat.asInstanceOf[LeaderboardStat].username
-                            }</td>
+                            @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username) {
+                                <td class="leaderboard-table-font">
+                                    <a href='@routes.UserProfileController.userProfile(user.get.username)'>
+                                        <u>
+                                            @{stat.asInstanceOf[LeaderboardStat].username} 
+                                        </u>
+                                    </a>
+                                </td>
+                            }else {
+                                <td class="leaderboard-table-font">@{
+                                    stat.asInstanceOf[LeaderboardStat].username
+                                }</td>
+                            }
                             <td class="leaderboard-table-font">@{
                                 stat.asInstanceOf[LeaderboardStat].labelCount
                             }</td>
@@ -148,3 +165,11 @@
         </div>
     }
 </div>
+
+<h4 id="leaderboard-encouragement">
+    @if(user && user.get.role.getOrElse("") != "Anonymous"){
+        @Html(Messages("leaderboard.encouragement"))
+    }else{
+        @Html(Messages("leaderboard.encouragement.no.user"))
+    }
+</h4>

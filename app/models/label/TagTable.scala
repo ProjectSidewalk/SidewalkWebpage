@@ -2,7 +2,6 @@ package models.label
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Tag(tagId: Int, labelTypeId: Int, tag: String)
@@ -24,8 +23,6 @@ object TagTable {
 
   /**
     * Get all records.
-    *
-    * @return
     */
   def selectAllTags(): List[Tag] = db.withSession { implicit session =>
     tagTable.list

@@ -4,7 +4,7 @@
 		module="asm"
 		revision="4.1"
 		status="release"
-		publication="20121014083745"
+		publication="20121014153745"
 	>
 		<description homepage="" />
 		<m:properties__ow2DistMgmtSnapshotsUrl>http://repository.ow2.org/nexus/content/repositories/snapshots</m:properties__ow2DistMgmtSnapshotsUrl>

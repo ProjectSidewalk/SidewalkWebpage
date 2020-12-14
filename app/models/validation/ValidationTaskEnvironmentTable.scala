@@ -3,7 +3,6 @@ package models.validation
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class ValidationTaskEnvironment(validationTaskEnvironmentId: Int, missionId: Option[Int], browser: Option[String],
@@ -35,17 +34,14 @@ class ValidationTaskEnvironmentTable(tag: Tag) extends Table[ValidationTaskEnvir
 }
 
 /**
- * Data access object for the validation_task_environment table
+ * Data access object for the validation_task_environment table.
  */
 object ValidationTaskEnvironmentTable {
   val db = play.api.db.slick.DB
   val validationTaskEnvironments = TableQuery[ValidationTaskEnvironmentTable]
 
   /**
-   * Saves a new validation task environment
-   *
-   * @param env
-   * @return
+   * Saves a new validation task environment.
    */
   def save(env: ValidationTaskEnvironment): Int = db.withTransaction { implicit session =>
     val validationTaskEnvironmentId: Int =

@@ -3,7 +3,6 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -24,17 +23,12 @@ import play.api.libs.json._
 import play.api.{Logger, Play}
 import play.api.Play.current
 import play.api.mvc._
-
 import scala.concurrent.Future
 
-/**
-  * Audit controller
-  */
 class AuditController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
-  // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
       if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
@@ -43,8 +37,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Returns an audit page.
-    *
-    * @return
     */
   def audit(nextRegion: Option[String], retakeTutorial: Option[Boolean]) = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -143,10 +135,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Audit a given region
-    *
-    * @param regionId region id
-    * @return
+    * Audit a given region.
     */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -157,7 +146,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
         WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
 
-        // Update the currently assigned region for the user
+        // Update the currently assigned region for the user.
         region match {
           case Some(namedRegion) =>
             UserCurrentRegionTable.saveOrUpdate(userId, regionId)
@@ -181,7 +170,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
             val nextTempLabelId: Int = LabelTable.nextTempLabelId(mission.currentAuditTaskId)
 
-            // Check if they have already completed an audit mission. We send them to /validate after their first audit
+            // Check if they have already completed an audit mission. We send them to /validate after their first audit.
             // mission, but only after every third audit mission after that.
             val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
@@ -250,12 +239,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             case _ =>
               Logger.error(s"Could not get a region.")
               Future.successful(Redirect("/audit"))
-
           }
         } else {
           Future.successful(Redirect(s"/"))
         }
-
       case None =>
         Future.successful(Redirect(s"/"))
     }
@@ -264,7 +251,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
     * This endpoint produces a JSON response listing the panoIds that have not yet been audited for the logged-in
     * admin user's most recent incomplete CV ground truth audit mission.
-    * @return
     */
   def getCVGroundTruthRemainingPanos() = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -278,15 +264,12 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 "remaining_panos" -> remainingPanoList
               )
               Future.successful(Ok(json_response))
-
             case None =>
               Future.successful(BadRequest(Json.obj("success" -> false, "message" -> "Cannot get remaining panos because there is no active ground truth mission.")))
-
           }
         } else {
           Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "Only admin users can fetch remaining ground truth audit panos")))
         }
-
       case None =>
         Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "Cannot retrieve remaining ground truth panos for anonymous user")))
     }
@@ -295,7 +278,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
     * This endpoint accepts a JSON payload from the client containing a panoId. It will locate the last incomplete
     * CV Ground truth audit mission for the logged-in admin user and mark the submitted panoId as complete.
-    * @return
     */
   def markCVGroundTruthPanoComplete() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val submission = request.body.validate[CVGroundTruthPanoIdSubmission]
@@ -324,7 +306,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             }
           case None =>
             Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "An unknown user attempted to mark a CV ground truth pano as completed")))
-
         }
       }
     )
@@ -334,7 +315,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * This endpoint accepts a JSON payload from the client containing a list of panoIds (along with their lat/lng).
     * It will then create a new CV Ground Truth audit mission and save it to the database. It will also add a row
     * to the ground truth mission status table for each panoId and set their statuses to incomplete.
-    * @return
     */
   def createGroundTruthAuditMission() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[CVGroundTruthPanoidListSubmission]
@@ -365,10 +345,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Audit a given street
-    *
-    * @param streetEdgeId street edge id
-    * @return
+    * Audit a given street.
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -427,12 +404,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Drops a researcher at a given location on the given street edge.
-    *
-    * @param streetEdgeId
-    * @param lat
-    * @param lng
-    * @param panoId
-    * @return
     */
   def auditLocation(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -486,9 +457,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method handles a comment POST request. It parse the comment and insert it into the comment table
-    *
-    * @return
+    * This method handles a comment POST request. It parse the comment and insert it into the comment table.
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[CommentSubmission]
@@ -520,8 +489,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method handles a POST request in which user reports a missing Street View image
-    * @return
+    * This method handles a POST request in which user reports a missing Street View image.
     */
   def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[NoStreetView]

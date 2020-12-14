@@ -10,7 +10,7 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="brand navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
@@ -71,51 +71,50 @@
                 }
                 @if(url.isDefined && url.get == "/audit") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
+                        <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/audit") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
                 }
                 <li class="active navbar-lnk">
-                    <a class="navbar-button navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
-
+                    <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                 </li>
                 @if(url.isDefined && url.get == "/audit") {
                     <li class = "active navbar-lnk">
-                        <a class="navbar-button" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
+                        <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
 
                 <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
-                    <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
+                    <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                         @Messages("navbar.data")
                         <b class="caret"></b>
                     </a>
-                    <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                    <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
                         <li>
-                            <a href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                            <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
                         @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
                             <li>
-                                <a href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                             </li>
                         }
                         <li>
-                            <a href='@routes.ApplicationController.leaderboard' role="menuitem">
+                            <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>
                             @Messages("navbar.leaderboard")
                             </a>
                         </li>
                         <li>
-                            <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a>
+                            <a id="navbar-api-btn" role="menuitem" href='@routes.ApplicationController.developer' aria-label="Developer A.P.I.">@Messages("footer.api")</a>
                         </li>
                     </ul>
                 </li>
@@ -123,29 +122,29 @@
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
-                        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
+                        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
                             @user.get.username
                             <b class="caret"></b>
                         </a>
-                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-label="User options for @user.get.username">
                             <li role="presentation">
-                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
+                                <a id="navbar-dashboard-btn" role="menuitem" href='@routes.UserProfileController.userProfile(user.get.username)'>
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
-                                    <a href='@routes.AdminController.index' role="menuitem">
+                                    <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminController.index'>
                                         @Messages("navbar.admin")
                                     </a>
                                 </li>
                             }
                             <li role="presentation">
-                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
+                                <a id="navbar-sign-out-btn" role="button" href='@routes.UserController.signOut(url.getOrElse("/"))'>@Messages("navbar.signout")</a>
                             </li>
                         </ul>
                     } else {
-                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
             </ul>
@@ -161,10 +160,10 @@
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
 $(document).ready(function () {
-    function logWebpageActivity(activity){
+    function logWebpageActivity(activity) {
         var currentRoute = window.location.pathname;
         var url = "/userapi/logWebpageActivity";
-        var async = true;
+        var async = false;
         var activityToSend = activity + "_location=Navbar_route=" + currentRoute;
         $.ajax({
             async: async,
@@ -180,69 +179,53 @@ $(document).ready(function () {
         });
     }
 
-    // Triggered when 'Sign In' in navbar is clicked
-    // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
-    $("#sign-in-button").on('click', function(){
-        logWebpageActivity("Click_module=SignIn");
-    });
-
-    // // Triggered when 'Start Exploring' in navbar is clicked
-    $(".navbar-start-btn").on('click', function(){
-        logWebpageActivity("Click_module=StartExploring");
-    });
-
-    // // Triggered when 'Start Validating' in navbar is clicked.
-    $(".navbar-validate-btn").on('click', function(){
-        logWebpageActivity("Click_module=StartValidating");
-    });
-
-    // // Triggered when 'How to Label' in navbar is clicked.
-    $(".navbar-guide-btn").on('click', function() {
-        logWebpageActivity("Click_module=LabelingGuide");
-    });
-
-    // // Triggered when 'Results' in navbar is clicked.
-    $(".navbarResultsBtn ").on('click', function(){
-        logWebpageActivity("Click_module=Results");
-    });
-
-    // // Triggered when 'Label Map' in navbar is clicked.
-    $(".navbarLabelMapBtn ").on('click', function(){
-        logWebpageActivity("Click_module=LabelMap");
-    });
-
-    // Triggered when links that are only shown on the audit page are clicked.
-    // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
-    var helpText = "@Messages("navbar.help")";
-    var howtoText = "@Messages("navbar.howto")";
-    @if(url.isDefined && url.get == "/audit") {
-        $(".navbar-lnk").on('click', function (e) {
-            var activity = "Click_module=RetakeTutorial";
-            if (e.currentTarget.innerHTML.includes(helpText)) {
-                activity = "Click_module=Help";
-            } else if (e.currentTarget.innerHTML.includes(howtoText)) {
-                activity = "Click_module=LabelingGuide";
-            }
-            logWebpageActivity(activity);
-        });
-    }
-
-    // Triggered when Project Sidewalk logo on navbar is clicked
-    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
-    $("#brand").on('click', function(){
+    // The rest of this script logs whichever button is hit in the navbar.
+    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>".
+    $("#navbar-brand").on('click', function() {
         logWebpageActivity("Click_module=PSLogo");
     });
+    $("#navbar-sign-in-btn").on('click', function() {
+        logWebpageActivity("Click_module=SignIn");
+    });
+    $("#navbar-start-btn").on('click', function() {
+        logWebpageActivity("Click_module=StartExploring");
+    });
+    $("#navbar-validate-btn").on('click', function() {
+        logWebpageActivity("Click_module=StartValidating");
+    });
+    $("#navbar-guide-btn").on('click', function() {
+        logWebpageActivity("Click_module=LabelingGuide");
+    });
+    $("#navbar-retake-tutorial-btn").on('click', function() {
+        logWebpageActivity("Click_module=RetakeTutorial");
+    });
+    $("#navbar-help-btn").on('click', function() {
+        logWebpageActivity("Click_module=Help");
+    });
 
-    // Triggered when items in the user menu are clicked
-    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/help|...>""
-    $("#nav-user-menu").on('click', function(e){
-        var activity = "Click_module=SignOut";
-        if(e.target.innerText.includes("Admin")){
-            activity = "Click_module=ToAdmin";
-        }else if(e.target.innerText.includes("dashboard")){
-            activity = "Click_module=ToDashboard";
-        }
-        logWebpageActivity(activity);
+    // The following buttons are in the Data drop down menu.
+    $("#navbar-results-btn").on('click', function() {
+        logWebpageActivity("Click_module=Results");
+    });
+    $("#navbar-labelmap-btn").on('click', function() {
+        logWebpageActivity("Click_module=LabelMap");
+    });
+    $("#navbar-leaderboard-btn").on('click', function() {
+        logWebpageActivity("Click_module=Leaderboard");
+    }); 
+    $("#navbar-api-btn").on('click', function() {
+        logWebpageActivity("Click_module=SidewalkAPI");
+    });
+    
+    // The following buttons are in the User drop down menu.
+    $("#navbar-sign-out-btn").on('click', function() {
+        logWebpageActivity("Click_module=SignOut");
+    });
+    $("#navbar-admin-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToAdmin");
+    });
+    $("#navbar-dashboard-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToDashboard")
     });
 });
 </script>
@@ -535,5 +518,5 @@ $(document).ready(function () {
         <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
             @Messages("navbar.signin")
         </a>
-    </template>`
+    </template>
 }

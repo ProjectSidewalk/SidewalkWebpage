@@ -1,14 +1,10 @@
 package models.audit
 
-import java.util.UUID
-
-import models.label._
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
-
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -57,7 +53,7 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
 }
 
 /**
- * Data access object for the audit_task_environment table
+ * Data access object for the audit_task_interaction table.
  */
 object AuditTaskInteractionTable {
   implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
@@ -103,45 +99,18 @@ object AuditTaskInteractionTable {
     )
   })
 
-
   val db = play.api.db.slick.DB
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
-  val labels = TableQuery[LabelTable]
-  val labelPoints = TableQuery[LabelPointTable]
-
-
-
-  def save(interaction: AuditTaskInteraction): Int = db.withTransaction { implicit session =>
-    val interactionId: Int =
-      (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)).insert(interaction)
-    interactionId
-  }
 
   /**
     * Inserts a sequence of interactions into the audit_task_interaction table.
-    *
-    * @param interactions
-    * @return
     */
   def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
     (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) ++= interactions
   }
 
   /**
-    * Select all audit task interaction records of the specified action
-    * @param actionType
-    * @return
-    */
-  def selectAuditTaskInteractionsOfAnActionType(actionType: String): List[AuditTaskInteraction] = db.withTransaction { implicit session =>
-    auditTaskInteractions.filter(_.action === actionType).list
-  }
-
-  /**
     * Get a list of audit task interactions with corresponding labels.
-    * It would be faster to do this with a raw sql query. Update if too slow.
-    *
-    * @param auditTaskId
-    * @return
     */
   def selectAuditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
     val selectInteractionWithLabelQuery = Q.query[Int, InteractionWithLabel](
@@ -182,13 +151,8 @@ object AuditTaskInteractionTable {
     interactions
   }
 
-
-  // Helper methods
-
   /**
-    * This method takes an output of the method `selectAuditInteractionsWithLabels` and
-    * returns a GeoJSON feature collection
-    * @param interactions
+    * This method takes an output of the method `selectAuditInteractionsWithLabels` and returns GeoJSON.
     */
   def auditTaskInteractionsToGeoJSON(interactions: List[InteractionWithLabel]): JsObject = {
     val features: List[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>

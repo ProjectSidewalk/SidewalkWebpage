@@ -4,7 +4,7 @@
 		module="leveldbjni-linux64"
 		revision="1.5"
 		status="release"
-		publication="20130123141810"
+		publication="20130123221810"
 	>
 		<description homepage="">
 		The leveldbjni linux 64 native libraries

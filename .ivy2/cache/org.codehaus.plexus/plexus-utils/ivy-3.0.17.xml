@@ -4,7 +4,7 @@
 		module="plexus-utils"
 		revision="3.0.17"
 		status="release"
-		publication="20140127071020"
+		publication="20140127151020"
 	>
 		<description homepage="http://plexus.codehaus.org/plexus-utils">
 		A collection of various utility classes to ease working with strings, files, command lines, XML and

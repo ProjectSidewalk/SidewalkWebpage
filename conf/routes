@@ -22,7 +22,6 @@ GET     /labelingGuide/obstacles                             @controllers.Applic
 GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
 GET     /mobile                                              @controllers.ValidationController.mobileValidate
-GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
 
@@ -96,7 +95,6 @@ POST    /audit/groundtruth/markComplete                      @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
-GET     /rapidValidate                                       @controllers.ValidationController.rapidValidate
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
@@ -118,7 +116,6 @@ GET     /label/currentMission                                @controllers.LabelC
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
-GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
@@ -151,7 +148,6 @@ GET     /v1/access/score/streets                             @controllers.Projec
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
-GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
 
 # Survey
 GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey

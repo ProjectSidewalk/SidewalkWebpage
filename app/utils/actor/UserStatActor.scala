@@ -2,11 +2,9 @@ package utils.actor
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
-
 import akka.actor.{Actor, Cancellable, Props}
 import models.user.UserStatTable
 import play.api.Logger
-
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
@@ -70,5 +68,4 @@ object UserStatActor {
   val Name = "user-stats-actor"
   def props = Props(new UserStatActor)
   case object Tick
-
 }

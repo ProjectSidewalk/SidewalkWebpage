@@ -7,9 +7,7 @@ import models.AuthToken
 import play.api.db.slick._
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions._
-import play.Logger
 import models.daos.AuthTokenDAO
-
 import scala.concurrent.Future
 
 class AuthTokenDAOSlick extends AuthTokenDAO {
@@ -28,7 +26,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
    * @param id The unique token ID.
    * @return The found token or None if no token for the given ID could be found.
    */
-  def find(id: UUID) = {
+  def find(id: UUID): Future[Option[AuthToken]] = {
     val hashedTokenID = sha256Hasher.digest(id.toString.getBytes)
     DB withSession { implicit session =>
       Future.successful {
@@ -41,10 +39,10 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   }
 
   /**
-   * Removes tokens that have expired before specified Timestamp
+   * Removes tokens that have expired before specified Timestamp.
    *
-   * @param dateTime The current date time.
-   * @return A future to wait for process to be completed
+   * @param currentTime The current Timestamp.
+   * @return A future to wait for process to be completed.
    */
   def removeExpired(currentTime: Timestamp) = {
     DB withSession { implicit session =>
@@ -60,7 +58,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
    * @param token The token to save.
    * @return The saved token.
    */
-  def save(token: AuthToken) = {
+  def save(token: AuthToken): Future[AuthToken] = {
     DB withSession { implicit session =>
       Future.successful {
         val dbAuthToken = DBAuthToken(token.id, token.userID.toString, token.expiry)

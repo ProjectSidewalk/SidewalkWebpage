@@ -4,7 +4,7 @@
 		module="junit-interface"
 		revision="0.11-RC1"
 		status="release"
-		publication="20140312083445"
+		publication="20140312153445"
 	>
 		<license name="Two-clause BSD-style license" url="http://github.com/sbt/junit-interface/blob/master/LICENSE.txt" />
 		<description homepage="http://github.com/sbt/junit-interface/">

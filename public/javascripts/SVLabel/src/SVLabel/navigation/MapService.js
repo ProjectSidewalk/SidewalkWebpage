@@ -230,6 +230,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('disableDefaultUI', true);
             svl.panorama.set('linksControl', true);
             svl.panorama.set('navigationControl', false);
+            svl.panorama.set('showRoadLabels', true);
             svl.panorama.set('panControl', false);
             svl.panorama.set('scrollwheel', false);
             svl.panorama.set('zoomControl', false);
