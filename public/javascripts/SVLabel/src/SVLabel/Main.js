@@ -337,8 +337,9 @@ function Main (params) {
                 onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
                 svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
-                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.canvas, svl.ui.canvas,
-                svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
+                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.canvas,
+                svl.ui.canvas, svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.ui.leftColumn,
+                svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
     }

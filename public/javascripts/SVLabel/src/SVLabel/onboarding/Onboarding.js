@@ -37,7 +37,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
                     neighborhoodModel, onboardingModel, onboardingStates,
                     ribbon, statusField, statusModel, storage, taskContainer,
-                    tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
+                    tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
     var tutorialPC;
@@ -102,8 +102,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         ribbon.unlockDisableMode();
 
-        $("#left-column-jump-button").addClass('disabled');
-        $("#left-column-stuck-button").addClass('disabled');
+        uiLeft.jump.addClass('disabled');
+        uiLeft.stuck.addClass('disabled');
 
         compass.hideMessage();
 

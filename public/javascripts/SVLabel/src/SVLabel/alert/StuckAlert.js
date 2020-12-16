@@ -1,5 +1,5 @@
 /*
- * Creates the alerts you may see when clicking the Skip button.
+ * Creates the alerts you may see when clicking the Stuck button.
  */
 function StuckAlert(alertHandler) {
     var that = this;

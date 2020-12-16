@@ -188,8 +188,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // http://blog.mridey.com/2010/05/controls-in-maps-javascript-api-v3.html
         // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
-        console.log('_init()');
-        console.log('params.lat: ' + params.lat);
         if (params.lat && params.lng) {
             fenway = new google.maps.LatLng(params.lat, params.lng);
             panoramaOptions = {
@@ -214,7 +212,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             return null;
         });
 
-        console.log('svl.panorama: ' + svl.panorama);
         if (svl.panorama) {
             svl.panorama.set('addressControl', false);
             svl.panorama.set('clickToGo', false);
