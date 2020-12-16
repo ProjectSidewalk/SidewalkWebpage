@@ -54,14 +54,14 @@
         "adjust-heading-angle-5": "¡Buen trabajo! Casi terminamos. Ahora aprendamos a caminar. <span class=\"bold\">Agarra y arrastra la imagen de Google Street View.</span>",
         "walk-1": "¡Muy bien! Ahora para descubrir por dónde caminar sigue la línea <span class=\"bold\" style=\"color: #ff0000;\">roja</span> de este mini mapa.",
         "walk-2": "También te guiaremos a través de los <span class=\"bold\">mensajes de navegación</span> que se muestran en esta área.",
-        "walk-3": "Ahora, ¡demos un paso! <span class=\"bold\">Haz doble clic en la calle</span> en la dirección que deseas moverte. En este caso, haz doble clic en el círculo de abajo.",
+        "walk-3": "Ahora sí, avancemos! <span class=\"bold\">Haz clic en la flecha</span> que apunta en la dirección que quieres avanzar.",
         "walk-4": "¡Excelente! Acabas de avanzar un paso por la calle. Las partes visitadas de una ruta están marcadas en <span class= \"bold\" style=\"color: #3c763d;\">verde</span> en el mini mapa.",
         "walk-5-1": "Ahora puedes buscar más problemas en esta ubicación. En este caso, observa cómo hay un cruce peatonal <span class=\"bold\">sin rampas</span>.",
         "walk-5-2": "¡Si! Veo las rampas que faltan.",
         "walk-6-1": "Normalmente, etiquetarías las áreas debajo de las flechas parpadeantes con rampa peatonal ausente ",
         "walk-6-2": "Sin embargo, queremos que empieces con misiones reales así que <span class=\"bold\">terminemos el tutorial.</span>",
         "instruction-1": "¡Puedes seguir tus etiquetas en el mini mapa!",
-        "instruction-2": "Finalmente, si te quedas atascado mientras caminas, puedes usar el <span class=\"bold\">botón de Saltar</span> para moverte a una ubicación diferente.",
+        "instruction-2": "Finalmente, si te quedas atascado mientras caminas, puedes usar el <span class=\"bold\">botón de Atorado</span> para moverte a una ubicación diferente.",
         "common": {
             "label-too-far": "¡Uy! Tu etiqueta está demasiado lejos. Quitemos la etiqueta mal colocada. <span class=\"bold\">Desplázate sobre la etiqueta y haz clic en el icono eliminar</span>",
             "re-label": "¡Bueno! Ahora, etiquetemos de nuevo. <span class=\"bold\">Haz clic en el botón \"{{label_type}}\"</span> ubicado en la parte superior.",
@@ -195,6 +195,8 @@
         "label-shortcuts-Obstacle": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta del Obstáculo.",
         "label-shortcuts-SurfaceProblem": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta del Problema en Superficie.",
         "label-shortcuts-NoSidewalk": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Hay Banqueta.",
-        "label-shortcuts-Occlusion": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Puedo Ver la Banqueta."
+        "label-shortcuts-Occlusion": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Puedo Ver la Banqueta.",
+        "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
+        "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle."
     }
 }
