@@ -103,6 +103,7 @@ audit.ribbon.zoom.out = Alejar
 
 audit.left.ui.sound = Sonido
 audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+audit.left.ui.stuck = Atorado
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
 audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!

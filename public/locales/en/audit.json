@@ -54,14 +54,14 @@
         "adjust-heading-angle-5": "Great Job! We are almost done. Now let’s learn how to walk. <span class=\"bold\">Grab and drag the Street View image</span>.",
         "walk-1": "Good! Now to figure out where to walk, you will follow the <span class=\"bold\" style=\"color: #ff0000;\">red</span> line on this mini map.",
         "walk-2": "We will also guide you via <span class=\"bold\">navigation messages</span> shown in this area.",
-        "walk-3": "Now let’s actually take a step! <span class=\"bold\">Double click on the street</span> in the direction you want to move. In this case, double click in the circle below.",
+        "walk-3": "Now let's actually move forward! <span class=\"bold\">Click on the arrow</span> that points in the direction you want to move.",
         "walk-4": "Great! You just moved one step down the street. Visited parts of a route are marked in <span class= \"bold\" style=\"color: #3c763d;\">green</span> in the mini map.",
         "walk-5-1": "Now you can look for more issues at this location. In this case, notice how there is a crosswalk with <span class=\"bold\">no curb ramps</span>.",
         "walk-5-2": "Yes! I see the missing curb ramps.",
         "walk-6-1": "Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ",
         "walk-6-2": "However, we want to get you started on actual missions, so let’s <span class=\"bold\">finish this tutorial!</span>",
         "instruction-1": "You can track your labels in the mini map!",
-        "instruction-2": "Finally, if you get stuck while walking, you can use the <span class=\"bold\">Jump button</span> to move to a different location.",
+        "instruction-2": "Finally, if you get stuck while walking, you can use the <span class=\"bold\">Stuck button</span> to move to a different location.",
         "common": {
             "label-too-far": "Oops! Your label is too far away. Let's remove the misplaced label. <span class=\"bold\">Hover over the label and click the delete icon</span>",
             "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> from above.",
@@ -195,6 +195,8 @@
         "label-shortcuts-Obstacle": "You can also press the <kbd>{{key}}</kbd> key for selecting the Obstacle label.",
         "label-shortcuts-SurfaceProblem": "You can also press the <kbd>{{key}}</kbd> key for selecting the Surface Problem label.",
         "label-shortcuts-NoSidewalk": "You can also press the <kbd>{{key}}</kbd> key for selecting the No Sidewalk label.",
-        "label-shortcuts-Occlusion": "You can also press the <kbd>{{key}}</kbd> key for selecting the Can't See the Sidewalk label."
+        "label-shortcuts-Occlusion": "You can also press the <kbd>{{key}}</kbd> key for selecting the Can't See the Sidewalk label.",
+        "still-stuck": "If you're still stuck, click the Stuck button again.",
+        "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street."
     }
 }
