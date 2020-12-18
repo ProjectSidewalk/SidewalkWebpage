@@ -15,8 +15,21 @@
                     <div id="timeline-active"></div>
                     <div id="timeline-handle"></div>
                 </div>
-                <div style="padding-top: 25px;" id="controls">
-                    <button id="pause-btn" type="button">Click Me</button>
+                <div style="padding-top: 25px;" id="controls" class="col">
+                    <div class="col-md-4">
+                        <button id="control-btn">Play</button>
+                        <button>Replay</button>
+                        <button>Watch</button>
+                    </div>
+
+                    <div class="col-md-8" style="text-align:right; position: inherit;">
+                        <label for="speed-multiplier">Speed Multiplier:</label>
+                        <input type="number" id="speed-multiplier" name="Speed Multiplier" size="6">
+                        <label for="pause-time">Pause Time:</label>
+                        <input type="number" id="pause-time" size ="6">
+                        <label for="something-time">Something:</label>
+                        <input type="number" id="something-time" size="6">
+                    </div>
                 </div>
             </div>
             <div class="col-md-4">

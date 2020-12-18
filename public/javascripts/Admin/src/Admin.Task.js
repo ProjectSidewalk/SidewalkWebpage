@@ -17,10 +17,13 @@ function AdminTask(params) {
         var svg = d3.select(map.getPanes().overlayPane).append('svg');  // The base svg
         var g = svg.append('g').attr('class', 'leaflet-zoom-hide');  // The root group
 
-        // Import the sample data and start animating
-        var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
-        d3.json(geojsonURL, function (collection) {
-            animate(collection);
+        $('#control-btn').on('click', function() {
+            // Import the sample data and start animating
+            var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
+            d3.json(geojsonURL, function (collection) {
+                animate(collection);
+            });
+            document.getElementById("control-btn").innerHTML = "Pause";
         });
 
         /**
@@ -94,9 +97,9 @@ function AdminTask(params) {
 
             // Chain transitions.
             var totalDuration = 0;
-            const SPEEDUP_MULTIPLIER = 2;
-            const MAX_WAIT_MS = 10000 / SPEEDUP_MULTIPLIER;
-            const SKIP_FILL_TIME_MS = 1000 / SPEEDUP_MULTIPLIER;
+            var SPEEDUP_MULTIPLIER = 2;
+            var MAX_WAIT_MS = 10000 / SPEEDUP_MULTIPLIER;
+            var SKIP_FILL_TIME_MS = 1000 / SPEEDUP_MULTIPLIER;
             var totalSkips = 0;
             var skippedTime = 0;
             for (let i = 0; i < featuresdata.length; i++) {
