@@ -137,6 +137,9 @@ function distance3d(a, b) {
 }
 util.math.distance3d = distance3d;
 
+function roundToTwentyFive(num) { return Math.round(num / 25) * 25; }
+util.math.roundToTwentyFive = roundToTwentyFive;
+
 function metersToMiles(dist) { return dist / 1609.34; }
 function metersToKilometers(dist) { return dist / 1000; }
 function metersToFeet(dist) { return dist * 3.28084; }

@@ -186,7 +186,7 @@ object StreetEdgeTable {
       """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
         |FROM street_edge
         |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |     AND street_edge.deleted = FALSE
         |     AND audit_task.completed = TRUE""".stripMargin
     )
@@ -203,7 +203,7 @@ object StreetEdgeTable {
         """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
             |FROM street_edge
             |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-            |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+            |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
             |     AND street_edge.deleted = FALSE
             |     AND audit_task.completed = TRUE""".stripMargin
         )
