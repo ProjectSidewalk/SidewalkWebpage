@@ -7,6 +7,8 @@ function ValidationMenu(uiCardImage, cardProperties) {
         "NotSure": 3
     };
 
+    let currSelected = null;
+
     const overlayHTML = `
         <div id="gallery-validation-button-holder">
             <button id="gallery-card-agree-button" class="validation-button">Agree</button>
@@ -24,14 +26,35 @@ function ValidationMenu(uiCardImage, cardProperties) {
     function _init() {
         // TODO: compress this code
         agreeButton.click(function() {
+            if (currSelected) {
+                currSelected.attr('class', 'validation-button');
+            }
+
+            currSelected = agreeButton;
+            agreeButton.attr('class', 'validation-button-selected');
+
             validateLabel("Agree");
         });
         
         disagreeButton.click(function() {
+            if (currSelected) {
+                currSelected.attr('class', 'validation-button');
+            }
+
+            currSelected = disagreeButton;
+            disagreeButton.attr('class', 'validation-button-selected');
+
             validateLabel("Disagree");
         });
         
         notSureButton.click(function() {
+            if (currSelected) {
+                currSelected.attr('class', 'validation-button');
+            }
+
+            currSelected = notSureButton;
+            notSureButton.attr('class', 'validation-button-selected');
+
             validateLabel("NotSure");
         });
 
