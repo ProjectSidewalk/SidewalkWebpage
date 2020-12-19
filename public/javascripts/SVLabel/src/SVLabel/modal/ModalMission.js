@@ -221,17 +221,16 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 ModalMission.prototype._distanceToString = function  (distance, unit) {
     if (!unit) unit = "kilometers";
 
-    // Convert to miles and round to 4 decimal places.
-    if (unit === "feet") distance = util.math.feetToMiles(distance);
-    else if (unit === "meters") distance = util.math.metersToMiles(distance);
-    else if (unit === "kilometers") distance = util.math.kilometersToMiles(distance);
+    // Convert to meters.
+    if (unit === "feet") distance = util.math.feetToMeters(distance);
+    else if (unit === "miles") distance = util.math.milesToMeters(distance);
+    else if (unit === "kilometers") distance = util.math.kilometersToMeters(distance);
 
-    distance = distance.toPrecision(4);
     var distanceType = i18next.t('common:measurement-system');
     var unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
 
-    if (distanceType === "metric") return this.convertToMetric(distance * 5280, unitAbbreviation);
-    else return (util.math.milesToFeet(distance)).toFixed(0) + " " + unitAbbreviation;
+    if (distanceType === "metric") return util.math.roundToTwentyFive(distance) + " " + unitAbbreviation;
+    else return util.math.roundToTwentyFive(util.math.metersToFeet(distance)) + " " + unitAbbreviation;
 };
 
 ModalMission.prototype.isOpen = function () {
