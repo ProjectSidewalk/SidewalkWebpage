@@ -16,15 +16,28 @@ function AdminTask(params) {
         // Prepare a layer to put d3 stuff
         var svg = d3.select(map.getPanes().overlayPane).append('svg');  // The base svg
         var g = svg.append('g').attr('class', 'leaflet-zoom-hide');  // The root group
+        loop = null;
 
         $('#control-btn').on('click', function() {
+            
+            if (document.getElementById("control-btn").innerHTML == "Play") {
             // Import the sample data and start animating
             var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
             d3.json(geojsonURL, function (collection) {
                 animate(collection);
             });
+    
             document.getElementById("control-btn").innerHTML = "Pause";
+            } else {
+                console.log("pausing");
+                pause();
+                document.getElementById("control-btn").innerHTML = "Play";
+            }
         });
+
+        function pause() {
+            clearInterval(loop);
+        }
 
         /**
          * This function animates how a user (represented as a yellow circle) walked through the map and labeled
@@ -133,7 +146,8 @@ function AdminTask(params) {
             var currentTimestamp = featuresdata[0].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
-            for (let i = 0; i < featuresdata.length; i++) {
+            var i = 0;
+            loop = setInterval(function() {
                 var duration = featuresdata[i].properties.timestamp - currentTimestamp;
                 currentTimestamp = featuresdata[i].properties.timestamp;
 
@@ -200,7 +214,12 @@ function AdminTask(params) {
                         }
                         d3.select(this).attr('counter', ++counter);
                     });
-            }
+                    if (i + 1 < featuresdata.length) {
+                        ++i;
+                    } else {
+                        clearInterval(loop);
+                    }
+            },1);
         }
 
         function projectPoint(x, y) {
