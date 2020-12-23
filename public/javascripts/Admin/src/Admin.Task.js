@@ -57,7 +57,6 @@ function AdminTask(params) {
 
         // This function "pauses" the animation by saving the last moment where it stopped.
         function pauseAnimation() {
-            // TODO: check if d3 stream is active. 
             console.log('int4erupreur');
             d3.selectAll('*').transition();
             document.getElementById('control-btn').innerHTML = 'Play';
