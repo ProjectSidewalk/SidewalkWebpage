@@ -31,6 +31,7 @@ function AdminTask(params) {
             playAnimation();
         })
         
+        // Adds input listeners and pauses playback whenever fields are changed.
         var elements = document.getElementsByTagName('input');
         for (let i = 0; i < elements.length; ++i) {
             elements[i].addEventListener('input', function() {
@@ -127,7 +128,7 @@ function AdminTask(params) {
                         .attr('r', 7);
                 })
                 .duration(750);
-                
+
                 $('#timeline-active').animate({
                     width: '360px'
                 }, totalDuration);
