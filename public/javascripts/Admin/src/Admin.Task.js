@@ -60,7 +60,6 @@ function AdminTask(params) {
             document.getElementById('control-btn').innerHTML = 'Play';
         }
 
-
         /**
          * This function animates how a user (represented as a yellow circle) walked through the map and labeled
          * accessibility attributes.
@@ -138,7 +137,7 @@ function AdminTask(params) {
                 // This controls the speed.
                 featuresdata[i].properties.timestamp /= SPEEDUP_MULTIPLIER;
 
-                if (i > 0) {
+                if (i > startTime) {
                     let duration = featuresdata[i].properties.timestamp - featuresdata[i - 1].properties.timestamp;
 
                     // If there is a greater than MAX_WAIT_MS pause, only pause for SKIP_FILL_TIME_MS.
@@ -153,14 +152,6 @@ function AdminTask(params) {
             console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`)
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
             console.log(`Total watch time: ${totalDuration / 1000} seconds`);
-
-            $('#timeline-active').animate({
-                width: '360px'
-            }, totalDuration);
-
-            $('#timeline-handle').animate({
-                left: '360px'
-            }, totalDuration);
 
             var currentTimestamp = featuresdata[0].properties.timestamp;
             var currPano = null;
@@ -240,6 +231,13 @@ function AdminTask(params) {
                         }
                     });
             }
+            $('#timeline-active').animate({
+                width: '360px'
+            }, totalDuration);
+
+            $('#timeline-handle').animate({
+                left: '360px'
+            }, totalDuration);
         }
 
         function projectPoint(x, y) {
