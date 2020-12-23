@@ -234,7 +234,6 @@ function AdminTask(params) {
                         lastPaused = d3.select(this).attr('counter');
                         
                         // Allows the stream to restart at the beginning.
-                        // THIS COULD BE BUGGY, FIND HOW TO CHECK END OF d3 STREAM
                         if (lastPaused >= featuresdata.length) {
                             lastPaused = 0;
                             pauseAnimation();
