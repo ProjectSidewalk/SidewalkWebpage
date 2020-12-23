@@ -17,6 +17,7 @@ function AdminTask(params) {
         var svg = d3.select(map.getPanes().overlayPane).append('svg');  // The base svg
         var g = svg.append('g').attr('class', 'leaflet-zoom-hide');  // The root group
         
+        // Plays/Pauses the stream
         $('#control-btn').on('click', function() {
             if (document.getElementById('control-btn').innerHTML == 'Play') {
                 playAnimation();
@@ -25,6 +26,7 @@ function AdminTask(params) {
             }
         });
 
+        // Starts stream from the beginning.
         $('#replay-btn').on('click', function() {
             pauseAnimation();
             lastPaused = 0;
@@ -39,12 +41,13 @@ function AdminTask(params) {
             });
         }
         
+        // The animation is played again by recalculating the stream again from where it stopped.
         function playAnimation() {
             const SPEEDUP_MULTIPLIER = document.getElementById('speed-multiplier').value;
             const MAX_WAIT_MS = document.getElementById('wait-time').value;
             const SKIP_FILL_TIME_MS = document.getElementById('fill-time').value;
 
-            // Import the sample data and start animating
+            // Import the sample data and start animating.
             var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
             d3.json(geojsonURL, function (collection) {
                 animate(collection, lastPaused, SPEEDUP_MULTIPLIER, MAX_WAIT_MS, SKIP_FILL_TIME_MS);
@@ -53,7 +56,6 @@ function AdminTask(params) {
         }
 
         // This function "pauses" the animation by saving the last moment where it stopped.
-        // The animation is played again by recalculating the stream again from where it stopped.
         function pauseAnimation() {
             // TODO: check if d3 stream is active. 
             console.log('int4erupreur');
