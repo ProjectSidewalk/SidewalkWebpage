@@ -12,16 +12,54 @@ function AdminTask(params) {
 
     (function mapAnimation () {
         var colorScheme = util.misc.getLabelColors();
-
+        var lastPaused = 0;
         // Prepare a layer to put d3 stuff
         var svg = d3.select(map.getPanes().overlayPane).append('svg');  // The base svg
         var g = svg.append('g').attr('class', 'leaflet-zoom-hide');  // The root group
-
-        // Import the sample data and start animating
-        var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
-        d3.json(geojsonURL, function (collection) {
-            animate(collection);
+        
+        $('#control-btn').on('click', function() {
+            if (document.getElementById('control-btn').innerHTML == 'Play') {
+                playAnimation();
+            } else {
+                pauseAnimation();
+            }
         });
+
+        $('#replay-btn').on('click', function() {
+            pauseAnimation();
+            lastPaused = 0;
+            playAnimation();
+        })
+        
+        var elements = document.getElementsByTagName('input');
+        for (let i = 0; i < elements.length; ++i) {
+            elements[i].addEventListener('input', function() {
+                pauseAnimation();
+            });
+        }
+        
+        function playAnimation() {
+            const SPEEDUP_MULTIPLIER = document.getElementById('speed-multiplier').value;
+            const MAX_WAIT_MS = document.getElementById('wait-time').value;
+            const SKIP_FILL_TIME_MS = document.getElementById('fill-time').value;
+
+            // Import the sample data and start animating
+            var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
+            d3.json(geojsonURL, function (collection) {
+                animate(collection, lastPaused, SPEEDUP_MULTIPLIER, MAX_WAIT_MS, SKIP_FILL_TIME_MS);
+            });
+            document.getElementById('control-btn').innerHTML = 'Pause';
+        }
+
+        // This function "pauses" the animation by saving the last moment where it stopped.
+        // The animation is played again by recalculating the stream again from where it stopped.
+        function pauseAnimation() {
+            // TODO: check if d3 stream is active. 
+            console.log('int4erupreur');
+            d3.selectAll('*').transition();
+            document.getElementById('control-btn').innerHTML = 'Play';
+        }
+
 
         /**
          * This function animates how a user (represented as a yellow circle) walked through the map and labeled
@@ -29,9 +67,9 @@ function AdminTask(params) {
          *
          * param walkTrajectory A trajectory of a user's auditing activity in a GeoJSON FeatureCollection format.
          */
-        function animate(walkTrajectory) {
+        function animate(walkTrajectory, startTime, SPEEDUP_MULTIPLIER, MAX_WAIT_MS, SKIP_FILL_TIME_MS) {
             // https://github.com/mbostock/d3/wiki/Geo-Streams#stream-transforms
-            var initialCoordinate = walkTrajectory.features[0].geometry.coordinates;
+            var initialCoordinate = walkTrajectory.features[startTime].geometry.coordinates;
             var transform = d3.geo.transform({point: projectPoint});
             var d3path = d3.geo.path().projection(transform);
             var featuresdata = walkTrajectory.features;
@@ -49,9 +87,9 @@ function AdminTask(params) {
 
             // Set the initial heading
             markerGroup.attr('transform', function () {
-                var y = featuresdata[0].geometry.coordinates[1];
-                var x = featuresdata[0].geometry.coordinates[0];
-                var heading = featuresdata[0].properties.heading;
+                var y = featuresdata[startTime].geometry.coordinates[1];
+                var x = featuresdata[startTime].geometry.coordinates[0];
+                var heading = featuresdata[startTime].properties.heading;
                 return 'translate(' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).x + ',' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).y + ')' +
@@ -71,15 +109,15 @@ function AdminTask(params) {
 
             // Apply the toLine function to align the path to
             markerGroup.attr('transform', function () {
-                var y = featuresdata[0].geometry.coordinates[1];
-                var x = featuresdata[0].geometry.coordinates[0];
+                var y = featuresdata[startTime].geometry.coordinates[1];
+                var x = featuresdata[startTime].geometry.coordinates[0];
                 return 'translate(' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).x + ',' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).y + ')';
             });
 
             // Animate the marker's radius to 7px.
-            markerGroup = markerGroup.attr('counter', 0)
+            markerGroup = markerGroup.attr('counter', startTime)
                 .transition()
                 .each('start', function () {
                     var thisMarker = d3.select(d3.select(this).node().children[0]);
@@ -94,12 +132,9 @@ function AdminTask(params) {
 
             // Chain transitions.
             var totalDuration = 0;
-            const SPEEDUP_MULTIPLIER = 2;
-            const MAX_WAIT_MS = 10000 / SPEEDUP_MULTIPLIER;
-            const SKIP_FILL_TIME_MS = 1000 / SPEEDUP_MULTIPLIER;
             var totalSkips = 0;
             var skippedTime = 0;
-            for (let i = 0; i < featuresdata.length; i++) {
+            for (let i = startTime; i < featuresdata.length; i++) {
                 // This controls the speed.
                 featuresdata[i].properties.timestamp /= SPEEDUP_MULTIPLIER;
 
@@ -130,7 +165,7 @@ function AdminTask(params) {
             var currentTimestamp = featuresdata[0].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
-            for (let i = 0; i < featuresdata.length; i++) {
+            for (let i = startTime; i < featuresdata.length; i++) {
                 var duration = featuresdata[i].properties.timestamp - currentTimestamp;
                 currentTimestamp = featuresdata[i].properties.timestamp;
 
@@ -196,6 +231,14 @@ function AdminTask(params) {
                             }
                         }
                         d3.select(this).attr('counter', ++counter);
+                        lastPaused = d3.select(this).attr('counter');
+                        
+                        // Allows the stream to restart at the beginning.
+                        // THIS COULD BE BUGGY, FIND HOW TO CHECK END OF d3 STREAM
+                        if (lastPaused >= featuresdata.length) {
+                            lastPaused = 0;
+                            pauseAnimation();
+                        }
                     });
             }
         }
