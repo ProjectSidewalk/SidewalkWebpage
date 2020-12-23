@@ -129,14 +129,6 @@ function AdminTask(params) {
                 })
                 .duration(750);
 
-                $('#timeline-active').animate({
-                    width: '360px'
-                }, totalDuration);
-    
-                $('#timeline-handle').animate({
-                    left: '360px'
-                }, totalDuration);
-
             // Chain transitions.
             var totalDuration = 0;
             var totalSkips = 0;
@@ -161,7 +153,15 @@ function AdminTask(params) {
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
             console.log(`Total watch time: ${totalDuration / 1000} seconds`);
 
-            var currentTimestamp = featuresdata[0].properties.timestamp;
+            $('#timeline-active').animate({
+                width: '360px'
+            }, totalDuration);
+
+            $('#timeline-handle').animate({
+                left: '360px'
+            }, totalDuration);
+            
+            var currentTimestamp = featuresdata[startTime].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
             for (let i = startTime; i < featuresdata.length; i++) {
