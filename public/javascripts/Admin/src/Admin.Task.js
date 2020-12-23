@@ -127,7 +127,14 @@ function AdminTask(params) {
                         .attr('r', 7);
                 })
                 .duration(750);
-
+                
+                $('#timeline-active').animate({
+                    width: '360px'
+                }, totalDuration);
+    
+                $('#timeline-handle').animate({
+                    left: '360px'
+                }, totalDuration);
 
             // Chain transitions.
             var totalDuration = 0;
@@ -231,13 +238,7 @@ function AdminTask(params) {
                         }
                     });
             }
-            $('#timeline-active').animate({
-                width: '360px'
-            }, totalDuration);
 
-            $('#timeline-handle').animate({
-                left: '360px'
-            }, totalDuration);
         }
 
         function projectPoint(x, y) {
