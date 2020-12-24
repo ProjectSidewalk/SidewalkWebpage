@@ -632,8 +632,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     /**
-     * Pushes all previously completed tasks into the previousTasks. 
-     * Then previousTasks will render all previously completed tasks.
+     * Pushes all previously completed tasks into previousTasks.
      */
     function pushAllCompletedTasks() {    
         var completedTasks = getCompletedTasks();
