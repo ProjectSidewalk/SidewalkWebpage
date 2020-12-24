@@ -20,7 +20,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousPaths = [];
 
     self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
-
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
@@ -632,6 +631,19 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }).length > 0;
     }
 
+    /**
+     * Pushes all previously completed tasks into the previousTasks. 
+     * Then previousTasks will render all previously completed tasks.
+     */
+    function pushAllCompletedTasks() {    
+        var completedTasks = getCompletedTasks();
+        if (completedTasks) {
+            for (let i = 0; i < completedTasks.length; ++i) {
+                pushATask(completedTasks[i]);
+            }
+        }
+    }
+
     // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
@@ -644,6 +656,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = pushATask;
+    self.pushAllCompletedTasks = pushAllCompletedTasks;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
 
     self.storeTask = storeTask;
