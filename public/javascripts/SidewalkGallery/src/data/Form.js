@@ -34,7 +34,7 @@ function Form(url, beaconUrl) {
             avail_width: screen.availWidth,              // total width - interface (taskbar)
             avail_height: screen.availHeight,            // total height - interface };
             operating_system: util.getOperatingSystem(),
-            language: "en"//i18next.language
+            language: i18next.language
         };
 
         data.interactions = sg.tracker.getActions();
