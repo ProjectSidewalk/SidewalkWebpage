@@ -39,6 +39,9 @@ function Main (params) {
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
 
+        sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
+        sg.tracker = new Tracker();
+
         sg.util = {};
         sg.util.properties = {};
         sg.util.properties.panorama = new GalleryPanoUtilities();

@@ -37,8 +37,16 @@ function Tag (params) {
 
     function handleTagClickCallback() {
         if (status.applied) {
+            sg.tracker.push("TagUnapply", null, {
+                Tag: properties.tag,
+                Label_Type: properties.label_type
+            });
             unapply();
         } else {
+            sg.tracker.push("TagApply", null, {
+                Tag: properties.tag,
+                Label_Type: properties.label_type
+            });
             apply();
         }
 

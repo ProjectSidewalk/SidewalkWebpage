@@ -68,9 +68,11 @@ function ValidationMenu(uiCardImage, cardProperties) {
      */
     function validateLabel(action) {
         console.log("validate method called");
+
+        // TODO: do we need this log?
+        //sg.tracker.push("Validate_MenuClick=" + action);
         let validationTimestamp = new Date().getTime();
 
-        // TODO: fix this and make the ui stuff
         let data = {
             label_id: cardProperties.label_id,
             label_type: cardProperties.label_type,

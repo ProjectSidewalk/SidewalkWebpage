@@ -76,6 +76,10 @@ function CardContainer(uiCardContainer) {
 
     function handleNextPageClick() {
         console.log('next page');
+        sg.tracker.push("NextPageClick", null, {
+            From: currentPage,
+            To: currentPage + 1
+        });
         setPage(currentPage + 1);
         updateCardsNewPage();
     }
@@ -83,6 +87,10 @@ function CardContainer(uiCardContainer) {
     function handlePrevPageClick() {
         if (currentPage > 1) {
             console.log('previous page');
+            sg.tracker.push("PrevPageClick", null, {
+                From: currentPage,
+                To: currentPage - 1
+            });
             setPage(currentPage - 1);
             updateCardsNewPage();
         }
