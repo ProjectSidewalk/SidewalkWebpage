@@ -35,8 +35,14 @@ function Severity (params){
         toggleActive();
 
         if (active){
+            sg.tracker.push("SeverityApply", null, {
+                Severity: properties.severity
+            });
             severityElement.setAttribute("style", "background-color: #78c8aa");
         } else {
+            sg.tracker.push("SeverityUnapply", null, {
+                Severity: properties.severity
+            });
             severityElement.setAttribute("style", "background-color: none");
         }
 

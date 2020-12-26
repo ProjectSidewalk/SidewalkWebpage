@@ -2,3 +2,8 @@
     padding: 5px;
 }
 
+#ribbon-menu-holder {
+   padding-bottom: 30px;
+   border-bottom: 1px solid gray;
+}
+

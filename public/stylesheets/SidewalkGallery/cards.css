@@ -60,7 +60,7 @@ p.label-severity, p.label-tags {
     overflow: hidden;
 }
 
-.validation-button {
+.validation-button, .validation-button-selected {
     color: white;
     opacity: 0;
     transition: .3s ease;
@@ -70,13 +70,16 @@ p.label-severity, p.label-tags {
     opacity: 0.5;
 }
 
-.validation-button:hover .validation-button {
+.gallery-card:hover .validation-button-selected {
     opacity: 1;
+
+    /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
+    outline: -webkit-focus-ring-color auto 1px;
 }
 
-.gallery-card:hover .validation-button:focus {
+/* .gallery-card:hover .validation-button:focus {
     opacity: 1;
-}
+} */
 
 
 

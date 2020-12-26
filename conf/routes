@@ -107,6 +107,8 @@ POST    /taskBeacon                                          @controllers.TaskCo
 POST    /validationTask                                      @controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
 POST    /validationLabelMap                                  @controllers.ValidationTaskController.postLabelMap
+POST    /galleryTask                                         @controllers.GalleryTaskController.post
+POST    /galleryTaskBeacon                                   @controllers.GalleryTaskController.postBeacon
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()

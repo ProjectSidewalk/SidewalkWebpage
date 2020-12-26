@@ -7,6 +7,8 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/Main.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/Card.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/CardBucket.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/data/Form.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/data/Tracker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/CardContainer.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/CardFilter.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/RibbonMenu.js")'></script>
@@ -17,6 +19,11 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/validation/ValidationMenu.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/util/GalleryPanoUtilities.js")'></script>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
+    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+
     @navbar(user, Some("/sidewalkGallery"))
     <div id="gallery-overview-container" class="container-fluid">
         <div class="row" style="padding-left: 10px; padding-top: 40px;">
@@ -26,7 +33,7 @@
                     <option value="sort_LeastSevere">Least Severe</option>
                     <option value="sort_MostSevere">Most Severe</option>
                 </select> -->
-                <div id="ribbon-menu-holder" style="margin-bottom: 30px;">
+                <div id="ribbon-menu-holder">
                     <span id="label-type-holder">
                         <h4><b>Show</b></h4>
                         <select id="label-select">
@@ -75,6 +82,10 @@
             var sg = sg || {};
             let params = {};
             params.rootDirectory = "/assets/javascripts/SVLabel/";
+            params.dataStoreUrl = '@routes.GalleryTaskController.post';
+            params.beaconDataStoreUrl = params.dataStoreUrl + "Beacon";
+
+            params.language = "@lang.code";
 
             sg.main = new Main(params);
     </script>

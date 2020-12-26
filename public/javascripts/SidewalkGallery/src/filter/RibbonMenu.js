@@ -23,6 +23,7 @@ function RibbonMenu(uiRibbonMenu) {
     function handleLabelSelectSwitchChangeCallback() {
         let labelType = $(this).val();
         setStatus("currentLabelType", labelType);
+        sg.tracker.push("Filter_LabelType=" + labelType);
         sg.tagContainer.update();
     }
 

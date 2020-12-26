@@ -39,10 +39,26 @@ function Main (params) {
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
 
+        sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
+        sg.tracker = new Tracker();
+
         sg.util = {};
         sg.util.properties = {};
         sg.util.properties.panorama = new GalleryPanoUtilities();
     }
+
+    i18next.use(i18nextXHRBackend);
+    i18next.init({
+        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+        fallbackLng: 'en',
+        ns: ['gallery', 'common'],
+        defaultNS: 'gallery',
+        lng: params.language,
+        debug: false
+    }, function(err, t) {
+        if (err) return console.log('something went wrong loading', err);
+        t('key'); // -> same as i18next.t
+    });
 
     _initUI();
     _init();
