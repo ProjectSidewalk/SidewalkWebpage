@@ -48,7 +48,7 @@ function Tag (params) {
     function apply() {
         setStatus("applied", true);
         console.log("clicked and toggled on");
-        tagElement.setAttribute("style", "background-color: blue");
+        tagElement.setAttribute("style", "background-color: #78c8aa");
     }
 
     function unapply() {
