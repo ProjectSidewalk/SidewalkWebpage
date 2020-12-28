@@ -233,8 +233,17 @@ function CardContainer(uiCardContainer) {
         }
 
         let num = 0;
+        let severities = sg.tagContainer.getSeverities();
+
         for (let severity in bucket) {
-            num += bucket[severity].length;
+
+            if (!sg.tagContainer.isSeverityApplied()){
+                num += bucket[severity].length;
+            } else if (severity != "null") {
+                if (severities[severity - 1].getActive() == true) {
+                    num += bucket[severity].length;
+                }
+            }
         }
         return num;
     }
@@ -366,6 +375,7 @@ function CardContainer(uiCardContainer) {
     self.push = push;
     self.updateCardsByType = updateCardsByType;
     self.updateCardsByTag = updateCardsByTag;
+    self.updateCardsNewPage = updateCardsNewPage;
     self.sortCards = sortCards;
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;

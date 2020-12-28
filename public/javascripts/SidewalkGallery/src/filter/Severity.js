@@ -47,7 +47,8 @@ function Severity (params){
         }
 
         //sg.cardContainer.updateCardsBySeverity();
-        sg.cardContainer.render();
+        sg.cardContainer.updateCardsByTag();
+        sg.cardContainer.updateCardsNewPage();
     }
 
     function toggleActive(){

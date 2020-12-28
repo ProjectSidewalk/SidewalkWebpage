@@ -27,6 +27,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     let currentTags = new TagBucket();
 
     let severities = [];
+    // let severityBucket = new SeverityBucket();
    
     function _init() {
         getTags(function () {
@@ -71,6 +72,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         for (let i = 0; i < severities.length; i++){
             severities[i].render(uiCardFilter.severity);
         }
+        // severities.render(uiCardFilter.severity);
         
 
     }
@@ -97,6 +99,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
 
     function getSeverities() {
         return severities;
+        // return severities.getSeverities();
     }
 
     function isSeverityApplied() {
@@ -106,6 +109,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
             }
         }
         return false;
+        // return severities.isSeverityApplied();
     }
 
     function unapplyTags(labelType) {
