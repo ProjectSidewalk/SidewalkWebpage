@@ -32,7 +32,7 @@ case class Label(labelId: Int,
                  deleted: Boolean,
                  temporaryLabelId: Option[Int],
                  timeCreated: Option[Timestamp],
-                 turorial: Boolean,
+                 tutorial: Boolean,
                  streetEdgeId: Int)
 
 case class LabelLocation(labelId: Int,
@@ -717,11 +717,13 @@ object LabelTable {
       _ls <- severities if _lb.labelId === _ls.labelId && (_ls.severity inSet severity)
       _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
       _tags <- tagTable if _labeltags.tagId === _tags.tagId && (_tags.tag inSet tags)
-    } yield (_lb, _lp, _lt.labelType, _ls.severity.?)
+    } yield (_lb, _lp, _lt.labelType, _ls.severity.?, _lb.tutorial)
 
-    Logger.debug(_labelsUnfiltered.size.run + "")   
+    val _labelsUnfilteredNoTutorial = _labelsUnfiltered.filter(_._1.tutorial === false)
+
+    Logger.debug(_labelsUnfilteredNoTutorial.size.run + "")   
     // Could be optimized by grouping on less rows
-    val _labelsGrouped = _labelsUnfiltered.groupBy(x => x).map(_._1)
+    val _labelsGrouped = _labelsUnfilteredNoTutorial.groupBy(x => x).map(_._1)
     Logger.debug(_labelsGrouped.size.run + "")
 
     val _labels = _labelsGrouped.filter(label => !(label._1.labelId inSet loadedLabelIds))
@@ -735,6 +737,7 @@ object LabelTable {
     } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
 
     val removeExpiredPanos = addGSVData.filter(_._6 === false)
+
 
     val addDescriptions = for {
       (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
