@@ -22,7 +22,7 @@ function Severity (params){
         
         properties.severity = param;
         severityElement = document.createElement('div');
-        severityElement.className = 'gallery-tag';
+        severityElement.className = 'gallery-severity';
         severityElement.id = properties.severity;
         severityElement.innerText = properties.severity;
 

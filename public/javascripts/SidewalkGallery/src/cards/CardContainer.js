@@ -303,13 +303,15 @@ function CardContainer(uiCardContainer) {
         let num = 0;
         let start = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
+        console.log(cardBucket);
         let severities = sg.tagContainer.getSeverities();
 
         let noSeverities = !sg.tagContainer.isSeverityApplied();
 
         let imagesToLoad = [];
         let imagePromises = [];
-        //console.time('render cards');
+        
+        // TODO: Some label types like Occlusion, have a lot of null severities. What to do with these?
         for (let i = severities.length - 1; i >= 0; i--){
             if (severities[i].getActive() || noSeverities){
                 let subBucket = cardBucket[severities[i].getSeverity()];
