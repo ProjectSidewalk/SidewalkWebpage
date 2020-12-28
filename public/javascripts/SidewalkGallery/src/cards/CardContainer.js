@@ -175,6 +175,7 @@ function CardContainer(uiCardContainer) {
      * Updates cardsOfType if card type changes, and currentCards if filter changes
      */
     function updateCardsByType() {
+        $("#labels-not-found").hide();
         uiCardContainer.holder.empty();
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
@@ -199,6 +200,7 @@ function CardContainer(uiCardContainer) {
     }
 
     function updateCardsNewPage() {
+        $("#labels-not-found").hide();
         currentCards = cardsByType[currentLabelType].copy();
         let bucket = currentCards.getCards();
 
@@ -258,9 +260,9 @@ function CardContainer(uiCardContainer) {
         return appliedSeverities;
     }
 
-    // Fix how this filter works
     function updateCardsByTag() {
         setPage(1);
+        $("#labels-not-found").hide();
 
         console.log("grabbed more cards of severity and tag, rendering afterwards");
         let appliedTags = sg.tagContainer.getAppliedTagNames();
@@ -312,13 +314,15 @@ function CardContainer(uiCardContainer) {
         let num = 0;
         let start = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
+        console.log(cardBucket);
         let severities = sg.tagContainer.getSeverities();
 
         let noSeverities = !sg.tagContainer.isSeverityApplied();
 
         let imagesToLoad = [];
         let imagePromises = [];
-        //console.time('render cards');
+        
+        // TODO: Some label types like Occlusion, have a lot of null severities. What to do with these?
         for (let i = severities.length - 1; i >= 0; i--){
             if (severities[i].getActive() || noSeverities){
                 let subBucket = cardBucket[severities[i].getSeverity()];
@@ -335,10 +339,15 @@ function CardContainer(uiCardContainer) {
         }
 
         console.log("images pushed to subbucket: " + imagesToLoad.length);
-        Promise.all(imagePromises).then(() => {
-            console.log("all images loaded");
-            imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
-        });
+        if (imagesToLoad.length > 0) {
+            Promise.all(imagePromises).then(() => {
+                console.log("all images loaded");
+                imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
+            });
+        } else {
+            // TODO: figure out how to better do the toggling of this element
+            $("#labels-not-found").show();
+        }
         // We can put a call to start the loading gif here and end the gif in the 'then' statement of the promise
     }
 

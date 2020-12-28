@@ -909,7 +909,6 @@ object LabelTable {
 
     Logger.debug(newRandomLabelsList.size + "")
     while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
-      //Logger.debug("entered the loop with " + selectedLabels.length + " labels")
       val labelsNeeded: Int = n - selectedLabels.length
       val newLabels: Seq[LabelValidationMetadata] =
         newRandomLabelsList.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>

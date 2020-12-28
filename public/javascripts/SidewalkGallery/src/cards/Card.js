@@ -68,7 +68,7 @@ function Card (params, imageUrl) {
         //             <img id="${imageId}" class="static-gallery-image">
         const cardHtml = `
             <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
-            <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
+            <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "none"}</p>
         `;
 
         card = document.createElement('div');
