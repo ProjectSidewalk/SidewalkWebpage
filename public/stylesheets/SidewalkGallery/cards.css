@@ -54,7 +54,7 @@
 p.label-severity, p.label-tags {
     margin: 5px 0;
     width: 100%;
-    height: 20px;
+    height: 17px;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
