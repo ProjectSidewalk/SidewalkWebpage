@@ -323,6 +323,7 @@ function CardContainer(uiCardContainer) {
         let imagePromises = [];
         
         // TODO: Some label types like Occlusion, have a lot of null severities. What to do with these?
+        $("#page-loading").show();
         for (let i = severities.length - 1; i >= 0; i--){
             if (severities[i].getActive() || noSeverities){
                 let subBucket = cardBucket[severities[i].getSeverity()];
@@ -343,6 +344,7 @@ function CardContainer(uiCardContainer) {
             Promise.all(imagePromises).then(() => {
                 console.log("all images loaded");
                 imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
+                $("#page-loading").hide();
             });
         } else {
             // TODO: figure out how to better do the toggling of this element
