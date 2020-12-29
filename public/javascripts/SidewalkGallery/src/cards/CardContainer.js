@@ -176,6 +176,8 @@ function CardContainer(uiCardContainer) {
      */
     function updateCardsByType() {
         $("#labels-not-found").hide();
+        $("#page-loading").show();
+
         uiCardContainer.holder.empty();
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
@@ -201,6 +203,8 @@ function CardContainer(uiCardContainer) {
 
     function updateCardsNewPage() {
         $("#labels-not-found").hide();
+        $("#page-loading").show();
+
         currentCards = cardsByType[currentLabelType].copy();
         let bucket = currentCards.getCards();
 
@@ -263,7 +267,7 @@ function CardContainer(uiCardContainer) {
     function updateCardsByTag() {
         setPage(1);
         $("#labels-not-found").hide();
-
+        $("#page-loading").show();
         console.log("grabbed more cards of severity and tag, rendering afterwards");
         let appliedTags = sg.tagContainer.getAppliedTagNames();
 
@@ -301,6 +305,7 @@ function CardContainer(uiCardContainer) {
      * Renders current cards
      */
     function render() {
+        $("#page-loading").show();
         // https://stackoverflow.com/questions/11071314/javascript-execute-after-all-images-have-loaded
         // ^^^
         // Useful link for loading then showing all iamges at once rather than weird card "shells"
@@ -321,9 +326,8 @@ function CardContainer(uiCardContainer) {
 
         let imagesToLoad = [];
         let imagePromises = [];
-        
+
         // TODO: Some label types like Occlusion, have a lot of null severities. What to do with these?
-        $("#page-loading").show();
         for (let i = severities.length - 1; i >= 0; i--){
             if (severities[i].getActive() || noSeverities){
                 let subBucket = cardBucket[severities[i].getSeverity()];
