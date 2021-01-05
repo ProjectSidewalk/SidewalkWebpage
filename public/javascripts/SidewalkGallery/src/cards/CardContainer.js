@@ -1,5 +1,5 @@
 /**
- * Card Container module. This is responsible for storing the Card objects that are to be rendered.
+ * Card Container module. This is responsible for managing the Card objects that are to be rendered.
  * @returns {CardContainer}
  * @constructor
  */
@@ -69,13 +69,11 @@ function CardContainer(uiCardContainer) {
         uiCardContainer.pageNumber.append(pageNumberDisplay);
         cardsByType[currentLabelType] = new CardBucket();
         fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
-            console.log("assorted labels loaded for landing page");
             render();
         });
     }
 
     function handleNextPageClick() {
-        console.log('next page');
         sg.tracker.push("NextPageClick", null, {
             From: currentPage,
             To: currentPage + 1
@@ -86,7 +84,6 @@ function CardContainer(uiCardContainer) {
 
     function handlePrevPageClick() {
         if (currentPage > 1) {
-            console.log('previous page');
             sg.tracker.push("PrevPageClick", null, {
                 From: currentPage,
                 To: currentPage - 1
@@ -98,7 +95,6 @@ function CardContainer(uiCardContainer) {
 
     function setPage(pageNumber) {
         currentPage = pageNumber;
-        console.log("next page " + pageNumber)
         pageNumberDisplay.innerText = pageNumber;
     }
 
@@ -165,6 +161,7 @@ function CardContainer(uiCardContainer) {
      */
     function push(card) {
         if (currentLabelType == 'Assorted') {
+            // TODO: Can we cache cards pulled in the "assorted" bucket into their resepctive card buckets?
             cardsByType[currentLabelType].push(card);
         } else {
             cardsByType[card.getLabelType()].push(card);
@@ -189,9 +186,7 @@ function CardContainer(uiCardContainer) {
 
             if (cardsByType[currentLabelType] == null) {
                 cardsByType[currentLabelType] = new CardBucket();
-                console.log(Array.from(loadedLabelIds));
                 fetchLabelsByType(labelTypeIds[filterLabelType], 30, Array.from(loadedLabelIds), function () {
-                    console.log("new labels gathered");
                     render();
                 });
             } else {
@@ -202,6 +197,7 @@ function CardContainer(uiCardContainer) {
     }
 
     function updateCardsNewPage() {
+        // TODO: fix
         $("#labels-not-found").hide();
         $("#page-loading").show();
 
@@ -212,25 +208,22 @@ function CardContainer(uiCardContainer) {
         let numTags = sg.tagContainer.getAppliedTagNames().length;
 
         const numCards = numCardsInBucket(bucket);
-        let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
-        appliedSeverities = appliedSeverities > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
+        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
+        appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
 
         if (numCards < cardsPerPage * currentPage) {
-            console.log("grabbed more cards of severity and tag, rendering afterwards");
             if (numTags == 0) {
                 fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), function() {
-                    console.log("got new labels");
                     render();
                 });
             } else {
                 fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTagNames(), function() {
-                    console.log("got new labels");
                     updateCardsNewPage();
                 });
             }
-            
+        } else {
+            render();
         }
-        render();
     }
 
     function numCardsInBucket(bucket) {
@@ -254,29 +247,17 @@ function CardContainer(uiCardContainer) {
         return num;
     }
 
-    function getAppliedSeverities(severities) {
-        appliedSeverities = [];
-        for (let i = 0; i < severities.length; i++){
-            if (severities[i].getActive()){
-                appliedSeverities.push(severities[i].getSeverity());
-            }
-        }
-        return appliedSeverities;
-    }
-
     function updateCardsByTag() {
         setPage(1);
         $("#labels-not-found").hide();
         $("#page-loading").show();
-        console.log("grabbed more cards of severity and tag, rendering afterwards");
         let appliedTags = sg.tagContainer.getAppliedTagNames();
 
         if (appliedTags.length > 0) {
             // TODO: fix this edge case!!!
-            let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
-            appliedSeverities = appliedSeverities > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
+            let appliedSeverities = sg.tagContainer.getAppliedSeverities();
+            appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
             fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-                console.log("got new labels");
                 currentCards = cardsByType[currentLabelType].copy();
 
                 currentCards.filterOnTags(appliedTags);
@@ -289,6 +270,35 @@ function CardContainer(uiCardContainer) {
         }
     }
 
+    function updateCardsBySeverity() {
+        // TODO: Doesn't work when label type is "assorted", need fix
+        setPage(1);
+        $("#labels-not-found").hide();
+        $("#page-loading").show();
+        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
+        let appliedTags = sg.tagContainer.getAppliedTagNames();
+        appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
+
+        if (appliedSeverities.length > 0) {
+            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                currentCards = cardsByType[currentLabelType].copy();
+                if (appliedTags.length > 0) {
+                    // TODO: think about whether or not there is better way to do this
+                    currentCards.filterOnTags(appliedTags);
+                }
+
+                render();
+            });
+        } else {
+            currentCards = cardsByType[currentLabelType].copy();
+            if (appliedTags.length > 0) {
+                currentCards.filterOnTags(appliedTags);
+            }
+
+            render();
+        }
+
+    }
 
     function sortCards(order) {
         // uiCardContainer.holder.empty();
@@ -319,7 +329,6 @@ function CardContainer(uiCardContainer) {
         let num = 0;
         let start = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
-        console.log(cardBucket);
         let severities = sg.tagContainer.getSeverities();
 
         let noSeverities = !sg.tagContainer.isSeverityApplied();
@@ -328,8 +337,8 @@ function CardContainer(uiCardContainer) {
         let imagePromises = [];
 
         // TODO: Some label types like Occlusion, have a lot of null severities. What to do with these?
-        for (let i = severities.length - 1; i >= 0; i--){
-            if (severities[i].getActive() || noSeverities){
+        for (let i = severities.length - 1; i >= 0; i--) {
+            if (severities[i].getActive() || noSeverities) {
                 let subBucket = cardBucket[severities[i].getSeverity()];
                 for (let j = 0; j < subBucket.length; j++) {
                     if (num >= cardsPerPage * currentPage) break;
@@ -343,16 +352,15 @@ function CardContainer(uiCardContainer) {
             }
         }
 
-        console.log("images pushed to subbucket: " + imagesToLoad.length);
         if (imagesToLoad.length > 0) {
             Promise.all(imagePromises).then(() => {
-                console.log("all images loaded");
                 imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
                 $("#page-loading").hide();
             });
         } else {
             // TODO: figure out how to better do the toggling of this element
             $("#labels-not-found").show();
+            $("#page-loading").hide();
         }
         // We can put a call to start the loading gif here and end the gif in the 'then' statement of the promise
     }
@@ -388,6 +396,7 @@ function CardContainer(uiCardContainer) {
     self.push = push;
     self.updateCardsByType = updateCardsByType;
     self.updateCardsByTag = updateCardsByTag;
+    self.updateCardsBySeverity = updateCardsBySeverity;
     self.updateCardsNewPage = updateCardsNewPage;
     self.sortCards = sortCards;
     self.render = render;

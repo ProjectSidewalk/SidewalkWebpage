@@ -32,27 +32,33 @@ function Severity (params){
     }
 
     function handleOnClickCallback(){
-        toggleActive();
-
         if (active){
             sg.tracker.push("SeverityApply", null, {
                 Severity: properties.severity
             });
-            severityElement.setAttribute("style", "background-color: #78c8aa");
+            unapply();
         } else {
             sg.tracker.push("SeverityUnapply", null, {
                 Severity: properties.severity
             });
-            severityElement.setAttribute("style", "background-color: none");
+            apply();
         }
 
-        //sg.cardContainer.updateCardsBySeverity();
-        sg.cardContainer.updateCardsByTag();
-        sg.cardContainer.updateCardsNewPage();
+        sg.cardContainer.updateCardsBySeverity();
     }
 
-    function toggleActive(){
-        active = !active;
+    // function toggleActive(){
+    //     active = !active;
+    // }
+
+    function apply() {
+        active = true;
+        severityElement.setAttribute("style", "background-color: #78c8aa");
+    }
+
+    function unapply() {
+        active = false;
+        severityElement.setAttribute("style", "background-color: none");
     }
 
     function render(filterContainer) {
@@ -68,7 +74,9 @@ function Severity (params){
     }
 
     self.handleOnClickCallback = handleOnClickCallback;
-    self.toggleActive = toggleActive;
+    //self.toggleActive = toggleActive;
+    self.apply = apply;
+    self.unapply = unapply;
     self.getActive = getActive;
     self.getSeverity = getSeverity;
     self.render = render;

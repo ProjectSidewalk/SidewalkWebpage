@@ -1,3 +1,9 @@
+/**
+ * A Tag Bucket to store Tags of a certain label type
+ * @param bucket array containing Tags
+ * @returns {TagBucket}
+ * @constructor
+ */
 function TagBucket(bucket) {
     let self = this;
 

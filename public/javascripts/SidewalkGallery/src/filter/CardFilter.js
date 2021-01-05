@@ -9,7 +9,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     let self = this;
 
     let status = {
-        currentLabelType: 'Assorted' //change to 'Assorted' when the query is implemented
+        currentLabelType: 'Assorted'
     };
 
     let tagsByType = {
@@ -26,18 +26,13 @@ function CardFilter(uiCardFilter, ribbonMenu) {
 
     let currentTags = new TagBucket();
 
-    let severities = [];
-    // let severityBucket = new SeverityBucket();
+    let severities = new SeverityBucket();
    
     function _init() {
         getTags(function () {
             console.log("tags received");
+            render();
         });
-
-        for(let i = 1; i <= 5; i++ ){
-            severities.push(new Severity(i));
-        }
-    
     }
 
     function getTags(callback) {
@@ -58,6 +53,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         let currentLabelType = ribbonMenu.getCurrentLabelType();
         if (status.currentLabelType !== currentLabelType) {
             clearCurrentTags();
+            severities.unapplySeverities();
             setStatus('currentLabelType', currentLabelType);
             currentTags = tagsByType[currentLabelType];
             sg.cardContainer.updateCardsByType();
@@ -67,18 +63,23 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     }
 
     function render() {
-        currentTags.render(uiCardFilter.tags);
-
-        for (let i = 0; i < severities.length; i++){
-            severities[i].render(uiCardFilter.severity);
+        if (currentTags.getTags().length > 0) {
+            // TODO: think about to better show tags header in an organized manner
+            $("#tags-header").show();
+            currentTags.render(uiCardFilter.tags);
+        } else {
+            $("#tags-header").hide();
         }
-        // severities.render(uiCardFilter.severity);
-        
 
+        severities.render(uiCardFilter.severity);
     }
 
     function getAppliedTagNames() {
         return currentTags.getAppliedTags().map(tag => tag.getTag());
+    }
+
+    function getTagNames() {
+        return currentTags.getTags().map(tag => tag.getTag());
     }
 
     function getTagsByType() {
@@ -98,18 +99,22 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     }
 
     function getSeverities() {
-        return severities;
-        // return severities.getSeverities();
+        //return severities;
+        return severities.getSeverities();
     }
 
     function isSeverityApplied() {
-        for (let i = 0; i < severities.length; i++){
-            if (severities[i].getActive()) {
-                return true;
-            }
-        }
-        return false;
-        // return severities.isSeverityApplied();
+        // for (let i = 0; i < severities.length; i++){
+        //     if (severities[i].getActive()) {
+        //         return true;
+        //     }
+        // }
+        // return false;
+        return severities.isSeverityApplied();
+    }
+
+    function getAppliedSeverities() {
+        return severities.getAppliedSeverities();
     }
 
     function unapplyTags(labelType) {
@@ -129,11 +134,13 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     self.update = update;
     self.render = render;
     self.getAppliedTagNames = getAppliedTagNames;
+    self.getTagNames = getTagNames;
     self.getTagsByType = getTagsByType;
     self.getStatus = getStatus;
     self.setStatus = setStatus;
     self.getSeverities = getSeverities;
     self.isSeverityApplied = isSeverityApplied;
+    self.getAppliedSeverities = getAppliedSeverities;
     self.unapplyTags = unapplyTags;
 
     _init();

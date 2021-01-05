@@ -1,3 +1,9 @@
+/**
+ * A Severity Bucket to store Severities
+ * @param bucket array containing Severities
+ * @returns {SeverityBucket}
+ * @constructor
+ */
 function SeverityBucket(bucket) {
     let self = this;
 
@@ -17,8 +23,8 @@ function SeverityBucket(bucket) {
         bucket.forEach(severity => severity.render(uiSeverityHolder));
     }
 
-    function unapplySeverity() {
-        bucket.forEach(tag => tag.unapply());
+    function unapplySeverities() {
+        bucket.forEach(severity => severity.unapply());
     }
 
     function getSeverities() {
@@ -30,21 +36,22 @@ function SeverityBucket(bucket) {
     }
 
     function getAppliedSeverities() {
-        return bucket.filter(tag => tag.getStatus().applied);
+        return bucket.filter(severity => severity.getActive()).map(severity => severity.getSeverity());
     }
 
     function isSeverityApplied() {
-        for (let i = 0; i < bucket.length; i++){
-            if (bucket[i].getActive()) {
-                return true;
-            }
-        }
-        return false;
+        // for (let i = 0; i < bucket.length; i++){
+        //     if (bucket[i].getActive()) {
+        //         return true;
+        //     }
+        // }
+        // return false;
+        return getAppliedSeverities().length > 0;
     }
 
     self.push = push;
     self.render = render;
-    self.unapplySeverity = unapplySeverity;
+    self.unapplySeverities = unapplySeverities;
     self.getSeverities = getSeverities;
     self.getSize = getSize;
     self.getAppliedSeverities = getAppliedSeverities;

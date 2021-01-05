@@ -17,3 +17,7 @@
     border-radius: 3px;
     margin: 2px 2px;
 }
+
+#tags-header {
+    display: none;
+}

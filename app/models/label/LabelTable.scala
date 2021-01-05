@@ -721,7 +721,6 @@ object LabelTable {
 
     val _labelsUnfilteredNoTutorial = _labelsUnfiltered.filter(_._1.tutorial === false)
 
-    Logger.debug(_labelsUnfilteredNoTutorial.size.run + "")   
     // Could be optimized by grouping on less rows
     val _labelsGrouped = _labelsUnfilteredNoTutorial.groupBy(x => x).map(_._1)
     Logger.debug(_labelsGrouped.size.run + "")
@@ -748,7 +747,6 @@ object LabelTable {
 
     var potentialStartIdx: Int = 0
 
-    Logger.debug(newRandomLabelsList.size + "")
     while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
       //Logger.debug("entered the loop with " + selectedLabels.length + " labels")
       val labelsNeeded: Int = n - selectedLabels.length
@@ -788,24 +786,26 @@ object LabelTable {
    * @param loadedLabelIds Label Ids of labels already grabbed
    * @return               Seq[LabelValidationMetadata]
    */
-  def retrieveAssortedLabels(n: Int, loadedLabelIds: Set[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
+  def retrieveAssortedLabels(n: Int, loadedLabelIds: Set[Int], severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     Logger.debug("Grabbing random assortment of labels");
     val rand = SimpleFunction.nullary[Double]("random")
     val _labelsUnfiltered = for {
-      _lb <- labelsWithoutDeleted
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-      _lp <- labelPoints if _lb.labelId === _lp.labelId
-    } yield (_lb, _lp, _lt.labelType)
+        _lb <- labelsWithoutDeleted
+        _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+        _lp <- labelPoints if _lb.labelId === _lp.labelId
+        _ls <- severities if _lb.labelId === _ls.labelId
+    } yield (_lb, _lp, _lt.labelType, _ls.severity.?)
+    
+    val _labelsUnfilteredWithSeverity = severity match {
+      case Some(severity) => _labelsUnfiltered.filter(_._4 inSet severity)
+      case _ => _labelsUnfiltered
+    }
 
-    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
-
-    val addSeverity = for {
-      (l, s) <- _labels.leftJoin(severities).on(_._1.labelId === _.labelId)
-    } yield (l._1, l._2, l._3, s.severity.?)
+    val _labels = _labelsUnfilteredWithSeverity.filter(label => !(label._1.labelId inSet loadedLabelIds))
 
     val addTemporariness = for {
-      (l, t) <- addSeverity.leftJoin(temporariness).on(_._1.labelId === _.labelId)
+      (l, t) <- _labels.leftJoin(temporariness).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, l._3, l._4, t.temporary.?.getOrElse(false))
 
     val addGSVData = for {

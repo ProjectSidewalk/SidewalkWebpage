@@ -1,6 +1,11 @@
+/**
+ * A Validation Menu to be appended to a Card for validation purposes
+ * @param uiCardImage the html element to append the validation menu to
+ * @param cardProperties properties of the label the validation menu is being appended to
+ * @returns {ValidationMenu}
+ * @constructor
+ */
 function ValidationMenu(uiCardImage, cardProperties) {
-    console.log("Validation Menu instantiated");
-
     let resultOptions = {
         "Agree": 1, 
         "Disagree": 2,

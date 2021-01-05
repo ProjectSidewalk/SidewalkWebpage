@@ -1,3 +1,9 @@
+/**
+ * A Card Bucket to store Cards of a certain label type
+ * @param bucket object containing cards categorized by severity
+ * @returns {TagBucket}
+ * @constructor
+ */
 function CardBucket(bucket, size) {
     let self = this;
 
