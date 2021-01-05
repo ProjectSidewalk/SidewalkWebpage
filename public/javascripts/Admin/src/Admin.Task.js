@@ -74,6 +74,7 @@ function AdminTask(params) {
             var transform = d3.geo.transform({point: projectPoint});
             var d3path = d3.geo.path().projection(transform);
             var featuresdata = walkTrajectory.features;
+            var timedata = [];
             var markerGroup = g.append('g').data(featuresdata);
             var marker = markerGroup.append('circle')
                 .attr('r', 2)
@@ -131,36 +132,35 @@ function AdminTask(params) {
                 .duration(750);
 
             // Chain transitions.
+            var timeToReplayTask = 0;
             var totalDuration = 0;
             var totalSkips = 0;
             var skippedTime = 0;
-            for (let i = startTime; i < featuresdata.length; i++) {
+
+            for (let i = 0; i < featuresdata.length; i++) {
                 // This controls the speed.
                 featuresdata[i].properties.timestamp /= SPEEDUP_MULTIPLIER;
 
-                if (i > startTime) {
+                if (i > 0) {
                     let duration = featuresdata[i].properties.timestamp - featuresdata[i - 1].properties.timestamp;
-
-                    // If there is a greater than MAX_WAIT_MS pause, only pause for SKIP_FILL_TIME_MS.
                     if (duration > MAX_WAIT_MS) {
                         totalSkips += 1;
                         skippedTime += duration;
                         duration = SKIP_FILL_TIME_MS;
                     }
-                    totalDuration += duration;
+                    timedata[i] = timedata[i-1] + duration;
+                } else {
+                    timedata[i] = 0;
                 }
             }
+            timeToReplayTask = timedata[featuresdata.length - 1];
             console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`)
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
-            console.log(`Total watch time: ${totalDuration / 1000} seconds`);
 
-            $('#timeline-active').animate({
-                width: '360px'
-            }, totalDuration);
+            console.log(`Time to replay task: ${timeToReplayTask / 1000} seconds`);
+    
+            document.getElementById('replay-time').innerText = timeToReplayTask/1000;
 
-            $('#timeline-handle').animate({
-                left: '360px'
-            }, totalDuration);
             
             var currentTimestamp = featuresdata[startTime].properties.timestamp;
             var currPano = null;
@@ -230,6 +230,19 @@ function AdminTask(params) {
 
                             }
                         }
+
+                        document.getElementById('watch-time').innerText = timedata[counter]/1000;
+                        
+                        $('#timeline-active').animate({
+                            width: 360 * (timedata[counter]/timeToReplayTask)
+                        }, 0);
+            
+                        $('#timeline-handle').animate({
+                            left: 360 * (timedata[counter]/timeToReplayTask)
+                        }, 0);
+                        
+                        
+                        // console.log(`duration: ${duration}`);
                         d3.select(this).attr('counter', ++counter);
                         lastPaused = d3.select(this).attr('counter');
                         
