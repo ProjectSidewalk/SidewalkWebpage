@@ -632,13 +632,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     /**
-     * Pushes all previously completed tasks into previousTasks.
+     * Renders all previously completed tasks.
+     * Should be called at initialization so it does not rerender paths 
+     * that are already rendered.
      */
-    function pushAllCompletedTasks() {    
+    function renderAllPreviouslyCompletedTaskFromDifferentSession() {    
         var completedTasks = getCompletedTasks();
         if (completedTasks) {
+            console.log('rendering');
             for (let i = 0; i < completedTasks.length; ++i) {
-                pushATask(completedTasks[i]);
+                completedTasks[i].render();
             }
         }
     }
@@ -655,7 +658,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = pushATask;
-    self.pushAllCompletedTasks = pushAllCompletedTasks;
+    self.renderAllPreviouslyCompletedTaskFromDifferentSession = renderAllPreviouslyCompletedTaskFromDifferentSession;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
 
     self.storeTask = storeTask;
