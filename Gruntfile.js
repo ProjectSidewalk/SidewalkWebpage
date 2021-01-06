@@ -68,6 +68,17 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
+            },
+            dist_gallery: {
+                src: [
+                    'public/javascripts/SidewalkGallery/src/cards/*.js',
+                    'public/javascripts/SidewalkGallery/src/data/*.js',
+                    'public/javascripts/SidewalkGallery/src/filter/*.js',
+                    'public/javascripts/SidewalkGallery/src/validation/*.js',
+                    'public/javascripts/SidewalkGallery/src/*.js',
+                    'public/javascripts/SidewalkGallery/util/*.js'
+                ],
+                dest: 'public/javascripts/SidewalkGallery/build/SidewalkGallery.js'
             }
         },
         uglify: {
@@ -89,6 +100,12 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/css/*.css'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.css'
+            },
+            gallery_all: {
+                src: [
+                    'public/javascripts/SidewalkGallery/css/*.css'
+                ],
+                dest: 'public/javascripts/SidewalkGallery/build/SidewalkGallery.css'
             }
         },
         jasmine: {
@@ -143,7 +160,10 @@ module.exports = function(grunt) {
                     'public/javascripts/Help/src/*.js',
                     'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/**/*.js',
-                    'public/javascripts/SVValidate/css/*.css'
+                    'public/javascripts/SVValidate/css/*.css',
+                    'public/javascripts/SidewalkGallery/src/*.js',
+                    'public/javascripts/SidewalkGallery/src/**/*.js',
+                    'public/javascripts/SidewalkGallery/css/*.css'
                 ],
                 tasks: [
                     'concat',
@@ -167,5 +187,5 @@ module.exports = function(grunt) {
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
     grunt.registerTask('default', ['concat', 'concat_css']);
-    grunt.registerTask('dist', ['concat:dist_svl', 'concat:dist_progress', 'concat:dist_admin', 'concat:validation_svl']);
+    grunt.registerTask('dist', ['concat:dist_svl', 'concat:dist_progress', 'concat:dist_admin', 'concat:validation_svl', 'concat:dist_gallery']);
 };

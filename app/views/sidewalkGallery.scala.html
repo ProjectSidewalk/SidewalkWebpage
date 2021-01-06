@@ -4,21 +4,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/Main.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/Card.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/CardBucket.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/data/Form.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/data/Tracker.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/CardContainer.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/CardFilter.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/RibbonMenu.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Tag.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/TagBucket.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/SeverityBucket.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Severity.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/CardSortMenu.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/validation/ValidationMenu.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/util/GalleryPanoUtilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/build/SidewalkGallery.js")'></script>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
@@ -92,7 +78,5 @@
             sg.main = new Main(params);
     </script>
 
-    <link href='@routes.Assets.at("stylesheets/SidewalkGallery/cards.css")' rel='stylesheet' />
-    <link href='@routes.Assets.at("stylesheets/SidewalkGallery/tags.css")' rel='stylesheet' />
-    <link href='@routes.Assets.at("stylesheets/SidewalkGallery/gallery.css")' rel='stylesheet' />
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SidewalkGallery/build/SidewalkGallery.css")'/>
 }
