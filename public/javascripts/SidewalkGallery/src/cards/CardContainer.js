@@ -22,7 +22,6 @@ function CardContainer(uiCardContainer) {
         Other: 5,
         Occlusion: 6,
         NoSidewalk: 7,
-        Problem: 8,
         Assorted: 9
     };
 
@@ -44,8 +43,7 @@ function CardContainer(uiCardContainer) {
         SurfaceProblem: null,
         Other: null,
         Occlusion: null,
-        NoSidewalk: null,
-        Problem: null
+        NoSidewalk: null
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend

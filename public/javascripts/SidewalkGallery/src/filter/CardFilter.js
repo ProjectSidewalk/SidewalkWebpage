@@ -20,8 +20,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         SurfaceProblem: new TagBucket(),
         Other: new TagBucket(),
         Occlusion: new TagBucket(),
-        NoSidewalk: new TagBucket(),
-        Problem: new TagBucket()
+        NoSidewalk: new TagBucket()
     };
 
     let currentTags = new TagBucket();
