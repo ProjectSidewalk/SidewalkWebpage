@@ -469,16 +469,13 @@ function CardContainer(uiCardContainer) {
      * Updates cardsOfType if card type changes, and currentCards if filter changes
      */
     function updateCardsByType() {
-        $("#labels-not-found").hide();
-        $("#page-loading").show();
+        refreshUI();
 
-        uiCardContainer.holder.empty();
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
             // reset back to the first page
             setPage(1);
             sg.tagContainer.unapplyTags(currentLabelType)
-            clearCurrentCards();
             currentLabelType = filterLabelType;
 
             if (cardsByType[currentLabelType] == null) {
@@ -495,8 +492,7 @@ function CardContainer(uiCardContainer) {
 
     function updateCardsNewPage() {
         // TODO: fix
-        $("#labels-not-found").hide();
-        $("#page-loading").show();
+        refreshUI();
 
         currentCards = cardsByType[currentLabelType].copy();
         let bucket = currentCards.getCards();
@@ -546,10 +542,9 @@ function CardContainer(uiCardContainer) {
 
     function updateCardsByTag() {
         setPage(1);
-        $("#labels-not-found").hide();
-        $("#page-loading").show();
-        let appliedTags = sg.tagContainer.getAppliedTagNames();
+        refreshUI();
 
+        let appliedTags = sg.tagContainer.getAppliedTagNames();
         if (appliedTags.length > 0) {
             // TODO: fix this edge case!!!
             let appliedSeverities = sg.tagContainer.getAppliedSeverities();
@@ -570,8 +565,8 @@ function CardContainer(uiCardContainer) {
     function updateCardsBySeverity() {
         // TODO: Doesn't work when label type is "assorted", need fix
         setPage(1);
-        $("#labels-not-found").hide();
-        $("#page-loading").show();
+        refreshUI();
+
         let appliedSeverities = sg.tagContainer.getAppliedSeverities();
         let appliedTags = sg.tagContainer.getAppliedTagNames();
         appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
@@ -617,7 +612,8 @@ function CardContainer(uiCardContainer) {
         // ^^^
         // Useful link for loading then showing all iamges at once rather than weird card "shells"
          
-        // TODO: consider a build query model, discuss with Aroosh
+        // TODO: should we try to just empty in the render method? Or assume it's 
+        // already been emptied in a method utilizing render?
         uiCardContainer.holder.empty();
         pagewidth = uiCardContainer.holder.width();
         const cardWidth = pagewidth/3 - cardPadding;
@@ -662,6 +658,12 @@ function CardContainer(uiCardContainer) {
         // We can put a call to start the loading gif here and end the gif in the 'then' statement of the promise
     }
 
+    function refreshUI() {
+        $("#labels-not-found").hide();
+        $("#page-loading").show();
+        uiCardContainer.holder.empty();
+    }
+
     function setStatus(key, value) {
         if (key in status) {
             status[key] = value;
@@ -675,7 +677,6 @@ function CardContainer(uiCardContainer) {
      */
     function clearCurrentCards() {
         currentCards = new CardBucket();
-        //uiCardContainer.holder.empty();
     }
 
     /**
