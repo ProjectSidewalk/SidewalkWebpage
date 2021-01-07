@@ -63,12 +63,15 @@ function Card (params, imageUrl) {
         panoImage.id = imageId;
         panoImage.className = "static-gallery-image";
 
+        // Clean up ternary operators with constants?
+        let severityHeader = properties.severity ? properties.severity : getLabelType() === "Occlusion" ? "not applicable" : "none";
+        let tagHeader = properties.tags.length > 0 ? properties.tags.join(", ") : getLabelType() === "Occlusion" ? "not applicable" : "none";
+
         // TODO: Can we modularize this in some separate HTML
         //  file so we don't have to use template string?
-        //             <img id="${imageId}" class="static-gallery-image">
         const cardHtml = `
-            <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
-            <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "none"}</p>
+            <p class="label-severity"><b>Severity:</b> ${severityHeader}</p>
+            <p class="label-tags"><b>Tags:</b> ${tagHeader}</p>
         `;
 
         card = document.createElement('div');
