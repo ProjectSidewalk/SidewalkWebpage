@@ -15,13 +15,12 @@
                     <div id="timeline-active"></div>
                     <div id="timeline-handle"></div>
                 </div>
-                <div style="padding-top: 25px;" id="controls" class="col">
+                <div id="controls" class="col">
                     <div class="col-md-4">
                         <button id="control-btn">Play</button>
                         <button id="replay-btn">Replay</button>
                     </div>
-
-                    <div class="col-md-8" style="text-align:right; position: inherit;">
+                    <div id="playback-inputs" class="col-md-8">
                         <label for="speed-multiplier">Speed Multiplier:</label>
                         <input type="number" id="speed-multiplier" name="Speed Multiplier" size="6" value="2" required>
                         <label for="pause-time">Max Wait Time:</label>
@@ -31,7 +30,7 @@
                     </div>
                 </div>
                 <div clas="col-md-4">
-                    <div id="watchTime">
+                    <div>
                         <label for="replay-time">Replay Time</label>
                         <p id="replay-time">0</p>
                         <label for="watch-time">Watch Time</label>
@@ -48,6 +47,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
     <link href='@routes.Assets.at("stylesheets/previousAudit.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/adminTask.css")' rel="stylesheet"/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>

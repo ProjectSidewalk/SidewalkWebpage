@@ -156,7 +156,6 @@ function AdminTask(params) {
             timeToReplayTask = timedata[featuresdata.length - 1];
             console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`)
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
-
             console.log(`Time to replay task: ${timeToReplayTask / 1000} seconds`);
     
             document.getElementById('replay-time').innerText = timeToReplayTask/1000;
@@ -241,7 +240,6 @@ function AdminTask(params) {
                             left: 360 * (timedata[counter]/timeToReplayTask)
                         }, 0);
                         
-                        
                         // console.log(`duration: ${duration}`);
                         d3.select(this).attr('counter', ++counter);
                         lastPaused = d3.select(this).attr('counter');
@@ -253,7 +251,6 @@ function AdminTask(params) {
                         }
                     });
             }
-
         }
 
         function projectPoint(x, y) {
