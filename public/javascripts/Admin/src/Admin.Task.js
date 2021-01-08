@@ -45,7 +45,7 @@ function AdminTask(params) {
         function playAnimation() {
             const SPEEDUP_MULTIPLIER = document.getElementById('speed-multiplier').value;
             const MAX_WAIT_MS = document.getElementById('wait-time').value;
-            const SKIP_FILL_TIME_MS = document.getElementById('fill-time').value;
+            const SKIP_FILL_TIME_MS = parseInt(document.getElementById('fill-time').value, 10);
 
             // Import the sample data and start animating.
             var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
