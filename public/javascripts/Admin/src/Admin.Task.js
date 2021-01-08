@@ -19,19 +19,13 @@ function AdminTask(params) {
         
         // Plays/Pauses the stream
         $('#control-btn').on('click', function() {
-            if (document.getElementById('control-btn').innerHTML == 'Play') {
+            if (document.getElementById('control-btn').innerHTML === 'Play') {
                 playAnimation();
-            } else {
+            } else if (document.getElementById('control-btn').innerHTML === 'Pause') {
                 pauseAnimation();
             }
         });
 
-        // Starts stream from the beginning.
-        $('#replay-btn').on('click', function() {
-            pauseAnimation();
-            lastPaused = 0;
-            playAnimation();
-        })
         
         // Adds input listeners and pauses playback whenever fields are changed.
         var elements = document.getElementsByTagName('input');
@@ -132,7 +126,7 @@ function AdminTask(params) {
                 .duration(750);
 
             // Chain transitions.
-            var timeToReplayTask = 0;
+            var timeToPlaybackTask = 0;
             var totalDuration = 0;
             var totalSkips = 0;
             var skippedTime = 0;
@@ -153,14 +147,11 @@ function AdminTask(params) {
                     timedata[i] = 0;
                 }
             }
-            timeToReplayTask = timedata[featuresdata.length - 1];
+            timeToPlaybackTask = timedata[featuresdata.length - 1];
             console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`)
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
-            console.log(`Time to replay task: ${timeToReplayTask / 1000} seconds`);
-    
-            document.getElementById('replay-time').innerText = timeToReplayTask/1000;
+            console.log(`Time to replay task: ${timeToPlaybackTask / 1000} seconds`);
 
-            
             var currentTimestamp = featuresdata[startTime].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
@@ -230,14 +221,14 @@ function AdminTask(params) {
                             }
                         }
 
-                        document.getElementById('watch-time').innerText = timedata[counter]/1000;
+                        document.getElementById('watch-time').innerText = `${(timedata[counter]/1000).toFixed(4)}/${(timeToPlaybackTask/1000).toFixed(4)}`;
                         
                         $('#timeline-active').animate({
-                            width: 360 * (timedata[counter]/timeToReplayTask)
+                            width: 360 * (timedata[counter]/timeToPlaybackTask)
                         }, 0);
             
                         $('#timeline-handle').animate({
-                            left: 360 * (timedata[counter]/timeToReplayTask)
+                            left: 360 * (timedata[counter]/timeToPlaybackTask)
                         }, 0);
                         
                         // console.log(`duration: ${duration}`);
@@ -246,8 +237,8 @@ function AdminTask(params) {
                         
                         // Allows the stream to restart at the beginning.
                         if (lastPaused >= featuresdata.length) {
-                            lastPaused = 0;
                             pauseAnimation();
+                            document.getElementById('control-btn').innerHTML = "Refresh Page to Replay";
                         }
                     });
             }
