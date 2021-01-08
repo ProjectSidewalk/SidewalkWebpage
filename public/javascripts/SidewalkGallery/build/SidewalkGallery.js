@@ -446,7 +446,7 @@ function CardContainer(uiCardContainer) {
      */
     function push(card) {
         if (currentLabelType == 'Assorted') {
-            // TODO: Can we cache cards pulled in the "assorted" bucket into their resepctive card buckets?
+            // TODO: Can we cache cards pulled in the "assorted" bucket into their respective card buckets?
             cardsByType[currentLabelType].push(card);
         } else {
             cardsByType[card.getLabelType()].push(card);
@@ -479,7 +479,8 @@ function CardContainer(uiCardContainer) {
     }
 
     function updateCardsNewPage() {
-        // TODO: fix
+        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity
+        // Think about imrpoving code design
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
@@ -591,21 +592,6 @@ function CardContainer(uiCardContainer) {
 
             idx++;
         }
-
-        // for (let i = severities.length - 1; i >= 0; i--) {
-        //     if (severities[i].getActive() || noSeverities) {
-        //         let subBucket = cardBucket[severities[i].getSeverity()];
-        //         for (let j = 0; j < subBucket.length; j++) {
-        //             if (num >= cardsPerPage * currentPage) break;
-        //             if (num >= start) {
-        //                 imagesToLoad.push(subBucket[j]);
-        //                 imagePromises.push(subBucket[j].loadImage());
-        //             }
-
-        //             num++;
-        //         }
-        //     }
-        // }
 
         if (imagesToLoad.length > 0) {
             Promise.all(imagePromises).then(() => {
