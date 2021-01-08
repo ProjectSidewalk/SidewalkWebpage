@@ -7,26 +7,33 @@
 function CardBucket(bucket, size) {
     let self = this;
 
-    size = size || 0;
-
-    bucket = bucket || {
-        1: [],
-        2: [],
-        3: [],
-        4: [],
-        5: [],
-        null: []
-    };
+    bucket = bucket || [];
 
     function push(card) {
-        bucket[card.getProperty('severity')].push(card);
-        size++;
+        bucket.push(card);
     }
 
+    /**
+     * Filters cards upon a non-empty array of tags
+     * 
+     * @param {*} tags tags to filter upon
+     */
     function filterOnTags(tags) {
-        let tagSet = new Set(tags);
-        for (let severity in bucket) {
-            bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").some(tag => tagSet.has(tag)));
+        if (tags.length > 0) {
+            let tagSet = new Set(tags);
+            bucket = bucket.filter(card => card.getProperty("tags").some(tag => tagSet.has(tag)));
+        }
+    }
+
+    /**
+     * Filters cards upon a non-empty array of severities
+     * 
+     * @param {*} severities severities to filter upon
+     */
+    function filterOnSeverities(severities) {
+        if (severities.length > 0) {
+            let severitySet = new Set(severities);
+            bucket = bucket.filter(card => severitySet.has(card.getProperty("severity")));
         }
     }
 
@@ -35,41 +42,18 @@ function CardBucket(bucket, size) {
     }
 
     function getSize() {
-        // let num = 0;
-        // for (let i = 1; i <= 5; i++) {
-        //     num += bucket[i].length;
-        // }
-        // num += bucket['null'].length;
-
-        // return num;
-        return size;
-
-    }
-
-    function getCardsBySeverity(severity) {
-        if (!bucket.hasOwnProperty(severity)) {
-            throw self.className + ": No such severity bucket";
-        }
-
-        return bucket[severity];
+        return bucket.length;
     }
 
     function copy() {
-        return new CardBucket({
-            1: bucket['1'],
-            2: bucket['2'],
-            3: bucket['3'],
-            4: bucket['4'],
-            5: bucket['5'],
-            null: bucket['null']
-        }, size);
+        return new CardBucket([...bucket]);
     }
 
     self.push = push;
     self.filterOnTags = filterOnTags;
+    self.filterOnSeverities = filterOnSeverities;
     self.getCards = getCards;
     self.getSize = getSize;
-    self.getCardsBySeverity = getCardsBySeverity;
     self.copy = copy;
 
     return this;

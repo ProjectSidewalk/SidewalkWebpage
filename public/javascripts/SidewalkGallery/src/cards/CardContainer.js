@@ -62,6 +62,7 @@ function CardContainer(uiCardContainer) {
                 click: handlePrevPageClick
             })
         }
+
         pageNumberDisplay = document.createElement('h2');
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
@@ -159,7 +160,7 @@ function CardContainer(uiCardContainer) {
      */
     function push(card) {
         if (currentLabelType == 'Assorted') {
-            // TODO: Can we cache cards pulled in the "assorted" bucket into their resepctive card buckets?
+            // TODO: Can we cache cards pulled in the "assorted" bucket into their respective card buckets?
             cardsByType[currentLabelType].push(card);
         } else {
             cardsByType[card.getLabelType()].push(card);
@@ -192,53 +193,38 @@ function CardContainer(uiCardContainer) {
     }
 
     function updateCardsNewPage() {
-        // TODO: fix
+        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity
+        // Think about imrpoving code design
         refreshUI();
 
-        currentCards = cardsByType[currentLabelType].copy();
-        let bucket = currentCards.getCards();
+        let appliedTags = sg.tagContainer.getAppliedTagNames();
+        appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
 
-        currentCards.filterOnTags(sg.tagContainer.getAppliedTagNames());
-        let numTags = sg.tagContainer.getAppliedTagNames().length;
-
-        const numCards = numCardsInBucket(bucket);
         let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-        appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
+        // TODO: figure out how to make a default severity set to grab all severities (including null)
+        appliedSeverities = appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
 
-        if (numCards < cardsPerPage * currentPage) {
-            if (numTags == 0) {
-                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), function() {
+        currentCards = cardsByType[currentLabelType].copy();
+        currentCards.filterOnTags(appliedTags);
+        currentCards.filterOnSeverities(appliedSeverities);
+
+        if (currentCards.getSize() < cardsPerPage * currentPage) {
+            if (currentLabelType === "Occlusion") {
+                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
                     render();
                 });
             } else {
-                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTagNames(), function() {
-                    updateCardsNewPage();
+                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                    currentCards = cardsByType[currentLabelType].copy();
+                    currentCards.filterOnTags(appliedTags);
+                    currentCards.filterOnSeverities(appliedSeverities);
+        
+                    render();
                 });
             }
         } else {
             render();
         }
-    }
-
-    function numCardsInBucket(bucket) {
-        if (bucket == null) {
-            return 0;
-        }
-
-        let num = 0;
-        let severities = sg.tagContainer.getSeverities();
-
-        for (let severity in bucket) {
-
-            if (!sg.tagContainer.isSeverityApplied()){
-                num += bucket[severity].length;
-            } else if (severity != "null") {
-                if (severities[severity - 1].getActive() == true) {
-                    num += bucket[severity].length;
-                }
-            }
-        }
-        return num;
     }
 
     function updateCardsByTag() {
@@ -246,51 +232,39 @@ function CardContainer(uiCardContainer) {
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
-        if (appliedTags.length > 0) {
-            // TODO: fix this edge case!!!
-            let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-            appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
-            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-                currentCards = cardsByType[currentLabelType].copy();
+        appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
 
-                currentCards.filterOnTags(appliedTags);
+        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
+        // TODO: figure out how to make a default severity set to grab all severities (including null)
+        appliedSeverities = appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
 
-                render();
-            });
-        } else {
+        fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
             currentCards = cardsByType[currentLabelType].copy();
+            currentCards.filterOnTags(appliedTags);
+            currentCards.filterOnSeverities(appliedSeverities);
+
             render();
-        }
+        });
     }
 
     function updateCardsBySeverity() {
-        // TODO: Doesn't work when label type is "assorted", need fix
         setPage(1);
         refreshUI();
 
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
         let appliedTags = sg.tagContainer.getAppliedTagNames();
         appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
 
-        if (appliedSeverities.length > 0) {
-            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-                currentCards = cardsByType[currentLabelType].copy();
-                if (appliedTags.length > 0) {
-                    // TODO: think about whether or not there is better way to do this
-                    currentCards.filterOnTags(appliedTags);
-                }
+        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
+        // TODO: figure out how to make a default severity set to grab all severities (including null)
+        appliedSeverities = appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
 
-                render();
-            });
-        } else {
+        fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
             currentCards = cardsByType[currentLabelType].copy();
-            if (appliedTags.length > 0) {
-                currentCards.filterOnTags(appliedTags);
-            }
+            currentCards.filterOnTags(appliedTags);
+            currentCards.filterOnSeverities(appliedSeverities);
 
             render();
-        }
-
+        });
     }
 
     function sortCards(order) {
@@ -320,30 +294,17 @@ function CardContainer(uiCardContainer) {
         const cardWidth = pagewidth/3 - cardPadding;
 
         //TODO: refactor render method to handle going through currentCard CardBucket and rendering those of selected severities
-        let num = 0;
-        let start = (currentPage - 1) * cardsPerPage;
+        let idx = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
-        let severities = sg.tagContainer.getSeverities();
-
-        let noSeverities = !sg.tagContainer.isSeverityApplied();
 
         let imagesToLoad = [];
         let imagePromises = [];
 
-        // TODO: Some label types like Occlusion, have a lot of null severities. What to do with these?
-        for (let i = severities.length - 1; i >= 0; i--) {
-            if (severities[i].getActive() || noSeverities) {
-                let subBucket = cardBucket[severities[i].getSeverity()];
-                for (let j = 0; j < subBucket.length; j++) {
-                    if (num >= cardsPerPage * currentPage) break;
-                    if (num >= start) {
-                        imagesToLoad.push(subBucket[j]);
-                        imagePromises.push(subBucket[j].loadImage());
-                    }
+        while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
+            imagesToLoad.push(cardBucket[idx]);
+            imagePromises.push(cardBucket[idx].loadImage());
 
-                    num++;
-                }
-            }
+            idx++;
         }
 
         if (imagesToLoad.length > 0) {
