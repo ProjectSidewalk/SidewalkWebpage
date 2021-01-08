@@ -235,9 +235,8 @@ function AdminTask(params) {
                         d3.select(this).attr('counter', ++counter);
                         lastPaused = d3.select(this).attr('counter');
                         
-                        // Allows the stream to restart at the beginning.
+                        // Outputs message to refresh page.
                         if (lastPaused >= featuresdata.length) {
-                            pauseAnimation();
                             document.getElementById('control-btn').innerHTML = "Refresh Page to Replay";
                         }
                     });
