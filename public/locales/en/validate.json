@@ -123,8 +123,7 @@
       "street has no sidewalks": "street has no sidewalks",
       "gravel/dirt road": "gravel/dirt road",
       "shared pedestrian/car space": "shared pedestrian/car space",
-      "height difference": "height difference",
-      "narrow obstacle": "narrow"
+      "height difference": "height difference"
     }
   },
   "mission-start": {

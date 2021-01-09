@@ -1230,6 +1230,43 @@ kbd {
     text-align: center;
 }
 
+#validation-button-holder {
+    display: flex;
+    justify-content: space-between;
+}
+
+#validation-comment-holder {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+#comment-textarea {
+    height: 33px;
+    width: 395px;
+    background-color: "#F5F5F5";
+    color: black;
+    border-radius: 5px;
+    padding: 5px;
+    line-height: normal;
+    border-width: 2px;
+    border-color: grey;
+    resize: none;    
+    outline: none;
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
+#comment-button {
+    height: 33px;
+    width: 138px;
+    background-color: #f9f9f9;
+    margin-right: 2px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+    vertical-align: middle;
+}
+
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar

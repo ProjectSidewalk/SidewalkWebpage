@@ -123,8 +123,7 @@
       "street has no sidewalks": "la calle no tiene banquetas",
       "gravel/dirt road": "camino de tierra",
       "shared pedestrian/car space": "plataforma única",
-      "height difference": "desnivel",
-      "narrow obstacle": "muy angosta"
+      "height difference": "desnivel"
     }
   },
   "mission-start": {

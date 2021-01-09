@@ -348,19 +348,19 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.stairs')
                     },
                     'street vendor': {
-                        keyNumber: 68,
-                        keyChar: 'D',
+                        keyNumber: 85,
+                        keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.street-vendor')
                     },
                     'height difference': {
-                        keyNumber: 76,
-                        keyChar: 'L',
+                        keyNumber: 68,
+                        keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
                     },
                     'narrow': {
                         keyNumber: 87,
                         keyChar: 'W',
-                        text: i18next.t('center-ui.context-menu.tag.narrow-obstacle')
+                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     }
                 }
             },
@@ -393,8 +393,8 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.grass')
                     },
                     'narrow sidewalk': {
-                        keyNumber: 65,
-                        keyChar: 'A',
+                        keyNumber: 87,
+                        keyChar: 'W',
                         text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     },
                     'brick': {
