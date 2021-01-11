@@ -327,6 +327,9 @@ function CardContainer(uiCardContainer) {
         }
     }
 
+    /**
+     * Refreshes the UI after each query made by user
+     */
     function refreshUI() {
         sg.tagContainer.disable();
         $("#label-select").prop("disabled", true);
