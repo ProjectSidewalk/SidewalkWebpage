@@ -1,0 +1,120 @@
+.gallery-card {
+    position: relative;
+    display: inline-block;
+    border-style: solid;
+    border-width: 1px;
+    padding: 5px;
+    border-radius: 5px;
+    margin: 2px;
+    width: 360px;
+    height: auto;
+}
+
+.static-gallery-image {
+    width: 100%;
+    height: auto;
+}
+
+#gallery-validation-button-holder {
+    /* display: flex;
+    flex-flow: row wrap;
+    /* Then we define how is distributed the remaining space */
+    /*justify-content: space-around; */
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    position: absolute;
+    bottom: 50px;
+    left: 5px;
+    right: 5px;
+    height: 10%;
+}
+
+#gallery-card-agree-button {
+    background-color: green;
+    width: 33%;
+}
+
+#gallery-card-disagree-button {
+    background-color: red;
+    width: 34%;
+}
+
+#gallery-card-not-sure-button {
+    background-color:orange;
+    width: 33%;
+}
+
+.label-icon {
+    position: absolute;
+    width: 12px;
+    z-index: 2;
+}
+
+p.label-severity, p.label-tags {
+    margin: 2px 0;
+    width: 100%;
+    height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.validation-button, .validation-button-selected {
+    color: white;
+    opacity: 0;
+    transition: .3s ease;
+}
+
+.gallery-card:hover .validation-button {
+    opacity: 0.7;
+}
+
+.gallery-card:hover .validation-button-selected {
+    opacity: 1;
+
+    /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
+    outline: -webkit-focus-ring-color auto 1px;
+}
+
+/* .gallery-card:hover .validation-button:focus {
+    opacity: 1;
+} */
+#card-filter {
+    padding: 5px;
+}
+
+#ribbon-menu-holder {
+   padding-bottom: 30px;
+   border-bottom: 1px solid gray;
+}
+
+#labels-not-found {
+    display: none;
+}
+.gallery-tag {
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 20px;
+    margin: 2px 2px;
+    text-align: left;
+    background-color: white;
+}
+
+.gallery-severity {
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 3px;
+    margin: 2px 2px;
+    background-color: white;
+}
+
+#tags-header {
+    display: none;
+}

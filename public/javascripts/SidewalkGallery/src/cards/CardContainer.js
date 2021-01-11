@@ -322,9 +322,9 @@ function CardContainer(uiCardContainer) {
             // TODO: figure out how to better do the toggling of this element
             $("#labels-not-found").show();
             $("#page-loading").hide();
+            sg.tagContainer.enable();
             $("#label-select").prop("disabled", false);
         }
-        // We can put a call to start the loading gif here and end the gif in the 'then' statement of the promise
     }
 
     function refreshUI() {
