@@ -23,7 +23,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
                 var width = '450px';
                 var height = '291px';
                 var x = '50px';
-                var image = "img/examples/lookaround-example.gif";
+                var image = "/assets/images/examples/lookaround-example.gif";
                 tracker.push('PopUpShow_CheckBothSides');
 
                 popUpMessage.notifyWithImage(title, message, width, height, x, image, function() {
