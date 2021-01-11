@@ -69,6 +69,13 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         } else {
             $("#tags-header").hide();
         }
+        if (status.currentLabelType == "Occlusion") {
+            $("#filters").hide();
+            $("#horizontal-line").hide();
+        } else {
+            $("#filters").show();
+            $("#horizontal-line").show();
+        }
 
         severities.render(uiCardFilter.severity);
     }
