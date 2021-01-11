@@ -67,6 +67,7 @@ function CardContainer(uiCardContainer) {
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
         $("#page-control").hide();
+        sg.tagContainer.disable();
         cardsByType[currentLabelType] = new CardBucket();
         fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
             render();
@@ -314,16 +315,21 @@ function CardContainer(uiCardContainer) {
                 imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
                 $("#page-loading").hide();
                 $("#page-control").show();
+                sg.tagContainer.enable();
+                $("#label-select").prop("disabled", false);
             });
         } else {
             // TODO: figure out how to better do the toggling of this element
             $("#labels-not-found").show();
             $("#page-loading").hide();
+            $("#label-select").prop("disabled", false);
         }
         // We can put a call to start the loading gif here and end the gif in the 'then' statement of the promise
     }
 
     function refreshUI() {
+        sg.tagContainer.disable();
+        $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
         $("#page-loading").show();
         $("#page-control").hide();

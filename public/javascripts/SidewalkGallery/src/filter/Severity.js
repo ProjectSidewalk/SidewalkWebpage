@@ -21,11 +21,11 @@ function Severity (params){
     function _init(param) {
         
         properties.severity = param;
-        severityElement = document.createElement('div');
+        severityElement = document.createElement('button');
         severityElement.className = 'gallery-severity';
         severityElement.id = properties.severity;
         severityElement.innerText = properties.severity;
-
+        severityElement.disabled = true;
         severityElement.onclick = handleOnClickCallback;
 
 
@@ -73,6 +73,16 @@ function Severity (params){
         return properties.severity;
     }
 
+    function disable() {
+        // severityElement.disable = true;
+        severityElement.setAttribute("disabled", true);
+    }
+
+    function enable() {
+        // severityElement.disable = false;
+        severityElement.setAttribute("disabled", false);
+    }
+
     self.handleOnClickCallback = handleOnClickCallback;
     //self.toggleActive = toggleActive;
     self.apply = apply;
@@ -80,6 +90,8 @@ function Severity (params){
     self.getActive = getActive;
     self.getSeverity = getSeverity;
     self.render = render;
+    self.disable = disable;
+    self.enable = enable;
 
     _init(params);
 

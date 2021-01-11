@@ -49,6 +49,14 @@ function SeverityBucket(bucket) {
         return getAppliedSeverities().length > 0;
     }
 
+    function disable() {
+        bucket.forEach(severity => severity.disable());
+    }
+    
+    function enable() {
+        $(".gallery-severity").prop("disabled", false);
+    }
+
     self.push = push;
     self.render = render;
     self.unapplySeverities = unapplySeverities;
@@ -56,6 +64,8 @@ function SeverityBucket(bucket) {
     self.getSize = getSize;
     self.getAppliedSeverities = getAppliedSeverities;
     self.isSeverityApplied = isSeverityApplied;
+    self.disable = disable;
+    self.enable = enable;
 
     _init();
 
