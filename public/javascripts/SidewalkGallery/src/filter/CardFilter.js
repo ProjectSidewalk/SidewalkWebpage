@@ -130,6 +130,16 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         currentTags = new TagBucket();
     }
 
+    function disable() {
+        severities.disable();
+        $('.gallery-tag').prop("disabled", true);
+    }
+
+    function enable() {
+        severities.enable();
+        $('.gallery-tag').prop("disabled", false);
+    }
+
     self.update = update;
     self.render = render;
     self.getAppliedTagNames = getAppliedTagNames;
@@ -141,6 +151,8 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     self.isSeverityApplied = isSeverityApplied;
     self.getAppliedSeverities = getAppliedSeverities;
     self.unapplyTags = unapplyTags;
+    self.disable = disable;
+    self.enable = enable;
 
     _init();
     return this;

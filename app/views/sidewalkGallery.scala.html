@@ -23,7 +23,7 @@
                 <div id="ribbon-menu-holder">
                     <span id="label-type-holder">
                         <h4><b>Show</b></h4>
-                        <select id="label-select">
+                        <select id="label-select" disabled>
                             <option value="Assorted">All</option>
                             <option value="CurbRamp">Curb Ramp</option>
                             <option value="NoCurbRamp">Missing Curb Ramp</option>
@@ -45,14 +45,16 @@
                 <span id="tags">
                 </span>
             </div>
-            <span id="labels-not-found">No matches. <a href="/audit">Start exploring</a> to contribute more data!</span>
+            <div style="position: absolute; width: 100%; text-align: center;">
+                <span id="labels-not-found">No matches. <a href="/audit">Start exploring</a> to contribute more data!</span>
+            </div>
             <div id="image-card-container" class="col-md-10">
             </div>
         </div>
         <div class="row">
             <div class="col-md-5"></div>
             <div class="col-md-2">
-                <div style="position: absolute; left: 50%; margin-right: -50%;">
+                <div style="position: absolute; left: 50%; margin-right: -50%;" id="page-control">
                     <button style="display: inline-block; font-size: 30px;" id="prev-page">&lt</button>
                     <div style="display: inline-block; font-size: 30px;" id="page-number"></div>
                     <button style="display: inline-block; font-size: 30px;" id="next-page">&gt</button>

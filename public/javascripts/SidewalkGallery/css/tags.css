@@ -6,6 +6,8 @@
     border-width: 1px;
     border-radius: 20px;
     margin: 2px 2px;
+    text-align: left;
+    background-color: white;
 }
 
 .gallery-severity {
@@ -16,6 +18,7 @@
     border-width: 1px;
     border-radius: 3px;
     margin: 2px 2px;
+    background-color: white;
 }
 
 #tags-header {

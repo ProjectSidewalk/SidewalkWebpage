@@ -27,10 +27,11 @@ function Tag (params) {
             properties[attrName] = param[attrName];
         }
 
-        tagElement = document.createElement('div');
+        tagElement = document.createElement('button');
         tagElement.className = "gallery-tag";
         tagElement.id = properties.tag;
         tagElement.innerText = properties.tag;
+        tagElement.disabled = true;
 
         tagElement.onclick = handleTagClickCallback;
     }
