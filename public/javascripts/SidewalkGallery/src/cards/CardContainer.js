@@ -68,6 +68,7 @@ function CardContainer(uiCardContainer) {
         uiCardContainer.pageNumber.append(pageNumberDisplay);
         $("#page-control").hide();
         sg.tagContainer.disable();
+        $("#prev-page").prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
         fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
             render();
@@ -80,6 +81,7 @@ function CardContainer(uiCardContainer) {
             To: currentPage + 1
         });
         setPage(currentPage + 1);
+        $("#prev-page").prop("disabled", false);
         updateCardsNewPage();
     }
 
@@ -89,12 +91,16 @@ function CardContainer(uiCardContainer) {
                 From: currentPage,
                 To: currentPage - 1
             });
+            $("#next-page").prop("disabled", false);
             setPage(currentPage - 1);
             updateCardsNewPage();
         }
     }
 
     function setPage(pageNumber) {
+        if (pageNumber <= 1) {
+            $("#prev-page").prop("disabled", true);
+        } 
         currentPage = pageNumber;
         pageNumberDisplay.innerText = pageNumber;
     }
@@ -311,6 +317,11 @@ function CardContainer(uiCardContainer) {
         }
 
         if (imagesToLoad.length > 0) {
+            if (imagesToLoad.length < cardsPerPage) {
+                $("#next-page").prop("disabled", true);
+            } else {
+                $("#next-page").prop("disabled", false);
+            }
             Promise.all(imagePromises).then(() => {
                 imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
                 $("#page-loading").hide();
