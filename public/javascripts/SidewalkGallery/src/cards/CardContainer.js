@@ -66,6 +66,7 @@ function CardContainer(uiCardContainer) {
         pageNumberDisplay = document.createElement('h2');
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
+        $("#page-control").hide();
         cardsByType[currentLabelType] = new CardBucket();
         fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
             render();
@@ -283,6 +284,7 @@ function CardContainer(uiCardContainer) {
      */
     function render() {
         $("#page-loading").show();
+        $("#page-control").hide();
         // https://stackoverflow.com/questions/11071314/javascript-execute-after-all-images-have-loaded
         // ^^^
         // Useful link for loading then showing all iamges at once rather than weird card "shells"
@@ -311,11 +313,13 @@ function CardContainer(uiCardContainer) {
             Promise.all(imagePromises).then(() => {
                 imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
                 $("#page-loading").hide();
+                $("#page-control").show();
             });
         } else {
             // TODO: figure out how to better do the toggling of this element
             $("#labels-not-found").show();
             $("#page-loading").hide();
+            $("#page-control").show();
         }
         // We can put a call to start the loading gif here and end the gif in the 'then' statement of the promise
     }
@@ -323,6 +327,7 @@ function CardContainer(uiCardContainer) {
     function refreshUI() {
         $("#labels-not-found").hide();
         $("#page-loading").show();
+        $("#page-control").hide();
         uiCardContainer.holder.empty();
     }
 
