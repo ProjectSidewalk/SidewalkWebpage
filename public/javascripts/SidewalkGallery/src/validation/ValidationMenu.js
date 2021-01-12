@@ -98,7 +98,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: "/validationLabelMap",
+            url: "/labelmap/validate",
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
