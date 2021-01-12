@@ -413,8 +413,8 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.very-broken')
                     },
                     'height difference': {
-                        keyNumber: 76,
-                        keyChar: 'L',
+                        keyNumber: 68,
+                        keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
                     }
                 }
