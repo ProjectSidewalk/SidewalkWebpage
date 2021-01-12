@@ -12,6 +12,7 @@ import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.api.Logger
@@ -113,6 +114,10 @@ object LabelTable {
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+
+  // City str and tutorial street id
+  val cityStr: String = Play.configuration.getString("city-id").get
+  val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
 
   // Filters out the labels placed during onboarding (aka panoramas that are used during onboarding
   // Onboarding labels have to be filtered out before a user's labeling frequency is computed
@@ -707,42 +712,54 @@ object LabelTable {
   }
 
   def retrieveLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String]): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
+    // List to return
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     Logger.debug("Grabbing labels by type severity and tags");
+
+    // Init random function
     val rand = SimpleFunction.nullary[Double]("random")
+
+    // Grab labels and associated information if severity and tags satisfy query conditions
     val _labelsUnfiltered = for {
-      _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId
+      _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _ls <- severities if _lb.labelId === _ls.labelId && (_ls.severity inSet severity)
       _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
       _tags <- tagTable if _labeltags.tagId === _tags.tagId && (_tags.tag inSet tags)
+      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
     } yield (_lb, _lp, _lt.labelType, _ls.severity.?, _lb.tutorial)
 
-    val _labelsUnfilteredNoTutorial = _labelsUnfiltered.filter(_._1.tutorial === false)
+    // Filter on whether label is tutorial or is on tutorial street
+    val _labelsUnfilteredNoTutorial = _labelsUnfiltered.filter(!_._1.tutorial)
 
     // Could be optimized by grouping on less rows
     val _labelsGrouped = _labelsUnfilteredNoTutorial.groupBy(x => x).map(_._1)
     Logger.debug(_labelsGrouped.size.run + "")
 
+    // Filter out labels already grabbed before
     val _labels = _labelsGrouped.filter(label => !(label._1.labelId inSet loadedLabelIds))
 
+    // Join with temporariness to add temporariness attribute
     val addTemporariness = for {
       (l, t) <- _labels.leftJoin(temporariness).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, l._3, l._4, t.temporary.?.getOrElse(false))
 
+    // Join with gsvData to add gsv data
     val addGSVData = for {
       (l, e) <- addTemporariness.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
     } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
 
+    // Remove labels with expired panos
     val removeExpiredPanos = addGSVData.filter(_._6 === false)
 
-
+    // Join with descriptions to add descriptions
     val addDescriptions = for {
       (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
+    // Randomize and convert to LabelValidationMetadataWithoutTags
     val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
 
     var potentialStartIdx: Int = 0
@@ -791,10 +808,11 @@ object LabelTable {
     Logger.debug("Grabbing random assortment of labels");
     val rand = SimpleFunction.nullary[Double]("random")
     val _labelsUnfiltered = for {
-        _lb <- labelsWithoutDeleted
+        _lb <- labelsWithoutDeleted if _lb.streetEdgeId =!= tutorialStreetId
         _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
         _lp <- labelPoints if _lb.labelId === _lp.labelId
         _ls <- severities if _lb.labelId === _ls.labelId
+        _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
     } yield (_lb, _lp, _lt.labelType, _ls.severity.?)
     
     val _labelsUnfilteredWithSeverity = severity match {
@@ -802,7 +820,10 @@ object LabelTable {
       case _ => _labelsUnfiltered
     }
 
-    val _labels = _labelsUnfilteredWithSeverity.filter(label => !(label._1.labelId inSet loadedLabelIds))
+    // Filter on whether label is tutorial or is on tutorial street
+    val _labelsUnfilteredNoTutorial = _labelsUnfilteredWithSeverity.filter(!_._1.tutorial)
+
+    val _labels = _labelsUnfilteredNoTutorial.filter(label => !(label._1.labelId inSet loadedLabelIds))
 
     val addTemporariness = for {
       (l, t) <- _labels.leftJoin(temporariness).on(_._1.labelId === _.labelId)
@@ -873,13 +894,18 @@ object LabelTable {
   def retrieveLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     val rand = SimpleFunction.nullary[Double]("random")
+
     val _labelsUnfiltered = for {
-      _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId
+      _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
     } yield (_lb, _lp, _lt.labelType)
 
-    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
+    // Filter on whether label is tutorial or is on tutorial street
+    val _labelsUnfilteredNoTutorial = _labelsUnfiltered.filter(!_._1.tutorial)
+
+    val _labels = _labelsUnfilteredNoTutorial.filter(label => !(label._1.labelId inSet loadedLabelIds))
 
     val addSeverity = for {
       (l, s) <- _labels.leftJoin(severities).on(_._1.labelId === _.labelId)
