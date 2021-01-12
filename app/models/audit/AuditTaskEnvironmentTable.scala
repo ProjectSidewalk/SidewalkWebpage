@@ -3,7 +3,6 @@ package models.audit
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, missionId: Int, browser: Option[String],
@@ -12,9 +11,6 @@ case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, m
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
                                 language: String)
 
-/**
- *
- */
 class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, Some("sidewalk"), "audit_task_environment") {
   def auditTaskEnvironmentId = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
@@ -42,19 +38,14 @@ class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](ta
 }
 
 /**
- * Data access object for the audit_task_environment table
+ * Data access object for the audit_task_environment table.
  */
 object AuditTaskEnvironmentTable {
   val db = play.api.db.slick.DB
   val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
 
   /**
-   * Saves a new audit task environment
-   *
-   * Reference for getting the item that has been inserted right now.
-   * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
-   * @param env
-   * @return
+   * Saves a new audit task environment.
    */
   def save(env: AuditTaskEnvironment): Int = db.withTransaction { implicit session =>
     val auditTaskEnvironmentId: Int =

@@ -4,7 +4,7 @@
 		module="scala-library"
 		revision="2.10.5"
 		status="release"
-		publication="20150226175430"
+		publication="20150227015430"
 		e:info.apiURL="http://www.scala-lang.org/api/2.10.5/"
 	>
 		<license name="BSD-like" url="http://www.scala-lang.org/downloads/license.html
@@ -12,7 +12,7 @@
 		<description homepage="http://www.scala-lang.org/">
 		Standard library for the Scala Programming Language
 		</description>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__info.apiURL>http://www.scala-lang.org/api/2.10.5/</m:properties__info.apiURL>
 	</info>
 	<configurations>

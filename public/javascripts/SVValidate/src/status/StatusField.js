@@ -50,10 +50,6 @@ function StatusField(param) {
             + svv.ui.status.labelVisibilityControlButton.outerWidth();
         let width = ((svv.canvasWidth - offset) / 2) - (svv.ui.status.upperMenuTitle.outerWidth() / 2);
         svv.ui.status.upperMenuTitle.css("left", width + "px");
-
-        // Changes text on on the status field (right side of the validation interface).
-        svv.ui.status.labelTypeExample.html(i18next.t('right-ui.correct.' + labelType + ".title"));
-        svv.ui.status.labelTypeCounterexample.html(i18next.t('right-ui.incorrect.' + labelType + ".title"));
     }
 
     /**

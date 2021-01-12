@@ -1,13 +1,11 @@
 package models.audit
 
 import java.sql.Timestamp
-
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import models.validation.ValidationTaskCommentTable
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, username: String,
@@ -48,9 +46,7 @@ object AuditTaskCommentTable {
   val users = TableQuery[UserTable]
 
   /**
-    * Get all task records of the given user
-    * @param username Username
-    * @return
+    * Get all task records of the given user.
     */
   def all(username: String): Option[List[AuditTaskComment]] = db.withTransaction { implicit session =>
     val comments = (for {
@@ -63,9 +59,6 @@ object AuditTaskCommentTable {
 
   /**
     * Insert an audit_task_comment record.
-    *
-    * @param comment AuditTaskComment object
-    * @return
     */
   def save(comment: AuditTaskComment): Int = db.withTransaction { implicit session =>
     val auditTaskCommentId: Int =
@@ -75,9 +68,6 @@ object AuditTaskCommentTable {
 
   /**
     * Take last n comments from either audit or validation comment tables.
-    *
-    * @param n
-    * @return
     */
   def takeRightAuditAndValidationComments(n: Integer): List[GenericComment] = db.withSession { implicit session =>
     val auditComments = (for {

@@ -10,32 +10,12 @@ text {
     visibility: hidden;
 }
 
-.highlight {
-    color: orange;
-    font-weight: bold;
-}
-
 .highlight-100 {
     background: rgba(255, 255, 0, 1) !important;
 }
 
 .highlight-50 {
     background: rgba(255, 255, 0, 0.5) !important;
-}
-
-.white-background-75 {
-    background: rgba(255, 255, 255, 0.75);
-}
-
-.width-50 {
-    width: 50%;
-}
-.width-50-percent {
-    width: 50%;
-}
-
-.width-75 {
-    width: 75%;
 }
 
 .button {
@@ -80,53 +60,13 @@ b { font-weight: bold; }
     display: inline-block;
 }
 
-.clearBoth {
-    clear: both;
-}
-
 input[type="radio"] {
     height: 15px;
     width: 15px;
 }
 
-.underline {
-    text-decoration: underline;
-}
-
-#svl-application-holder {
-    background: rgba(255,255,255,1);
-    margin: 0 auto;
-    position: relative;
-    height: 640px;
-    width: 960px;
-}
-
-#interaction-area-holder {
-    border: 3px solid transparent;
-    position: absolute;
-    left: 0;
-    top: 110px;
-    height: 480px;
-    width: 720px;
-}
-
-#page-overlay-holder {
-    background: rgba(255,255,255,0.5);
-    left: 0;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    width: 100%;
-    visibility: hidden;
-}
-#ajax-loader-image {
-    left: 45%;
-    position: relative;
-    top: 90%;
-}
-
 /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
-#viewControlLayer {
+#view-control-layer {
     -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;

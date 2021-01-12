@@ -4,7 +4,7 @@
 		module="selenium-iphone-driver"
 		revision="2.39.0"
 		status="release"
-		publication="20131216132046"
+		publication="20131216212046"
 	>
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>

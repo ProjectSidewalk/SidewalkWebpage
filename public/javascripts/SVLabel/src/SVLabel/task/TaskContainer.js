@@ -20,7 +20,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousPaths = [];
 
     self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
-
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
@@ -427,7 +426,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             if (candidateTasks.length === 0) {
 
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
-                console.log('finished neighborhood screen has appeared, logging debug info');
+                console.error('finished neighborhood screen has appeared, logging debug info');
                 console.log('incompleteTasks.length:' +
                     self.getIncompleteTasksAcrossAllUsersUsingPriority().length);
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
@@ -632,6 +631,18 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }).length > 0;
     }
 
+    /**
+     * Renders all previously completed tasks. Should be called at page load so it does not render redundantly.
+     */
+    function renderTasksFromPreviousSessions() {
+        var completedTasks = getCompletedTasks();
+        if (completedTasks) {
+            for (let i = 0; i < completedTasks.length; ++i) {
+                completedTasks[i].render();
+            }
+        }
+    }
+
     // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
@@ -644,6 +655,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = pushATask;
+    self.renderTasksFromPreviousSessions = renderTasksFromPreviousSessions;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
 
     self.storeTask = storeTask;

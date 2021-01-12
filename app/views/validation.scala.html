@@ -1,30 +1,21 @@
 @import models.user.User
-@import models.mission.{MissionTable, Mission}
-@import models.label.LabelTable
-@import models.label.LabelTable.LabelValidationMetadata
+@import models.mission.MissionTable
 @import models.amt.AMTAssignmentTable
-@import play.api.libs.json.Json
 @import play.api.libs.json.JsValue
-@import views.html.bootstrap._
 
 @(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
 
-    <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
-    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
-    <div class="container toolUI" style = "visibility: visible;">
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
+    <div class="container tool-ui" style = "visibility: visible;">
         <div id="HIT-expiration-overlay">
             <div class="overlay-text">
                 <div id="HIT-expiration-text">
@@ -75,25 +66,25 @@
             </div>
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama-0" class="single-panorama">
-                        <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
+                    <div id="svv-panorama">
+                        <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
                             <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
                             <div id="label-description-box"></div>
                         </div>
                     </div>
-                    <div id="svv-panorama-date-holder-0" class="svv-panorama-date-holder">
-                        <span id="svv-panorama-date-0">no</span>
+                    <div id="svv-panorama-date-holder">
+                        <span id="svv-panorama-date">no</span>
                     </div>
                     <div id="validation-button-holder-large">
-                        <button id="validation-agree-button-0" class="validation-button-large">
+                        <button id="validation-agree-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
                             @Html(Messages("validate.bottom.ui.agree"))
                         </button>
-                        <button id="validation-disagree-button-0" class="validation-button-large">
+                        <button id="validation-disagree-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
                             @Html(Messages("validate.bottom.ui.disagree"))
                         </button>
-                        <button id="validation-not-sure-button-0" class="validation-button-large">
+                        <button id="validation-not-sure-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
                             @Html(Messages("validate.bottom.ui.not.sure"))
                         </button>
@@ -184,7 +175,9 @@
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header-1" id="label-type-example"></h1>
+                    <h1 class="status-holder-header-1" id="label-type-example">
+                        @Html(Messages("validate.right.ui.correct.examples"))
+                    </h1>
                     <div id="example-image-holder">
                         <img id="example-image-1" class="example-image">
                         <img id="example-image-2" class="example-image">
@@ -193,7 +186,9 @@
                     </div>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header-2" id="label-type-counterexample"></h1>
+                    <h1 class="status-holder-header-2" id="label-type-counterexample">
+                        @Html(Messages("validate.right.ui.incorrect.examples"))
+                    </h1>
                     <div id="example-image-holder">
                         <img id="counterexample-image-1" class="example-image">
                         <img id="counterexample-image-2" class="example-image">
@@ -281,7 +276,7 @@
             }
         }
         if (hitExpired) {
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
@@ -291,7 +286,6 @@
             param.completedValidations = @completedValidations;
             param.canvasHeight = 440;
             param.canvasWidth = 720;
-            param.canvasCount = 1;
             param.language = "@lang.code";
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
@@ -331,7 +325,6 @@
                     param.labelList[key] = new Label(labelMetadata);
                 });
             }
-
             svv.main = new Main(param);
         }
 

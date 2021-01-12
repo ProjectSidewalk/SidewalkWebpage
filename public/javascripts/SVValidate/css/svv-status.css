@@ -1,14 +1,5 @@
-#mission-status-holder {
-    position: absolute;
-    top: 30px;
-    left: 735px;
-    height: 570px;
-    width: 200px;
-}
-
 #example-image-holder {
     height: 170px;
-    /* background: rgb(185, 185, 185); */
 }
 
 .example-image {
@@ -64,7 +55,6 @@
     top: 31px;
     width: 200px;
     color: rgb(127, 127, 127);
-
 }
 
 .status-box {
@@ -99,8 +89,4 @@
 
 .status-icon {
     width: 25px;
-}
-
-#status-holder-neighborhood-name {
-    display: inline;
 }

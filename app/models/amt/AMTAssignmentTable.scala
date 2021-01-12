@@ -2,7 +2,6 @@ package models.amt
 
 import java.sql.Timestamp
 import java.time.Instant
-
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -27,7 +26,7 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
 }
 
 /**
- * Data access object for the amt_assignment table
+ * Data access object for the amt_assignment table.
  */
 object AMTAssignmentTable {
   val db = play.api.db.slick.DB
@@ -63,9 +62,6 @@ object AMTAssignmentTable {
 
   /**
     * Get the number of milliseconds between now and the end time of the worker's most recent assignment.
-    *
-    * @param workerId
-    * @return
     */
   def getMsLeftOnMostRecentAsmt(workerId: String): Option[Long] = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -86,15 +82,10 @@ object AMTAssignmentTable {
   }
 
   /**
-    * Update the `completed`  column of the specified amt_assignment row
-    *
-    * @param amtAssignmentId
-    * @param completed
-    * @return
+    * Update the `completed` column of the specified amt_assignment row.
     */
-  def updateCompleted(amtAssignmentId: Int, completed: Boolean) = db.withTransaction { implicit session =>
+  def updateCompleted(amtAssignmentId: Int, completed: Boolean): Int = db.withTransaction { implicit session =>
     val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
     q.update(completed)
   }
 }
-

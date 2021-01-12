@@ -12,6 +12,10 @@ object CommentSubmissionFormats {
                                          gsvPanoramaId: String, heading: Double, pitch: Double,
                                          zoom: Int, lat: Double, lng: Double)
 
+  case class LabelMapValidationCommentSubmission(labelId: Int, labelType: String, comment: String, 
+                                        gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int, 
+                                        lat: Double, lng: Double)
+
   implicit val commentSubmissionReads: Reads[CommentSubmission] = (
     (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
@@ -36,4 +40,16 @@ object CommentSubmissionFormats {
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
   )(ValidationCommentSubmission.apply _)
+  
+  implicit val labelMapValidationCommentSubmissionReads : Reads[LabelMapValidationCommentSubmission] = (
+    (JsPath \ "label_id").read[Int] and
+      (JsPath \ "label_type").read[String] and
+      (JsPath \ "comment").read[String] and
+      (JsPath \ "gsv_panorama_id").read[String] and
+      (JsPath \ "heading").read[Double] and
+      (JsPath \ "pitch").read[Double] and
+      (JsPath \ "zoom").read[Int] and
+      (JsPath \ "lat").read[Double] and
+      (JsPath \ "lng").read[Double]
+  )(LabelMapValidationCommentSubmission.apply _)
 }

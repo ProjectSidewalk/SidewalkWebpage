@@ -1,71 +1,34 @@
-
-svg {
-    position: relative;
-}
-
-#map path {
-    fill: #fff;
-    fill-opacity: 0.3;
-    stroke: none;
-    stroke-width: 2px;
-    stroke-opacity: 1;
-}
-
-.travelMarker {
+.travel-marker {
     fill: yellow;
     stroke: gray;
     stroke-width: 1px;
     stroke-opacity: 0.9;
     opacity: 1;
 }
-.waypoints {
-    fill: black;
-    opacity: 0;
-}
-.drinks {
-    stroke: black;
-    fill: red;
-}
-.lineConnect {
-    fill: none;
-    stroke: black;
-    opacity: 1;
-}
-.locnames {
-    fill: black;
-    text-shadow: 1px 1px 1px #FFF, 3px 3px 5px #000;
-    font-weight: bold;
-    font-size: 13px;
+
+#map {
+    margin-top: 10px;
+    width: 360px;
+    height: 360px;
 }
 
 #svholder {
-    margin-top: 5px;
+    margin-top: 10px;
     width:360px;
-    height:240px;
-    /*
-    position: absolute;*/
-
-    /* top: 15px;*/
-    margin-right: 30px;
+    height:340px;
     margin-bottom: 10px;
 }
 
 #eventsholder {
     width: 360px;
-    margin-right: 30px;
-    /*position: absolute;*/
-    /*
-    right: 30px;
-    bottom: 50px;
-    top: 285px; /* 240 + 15 + 15 */
+    height: 360px;
     border-radius: 5px;
     background-color: white;
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
-    font-size: 12px;
+    font-size: 10px;
     overflow: scroll;
     padding: 0px 10px;
-    /*margin: 10px 0px;*/
-    margin-top: 30px;
+    margin-top: 10px;
     max-height: 600px;
     min-height: 300px;
 }
@@ -81,9 +44,7 @@ svg {
 
 #timeline {
     position: absolute;
-    /*left: 50px;*/
     margin-left: 0px;
-    /*top: 5px;*/
     width: 360px;
     height: 10px;
     border-radius: 5px;
@@ -109,9 +70,6 @@ svg {
 
 #timeline #timeline-active {
     position: absolute;
-    /*top:0;
-    bottom: 0;
-    left: 0;*/
     width: 0px;
     height: 10px;
     background-color: #249dff;
@@ -120,17 +78,3 @@ svg {
     vertical-align: middle;
 
 }
-/*
-#taskSlider .slider-selection{
-    background: #249dff;
-}
-#taskSlider .slider-handle{
-    background: white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-.slider{
-    width:100% !important;
-}
-.task-map{
-    padding: 0px;
-}*/

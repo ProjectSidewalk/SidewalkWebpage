@@ -4,7 +4,7 @@
 		module="maven-plugin-api"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065047"
+		publication="20140617135047"
 	>
 		<description homepage="">
 		The API for plugins - Mojos - development.

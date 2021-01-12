@@ -5,10 +5,8 @@ import java.time.Instant
 import java.util.UUID
 import java.security.MessageDigest
 import javax.inject.Inject
-
 import models.AuthToken
 import models.daos.AuthTokenDAO
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps

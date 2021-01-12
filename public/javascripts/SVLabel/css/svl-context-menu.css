@@ -140,12 +140,16 @@
 
 #context-menu-temporary-problem-checkbox-holder {
     margin: 0px 5px 5px 5px;
+    width: 310px;
 }
 
 #context-menu-temporary-problem-checkbox-holder label {
     color: #888;
     font-weight: normal;
-    margin-right: 65px;
+}
+
+#context-menu-temporary-problem-checkbox {
+    cursor: pointer;
 }
 
 #problem-property-menu button {

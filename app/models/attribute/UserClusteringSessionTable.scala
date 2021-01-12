@@ -1,9 +1,5 @@
 package models.attribute
 
-/**
-  * Created by misaugstad on 4/27/17.
-  */
-
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable, LabelTemporarinessTable}
@@ -11,7 +7,6 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
-
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.language.postfixOps
@@ -24,7 +19,7 @@ case class LabelToCluster(userId: String,
                           severity: Option[Int],
                           temporary: Boolean) {
   /**
-    * This method converts the data into the JSON format
+    * Converts the data into the JSON format.
     *
     * @return
     */
@@ -43,7 +38,6 @@ case class LabelToCluster(userId: String,
 
 case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: java.sql.Timestamp)
 
-
 class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](tag, Some("sidewalk"), "user_clustering_session") {
   def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def userId: Column[String] = column[String]("user_id", O.NotNull)
@@ -57,7 +51,7 @@ class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](
 }
 
 /**
-  * Data access object for the UserClusteringSessionTable table
+  * Data access object for the UserClusteringSessionTable table.
   */
 object UserClusteringSessionTable {
   val db: slick.Database = play.api.db.slick.DB
@@ -67,15 +61,8 @@ object UserClusteringSessionTable {
     LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
   })
 
-  def getAllUserClusteringSessions: List[UserClusteringSession] = db.withTransaction { implicit session =>
-    userClusteringSessions.list
-  }
-
   /**
-    * Returns labels that were placed by the specified user, in the format needed for clustering.
-    *
-    * @param userId
-    * @return
+    * Returns labels that were placed by the specified user in the format needed for clustering.
     */
   def getUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
 
@@ -102,9 +89,6 @@ object UserClusteringSessionTable {
 
   /**
     * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
-    *
-    * @param regionId
-    * @return
     */
   def getClusteredLabelsInRegion(regionId: Int): List[LabelToCluster] = db.withTransaction { implicit session =>
     val labelsInRegion = for {

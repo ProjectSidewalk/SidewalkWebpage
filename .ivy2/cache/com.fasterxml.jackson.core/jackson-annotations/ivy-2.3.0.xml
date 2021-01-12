@@ -4,7 +4,7 @@
 		module="jackson-annotations"
 		revision="2.3.0"
 		status="release"
-		publication="20131113205645"
+		publication="20131114045645"
 	>
 		<description homepage="http://wiki.fasterxml.com/JacksonHome">
 		Core annotations used for value types, used by Jackson data binding package.

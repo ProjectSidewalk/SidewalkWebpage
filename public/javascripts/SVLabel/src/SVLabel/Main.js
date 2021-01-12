@@ -85,7 +85,6 @@ function Main (params) {
         params = params || {};
 
         svl.userHasCompletedAMission = params.hasCompletedAMission;
-        var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
         // Models
@@ -112,7 +111,7 @@ function Main (params) {
 
 
         // Set map parameters and instantiate it.
-        var mapParam = { Lat: SVLat, Lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 }, taskPanoId: panoId};
+        var mapParam = { lat: SVLat, lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 } };
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
@@ -123,6 +122,7 @@ function Main (params) {
         svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
+        svl.stuckAlert = new StuckAlert(svl.alert);
         svl.navigationModel._mapService = svl.map;
 
         svl.statusField = new StatusField(svl.ui.status);
@@ -158,7 +158,7 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        // Mission.
+        // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
@@ -176,6 +176,21 @@ function Main (params) {
         }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svl.tracker.push("PageGainedFocus");
+            } else {
+                svl.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
@@ -187,7 +202,7 @@ function Main (params) {
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel, svl.userModel);
-        svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
+        svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.streetViewService, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         // Survey for select users
@@ -201,7 +216,7 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        $("#toolbar-onboarding-link").on('click', function () {
+        $("#navbar-retake-tutorial-btn").on('click', function () {
             window.location.replace('/audit?retakeTutorial=true');
         });
 
@@ -224,16 +239,16 @@ function Main (params) {
 
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
-            $(".toolUI").css('opacity', 1);
+            $(".tool-ui").css('opacity', 1);
         });
         $('#sign-in-modal-container').on('show.bs.modal', function () {
             svl.popUpMessage.disableInteractions();
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
         $('#sign-in-button').on('click', function(){
             $("#sign-in-modal").removeClass("hidden");
             $("#sign-up-modal").addClass("hidden");
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
 
         $(svl.ui.ribbonMenu.buttons).each(function() {
@@ -322,8 +337,9 @@ function Main (params) {
                 onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
                 svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
-                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.canvas, svl.ui.canvas,
-                svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
+                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.canvas,
+                svl.ui.canvas, svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.ui.leftColumn,
+                svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
     }
@@ -408,6 +424,7 @@ function Main (params) {
                 }
             });
 
+        svl.taskContainer.renderTasksFromPreviousSessions();
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
@@ -428,7 +445,7 @@ function Main (params) {
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;
             $("#page-loading").css({"visibility": "hidden"});
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
 
             if (mission.getProperty("missionType") === "auditOnboarding") {
@@ -474,9 +491,8 @@ function Main (params) {
         svl.ui.map.canvas = $("canvas#labelCanvas");
         svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
         svl.ui.map.pano = $("div#pano");
-        svl.ui.map.streetViewHolder = $("div#streetViewHolder");
-        svl.ui.map.viewControlLayer = $("div#viewControlLayer");
-        svl.ui.map.modeSwitchWalk = $("span#modeSwitchWalk");
+        svl.ui.map.viewControlLayer = $("div#view-control-layer");
+        svl.ui.map.modeSwitchWalk = $("span#mode-switch-walk");
         svl.ui.map.modeSwitchDraw = $("span#modeSwitchDraw");
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
@@ -522,7 +538,7 @@ function Main (params) {
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
-        svl.ui.ribbonMenu.buttons = $('span.modeSwitch');
+        svl.ui.ribbonMenu.buttons = $('span.mode-switch');
         svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
@@ -605,8 +621,6 @@ function Main (params) {
 
         // Form
         svl.ui.form = {};
-        svl.ui.form.holder = $("#form-holder");
-        svl.ui.form.commentField = $("#comment-field");
         svl.ui.form.skipButton = $("#skip-button");
         svl.ui.form.submitButton = $("#submit-button");
 
@@ -615,6 +629,7 @@ function Main (params) {
         svl.ui.leftColumn.muteIcon = $("#left-column-mute-icon");
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
+        svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
         svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 
@@ -628,7 +643,7 @@ function Main (params) {
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
         svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
-        svl.ui.canvas.deleteIcon = $("#LabelDeleteIcon");
+        svl.ui.canvas.deleteIcon = $("#label-delete-icon");
         svl.ui.canvas.severityIcon = $("#severity-icon");
 
         // Interaction viewer

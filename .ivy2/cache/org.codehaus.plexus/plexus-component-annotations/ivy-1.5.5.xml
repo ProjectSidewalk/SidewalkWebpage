@@ -4,7 +4,7 @@
 		module="plexus-component-annotations"
 		revision="1.5.5"
 		status="release"
-		publication="20100930131459"
+		publication="20100930201459"
 	>
 		<description homepage="">
 		Plexus Component &quot;Java 5&quot; Annotations, to describe plexus components properties in java sources with

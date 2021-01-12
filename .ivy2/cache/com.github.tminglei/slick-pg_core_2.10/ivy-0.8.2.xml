@@ -4,7 +4,7 @@
 		module="slick-pg_core_2.10"
 		revision="0.8.2"
 		status="release"
-		publication="20150223183822"
+		publication="20150224023822"
 	>
 		<license name="BSD-style" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="https://github.com/tminglei/slick-pg">

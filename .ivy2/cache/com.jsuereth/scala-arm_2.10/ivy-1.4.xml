@@ -4,7 +4,7 @@
 		module="scala-arm_2.10"
 		revision="1.4"
 		status="release"
-		publication="20140430092650"
+		publication="20140430162650"
 	>
 		<license name="BSD-Style" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="http://jsuereth.com/scala-arm">

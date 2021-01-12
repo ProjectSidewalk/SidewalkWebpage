@@ -1,14 +1,10 @@
 package models.audit
 
-import java.util.UUID
-
-import models.label._
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
-
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -29,7 +25,7 @@ case class AuditTaskInteraction(auditTaskInteractionId: Int,
 case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, missionId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
-                                note: Option[String], timestamp: java.sql.Timestamp,
+                                note: Option[String], timestamp: java.sql.Timestamp, labelId: Option[Int],
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
@@ -57,7 +53,7 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
 }
 
 /**
- * Data access object for the audit_task_environment table
+ * Data access object for the audit_task_interaction table.
  */
 object AuditTaskInteractionTable {
   implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
@@ -74,6 +70,7 @@ object AuditTaskInteractionTable {
       r.nextIntOption, // zoom
       r.nextStringOption, // note
       r.nextTimestamp, // timestamp
+      r.nextIntOption, // label_id
       r.nextStringOption, // label_type
       r.nextFloatOption, // label_lat
       r.nextFloatOption, // label_lng
@@ -102,59 +99,18 @@ object AuditTaskInteractionTable {
     )
   })
 
-
   val db = play.api.db.slick.DB
-  val auditTasks = TableQuery[AuditTaskTable]
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
-  val labels = TableQuery[LabelTable]
-  val labelPoints = TableQuery[LabelPointTable]
-
-
-
-  def save(interaction: AuditTaskInteraction): Int = db.withTransaction { implicit session =>
-    val interactionId: Int =
-      (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)).insert(interaction)
-    interactionId
-  }
 
   /**
     * Inserts a sequence of interactions into the audit_task_interaction table.
-    *
-    * @param interactions
-    * @return
     */
   def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
     (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) ++= interactions
   }
 
   /**
-    * Select all audit task interaction records of the specified action
-    * @param actionType
-    * @return
-    */
-  def selectAuditTaskInteractionsOfAnActionType(actionType: String): List[AuditTaskInteraction] = db.withTransaction { implicit session =>
-    auditTaskInteractions.filter(_.action === actionType).list
-  }
-
-  /**
-    * Select all the audit task interactions of the specified user
-    * @param userId User id
-    * @return
-    */
-  def selectAuditTaskInteractionsOfAUser(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    val _auditTaskInteractions = for {
-      (_auditTasks, _auditTaskInteractions) <- auditTasks.innerJoin(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
-      if _auditTasks.userId === userId.toString
-    } yield _auditTaskInteractions
-    _auditTaskInteractions.list
-  }
-
-  /**
     * Get a list of audit task interactions with corresponding labels.
-    * It would be faster to do this with a raw sql query. Update if too slow.
-    *
-    * @param auditTaskId
-    * @return
     */
   def selectAuditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
     val selectInteractionWithLabelQuery = Q.query[Int, InteractionWithLabel](
@@ -170,6 +126,7 @@ object AuditTaskInteractionTable {
         |       interaction.zoom,
         |       interaction.note,
         |       interaction.timestamp,
+        |       label.label_id,
         |       label_type.label_type,
         |       label_point.lat AS label_lat,
         |       label_point.lng AS label_lng,
@@ -183,19 +140,19 @@ object AuditTaskInteractionTable {
         |LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
         |LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
         |WHERE interaction.audit_task_id = ?
+        |    AND interaction.action NOT IN (
+        |        'LowLevelEvent_mousemove', 'LowLevelEvent_mouseover', 'LowLevelEvent_mouseout', 'LowLevelEvent_click',
+        |        'LowLevelEvent_mouseup', 'LowLevelEvent_mousedown', 'ViewControl_MouseDown', 'ViewControl_MouseUp',
+        |        'RefreshTracker', 'ModeSwitch_Walk', 'LowLevelEvent_keydown', 'LabelingCanvas_MouseOut'
+        |    )
         |ORDER BY interaction.timestamp""".stripMargin
     )
     val interactions: List[InteractionWithLabel] = selectInteractionWithLabelQuery(auditTaskId).list
     interactions
   }
 
-
-  // Helper methods
-
   /**
-    * This method takes an output of the method `selectAuditInteractionsWithLabels` and
-    * returns a GeoJSON feature collection
-    * @param interactions
+    * This method takes an output of the method `selectAuditInteractionsWithLabels` and returns GeoJSON.
     */
   def auditTaskInteractionsToGeoJSON(interactions: List[InteractionWithLabel]): JsObject = {
     val features: List[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
@@ -224,6 +181,7 @@ object AuditTaskInteractionTable {
           "action" -> interaction.action,
           "note" -> interaction.note,
           "label" -> Json.obj(
+            "label_id" -> interaction.labelId,
             "label_type" -> interaction.labelType,
             "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
             "canvasX" -> interaction.canvasX,

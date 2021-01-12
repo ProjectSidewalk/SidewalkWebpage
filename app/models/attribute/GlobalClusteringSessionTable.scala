@@ -1,20 +1,14 @@
 package models.attribute
 
-/**
-  * Created by misaugstad on 4/27/17.
-  */
-
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
-
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
 import scala.slick.jdbc.{StaticQuery => Q}
 import scala.language.postfixOps
 
 case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: java.sql.Timestamp)
-
 
 class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSession](tag, Some("sidewalk"), "global_clustering_session") {
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
@@ -29,15 +23,11 @@ class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSessi
 }
 
 /**
-  * Data access object for the GlobalClusteringSessionTable table
+  * Data access object for the GlobalClusteringSessionTable table.
   */
 object GlobalClusteringSessionTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalClusteringSessions: TableQuery[GlobalClusteringSessionTable] = TableQuery[GlobalClusteringSessionTable]
-
-  def getAllGlobalClusteringSessions: List[GlobalClusteringSession] = db.withTransaction { implicit session =>
-    globalClusteringSessions.list
-  }
 
   /**
     * Truncates global_clustering_session, global_attribute, and global_attribute_user_attribute.

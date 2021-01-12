@@ -4,7 +4,7 @@
 		module="guava-parent"
 		revision="16.0.1"
 		status="release"
-		publication="20140203144456"
+		publication="20140203224456"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://code.google.com/p/guava-libraries" />

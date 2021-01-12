@@ -2,9 +2,7 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
-
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import forms.ForgotPasswordForm
@@ -22,7 +20,7 @@ import play.api.Play.current
  * The `Forgot Password` controller.
  *
  * @param userService      The user service implementation.
- * @param authTokenSerive  The authentication token service implementation
+ * @param authTokenService  The authentication token service implementation
  */
 class ForgotPasswordController @Inject() (
                                            implicit val env: Environment[User, SessionAuthenticator],
@@ -35,8 +33,6 @@ class ForgotPasswordController @Inject() (
    *
    * It sends an email to the given address if it exists in the database. Otherwise we do not show the user
    * a notice for not existing email addresses to prevent the leak of existing email addresses.
-   *
-   * @return The result to display.
    */
   def submit = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress

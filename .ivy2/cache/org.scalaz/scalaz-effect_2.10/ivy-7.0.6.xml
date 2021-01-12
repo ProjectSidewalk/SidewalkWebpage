@@ -4,7 +4,7 @@
 		module="scalaz-effect_2.10"
 		revision="7.0.6"
 		status="release"
-		publication="20140304222346"
+		publication="20140305062346"
 	>
 		<license name="BSD-style" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="http://scalaz.org">

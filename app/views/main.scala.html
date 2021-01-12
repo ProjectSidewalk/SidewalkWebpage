@@ -24,27 +24,19 @@
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
 
-    <!--<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7/leaflet.css" />-->
-    <!--<script src="lib/jquery-1.7.2.min.js"></script>-->
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/backbone-min.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
         src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@VersionTable.getGoogleMapsAPIKey()&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
-    <!--<link href='@routes.Assets.at("stylesheets/main.css")' rel="stylesheet"/>-->
-    <link rel="stylesheet" href='@routes.Assets.at("css/main.css")'>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/main.css")'>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/isMobile.js")'></script>
-    <!--<script src='@routes.Assets.at("assets/homepage.js")'></script>-->
-    <script src='@routes.Assets.at("assets/countUp.js")'></script>
-    <script src='@routes.Assets.at("assets/bowser.min.js")'></script>
-    <script src='@routes.Assets.at("assets/pagetop-padding.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/isMobile.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/countUp.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/bowser.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/common/pagetop-padding.js")'></script>
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -58,7 +50,7 @@
     <!-- Facebook Link Info -->
     <meta property="og:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
     <meta property="og:description" content='Help us make sidewalks more accessible, for everyone.' />
-    <meta property="og:url"content="http:/sidewalk.umiacs.umd.edu" />
+    <meta property="og:url" content="http:/sidewalk.umiacs.umd.edu" />
     <meta property="og:title" content="Project Sidewalk" />
 
 </head>
@@ -181,7 +173,7 @@
                 activity = activity + "_route="+currentRoute;
 
                 var url = "/userapi/logWebpageActivity";
-                var async = true;
+                var async = false;
                 $.ajax({
                     async: async,
                     contentType: 'application/json; charset=utf-8',
@@ -220,7 +212,7 @@
                 var link = e.currentTarget.id.split("-")[0];
                 var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
                 var url = "/userapi/logWebpageActivity";
-                var async = true;
+                var async = false;
                 $.ajax({
                     async: async,
                     contentType: 'application/json; charset=utf-8',
@@ -237,7 +229,7 @@
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
     </script>
