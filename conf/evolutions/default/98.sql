@@ -3,7 +3,7 @@ UPDATE label_point
 SET computation_method = 'approximation2',
     geom = ST_Project(
         ST_SetSRID(ST_Point(panorama_lng, panorama_lat), 4326),
-        20.8794248 + 0.0184087 * sv_image_y + 0.0022135 * canvas_y,
+        GREATEST(0.0, 20.8794248 + 0.0184087 * sv_image_y + 0.0022135 * canvas_y),
         radians(heading -27.5267447 + 0.0784357 * canvas_x)
         )::geometry
 FROM label
