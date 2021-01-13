@@ -8,7 +8,7 @@ SET computation_method = 'approximation2',
         )::geometry
 FROM label
 WHERE label_point.label_id = label.label_id
-  AND computation_method <> 'depth';
+  AND (computation_method <> 'depth' OR computation_method IS NULL);
 
 UPDATE label_point
 SET lat = ST_Y(geom),
