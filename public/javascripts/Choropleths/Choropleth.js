@@ -113,12 +113,14 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 let regionName = feature.properties.region_name;
                 let userCompleted = feature.properties.user_completed;
                 let compRate = -1.0;
+                let compRateRounded = -1.0;
                 let url = '/audit/region/' + regionId;
                 let popupContent = '???';
                 let ratesIndex = rates.findIndex(function(r) { return r.region_id === feature.properties.region_id; });
                 if (ratesIndex > -1) {
                     let measurementSystem = i18next.t('measurement-system');
-                    compRate = Math.round(100.0 * rates[ratesIndex].rate);
+                    compRate = 100.0 * rates[ratesIndex].rate;
+                    compRateRounded = Math.round(100.0 * rates[ratesIndex].rate);
                     let distanceLeft = rates[ratesIndex].total_distance_m - rates[ratesIndex].completed_distance_m;
                     // If using metric system, convert from meters to km. If using IS system, convert to miles.
                     if (measurementSystem === 'metric') distanceLeft *= 0.001;
@@ -138,17 +140,17 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     } else if (distanceLeft === 0) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
-                            i18next.t('common:map.percent-complete', {percent: compRate}) + '<br>' +
+                            i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                             i18next.t('common:map.less-than-one-unit-left') + '<br>' + advancedMessage +
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     } else if (distanceLeft === 1) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
-                            i18next.t('common:map.percent-complete', {percent: compRate}) + '<br>' +
+                            i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                             i18next.t('common:map.distance-left-one-unit') + '<br>' + advancedMessage +
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     } else {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
-                            i18next.t('common:map.percent-complete', {percent: compRate}) + '<br>' +
+                            i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                             i18next.t('common:map.distance-left', {n: distanceLeft}) + '<br>' + advancedMessage +
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     }
