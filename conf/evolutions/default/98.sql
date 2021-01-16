@@ -4,7 +4,11 @@ SET computation_method = 'approximation2',
     geom = ST_Project(
         ST_SetSRID(ST_Point(panorama_lng, panorama_lat), 4326),
         GREATEST(0.0, 20.8794248 + 0.0184087 * sv_image_y + 0.0022135 * canvas_y),
-        radians(heading -27.5267447 + 0.0784357 * canvas_x)
+        CASE
+            WHEN heading -27.5267447 + 0.0784357 * canvas_x < -360 THEN radians(360 + heading -27.5267447 + 0.0784357 * canvas_x)
+            WHEN heading -27.5267447 + 0.0784357 * canvas_x > 360 THEN radians(-360 + heading -27.5267447 + 0.0784357 * canvas_x)
+            ELSE radians(heading -27.5267447 + 0.0784357 * canvas_x)
+            END
         )::geometry
 FROM label
 WHERE label_point.label_id = label.label_id
