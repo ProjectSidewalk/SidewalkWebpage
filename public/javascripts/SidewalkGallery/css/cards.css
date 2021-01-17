@@ -63,11 +63,11 @@ p.label-severity, p.label-tags {
 .validation-button, .validation-button-selected {
     color: white;
     opacity: 0;
-    transition: .3s ease;
+    transition: .2s ease;
 }
 
 .gallery-card:hover .validation-button {
-    opacity: 0.7;
+    opacity: 0.5;
 }
 
 .gallery-card:hover .validation-button-selected {
