@@ -15,7 +15,7 @@ services:
     ports:
       - "9000:9000"
     environment:
-      - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk-newberg
+      - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
       - SIDEWALK_CITY_ID=washington-dc
       - SIDEWALK_EMAIL_ADDRESS=DUMMY_EMAIL_ADDRESS
       - SIDEWALK_EMAIL_PASSWORD=DUMMY_EMAIL_PASSWORD
