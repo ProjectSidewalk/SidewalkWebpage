@@ -10,6 +10,10 @@
     background-color: white;
 }
 
+.gallery-tag:disabled {
+    opacity: 50%;
+}
+
 .gallery-severity {
     display: inline-block;
     padding: 0px 5px;
@@ -21,6 +25,15 @@
     background-color: white;
 }
 
+.gallery-severity:disabled {
+    opacity: 50%;
+}
+
 #tags-header {
     display: none;
+}
+
+#label-select:disabled {
+    opacity: 50%;
+    background-color: white;
 }

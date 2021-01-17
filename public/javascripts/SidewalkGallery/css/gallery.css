@@ -19,8 +19,8 @@
 }
 
 .paging:disabled {
-    background-color: lightgray;
     border-width: 0.2px;
+    opacity: 50%;
 }
 
 #horizontal-line {
