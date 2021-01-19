@@ -152,7 +152,7 @@ function AdminTask(params) {
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
             console.log(`Time to replay task: ${timeToPlaybackTask / 1000} seconds`);
 
-            document.getElementById('total-time-label').innerHTML = `${(timeToPlaybackTask/1000).toFixed(0)}`;
+            document.getElementById('total-time-label').innerHTML = `${(timeToPlaybackTask/1000).toFixed(0)} seconds`;
             var currentTimestamp = featuresdata[startTime].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
@@ -222,7 +222,7 @@ function AdminTask(params) {
                             }
                         }
 
-                        document.getElementById('current-time-label').innerText = `${(timedata[counter]/1000).toFixed(0)}`;
+                        document.getElementById('current-time-label').innerText = `${(timedata[counter]/1000).toFixed(0)} seconds`;
 
                         $('#timeline-active').animate({
                             width: 360 * (timedata[counter]/timeToPlaybackTask)
