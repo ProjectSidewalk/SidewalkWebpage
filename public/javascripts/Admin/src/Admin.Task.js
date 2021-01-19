@@ -152,6 +152,7 @@ function AdminTask(params) {
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
             console.log(`Time to replay task: ${timeToPlaybackTask / 1000} seconds`);
 
+            document.getElementById('total-time-label').innerHTML = `${(timeToPlaybackTask/1000).toFixed(0)}`;
             var currentTimestamp = featuresdata[startTime].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
@@ -221,20 +222,20 @@ function AdminTask(params) {
                             }
                         }
 
-                        document.getElementById('watch-time').innerText = `${(timedata[counter]/1000).toFixed(4)}/${(timeToPlaybackTask/1000).toFixed(4)}`;
-                        
+                        document.getElementById('current-time-label').innerText = `${(timedata[counter]/1000).toFixed(0)}`;
+
                         $('#timeline-active').animate({
                             width: 360 * (timedata[counter]/timeToPlaybackTask)
                         }, 0);
-            
+
                         $('#timeline-handle').animate({
                             left: 360 * (timedata[counter]/timeToPlaybackTask)
                         }, 0);
-                        
+
                         // console.log(`duration: ${duration}`);
                         d3.select(this).attr('counter', ++counter);
                         lastPaused = d3.select(this).attr('counter');
-                        
+
                         // Outputs message to refresh page.
                         if (lastPaused >= featuresdata.length) {
                             document.getElementById('control-btn').innerHTML = "Refresh Page to Replay";
