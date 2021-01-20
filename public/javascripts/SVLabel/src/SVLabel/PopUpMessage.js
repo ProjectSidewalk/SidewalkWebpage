@@ -282,7 +282,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      * Adds an image to the pop-up window
      */
     this._setImage = function (image, width, height, x) {
-        var imageHtml = `<img src = ${svl.rootDirectory}` + `${image} id="pop-up-message-image" />`;
+        var imageHtml = `<img src = ` + `${image} id="pop-up-message-image" />`;
         var $img = $(imageHtml);
         $img.css({ cursor: 'default', width: width, height: height, left: x });
         $img.addClass('img');

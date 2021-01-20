@@ -212,6 +212,7 @@ object UserDAOSlick {
 
     // Add in the task completion logic.
     val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "labels_progress > 0" else "TRUE"
 
     val countQuery = s"""SELECT COUNT(DISTINCT(users.user_id))
                    |FROM (
@@ -221,6 +222,7 @@ object UserDAOSlick {
                    |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
                    |    WHERE mission_type.mission_type = 'validation'
                    |        AND $lblValidationTimeIntervalSql
+                   |        AND $validationCompletedSql
                    |    UNION
                    |    SELECT DISTINCT(user_id)
                    |    FROM audit_task
@@ -487,7 +489,7 @@ object UserDAOSlick {
     // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int)).
     val signInTimesAndCounts =
       WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignIn"))
-        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).min, group.length) }
+        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max, group.length) }
         .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
 
     // Map(user_id: String -> mission_count: Int).
