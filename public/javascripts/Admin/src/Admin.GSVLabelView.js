@@ -15,33 +15,39 @@ function AdminGSVLabelView(admin) {
 
     function _resetModal() {
         var modalText =
-            '<div class="modal fade" id="label-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
+            '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
                 '<div class="modal-dialog" role="document" style="width: 570px">' +
                     '<div class="modal-content">' +
-                        '<div class="modal-header">'+
-                            '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
+                        '<div class="modal-header">' +
+                            '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
                             '<h4 class="modal-title" id="myModalLabel"></h4>' +
                         '</div>' +
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px">' +
                         '</div>' +
+                        '<h3>Is this label correct?</h3>' +
                         '<div id="validation-button-holder">' +
-                            '<h3>Is this label correct?</h3>' +
                             '<button id="validation-agree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Agree' +
                             '</button>' +
                             '<button id="validation-disagree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Disagree' +
                             '</button>' +
                             '<button id="validation-not-sure-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Not sure' +
                             '</button>' +
                         '</div>' +
+                        '<div id="validation-comment-holder">' +
+                            '<textarea id="comment-textarea" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                            '<button id="comment-button" class="submit-button">' +
+                                i18next.t('label-map.submit') +
+                            '</button>' +
+                        '</div>' +
                         '<div class="modal-footer">' +
-                            '<table class="table table-striped" style="font-size:small; margin-bottom: 0">'+
+                            '<table class="table table-striped" style="font-size:small; margin-bottom: 0">' +
                                 '<tr>' +
                                     '<th>Label Type</th>' +
                                     '<td id="label-type-value"></td>' +
@@ -63,7 +69,7 @@ function AdminGSVLabelView(admin) {
                                     '<td colspan="3" id="label-description"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Validations</th>' + 
+                                    '<th>Validations</th>' +
                                     '<td colspan="3" id="label-validations"></td>' +
                                 '</tr>' +
                                 '<tr>' +
@@ -72,31 +78,31 @@ function AdminGSVLabelView(admin) {
                                 '</tr>' +
                                     '<th>Image Date</th>' +
                                     '<td id="image-date" colspan="3"></td>' +
-            '                   </tr>' +
+                                '</tr>' +
                                 '<tr>' +
                                     '<th>Pano ID</th>' +
                                     '<td id="pano-id" colspan="3"></td>' +
                                 '</tr>';
         if (self.admin) {
             modalText +=
-                                '<tr>'+
-                                    '<th>Label ID</th>'+
-                                    '<td id="label-id" colspan="3"></td>'+
-                                '</tr>'+
-                                '<tr>'+
+                                '<tr>' +
+                                    '<th>Label ID</th>' +
+                                    '<td id="label-id" colspan="3"></td>' +
+                                '</tr>' +
+                                '<tr>' +
                                     '<th>Task ID</th>' +
                                     '<td id="task"></td>' +
-                                '</tr>'+
-                            '</table>'+
-                        '</div>'+
-                    '</div>'+
-                '</div>'+
+                                '</tr>' +
+                            '</table>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
                 '</div>'
         } else {
-            modalText += '</table>'+
-                '</div>'+
-                '</div>'+
-                '</div>'+
+            modalText += '</table>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
                 '</div>'
         }
         self.modal = $(modalText);
@@ -120,6 +126,15 @@ function AdminGSVLabelView(admin) {
         });
         self.notSureButton.click(function() {
             _validateLabel("NotSure");
+        });
+
+        self.commentButton = self.modal.find("#comment-button");
+        self.commentTextArea = self.modal.find("#comment-textarea");
+        self.commentButton.click(function() {
+            var comment = self.commentTextArea.val();
+            if (comment) {
+                _submitComment(comment);
+            }
         });
 
         self.modalTitle = self.modal.find("#myModalLabel");
