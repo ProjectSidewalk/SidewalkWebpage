@@ -1,14 +1,4 @@
 # --- !Ups
-<<<<<<< HEAD
-UPDATE tag SET tag = 'height difference' WHERE tag_id = 34;
-INSERT INTO tag VALUES ( 38, 3, 'narrow' );
-INSERT INTO tag VALUES ( 39, 4, 'height difference' );
-
-# --- !Downs
-UPDATE tag SET tag = 'large step' WHERE tag_id = 34;
-DELETE FROM label_tag WHERE tag_id IN (38, 39);
-DELETE FROM tag WHERE tag_id IN (38, 39);
-=======
 UPDATE label_point
 SET computation_method = 'approximation2',
     geom = ST_Project(
@@ -43,4 +33,3 @@ SET computation_method = 'approximation1',
 FROM label
 WHERE label_point.label_id = label.label_id
   AND computation_method = 'approximation2';
->>>>>>> 2763e877da99f3bc7a7cea04a69fbceb3ff89b1e
