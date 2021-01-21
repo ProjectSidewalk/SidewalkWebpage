@@ -38,9 +38,8 @@ function AdminTask(params) {
         // The animation is played again by recalculating the stream again from where it stopped.
         function playAnimation() {
             const SPEEDUP_MULTIPLIER = document.getElementById('speed-multiplier').value;
-            const MAX_WAIT_MS = document.getElementById('wait-time').value;
-            const SKIP_FILL_TIME_MS = parseInt(document.getElementById('fill-time').value, 10);
-
+            const MAX_WAIT_MS = (document.getElementById('wait-time').value) * 1000;
+            const SKIP_FILL_TIME_MS = (document.getElementById('fill-time').value) * 1000;
             // Import the sample data and start animating.
             var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
             d3.json(geojsonURL, function (collection) {
@@ -143,16 +142,17 @@ function AdminTask(params) {
                         duration = SKIP_FILL_TIME_MS;
                     }
                     timedata[i] = timedata[i-1] + duration;
+                    console.log(SKIP_FILL_TIME_MS);
                 } else {
                     timedata[i] = 0;
                 }
             }
             timeToPlaybackTask = timedata[featuresdata.length - 1];
-            console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`)
+            console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`);
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
             console.log(`Time to replay task: ${timeToPlaybackTask / 1000} seconds`);
 
-            document.getElementById('total-time-label').innerHTML = `${(timeToPlaybackTask/1000).toFixed(0)} seconds`;
+            document.getElementById('total-time-label').innerHTML = (timeToPlaybackTask/1000).toFixed(0);
             var currentTimestamp = featuresdata[startTime].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
@@ -222,7 +222,7 @@ function AdminTask(params) {
                             }
                         }
 
-                        document.getElementById('current-time-label').innerText = `${(timedata[counter]/1000).toFixed(0)} seconds`;
+                        document.getElementById('current-time-label').innerText = `${(timedata[counter]/1000).toFixed(0)}`;
 
                         $('#timeline-active').animate({
                             width: 360 * (timedata[counter]/timeToPlaybackTask)
