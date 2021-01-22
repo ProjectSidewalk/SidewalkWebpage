@@ -12,7 +12,7 @@
     <fieldset class="col-md-6 col-md-offset-3">
         <legend>@Messages("authenticate.signup.new.account")</legend>
         @helper.form(action = routes.SignUpController.signUp(Some(url))) {
-            @text(signInForm("username"), Messages("authenticate.username"), icon = "person")
+            @text(signInForm("username"), Messages("username"), icon = "person")
             @text(signInForm("email"), Messages("authenticate.email"), icon = "at")
             @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
             @password(signInForm("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
@@ -25,7 +25,7 @@
                 </div>
             </div>
             <div class="sign-in-now">
-                <p>@Html(Messages("authenticate.is.member.mobile"))</p>
+                <p>@Html(Messages("authenticate.is.member", "/signInMobile"))</p>
             </div>
         }
     </fieldset>

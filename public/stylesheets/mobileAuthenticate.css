@@ -8,3 +8,9 @@
     transform-origin: left top;
     margin-bottom: -34px;
 }
+
+.alert-mobile {
+    float: none;
+    margin-top: 20px;
+    margin-bottom: 0px
+}
