@@ -20,6 +20,10 @@ import scala.io.Source
 class GalleryController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  // Set of valid labels
+  // TODO: Put somewhere more reasonable.
+  def validLabelIds: Set[Int] = Set(1, 2, 3, 4, 5, 6, 7)
+
   /**
    * Returns labels of a specified type.
    *
@@ -32,8 +36,9 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
     request.identity match {
       case Some(user) =>
         val loadedLabelIds: Set[Int] = Json.parse(loadedLabels).as[JsArray].value.map(_.as[Int]).toSet
-        val labels: Seq[LabelValidationMetadata] = if (labelTypeId == 9) LabelTable.retrieveAssortedLabels(n, loadedLabelIds) 
-                                                   else LabelTable.retrieveLabelsByType(labelTypeId, n, loadedLabelIds) 
+        val labels: Seq[LabelValidationMetadata] = if (validLabelIds.contains(labelTypeId)) 
+                                                      LabelTable.retrieveLabelsByType(labelTypeId, n, loadedLabelIds) 
+                                                   else LabelTable.retrieveAssortedLabels(n, loadedLabelIds) 
         val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
             "label" -> LabelTable.validationLabelMetadataToJson(l),
             "imageUrl" -> getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
@@ -68,8 +73,13 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
         val tagsToSelect: Set[String] = Json.parse(tags).as[JsArray].value.map(_.as[String]).toSet
 
         // TODO: rather than look for "9", check if label id is valid
-        val labels: Seq[LabelValidationMetadata] = if (labelTypeId == 9) LabelTable.retrieveAssortedLabels(n, loadedLabelIds, Some(severitiesToSelect))
-                                                   else LabelTable.retrieveLabelsOfTypeBySeverityAndTags(labelTypeId, n, loadedLabelIds, severitiesToSelect, tagsToSelect)
+        val labels: Seq[LabelValidationMetadata] = if (validLabelIds.contains(labelTypeId)) 
+                                                      LabelTable.retrieveLabelsOfTypeBySeverityAndTags(labelTypeId, 
+                                                                                                       n, 
+                                                                                                       loadedLabelIds, 
+                                                                                                       severitiesToSelect, 
+                                                                                                       tagsToSelect)
+                                                   else LabelTable.retrieveAssortedLabels(n, loadedLabelIds, Some(severitiesToSelect))
         val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
             "label" -> LabelTable.validationLabelMetadataToJson(l),
             "imageUrl" -> getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
