@@ -1,7 +1,9 @@
 /**
- * Card Filter module. This is responsible for allowing users to apply
- * filters to specify what types of cards to render in the gallery
+ * Card Filter module. 
+ * This is responsible for allowing users to apply filters to specify what types of cards to render in the gallery.
  *
+ * @param uiCardFilter UI element representing filter components of sidebar.
+ * @param ribbonMenu UI element representing dropdown to select label type in sidebar.
  * @returns {CardFilter}
  * @constructor
  */
@@ -12,6 +14,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         currentLabelType: 'Assorted'
     };
 
+    // Map label type to their collection of tags.
     let tagsByType = {
         Assorted: new TagBucket(),
         CurbRamp: new TagBucket(),
@@ -23,10 +26,15 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         NoSidewalk: new TagBucket()
     };
 
+    // Tags of the current label type.
     let currentTags = new TagBucket();
 
+    // Collection of severities.
     let severities = new SeverityBucket();
    
+    /**
+     * Initialize CardFilter.
+     */
     function _init() {
         getTags(function () {
             console.log("tags received");
@@ -34,6 +42,11 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         });
     }
 
+    /**
+     * Grab all tags from backend and sort them by label type into tagsByType.
+     * 
+     * @param {*} callback Function to be called when tags arrive.
+     */
     function getTags(callback) {
         $.getJSON("/label/tags", function (data) {
             let tag,
@@ -48,6 +61,9 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         });
     }
 
+    /**
+     * Update filter componenets when label type changes.
+     */
     function update() {
         let currentLabelType = ribbonMenu.getCurrentLabelType();
         if (status.currentLabelType !== currentLabelType) {
@@ -61,6 +77,9 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         render();
     }
 
+    /**
+     * Render tags and severities in sidebar.
+     */
     function render() {
         if (currentTags.getTags().length > 0) {
             // TODO: think about to better show tags header in an organized manner
@@ -80,22 +99,40 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         severities.render(uiCardFilter.severity);
     }
 
+    /**
+     * Return list of tags that have been selected by user.
+     */
     function getAppliedTagNames() {
         return currentTags.getAppliedTags().map(tag => tag.getTag());
     }
 
+    /**
+     * Return list of all tags for current label type.
+     */
     function getTagNames() {
         return currentTags.getTags().map(tag => tag.getTag());
     }
 
+    /**
+     * Return object containing all tags.
+     */
     function getTagsByType() {
         return tagsByType;
     }
 
+    /**
+     * Return status of CardFilter.
+     */
     function getStatus() {
         return status;
     }
 
+    /**
+     * Set attribute of status.
+     * 
+     * @param {*} key Status name.
+     * @param {*} value Status value.
+     */
     function setStatus(key, value) {
         if (key in status) {
             status[key] = value;
@@ -104,25 +141,32 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         }
     }
 
+    /**
+     * Return list of severities.
+     */
     function getSeverities() {
-        //return severities;
         return severities.getSeverities();
     }
 
+    /**
+     * Return whether any severities are applied.
+     */
     function isSeverityApplied() {
-        // for (let i = 0; i < severities.length; i++){
-        //     if (severities[i].getActive()) {
-        //         return true;
-        //     }
-        // }
-        // return false;
         return severities.isSeverityApplied();
     }
 
+    /**
+     * Return list of selected severities by user.
+     */
     function getAppliedSeverities() {
         return severities.getAppliedSeverities();
     }
 
+    /**
+     * Unapply all tags of specified label type.
+     * 
+     * @param {*} labelType Label type of tags to unapply.
+     */
     function unapplyTags(labelType) {
         if (labelType != null) {
             console.log("tags unapplied");
@@ -131,17 +175,26 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         }
     }
 
+    /**
+     * Clear tags currently being shown.
+     */
     function clearCurrentTags() {
         uiCardFilter.tags.empty();
         unapplyTags(status.currentLabelType);
         currentTags = new TagBucket();
     }
 
+    /**
+     * Disable interaction with filters.
+     */
     function disable() {
         severities.disable();
         $('.gallery-tag').prop("disabled", true);
     }
 
+    /**
+     * Enable interaction with filters.
+     */
     function enable() {
         severities.enable();
         $('.gallery-tag').prop("disabled", false);

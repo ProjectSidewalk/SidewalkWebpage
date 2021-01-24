@@ -1,5 +1,6 @@
 /**
- * A Severity Bucket to store Severities
+ * A Severity Bucket to store Severities.
+ * 
  * @param bucket array containing Severities
  * @returns {SeverityBucket}
  * @constructor
@@ -7,38 +8,66 @@
 function SeverityBucket(bucket) {
     let self = this;
 
+    // List of severities.
     bucket = bucket || [];
 
+    /**
+     * Initialize SeverityBucket.
+     */
     function _init() {
         for(let i = 1; i <= 5; i++ ){
             push(new Severity(i));
         }
     }
 
-    function push(tag) {
-        bucket.push(tag);
+    /**
+     * Add severity.
+     * 
+     * @param {*} severity
+     */
+    function push(severity) {
+        bucket.push(severity);
     }
 
+    /**
+     * Render Severities in SeverityBucket.
+     * @param {*} uiSeverityHolder UI element to render Severities in.
+     */
     function render(uiSeverityHolder) {
         bucket.forEach(severity => severity.render(uiSeverityHolder));
     }
 
+    /**
+     * Unapply all Severities.
+     */
     function unapplySeverities() {
         bucket.forEach(severity => severity.unapply());
     }
 
+    /**
+     * Return list of Severities.
+     */
     function getSeverities() {
         return bucket;
     }
 
+    /**
+     * Return number of Severities.
+     */
     function getSize() {
         return bucket.length;
     }
 
+    /**
+     * Return list of applied Severities.
+     */
     function getAppliedSeverities() {
         return bucket.filter(severity => severity.getActive()).map(severity => severity.getSeverity());
     }
 
+    /**
+     * Return whether any severities are applied.
+     */
     function isSeverityApplied() {
         // for (let i = 0; i < bucket.length; i++){
         //     if (bucket[i].getActive()) {
@@ -49,10 +78,16 @@ function SeverityBucket(bucket) {
         return getAppliedSeverities().length > 0;
     }
 
+    /**
+     * Disable interaction with Severities.
+     */
     function disable() {
         bucket.forEach(severity => severity.disable());
     }
     
+    /**
+     * Enable interaction with Severities.
+     */
     function enable() {
         $(".gallery-severity").prop("disabled", false);
     }

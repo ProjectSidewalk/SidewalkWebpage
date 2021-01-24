@@ -1,27 +1,33 @@
 /**
  * A Tag module.
- * @param params
+ * 
+ * @param {*} params Properties of tag.
  * @returns {Tag}
  * @constructor
  */
 function Tag (params) {
     let self = this;
 
+    // UI element of Tag.
     let tagElement = null;
 
-    // Id of the tag this Tag represents
+    // Properties of this Tag.
     let properties = {
         tag_id: undefined,
         label_type: undefined,
         tag: undefined
     };
 
-    // Status of the tag
-    // TODO: Maybe call it selected?
+    // Status of the tag.
     let status = {
         applied: false
     };
 
+    /**
+     * Initialize Tag.
+     * 
+     * @param {*} param Tag properties.
+     */
     function _init (param) {
         for (let attrName in param) {
             properties[attrName] = param[attrName];
@@ -36,6 +42,9 @@ function Tag (params) {
         tagElement.onclick = handleTagClickCallback;
     }
 
+    /**
+     * Handles what happens when Tag is clicked.
+     */
     function handleTagClickCallback() {
         if (status.applied) {
             sg.tracker.push("TagUnapply", null, {
@@ -54,30 +63,41 @@ function Tag (params) {
         sg.cardContainer.updateCardsByTag();
     }
 
+    /**
+     * Applies Tag.
+     */
     function apply() {
         setStatus("applied", true);
         console.log("clicked and toggled on");
         tagElement.setAttribute("style", "background-color: #78c8aa");
     }
 
+    /**
+     * Unapplies Tag.
+     */
     function unapply() {
         setStatus("applied", false);
         console.log("clicked and toggled off");
         tagElement.setAttribute("style", "background-color: none");
     }
 
+    /**
+     * Returns Tag name.
+     */
     function getTag() {
         return properties.tag;
     }
 
     /**
-     * This function returns the tagId
-     * @returns {*}
+     * Returns the tagId of this Tag.
      */
     function getTagId() {
         return properties.tag_id;
     }
 
+    /**
+     * Returns label type of Tag.
+     */
     function getLabelType() {
         return properties.label_type;
     }
@@ -85,30 +105,32 @@ function Tag (params) {
     /**
      * Return the deep copy of the properties object,
      * so the caller can only modify properties from
-     * setProperties() (which I have not implemented.)
+     * setProperty().
      * JavaScript Deepcopy
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
     function getProperties() { return $.extend(true, {}, properties); }
 
     /**
-     * Get a property
-     * @param propName
-     * @returns {boolean}
+     * Gets property of Tag.
+     * 
+     * @param propName Property name.
+     * @returns {*} Property value if property name is valid. Otherwise false.
      */
     function getProperty(propName) { return (propName in properties) ? properties[propName] : false; }
 
     /**
-     * Get status of tag
+     * Get status of tag.
      */
     function getStatus() {
         return status;
     }
 
     /**
-     * Sets a property
-     * @param key
-     * @param value
+     * Sets a property of Tag.
+     * 
+     * @param key Property name.
+     * @param value Property value.
      * @returns {setProperty}
      */
     function setProperty (key, value) {
@@ -117,7 +139,10 @@ function Tag (params) {
     }
 
     /**
-     * Set status of tag
+     * Set status attribute of tag.
+     * 
+     * @param {*} key Status name.
+     * @param {*} value Status value.
      */
     function setStatus(key, value) {
         if (key in status) {
@@ -128,8 +153,9 @@ function Tag (params) {
     }
 
     /**
-     * This method renders the tag
-     * @param filterContainer
+     * Renders the Tag.
+     * 
+     * @param filterContainer UI element to render Tag in.
      * @returns {self}
      */
     function render(filterContainer) {

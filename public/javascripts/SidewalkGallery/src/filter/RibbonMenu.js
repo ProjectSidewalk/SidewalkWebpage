@@ -1,6 +1,8 @@
 /**
- * Ribbon Menu module. This is responsible for holding the buttons allowing users to filter labels by label type
+ * Ribbon Menu module.
+ * This is responsible for holding the buttons allowing users to filter labels by label type.
  *
+ * @param uiRibbonMenu UI element corresponding to RibbonMenu.
  * @returns {RibbonMenu}
  * @constructor
  */
@@ -11,6 +13,9 @@ function RibbonMenu(uiRibbonMenu) {
         currentLabelType: null
     };
 
+    /**
+     * Initialize RibbonMenu.
+     */
     function _init() {
         if (uiRibbonMenu) {
             uiRibbonMenu.select.bind({
@@ -19,6 +24,9 @@ function RibbonMenu(uiRibbonMenu) {
         }
     }
 
+    /**
+     * Handles what happens when a label type is selected.
+     */
     function handleLabelSelectSwitchChangeCallback() {
         let labelType = $(this).val();
         setStatus("currentLabelType", labelType);
@@ -26,16 +34,26 @@ function RibbonMenu(uiRibbonMenu) {
         sg.tagContainer.update();
     }
 
-
+    /**
+     * Returns current selected label type.
+     */
     function getCurrentLabelType() {
         return status.currentLabelType;
     }
 
-    // TODO: perhaps remove this if no other status added
+    /**
+     * Return status of RibbonMenu.
+     */
     function getStatus() {
         return status;
     }
 
+    /**
+     * Set status attribute.
+     * 
+     * @param {*} key Status name.
+     * @param {*} value Status value.
+     */
     function setStatus(key, value) {
         if (key in status) {
             status[key] = value;

@@ -23,6 +23,11 @@ import scala.collection.mutable.ListBuffer
 class GalleryTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+    * Take parsed JSON data and insert it into database.
+    *
+    * @return
+    */
   def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val userOption = identity
     for (data <- submission) yield {
@@ -30,7 +35,7 @@ class GalleryTaskController @Inject() (implicit val env: Environment[User, Sessi
         GalleryTaskInteraction(0, interaction.action, interaction.panoId, interaction.note, new Timestamp(interaction.timestamp))
       })
 
-      // Insert Environment 
+      // Insert Environment.
       val env: GalleryEnvironmentSubmission = data.environment
       val taskEnv: GalleryTaskEnvironment = GalleryTaskEnvironment(0, env.browser,
         env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
@@ -42,7 +47,7 @@ class GalleryTaskController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON
+    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
     *
     * @return
     */
@@ -60,8 +65,9 @@ class GalleryTaskController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Parse submitted gallery data and submit to tables
-    * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
+    * Parse submitted gallery data and submit to tables.
+    *
+    * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp 
     * BodyParsers.parse.json in async
     */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>

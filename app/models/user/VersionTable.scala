@@ -41,6 +41,7 @@ object VersionTable {
     * Read in Google Maps API key from google_maps_api_key.txt (ask Mikey Saugstad for the file if you don't have it).
     */
   def getGoogleMapsAPIKey(): String = {
+    // Grab key from server-side cache. If it's not there, we grab from file then store it in cache.
     Cache.getOrElse("googleMapsAPIKey") {
       val bufferedSource = Source.fromFile("google_maps_api_key.txt")
       val lines = bufferedSource.getLines()

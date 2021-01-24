@@ -31,7 +31,6 @@
                             <option value="SurfaceProblem">Surface Problem</option>
                             <option value="Occlusion">Can't See Sidewalk</option>
                             <option value="NoSidewalk">No Sidewalk</option>
-                            <!-- <option value="Problem">Problem</option> -->
                             <option value="Other">Other</option>
                         </select>
                     </span>
@@ -74,7 +73,11 @@
     <script type="text/javascript">
             var sg = sg || {};
             let params = {};
+
+            // Path to assets
             params.rootDirectory = "/assets/javascripts/SVLabel/";
+
+            // URLs for where to send interaction data
             params.dataStoreUrl = '@routes.GalleryTaskController.post';
             params.beaconDataStoreUrl = params.dataStoreUrl + "Beacon";
 

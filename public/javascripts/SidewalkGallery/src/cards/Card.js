@@ -1,17 +1,20 @@
 /**
  * A Card module.
- * @param params
- * @param imageUrl
+ * @param params properties of the associated label.
+ * @param imageUrl google maps static image url for label.
  * @returns {Card}
  * @constructor
  */
 function Card (params, imageUrl) {
     let self = this;
 
+    // UI card element.
     let card = null;
+
+    // Validation menu tied to label.
     let validationMenu = null;
 
-    // Properties of the label in the card
+    // Properties of the label in the card.
     let properties = {
         label_id: undefined,
         label_type: undefined,
@@ -29,11 +32,12 @@ function Card (params, imageUrl) {
         tags: []
     };
 
+    // Status to determine if static imagery has been loaded.
     let status = {
-        visibility: 'hidden',
         imageFetched: false
     };
 
+    // Default image width.
     let width = 360;
 
     let imageDim = {
@@ -41,17 +45,23 @@ function Card (params, imageUrl) {
         h:0
     }
 
-    // Icon for label
+    // Icon for label.
     const labelIcon = new Image();
 
-    // The static pano image
+    // The static pano image.
     const panoImage = new Image();
 
+    /**
+     * Initialize Card.
+     * 
+     * @param {*} param Label properties.
+     */
     function _init (param) {
         for (let attrName in param) {
             properties[attrName] = param[attrName];
         }
 
+        // Place label icon.
         let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
         labelIcon.src = iconUrl.iconImagePath;
         labelIcon.className = "label-icon";
@@ -67,8 +77,6 @@ function Card (params, imageUrl) {
         let severityHeader = properties.severity ? properties.severity : getLabelType() === "Occlusion" ? "not applicable" : "none";
         let tagHeader = properties.tags.length > 0 ? properties.tags.join(", ") : getLabelType() === "Occlusion" ? "not applicable" : "none";
 
-        // TODO: Can we modularize this in some separate HTML
-        //  file so we don't have to use template string?
         const cardHtml = `
             <p class="label-severity"><b>Severity:</b> ${severityHeader}</p>
             <p class="label-tags"><b>Tags:</b> ${tagHeader}</p>
@@ -84,6 +92,9 @@ function Card (params, imageUrl) {
         validationMenu = new ValidationMenu(card, properties);
     }
 
+    /**
+     * Return object with label coords on static image.
+     */
     function getIconCoords () {
         return {
             x: imageDim.w * properties.canvas_x / properties.canvas_width,
@@ -91,12 +102,17 @@ function Card (params, imageUrl) {
         };
     }
 
+    /**
+     * Update image width.
+     * 
+     * @param {*} w New width.
+     */
     function updateWidth(w) {
         width = w;
         card.style.width = w + "px";
 
         imageDim.w = w - 10;
-        imageDim.h = imageDim.w/(4/3);//1.333;        
+        imageDim.h = imageDim.w / (4/3);       
 
         let iconCoords = getIconCoords();
         labelIcon.style.left = iconCoords.x + "px";
@@ -104,7 +120,8 @@ function Card (params, imageUrl) {
     }
 
     /**
-     * This function returns labelId property
+     * This function returns labelId property.
+     * 
      * @returns {string}
      */
     function getLabelId () {
@@ -112,8 +129,9 @@ function Card (params, imageUrl) {
     }
 
     /**
-     * This function returns labelType property
-     * @returns {*}
+     * This function returns labelType property.
+     * 
+     * @returns {string}
      */
     function getLabelType () {
         return properties.label_type;
@@ -122,28 +140,29 @@ function Card (params, imageUrl) {
     /**
      * Return the deep copy of the properties object,
      * so the caller can only modify properties from
-     * setProperties() (which I have not implemented.)
-     * JavaScript Deepcopy
+     * setProperty().
+     * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
     function getProperties () { return $.extend(true, {}, properties); }
 
     /**
-     * Get a property
-     * @param propName
-     * @returns {boolean}
+     * Get a property.
+     * 
+     * @param propName Property name.
+     * @returns {*} Property value if property name is valid. Otherwise false.
      */
     function getProperty (propName) { return (propName in properties) ? properties[propName] : false; }
 
     /**
-     * Get status of tag
+     * Get status of card.
      */
     function getStatus() {
         return status;
     }
 
     /**
-     * Loads the pano image from url
+     * Loads the pano image from url.
      */
     function loadImage() {
         return new Promise(resolve => {
@@ -163,8 +182,9 @@ function Card (params, imageUrl) {
     }
 
     /**
-     * This method renders the card
-     * @param cardContainer
+     * Renders the card. 
+     * 
+     * @param cardContainer UI element to render card in.
      * @returns {self}
      */
     function render (cardContainer) {
@@ -175,9 +195,7 @@ function Card (params, imageUrl) {
     }
 
     /**
-     * 
-     * render with an overload that allows you to set the width and height of the
-     * card
+     * Render with an overload that allows you to set the width and height of the card.
      */
     function renderSize(cardContainer, width) {
         updateWidth(width);
@@ -185,9 +203,10 @@ function Card (params, imageUrl) {
     }
 
     /**
-     * Sets a property
-     * @param key
-     * @param value
+     * Sets a property. 
+     * 
+     * @param key Property name.
+     * @param value Property value.
      * @returns {setProperty}
      */
     function setProperty (key, value) {
@@ -196,7 +215,10 @@ function Card (params, imageUrl) {
     }
 
     /**
-     * Set status of tag
+     * Set aspect of status.
+     * 
+     * @param {*} key Status name.
+     * @param {*} value Status value.
      */
     function setStatus(key, value) {
         if (key in status) {

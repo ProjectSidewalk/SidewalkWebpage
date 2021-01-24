@@ -1,7 +1,8 @@
 /**
- * A Validation Menu to be appended to a Card for validation purposes
- * @param uiCardImage the html element to append the validation menu to
- * @param cardProperties properties of the label the validation menu is being appended to
+ * A Validation Menu to be appended to a Card for validation purposes.
+ * 
+ * @param uiCardImage The html element to append the validation menu to.
+ * @param cardProperties Properties of the label the validation menu is being appended to
  * @returns {ValidationMenu}
  * @constructor
  */
@@ -68,7 +69,8 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
     /**
      * Consolidate data on the validation and submit as a POST request.
-     * @param action
+     * 
+     * @param action Validation result.
      * @private
      */
     function validateLabel(action) {
@@ -111,6 +113,12 @@ function ValidationMenu(uiCardImage, cardProperties) {
         });
     }
 
+    /**
+     * Confirm successful submit of validation.
+     * TODO: Probably want to remove for prod or show confirmation through something else.
+     * 
+     * @param {*} action Validation result.
+     */
     function showConfirmation(action) {
         console.log(action + ": validation submitted successfully :)");
     }

@@ -1,5 +1,6 @@
 /**
- * Logs information from the Sidewalk Gallery
+ * Logs information from the Sidewalk Gallery.
+ * 
  * @returns {Tracker}
  * @constructor
  */
@@ -32,11 +33,11 @@ function Tracker() {
     }
 
     /**
-     * Creates action to be added to action buffer
+     * Creates action to be added to action buffer.
      * 
-     * @param action
-     * @param notes
-     * @param extraData
+     * @param action Action name.
+     * @param suppData Optional supplementary data about action.
+     * @param notes Optional notes about action.
      * @private
      */
     function _createAction(action, suppData, notes) {
@@ -57,10 +58,18 @@ function Tracker() {
         return data;
     }
 
+    /**
+     * Return list of actions.
+     */
     function getActions() {
         return actions;
     }
 
+    /**
+     * Convert notes object to string.
+     * 
+     * @param {*} notes Notes object.
+     */
     function _notesToString(notes) {
         if (!notes)
             return "";
@@ -76,17 +85,18 @@ function Tracker() {
     }
 
     /**
-     * Pushes information to action list (to be submitted to the database)
-     * @param action    (required) Action
-     * @param notes     (optional) Notes to be logged into the notes field database
-     * @param extraData (optional) Extra data that should not be stored in the db notes field
+     * Pushes information to action list (to be submitted to the database).
+     * 
+     * @param action (required) Action name.
+     * @param suppData (optional) Supplementary data to be logged about action.
+     * @param notes (optional) Notes to be logged into the notes fieldin database.
      */
     function push(action, suppData, notes) {
         let item = _createAction(action, suppData, notes);
         actions.push(item);
 
         // TODO: change action buffer size limit
-        if (actions.length > 2) {
+        if (actions.length > 10) {
             let data = sg.form.compileSubmissionData();
             sg.form.submit(data, true);
         }

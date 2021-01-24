@@ -1,13 +1,18 @@
 /**
- * Holds Panomarker/Panorama calculations. These functions are borrowed from the
- * PanoMarker script.
+ * Holds Panomarker/Panorama calculations. 
+ * These functions are borrowed from the PanoMarker script.
+ * 
  * @returns {GalleryPanoUtilities}
  * @constructor
  */
 function GalleryPanoUtilities () {
     let self = this;
 
-    // Returns image paths corresponding to each label type.
+    /**
+     * Returns image paths corresponding to each label type.
+     * 
+     * @param {*} category Specified label type.
+     */
     function getIconImagePaths(category) {
         let imagePaths = {
             CurbRamp: {
@@ -45,15 +50,6 @@ function GalleryPanoUtilities () {
         };
 
         return category ? imagePaths[category] : imagePaths;
-    }
-
-    /**
-     * From PanoMarker spec
-     * @param zoom
-     * @returns {number}
-     */
-    function _get3dFov (zoom) {
-
     }
 
     /**
@@ -182,7 +178,6 @@ function GalleryPanoUtilities () {
     }
 
     self.getIconImagePaths = getIconImagePaths;
-    self.get3dFov = _get3dFov;
     self.povToPixel3d = povToPixel3d;
 
     return this;

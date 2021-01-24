@@ -1,22 +1,29 @@
 /**
- * A Card Bucket to store Cards of a certain label type
- * @param bucket object containing cards categorized by severity
- * @returns {TagBucket}
+ * A Card Bucket to store Cards of a certain label type.
+ * 
+ * @param bucket List of Cards in order received from database.
+ * @returns {CardBucket}
  * @constructor
  */
 function CardBucket(bucket) {
     let self = this;
 
+    // List of Cards.
     bucket = bucket || [];
 
+    /**
+     * Add a Card to bucket.
+     * 
+     * @param {*} card Card to add.
+     */
     function push(card) {
         bucket.push(card);
     }
 
     /**
-     * Filters cards upon a non-empty array of tags
+     * Filters cards upon a non-empty array of tags.
      * 
-     * @param {*} tags tags to filter upon
+     * @param {*} tags Tags to filter upon.
      */
     function filterOnTags(tags) {
         if (tags.length > 0) {
@@ -26,9 +33,9 @@ function CardBucket(bucket) {
     }
 
     /**
-     * Filters cards upon a non-empty array of severities
+     * Filters cards upon a non-empty array of severities.
      * 
-     * @param {*} severities severities to filter upon
+     * @param {*} severities Severities to filter upon.
      */
     function filterOnSeverities(severities) {
         if (severities.length > 0) {
@@ -37,14 +44,24 @@ function CardBucket(bucket) {
         }
     }
 
+    /**
+     * Return all Cards in bucket.
+     */
     function getCards() {
         return bucket;
     }
 
+    /**
+     * Return how many Cards are in bucket.
+     */
     function getSize() {
         return bucket.length;
     }
 
+    /**
+     * Return a copy of this CardBucket. 
+     * This is not a deepcopy (the cards themselves are not copied).
+     */
     function copy() {
         return new CardBucket([...bucket]);
     }

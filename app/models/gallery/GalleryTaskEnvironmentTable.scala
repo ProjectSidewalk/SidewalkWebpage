@@ -30,16 +30,16 @@ class GalleryTaskEnvironmentTable(tag: Tag) extends Table[GalleryTaskEnvironment
 }
 
 /**
- * Data access object for the gallery_task_environment table
+ * Data access object for the gallery_task_environment table.
  */
 object GalleryTaskEnvironmentTable {
   val db = play.api.db.slick.DB
   val galleryTaskEnvironments = TableQuery[GalleryTaskEnvironmentTable]
 
   /**
-   * Saves a new gallery task environment
+   * Saves a new gallery task environment.
    *
-   * @param env
+   * @param env Data concerning the environment a gallery interaction was done in.
    * @return
    */
   def save(env: GalleryTaskEnvironment): Int = db.withTransaction { implicit session =>

@@ -1,8 +1,8 @@
 /**
- * Compiles and submits log data from Sidewalk Gallery
+ * Compiles and submits log data from Sidewalk Gallery.
  * 
- * @param {*} url 
- * @param {*} beaconUrl 
+ * @param {*} url URL to send interaction data to.
+ * @param {*} beaconUrl URL to send interaction data to on page unload.
  * @returns {Form}
  * @constructor
  */
@@ -19,11 +19,6 @@ function Form(url, beaconUrl) {
     function compileSubmissionData() {
         let data = {};
 
-        // let labelContainer = svv.labelContainer;
-        // let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
-
-        // TODO: figure out how to make/what to include in Gallery environment table
-        //console.log("language: " + i18next.language);
         data.environment = {
             browser: util.getBrowser(),
             browser_version: util.getBrowserVersion(),
@@ -31,8 +26,8 @@ function Form(url, beaconUrl) {
             browser_height: $(window).height(),
             screen_width: screen.width,
             screen_height: screen.height,
-            avail_width: screen.availWidth,              // total width - interface (taskbar)
-            avail_height: screen.availHeight,            // total height - interface };
+            avail_width: screen.availWidth,
+            avail_height: screen.availHeight, 
             operating_system: util.getOperatingSystem(),
             language: i18next.language
         };
@@ -44,8 +39,9 @@ function Form(url, beaconUrl) {
 
     /**
      * Submits all front-end data to the backend.
-     * @param data  Data object (containing Interactions, Missions, etc...)
-     * @param async
+     * 
+     * @param data  Data object containing interactions.
+     * @param async Whether to submit asynchronously or not.
      * @returns {*}
      */
     function submit(data, async) {
@@ -73,7 +69,7 @@ function Form(url, beaconUrl) {
         });
     }
 
-    // TODO: figure out how beacon datastore works
+    // On page unload, we compile stored interaction data and send it over.
     $(window).on('beforeunload', function () {
         sg.tracker.push("Unload");
 

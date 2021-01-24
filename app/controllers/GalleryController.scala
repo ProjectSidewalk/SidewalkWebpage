@@ -21,11 +21,11 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-   * Returns labels of a specified type
+   * Returns labels of a specified type.
    *
-   * @param labelTypeId label type specifying what type of labels to grab
-   * @param n number of labels to grab
-   * @param loadedLabels string representing set of labelIds already grabbed as to not grab them again
+   * @param labelTypeId Label type specifying what type of labels to grab.
+   * @param n Number of labels to grab.
+   * @param loadedLabels String representing set of labelIds already grabbed as to not grab them again.
    * @return
    */
   def getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String) = UserAwareAction.async { implicit request =>
@@ -51,13 +51,13 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
   }
 
   /**
-   * Returns labels of specified type, severities, and tags
+   * Returns labels of specified type, severities, and tags.
    *
-   * @param labelTypeId label type specifying what type of labels to grab
-   * @param n number of labels to grab
-   * @param loadedLabels string representing the set of labelIds already grabbed as to not grab them again
-   * @param severities string representing the set of severities the labels grabbed can have
-   * @param tags string representing the set of tags the labels grabbed can have
+   * @param labelTypeId Label type specifying what type of labels to grab.
+   * @param n Number of labels to grab.
+   * @param loadedLabels String representing the set of labelIds already grabbed as to not grab them again.
+   * @param severities String representing the set of severities the labels grabbed can have.
+   * @param tags String representing the set of tags the labels grabbed can have.
    * @return
    */
   def getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String) = UserAwareAction.async { implicit request =>
@@ -67,7 +67,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
         val severitiesToSelect: Set[Int] = Json.parse(severities).as[JsArray].value.map(_.as[Int]).toSet
         val tagsToSelect: Set[String] = Json.parse(tags).as[JsArray].value.map(_.as[String]).toSet
 
-        //TODO: add a case for assorted labels
+        // TODO: rather than look for "9", check if label id is valid
         val labels: Seq[LabelValidationMetadata] = if (labelTypeId == 9) LabelTable.retrieveAssortedLabels(n, loadedLabelIds, Some(severitiesToSelect))
                                                    else LabelTable.retrieveLabelsOfTypeBySeverityAndTags(labelTypeId, n, loadedLabelIds, severitiesToSelect, tagsToSelect)
         val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
@@ -78,6 +78,8 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
 
         val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
         Future.successful(Ok(labelList))
+        
+      // If the user doesn't already have an anonymous ID, sign them up and rerun.
       case _ => Future.successful(
         Redirect(s"/anonSignUp?url=/label/labelsBySeveritiesAndTags?labelTypeId=" + labelTypeId + 
                                                                     "&n=" + n + 
@@ -90,15 +92,12 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
   }
 
   /**
-   * TODO: try to refactor this somewhere else
-   *
-   * Retrieves the static image of the label panorama from the Google Street
-   * View Static API. Note that this returns the image of the panorama, but
-   * doesn't actually include the label. More information here:
-   * https://developers.google.com/maps/documentation/streetview/intro
+   * Retrieves the static image of the label panorama from the Google Street View Static API. 
+   * Note that this returns the image of the panorama, but doesn't actually include the label. 
+   * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param label Label to retrieve the static image of.
-   * @return  Image URL that represents the background of the label.
+   * @return Image URL that represents the background of the label.
    */
   def getImageUrl(gsvPanoramaId: String, canvasWidth: Int, canvasHeight: Int, heading: Float, pitch: Float, zoom: Int): String = {
     val url = "https://maps.googleapis.com/maps/api/streetview?" +

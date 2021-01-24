@@ -33,7 +33,7 @@ object GalleryTaskInteractionTable {
   /**
     * Inserts an interaction into the gallery_task_interaction table.
     *
-    * @param interaction
+    * @param interaction The interaction to be saved.
     * @return
     */
   def save(interaction: GalleryTaskInteraction): Int = db.withTransaction { implicit session =>
@@ -45,7 +45,7 @@ object GalleryTaskInteractionTable {
   /**
     * Inserts a sequence of interactions into the gallery_task_interaction table.
     *
-    * @param interactions
+    * @param interactions The interactions to be saved.
     * @return
     */
   def saveMultiple(interactions: Seq[GalleryTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
