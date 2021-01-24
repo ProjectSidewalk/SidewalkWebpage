@@ -207,7 +207,7 @@ function CardContainer(uiCardContainer) {
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
 
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();s
+        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
 
         currentCards = cardsByType[currentLabelType].copy();
         currentCards.filterOnTags(appliedTags);
@@ -261,11 +261,8 @@ function CardContainer(uiCardContainer) {
 
         fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
             currentCards = cardsByType[currentLabelType].copy();
-            console.log(currentCards.getCards());
             currentCards.filterOnTags(appliedTags);
-            console.log(currentCards.getCards());
             currentCards.filterOnSeverities(appliedSeverities);
-            console.log(currentCards.getCards());
 
             render();
         });
@@ -294,7 +291,7 @@ function CardContainer(uiCardContainer) {
          
         // TODO: should we try to just empty in the render method? Or assume it's 
         // already been emptied in a method utilizing render?
-        uiCardContainer.holder.empty();
+        clearCardContainer(uiCardContainer.holder);
         pagewidth = uiCardContainer.holder.width();
         const cardWidth = pagewidth/3 - cardPadding;
 
@@ -343,7 +340,7 @@ function CardContainer(uiCardContainer) {
         $("#labels-not-found").hide();
         $("#page-loading").show();
         $("#page-control").hide();
-        uiCardContainer.holder.empty();
+        clearCardContainer(uiCardContainer.holder);
     }
 
     function setStatus(key, value) {
@@ -368,6 +365,12 @@ function CardContainer(uiCardContainer) {
         for (let labelType in cardsByType) {
             cardsByType[labelType] = null;
         }
+    }
+
+    function clearCardContainer(cardContainer) {
+        cardContainer.children().each(function() {
+            $(this).detach();
+        });
     }
 
     self.fetchLabelsByType = fetchLabelsByType;

@@ -172,10 +172,6 @@ function Card (params, imageUrl) {
         panoImage.width = imageDim.w;
         panoImage.height = imageDim.h;
         cardContainer.append(card);
-
-        // TODO: what is this for?
-        setStatus("visibility", "visible");
-        //card.visiblility = status.visibility;
     }
 
     /**
