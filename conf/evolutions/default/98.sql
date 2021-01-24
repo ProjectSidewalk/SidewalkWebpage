@@ -1,10 +1,10 @@
 # --- !Ups
 CREATE TABLE gallery_task_interaction (
-  gallery_task_interaction_id SERIAL,
+  gallery_task_interaction_id SERIAL NOT NULL,
   action TEXT NOT NULL,
   pano_id VARCHAR(64),
   note TEXT,
-  timestamp TIMESTAMPTZ
+  timestamp TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE gallery_task_environment (

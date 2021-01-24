@@ -4,7 +4,7 @@
  * @returns {TagBucket}
  * @constructor
  */
-function CardBucket(bucket, size) {
+function CardBucket(bucket) {
     let self = this;
 
     bucket = bucket || [];

@@ -206,11 +206,8 @@ function CardContainer(uiCardContainer) {
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
-        appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
 
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-        // TODO: figure out how to make a default severity set to grab all severities (including null)
-        appliedSeverities = appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
+        let appliedSeverities = sg.tagContainer.getAppliedSeverities();s
 
         currentCards = cardsByType[currentLabelType].copy();
         currentCards.filterOnTags(appliedTags);
@@ -240,11 +237,9 @@ function CardContainer(uiCardContainer) {
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
-        appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
+        //appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
 
         let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-        // TODO: figure out how to make a default severity set to grab all severities (including null)
-        appliedSeverities = appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
 
         fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
             currentCards = cardsByType[currentLabelType].copy();
@@ -260,16 +255,17 @@ function CardContainer(uiCardContainer) {
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
-        appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
+        //appliedTags = appliedTags.length > 0 ? appliedTags : sg.tagContainer.getTagNames();
 
         let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-        // TODO: figure out how to make a default severity set to grab all severities (including null)
-        appliedSeverities = appliedSeverities = appliedSeverities.length > 0 ? appliedSeverities : [1, 2, 3, 4, 5];
 
         fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
             currentCards = cardsByType[currentLabelType].copy();
+            console.log(currentCards.getCards());
             currentCards.filterOnTags(appliedTags);
+            console.log(currentCards.getCards());
             currentCards.filterOnSeverities(appliedSeverities);
+            console.log(currentCards.getCards());
 
             render();
         });

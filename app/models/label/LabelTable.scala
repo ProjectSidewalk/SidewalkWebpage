@@ -668,9 +668,9 @@ object LabelTable {
       _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _ls <- severities if _lb.labelId === _ls.labelId && (_ls.severity inSet severity)
+      _ls <- severities if _lb.labelId === _ls.labelId && ((_ls.severity inSet severity) || severity.isEmpty)
       _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
-      _tags <- tagTable if _labeltags.tagId === _tags.tagId && (_tags.tag inSet tags)
+      _tags <- tagTable if _labeltags.tagId === _tags.tagId && ((_tags.tag inSet tags) || tags.isEmpty)
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
     } yield (_lb, _lp, _lt.labelType, _ls.severity.?, _lb.tutorial)
 
@@ -720,7 +720,7 @@ object LabelTable {
             val timestamp: Timestamp = new Timestamp(now.getMillis)
             GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
             val tagsToCheck = getTagsFromLabelId(currLabel.labelId)
-            if (tagsToCheck.exists(tags.contains(_))) {
+            if (tagsToCheck.exists(tags.contains(_)) || tags.isEmpty) {
               Some(labelAndTagsToLabelValidationMetadata(currLabel, tagsToCheck))
             } else {
               None
@@ -760,7 +760,8 @@ object LabelTable {
     } yield (_lb, _lp, _lt.labelType, _ls.severity.?)
     
     val _labelsUnfilteredWithSeverity = severity match {
-      case Some(severity) => _labelsUnfiltered.filter(_._4 inSet severity)
+      case Some(severity) => if (severity.isEmpty) _labelsUnfiltered.filter(_._4 inSet severity)
+                             else _labelsUnfiltered
       case _ => _labelsUnfiltered
     }
 
