@@ -21,8 +21,11 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-   * Returns curb ramp labels.
-   * @param count Number of curb ramp labels to return.
+   * Returns labels of a specified type
+   *
+   * @param labelTypeId label type specifying what type of labels to grab
+   * @param n number of labels to grab
+   * @param loadedLabels string representing set of labelIds already grabbed as to not grab them again
    * @return
    */
   def getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String) = UserAwareAction.async { implicit request =>
@@ -47,6 +50,16 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  /**
+   * Returns labels of specified type, severities, and tags
+   *
+   * @param labelTypeId label type specifying what type of labels to grab
+   * @param n number of labels to grab
+   * @param loadedLabels string representing the set of labelIds already grabbed as to not grab them again
+   * @param severities string representing the set of severities the labels grabbed can have
+   * @param tags string representing the set of tags the labels grabbed can have
+   * @return
+   */
   def getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>

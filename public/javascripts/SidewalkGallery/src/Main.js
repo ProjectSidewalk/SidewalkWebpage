@@ -57,7 +57,7 @@ function Main (params) {
         debug: false
     }, function(err, t) {
         if (err) return console.log('something went wrong loading', err);
-        t('key'); // -> same as i18next.t
+        i18next.t('key');
     });
 
     _initUI();

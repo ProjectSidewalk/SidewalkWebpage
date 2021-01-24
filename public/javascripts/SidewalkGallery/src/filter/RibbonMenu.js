@@ -1,6 +1,5 @@
 /**
- * Ribbon Menu module. This is responsible for holding the buttons
- * allowing users to filter labels by label type
+ * Ribbon Menu module. This is responsible for holding the buttons allowing users to filter labels by label type
  *
  * @returns {RibbonMenu}
  * @constructor

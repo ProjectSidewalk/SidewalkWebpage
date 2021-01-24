@@ -2,6 +2,7 @@ package models.user
 
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
+import play.api.cache.Cache
 import play.api.Play.current
 import scala.io.Source
 
@@ -40,10 +41,13 @@ object VersionTable {
     * Read in Google Maps API key from google_maps_api_key.txt (ask Mikey Saugstad for the file if you don't have it).
     */
   def getGoogleMapsAPIKey(): String = {
-    val bufferedSource = Source.fromFile("google_maps_api_key.txt")
-    val lines = bufferedSource.getLines()
-    val key: String = lines.next()
-    bufferedSource.close
-    key
+    Cache.getOrElse("googleMapsAPIKey") {
+      val bufferedSource = Source.fromFile("google_maps_api_key.txt")
+      val lines = bufferedSource.getLines()
+      val key: String = lines.next()
+      bufferedSource.close
+      Cache.set("googleMapsAPIKey", key)
+      key
+    }
   }
 }
