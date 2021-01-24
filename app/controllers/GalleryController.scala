@@ -111,4 +111,3 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 }
-

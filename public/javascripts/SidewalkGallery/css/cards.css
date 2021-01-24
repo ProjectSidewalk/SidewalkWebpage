@@ -76,10 +76,3 @@ p.label-severity, p.label-tags {
     /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
     outline: -webkit-focus-ring-color auto 1px;
 }
-
-/* .gallery-card:hover .validation-button:focus {
-    opacity: 1;
-} */
-
-
-
