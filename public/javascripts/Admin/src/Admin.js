@@ -79,7 +79,7 @@ function Admin(_, $, difficultRegionIds) {
             var heading = parseFloat($(this).data('heading'));
             var pitch = parseFloat($(this).data('pitch'));
             var zoom = Number($(this).data('zoom'));
-            var labelId = $(this).data('labelId');
+            var labelId = parseInt($(this).data('labelId'));
             self.adminGSVCommentView.showCommentGSV(this.innerHTML, heading, pitch, zoom, labelId);
         });
     }
