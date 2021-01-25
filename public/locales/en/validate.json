@@ -111,7 +111,6 @@
       "garage entrance": "garage entrance",
       "stairs": "stairs",
       "street vendor": "street vendor",
-      "large step": "large step",
       "bumpy": "bumpy",
       "uneven/slanted": "uneven/slanted",
       "cracks": "cracks",
@@ -123,7 +122,8 @@
       "street has a sidewalk": "street has a sidewalk",
       "street has no sidewalks": "street has no sidewalks",
       "gravel/dirt road": "gravel/dirt road",
-      "shared pedestrian/car space": "shared pedestrian/car space"
+      "shared pedestrian/car space": "shared pedestrian/car space",
+      "height difference": "height difference"
     }
   },
   "mission-start": {
