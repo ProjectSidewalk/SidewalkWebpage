@@ -59,9 +59,9 @@
             <div id="modal-mission-background" class="modal-background"></div>
             <div id="modal-mission-foreground" class="modal-foreground">
                 @if(user && user.get.role.getOrElse("") != "Anonymous") {
-                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButtonMobile">@{user.get.username}</button>
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile">@{user.get.username}</button>
                 } else {
-                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButtonMobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
                 }
                 <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
