@@ -287,7 +287,7 @@ html {
     z-index: 1;
 }
 
-.grayButtonMobile {
+.gray-button-mobile {
     position: relative;
     background-color: rgba(251, 215, 139, 1);
     -moz-border-radius:15px;
