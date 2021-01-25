@@ -76,7 +76,11 @@ function Admin(_, $, difficultRegionIds) {
     function initializeAdminGSVCommentWindow(){
         $('.show-comment-location').click(function(e) { 
             e.preventDefault();
-            self.adminGSVCommentView.showCommentGSV(this.innerHTML, $(this).data('heading'), $(this).data('pitch'), $(this).data('zoom'), $(this).data('labelId'));
+            var heading = parseFloat($(this).data('heading'));
+            var pitch = parseFloat($(this).data('pitch'));
+            var zoom = Number($(this).data('zoom'));
+            var labelId = $(this).data('labelId');
+            self.adminGSVCommentView.showCommentGSV(this.innerHTML, heading, pitch, zoom, labelId);
         });
     }
 
