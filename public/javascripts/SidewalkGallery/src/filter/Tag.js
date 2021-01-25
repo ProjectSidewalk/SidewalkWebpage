@@ -29,9 +29,7 @@ function Tag (params) {
      * @param {*} param Tag properties.
      */
     function _init (param) {
-        for (let attrName in param) {
-            properties[attrName] = param[attrName];
-        }
+        Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
 
         tagElement = document.createElement('button');
         tagElement.className = "gallery-tag";
