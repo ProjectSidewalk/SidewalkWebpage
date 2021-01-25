@@ -36,7 +36,7 @@ function AdminGSVCommentView(admin) {
         });
         self.panorama.setPano(commentGSV, heading, pitch, zoom);
         
-        if(labelId != null){
+        if(labelId) {
             var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
             $.getJSON(adminLabelUrl, function (data) {
                 setLabel(data);
