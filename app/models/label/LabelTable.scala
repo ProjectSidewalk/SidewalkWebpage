@@ -678,16 +678,21 @@ object LabelTable {
       _lb <- labelsWithoutDeletedOrOnboarding if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _ls <- severities if _lb.labelId === _ls.labelId && ((_ls.severity inSet severity) || severity.isEmpty)
       _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
       _tags <- tagTable if _labeltags.tagId === _tags.tagId && ((_tags.tag inSet tags) || tags.isEmpty)
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
-    } yield (_lb, _lp, _lt.labelType, _ls.severity.?, _lb.tutorial)
+    } yield (_lb, _lp, _lt.labelType)
 
-    //TODO: I should be left-joining severity
+    // Join with severity to add severity.
+    val addSeverity = for {
+      (l, s) <- _labelsUnfiltered.leftJoin(severities).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, s.severity.?)
+
+    // Filter out labels with unwanted severities.
+    val _labelsWithFilteredSeverity = addSeverity.filter(label => (label._4 inSet severity) || severity.isEmpty)
 
     // Could be optimized by grouping on less rows.
-    val _labelsGrouped = _labelsUnfiltered.groupBy(x => x).map(_._1)
+    val _labelsGrouped = _labelsWithFilteredSeverity.groupBy(x => x).map(_._1)
 
     // Filter out labels already grabbed before.
     val _labels = _labelsGrouped.filter(label => !(label._1.labelId inSet loadedLabelIds))
@@ -769,15 +774,19 @@ object LabelTable {
         _lb <- labelsWithoutDeletedOrOnboarding if _lb.streetEdgeId =!= tutorialStreetId
         _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
         _lp <- labelPoints if _lb.labelId === _lp.labelId
-        _ls <- severities if _lb.labelId === _ls.labelId
         _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
-    } yield (_lb, _lp, _lt.labelType, _ls.severity.?)
+    } yield (_lb, _lp, _lt.labelType)
+
+    // Join with severity to add severity.
+    val addSeverity = for {
+      (l, s) <- _labelsUnfiltered.leftJoin(severities).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, s.severity.?)
     
     // If severities are specified, filter by whether a label has a valid severity.
     val _labelsUnfilteredWithSeverity = severity match {
-      case Some(severity) => if (severity.isEmpty) _labelsUnfiltered.filter(_._4 inSet severity)
-                             else _labelsUnfiltered
-      case _ => _labelsUnfiltered
+      case Some(severity) => if (!severity.isEmpty) addSeverity.filter(_._4 inSet severity)
+                             else addSeverity
+      case _ => addSeverity
     }
 
     // Filter out labels already grabbed before.
@@ -819,10 +828,9 @@ object LabelTable {
       val selectedLabelsOfType: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
       var potentialStartIdx: Int = 0
 
-      // TODO: change from n/3 to n/(size of label types set)
-      while (selectedLabelsOfType.length < (n / 3) && potentialStartIdx < labelsFilteredByType.size) {
+      while (selectedLabelsOfType.length < (n / labelTypesAsStrings.size) + 1 && potentialStartIdx < labelsFilteredByType.size) {
         Logger.debug("entered the loop with " + selectedLabelsOfType.length + " labels")
-        val labelsNeeded: Int = (n / 3) - selectedLabelsOfType.length
+        val labelsNeeded: Int = (n / labelTypesAsStrings.size) + 1 - selectedLabelsOfType.length
         val newLabels: Seq[LabelValidationMetadata] =
           labelsFilteredByType.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
 

@@ -9,6 +9,9 @@
 function CardContainer(uiCardContainer) {
     let self = this;
 
+    // Tje number of labels to grab from database on initial page load.
+    const initialLoad = 30;
+
     // The number of cards to be shown on a page.
     const cardsPerPage = 9;
 
@@ -43,14 +46,14 @@ function CardContainer(uiCardContainer) {
 
     // Map Cards to a CardBucket containing Cards of their label type.
     let cardsByType = {
-        Assorted: null,
-        CurbRamp: null,
-        NoCurbRamp: null,
-        Obstacle: null,
-        SurfaceProblem: null,
-        Other: null,
-        Occlusion: null,
-        NoSidewalk: null
+        Assorted: new CardBucket(),
+        CurbRamp: new CardBucket(),
+        NoCurbRamp: new CardBucket(),
+        Obstacle: new CardBucket(),
+        SurfaceProblem: new CardBucket(),
+        Other: new CardBucket(),
+        Occlusion: new CardBucket(),
+        NoSidewalk: new CardBucket()
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend.
@@ -81,7 +84,8 @@ function CardContainer(uiCardContainer) {
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
+        fetchLabelsByType(labelTypeIds.Assorted, initialLoad, Array.from(loadedLabelIds), function() {
+            currentCards = cardsByType[currentLabelType].copy();
             render();
         });
     }
@@ -139,7 +143,7 @@ function CardContainer(uiCardContainer) {
                         loadedLabelIds.add(card.getLabelId());
                     }
                 }
-                currentCards = cardsByType[currentLabelType].copy();
+
                 if (callback) callback();
             }
         });
@@ -171,6 +175,7 @@ function CardContainer(uiCardContainer) {
                         loadedLabelIds.add(card.getLabelId());
                     }
                 }
+
                 if (callback) callback();
             }
         });
@@ -192,16 +197,12 @@ function CardContainer(uiCardContainer) {
     }
 
     /**
-     * Push a card into corresponding CardBucket in cardsOfType.
+     * Push a card into corresponding CardBucket in cardsOfType as well as the "Assorted" bucket.
      * @param card Card to add.
      */
     function push(card) {
-        if (currentLabelType == 'Assorted') {
-            // TODO: Can we cache cards pulled in the "assorted" bucket into their respective card buckets?
-            cardsByType[currentLabelType].push(card);
-        } else {
-            cardsByType[card.getLabelType()].push(card);
-        }
+        cardsByType.Assorted.push(card);
+        cardsByType[card.getLabelType()].push(card);
     }
 
     /**
@@ -217,15 +218,10 @@ function CardContainer(uiCardContainer) {
             sg.tagContainer.unapplyTags(currentLabelType)
             currentLabelType = filterLabelType;
 
-            if (cardsByType[currentLabelType] == null) {
-                cardsByType[currentLabelType] = new CardBucket();
-                fetchLabelsByType(labelTypeIds[filterLabelType], 30, Array.from(loadedLabelIds), function () {
-                    render();
-                });
-            } else {
+            fetchLabelsByType(labelTypeIds[filterLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
                 currentCards = cardsByType[currentLabelType].copy();
                 render();
-            }
+            });
         }
     }
 
@@ -249,6 +245,7 @@ function CardContainer(uiCardContainer) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
             if (currentLabelType === "Occlusion") {
                 fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
+                    currentCards = cardsByType[currentLabelType].copy();
                     render();
                 });
             } else {
