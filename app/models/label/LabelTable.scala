@@ -110,7 +110,7 @@ object LabelTable {
 
   // Filters out the labels placed during onboarding (aka panoramas that are used during onboarding
   // Onboarding labels have to be filtered out before a user's labeling frequency is computed
-  val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filter(!_.tutorial)
+  val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filter(_.tutorial === false)
 
   case class LabelCountPerDay(date: String, count: Int)
 
@@ -660,8 +660,8 @@ object LabelTable {
    *
    * @param labelTypeId Label type specifying what type of labels to grab.
    * @param n Number of labels to grab.
-   * @param loadedLabels Set of labelIds already grabbed as to not grab them again.
-   * @param severities  Set of severities the labels grabbed can have.
+   * @param loadedLabelIds Set of labelIds already grabbed as to not grab them again.
+   * @param severity  Set of severities the labels grabbed can have.
    * @param tags Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
@@ -816,10 +816,7 @@ object LabelTable {
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
 
-    Logger.debug("got past randomization")
-
-    // TODO: find a place to put this that is more reasonable
-    val labelTypesAsStrings = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other", "Occlusion", "NoSidewalk", "Problem")
+    val labelTypesAsStrings = LabelTypeTable.validLabelTypes
 
     for (labelType <- labelTypesAsStrings) {
       Logger.debug("in the loop")
@@ -994,34 +991,6 @@ object LabelTable {
       case e: Exception => false
     }
   }
-
-  // /**
-  //   * Checks if the panorama associated with a label exists by pinging Google Maps.
-  //   * @param gsvPanoId  Panorama ID
-  //   * @return           True if the panorama exists, false otherwise
-  //   */
-  // def checkImageMetaDataStatus(gsvPanoId: String): Boolean = {
-  //   try {
-  //     val now = new DateTime(DateTimeZone.UTC)
-  //     val urlString : String = "http://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
-  //     // println("URL: " + urlString)
-  //     val panoURL : URL = new java.net.URL(urlString)
-  //     val connection : HttpURLConnection = panoURL.openConnection.asInstanceOf[HttpURLConnection]
-  //     connection.setConnectTimeout(5000)
-  //     connection.setReadTimeout(5000)
-  //     connection.setRequestMethod("GET")
-  //     val responseCode: Int = connection.getResponseCode
-  //     // println("Response Code: " + responseCode)
-
-  //     // URL is only valid if the response code is between 200 and 399.
-  //     200 <= responseCode && responseCode <= 399
-  //   } catch {
-  //     case e: ConnectException => false
-  //     case e: SocketException => false
-  //     case e: Exception => false
-  //   }
-
-  // }
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
     Json.obj(
