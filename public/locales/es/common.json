@@ -22,5 +22,9 @@
     "thanks": "¡Gracias por tu ayuda!",
     "100-percent-complete": "¡100% Completa!",
     "percent-complete": "{{percent}}% Completa"
+  },
+  "label-map": {
+    "add-comment": "Agrega un comentario aquí...",
+    "submit": "Enviar comentario"
   }
 }

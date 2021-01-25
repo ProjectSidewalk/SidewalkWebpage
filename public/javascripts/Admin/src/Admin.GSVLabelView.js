@@ -15,88 +15,94 @@ function AdminGSVLabelView(admin) {
 
     function _resetModal() {
         var modalText =
-            '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
-                '<div class="modal-dialog" role="document" style="width: 570px">'+
-                    '<div class="modal-content">'+
-                        '<div class="modal-header">'+
-                            '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-                            '<h4 class="modal-title" id="myModalLabel"></h4>'+
-                        '</div>'+
-                        '<div class="modal-body">'+
-                            '<div id="svholder" style="width: 540px; height:360px">'+
-                        '</div>'+
+            '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
+                '<div class="modal-dialog" role="document" style="width: 570px">' +
+                    '<div class="modal-content">' +
+                        '<div class="modal-header">' +
+                            '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                            '<h4 class="modal-title" id="myModalLabel"></h4>' +
+                        '</div>' +
+                        '<div class="modal-body">' +
+                            '<div id="svholder" style="width: 540px; height:360px">' +
+                        '</div>' +
+                        '<h3>Is this label correct?</h3>' +
                         '<div id="validation-button-holder">' +
-                            '<h3>Is this label correct?</h3>' +
                             '<button id="validation-agree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Agree' +
                             '</button>' +
                             '<button id="validation-disagree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Disagree' +
                             '</button>' +
                             '<button id="validation-not-sure-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Not sure' +
                             '</button>' +
                         '</div>' +
-                        '<div class="modal-footer">'+
-                            '<table class="table table-striped" style="font-size:small; margin-bottom: 0">'+
-                                '<tr>'+
-                                    '<th>Label Type</th>'+
-                                    '<td id="label-type-value"></td>'+
-                                '</tr>'+
+                        '<div id="validation-comment-holder">' +
+                            '<textarea id="comment-textarea" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                            '<button id="comment-button" class="submit-button">' +
+                                i18next.t('label-map.submit') +
+                            '</button>' +
+                        '</div>' +
+                        '<div class="modal-footer">' +
+                            '<table class="table table-striped" style="font-size:small; margin-bottom: 0">' +
                                 '<tr>' +
-                                    '<th>Severity</th>'+
-                                    '<td id="severity"></td>'+
-                                '</tr>'+
+                                    '<th>Label Type</th>' +
+                                    '<td id="label-type-value"></td>' +
+                                '</tr>' +
                                 '<tr>' +
-                                    '<th>Temporary</th>'+
-                                    '<td id="temporary"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Tags</th>'+
-                                    '<td colspan="3" id="tags"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Description</th>'+
-                                    '<td colspan="3" id="label-description"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Validations</th>'+
-                                    '<td colspan="3" id="label-validations"></td>'+
-                                '</tr>'+
-                                '<tr>'+
-                                    '<th>Time Submitted</th>'+
-                                    '<td id="timestamp" colspan="3"></td>'+
-                                '</tr>'+
-                                    '<th>Image Date</th>'+
-                                    '<td id="image-date" colspan="3"></td>'+
-            '                   </tr>'+
-                                '<tr>'+
+                                    '<th>Severity</th>' +
+                                    '<td id="severity"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Temporary</th>' +
+                                    '<td id="temporary"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Tags</th>' +
+                                    '<td colspan="3" id="tags"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Description</th>' +
+                                    '<td colspan="3" id="label-description"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Validations</th>' +
+                                    '<td colspan="3" id="label-validations"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Time Submitted</th>' +
+                                    '<td id="timestamp" colspan="3"></td>' +
+                                '</tr>' +
+                                    '<th>Image Date</th>' +
+                                    '<td id="image-date" colspan="3"></td>' +
+                                '</tr>' +
+                                '<tr>' +
                                     '<th>Pano ID</th>' +
                                     '<td id="pano-id" colspan="3"></td>' +
                                 '</tr>';
         if (self.admin) {
             modalText +=
-                                '<tr>'+
-                                    '<th>Label ID</th>'+
-                                    '<td id="label-id" colspan="3"></td>'+
-                                '</tr>'+
-                                '<tr>'+
+                                '<tr>' +
+                                    '<th>Label ID</th>' +
+                                    '<td id="label-id" colspan="3"></td>' +
+                                '</tr>' +
+                                '<tr>' +
                                     '<th>Task ID</th>' +
                                     '<td id="task"></td>' +
-                                '</tr>'+
-                            '</table>'+
-                        '</div>'+
-                    '</div>'+
-                '</div>'+
+                                '</tr>' +
+                            '</table>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
                 '</div>'
         } else {
-            modalText += '</table>'+
-                '</div>'+
-                '</div>'+
-                '</div>'+
+            modalText += '</table>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
                 '</div>'
         }
         self.modal = $(modalText);
@@ -120,6 +126,15 @@ function AdminGSVLabelView(admin) {
         });
         self.notSureButton.click(function() {
             _validateLabel("NotSure");
+        });
+
+        self.commentButton = self.modal.find("#comment-button");
+        self.commentTextArea = self.modal.find("#comment-textarea");
+        self.commentButton.click(function() {
+            var comment = self.commentTextArea.val();
+            if (comment) {
+                _submitComment(comment);
+            }
         });
 
         self.modalTitle = self.modal.find("#myModalLabel");
@@ -195,7 +210,7 @@ function AdminGSVLabelView(admin) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: "/validationLabelMap",
+            url: "/labelmap/validate",
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -204,6 +219,46 @@ function AdminGSVLabelView(admin) {
             },
             error: function (result) {
                 console.error(result);
+            }
+        });
+    }
+
+    /**
+     * Submit a comment as a POST request.
+     * @private
+     */
+    function _submitComment(comment) {
+        var userPov = self.panorama.panorama.getPov();
+        var zoom = self.panorama.panorama.getZoom();
+        var pos = self.panorama.panorama.getPosition();
+
+        let data = {
+            label_id: self.panorama.label.labelId,
+            label_type: self.panorama.label.label_type,
+            comment: comment,
+            gsv_panorama_id: self.panorama.panoId,
+            heading: userPov.heading,
+            pitch: userPov.pitch,
+            zoom: zoom,
+            lat: pos.lat(),
+            lng: pos.lng(),
+        };
+
+        // Submit the comment via POST request.
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/labelmap/comment",
+            type: 'POST',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                self.commentTextArea.val('');
+            },
+            error: function(xhr, textStatus, error){
+                console.error(xhr.statusText);
+                console.error(textStatus);
+                console.error(error);
             }
         });
     }

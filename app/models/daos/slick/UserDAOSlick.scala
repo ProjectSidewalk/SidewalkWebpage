@@ -212,6 +212,7 @@ object UserDAOSlick {
 
     // Add in the task completion logic.
     val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "labels_progress > 0" else "TRUE"
 
     val countQuery = s"""SELECT COUNT(DISTINCT(users.user_id))
                    |FROM (
@@ -221,6 +222,7 @@ object UserDAOSlick {
                    |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
                    |    WHERE mission_type.mission_type = 'validation'
                    |        AND $lblValidationTimeIntervalSql
+                   |        AND $validationCompletedSql
                    |    UNION
                    |    SELECT DISTINCT(user_id)
                    |    FROM audit_task

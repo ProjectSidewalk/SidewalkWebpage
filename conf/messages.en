@@ -1,8 +1,12 @@
 measurement.system = metric
 curb.ramp = Curb Ramp
+curb.ramps = Curb Ramps
 missing.ramp = Missing Curb Ramp
+missing.ramps = Missing Curb Ramps
 obstacle = Obstacle in Path
+obstacles = Obstacles in Path
 surface.problem = Surface Problem
+surface.problems = Surface Problems
 no.sidewalk = No Sidewalk
 other = Other
 labels = labels
@@ -75,8 +79,15 @@ audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’
 audit.tutorial.welcome.2 = We''ll begin with a short, interactive tutorial.
 audit.tutorial.welcome.3 = Let''s get started!
 audit.tutorial.welcome.4 = Already taken the tutorial? Have an account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Sign in</a> now or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+audit.tutorial.accessible = <span style="color:limegreen">Accessible</span>
+audit.tutorial.inaccessible = <span style="color:red">Inaccessible</span>
+audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Curb ramps</span> help wheelchair users get on and off the sidewalks
+audit.tutorial.examples.missing.ramp = Wheelchair users cannot navigate sidewalks when <span style="color:#ff0066">curb ramps are missing</span>
+audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstacles</span> block the paths of wheelchair users
+audit.tutorial.examples.surface.problem = Sidewalks with <span style="color:orange">surface problems</span> may not be navigable
 audit.tutorial.end.1 = Great! You’ve learned how to use the interface! Now, go ahead and <span class="bold">label the following accessibility attributes in Google Street View</span> that significantly affect how wheelchair users move about the city:
 audit.tutorial.end.2 = Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
+audit.tutorial.examples = Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.
 
 audit.ribbon.find.and.label = Find and label the following
 audit.ribbon.explore = <u>E</u>xplore
@@ -92,6 +103,7 @@ audit.ribbon.zoom.out = Zoom Out
 
 audit.left.ui.sound = Sound
 audit.left.ui.feedback = Feedback
+audit.left.ui.stuck = Stuck
 audit.left.ui.jump = Jump
 audit.left.ui.jump.title = Jump to another location because:
 audit.left.ui.jump.button.explore = I want to explore another area!
