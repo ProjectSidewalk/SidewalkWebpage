@@ -5,11 +5,11 @@
  * @returns {SeverityBucket}
  * @constructor
  */
-function SeverityBucket(bucket) {
+function SeverityBucket(inputSeverities) {
     let self = this;
 
     // List of severities.
-    bucket = bucket || [];
+    let bucket = inputSeverities || [];
 
     /**
      * Initialize SeverityBucket.

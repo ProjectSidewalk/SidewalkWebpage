@@ -5,11 +5,11 @@
  * @returns {TagBucket}
  * @constructor
  */
-function TagBucket(bucket) {
+function TagBucket(inputTags) {
     let self = this;
 
     // List of Tags.
-    bucket = bucket || [];
+    let bucket = inputTags || [];
 
     /**
      * Add Tag.

@@ -5,12 +5,9 @@
  * @returns {CardBucket}
  * @constructor
  */
-function CardBucket(bucket) {
+function CardBucket(inputCards) {
     let self = this;
-
-    // List of Cards.
-    bucket = bucket || [];
-
+    let bucket = inputCards || [];
     /**
      * Add a Card to bucket.
      * 
