@@ -29,12 +29,12 @@ function AdminGSVCommentView(admin) {
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
     }
 
-    function showCommentGSV(commentGSV, heading, pitch, zoom, labelId) {
+    function showCommentGSV(panoId, heading, pitch, zoom, labelId) {
         _resetModal();
         self.modal.modal({
             'show': true
         });
-        self.panorama.setPano(commentGSV, heading, pitch, zoom);
+        self.panorama.setPano(panoId, heading, pitch, zoom);
         
         if(labelId) {
             var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
