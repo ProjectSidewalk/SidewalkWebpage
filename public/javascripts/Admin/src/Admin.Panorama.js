@@ -169,10 +169,10 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoNotAvailable).css('visibility', 'hidden');
                     $(self.buttonHolder).css('visibility', 'hidden');
                 } else {
-                    setTimeout(callback, 100, n - 1);
+                    setTimeout(callback, 200, n - 1);
                 }
             }
-            setTimeout(callback, 100, 20);
+            setTimeout(callback, 200, 10);
         }
         return this;
     }

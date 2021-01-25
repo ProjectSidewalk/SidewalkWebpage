@@ -12,6 +12,34 @@ function Label (svl, pathIn, params) {
 
     var path, googleMarker;
 
+    // Parameters determined from a series of linear regressions. Here links to the analysis and relevant Github issues:
+    // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
+    var LATLNG_ESTIMATION_PARAMS = {
+        1: {
+            headingIntercept: -51.2401711,
+            headingCanvasXSlope: 0.1443374,
+            distanceIntercept: 18.6051843,
+            distanceSvImageYSlope: 0.0138947,
+            distanceCanvasYSlope: 0.0011023
+        },
+        2: {
+            headingIntercept: -27.5267447,
+            headingCanvasXSlope: 0.0784357,
+            distanceIntercept: 20.8794248,
+            distanceSvImageYSlope: 0.0184087,
+            distanceCanvasYSlope: 0.0022135
+        },
+        3: {
+            headingIntercept: -13.5675945,
+            headingCanvasXSlope: 0.0396061,
+            distanceIntercept: 25.2472682,
+            distanceSvImageYSlope: 0.0264216,
+            distanceCanvasYSlope: 0.0011071
+        }
+    };
+
     var properties = {
         canvasWidth: undefined,
         canvasHeight: undefined,
@@ -859,17 +887,34 @@ function Label (svl, pathIn, params) {
                 return latlng;
             } else {
                 // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
-                var cameraLat = getProperty("panoramaLat");
-                var cameraLng = getProperty("panoramaLng");
-                var cameraHeading = util.math.toRadians(getProperty("panoramaHeading"));
-                var dx = 10 * Math.sin(cameraHeading);
-                var dy = 10 * Math.cos(cameraHeading);
-                var dLatLng = util.math.latlngOffset(cameraLat, dx, dy);
-                latlng = {
-                    lat: cameraLat + dLatLng.dlat,
-                    lng: cameraLng + dLatLng.dlng,
-                    latLngComputationMethod: 'approximation1'
-                }
+                var panoLat = getProperty("panoramaLat");
+                var panoLng = getProperty("panoramaLng");
+                var panoHeading = getProperty("panoramaHeading");
+                var zoom = getProperty("panoramaZoom");
+                var canvasX = getPath().getPoints()[0].originalCanvasCoordinate.x;
+                var canvasY = getPath().getPoints()[0].originalCanvasCoordinate.y;
+                var svImageY = getPath().getPoints()[0].getGSVImageCoordinate().y;
+
+                // Estimate heading diff and distance from pano using output from a regression analysis.
+                // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+                var estHeadingDiff =
+                    LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
+                    LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
+                var estDistanceFromPanoKm = Math.max(0,
+                    LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
+                    LATLNG_ESTIMATION_PARAMS[zoom].distanceSvImageYSlope * svImageY +
+                    LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
+                ) / 1000.0;
+                var estHeading = panoHeading + estHeadingDiff;
+                var startPoint = turf.point([panoLng, panoLat]);
+
+                // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
+                var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, {units: 'kilometers'});
+                var latlng = {
+                    lat: destination.geometry.coordinates[1],
+                    lng: destination.geometry.coordinates[0],
+                    latLngComputationMethod: 'approximation2'
+                };
                 setProperty('labelLat', latlng.lat);
                 setProperty('labelLng', latlng.lng);
                 setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
