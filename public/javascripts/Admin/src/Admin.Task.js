@@ -12,16 +12,48 @@ function AdminTask(params) {
 
     (function mapAnimation () {
         var colorScheme = util.misc.getLabelColors();
-
+        var lastPaused = 0;
         // Prepare a layer to put d3 stuff
         var svg = d3.select(map.getPanes().overlayPane).append('svg');  // The base svg
         var g = svg.append('g').attr('class', 'leaflet-zoom-hide');  // The root group
-
-        // Import the sample data and start animating
-        var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
-        d3.json(geojsonURL, function (collection) {
-            animate(collection);
+        
+        // Plays/Pauses the stream.
+        $('#control-btn').on('click', function() {
+            if (document.getElementById('control-btn').innerHTML === 'Play') {
+                playAnimation();
+            } else if (document.getElementById('control-btn').innerHTML === 'Pause') {
+                pauseAnimation();
+            }
         });
+
+        
+        // Adds input listeners and pauses playback whenever fields are changed.
+        var elements = document.getElementsByTagName('input');
+        for (let i = 0; i < elements.length; ++i) {
+            elements[i].addEventListener('input', function() {
+                pauseAnimation();
+            });
+        }
+        
+        // The animation is played again by recalculating the stream again from where it stopped.
+        function playAnimation() {
+            let speedMultiplier = document.getElementById('speed-multiplier').value;
+            let maxWaitMs = (document.getElementById('wait-time').value) * 1000;
+            let skipFillTimeMs = (document.getElementById('fill-time').value) * 1000;
+            // Import the sample data and start animating.
+            var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
+            d3.json(geojsonURL, function (collection) {
+                animate(collection, lastPaused, speedMultiplier, maxWaitMs, skipFillTimeMs);
+            });
+            document.getElementById('control-btn').innerHTML = 'Pause';
+        }
+
+        // This function "pauses" the animation by saving the last moment where it stopped.
+        function pauseAnimation() {
+            console.log('int4erupreur');
+            d3.selectAll('*').transition();
+            document.getElementById('control-btn').innerHTML = 'Play';
+        }
 
         /**
          * This function animates how a user (represented as a yellow circle) walked through the map and labeled
@@ -29,12 +61,13 @@ function AdminTask(params) {
          *
          * param walkTrajectory A trajectory of a user's auditing activity in a GeoJSON FeatureCollection format.
          */
-        function animate(walkTrajectory) {
+        function animate(walkTrajectory, startTime, speedMultiplier, maxWaitMs, skipFillTimeMs) {
             // https://github.com/mbostock/d3/wiki/Geo-Streams#stream-transforms
-            var initialCoordinate = walkTrajectory.features[0].geometry.coordinates;
+            var initialCoordinate = walkTrajectory.features[startTime].geometry.coordinates;
             var transform = d3.geo.transform({point: projectPoint});
             var d3path = d3.geo.path().projection(transform);
             var featuresdata = walkTrajectory.features;
+            var timedata = [];
             var markerGroup = g.append('g').data(featuresdata);
             var marker = markerGroup.append('circle')
                 .attr('r', 2)
@@ -49,9 +82,9 @@ function AdminTask(params) {
 
             // Set the initial heading
             markerGroup.attr('transform', function () {
-                var y = featuresdata[0].geometry.coordinates[1];
-                var x = featuresdata[0].geometry.coordinates[0];
-                var heading = featuresdata[0].properties.heading;
+                var y = featuresdata[startTime].geometry.coordinates[1];
+                var x = featuresdata[startTime].geometry.coordinates[0];
+                var heading = featuresdata[startTime].properties.heading;
                 return 'translate(' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).x + ',' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).y + ')' +
@@ -71,15 +104,15 @@ function AdminTask(params) {
 
             // Apply the toLine function to align the path to
             markerGroup.attr('transform', function () {
-                var y = featuresdata[0].geometry.coordinates[1];
-                var x = featuresdata[0].geometry.coordinates[0];
+                var y = featuresdata[startTime].geometry.coordinates[1];
+                var x = featuresdata[startTime].geometry.coordinates[0];
                 return 'translate(' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).x + ',' +
                     map.latLngToLayerPoint(new L.LatLng(y, x)).y + ')';
             });
 
             // Animate the marker's radius to 7px.
-            markerGroup = markerGroup.attr('counter', 0)
+            markerGroup = markerGroup.attr('counter', startTime)
                 .transition()
                 .each('start', function () {
                     var thisMarker = d3.select(d3.select(this).node().children[0]);
@@ -91,52 +124,45 @@ function AdminTask(params) {
                 })
                 .duration(750);
 
-
             // Chain transitions.
+            var timeToPlaybackTask = 0;
             var totalDuration = 0;
-            const SPEEDUP_MULTIPLIER = 2;
-            const MAX_WAIT_MS = 10000 / SPEEDUP_MULTIPLIER;
-            const SKIP_FILL_TIME_MS = 1000 / SPEEDUP_MULTIPLIER;
             var totalSkips = 0;
             var skippedTime = 0;
+
             for (let i = 0; i < featuresdata.length; i++) {
                 // This controls the speed.
-                featuresdata[i].properties.timestamp /= SPEEDUP_MULTIPLIER;
+                featuresdata[i].properties.timestamp /= speedMultiplier;
 
                 if (i > 0) {
                     let duration = featuresdata[i].properties.timestamp - featuresdata[i - 1].properties.timestamp;
-
-                    // If there is a greater than MAX_WAIT_MS pause, only pause for SKIP_FILL_TIME_MS.
-                    if (duration > MAX_WAIT_MS) {
+                    if (duration > maxWaitMs) {
                         totalSkips += 1;
                         skippedTime += duration;
-                        duration = SKIP_FILL_TIME_MS;
+                        duration = skipFillTimeMs;
                     }
-                    totalDuration += duration;
+                    timedata[i] = timedata[i-1] + duration;
+                    console.log(skipFillTimeMs);
+                } else {
+                    timedata[i] = 0;
                 }
             }
-            console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`)
-            console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
-            console.log(`Total watch time: ${totalDuration / 1000} seconds`);
+            timeToPlaybackTask = timedata[featuresdata.length - 1];
+            console.log(`Speed being multiplied by ${speedMultiplier}.`);
+            console.log(`${totalSkips} pauses over ${maxWaitMs / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${skipFillTimeMs / 1000} sec during those.`);
+            console.log(`Time to replay task: ${timeToPlaybackTask / 1000} seconds`);
 
-            $('#timeline-active').animate({
-                width: '360px'
-            }, totalDuration);
-
-            $('#timeline-handle').animate({
-                left: '360px'
-            }, totalDuration);
-
-            var currentTimestamp = featuresdata[0].properties.timestamp;
+            document.getElementById('total-time-label').innerHTML = (timeToPlaybackTask/1000).toFixed(0);
+            var currentTimestamp = featuresdata[startTime].properties.timestamp;
             var currPano = null;
             var renderedLabels = [];
-            for (let i = 0; i < featuresdata.length; i++) {
+            for (let i = startTime; i < featuresdata.length; i++) {
                 var duration = featuresdata[i].properties.timestamp - currentTimestamp;
                 currentTimestamp = featuresdata[i].properties.timestamp;
 
                 // If there is a greater than 30 second pause, log to console but only pause for 1 second.
-                if (duration > MAX_WAIT_MS) {
-                    duration = SKIP_FILL_TIME_MS;
+                if (duration > maxWaitMs) {
+                    duration = skipFillTimeMs;
                 }
                 markerGroup = markerGroup.transition()
                     .duration(duration)
@@ -195,7 +221,25 @@ function AdminTask(params) {
 
                             }
                         }
+
+                        document.getElementById('current-time-label').innerText = `${(timedata[counter]/1000).toFixed(0)}`;
+
+                        $('#timeline-active').animate({
+                            width: 360 * (timedata[counter]/timeToPlaybackTask)
+                        }, 0);
+
+                        $('#timeline-handle').animate({
+                            left: 360 * (timedata[counter]/timeToPlaybackTask)
+                        }, 0);
+
+                        // console.log(`duration: ${duration}`);
                         d3.select(this).attr('counter', ++counter);
+                        lastPaused = d3.select(this).attr('counter');
+
+                        // Outputs message to refresh page.
+                        if (lastPaused >= featuresdata.length) {
+                            document.getElementById('control-btn').innerHTML = "Refresh Page to Replay";
+                        }
                     });
             }
         }
