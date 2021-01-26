@@ -13,7 +13,7 @@
 
     @navbar(user, Some("/sidewalkGallery"))
     <div id="gallery-overview-container" class="container-fluid">
-        <div class="row" style="padding-left: 10px; padding-top: 40px;">
+        <div class="row sidebar">
             <div id="card-filter" class="col-md-2">
                 <!-- <h4><b>Sort by</b></h4>
                 <select id="card-sort-select">
@@ -47,7 +47,7 @@
                     </span>
                 </div>  
             </div>
-            <div style="position: absolute; width: 100%; text-align: center;">
+            <div id="labels-not-found-text">
                 <span id="labels-not-found">No matches. <a href="/audit">Start exploring</a> to contribute more data!</span>
             </div>
             <div id="image-card-container" class="col-md-10">
@@ -56,7 +56,7 @@
         <div class="row">
             <div class="col-md-5"></div>
             <div class="col-md-2">
-                <div style="position: absolute; left: 50%; margin-right: -50%;" id="page-control">
+                <div id="page-control">
                     <button class="paging" id="prev-page">&lt</button>
                     <div class="paging" id="page-number"></div>
                     <button class="paging" id="next-page">&gt</button>
@@ -65,7 +65,7 @@
             <div class="col-md-5"></div>
         </div>
         <div class="row">
-            <div style="padding-top: 100px;"></div>
+            <div id="footer-spacing"></div>
         </div>
     </div>
     @footer()
