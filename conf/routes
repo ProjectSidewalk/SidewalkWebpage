@@ -13,7 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
-GET     /gallery                                     @controllers.ApplicationController.gallery
+GET     /gallery                                             @controllers.ApplicationController.gallery
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
