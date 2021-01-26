@@ -101,10 +101,9 @@ function Tag (params) {
     }
 
     /**
-     * Return the deep copy of the properties object,
-     * so the caller can only modify properties from
-     * setProperty().
-     * JavaScript Deepcopy
+     * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
+     * 
+     * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
     function getProperties() { return $.extend(true, {}, properties); }
