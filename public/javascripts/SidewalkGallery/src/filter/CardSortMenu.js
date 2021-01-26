@@ -1,6 +1,5 @@
 /**
- * CardSort Menu module. This is responsible for holding the switches
- * allowing users to sort labels on various parameters
+ * CardSort Menu module. Responsible for holding the switches allowing users to sort labels on various parameters.
  *
  * @returns {CardSortMenu}
  * @constructor
