@@ -13,8 +13,8 @@ function Tag (params) {
 
     // Properties of this Tag.
     let properties = {
-        tag_id: undefined,
-        label_type: undefined,
+        tagId: undefined,
+        labelType: undefined,
         tag: undefined
     };
 
@@ -47,13 +47,13 @@ function Tag (params) {
         if (status.applied) {
             sg.tracker.push("TagUnapply", null, {
                 Tag: properties.tag,
-                Label_Type: properties.label_type
+                Label_Type: properties.labelType
             });
             unapply();
         } else {
             sg.tracker.push("TagApply", null, {
                 Tag: properties.tag,
-                Label_Type: properties.label_type
+                Label_Type: properties.labelType
             });
             apply();
         }
@@ -90,14 +90,14 @@ function Tag (params) {
      * Returns the tagId of this Tag.
      */
     function getTagId() {
-        return properties.tag_id;
+        return properties.tagId;
     }
 
     /**
      * Returns label type of Tag.
      */
     function getLabelType() {
-        return properties.label_type;
+        return properties.labelType;
     }
 
     /**
