@@ -77,7 +77,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
         console.log("validate method called");
 
         // TODO: do we need this log?
-        //sg.tracker.push("Validate_MenuClick=" + action);
+        sg.tracker.push("Validate_MenuClick=" + action);
         let validationTimestamp = new Date().getTime();
 
         let data = {
