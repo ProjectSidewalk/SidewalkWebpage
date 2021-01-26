@@ -16,7 +16,7 @@ function Tracker() {
     function _trackWindowEvents() {
         let prefix = "LowLevelEvent_";
 
-        // track all mouse related events
+        // Track all mouse related events.
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
             self.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
@@ -24,7 +24,7 @@ function Tracker() {
             });
         });
 
-        // keyboard related events
+        // Keyboard related events.
         $(document).on('keydown keyup', function(e) {
             self.push(prefix + e.type, {
                 keyCode: 'keyCode' in e ? e.keyCode : null

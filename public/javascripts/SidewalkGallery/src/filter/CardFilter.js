@@ -82,7 +82,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function render() {
         if (currentTags.getTags().length > 0) {
-            // TODO: think about to better show tags header in an organized manner
+            // TODO: think about to better show tags header in an organized manner.
             $("#tags-header").show();
             currentTags.render(uiCardFilter.tags);
         } else {

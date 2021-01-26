@@ -15,7 +15,7 @@ function CardContainer(uiCardContainer) {
     // The number of cards to be shown on a page.
     const cardsPerPage = 9;
 
-    // The number of cards per line
+    // The number of cards per line.
     const cardsPerLine = 3;
 
     // Pading between cards.
@@ -216,7 +216,7 @@ function CardContainer(uiCardContainer) {
 
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
-            // reset back to the first page
+            // Reset back to the first page.
             setPage(1);
             sg.tagContainer.unapplyTags(currentLabelType)
             currentLabelType = filterLabelType;
@@ -232,8 +232,8 @@ function CardContainer(uiCardContainer) {
      * Updates Cards being shown when user moves to next/previous page.
      */
     function updateCardsNewPage() {
-        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity
-        // Think about improving code design
+        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity.
+        // Think about improving code design.
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
@@ -356,7 +356,7 @@ function CardContainer(uiCardContainer) {
                 $("#label-select").prop("disabled", false);
             });
         } else {
-            // TODO: figure out how to better do the toggling of this element
+            // TODO: figure out how to better do the toggling of this element.
             $("#labels-not-found").show();
             $("#page-loading").hide();
             sg.tagContainer.enable();

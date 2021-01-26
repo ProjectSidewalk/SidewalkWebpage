@@ -15,7 +15,7 @@ function Severity (params){
         severity: undefined
     };
 
-    // a boolean to see if the current severity filter is active
+    // A boolean to see if the current severity filter is active.
     let active = false;
 
     /**
