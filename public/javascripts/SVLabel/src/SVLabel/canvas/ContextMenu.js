@@ -463,6 +463,16 @@ function ContextMenu (uiContextMenu) {
                             visibility: 'inherit',
                             position: 'inherit'
                         });
+
+                        const words = tagText.split(' ');
+                        const text = words.map((word) => {
+                            return word[0].toUpperCase() + word.substring(1);
+                        }).join(' ');
+
+                        $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
+                            placement: "top", html: true, delay: { "show": 300, "hide": 10 },
+                            title: text + " Example" + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='110' alt=''/><br/>"
+                        }));
                         count += 1;
                     }
                 });
