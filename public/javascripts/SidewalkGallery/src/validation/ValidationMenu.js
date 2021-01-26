@@ -30,7 +30,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
     let notSureButton = overlay.find("#gallery-card-not-sure-button");
 
     function _init() {
-        // TODO: compress this code
+        // TODO: compress this code.
         agreeButton.click(function() {
             if (currSelected) {
                 currSelected.attr('class', 'validation-button');

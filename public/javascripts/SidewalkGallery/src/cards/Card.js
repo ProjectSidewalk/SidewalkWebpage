@@ -14,6 +14,10 @@ function Card (params, imageUrl) {
     // Validation menu tied to label.
     let validationMenu = null;
 
+    // The width-height ratio for the card
+
+    let widthHeightRatio = (4/3);
+
     // Properties of the label in the card.
     let properties = {
         label_id: undefined,
@@ -123,7 +127,7 @@ function Card (params, imageUrl) {
         card.style.width = w + "px";
 
         imageDim.w = w - 10;
-        imageDim.h = imageDim.w / (4/3);       
+        imageDim.h = imageDim.w / widthHeightRatio;       
 
         let iconCoords = getIconCoords();
         labelIcon.style.left = iconCoords.x + "px";

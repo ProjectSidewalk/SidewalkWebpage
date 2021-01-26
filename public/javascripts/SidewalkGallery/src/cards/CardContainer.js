@@ -9,11 +9,14 @@
 function CardContainer(uiCardContainer) {
     let self = this;
 
-    // Tje number of labels to grab from database on initial page load.
+    // The number of labels to grab from database on initial page load.
     const initialLoad = 30;
 
     // The number of cards to be shown on a page.
     const cardsPerPage = 9;
+
+    // The number of cards per line.
+    const cardsPerLine = 3;
 
     // Pading between cards.
     const cardPadding = 25;
@@ -92,8 +95,8 @@ function CardContainer(uiCardContainer) {
 
     function handleNextPageClick() {
         sg.tracker.push("NextPageClick", null, {
-            From: currentPage,
-            To: currentPage + 1
+            from: currentPage,
+            to: currentPage + 1
         });
         setPage(currentPage + 1);
         $("#prev-page").prop("disabled", false);
@@ -103,8 +106,8 @@ function CardContainer(uiCardContainer) {
     function handlePrevPageClick() {
         if (currentPage > 1) {
             sg.tracker.push("PrevPageClick", null, {
-                From: currentPage,
-                To: currentPage - 1
+                from: currentPage,
+                to: currentPage - 1
             });
             $("#next-page").prop("disabled", false);
             setPage(currentPage - 1);
@@ -213,7 +216,7 @@ function CardContainer(uiCardContainer) {
 
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
-            // reset back to the first page
+            // Reset back to the first page.
             setPage(1);
             sg.tagContainer.unapplyTags(currentLabelType)
             currentLabelType = filterLabelType;
@@ -229,8 +232,8 @@ function CardContainer(uiCardContainer) {
      * Updates Cards being shown when user moves to next/previous page.
      */
     function updateCardsNewPage() {
-        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity
-        // Think about improving code design
+        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity.
+        // Think about improving code design.
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
@@ -322,7 +325,7 @@ function CardContainer(uiCardContainer) {
         // already been emptied in a method utilizing render?
         clearCardContainer(uiCardContainer.holder);
         pagewidth = uiCardContainer.holder.width();
-        const cardWidth = pagewidth/3 - cardPadding;
+        const cardWidth = pagewidth/cardsPerLine - cardPadding;
 
         let idx = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
@@ -353,7 +356,7 @@ function CardContainer(uiCardContainer) {
                 $("#label-select").prop("disabled", false);
             });
         } else {
-            // TODO: figure out how to better do the toggling of this element
+            // TODO: figure out how to better do the toggling of this element.
             $("#labels-not-found").show();
             $("#page-loading").hide();
             sg.tagContainer.enable();
