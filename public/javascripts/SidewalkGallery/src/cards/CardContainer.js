@@ -95,8 +95,8 @@ function CardContainer(uiCardContainer) {
 
     function handleNextPageClick() {
         sg.tracker.push("NextPageClick", null, {
-            From: currentPage,
-            To: currentPage + 1
+            from: currentPage,
+            to: currentPage + 1
         });
         setPage(currentPage + 1);
         $("#prev-page").prop("disabled", false);
@@ -106,8 +106,8 @@ function CardContainer(uiCardContainer) {
     function handlePrevPageClick() {
         if (currentPage > 1) {
             sg.tracker.push("PrevPageClick", null, {
-                From: currentPage,
-                To: currentPage - 1
+                from: currentPage,
+                to: currentPage - 1
             });
             $("#next-page").prop("disabled", false);
             setPage(currentPage - 1);
