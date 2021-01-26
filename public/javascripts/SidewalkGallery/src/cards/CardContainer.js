@@ -9,11 +9,14 @@
 function CardContainer(uiCardContainer) {
     let self = this;
 
-    // Tje number of labels to grab from database on initial page load.
+    // The number of labels to grab from database on initial page load.
     const initialLoad = 30;
 
     // The number of cards to be shown on a page.
     const cardsPerPage = 9;
+
+    // The number of cards per line
+    const cardsPerLine = 3;
 
     // Pading between cards.
     const cardPadding = 25;
@@ -322,7 +325,7 @@ function CardContainer(uiCardContainer) {
         // already been emptied in a method utilizing render?
         clearCardContainer(uiCardContainer.holder);
         pagewidth = uiCardContainer.holder.width();
-        const cardWidth = pagewidth/3 - cardPadding;
+        const cardWidth = pagewidth/cardsPerLine - cardPadding;
 
         let idx = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
