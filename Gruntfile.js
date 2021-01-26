@@ -73,6 +73,16 @@ module.exports = function(grunt) {
                     'public/javascripts/common/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
+            },
+            dist_gallery: {
+                src: [
+                    'public/javascripts/Gallery/src/cards/*.js',
+                    'public/javascripts/Gallery/src/data/*.js',
+                    'public/javascripts/Gallery/src/filter/*.js',
+                    'public/javascripts/Gallery/src/validation/*.js',
+                    'public/javascripts/Gallery/src/*.js'
+                ],
+                dest: 'public/javascripts/Gallery/build/Gallery.js'
             }
         },
         concat_css: {
@@ -88,6 +98,12 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/css/*.css'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.css'
+            },
+            gallery_all: {
+                src: [
+                    'public/javascripts/Gallery/css/*.css'
+                ],
+                dest: 'public/javascripts/Gallery/build/Gallery.css'
             }
         },
         watch : {
@@ -100,7 +116,10 @@ module.exports = function(grunt) {
                     'public/javascripts/Help/src/*.js',
                     'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/**/*.js',
-                    'public/javascripts/SVValidate/css/*.css'
+                    'public/javascripts/SVValidate/css/*.css',
+                    'public/javascripts/Gallery/src/*.js',
+                    'public/javascripts/Gallery/src/**/*.js',
+                    'public/javascripts/Gallery/css/*.css'
                 ],
                 tasks: [
                     'concat',
@@ -120,5 +139,5 @@ module.exports = function(grunt) {
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
     grunt.registerTask('default', ['concat', 'concat_css']);
-    grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_progress', 'concat:dist_admin', 'concat:dist_validate']);
+    grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_progress', 'concat:dist_admin', 'concat:dist_validate', 'concat:dist_gallery']);
 };

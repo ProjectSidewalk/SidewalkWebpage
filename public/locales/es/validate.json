@@ -111,7 +111,6 @@
       "garage entrance": "entrada a cochera",
       "stairs": "escalones",
       "street vendor": "comercio ambulante",
-      "large step": "desnivel",
       "bumpy": "textura irregular",
       "uneven/slanted": "dispareja",
       "cracks": "grietas",
@@ -123,7 +122,8 @@
       "street has a sidewalk": "la calle tiene una banqueta",
       "street has no sidewalks": "la calle no tiene banquetas",
       "gravel/dirt road": "camino de tierra",
-      "shared pedestrian/car space": "plataforma única"
+      "shared pedestrian/car space": "plataforma única",
+      "height difference": "desnivel"
     }
   },
   "mission-start": {
