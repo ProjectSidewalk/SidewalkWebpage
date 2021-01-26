@@ -4,14 +4,14 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/build/SidewalkGallery.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("/javascripts/common/Utilities.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
 
-    @navbar(user, Some("/sidewalkGallery"))
+    @navbar(user, Some("/gallery"))
     <div id="gallery-overview-container" class="container-fluid">
         <div class="row sidebar">
             <div id="card-filter" class="col-md-2">
@@ -86,5 +86,5 @@
             sg.main = new Main(params);
     </script>
 
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SidewalkGallery/build/SidewalkGallery.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/Gallery/build/Gallery.css")'/>
 }

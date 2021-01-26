@@ -1,5 +1,5 @@
 /**
- * Logs information from the Sidewalk Gallery.
+ * Logs information from the Gallery.
  * 
  * @returns {Tracker}
  * @constructor

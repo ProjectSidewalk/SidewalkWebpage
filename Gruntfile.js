@@ -76,13 +76,13 @@ module.exports = function(grunt) {
             },
             dist_gallery: {
                 src: [
-                    'public/javascripts/SidewalkGallery/src/cards/*.js',
-                    'public/javascripts/SidewalkGallery/src/data/*.js',
-                    'public/javascripts/SidewalkGallery/src/filter/*.js',
-                    'public/javascripts/SidewalkGallery/src/validation/*.js',
-                    'public/javascripts/SidewalkGallery/src/*.js'
+                    'public/javascripts/Gallery/src/cards/*.js',
+                    'public/javascripts/Gallery/src/data/*.js',
+                    'public/javascripts/Gallery/src/filter/*.js',
+                    'public/javascripts/Gallery/src/validation/*.js',
+                    'public/javascripts/Gallery/src/*.js'
                 ],
-                dest: 'public/javascripts/SidewalkGallery/build/SidewalkGallery.js'
+                dest: 'public/javascripts/Gallery/build/Gallery.js'
             }
         },
         concat_css: {
@@ -101,9 +101,9 @@ module.exports = function(grunt) {
             },
             gallery_all: {
                 src: [
-                    'public/javascripts/SidewalkGallery/css/*.css'
+                    'public/javascripts/Gallery/css/*.css'
                 ],
-                dest: 'public/javascripts/SidewalkGallery/build/SidewalkGallery.css'
+                dest: 'public/javascripts/Gallery/build/Gallery.css'
             }
         },
         watch : {
@@ -117,9 +117,9 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/**/*.js',
                     'public/javascripts/SVValidate/css/*.css',
-                    'public/javascripts/SidewalkGallery/src/*.js',
-                    'public/javascripts/SidewalkGallery/src/**/*.js',
-                    'public/javascripts/SidewalkGallery/css/*.css'
+                    'public/javascripts/Gallery/src/*.js',
+                    'public/javascripts/Gallery/src/**/*.js',
+                    'public/javascripts/Gallery/css/*.css'
                 ],
                 tasks: [
                     'concat',

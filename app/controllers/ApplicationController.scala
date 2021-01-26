@@ -327,22 +327,22 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Returns the Sidewalk Gallery page.
+   * Returns the Gallery page.
    *
    * @return
    */
-  def sidewalkGallery = UserAwareAction.async { implicit request =>
+  def gallery = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        // Log visit to Sidewalk Gallery
+        // Log visit to Gallery
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_SidewalkGallery", timestamp))
-        Future.successful(Ok(views.html.sidewalkGallery("Sidewalk Gallery", Some(user))))
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user))))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
-        Future.successful(Redirect("/anonSignUp?url=/sidewalkGallery"))
+        Future.successful(Redirect("/anonSignUp?url=/gallery"))
     }
   }
 

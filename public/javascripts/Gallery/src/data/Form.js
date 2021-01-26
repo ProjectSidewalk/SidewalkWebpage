@@ -1,5 +1,5 @@
 /**
- * Compiles and submits log data from Sidewalk Gallery.
+ * Compiles and submits log data from Gallery.
  * 
  * @param {*} url URL to send interaction data to.
  * @param {*} beaconUrl URL to send interaction data to on page unload.

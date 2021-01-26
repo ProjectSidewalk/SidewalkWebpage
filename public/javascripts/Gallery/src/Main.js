@@ -3,7 +3,7 @@ var sg = sg || {};
 
 /**
  * Main module for SidewalkGallery.
- * @param params Object passed from sidewalkGallery.scala.html containing initial values pulled from the database on page
+ * @param params Object passed from gallery.scala.html containing initial values pulled from the database on page
  *              load.
  * @returns {Main}
  * @constructor
@@ -39,7 +39,7 @@ function Main (params) {
     }
 
     function _init() {
-        console.log("Sidewalk Gallery initialized");
+        console.log("Gallery initialized");
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.
