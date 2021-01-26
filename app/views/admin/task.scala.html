@@ -15,6 +15,30 @@
                     <div id="timeline-active"></div>
                     <div id="timeline-handle"></div>
                 </div>
+                <div id="controls" class="col">
+                    <div class="col-md-4">
+                        <button id="control-btn">Play</button>
+                    </div>
+                    <div id="playback-inputs" class="col-md-8">
+                        <label for="speed-multiplier">Speed Multiplier:</label>
+                        <input type="number" id="speed-multiplier" name="Speed Multiplier" size="6" step="any" value="2"  required>
+                        <label for="pause-time">Max Wait Time (s):</label>
+                        <input type="number" id="wait-time" size ="6" step="any" value="5" required>
+                        <label for="fill-time">Fill Time (s):</label>
+                        <input type="number" id="fill-time" size="6" step="any" value=".5" required>
+                    </div>
+                </div>
+                <div clas="col">
+                    <div class="col-md-5">
+                        <label for="current-time-label">Current Time (s)</label>
+                        <p id="current-time-label">0</p>
+                    </div>
+                    <div id="total-time" class="col-md-7">
+                        <label for="total-time-label">Total Time (s)</label>
+                        <p id="total-time-label">0</p>
+                    </div>
+
+                </div>
             </div>
             <div class="col-md-4">
                 <div id="eventsholder"></div>
@@ -24,6 +48,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
     <link href='@routes.Assets.at("stylesheets/previousAudit.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/adminTask.css")' rel="stylesheet"/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>

@@ -322,7 +322,10 @@
                                     <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
                                     </td>
                                     <td class = 'timestamp'>@comment.timestamp</td>
-                                    <td>@comment.gsvPanoramaId</td>
+                                    <td>
+                                        <a class="show-comment-location" href="#" 
+                                        data-heading="@comment.heading" data-pitch="@comment.pitch" data-zoom="@comment.zoom" data-label-id="@comment.labelId">@comment.gsvPanoramaId</a>
+                                    </td>
                                     <td>@comment.commentType</td>
                                     <td>@comment.comment</td>
                                 </tr>
