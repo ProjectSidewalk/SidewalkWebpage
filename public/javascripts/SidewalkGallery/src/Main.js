@@ -53,8 +53,6 @@ function Main (params) {
         sg.tracker = new Tracker();
 
         sg.util = {};
-        sg.util.properties = {};
-        sg.util.properties.panorama = new GalleryPanoUtilities();
     }
 
     // Gets all the text on the gallery page for the correct language.
