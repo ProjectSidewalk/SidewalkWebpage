@@ -35,15 +35,15 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
     request.identity match {
       case Some(user) =>
         val loadedLabelIds: Set[Int] = Json.parse(loadedLabels).as[JsArray].value.map(_.as[Int]).toSet
-        val labels: Seq[LabelValidationMetadata] = 
+        val labels: Seq[LabelValidationMetadata] =
           if (validLabelIds.contains(labelTypeId)) LabelTable.retrieveLabelsByType(labelTypeId, n, loadedLabelIds) 
-          else LabelTable.retrieveAssortedLabels(n, loadedLabelIds) 
-        val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
+          else LabelTable.retrieveAssortedLabels(n, loadedLabelIds)        
+        val labelsShuffled = scala.util.Random.shuffle(labels)
+        val jsonList: Seq[JsObject] = labelsShuffled.map(l => Json.obj(
             "label" -> LabelTable.validationLabelMetadataToJson(l),
             "imageUrl" -> getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
           )
         )
-
         val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
         Future.successful(Ok(labelList))
 
