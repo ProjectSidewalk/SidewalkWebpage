@@ -338,7 +338,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         // Log visit to Gallery
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_SidewalkGallery", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
         Future.successful(Ok(views.html.gallery("Gallery", Some(user))))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon

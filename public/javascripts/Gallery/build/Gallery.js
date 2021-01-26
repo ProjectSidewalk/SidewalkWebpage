@@ -1933,7 +1933,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
 var sg = sg || {};
 
 /**
- * Main module for SidewalkGallery.
+ * Main module for Gallery.
  * @param params Object passed from gallery.scala.html containing initial values pulled from the database on page
  *              load.
  * @returns {Main}
