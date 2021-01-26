@@ -149,13 +149,6 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     }
 
     /**
-     * Return whether any severities are applied.
-     */
-    function isSeverityApplied() {
-        return severities.isSeverityApplied();
-    }
-
-    /**
      * Return list of selected severities by user.
      */
     function getAppliedSeverities() {
@@ -208,7 +201,6 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     self.getStatus = getStatus;
     self.setStatus = setStatus;
     self.getSeverities = getSeverities;
-    self.isSeverityApplied = isSeverityApplied;
     self.getAppliedSeverities = getAppliedSeverities;
     self.unapplyTags = unapplyTags;
     self.disable = disable;

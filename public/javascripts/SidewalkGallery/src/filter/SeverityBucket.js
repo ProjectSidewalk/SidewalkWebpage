@@ -66,19 +66,6 @@ function SeverityBucket(inputSeverities) {
     }
 
     /**
-     * Return whether any severities are applied.
-     */
-    function isSeverityApplied() {
-        // for (let i = 0; i < bucket.length; i++){
-        //     if (bucket[i].getActive()) {
-        //         return true;
-        //     }
-        // }
-        // return false;
-        return getAppliedSeverities().length > 0;
-    }
-
-    /**
      * Disable interaction with Severities.
      */
     function disable() {
@@ -98,7 +85,6 @@ function SeverityBucket(inputSeverities) {
     self.getSeverities = getSeverities;
     self.getSize = getSize;
     self.getAppliedSeverities = getAppliedSeverities;
-    self.isSeverityApplied = isSeverityApplied;
     self.disable = disable;
     self.enable = enable;
 
