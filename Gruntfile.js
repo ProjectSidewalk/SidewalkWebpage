@@ -80,8 +80,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SidewalkGallery/src/data/*.js',
                     'public/javascripts/SidewalkGallery/src/filter/*.js',
                     'public/javascripts/SidewalkGallery/src/validation/*.js',
-                    'public/javascripts/SidewalkGallery/src/*.js',
-                    'public/javascripts/SidewalkGallery/util/*.js'
+                    'public/javascripts/SidewalkGallery/src/*.js'
                 ],
                 dest: 'public/javascripts/SidewalkGallery/build/SidewalkGallery.js'
             }

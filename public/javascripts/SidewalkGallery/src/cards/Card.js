@@ -32,6 +32,18 @@ function Card (params, imageUrl) {
         tags: []
     };
 
+    // Paths to label icon images.
+    // TODO: This object should be moved to a util file since it is shared in validation and admin tools as well.
+    let iconImagePaths = {
+        CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
+        NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
+        Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
+        SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
+        Other : '/assets/images/icons/AdminTool_Other.png',
+        Occlusion : '/assets/images/icons/AdminTool_Other.png',
+        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png'
+    };
+
     // Status to determine if static imagery has been loaded.
     let status = {
         imageFetched: false
@@ -62,8 +74,7 @@ function Card (params, imageUrl) {
         }
 
         // Place label icon.
-        let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
-        labelIcon.src = iconUrl.iconImagePath;
+        labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.className = "label-icon";
         let iconCoords = getIconCoords();
         labelIcon.style.left = iconCoords.x + "px";
