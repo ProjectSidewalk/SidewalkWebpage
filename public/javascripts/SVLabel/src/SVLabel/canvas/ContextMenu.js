@@ -465,13 +465,25 @@ function ContextMenu (uiContextMenu) {
                         });
 
                         const words = tagText.split(' ');
+                        const displacementForUnderlineTag = 15;
+                        var keypressChar;
                         const text = words.map((word) => {
-                            return word[0].toUpperCase() + word.substring(1);
+                            if (word[0] === '<') {
+                                keypressChar = word[displacementForUnderlineTag];
+                                return word.substring(0,displacementForUnderlineTag) + word[displacementForUnderlineTag].toUpperCase() + word.substring(displacementForUnderlineTag + 1);
+                            } else {
+                                let index = word.indexOf('<');
+                                if (index > 0) {
+                                    keypressChar = word[index + displacementForUnderlineTag];
+                                }
+                                return word[0].toUpperCase() + word.substring(1);
+                            }
                         }).join(' ');
 
+                        console.log(keypressChar);
                         $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
-                            placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                            title: text + " Example" + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='110' alt=''/><br/>"
+                            placement: 'top', html: true, delay: { "show": 300, "hide": 10 }, height: '130',
+                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='130'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
                         }));
                         count += 1;
                     }
