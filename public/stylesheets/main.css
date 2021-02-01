@@ -731,7 +731,9 @@ p#conditional-text {
     top: 00px;
     width: 100%;
     background-image: url(../assets/footer.jpg);
-    min-height: 300px;
+    min-height: 200px;
+    padding-top: 50px;
+    padding-bottom: 50px;
     background-attachment: fixed;
     background-position: center;
     background-repeat: no-repeat;
