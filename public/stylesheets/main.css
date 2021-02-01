@@ -765,8 +765,7 @@ p#conditional-text {
 #info-footer {
     position: relative;
     width: 100%;
-    min-height: 250px;
-    padding-top: 30px;
+    min-height: 220px;
     background-color: rgba(45, 42, 63, 1);
     text-align: center;
     font-family: raleway;
