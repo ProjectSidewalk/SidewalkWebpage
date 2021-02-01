@@ -69,6 +69,21 @@ function Admin(_, $, difficultRegionIds) {
         self.adminGSVLabelView = AdminGSVLabelView(true);
     }
 
+    function initializeAdminGSVCommentView(){
+        self.adminGSVCommentView = AdminGSVCommentView(true);
+    }
+
+    function initializeAdminGSVCommentWindow(){
+        $('.show-comment-location').click(function(e) { 
+            e.preventDefault();
+            var heading = parseFloat($(this).data('heading'));
+            var pitch = parseFloat($(this).data('pitch'));
+            var zoom = Number($(this).data('zoom'));
+            var labelId = parseInt($(this).data('labelId'));
+            self.adminGSVCommentView.showCommentGSV(this.innerHTML, heading, pitch, zoom, labelId);
+        });
+    }
+
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
     }
@@ -1092,7 +1107,9 @@ function Admin(_, $, difficultRegionIds) {
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
-
+    initializeAdminGSVCommentView();
+    initializeAdminGSVCommentWindow();
+    
     self.clearPlayCache = clearPlayCache;
     self.toggleLayers = toggleLayersAdmin;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
