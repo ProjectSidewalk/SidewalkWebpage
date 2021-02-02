@@ -1,7 +1,7 @@
 {
   "measurement-system": "metric",
   "admin-clear-play-cache": "Play cache successfully cleared",
-  "unit-abbreviation-distance-user-dashboard": "km",
+  "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "missing-sidewalks": "Missing Sidewalks",
@@ -22,5 +22,9 @@
     "thanks": "Thanks for all your help!",
     "100-percent-complete": "100% Complete!",
     "percent-complete": "{{percent}}% Complete"
+  },
+  "label-map": {
+    "add-comment": "Add comment here...",
+    "submit": "Submit comment"
   }
 }

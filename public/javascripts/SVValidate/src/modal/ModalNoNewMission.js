@@ -9,7 +9,7 @@ function ModalNoNewMission (uiModalMission) {
     let self = this;
 
     let noMissionsRemaining = '<figure> \
-        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>' + i18next.t('mission-complete.no-new-mission-body') + '</p>\

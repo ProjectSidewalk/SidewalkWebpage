@@ -4,7 +4,7 @@
 		module="jackson-core"
 		revision="2.3.3"
 		status="release"
-		publication="20140410094708"
+		publication="20140410164708"
 	>
 		<description homepage="http://wiki.fasterxml.com/JacksonHome">
 		Core Jackson abstractions, basic JSON streaming API implementation

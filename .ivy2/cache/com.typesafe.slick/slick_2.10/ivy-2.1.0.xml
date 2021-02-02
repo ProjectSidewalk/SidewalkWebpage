@@ -4,7 +4,7 @@
 		module="slick_2.10"
 		revision="2.1.0"
 		status="release"
-		publication="20140804004915"
+		publication="20140804074915"
 	>
 		<license name="Two-clause BSD-style license" url="http://github.com/slick/slick/blob/master/LICENSE.txt" />
 		<description homepage="http://slick.typesafe.com">

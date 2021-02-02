@@ -4,7 +4,7 @@
 		module="all"
 		revision="1.4.7"
 		status="release"
-		publication="20130308173525"
+		publication="20130309013525"
 	>
 		<license name="CDDL" url="http://www.sun.com/cddl" />
 		<license name="GPLv2+CE" url="https://glassfish.java.net/public/CDDL+GPL_1_1.html" />

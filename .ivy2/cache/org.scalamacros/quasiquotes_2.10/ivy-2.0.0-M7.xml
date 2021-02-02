@@ -4,7 +4,7 @@
 		module="quasiquotes_2.10"
 		revision="2.0.0-M7"
 		status="release"
-		publication="20140403130222"
+		publication="20140403200222"
 	>
 		<license name="BSD-like" url="http://www.scala-lang.org/downloads/license.html" />
 		<description homepage="https://github.com/scalamacros/paradise">

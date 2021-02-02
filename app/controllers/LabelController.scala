@@ -1,7 +1,6 @@
 package controllers
 
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
@@ -10,18 +9,14 @@ import models.label._
 import models.user.User
 import play.api.libs.json._
 import play.api.mvc.Action
-
+import play.api.Play
+import play.api.Play.current
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
-
 
 class LabelController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  /**
-    *
-    * @param regionId Region id
-    * @return
-    */
   def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -35,7 +30,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Fetches the labels that a user has added in the current region they are working in.
-    * @param regionId Region id
+    *
     * @return A list of labels
     */
   def getLabelsForMiniMap(regionId: Int) = UserAwareAction.async { implicit request =>
@@ -59,11 +54,12 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Gets all tags in the database in JSON.
-    *
-    * @return
     */
   def getLabelTags() = Action.async { implicit request =>
-    Future.successful(Ok(JsArray(TagTable.selectAllTags().map { tag => Json.obj(
+    val cityStr: String = Play.configuration.getString("city-id").get
+    val excludedTags: List[String] = Play.configuration.getStringList("city-params.excluded-tags." + cityStr).get.asScala.toList
+    val tags: List[Tag] = TagTable.selectAllTags().filter( tag => !excludedTags.contains(tag.tag))
+    Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
       "tag_id" -> tag.tagId,
       "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
       "tag" -> tag.tag

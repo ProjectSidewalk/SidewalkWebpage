@@ -3,7 +3,6 @@ package models.daos
 import java.util.UUID
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.user.User
-
 import scala.concurrent.Future
 
 trait UserDAO {
@@ -33,6 +32,4 @@ trait UserDAO {
    * @return The saved user.
    */
   def save(user: User): Future[User]
-
-
 }

@@ -120,91 +120,22 @@
     width: 980px;
 }
 
-/*** Deprecated ***/
-#Holder_OnboardingMessageBox {
-    background: rgba(69,183,214,0.95);
-    border: 3px solid rgba(255,255,255,1);
-    color : rgba(255,255,255,1);
-    font-size: 20px;
-    position: absolute;
-    left: 0;
-    top: 0;
-    visibility: hidden;
-    z-index: 10;
+.tutorial-table {
+    width: 100%;
 }
 
-#Holder_OnboardingCanvas {
-    position: absolute;
-    top: 0px;
-    left: 0px;
+.tutorial-table-cell {
+    text-align:center; 
 }
 
-#Holder_OnboardingMessage {
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-bottom: 5px;
-    padding-top: 5px;
+.tutorial-cell-intro {
+    width: 25%;
 }
 
-.OnboardingTipIcons {
-    height: 16px;
-    position: relative;
-    top: 2px;
-    width: 16px;
+.tutorial-cell-end {
+    width: 50%
 }
 
-.Onboarding_MissingCurbRampExamples {
-    height: 85px;
-    margin: 3px;
-    width: 146px;
-}
-
-.Onboarding_DiagonalCurbRampExamples {
-    height: 120px;
-    margin: 3px;
-    width: 218px;
-}
-
-
-#Holder_QuickCheck {
-    background: rgba(60,60,60,1);
-    border: 3px solid rgba(255,255,255,1);
-    color : rgba(255,255,255,1);
-    font-size: 20px;
-    height: 560px;
-    left: 0;
-    padding: 10px;
-    position: absolute;
-    top: 60px;
-    visibility: hidden;
-    width: 940px;
-    z-index: 10;
-}
-
-.QuickCheckImages {
-    border: 5px solid transparent;
-    cursor: pointer;
-    margin: 5px 10px 5px 0px;
-    height: 150px;
-    width: 215px;
-}
-
-#QuickCheckMessageHolder {
-    height: 60px;
-}
-
-.QuickCheckCheckMarkIcons {
-    bottom: 0px;
-    height: 32px;
-    position: absolute;
-    right: 5px;
-    width: 32px;
-}
-
-.QuickCheckErrorMessages {
-    font-size: 11pt;
-    left: 5px;
-    position: absolute;
-    top: 5px;
-    width: 215px;
+.tutorial-spacer {
+    padding-bottom: 8px;
 }

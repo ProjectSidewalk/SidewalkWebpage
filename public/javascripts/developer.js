@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
 
     // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
     var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
@@ -8,20 +8,20 @@ $(document).ready(function () {
     });
 
     // Maps
-    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', "mapbox.streets", {
+    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
-    var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', "mapbox.streets", {
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+    var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
-    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "mapbox.streets", {
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
         maxZoom: 19,
         minZoom: 9
-    });
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     var colorMapping = util.misc.getLabelColors();
 

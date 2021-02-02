@@ -4,7 +4,7 @@
 		module="mockito-core"
 		revision="1.9.5"
 		status="release"
-		publication="20121014030649"
+		publication="20121014100649"
 	>
 		<license name="The MIT License" url="http://code.google.com/p/mockito/wiki/License" />
 		<description homepage="http://www.mockito.org">

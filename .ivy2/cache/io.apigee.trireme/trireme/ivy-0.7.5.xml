@@ -4,7 +4,7 @@
 		module="trireme"
 		revision="0.7.5"
 		status="release"
-		publication="20140516155925"
+		publication="20140516225925"
 	>
 		<license name="MIT License" url="http://opensource.org/licenses/MIT" />
 		<description homepage="http://apigee.io/">

@@ -10,20 +10,20 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     var self = {
         className: "AdminPanorama",
         label: undefined,
-        labelMarker: undefined,
+        labelMarkers: [],
         panoId: undefined,
         panorama: undefined,
         admin: admin
     };
 
     var icons = {
-        CurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png',
-        NoCurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
-        Obstacle : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png',
-        SurfaceProblem : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png',
-        Other : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        Occlusion : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        NoSidewalk : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
+        CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
+        NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
+        Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
+        SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
+        Other : '/assets/images/icons/AdminTool_Other.png',
+        Occlusion : '/assets/images/icons/AdminTool_Other.png',
+        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png'
     };
 
     // Determined experimentally; varies w/ GSV Panorama size
@@ -76,12 +76,13 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
         self.panorama.addListener('pano_changed', function() {
-            if (self.labelMarker) {
-                var currentPano = self.panorama.getPano();
-                if (currentPano === self.panoId) {
-                    self.labelMarker.setVisible(true);
+            // Show the correct set of labels for the given pano.
+            var currentPano = self.panorama.getPano();
+            for (var marker of self.labelMarkers) {
+                if (marker.panoId === currentPano) {
+                    marker.marker.setVisible(true);
                 } else {
-                    self.labelMarker.setVisible(false);
+                    marker.marker.setVisible(false);
                 }
             }
         });
@@ -105,6 +106,11 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         }
 
         return this;
+    }
+
+    function setPov(heading, pitch, zoom) {
+        self.panorama.set('pov', {heading: heading, pitch: pitch});
+        self.panorama.set('zoom', zoomLevel[zoom]);
     }
 
     /**
@@ -149,7 +155,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoNotAvailable).css('visibility', 'hidden');
                     $(self.panoNotAvailableDetails).css('visibility', 'hidden');
                     $(self.buttonHolder).css('visibility', 'visible');
-                    renderLabel(self.label);
+                    if (self.label) renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
                     $(self.panoNotAvailable).text('Oops, our fault but there is no longer imagery available for this label.');
                     $(self.panoCanvas).css('visibility', 'hidden');
@@ -163,10 +169,10 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoNotAvailable).css('visibility', 'hidden');
                     $(self.buttonHolder).css('visibility', 'hidden');
                 } else {
-                    setTimeout(callback, 100, n - 1);
+                    setTimeout(callback, 200, n - 1);
                 }
             }
-            setTimeout(callback, 100, 20);
+            setTimeout(callback, 200, 10);
         }
         return this;
     }
@@ -185,13 +191,16 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
-        self.labelMarker = new PanoMarker ({
-            container: self.panoCanvas,
-            pano: self.panorama,
-            position: {heading: pos.heading, pitch: pos.pitch},
-            icon: url,
-            size: new google.maps.Size(20, 20),
-            anchor: new google.maps.Point(10, 10)
+        self.labelMarkers.push({
+            panoId: self.panorama.getPano(),
+            marker: new PanoMarker({
+                container: self.panoCanvas,
+                pano: self.panorama,
+                position: {heading: pos.heading, pitch: pos.pitch},
+                icon: url,
+                size: new google.maps.Size(20, 20),
+                anchor: new google.maps.Point(10, 10)
+            })
         });
         return this;
     }
@@ -322,6 +331,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     //init
     _init();
 
+    self.setPov = setPov;
     self.setPano = setPano;
     self.setLabel = setLabel;
     self.renderLabel = renderLabel;

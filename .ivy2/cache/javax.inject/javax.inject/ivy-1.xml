@@ -4,7 +4,7 @@
 		module="javax.inject"
 		revision="1"
 		status="release"
-		publication="20091013163500"
+		publication="20091013233500"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://code.google.com/p/atinject/">

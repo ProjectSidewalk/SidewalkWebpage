@@ -1,8 +1,10 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.mission.MissionTable
+@import models.label.LabelTable
+@import models.label.LabelValidationTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user, user.map(u=> "/contribution/" + u.username))
@@ -24,63 +26,121 @@
                 </div>
             </div>
         </div>
-        <div class="row"><div class="spacer10"></div></div>
-        <div class="row">
-            <table class="table table-striped table-condensed">
-                <tr>
-                    <th>@Messages("dashboard.distance")</th>
-                    <th>@Messages("dashboard.missions")</th>
-                    @if(user){
-                        @if(user.get.role.getOrElse("") == "Turker") {
-                            <th>Total Reward Earned</th>
-                        }
-                    }
-                </tr>
-                <tr>
-                    <td id="td-total-distance-audited"></td>
-                    <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
-                    <td id="td-total-reward-earned"></td>
-                </tr>
-            </table>
+
+        <div class="row" style="margin-top: 30px">
+            <div class="user-stats-holder">
+                <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
+                <span class="user-stats-header">@Messages("dashboard.distance")</span>
+                <span class="user-stats-header">@Messages("dashboard.labels")</span>
+                <span class="user-stats-header">@Messages("dashboard.validations")</span>
+                <span class="user-stats-header">@Messages("dashboard.accuracy")</span>
+
+                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("dashboard.distance.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("dashboard.label.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("dashboard.accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
+
+                <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
+                <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
+                <span class="user-stats-stat">@LabelTable.countLabelsByUserId(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
+
+            </div>
         </div>
-        <div class="row">
-            <table class="table table-striped table-condensed">
-                <tr><th>@Messages("dashboard.contributions")</th></tr>
-                <tr><td><div id="audit-count-chart"></div></td></tr>
-            </table>
-        </div>
-        <div class="row">
-            <table class="table table-striped table-fixed">
-                <thead>
+
+        @* Only show this table if the current user is a turker *@
+        @if(user && user.get.role.getOrElse("") == "Turker") {
+            <div class="row" style="margin-top: 20px">
+                <table class="table table-striped table-condensed">
                     <tr>
-                        <th class="col-xs-12">@Messages("dashboard.labels.per.mission")</th>
+                        <th>@Messages("turk.reward.earned")</th>
                     </tr>
                     <tr>
-                    <th class="col-xxs-1">@Messages("dashboard.mission.number")</th>
-                    <th class="col-date">@Messages("dashboard.date")</th>
-                    <th class="col-neighborhood">@Messages("dashboard.neighborhood")</th>
-                    <th class="col-xxs-1">@Messages("curb.ramp")</th>
-                    <th class="col-xxs-1">@Messages("missing.ramp")</th>
-                    <th class="col-xxs-1">@Messages("obstacle")</th>
-                    <th class="col-xxs-1">@Messages("surface.problem")</th>
-                    <th class="col-xxs-1">@Messages("no.sidewalk")</th>
-                    <th class="col-xxs-1">@Messages("other")</th>
-                </tr></thead>
-                <tbody id="task-contribution-table" ></tbody>
-            </table>
+                        <td id="td-total-reward-earned"></td>
+                    </tr>
+                </table>
+            </div>
+        }
+
+        <div class="row" id="achievements">
+            <h2>Achievements</h2>
+            <!-- The achievements-outer-grid is 3 columns -->
+            <div class="achievements-outer-grid">
+                <div class="achievements-outer-col1">
+                    <h3>@Messages("dashboard.missions")</h3>
+                    <p id="missions-badge-encouragement" class="achievements-encouraging-statement">Just XX more missions until your next mission achievement.</p>
+                    <div id="missions-badge-grid" class="achievements-badge-grid">
+                        <img id="missions-badge1" src='@routes.Assets.at("images/badges/badge_missions_badge1.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.first"))">
+                        <img id="missions-badge2" src='@routes.Assets.at("images/badges/badge_missions_badge2.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.second"))">
+                        <img id="missions-badge3" src='@routes.Assets.at("images/badges/badge_missions_badge3.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.third"))">
+                        <img id="missions-badge4" src='@routes.Assets.at("images/badges/badge_missions_badge4.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fourth"))">
+                        <img id="missions-badge5" src='@routes.Assets.at("images/badges/badge_missions_badge5.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fifth"))">
+                    </div>
+                </div>
+                <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
+                <div class="achievements-outer-col3">
+                    <h3>@Messages("dashboard.distance")</h3>
+                    <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
+                    <div id="distance-badge-grid" class="achievements-badge-grid">
+                        @if(Messages("measurement.system") == "metric") {
+                            <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+                            <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+                            <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+                            <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_km_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+                            <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_km_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+                        } else {
+                            <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+                            <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+                            <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+                            <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+                            <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+                        }
+                    </div>
+                </div>
+
+                <div class="achievements-outer-col1">
+                    <h3>@Messages("dashboard.labels")</h3>
+                    <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
+                    <div id="labels-badge-grid" class="achievements-badge-grid">
+                        <img id="labels-badge1" src='@routes.Assets.at("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
+                        <img id="labels-badge2" src='@routes.Assets.at("images/badges/badge_labels_badge2.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.second"))">
+                        <img id="labels-badge3" src='@routes.Assets.at("images/badges/badge_labels_badge3.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.third"))">
+                        <img id="labels-badge4" src='@routes.Assets.at("images/badges/badge_labels_badge4.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fourth"))">
+                        <img id="labels-badge5" src='@routes.Assets.at("images/badges/badge_labels_badge5.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fifth"))">
+                    </div>
+                </div>
+                <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
+                <div class="achievements-outer-col3">
+                    <h3>@Messages("dashboard.validations")</h3>
+                    <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
+                    <div id="validations-badge-grid" class="achievements-badge-grid">
+                        <img id="validations-badge1" src='@routes.Assets.at("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
+                        <img id="validations-badge2" src='@routes.Assets.at("images/badges/badge_validation_badge2.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.second"))">
+                        <img id="validations-badge3" src='@routes.Assets.at("images/badges/badge_validation_badge3.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.third"))">
+                        <img id="validations-badge4" src='@routes.Assets.at("images/badges/badge_validation_badge4.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fourth"))">
+                        <img id="validations-badge5" src='@routes.Assets.at("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
-    <link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
+    <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <script>
     $(document).ready(function () {
         // Gets all translations before loading the choropleth.
@@ -94,13 +154,16 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.progress = Progress(_, $, c3, L, "@user.get.role", difficultRegionIds);
+            Progress(_, $, difficultRegionIds, '@user.get.role');
+
+            const achievementTracker = new AchievementTracker();
+            achievementTracker.updateBadgeAchievementGrid(
+                @MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = true),
+                @auditedDistance,
+                @LabelTable.countLabelsByUserId(user.get.userId),
+                @LabelValidationTable.countValidationsByUserId(user.get.userId),
+            );
         });
     });
     </script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
-    <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
 }

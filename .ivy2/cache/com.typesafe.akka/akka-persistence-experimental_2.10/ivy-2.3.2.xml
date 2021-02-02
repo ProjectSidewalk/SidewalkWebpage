@@ -4,7 +4,7 @@
 		module="akka-persistence-experimental_2.10"
 		revision="2.3.2"
 		status="release"
-		publication="20140409052523"
+		publication="20140409122523"
 	>
 		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="http://akka.io/">

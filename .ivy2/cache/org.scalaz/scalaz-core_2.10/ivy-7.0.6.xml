@@ -4,7 +4,7 @@
 		module="scalaz-core_2.10"
 		revision="7.0.6"
 		status="release"
-		publication="20140304222313"
+		publication="20140305062313"
 	>
 		<license name="BSD-style" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="http://scalaz.org">

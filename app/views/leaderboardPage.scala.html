@@ -1,0 +1,9 @@
+@import models.user._
+@import play.api.i18n.Messages
+
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
+
+@main(title) {
+    @navbar(user)
+    @leaderboard(1, user)
+}

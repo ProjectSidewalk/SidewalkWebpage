@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "6.9.1"
+version := "6.14.0"
 
 scalaVersion := "2.10.5"
 
@@ -34,18 +34,11 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "0.8.0",
   "com.typesafe.play" %% "play-mailer" % "2.4.1",
   "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
-  "com.mohiva" %% "play-silhouette" % "2.0",
-  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
-  "org.webjars" %% "webjars-play" % "2.3.0",
-  "org.webjars" % "bootstrap" % "3.1.1",
-  "org.webjars" % "jquery" % "1.11.0",
+  "com.mohiva" %% "play-silhouette" % "2.0.2",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta5",
-  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
-  "com.typesafe.play.extras" %% "play-geojson" % "1.2.0",
-  "com.github.tminglei" %% "slick-pg" % "0.8.2",
-  "org.slf4j" % "slf4j-api"       % "1.7.7",
-  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
-  "joda-time" % "joda-time" % "2.9.4",
+  "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
+  "com.github.tminglei" %% "slick-pg" % "0.8.4",
+  "joda-time" % "joda-time" % "2.10.8",
   "org.geotools" % "gt-coverage" % "23.0",
   "org.geotools" % "gt-epsg-hsql" % "23.0",
   "org.geotools" % "gt-geotiff" % "23.0",
@@ -53,8 +46,6 @@ libraryDependencies ++= Seq(
   "org.geotools" % "gt-referencing" % "23.0",
   "org.geotools" % "gt-shapefile" % "23.0"
 ).map(_.force())
-
-libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 

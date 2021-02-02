@@ -4,7 +4,6 @@ import models.attribute.{GlobalAttributeTable, GlobalClusteringSessionTable, Use
 import models.region.RegionTable
 import models.user.UserStatTable
 import play.api.libs.json.Json
-
 import scala.collection.immutable.Seq
 import scala.io.Source
 import scala.sys.process._
@@ -14,7 +13,6 @@ object AttributeControllerHelper {
     * Calls the appropriate clustering function(s); either single-user clustering, multi-user clustering, or both.
     *
     * @param clusteringType One of "singleUser", "multiUser", or "both".
-    * @return
     */
   def runClustering(clusteringType: String) = {
     if (clusteringType == "singleUser" || clusteringType == "both") {
@@ -47,22 +45,18 @@ object AttributeControllerHelper {
 
   /**
     * Runs single user clustering for each high quality user.
-    *
-    * @return
     */
   def runSingleUserClusteringAllUsers() = {
 
-    // First truncate the user_clustering_session, user_attribute, and user_attribute_label tables
+    // First truncate the user_clustering_session, user_attribute, and user_attribute_label tables.
     UserClusteringSessionTable.truncateTables()
 
-    // Read key from keyfile. If we aren't able to read it, we can't do anything :(
+    // Read key from keyfile. If we aren't able to read it, we can't do anything. :(
     val maybeKey: Option[String] = readKeyFile()
 
     if (maybeKey.isDefined) {
       val key: String = maybeKey.get
-      val goodUsers: List[String] = UserStatTable.getIdsOfGoodUsersWithLabels // All users
-      //      val goodUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863") // Test users with a lot of labels
-      //      val goodUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5") // Test users with fewer labels
+      val goodUsers: List[String] = UserStatTable.getIdsOfGoodUsersWithLabels
       val nUsers = goodUsers.length
       println("N users = " + nUsers)
 
@@ -81,15 +75,13 @@ object AttributeControllerHelper {
 
   /**
     * Runs multi user clustering for the user attributes in each region.
-    *
-    * @return
     */
   def runMultiUserClusteringAllRegions() = {
 
     // First truncate the global_clustering_session, global_attribute, and global_attribute_user_attribute tables.
     GlobalClusteringSessionTable.truncateTables()
 
-    // Read key from keyfile. If we aren't able to read it, we can't do anything :(
+    // Read key from keyfile. If we aren't able to read it, we can't do anything. :(
     val maybeKey: Option[String] = readKeyFile()
 
     if (maybeKey.isDefined) {

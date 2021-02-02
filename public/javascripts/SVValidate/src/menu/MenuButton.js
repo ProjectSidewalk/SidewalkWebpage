@@ -1,28 +1,19 @@
 /**
- * Initializes a grouping of menu buttons. A group of menu-buttons also contain the same IDs.
- * The type of menu buttons that are currently in use are agree, disagree and not sure.
- * @param           ID of this group of buttons.
+ * Initializes a grouping of menu buttons (agree, disagree, and not sure).
  * @constructor
  */
-function MenuButton(id) {
-    let agreeButtonId = "validation-agree-button-" + id;
-    let disagreeButtonId = "validation-disagree-button-" + id;
-    let notSureButtonId = "validation-not-sure-button-" + id;
+function MenuButton(menuUI) {
     let self = this;
 
-    self.agreeButton = $("#" + agreeButtonId);
-    self.disagreeButton = $("#" + disagreeButtonId);
-    self.notSureButton = $("#" + notSureButtonId);
-
-    self.agreeButton.click(function() {
+    menuUI.agreeButton.click(function() {
         validateLabel("Agree");
     });
 
-    self.disagreeButton.click(function() {
+    menuUI.disagreeButton.click(function() {
         validateLabel("Disagree");
     });
 
-    self.notSureButton.click(function() {
+    menuUI.notSureButton.click(function() {
         validateLabel("NotSure");
     });
 
@@ -42,10 +33,10 @@ function MenuButton(id) {
         let timestamp = new Date().getTime();
         svv.tracker.push("ValidationButtonClick_" + action);
 
-        // Resets CSS elements for all buttons to their default states
-        self.agreeButton.removeClass("validate");
-        self.disagreeButton.removeClass("validate");
-        self.notSureButton.removeClass("validate");
+        // Resets CSS elements for all buttons to their default states.
+        menuUI.agreeButton.removeClass("validate");
+        menuUI.disagreeButton.removeClass("validate");
+        menuUI.notSureButton.removeClass("validate");
         
         let comment = '';
         let validationTextArea = document.getElementById('validation-label-comment');
@@ -53,7 +44,7 @@ function MenuButton(id) {
 
         // If enough time has passed between validations, log validations.
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
-            svv.panoramaContainer.validateLabelFromPano(id, action, timestamp, comment);
+            svv.panoramaContainer.validateLabel(action, timestamp, comment);
         }
     }
 

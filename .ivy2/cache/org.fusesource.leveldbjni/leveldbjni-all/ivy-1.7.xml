@@ -4,7 +4,7 @@
 		module="leveldbjni-all"
 		revision="1.7"
 		status="release"
-		publication="20130513061202"
+		publication="20130513131202"
 	>
 		<description homepage="">
 		An uber jar which contains all the leveldbjni platform libraries and dependencies

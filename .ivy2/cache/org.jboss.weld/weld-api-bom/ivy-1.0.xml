@@ -4,7 +4,7 @@
 		module="weld-api-bom"
 		revision="1.0"
 		status="release"
-		publication="20091108144347"
+		publication="20091108224347"
 	>
 		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="http://www.seamframework.org/Weld">
