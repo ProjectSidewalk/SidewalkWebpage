@@ -13,7 +13,6 @@ import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import java.io.{File, Serializable}
-import java.util.{ArrayList => JavaArrayList, HashMap => JavaHashMap, List => JavaList, Map => JavaMap}
 import java.util.function.{Function => JavaFunction}
 import java.lang.{String => JavaString}
 import java.awt.{Point => JavaPoint}
@@ -132,7 +131,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype != None && filetype.get == "shapefile") {
 
-      val attributeList: JavaList[Attribute] = new JavaArrayList();
+      val attributeList: Buffer[Attribute] = new ArrayBuffer[Attribute];
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currAttribute: Attribute = new Attribute();
         currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
@@ -146,7 +145,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
 
-      val labelList: JavaList[Label] = new JavaArrayList[Label]()
+      val labelList: Buffer[Label] = new ArrayBuffer[Label]
       for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)){
         val currLabel: Label = new Label();
         currLabel.coordinate = new JTSCoordinate(current.labelLng.toDouble, current.labelLat.toDouble)
@@ -205,7 +204,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
 
-      val attributeList: JavaList[Attribute] = new JavaArrayList();
+      val attributeList: Buffer[Attribute] = new ArrayBuffer[Attribute];
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currAttribute: Attribute = new Attribute();
         currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
@@ -304,7 +303,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val file = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if(filetype != None && filetype.get == "shapefile"){
-
+      // Gather all of the data that will be written to the Shapefile.
       val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version = 2, coordinates)
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
@@ -312,9 +311,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val significance = Array(0.75, -1.0, -1.0, -1.0)
       // Write each rown in the CSV.
 
-      val neighborhoodList: JavaList[Neighborhood] = new ArrayBuffer[Neighborhood]
-      val neighborhoodAttributeList: JavaList[Neighborhood.Attribute] = new ArrayBuffer[Neighborhood.Attribute]
-      val neighborhoodSignificanceList: JavaList[Neighborhood.Significance] = new ArrayBuffer[Neighborhood.Significance]
+      val neighborhoodList: Buffer[Neighborhood] = new ArrayBuffer[Neighborhood]
+      val neighborhoodAttributeList: Buffer[Neighborhood.Attribute] = new ArrayBuffer[Neighborhood.Attribute]
+      val neighborhoodSignificanceList: Buffer[Neighborhood.Significance] = new ArrayBuffer[Neighborhood.Significance]
 
       for (neighborhood <- neighborhoods) {
         val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
@@ -547,9 +546,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
     } else if (filetype != None && filetype.get == "shapefile"){
-      val streetVals: JavaList[Street] = new JavaArrayList[Street]()
-      val streetAttributeList: JavaList[Street.Attribute] = new JavaArrayList[Street.Attribute]()
-      val streetSignificanceList: JavaList[Street.Significance] = new JavaArrayList[Street.Significance]()
+      val streetVals: Buffer[Street] = new ArrayBuffer[Street]()
+      val streetAttributeList: Buffer[Street.Attribute] = new ArrayBuffer[Street.Attribute]()
+      val streetSignificanceList: Buffer[Street.Significance] = new ArrayBuffer[Street.Significance]()
       for(streetAccessScore <- streetAccessScores){
         val currGeom = streetAccessScore.streetEdge.geom.getCoordinates()
         val streetId: Int = streetAccessScore.streetEdge.streetEdgeId
@@ -566,11 +565,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         streetAttributeList.add(currAttribute)
         streetSignificanceList.add(currSignificance)
       }
-      ShapefilesCreatorHelper.createStreetShapefile("streetValues", streetVals)
-      ShapefilesCreatorHelper.createStreetAttributeShapefile("streetAttribute", streetAttributeList)
-      ShapefilesCreatorHelper.createStreetSignificanceShapefile("streetSignificance", streetSignificanceList)
+      ShapefilesCreatorHelper.createStreetShapefile("streetValues", streetVals, streetAttributeList, streetSignificanceList)
 
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("streetScore", Array.apply("streetValues", "streetAttribute", "streetSignificance"))
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("streetScore", Array.apply("streetValues"))
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.

@@ -200,7 +200,7 @@ public class ShapefilesCreatorHelper {
         createGeneralShapeFile(outputFile, TYPE, features);
     }
 
-    public static void createStreetShapefile(String outputFile, List<Street> streets) throws Exception{
+    public static void createStreetShapefile(String outputFile, List<Street> streets, List<Street.Attribute> attributes, List<Street.Significance> significances) throws Exception{
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
          * shapefile.
@@ -214,7 +214,23 @@ public class ShapefilesCreatorHelper {
                                 + // <- the geometry attribute: Line type
                                 "streetId:Integer,"
                                 + // <- StreetId
-                                "score:Double," // street score
+                                "score:Double," 
+                                + // street score
+                                "sCurbRamp:Double,"
+                                + // curb ramp significance score
+                                "sNCurbRamp:Double,"
+                                + // no Curb ramp significance score
+                                "sObstacle:Double,"
+                                + // obstacle significance score
+                                "sSurfProb:Double," 
+                                + // Surface problem significance score
+                                "fCurbRamp:Double,"
+                                + // curb ramp feature score
+                                "fNCurbRamp:Double,"
+                                + // no Curb ramp feature score
+                                "fObstacle:Double,"
+                                + // obstacle feature score
+                                "fSurfProb:Double" // Surface problem feature score
                 );
 
 
@@ -232,13 +248,36 @@ public class ShapefilesCreatorHelper {
 
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
-        for(Street s : streets){
+        // for(Street s : streets){
+        //     featureBuilder.add(geometryFactory.createLineString(s.geometry));
+        //     featureBuilder.add(s.streetId);
+        //     featureBuilder.add(s.score);
+
+        //     SimpleFeature feature = featureBuilder.buildFeature(null);
+        //     features.add(feature);
+        // }
+
+        for (int i = 0; i < streets.size(); i++) {
+            Street s = streets.get(i);
+            Street.Attribute a = attributes.get(i);
+            Street.Significance si = significances.get(i);
+
             featureBuilder.add(geometryFactory.createLineString(s.geometry));
             featureBuilder.add(s.streetId);
             featureBuilder.add(s.score);
+            featureBuilder.add(si.curbRamp);
+            featureBuilder.add(si.noCurbRamp);
+            featureBuilder.add(si.obstacle);
+            featureBuilder.add(si.surfaceProblem);
+            featureBuilder.add(a.curbRamp);
+            featureBuilder.add(a.noCurbRamp);
+            featureBuilder.add(a.obstacle);
+            featureBuilder.add(a.surfaceProblem);
+
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
+
         }
 
 
