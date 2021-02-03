@@ -4,6 +4,7 @@ import helper.{Attribute, Label, Neighborhood, ShapefilesCreatorHelper, Street}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.{ArrayBuffer, Buffer}
 import collection.immutable.Seq
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -311,9 +312,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val significance = Array(0.75, -1.0, -1.0, -1.0)
       // Write each rown in the CSV.
 
-      val neighborhoodList: JavaList[Neighborhood] = new JavaArrayList[Neighborhood]()
-      val neighborhoodAttributeList: JavaList[Neighborhood.Attribute] = new JavaArrayList[Neighborhood.Attribute]()
-      val neighborhoodSignificanceList: JavaList[Neighborhood.Significance] = new JavaArrayList[Neighborhood.Significance]()
+      val neighborhoodList: JavaList[Neighborhood] = new ArrayBuffer[Neighborhood]
+      val neighborhoodAttributeList: JavaList[Neighborhood.Attribute] = new ArrayBuffer[Neighborhood.Attribute]
+      val neighborhoodSignificanceList: JavaList[Neighborhood.Significance] = new ArrayBuffer[Neighborhood.Significance]
 
       for (neighborhood <- neighborhoods) {
         val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
@@ -337,13 +338,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         neighborhoodSignificanceList.add(new Neighborhood.Significance(neighborhood.regionId, coordinates, significance))
       }
 
-      ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList)
-
-      ShapefilesCreatorHelper.createNeighborhoodAttributeShapefile("neighborhoodAttributes", neighborhoodAttributeList)
-      ShapefilesCreatorHelper.createNeighborhoodSignificanceShapefile("neighborhoodSignificance", neighborhoodSignificanceList)
+      ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList, neighborhoodSignificanceList, neighborhoodAttributeList)
 
 
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood", "neighborhoodAttributes", "neighborhoodSignificance"));
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"));
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
 

@@ -358,7 +358,8 @@ public class ShapefilesCreatorHelper {
 
     }
 
-    public static void createNeighborhoodShapefile(String outputFile, List<Neighborhood> neighborhoods) throws Exception{
+    public static void createNeighborhoodShapefile(String outputFile, List<Neighborhood> neighborhoods, List<Neighborhood.Significance> significances,
+                                                    List<Neighborhood.Attribute> attributes) throws Exception{
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
          * shapefile.
@@ -376,7 +377,24 @@ public class ShapefilesCreatorHelper {
                                 + // <- Neighborhood Id
                                 "coverage:Double,"
                                 + // coverage score
-                                "score:Double," // obstacle score
+                                "score:Double," 
+                                + // obstacle score
+                                "sCurbRamp:Double,"
+                                + // curb ramp significance score
+                                "sNCurbRamp:Double,"
+                                + // no Curb ramp significance score
+                                "sObstacle:Double,"
+                                + // obstacle significance score
+                                "sSurfProb:Double," 
+                                + // Surface problem significance score
+                                "fCurbRamp:Double,"
+                                + // curb ramp feature score
+                                "fNCurbRamp:Double,"
+                                + // no Curb ramp feature score
+                                "fObstacle:Double,"
+                                + // obstacle feature score
+                                "fSurfProb:Double" // Surface problem feature score
+
                 );
 
 
@@ -403,6 +421,29 @@ public class ShapefilesCreatorHelper {
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
+        }
+
+        for (int i = 0; i < neighborhoods.size(); i++) {
+            Neighborhood n = neighborhoods.get(i);
+            Neighborhood.Significance s = significances.get(i);
+            Neighborhood.Attribute f = attributes.get(i);
+            featureBuilder.add(geometryFactory.createPolygon(n.geometry));
+            featureBuilder.add(n.name);
+            featureBuilder.add(n.regionId);
+            featureBuilder.add(n.coverage);
+            featureBuilder.add(n.score);
+            featureBuilder.add(s.curbRamp);
+            featureBuilder.add(s.noCurbRamp);
+            featureBuilder.add(s.obstacle);
+            featureBuilder.add(s.surfaceProblem);
+            featureBuilder.add(f.curbRamp);
+            featureBuilder.add(f.noCurbRamp);
+            featureBuilder.add(f.obstacle);
+            featureBuilder.add(f.surfaceProblem);
+
+            SimpleFeature feature = featureBuilder.buildFeature(null);
+            features.add(feature);
+
         }
 
 
