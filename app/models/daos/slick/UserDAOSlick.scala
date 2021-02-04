@@ -334,7 +334,6 @@ object UserDAOSlick {
   }
 
   /**
-    
    * Count num of researchers who contributed validations in the past week (incl Researcher, Administrator, and Owner roles).
    */
   def countValidationResearchersContributedPastWeek: Int = db.withSession { implicit session =>
@@ -344,8 +343,6 @@ object UserDAOSlick {
   }
 
   /**
-   *
-   *
    * Count the number of users who contributed validations in the past week (across all roles).
    */
   def countAllValidationUsersContributedPastWeek: Int = db.withSession { implicit session =>
