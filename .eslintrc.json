@@ -12,7 +12,7 @@
     "rules": {
         "capitalized-comments": ["warn", "always"],
         "comma-style": "error",
-        "curly": "error",
+        "curly": ["error", "multi-line", "consistent"],
         "eol-last": ["error", "always"],
         "eqeqeq": ["error", "always"],
         "indent": "error",
