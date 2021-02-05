@@ -1,0 +1,49 @@
+#card-filter {
+    padding: 5px;
+}
+
+#ribbon-menu-holder {
+   padding-bottom: 30px;
+}
+
+#labels-not-found {
+    display: none;
+}
+
+.paging {
+    display: inline-block; 
+    font-size: 30px;
+    background-color: white;
+    border-radius: 5px;
+    border-width: 1px;
+}
+
+.paging:disabled {
+    border-width: 0.2px;
+    opacity: 50%;
+}
+
+#horizontal-line {
+    border-bottom: 1px solid gray;
+}
+
+.sidebar {
+    padding-left: 10px; 
+    padding-top: 40px;
+}
+
+#labels-not-found-text {
+    position: absolute; 
+    width: 100%; 
+    text-align: center;
+}
+
+#page-control {
+    position: absolute; 
+    left: 50%; 
+    margin-right: -50%;
+}
+
+#footer-spacing {
+    padding-top: 100px;
+}
