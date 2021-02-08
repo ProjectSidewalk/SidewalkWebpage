@@ -3,34 +3,27 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import scala.collection.JavaConverters._
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.street.StreetEdgeTable
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.Messages
 import java.util.Calendar
 import play.api.mvc._
-
 import scala.concurrent.Future
 import scala.util.Random
 
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  val anonymousUser: DBUser = UserTable.find("anonymous").get
-
   /**
     * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.
-    * If no referrer is specified, then it just loads the landing page
-    *
-    * @return
+    * If no referrer is specified, then it just loads the landing page.
     */
   def index = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -43,7 +36,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case None =>
         qString.get("r")
     }
-
 
     referrer match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location
@@ -156,27 +148,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a page saying that we do not yet support mobile devices.
-    *
-    * @return
-    */
-  def mobile = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
-        Future.successful(Ok(views.html.mobile("Project Sidewalk", Some(user))))
-      case None =>
-        Future.successful(Redirect("/anonSignUp?url=/mobile"))
-    }
-  }
-
-  /**
    * Returns a page with the Leaderboard(s) on it.
-   *
-   * @return
    */
   def leaderboard = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -193,8 +165,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns a developer page.
-    *
-    * @return
     */
   def developer = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -211,8 +181,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns a help  page.
-    *
-    * @return
     */
   def help = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -228,10 +196,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns labeling guide page
-    * @return
+    * Returns labeling guide page.
     */
-
   def labelingGuide = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
@@ -330,8 +296,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns the results page that contains a cool visualization.
-   *
-   * @return
    */
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -348,8 +312,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns the labelmap page that contains a cool visualization.
-   *
-   * @return
    */
   def labelMap = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -365,9 +327,27 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns the Gallery page.
+   *
+   * @return
+   */
+  def gallery = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        // Log visit to Gallery
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user))))
+      case None =>
+        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
+        Future.successful(Redirect("/anonSignUp?url=/gallery"))
+    }
+  }
+
+  /**
     * Returns the demo page that contains a cool visualization that is a work-in-progress.
-    *
-    * @return
     */
   def demo = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -385,21 +365,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a page that tells Turkers that there are no further missions for them to complete at this time.
-    *
-    * @return
-    */
-  def noAvailableMissionIndex = Action.async { implicit request =>
-    Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
-  }
-
-  /**
     * Returns a page telling the turker that they already signed in with their worker id.
-    *
-    * @return
     */
   def turkerIdExists = Action.async { implicit request =>
     Future.successful(Ok(views.html.turkerIdExists("Project Sidewalk")))
   }
-
 }

@@ -1,7 +1,6 @@
 package controllers
 
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
@@ -12,18 +11,12 @@ import play.api.libs.json._
 import play.api.mvc.Action
 import play.api.Play
 import play.api.Play.current
-
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
 class LabelController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  /**
-    *
-    * @param regionId Region id
-    * @return
-    */
   def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -37,7 +30,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Fetches the labels that a user has added in the current region they are working in.
-    * @param regionId Region id
+    *
     * @return A list of labels
     */
   def getLabelsForMiniMap(regionId: Int) = UserAwareAction.async { implicit request =>
@@ -110,8 +103,6 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Gets all tags in the database in JSON.
-    *
-    * @return
     */
   def getLabelTags() = Action.async { implicit request =>
     val cityStr: String = Play.configuration.getString("city-id").get

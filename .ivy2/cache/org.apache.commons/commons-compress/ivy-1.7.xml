@@ -4,7 +4,7 @@
 		module="commons-compress"
 		revision="1.7"
 		status="release"
-		publication="20140116113531"
+		publication="20140116193531"
 	>
 		<description homepage="http://commons.apache.org/proper/commons-compress/">
 		Apache Commons Compress software defines an API for working with compression and archive formats.

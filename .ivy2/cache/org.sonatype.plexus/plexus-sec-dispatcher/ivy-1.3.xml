@@ -4,7 +4,7 @@
 		module="plexus-sec-dispatcher"
 		revision="1.3"
 		status="release"
-		publication="20090429130532"
+		publication="20090429200532"
 	>
 		<description homepage="http://spice.sonatype.org/${project.artifactId}" />
 		<m:dependency.management__junit__junit__version>4.5</m:dependency.management__junit__junit__version>

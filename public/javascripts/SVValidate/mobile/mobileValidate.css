@@ -228,12 +228,12 @@ html {
     width: 700px;
 }
 
-#validation-agree-button-0 {
+#validation-agree-button {
     background-color: #78C8AB;
     color: #2C293E;
 }
 
-.animate-button-0:active {
+.animate-button:active {
     -webkit-transition: all 0.3s ease-in;
     transition: all 0.3s ease-in;
     -webkit-animation-name: confirm-press;
@@ -259,12 +259,12 @@ html {
     }
 }
 
-#validation-disagree-button-0 {
+#validation-disagree-button {
     background-color: #EB7350;
     color: #2C293E;
 }
 
-#validation-not-sure-button-0 {
+#validation-not-sure-button {
     background-color: #FDD68D;
     color: #2C293E;
 }
@@ -285,4 +285,29 @@ html {
     height: 90px;
     width: 730px;
     z-index: 1;
+}
+
+.gray-button-mobile {
+    position: relative;
+    background-color: rgba(251, 215, 139, 1);
+    -moz-border-radius:15px;
+    -webkit-border-radius:15px;
+    border-radius:10px;
+    border:1px solid rgba(251, 215, 139, 1);
+    display:inline-block;
+    position: absolute;
+    right: 45px;
+    top: 45px;
+    cursor:pointer;
+    color:#2D2A3F;
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+    font-family: 'Raleway', sans-serif;
+    text-align: center;
+    font-weight: bolder;
+    font-size:40px;
+    width: 250px;
+    height: 75px;
+    padding:5px 25px;
+    text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }

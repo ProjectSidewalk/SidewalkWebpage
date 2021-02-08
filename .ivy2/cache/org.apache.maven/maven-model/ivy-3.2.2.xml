@@ -4,7 +4,7 @@
 		module="maven-model"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065027"
+		publication="20140617135027"
 	>
 		<description homepage="">
 		Model for Maven POM (Project Object Model)

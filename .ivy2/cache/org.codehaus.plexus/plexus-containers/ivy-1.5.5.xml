@@ -4,7 +4,7 @@
 		module="plexus-containers"
 		revision="1.5.5"
 		status="release"
-		publication="20100930131450"
+		publication="20100930201450"
 	>
 		<description homepage="">
 		Plexus IoC Container core with companion tools.

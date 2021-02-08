@@ -4,7 +4,7 @@
 		module="test-interface"
 		revision="1.0"
 		status="release"
-		publication="20130628154435"
+		publication="20130628224435"
 	>
 		<license name="BSD" url="https://github.com/sbt/test-interface/blob/master/LICENSE" />
 		<description homepage="http://www.scala-sbt.org">

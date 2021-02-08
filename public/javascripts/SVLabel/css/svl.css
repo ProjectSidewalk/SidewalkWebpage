@@ -1,17 +1,6 @@
-.svl-container {
-    background: rgba(255,255,255,1);
-    padding: 0px;
-    margin: 0px;
-    font-family: SegoeUILight, 'Mono Sans', Helvetica, Arial;
-}
-
 text {
     visibility: hidden;
 }
-/*
-.visible {
-    visibility: visible;
-}*/
 
 .highlight {
     color: orange;
@@ -130,7 +119,7 @@ input[type="radio"] {
 }
 
 /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
-#viewControlLayer {
+#view-control-layer {
     -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;

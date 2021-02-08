@@ -18,10 +18,7 @@ object LabelSeverityTable {
   val labelSeverities = TableQuery[LabelSeverityTable]
 
   /**
-    * Find a label severity
-    *
-    * @param labelId
-    * @return
+    * Find a label severity.
     */
   def find(labelId: Int): Option[LabelSeverity] = db.withSession { implicit session =>
     val labelList = labelSeverities.filter(_.labelId === labelId).list
@@ -30,9 +27,6 @@ object LabelSeverityTable {
 
   /**
     * Saves a new label severity to the table.
-    *
-    * @param labelSev
-    * @return
     */
   def save(labelSev: LabelSeverity): Int = db.withTransaction { implicit session =>
     val labelSeverityId: Int =
@@ -42,14 +36,9 @@ object LabelSeverityTable {
 
   /**
     * Updates severity of the specified id to be newSeverity.
-    *
-    * @param severityId
-    * @param newSeverity
-    * @return
     */
   def updateSeverity(severityId: Int, newSeverity: Int) = db.withTransaction { implicit session =>
     val severities = for { label <- labelSeverities if label.labelSeverityId === severityId } yield label.severity
     severities.update(newSeverity)
   }
 }
-

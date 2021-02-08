@@ -4,7 +4,7 @@
 		module="webbit"
 		revision="0.4.14"
 		status="release"
-		publication="20120713053639"
+		publication="20120713123639"
 	>
 		<license name="BSD License" url="http://www.opensource.org/licenses/bsd-license" />
 		<description homepage="http://webbitserver.org/">

@@ -4,7 +4,7 @@
 		module="bcprov-jdk15on"
 		revision="1.51"
 		status="release"
-		publication="20140727185910"
+		publication="20140728015910"
 	>
 		<license name="Bouncy Castle Licence" url="http://www.bouncycastle.org/licence.html" />
 		<description homepage="http://www.bouncycastle.org/java.html">

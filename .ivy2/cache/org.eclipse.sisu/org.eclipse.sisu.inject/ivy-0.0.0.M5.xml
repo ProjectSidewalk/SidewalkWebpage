@@ -4,7 +4,7 @@
 		module="org.eclipse.sisu.inject"
 		revision="0.0.0.M5"
 		status="release"
-		publication="20130725162046"
+		publication="20130725232046"
 	>
 		<description homepage="" />
 		<m:properties__tycho-version>0.18.1</m:properties__tycho-version>

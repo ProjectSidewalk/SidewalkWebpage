@@ -4,7 +4,7 @@
 		module="webjars-locator"
 		revision="0.14"
 		status="release"
-		publication="20140429194234"
+		publication="20140430024234"
 	>
 		<license name="MIT" url="https://github.com/webjars/webjars-locator/blob/master/LICENSE.md" />
 		<description homepage="http://webjars.org">

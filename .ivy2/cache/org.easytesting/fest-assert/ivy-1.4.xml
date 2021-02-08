@@ -4,7 +4,7 @@
 		module="fest-assert"
 		revision="1.4"
 		status="release"
-		publication="20110221234559"
+		publication="20110222074559"
 	>
 		<description homepage="http://fest.easytesting.org/assert">
 		&apos;Flexible&apos; or &apos;fluent&apos; assertions for testing

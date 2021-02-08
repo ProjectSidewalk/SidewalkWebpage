@@ -1,3 +1,0 @@
-describe("User module", function () {
-
-});

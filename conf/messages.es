@@ -1,8 +1,12 @@
 measurement.system = metric
 curb.ramp = Rampa peatonal
+curb.ramps = Rampas peatonales
 missing.ramp = Rampa peatonal ausente
+missing.ramps = Rampas peatonales ausentes
 obstacle = Obstáculo en la banqueta
+obstacles = Obstáculos en la banqueta
 surface.problem = Problema en superficie
+surface.problems = Problemas en superficie
 no.sidewalk = No hay banqueta
 other = Otro
 labels = etiquetas
@@ -12,6 +16,8 @@ cancel = Cancelar
 error = ¡Error!
 thanks = ¡Gracias!
 username = Nombre de usuario/a
+loading = Cargando...
+loading.encouragement = ¡Hagámoslo!
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -33,7 +39,7 @@ navbar.admin = Administrador
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
-landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="otherCityLink" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
+landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
 landing.how.you.help.content = Explora virtualmente las calles de la ciudad para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
 landing.how.you.help.explore = EXPLORA
@@ -66,15 +72,22 @@ footer.api = Sidewalk API
 footer.connect = CONECTA
 footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
-footer.designed.operated = Project Sidewalk está diseñado y operado por el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a href="http://www.cs.uw.edu/">Universidad de Washington</a>
+footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 
 audit.tutorial.welcome.1 = En <span class="bold">Project Sidewalk,</span> viajarás virtualmente por ciudades completando misiones para encontrar y etiquetar las características de accesibilidad y las problemáticas del entorno urbano, que incluyen: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, problemas en superficie.
 audit.tutorial.welcome.2 = Comenzaremos con un breve tutorial interactivo.
 audit.tutorial.welcome.3 = ¡Empecemos!
 audit.tutorial.welcome.4 = ¿Ya tomaste el tutorial? ¿Tienes una cuenta? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Iniciar sesión</a> o <a value="Skip" class="onboarding-transition-trigger">saltar el tutorial</a>.
+audit.tutorial.accessible = <span style="color:limegreen">Accesible</span>
+audit.tutorial.inaccessible = <span style="color:red">Inaccesible</span>
+audit.tutorial.examples.curb.ramp = Las <span style="color:limegreen">rampas peatonales</span> ayudan a las personas usuarias de sillas de ruedas a subir y bajar de las banquetas.
+audit.tutorial.examples.missing.ramp = Las personas usuarias de sillas de ruedas no pueden circular por las banquetas cuando <span style="color:#ff0066">faltan las rampas.</span>
+audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Los obstáculos</span> en la banqueta bloquean el camino de las personas usuarias de sillas de ruedas.
+audit.tutorial.examples.surface.problem = Las banquetas con <span style="color:orange">problemas en la superficie</span> pueden no ser transitables.
 audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <b>etiqueta los siguientes atributos de accesibilidad, en Google Street View</b>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
 audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
+audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
 audit.ribbon.explore = <u>E</u>xplorar
@@ -90,6 +103,7 @@ audit.ribbon.zoom.out = Alejar
 
 audit.left.ui.sound = Sonido
 audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+audit.left.ui.stuck = Atorado
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
 audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!
@@ -187,13 +201,13 @@ authenticate.email = Correo electrónico
 authenticate.password = Contraseña
 authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
-authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
+authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>
 authenticate.confirm.password = Confirmar contraseña
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
-authenticate.is.member = ¿Ya eres miembro? <a href="/signIn">Iniciar sesión ahora</a>
+authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
 authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
 authenticate.error.uhoh = Oh-oh!
@@ -234,11 +248,27 @@ dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
 dashboard.label.type = Tipo de etiqueta
 dashboard.number.of.labels = Número de etiquetas
+dashboard.missions = Misiones
 dashboard.your.missions = Tus misiones
 dashboard.distance = Distancia
 dashboard.labels = Etiquetas
 dashboard.validations = Validaciones
-dashboard.accuracy = Exactitud
+dashboard.accuracy = Precisión
+dashboard.mission.icon.alt = Usuario de silla de ruedas sosteniendo una bandera
+dashboard.distance.icon.alt = Icono que muestra la trayectoria curva hacia el destino
+dashboard.label.icon.alt = Icono de mapa minimalista con marcador de destino grande
+dashboard.validation.icon.alt = Lista de verificación junto a un lápiz
+dashboard.accuracy.icon.alt = Apunta con una flecha en la diana
+dashboard.accuracy.icon.tooltip = Su precisión de etiquetado. Si se muestra N/A, significa que otros usuarios no han validado suficientes etiquetas.
+dashboard.first = primera
+dashboard.second = segunda
+dashboard.third = tercera
+dashboard.fourth = cuarta
+dashboard.fifth = quinta
+dashboard.mission.badge = {0} insignia de misión
+dashboard.distance.badge = {0} insignia de distancia
+dashboard.label.badge = {0} insignia de etiqueta
+dashboard.validation.badge = {0} insignia de validación
 
 labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
@@ -250,10 +280,13 @@ admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general
 leaderboard.weekly.title = Tabla de clasificación semanal
-leaderboard.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
+leaderboard.overall.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
+leaderboard.weekly.detail = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
 leaderboard.header.accuracy = Precisión
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
+leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a href="/audit"><u>¡Empieza a explorar!</u></a>
+leaderboard.encouragement.no.user = ¡<a href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!

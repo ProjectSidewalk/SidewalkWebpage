@@ -4,14 +4,14 @@
 		module="play-silhouette-testkit_2.10"
 		revision="2.0"
 		status="release"
-		publication="20150328033509"
+		publication="20150328103509"
 		e:info.apiURL="http://api.silhouette.mohiva.com/sbt.SettingKey$$anon$4@51dbc859/"
 	>
 		<license name="Apache License" url="https://github.com/mohiva/play-silhouette/blob/master/LICENSE" />
 		<description homepage="http://silhouette.mohiva.com/">
 		Authentication library for Play Framework applications that supports several authentication methods, including OAuth1, OAuth2, OpenID, Credentials, Basic Authentication, Two Factor Authentication or custom authentication schemes
 		</description>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__info.apiURL>http://api.silhouette.mohiva.com/sbt.SettingKey$$anon$4@51dbc859/</m:properties__info.apiURL>
 	</info>
 	<configurations>

@@ -4,7 +4,7 @@
 		module="scalariform_2.10"
 		revision="0.1.4"
 		status="release"
-		publication="20130424113552"
+		publication="20130424183552"
 	>
 		<license name="MIT License" url="http://www.opensource.org/licenses/mit-license.php" />
 		<description homepage="http://github.com/mdr/scalariform">

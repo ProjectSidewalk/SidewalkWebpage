@@ -4,7 +4,7 @@
 function GSVOverlay () {
     let self = this;
     let panningDisabled = false;
-    let viewControlLayer = $("#viewControlLayer");
+    let viewControlLayer = $("#view-control-layer");
 
     // Mouse status and mouse event callback functions.
     let mouseStatus = {

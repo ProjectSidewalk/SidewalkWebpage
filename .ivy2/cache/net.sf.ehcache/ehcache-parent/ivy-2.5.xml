@@ -4,7 +4,7 @@
 		module="ehcache-parent"
 		revision="2.5"
 		status="release"
-		publication="20130610103835"
+		publication="20130610173835"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.ehcache.org/about/license" />
 		<description homepage="http://ehcache.org">

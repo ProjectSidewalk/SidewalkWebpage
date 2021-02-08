@@ -80,7 +80,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var tempLabelId = label.getProperty('temporary_label_id');
             var auditTaskId = label.getProperty('audit_task_id');
 
-            // if this label is a new label, get the timestamp of its creation from the corresponding interaction
+            // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
             var associatedInteraction = data.interactions.find(interaction =>
                 interaction.action === 'LabelingCanvas_FinishLabeling' && interaction.temporary_label_id === tempLabelId
                 && interaction.audit_task_id === auditTaskId);
@@ -128,6 +128,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 if (labelLatLng) {
                     pointParam.lat = labelLatLng.lat;
                     pointParam.lng = labelLatLng.lng;
+                    pointParam.computation_method = labelLatLng.latLngComputationMethod;
                 }
                 temp.label_points.push(pointParam);
             }

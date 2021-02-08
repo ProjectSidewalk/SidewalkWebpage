@@ -4,10 +4,10 @@
 		module="signpost-commonshttp4"
 		revision="1.2.1.2"
 		status="release"
-		publication="20120226001621"
+		publication="20120226081621"
 	>
 		<description homepage="" />
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__2.2|org.apache.maven.plugins__maven-javadoc-plugin__2.6.1|null__maven-release-plugin__2.0-beta-9|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__2.2|org.apache.maven.plugins__maven-javadoc-plugin__2.6.1|null__maven-release-plugin__2.0-beta-9|null__maven-antrun-plugin__null</m:maven.plugins>
 	</info>

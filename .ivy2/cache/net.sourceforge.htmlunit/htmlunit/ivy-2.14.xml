@@ -4,7 +4,7 @@
 		module="htmlunit"
 		revision="2.14"
 		status="release"
-		publication="20140217033412"
+		publication="20140217113412"
 	>
 		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://htmlunit.sourceforge.net">

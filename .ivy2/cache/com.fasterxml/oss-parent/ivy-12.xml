@@ -4,7 +4,7 @@
 		module="oss-parent"
 		revision="12"
 		status="release"
-		publication="20131213202441"
+		publication="20131214042441"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<license name="GNU Lesser General Public License, Version 2.1" url="http://www.gnu.org/licenses/lgpl-2.1.html" />

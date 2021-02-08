@@ -4,7 +4,7 @@
 		module="maven-core"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065214"
+		publication="20140617135214"
 	>
 		<description homepage="">
 		Maven Core classes.

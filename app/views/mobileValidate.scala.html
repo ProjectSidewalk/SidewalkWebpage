@@ -11,12 +11,9 @@
 
 @(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
-@main(title) {
+@main(title, Some("/mobile")) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
@@ -29,7 +26,6 @@
         </div>
     </div>
     <br class="clear">
-
     <div id="title-bar-holder">
         <!--<button id="back-button" class="button back-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>-->
         <div id="upper-menu-title-bar"></div>
@@ -38,31 +34,35 @@
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
         </button>
     </div>
-
     <div id="mobile-viewer">
         <div id="svv-panorama-holder">
             <div id="svv-panorama-outline">
-                <div id="svv-panorama-0">
-                    <div id="viewControlLayerMobile" style="z-index: 2">
+                <div id="svv-panorama">
+                    <div id="view-control-layer-mobile" style="z-index: 2">
                         <div id="label-description-box"></div>
                     </div>
                 </div>
             </div>
         </div>
         <div id="validation-button-holder">
-            <button id="validation-disagree-button-0" class="validation-button">
+            <button id="validation-disagree-button" class="validation-button">
                 ✗ @Messages("validate.mission.complete.disagree")
             </button>
-            <button id="validation-not-sure-button-0" class="validation-button">
+            <button id="validation-not-sure-button" class="validation-button">
                 ? @Messages("validate.mission.complete.not.sure")
             </button>
-            <button id="validation-agree-button-0" class="validation-button">
+            <button id="validation-agree-button" class="validation-button">
                 ✓ @Messages("validate.mission.complete.agree")
             </button>
         </div>
         <div id="modal-mission-holder">
             <div id="modal-mission-background" class="modal-background"></div>
             <div id="modal-mission-foreground" class="modal-foreground">
+                @if(user && user.get.role.getOrElse("") != "Anonymous") {
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile">@{user.get.username}</button>
+                } else {
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
+                }
                 <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
@@ -108,6 +108,7 @@
                 </div>
             </div>
         </div>
+
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
@@ -184,7 +185,7 @@
             }
         }
         if (hitExpired) {
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
@@ -194,7 +195,6 @@
             param.completedValidations = @completedValidations;
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
-            param.canvasCount = 1;
             param.language = "@lang.code";
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
@@ -236,5 +236,6 @@
             }
             svv.main = new Main(param);
         }
+
     </script>
 }

@@ -1,0 +1,13 @@
+#controls {
+    padding-top: 25px;
+}
+
+#playback-inputs {
+    text-align: right;
+    position: inherit;
+}
+
+#total-time {
+    text-align: right;
+    position: inherit;
+}
