@@ -463,7 +463,6 @@ function ContextMenu (uiContextMenu) {
                             visibility: 'inherit',
                             position: 'inherit'
                         });
-
                         const words = tagText.split(' ');
                         const displacementForUnderlineTag = 15;
                         var keypressChar;
@@ -483,7 +482,7 @@ function ContextMenu (uiContextMenu) {
                         console.log(keypressChar);
                         $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
                             placement: 'top', html: true, delay: { "show": 300, "hide": 10 }, height: '130',
-                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='130'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
+                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='120'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
                         }));
                         count += 1;
                     }
