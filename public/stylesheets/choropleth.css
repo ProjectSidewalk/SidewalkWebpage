@@ -27,6 +27,17 @@
     word-wrap: break-word;
 }
 
+#legend {
+    display: block;
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    background: rgb(255, 255, 255);
+    width: 350px;
+    font-family: 'Raleway', sans-serif;
+    padding: 10px;
+}
+
 .legend label,
 .legend span {
     display:block;
@@ -36,6 +47,10 @@
     text-align:left;
     font-size:16px;
     color:#808080;
+}
+
+.clearfix {
+    width: 100%;
 }
 
 .map-legends.wax-legends {

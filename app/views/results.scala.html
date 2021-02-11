@@ -8,7 +8,8 @@
     <div class="container" id="results-choropleth-container" style="width: 100%;
         position: relative;">
         <div id="map-holder">
-            <div id="legend">
+            <div id="choropleth"></div>
+            <div id="legend" style="display: none">
                 <strong style="font-size: 18px">@Messages("results.problems.per.mile")</strong>
                 <nav class='legend clearfix'>
                     <span style='background:#99000a;'></span>
@@ -35,7 +36,6 @@
                 <div>
                     <p style="font-size: 11px;margin-top: 7px;line-height: 14px;">@Messages("results.legend.body")</div>
             </div>
-            <div id="choropleth"></div>
             <div id="page-loading">
                 <div id="loading-gif">
                     <p class="loading-text">@Messages("loading")</p>
@@ -47,7 +47,6 @@
             </div>
         </div>
     </div>
-
 
 <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
