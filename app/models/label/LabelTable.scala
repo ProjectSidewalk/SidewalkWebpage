@@ -1266,37 +1266,6 @@ object LabelTable {
         |    AND region.region_id = ?""".stripMargin
     )
     selectQuery((userId.toString, regionId)).list
-
-//    val _labels = for {
-//      _lb <- labelsWithoutDeleted
-//      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-//      _lp <- labelPoints if _lb.labelId === _lp.labelId && !_lp.lat.isEmpty
-//      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.userId === userId
-//      _sr <- streetEdgesToRegion if _sr.streetEdgeId === _a.streetEdgeId
-//      _r <- regions if _r.regionId === _sr.regionId && !_r.deleted && _r.regionTypeId === 2 && _r.regionId === regionId
-//    } yield (_lb.labelId, _lb.auditTaskId, _lb.gasvPanoramaId, _lt.labelType, _lp.lat, _lp.lng, _r.regionId)
-//
-//    val labelLocationList: List[LabelLocation] = _labels.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
-//    labelLocationList
-
-//    val _labels = for {
-//      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
-//      if _auditTasks.userId === userId.toString
-//    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
-//
-//    val _points = for {
-//      (l, p) <- _labels.innerJoin(labelPoints).on(_._1 === _.labelId)
-//      if p.geom.isDefined
-//    } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat), p.geom.get)
-//
-//    // Take the labels that are in the target region
-//    val neighborhood = neighborhoods.filter(_.regionId === regionId)
-//    val _pointsInRegion = for {
-//      (p, n) <- _points.innerJoin(neighborhood).on((_p, _n) => _p._7.within(_n.geom))
-//    } yield (p._1, p._2, p._3, p._4, p._5, p._6)
-//
-//    val labelLocationList: List[LabelLocation] = _pointsInRegion.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
-//    labelLocationList
   }
 
   /**

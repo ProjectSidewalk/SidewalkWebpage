@@ -36,33 +36,4 @@ object LabelFormats {
       (__ \ "tutorial").write[Boolean] and
       (__ \ "street_edge_id").write[Int]
     )(unlift(Label.unapply _))
-
-  implicit val resumeLabelMetadataWrites: Writes[ResumeLabelMetadata] = (
-    (__ \ "canvasWidth").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasDistortionAlphaX").write[Int] and
-      (__ \ "canvasDistortionAlphaY").write[Int] and
-      (__ \ "labelId").write[Int] and
-      (__ \ "labelType").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] and
-      (__ \ "canvasHeight").write[Int] 
-  )(unlift(ResumeLabelMetadata.unapply _))
 }

@@ -126,12 +126,6 @@ function LabelContainer($) {
 
                 prevCanvasLabels.push(label);
 
-                // // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
-                // var panoramaId = label.getProperty("panoId");
-                // if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
-                //     svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
-                // }
-
                 if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
                     var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
                     svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
