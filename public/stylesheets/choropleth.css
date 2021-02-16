@@ -30,12 +30,12 @@
 #legend {
     display: block;
     position: absolute;
-    right: 20px;
+    right: 26px;
     top: 10px;
     background: rgb(255, 255, 255);
     width: 375px;
     font-family: 'Raleway', sans-serif;
-    padding: 10px;
+    padding: 10px 10px 0px 10px;
 }
 
 .legend label,
