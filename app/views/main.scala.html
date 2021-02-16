@@ -59,22 +59,26 @@
         @content
 
     </div>
-
+    @if(url.getOrElse("") != "/mobile") {
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
+        </head>
+    }
     @if(url.get == "/audit") {
-
         <script type="text/javascript">
             document.getElementsByTagName("body")[0].style.overflow = "hidden";
             document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
-
+    }
+    @if(url.get == "/audit" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
         <!-- footer code found in app/views/footer.scala.html -->
         @footer()
-    } else{
+    } else {
 
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
     <div class="container" id="footer-container">
-        <div class="row" style="padding-top: 50px; width: 900px; position:relative; left:80px;">
+        <div class="row" style="width: 900px; position:relative; left:80px;">
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
