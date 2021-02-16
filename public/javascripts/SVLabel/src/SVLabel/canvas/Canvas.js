@@ -131,7 +131,6 @@ function Canvas(ribbon) {
             canvasHeight: svl.canvasHeight,
             canvasDistortionAlphaX: svl.alpha_x,
             canvasDistortionAlphaY: svl.alpha_y,
-            //labelId: svl.getLabelCounter(),
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
