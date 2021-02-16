@@ -141,7 +141,7 @@ function Canvas(ribbon) {
             panoramaLng: latlng.lng,
             panoramaHeading: pov.heading,
             panoramaPitch: pov.pitch,
-            panoramaZoom: pov.zoom,
+            panoramaZoom: parseInt(pov.zoom, 10),
             svImageWidth: svl.svImageWidth,
             svImageHeight: svl.svImageHeight,
             svMode: 'html4'
