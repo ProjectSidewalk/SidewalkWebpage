@@ -10,5 +10,7 @@ function checkIfPaddingNeeded(){
         window.location.pathname === "/labelingGuide/occlusion"){
 
         document.body.style.paddingTop = "60px";
+    } else if (window.location.pathname === "/signInMobile" || window.location.pathname === "/signUpMobile") {
+        document.body.style.paddingTop = "0px";
     }
 }
