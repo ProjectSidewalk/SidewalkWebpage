@@ -330,7 +330,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             initializeChoroplethNeighborhoodPolygons(choropleth, data, layers, labelData);
         }
         $('#page-loading').hide();
-        $('#legend').show();
+        $('#results-legend').show();
     }
 
     // Makes POST request that logs `activity` in WebpageActivityTable.

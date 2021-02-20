@@ -413,7 +413,8 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <div id="map-holder">
-                                <div id="legend" style="display:none;">
+                                <div id="admin-choropleth"></div>
+                                <div id="admin-percentage-legend">
                                     <strong>Percent of Neighborhood Complete</strong>
                                     <nav class='legend clearfix'>
                                         <span style='background:#03152f;width:9.09%'></span>
@@ -432,7 +433,6 @@
                                         <label style='width:3%'>0%</label>
                                     </nav>
                                 </div>
-                                <div id="admin-choropleth"></div>
                             </div>
                         </div>
 
@@ -801,6 +801,7 @@
 
     </div>
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
