@@ -242,7 +242,7 @@ object LabelTable {
       """SELECT COUNT(label.label_id)
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') = (now() AT TIME ZONE 'US/Pacific') - interval '168 hour'
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND label.deleted = false""".stripMargin
     )
     countQuery.list.head
@@ -257,7 +257,7 @@ object LabelTable {
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') = (now() AT TIME ZONE 'US/Pacific') - interval '168 hour'
+                         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin

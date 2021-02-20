@@ -203,7 +203,7 @@ object StreetEdgeTable {
         """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
             |FROM street_edge
             |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-            |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') = (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
+            |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
             |     AND street_edge.deleted = FALSE
             |     AND audit_task.completed = TRUE""".stripMargin
         )

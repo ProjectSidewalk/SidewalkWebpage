@@ -191,8 +191,8 @@ object UserDAOSlick {
         "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
       )
       case "past week" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific') = (now() AT TIME ZONE 'US/Pacific') - interval '168 hour'",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific') = (now() AT TIME ZONE 'US/Pacific') - interval '168 hour'"
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       )
       case "week" => (
         "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)",
@@ -326,7 +326,7 @@ object UserDAOSlick {
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific') = (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
+        |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
     )
@@ -439,7 +439,7 @@ object UserDAOSlick {
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') = (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
