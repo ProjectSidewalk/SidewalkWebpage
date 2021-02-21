@@ -463,13 +463,19 @@ function ContextMenu (uiContextMenu) {
                             visibility: 'inherit',
                             position: 'inherit'
                         });
+
+                        /** The following code converts the first letter of each word in tag text to upppercase.
+                         *  Also, it extracts the character that can be pressed down to hit the label.
+                        */
                         const words = tagText.split(' ');
                         const displacementForUnderlineTag = 15;
                         var keypressChar;
                         const text = words.map((word) => {
                             if (word[0] === '<') {
                                 keypressChar = word[displacementForUnderlineTag];
-                                return word.substring(0,displacementForUnderlineTag) + word[displacementForUnderlineTag].toUpperCase() + word.substring(displacementForUnderlineTag + 1);
+                                return word.substring(0,displacementForUnderlineTag) +
+                                        word[displacementForUnderlineTag].toUpperCase() +
+                                        word.substring(displacementForUnderlineTag + 1);
                             } else {
                                 let index = word.indexOf('<');
                                 if (index > 0) {
@@ -479,10 +485,12 @@ function ContextMenu (uiContextMenu) {
                             }
                         }).join(' ');
 
-                        console.log(keypressChar);
                         $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
-                            placement: 'top', html: true, delay: { "show": 300, "hide": 10 }, height: '130',
-                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='120'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
+                            placement: 'top',
+                            html: true,
+                            delay: { "show": 300, "hide": 10 },
+                            height: '130',
+                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='110'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
                         }));
                         count += 1;
                     }
