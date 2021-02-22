@@ -46,7 +46,7 @@
     background: rgb(255, 255, 255);
     width: 325px;
     font-family: 'Raleway', sans-serif;
-    padding: 6px 6px 0px 6px;
+    padding: 6px 20px 0px 6px;
 }
 
 #admin-percentage-legend {
@@ -57,7 +57,7 @@
     background: rgb(255, 255, 255);;
     width: 325px;
     font-family: 'Raleway', sans-serif;
-    padding: 6px 6px 0px 6px;
+    padding: 6px 20px 0px 6px;
 }
 
 .legend label,
