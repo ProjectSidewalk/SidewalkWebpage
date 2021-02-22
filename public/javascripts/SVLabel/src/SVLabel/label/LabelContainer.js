@@ -70,12 +70,12 @@ function LabelContainer($) {
             let labelArr = result.labels;
             let len = labelArr.length;
             for (let i = 0; i < len; i++) {
-                console.log(labelArr[i].labelId);
                 let povChange = svl.map.getPovChangeStatus();
 
                 // Temporarily change pov change status to true so that
                 // we can use util function to calculate the canvas coordinate
-                // to place label upon rerender
+                // to place label upon rerender. This is so the labels 
+                // appear in the correct location relative to the initial POV
                 povChange["status"] = true;
 
                 let originalCanvasCoord = {
