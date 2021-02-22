@@ -6,7 +6,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         maxZoom: 19,
         minZoom: 10,
         style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj',
-        zoomSnap: 0.5
+        zoomSnap: 0.25
     }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
