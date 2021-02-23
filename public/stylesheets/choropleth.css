@@ -46,7 +46,7 @@
     background: rgb(255, 255, 255);
     width: 325px;
     font-family: 'Raleway', sans-serif;
-    padding: 6px 20px 0px 6px;
+    padding: 8px 8px 0px 8px;
 }
 
 #admin-percentage-legend {
@@ -57,7 +57,7 @@
     background: rgb(255, 255, 255);;
     width: 325px;
     font-family: 'Raleway', sans-serif;
-    padding: 6px 10px 0px 6px;
+    padding: 6px 6px 0px 6px;
 }
 
 .legend label,
@@ -70,6 +70,14 @@
     font-size:16px;
     color:#808080;
 }
+
+#landing-legend-percentages-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+
+}
+
 
 .clearfix {
     width: 100%;
