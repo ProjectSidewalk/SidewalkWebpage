@@ -2,6 +2,8 @@
 
 db ?= sidewalk
 
+dir ?= .
+
 dev: | docker-up-db docker-run
 
 docker-up:
@@ -22,3 +24,9 @@ ssh:
 
 import-dump:
 	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
+
+lint-htmlhint:
+	@./node_modules/htmlhint/bin/htmlhint $(dir)
+
+lint-eslint: 
+	@./node_modules/eslint/bin/eslint.js $(dir)
