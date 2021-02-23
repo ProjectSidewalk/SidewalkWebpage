@@ -6,6 +6,12 @@ dir ?= .
 
 dev: | docker-up-db docker-run
 
+eslint: | lint-eslint
+
+htmlhint: | lint-htmlhint
+
+lint: | lint-eslint lint-htmlhint
+
 docker-up:
 	@docker-compose up -d
 
