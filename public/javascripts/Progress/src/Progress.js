@@ -2,7 +2,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
     var params = {
         popupType: 'completionRate',
         neighborhoodPolygonStyle: {
-            color: '#606060',
+            color: '#656565',
             weight: 2,
             opacity: 0.80,
             fillColor: '#606060',
@@ -14,7 +14,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
             weight: 3
         },
         mouseoutStyle: {
-            color: '#606060',
+            color: '#656565',
             opacity: 0.8,
             weight: 2
         },
