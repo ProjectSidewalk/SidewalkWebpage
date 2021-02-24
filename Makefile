@@ -4,6 +4,8 @@ db ?= sidewalk
 
 dir ?= .
 
+args ?= 
+
 dev: | docker-up-db docker-run
 
 eslint: | lint-eslint
@@ -32,7 +34,7 @@ import-dump:
 	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
 
 lint-htmlhint:
-	@./node_modules/htmlhint/bin/htmlhint $(dir)
+	@./node_modules/htmlhint/bin/htmlhint $(args) $(dir)
 
 lint-eslint: 
-	@./node_modules/eslint/bin/eslint.js $(dir)
+	@./node_modules/eslint/bin/eslint.js $(args) $(dir)
