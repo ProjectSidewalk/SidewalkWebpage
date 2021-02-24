@@ -3,7 +3,7 @@
  */
 function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
     if (document.getElementById(checkboxId).checked) {
-        if(checkboxId === 'occlusion'){
+        if(checkboxId === 'occlusion'){ a 
             for (let i = 0; i < allLayers[label].length; i++) {
                 if (!map.hasLayer(allLayers[label][i])) {
                     map.addLayer(allLayers[label][i]);
