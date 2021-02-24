@@ -114,6 +114,25 @@ footer {
     padding: 0;
 }
 
+
+#language-icon {
+    margin-top: 10px;
+    margin-left: 25px;
+    height: 35px;
+    width: 35px;
+}
+
+#language-dropdown {
+    margin-top: 4px;
+    margin-left: 20px;
+}
+
+#language-button {
+    padding-top: 5px;
+    padding-bottom: 0px;
+    padding-left: 0px;  
+}
+
 .navbar-right.fixed-theme{
     position: relative;
     top: -15px;
@@ -1357,4 +1376,6 @@ kbd {
     .navbar-nav.navbar-right:last-child {
         margin-right: 0px;
     }
+
 }
+

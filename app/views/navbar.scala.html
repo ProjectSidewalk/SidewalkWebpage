@@ -150,6 +150,13 @@
                         <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
+
+                <li id="language-dropdown">
+                    <a id="language-button" data-toggle="dropdown" href="#" aria-label="Language Options" >
+                        <img style="width: 35px; height: 35px;" src="@routes.Assets.at("assets/language-icon.png")"> EN-US <b class="caret"></b>
+                    </a>
+                    <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-label="User options for @user.get.username">EN-US</ul>
+                </li>
             </ul>
         </div>
             <!-- /.nav-collapse -->
