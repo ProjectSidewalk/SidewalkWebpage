@@ -176,7 +176,7 @@ object UserDAOSlick {
   /**
    * Returns a count of all users under the specified conditions.
    *
-   * @param timeInterval: can be "today", "past week", "week", or "month". If anything else, defaults to "all time"
+   * @param timeInterval: can be "today" or "week". If anything else, defaults to "all time"
    * @param taskCompletedOnly: if true, only counts users who have completed one audit task or at least one validation.
    *                           Defaults to false.
    * @param highQualityOnly: if true, only counts users who are marked as high quality. Defaults to false.
@@ -190,17 +190,9 @@ object UserDAOSlick {
         "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
       )
-      case "past week" => (
+      case "week" => (
         "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-      )
-      case "week" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)"
-      )
-      case "month" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)"
       )
       case _ => ("TRUE", "TRUE")
     }
@@ -457,7 +449,7 @@ object UserDAOSlick {
   }
 
   /**
-   * Count the number of users who contributed yesterday (across all roles).
+   * Count the number of users who contributed in the past week (across all roles).
    *
    */
   def countAllAuditUsersContributedPastWeek: Int = db.withSession { implicit session =>
