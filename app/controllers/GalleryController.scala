@@ -116,7 +116,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
       "&pitch=" + pitch +
       "&fov=" + getFov(zoom) +
       "&key=" + VersionTable.getGoogleMapsAPIKey()
-    url
+    VersionTable.signUrl(url)
   }
 
   /**
