@@ -48,175 +48,175 @@
                     <div class="row">
                         <div class="col-lg-7">
                             <h1>Activities</h1>
-                            Today and Yesterday are based on the Pacific time zone.
+                            Today and Past Week are based on the Pacific time zone.
                             <table class="table table-striped table-condensed">
                                 <tr>
                                     <th></th>
                                     <th>Overall<sup>*</sup></th>
                                     <th>Today</th>
-                                    <th>Yesterday</th>
+                                    <th>Past Week</th>
                                 </tr>
                                 <tr>
                                     <th>Total Users</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("all time", false, false) (@UserDAOSlick.countAllUsersContributed("all time", true, false))</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("today", false, false) (@UserDAOSlick.countAllUsersContributed("today", true, false))</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("yesterday", false, false) (@UserDAOSlick.countAllUsersContributed("yesterday", true, false))</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("week", false, false) (@UserDAOSlick.countAllUsersContributed("week", true, false))</th>
                                 </tr>
                                 <tr>
                                     <th>Total Users (High Quality)</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("all time", false, true) (@UserDAOSlick.countAllUsersContributed("all time", true, true))</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("today", false, true) (@UserDAOSlick.countAllUsersContributed("today", true, true))</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("yesterday", false, true) (@UserDAOSlick.countAllUsersContributed("yesterday", true, true))</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("week", false, true) (@UserDAOSlick.countAllUsersContributed("week", true, true))</th>
                                 </tr>
                                 <tr>
                                     <th>Total Audit Users</th>
                                     <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
                                     <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
-                                    <th>@UserDAOSlick.countAllAuditUsersContributedYesterday</th>
+                                    <th>@UserDAOSlick.countAllAuditUsersContributedPastWeek</th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
                                     <td>@UserDAOSlick.countAuditUsersContributed(List("Registered"), false) (@UserDAOSlick.countAuditUsersContributed(List("Registered"), true))</td>
                                     <td>@UserDAOSlick.countAuditUsersContributedToday("Registered")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedYesterday("Registered")</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Registered")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
                                     <td>@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), true))</td>
                                     <td>@UserDAOSlick.countAuditUsersContributedToday("Anonymous")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedYesterday("Anonymous")</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Anonymous")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turkers</td>
                                     <td>@UserDAOSlick.countAuditUsersContributed(List("Turker"), false) (@UserDAOSlick.countAuditUsersContributed(List("Turker"), true))</td>
                                     <td>@UserDAOSlick.countAuditUsersContributedToday("Turker")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedYesterday("Turker")</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Turker")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researchers</td>
                                     <td>@UserDAOSlick.countAuditResearchersContributed(false) (@UserDAOSlick.countAuditResearchersContributed(true))</td>
                                     <td>@UserDAOSlick.countAuditResearchersContributedToday</td>
-                                    <td>@UserDAOSlick.countAuditResearchersContributedYesterday</td>
+                                    <td>@UserDAOSlick.countAuditResearchersContributedPastWeek</td>
                                 </tr>
 
                                 <tr>
                                     <th>Total Labels</th>
                                     <th>@LabelTable.countLabels</th>
                                     <th>@LabelTable.countTodayLabels</th>
-                                    <th>@LabelTable.countYesterdayLabels</th>
+                                    <th>@LabelTable.countPastWeekLabels</th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Curb Ramp</td>
                                     <td>@LabelTable.countLabelsBasedOnType("CurbRamp")</td>
                                     <td>@LabelTable.countTodayLabelsBasedOnType("CurbRamp")</td>
-                                    <td>@LabelTable.countYesterdayLabelsBasedOnType("CurbRamp")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("CurbRamp")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Missing Curb Ramp</td>
                                     <td>@LabelTable.countLabelsBasedOnType("NoCurbRamp")</td>
                                     <td>@LabelTable.countTodayLabelsBasedOnType("NoCurbRamp")</td>
-                                    <td>@LabelTable.countYesterdayLabelsBasedOnType("NoCurbRamp")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("NoCurbRamp")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Obstacle in Path</td>
                                     <td>@LabelTable.countLabelsBasedOnType("Obstacle")</td>
                                     <td>@LabelTable.countTodayLabelsBasedOnType("Obstacle")</td>
-                                    <td>@LabelTable.countYesterdayLabelsBasedOnType("Obstacle")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("Obstacle")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Surface Problem</td>
                                     <td>@LabelTable.countLabelsBasedOnType("SurfaceProblem")</td>
                                     <td>@LabelTable.countTodayLabelsBasedOnType("SurfaceProblem")</td>
-                                    <td>@LabelTable.countYesterdayLabelsBasedOnType("SurfaceProblem")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("SurfaceProblem")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">No Sidewalk</td>
                                     <td>@LabelTable.countLabelsBasedOnType("NoSidewalk")</td>
                                     <td>@LabelTable.countTodayLabelsBasedOnType("NoSidewalk")</td>
-                                    <td>@LabelTable.countYesterdayLabelsBasedOnType("NoSidewalk")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("NoSidewalk")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Other</td>
                                     <td>@LabelTable.countLabelsBasedOnType("Other")</td>
                                     <td>@LabelTable.countTodayLabelsBasedOnType("Other")</td>
-                                    <td>@LabelTable.countYesterdayLabelsBasedOnType("Other")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("Other")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Occlusion</td>
                                     <td>@LabelTable.countLabelsBasedOnType("Occlusion")</td>
                                     <td>@LabelTable.countTodayLabelsBasedOnType("Occlusion")</td>
-                                    <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("Occlusion")</td>
                                 </tr>
 
                                 <tr>
                                     <th>Audits</th>
                                     <th>@AuditTaskTable.countCompletedAudits</th>
                                     <th>@AuditTaskTable.countCompletedAuditsToday</th>
-                                    <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
+                                    <th>@AuditTaskTable.countCompletedAuditsPastWeek</th>
                                 </tr>
                                 <tr>
                                     <th>Audited Distance</th>
                                     <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr")</td>
                                     <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceToday()))) @Messages("dist.metric.abbr")</td>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceYesterday()))) @Messages("dist.metric.abbr")</td>
+                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistancePastWeek()))) @Messages("dist.metric.abbr")</td>
                                 </tr>
                                 <tr>
                                     <th>Total Validation Users</th>
                                     <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
                                     <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributedYesterday</th>
+                                    <th>@UserDAOSlick.countAllValidationUsersContributedPastWeek</th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
                                     <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedYesterday("Registered")</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Registered")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
                                     <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedYesterday("Anonymous")</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Anonymous")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turkers</td>
                                     <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedYesterday("Turker")</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Turker")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researchers</td>
                                     <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
                                     <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributedYesterday</td>
+                                    <td>@UserDAOSlick.countValidationResearchersContributedPastWeek</td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <th>Total Validations</th>
                                     <th>@LabelValidationTable.countValidations</th>
                                     <th>@LabelValidationTable.countTodayValidations</th>
-                                    <th>@LabelValidationTable.countYesterdayValidations</th>
+                                    <th>@LabelValidationTable.countPastWeekValidations</th>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Agreed</td>
                                     <td>@LabelValidationTable.countValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
                                     <td>@LabelValidationTable.countTodayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
+                                    <td>@LabelValidationTable.countPastWeekValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Disagreed</td>
                                     <td>@LabelValidationTable.countValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
                                     <td>@LabelValidationTable.countTodayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
+                                    <td>@LabelValidationTable.countPastWeekValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Not Sure</td>
                                     <td>@LabelValidationTable.countValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
                                     <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
+                                    <td>@LabelValidationTable.countPastWeekValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
                                 </tr>
                             </table>
                             <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have completed
