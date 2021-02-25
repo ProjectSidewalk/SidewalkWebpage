@@ -201,13 +201,13 @@ authenticate.email = Correo electrónico
 authenticate.password = Contraseña
 authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
-authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
+authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>
 authenticate.confirm.password = Confirmar contraseña
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
-authenticate.is.member = ¿Ya eres miembro? <a href="/signIn">Iniciar sesión ahora</a>
+authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
 authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
 authenticate.error.uhoh = Oh-oh!
@@ -255,11 +255,11 @@ dashboard.labels = Etiquetas
 dashboard.validations = Validaciones
 dashboard.accuracy = Precisión
 dashboard.mission.icon.alt = Usuario de silla de ruedas sosteniendo una bandera
-dashboard.distance.icon.alt = Icono que muestra la trayectoria curva hacia el destino
-dashboard.label.icon.alt = Icono de mapa minimalista con marcador de destino grande
-dashboard.validation.icon.alt = Lista de verificación junto a un lápiz
-dashboard.accuracy.icon.alt = Apunta con una flecha en la diana
-dashboard.accuracy.icon.tooltip = Su precisión de etiquetado. Si se muestra N/A, significa que otros usuarios no han validado suficientes etiquetas.
+dashboard.distance.icon.alt = Icono que muestra el camino curvo hacia el destino
+dashboard.label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
+dashboard.validation.icon.alt = Listado junto a un lápiz
+dashboard.accuracy.icon.alt = Blanco con una flecha en la mira
+dashboard.accuracy.icon.tooltip = Tu precisión de etiquetado. Si se muestra N/A, significa que no se han validado suficientes de tus etiquetas por otras personas usuarias
 dashboard.first = primera
 dashboard.second = segunda
 dashboard.third = tercera
