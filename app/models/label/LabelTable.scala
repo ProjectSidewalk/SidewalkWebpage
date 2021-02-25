@@ -240,29 +240,29 @@ object LabelTable {
   }
 
   /*
-  * Counts the number of labels added yesterday.
+  * Counts the number of labels added during the last week.
   */
-  def countYesterdayLabels: Int = db.withTransaction { implicit session =>
+  def countPastWeekLabels: Int = db.withTransaction { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(label.label_id)
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND label.deleted = false""".stripMargin
     )
     countQuery.list.head
   }
 
   /*
-  * Counts the number of specific label types added yesterday.
+  * Counts the number of specific label types added during the last week.
   * Date: Aug 28, 2016
   */
-  def countYesterdayLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
+  def countPastWeekLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
     val countQuery = s"""SELECT COUNT(label.label_id)
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
+                         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin
