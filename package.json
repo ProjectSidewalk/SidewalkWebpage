@@ -7,7 +7,8 @@
     "grunt-concat-css": "*",
     "grunt-contrib-concat": "*",
     "grunt-contrib-watch": "*",
-    "htmlhint": "^0.14.2"
+    "htmlhint": "^0.14.2",
+    "stylelint": "^13.11.0"
   },
   "scripts": {
     "grunt-concat": "grunt concat && grunt concat_css",
