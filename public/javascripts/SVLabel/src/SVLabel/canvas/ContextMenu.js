@@ -448,7 +448,6 @@ function ContextMenu (uiContextMenu) {
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
-
                         // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
                         $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
 
@@ -490,8 +489,8 @@ function ContextMenu (uiContextMenu) {
                             html: true,
                             delay: { "show": 300, "hide": 10 },
                             height: '130',
-                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='110'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
-                        }));
+                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='125'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
+                        })).tooltip("show").tooltip("hide");
                         count += 1;
                     }
                 });
