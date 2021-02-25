@@ -12,7 +12,11 @@ eslint: | lint-eslint
 
 htmlhint: | lint-htmlhint
 
-lint: | lint-eslint lint-htmlhint
+stylelint: | lint-stylelint
+
+lint: | lint-eslint lint-htmlhint lint-stylelint 
+
+fixlint: | fixlint-eslint fixlint-stylelint
 
 docker-up:
 	@docker-compose up -d
@@ -38,3 +42,12 @@ lint-htmlhint:
 
 lint-eslint: 
 	@./node_modules/eslint/bin/eslint.js $(args) $(dir)
+
+lint-stylelint:
+	@./node_modules/stylelint/bin/stylelint.js $(args) $(dir)
+
+fixlint-eslint: 
+	@./node_modules/eslint/bin/eslint.js --fix $(dir)
+
+fixlint-stylelint:
+	@./node_modules/stylelint/bin/stylelint.js --fix $(dir)
