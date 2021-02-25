@@ -17,7 +17,7 @@ function AdminTask(params) {
         var svg = d3.select(map.getPanes().overlayPane).append('svg');  // The base svg
         var g = svg.append('g').attr('class', 'leaflet-zoom-hide');  // The root group
         
-        // Plays/Pauses the stream
+        // Plays/Pauses the stream.
         $('#control-btn').on('click', function() {
             if (document.getElementById('control-btn').innerHTML === 'Play') {
                 playAnimation();
@@ -37,13 +37,13 @@ function AdminTask(params) {
         
         // The animation is played again by recalculating the stream again from where it stopped.
         function playAnimation() {
-            const SPEEDUP_MULTIPLIER = document.getElementById('speed-multiplier').value;
-            const MAX_WAIT_MS = (document.getElementById('wait-time').value) * 1000;
-            const SKIP_FILL_TIME_MS = (document.getElementById('fill-time').value) * 1000;
+            let speedMultiplier = document.getElementById('speed-multiplier').value;
+            let maxWaitMs = (document.getElementById('wait-time').value) * 1000;
+            let skipFillTimeMs = (document.getElementById('fill-time').value) * 1000;
             // Import the sample data and start animating.
             var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
             d3.json(geojsonURL, function (collection) {
-                animate(collection, lastPaused, SPEEDUP_MULTIPLIER, MAX_WAIT_MS, SKIP_FILL_TIME_MS);
+                animate(collection, lastPaused, speedMultiplier, maxWaitMs, skipFillTimeMs);
             });
             document.getElementById('control-btn').innerHTML = 'Pause';
         }
@@ -61,7 +61,7 @@ function AdminTask(params) {
          *
          * param walkTrajectory A trajectory of a user's auditing activity in a GeoJSON FeatureCollection format.
          */
-        function animate(walkTrajectory, startTime, SPEEDUP_MULTIPLIER, MAX_WAIT_MS, SKIP_FILL_TIME_MS) {
+        function animate(walkTrajectory, startTime, speedMultiplier, maxWaitMs, skipFillTimeMs) {
             // https://github.com/mbostock/d3/wiki/Geo-Streams#stream-transforms
             var initialCoordinate = walkTrajectory.features[startTime].geometry.coordinates;
             var transform = d3.geo.transform({point: projectPoint});
@@ -132,24 +132,24 @@ function AdminTask(params) {
 
             for (let i = 0; i < featuresdata.length; i++) {
                 // This controls the speed.
-                featuresdata[i].properties.timestamp /= SPEEDUP_MULTIPLIER;
+                featuresdata[i].properties.timestamp /= speedMultiplier;
 
                 if (i > 0) {
                     let duration = featuresdata[i].properties.timestamp - featuresdata[i - 1].properties.timestamp;
-                    if (duration > MAX_WAIT_MS) {
+                    if (duration > maxWaitMs) {
                         totalSkips += 1;
                         skippedTime += duration;
-                        duration = SKIP_FILL_TIME_MS;
+                        duration = skipFillTimeMs;
                     }
                     timedata[i] = timedata[i-1] + duration;
-                    console.log(SKIP_FILL_TIME_MS);
+                    console.log(skipFillTimeMs);
                 } else {
                     timedata[i] = 0;
                 }
             }
             timeToPlaybackTask = timedata[featuresdata.length - 1];
-            console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`);
-            console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
+            console.log(`Speed being multiplied by ${speedMultiplier}.`);
+            console.log(`${totalSkips} pauses over ${maxWaitMs / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${skipFillTimeMs / 1000} sec during those.`);
             console.log(`Time to replay task: ${timeToPlaybackTask / 1000} seconds`);
 
             document.getElementById('total-time-label').innerHTML = (timeToPlaybackTask/1000).toFixed(0);
@@ -161,8 +161,8 @@ function AdminTask(params) {
                 currentTimestamp = featuresdata[i].properties.timestamp;
 
                 // If there is a greater than 30 second pause, log to console but only pause for 1 second.
-                if (duration > MAX_WAIT_MS) {
-                    duration = SKIP_FILL_TIME_MS;
+                if (duration > maxWaitMs) {
+                    duration = skipFillTimeMs;
                 }
                 markerGroup = markerGroup.transition()
                     .duration(duration)

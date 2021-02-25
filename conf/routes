@@ -13,6 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
+GET     /gallery                                             @controllers.ApplicationController.gallery
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
@@ -27,7 +28,9 @@ GET     /leaderboard                                         @controllers.Applic
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
+GET     /signInMobile                                        @controllers.UserController.signInMobile(url: String ?= "/")
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
+GET     /signUpMobile                                        @controllers.UserController.signUpMobile(url: String ?= "/")
 GET     /signOut                                             @controllers.UserController.signOut(url: String ?= "/")
 GET     /forgotPassword                                      @controllers.UserController.forgotPassword(url: String ?= "/")
 GET     /resetPassword                                       @controllers.UserController.resetPassword(token: java.util.UUID)
@@ -103,6 +106,8 @@ POST    /task                                                @controllers.TaskCo
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
+POST    /galleryTask                                         @controllers.GalleryTaskController.post
+POST    /galleryTaskBeacon                                   @controllers.GalleryTaskController.postBeacon
 POST    /labelmap/validate                                   @controllers.ValidationTaskController.postLabelMapValidation
 POST    /labelmap/comment                                    @controllers.ValidationTaskController.postLabelMapComment
 
@@ -114,6 +119,8 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
+GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String)
+GET     /label/labelsBySeveritiesAndTags                     @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String)
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods

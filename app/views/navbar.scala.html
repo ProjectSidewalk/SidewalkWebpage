@@ -92,6 +92,7 @@
                         <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
+
                 <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
                     <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                         @Messages("navbar.data")
@@ -107,6 +108,10 @@
                                 <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                             </li>
                         }
+                        <li>
+                            <!-- TODO: Internationalization for sidewalk gallery name -->
+                            <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery">Gallery</a>
+                        </li>
                         <li>
                             <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>
                             @Messages("navbar.leaderboard")
@@ -208,6 +213,9 @@ $(document).ready(function () {
     });
     $("#navbar-labelmap-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelMap");
+    });
+    $("#navbar-gallery-btn").on('click', function() {
+        logWebpageActivity("Click_module=Gallery");
     });
     $("#navbar-leaderboard-btn").on('click', function() {
         logWebpageActivity("Click_module=Leaderboard");

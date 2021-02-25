@@ -14,6 +14,7 @@ coverage/
 bower.json
 component.json
 db/*-dump
+.vscode/settings.json
 
 ### IntelliJ (https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore)
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
@@ -93,6 +94,7 @@ public/javascripts/Help/build/*
 public/javascripts/help/build/*
 public/javascripts/Progress/build/*
 public/javascripts/SVValidate/build/*
+public/javascripts/Gallery/build/*
 download
 
 # Keys
