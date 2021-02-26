@@ -14,9 +14,15 @@ htmlhint: | lint-htmlhint
 
 stylelint: | lint-stylelint
 
-lint: | lint-eslint lint-htmlhint lint-stylelint 
+eslint-fix: | lint-fix-eslint
 
-fixlint: | fixlint-eslint fixlint-stylelint
+stylelint-fix: | lint-fix-stylelint
+
+lint:
+	@make lint-eslint; make lint-htmlhint; make lint-stylelint 
+
+lint-fix:
+	@make lint-fix-eslint; make lint-fix-stylelint
 
 docker-up:
 	@docker-compose up -d
@@ -38,16 +44,16 @@ import-dump:
 	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
 
 lint-htmlhint:
-	@./node_modules/htmlhint/bin/htmlhint $(args) $(dir)
+	@echo "Running HTMLHint..."; ./node_modules/htmlhint/bin/htmlhint $(args) $(dir); echo "Finished Running HTMLHint"
 
 lint-eslint: 
-	@./node_modules/eslint/bin/eslint.js $(args) $(dir)
+	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js $(args) $(dir); echo "Finished Running eslint"
 
 lint-stylelint:
-	@./node_modules/stylelint/bin/stylelint.js $(args) $(dir)
+	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js $(args) $(dir); echo "Finished Running stylelint"
 
-fixlint-eslint: 
-	@./node_modules/eslint/bin/eslint.js --fix $(dir)
+lint-fix-eslint: 
+	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js --fix $(dir); echo "Finished Running eslint"
 
-fixlint-stylelint:
-	@./node_modules/stylelint/bin/stylelint.js --fix $(dir)
+lint-fix-stylelint:
+	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js --fix $(dir); echo "Finished Running stylelint"
