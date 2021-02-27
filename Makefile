@@ -2,7 +2,7 @@
 
 db ?= sidewalk
 
-dir ?= .
+dir ?= ./
 
 args ?= 
 
@@ -43,8 +43,14 @@ ssh:
 import-dump:
 	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
 
-lint-htmlhint:
-	@echo "Running HTMLHint..."; ./node_modules/htmlhint/bin/htmlhint $(args) $(dir); echo "Finished Running HTMLHint"
+lint-htmlhint: 
+	@echo "Running HTMLHint...";
+	@if [ "$(dir)" = "./" ]; then \
+		./node_modules/htmlhint/bin/htmlhint $(args) ./app/views; \
+	else \
+		./node_modules/htmlhint/bin/htmlhint $(args) $(dir); \
+	fi
+	@echo "Finished Running HTMLHint"; 
 
 lint-eslint: 
 	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js $(args) $(dir); echo "Finished Running eslint"
