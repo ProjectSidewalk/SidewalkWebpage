@@ -59,7 +59,7 @@ lint-stylelint:
 	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js $(args) $(dir); echo "Finished Running stylelint"
 
 lint-fix-eslint: 
-	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js --fix $(dir); echo "Finished Running eslint"
+	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir); echo "Finished Running eslint"
 
 lint-fix-stylelint:
-	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js --fix $(dir); echo "Finished Running stylelint"
+	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js --fix $(args) $(dir); echo "Finished Running stylelint"
