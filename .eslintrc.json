@@ -9,6 +9,18 @@
         "ecmaVersion": 7,
         "sourceType": "module"
     },
+    "ignorePatterns": [
+        "*", 
+        "**/*.*", 
+        "!**/*.js", 
+        "!public/", 
+        "!public/javascripts/", 
+        "!public/javascripts/*", 
+        "!public/javascripts/**/*", 
+        "public/javascripts/lib/*",
+        "public/javascripts/common/detectMobileBrowser.js",
+        "public/javascripts/common/isMobile.js"
+    ],
     "rules": {
         "capitalized-comments": ["warn", "always"],
         "comma-style": "error",
