@@ -3,13 +3,14 @@ package models.label
 import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
 import java.util.UUID
-import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskTable}
+import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.RegionTable
-import models.street.{StreetEdgeTable, StreetEdgeRegionTable}
 import models.user.{RoleTable, UserRoleTable}
+import com.vividsolutions.jts.geom.Point
+import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
@@ -84,6 +85,8 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
  * Data access object for the label table.
  */
 object LabelTable {
+
+  import MyPostgresDriver.plainImplicits._
   val db = play.api.db.slick.DB
   val labels = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
@@ -166,6 +169,18 @@ object LabelTable {
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextIntOption, r.nextFloat, r.nextFloat))
+
+  implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
+    ResumeLabelMetadata(
+      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat,
+        r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextTimestampOption, r.nextBoolean, r.nextInt),
+      r.nextString,
+      LabelPoint(r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextInt,
+        r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
+      r.nextInt, r.nextInt, r.nextStringOption, r.nextIntOption, r.nextBooleanOption,
+      r.nextStringOption.map(tags => tags.split(",").map(_.toInt).toList).getOrElse(List())
+    )
+  )
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
@@ -1345,30 +1360,42 @@ object LabelTable {
    * @return list of labels placed by user in region
    */
   def getLabelsFromUserInRegion(regionId: Int, userId: UUID): List[ResumeLabelMetadata] = db.withSession { implicit session =>
-    val _labels = for {
-      _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
-      _lb <- labelsWithoutDeleted if _lb.missionId === _m.missionId
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-      _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.lat.isDefined && _lp.lng.isDefined
-      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-    } yield (_lb, _lt.labelType, _lp, _gd.imageWidth, _gd.imageHeight)
-
-    val addDescriptions = for {
-      (l, d) <- _labels.leftJoin(descriptions).on(_._1.labelId === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, l._5, d.description.?)
-
-    val addSeverity = for {
-      (l, s) <- addDescriptions.leftJoin(severities).on(_._1.labelId === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, l._5, l._6, s.severity.?)
-
-    val addTemporariness = for {
-      (l, t) <- addSeverity.leftJoin(temporariness).on(_._1.labelId === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, t.temporary.?)
-
-    val labelsPlacedByUserInRegion = addTemporariness.list
-    labelsPlacedByUserInRegion.map(label =>
-      ResumeLabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7,
-        label._8, LabelTagTable.selectTagIdsForLabelId(label._1.labelId)))
+    val labelsInRegionQuery = Q.queryNA[ResumeLabelMetadata](
+      s"""SELECT -- Entire label table.
+        |       label.label_id, label.audit_task_id, label.mission_id, label.gsv_panorama_id, label.label_type_id,
+        |       label.photographer_heading, label.photographer_pitch, label.panorama_lat, label.panorama_lng,
+        |       label.deleted, label.temporary_label_id, label.time_created, label.tutorial, label.street_edge_id,
+        |       label_type.label_type,
+        |       -- Entire label_point table.
+        |       label_point_id, label_point.label_id, sv_image_x, sv_image_y, canvas_x, canvas_y, heading, pitch, zoom,
+        |       canvas_height, canvas_width, alpha_x, alpha_y, lat, lng, geom, computation_method,
+        |       -- All the extra stuff.
+        |       gsv_data.image_width, gsv_data.image_height,
+        |       label_description.description,
+        |       label_severity.severity,
+        |       label_temporariness.temporary,
+        |       the_tags.tag_list
+        |FROM mission
+        |INNER JOIN label ON mission.mission_id = label.mission_id
+        |INNER JOIN label_point ON label.label_id = label_point.label_id
+        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+        |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+        |LEFT JOIN label_description on label.label_id = label_description.label_id
+        |LEFT JOIN label_severity on label.label_id = label_severity.label_id
+        |LEFT JOIN label_temporariness on label.label_id = label_temporariness.label_id
+        |LEFT JOIN (
+        |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
+        |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
+        |    FROM label_tag
+        |    GROUP BY label_id
+        |) the_tags
+        |   ON label.label_id = the_tags.label_id
+        |WHERE label.deleted = FALSE
+        |   AND mission.region_id = $regionId
+        |   AND mission.user_id = '${userId.toString}'
+        |   AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL;""".stripMargin
+    )
+    labelsInRegionQuery.list
   }
   
   /**
