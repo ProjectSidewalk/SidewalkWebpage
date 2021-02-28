@@ -79,10 +79,14 @@
     color:#808080;
 }
 
-#landing-legend-percentages-container {
+#legend-percentages-container {
     width: 100%;
     display: flex;
     justify-content: space-between;
+}
+
+#legend-percentages-container label {
+    padding: 0;
 }
 
 
