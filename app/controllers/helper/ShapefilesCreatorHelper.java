@@ -216,21 +216,21 @@ public class ShapefilesCreatorHelper {
                                 + // <- StreetId
                                 "score:Double," 
                                 + // street score
-                                "sCurbRamp:Double,"
+                                "sigRamp:Double,"
                                 + // curb ramp significance score
-                                "sNCurbRamp:Double,"
+                                "sigNoRamp:Double,"
                                 + // no Curb ramp significance score
-                                "sObstacle:Double,"
+                                "sigObs:Double,"
                                 + // obstacle significance score
-                                "sSurfProb:Double," 
+                                "sigSurfce:Double," 
                                 + // Surface problem significance score
-                                "fCurbRamp:Double,"
+                                "nRamp:Double,"
                                 + // curb ramp feature score
-                                "fNCurbRamp:Double,"
+                                "nNoRamp:Double,"
                                 + // no Curb ramp feature score
-                                "fObstacle:Double,"
+                                "nObs:Double,"
                                 + // obstacle feature score
-                                "fSurfProb:Double" // Surface problem feature score
+                                "nSurfce:Double" // Surface problem feature score
                 );
 
 
@@ -418,21 +418,21 @@ public class ShapefilesCreatorHelper {
                                 + // coverage score
                                 "score:Double," 
                                 + // obstacle score
-                                "sCurbRamp:Double,"
+                                "sigRamp:Double,"
                                 + // curb ramp significance score
-                                "sNCurbRamp:Double,"
+                                "sigNoRamp:Double,"
                                 + // no Curb ramp significance score
-                                "sObstacle:Double,"
+                                "sigObs:Double,"
                                 + // obstacle significance score
-                                "sSurfProb:Double," 
+                                "sigSurfce:Double," 
                                 + // Surface problem significance score
-                                "fCurbRamp:Double,"
+                                "nRamp:Double,"
                                 + // curb ramp feature score
-                                "fNCurbRamp:Double,"
+                                "nNoRamp:Double,"
                                 + // no Curb ramp feature score
-                                "fObstacle:Double,"
+                                "nObs:Double,"
                                 + // obstacle feature score
-                                "fSurfProb:Double" // Surface problem feature score
+                                "nSurfce:Double" // Surface problem feature score
 
                 );
 
