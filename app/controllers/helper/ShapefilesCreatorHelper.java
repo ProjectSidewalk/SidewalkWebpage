@@ -22,6 +22,7 @@ import org.locationtech.jts.geom.Coordinate;
 
 import models.attribute.GlobalAttributeForAPI;
 import models.attribute.GlobalAttributeWithLabelForAPI;
+import controllers.NeighborhoodAttributeSignificance;
 
 
 
@@ -403,8 +404,7 @@ public class ShapefilesCreatorHelper {
 
     }
 
-    public static void createNeighborhoodShapefile(String outputFile, List<Neighborhood> neighborhoods, List<Neighborhood.Significance> significances,
-                                                    List<Neighborhood.Attribute> attributes) throws Exception{
+    public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception{
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
          * shapefile.
@@ -457,39 +457,47 @@ public class ShapefilesCreatorHelper {
 
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
-        for(Neighborhood n : neighborhoods){
-            featureBuilder.add(geometryFactory.createPolygon(n.geometry));
-            featureBuilder.add(n.name);
-            featureBuilder.add(n.regionId);
-            featureBuilder.add(n.coverage);
-            featureBuilder.add(n.score);
+        for(NeighborhoodAttributeSignificance n : neighborhoods){
+            featureBuilder.add(geometryFactory.createPolygon(n.geometry()));
+            featureBuilder.add(n.name());
+            featureBuilder.add(n.regionID());
+            featureBuilder.add(n.coverage());
+            featureBuilder.add(n.score());
+            featureBuilder.add(n.significanceScores()[0]);
+            featureBuilder.add(n.significanceScores()[1]);
+            featureBuilder.add(n.significanceScores()[2]);
+            featureBuilder.add(n.significanceScores()[3]);
+            featureBuilder.add(n.attributeScores()[0]);
+            featureBuilder.add(n.attributeScores()[1]);
+            featureBuilder.add(n.attributeScores()[2]);
+            featureBuilder.add(n.attributeScores()[3]);
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
 
-        for (int i = 0; i < neighborhoods.size(); i++) {
-            Neighborhood n = neighborhoods.get(i);
-            Neighborhood.Significance s = significances.get(i);
-            Neighborhood.Attribute f = attributes.get(i);
-            featureBuilder.add(geometryFactory.createPolygon(n.geometry));
-            featureBuilder.add(n.name);
-            featureBuilder.add(n.regionId);
-            featureBuilder.add(n.coverage);
-            featureBuilder.add(n.score);
-            featureBuilder.add(s.curbRamp);
-            featureBuilder.add(s.noCurbRamp);
-            featureBuilder.add(s.obstacle);
-            featureBuilder.add(s.surfaceProblem);
-            featureBuilder.add(f.curbRamp);
-            featureBuilder.add(f.noCurbRamp);
-            featureBuilder.add(f.obstacle);
-            featureBuilder.add(f.surfaceProblem);
+        // for (int i = 0; i < neighborhoods.size(); i++) {
+        //     Neighborhood n = neighborhoods.get(i);
+        //     Neighborhood.Significance s = significances.get(i);
+        //     Neighborhood.Attribute f = attributes.get(i);
+        //     featureBuilder.add(geometryFactory.createPolygon(n.geometry));
+        //     featureBuilder.add(n.name);
+        //     featureBuilder.add(n.regionId);
+        //     featureBuilder.add(n.coverage);
+        //     featureBuilder.add(n.score);
+        //     featureBuilder.add(s.curbRamp);
+        //     featureBuilder.add(s.noCurbRamp);
+        //     featureBuilder.add(s.obstacle);
+        //     featureBuilder.add(s.surfaceProblem);
+        //     featureBuilder.add(f.curbRamp);
+        //     featureBuilder.add(f.noCurbRamp);
+        //     featureBuilder.add(f.obstacle);
+        //     featureBuilder.add(f.surfaceProblem);
 
-            SimpleFeature feature = featureBuilder.buildFeature(null);
-            features.add(feature);
+        //     SimpleFeature feature = featureBuilder.buildFeature(null);
+        //     features.add(feature);
 
-        }
+        // }
 
 
         createGeneralShapeFile(outputFile, TYPE, features);

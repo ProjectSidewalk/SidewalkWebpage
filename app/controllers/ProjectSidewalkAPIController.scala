@@ -1,6 +1,6 @@
 package controllers
 
-import helper.{ Neighborhood, ShapefilesCreatorHelper, Street}
+import helper.{ ShapefilesCreatorHelper, Street}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 
 import scala.collection.JavaConversions._
@@ -45,6 +45,15 @@ import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, 
 import scala.concurrent.Future
 
 
+case class NeighborhoodAttributeSignificance (val name: String,
+                                                val geometry: Array[JTSCoordinate],
+                                                val regionID: Int,
+                                                val coverage: Double,
+                                                val score: Double,
+                                                val attributeScores: Array[Double],
+                                                val significanceScores: Array[Double])
+
+
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -72,6 +81,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     }
   }
+
+  
 
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
@@ -310,33 +321,50 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val significance = Array(0.75, -1.0, -1.0, -1.0)
 
-      val neighborhoodList: Buffer[Neighborhood] = new ArrayBuffer[Neighborhood]
-      val neighborhoodAttributeList: Buffer[Neighborhood.Attribute] = new ArrayBuffer[Neighborhood.Attribute]
-      val neighborhoodSignificanceList: Buffer[Neighborhood.Significance] = new ArrayBuffer[Neighborhood.Significance]
+      val neighborhoodList: Buffer[NeighborhoodAttributeSignificance] = new ArrayBuffer[NeighborhoodAttributeSignificance]
 
       for (neighborhood <- neighborhoods) {
         val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
         val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
+        var coverage: Double = 0.0
+        var accessScore: Double = 0.0
+        var averagedStreetFeatures: Array[Double] = Array(0.0,0.0,0.0,0.0,0.0)
         if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
           val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
-          val averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
-          val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
+          averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
+          accessScore = computeAccessScore(averagedStreetFeatures, significance)
 
           val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
-          val coverage: Double = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
+          coverage = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
 
           assert(coverage <= 1.0)
-          neighborhoodList.add(new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId, coverage, accessScore))
-          neighborhoodAttributeList.add(new Neighborhood.Attribute(neighborhood.regionId, coordinates, averagedStreetFeatures))
-        } else {
+          // neighborhoodList.add(new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId, coverage, accessScore))
+          // neighborhoodAttributeList.add(new Neighborhood.Attribute(neighborhood.regionId, coordinates, averagedStreetFeatures))
+        } 
+        // else {
 
-          neighborhoodList.add( new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId))
+        //   neighborhoodList.add( new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId))
 
-        }
-        neighborhoodSignificanceList.add(new Neighborhood.Significance(neighborhood.regionId, coordinates, significance))
+        // }
+        neighborhoodList.add(new NeighborhoodAttributeSignificance(neighborhood.name.getOrElse("NA"), 
+                                                                  coordinates, 
+                                                                  neighborhood.regionId, 
+                                                                  coverage, 
+                                                                  accessScore, 
+                                                                  averagedStreetFeatures, 
+                                                                  significance))
       }
+      // val attributes = for {
+      //   neighborhood <- neighborhoods
+      //   coordinates = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
+      //   streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
+      //   auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
+      //   accessScore: Double = computeAccessScore(streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray, significance)
+      //   coverage <- allStreetsIntersectingTheNeighborhood.size.toDouble / allStreetEdges.filter(_.geom.intersects(neighborhood.geom)).size.toDouble
+      //               if auditedStreetsIntersectingTheNeighborhood.nonEmpty
+      // }
 
-      ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList, neighborhoodSignificanceList, neighborhoodAttributeList)
+      ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList)
 
 
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"));
