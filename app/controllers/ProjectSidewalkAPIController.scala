@@ -1,6 +1,6 @@
 package controllers
 
-import helper.{Attribute, Label, Neighborhood, ShapefilesCreatorHelper, Street}
+import helper.{ Neighborhood, ShapefilesCreatorHelper, Street}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 
 import scala.collection.JavaConversions._
@@ -131,32 +131,32 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype != None && filetype.get == "shapefile") {
 
-      val attributeList: Buffer[Attribute] = new ArrayBuffer[Attribute];
-      for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        val currAttribute: Attribute = new Attribute();
-        currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
-        currAttribute.id = current.globalAttributeId
-        currAttribute.labelType = current.labelType
-        currAttribute.neighborhood = current.neighborhoodName
-        currAttribute.severity = current.severity.getOrElse(0)
-        currAttribute.temporary = current.temporary
-        attributeList.add(currAttribute);
-      }
+      val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
+      // for (current <- ) {
+      //   val currAttribute: Attribute = new Attribute();
+      //   currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
+      //   currAttribute.id = current.globalAttributeId
+      //   currAttribute.labelType = current.labelType
+      //   currAttribute.neighborhood = current.neighborhoodName
+      //   currAttribute.severity = current.severity.getOrElse(0)
+      //   currAttribute.temporary = current.temporary
+      //   attributeList.add(currAttribute);
+      // }
 
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
 
-      val labelList: Buffer[Label] = new ArrayBuffer[Label]
-      for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)){
-        val currLabel: Label = new Label();
-        currLabel.coordinate = new JTSCoordinate(current.labelLng.toDouble, current.labelLat.toDouble)
-        currLabel.labelId = current.labelId
-        currLabel.attributeId = current.globalAttributeId
-        currLabel.neighborhoodName = current.neighborhoodName
-        currLabel.labelType = current.labelType
-        currLabel.severity = current.labelSeverity.getOrElse(0)
-        currLabel.temporary = current.labelTemporary
-        labelList.add(currLabel)
-      }
+      val labelList: Buffer[GlobalAttributeWithLabelForAPI] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
+      // for(current <- ){
+      //   val currLabel: Label = new Label();
+      //   currLabel.coordinate = new JTSCoordinate(current.labelLng.toDouble, current.labelLat.toDouble)
+      //   currLabel.labelId = current.labelId
+      //   currLabel.attributeId = current.globalAttributeId
+      //   currLabel.neighborhoodName = current.neighborhoodName
+      //   currLabel.labelType = current.labelType
+      //   currLabel.severity = current.labelSeverity.getOrElse(0)
+      //   currLabel.temporary = current.labelTemporary
+      //   labelList.add(currLabel)
+      // }
 
       ShapefilesCreatorHelper.createLabelShapeFile("labels", labelList)
 
@@ -204,17 +204,17 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
 
-      val attributeList: Buffer[Attribute] = new ArrayBuffer[Attribute];
-      for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        val currAttribute: Attribute = new Attribute();
-        currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
-        currAttribute.id = current.globalAttributeId
-        currAttribute.labelType = current.labelType
-        currAttribute.neighborhood = current.neighborhoodName
-        currAttribute.severity = current.severity.getOrElse(0)
-        currAttribute.temporary = current.temporary
-        attributeList.add(currAttribute);
-      }
+      val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
+      // for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
+      //   val currAttribute: Attribute = new Attribute();
+      //   currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
+      //   currAttribute.id = current.globalAttributeId
+      //   currAttribute.labelType = current.labelType
+      //   currAttribute.neighborhood = current.neighborhoodName
+      //   currAttribute.severity = current.severity.getOrElse(0)
+      //   currAttribute.temporary = current.temporary
+      //   attributeList.add(currAttribute);
+      // }
 
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
 
@@ -309,7 +309,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val significance = Array(0.75, -1.0, -1.0, -1.0)
-      // Write each rown in the CSV.
 
       val neighborhoodList: Buffer[Neighborhood] = new ArrayBuffer[Neighborhood]
       val neighborhoodAttributeList: Buffer[Neighborhood.Attribute] = new ArrayBuffer[Neighborhood.Attribute]

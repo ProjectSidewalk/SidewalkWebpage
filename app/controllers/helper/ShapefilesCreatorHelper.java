@@ -18,6 +18,12 @@ import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.locationtech.jts.geom.Coordinate;
+
+import models.attribute.GlobalAttributeForAPI;
+import models.attribute.GlobalAttributeWithLabelForAPI;
+
+
 
 /**
  * This example reads data for point locations and associated attributes from a comma separated text
@@ -86,7 +92,7 @@ public class ShapefilesCreatorHelper {
         }
     }
 
-    public static void createAttributeShapeFile(String outputFile, List<Attribute> attributes) throws Exception {
+    public static void createAttributeShapeFile(String outputFile, List<GlobalAttributeForAPI> attributes) throws Exception {
 
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
@@ -125,13 +131,13 @@ public class ShapefilesCreatorHelper {
 
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
-        for(Attribute a : attributes){
-            featureBuilder.add(geometryFactory.createPoint(a.coordinate));
-            featureBuilder.add(a.id);
-            featureBuilder.add(a.labelType);
-            featureBuilder.add(a.neighborhood);
-            featureBuilder.add(a.severity);
-            featureBuilder.add(a.temporary);
+        for(GlobalAttributeForAPI a : attributes){
+            featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng(), a.lat())));
+            featureBuilder.add(a.globalAttributeId());
+            featureBuilder.add(a.labelType());
+            featureBuilder.add(a.neighborhoodName());
+            featureBuilder.add(a.severity());
+            featureBuilder.add(a.temporary());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
@@ -142,7 +148,7 @@ public class ShapefilesCreatorHelper {
     }
 
 
-    public static void createLabelShapeFile(String outputFile, List<Label> labels) throws Exception {
+    public static void createLabelShapeFile(String outputFile, List<GlobalAttributeWithLabelForAPI> labels) throws Exception {
 
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
@@ -183,14 +189,14 @@ public class ShapefilesCreatorHelper {
 
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
-        for(Label l : labels){
-            featureBuilder.add(geometryFactory.createPoint(l.coordinate));
-            featureBuilder.add(l.labelId);
-            featureBuilder.add(l.attributeId);
-            featureBuilder.add(l.labelType);
-            featureBuilder.add(l.neighborhoodName);
-            featureBuilder.add(l.severity);
-            featureBuilder.add(l.temporary);
+        for(GlobalAttributeWithLabelForAPI l : labels){
+            featureBuilder.add(geometryFactory.createPoint(new Coordinate((double) l.labelLng(), (double) l.labelLat())));
+            featureBuilder.add(l.labelId());
+            featureBuilder.add(l.globalAttributeId());
+            featureBuilder.add(l.labelType());
+            featureBuilder.add(l.neighborhoodName());
+            featureBuilder.add(l.labelSeverity());
+            featureBuilder.add(l.labelTemporary());
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);

@@ -19,12 +19,12 @@ case class GlobalAttribute(globalAttributeId: Int,
                            severity: Option[Int],
                            temporary: Boolean)
 
-case class GlobalAttributeForAPI(globalAttributeId: Int,
-                                 labelType: String,
-                                 lat: Float, lng: Float,
-                                 severity: Option[Int],
-                                 temporary: Boolean,
-                                 neighborhoodName: String) {
+case class GlobalAttributeForAPI(val globalAttributeId: Int,
+                                 val labelType: String,
+                                 val lat: Float, val lng: Float,
+                                 val severity: Option[Int],
+                                 val temporary: Boolean,
+                                 val neighborhoodName: String) {
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -40,24 +40,25 @@ case class GlobalAttributeForAPI(globalAttributeId: Int,
   }
   val attributesToArray = Array(globalAttributeId, labelType, neighborhoodName,
                                 lat.toString, lng.toString, severity.getOrElse("NA").toString, temporary.toString)
+  
 }
 
-case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
-                                          labelType: String,
-                                          attributeLat: Float, attributeLng: Float,
-                                          attributeSeverity: Option[Int],
-                                          attributeTemporary: Boolean,
-                                          neighborhoodName: String,
-                                          labelId: Int,
-                                          labelLat: Float, labelLng: Float,
-                                          gsvPanoramaId: String,
-                                          heading: Float,
-                                          pitch: Float,
-                                          zoom: Int,
-                                          canvasX: Int, canvasY: Int,
-                                          canvasWidth: Int, canvasHeight: Int,
-                                          labelSeverity: Option[Int],
-                                          labelTemporary: Boolean) {
+case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
+                                          val labelType: String,
+                                          val attributeLat: Float, val attributeLng: Float,
+                                          val attributeSeverity: Option[Int],
+                                          val attributeTemporary: Boolean,
+                                          val neighborhoodName: String,
+                                          val labelId: Int,
+                                          val labelLat: Float, labelLng: Float,
+                                          val gsvPanoramaId: String,
+                                          val heading: Float,
+                                          val pitch: Float,
+                                          val zoom: Int,
+                                          val canvasX: Int, val canvasY: Int,
+                                          val canvasWidth: Int, val canvasHeight: Int,
+                                          val labelSeverity: Option[Int],
+                                          val labelTemporary: Boolean) {
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
