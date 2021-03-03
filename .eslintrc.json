@@ -10,16 +10,22 @@
         "sourceType": "module"
     },
     "ignorePatterns": [
-        "*", 
-        "**/*.*", 
-        "!**/*.js", 
-        "!public/", 
-        "!public/javascripts/", 
-        "!public/javascripts/*", 
-        "!public/javascripts/**/*", 
-        "public/javascripts/lib/*",
+        "*",
+        "**/*.*",
+        "!public/",
+        "!public/javascripts/",
+        "!public/javascripts/*",
+        "!public/javascripts/**/*",
+        "public/javascripts/Admin/build/*",
         "public/javascripts/common/detectMobileBrowser.js",
-        "public/javascripts/common/isMobile.js"
+        "public/javascripts/common/isMobile.js",
+        "public/javascripts/common/Panomarker.js",
+        "public/javascripts/Gallery/build/*",
+        "public/javascripts/Help/build/*",
+        "public/javascripts/lib/*",
+        "public/javascripts/Progress/build/*",
+        "public/javascripts/SVLabel/build/*",
+        "public/javascripts/SVValidate/build/*"
     ],
     "rules": {
         "capitalized-comments": ["warn", "always"],
