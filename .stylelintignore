@@ -1,8 +1,8 @@
 *
-**/*.* 
-!**/*.css 
-!public/ 
-!public/stylesheets/ 
+**/*.*
+!**/*.css
+!public/
+!public/stylesheets/
 !public/stylesheets/*
 public/stylesheets/**/*bootstrap**
 public/stylesheets/animate.css
