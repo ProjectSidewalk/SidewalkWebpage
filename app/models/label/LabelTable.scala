@@ -15,7 +15,6 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
-import play.api.Logger
 
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -770,7 +769,7 @@ object LabelTable {
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
+    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
     var potentialStartIdx: Int = 0
 
@@ -864,7 +863,7 @@ object LabelTable {
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
+    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
     val labelTypesAsStrings = LabelTypeTable.validLabelTypes
 
@@ -950,7 +949,7 @@ object LabelTable {
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
+    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
     var potentialStartIdx: Int = 0
 
