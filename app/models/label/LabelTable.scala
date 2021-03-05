@@ -492,10 +492,8 @@ object LabelTable {
   }
 
   def retrieveSingleLabelMetadata(labelId: Int): LabelMetadataWithValidation = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int,(Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
-      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String])](
-      """SELECT lb1.label_id,
+    val selectQuery = Q.queryNA[LabelMetadataWithValidation](
+      s"""SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
         |       gsv_data.image_date,
@@ -514,39 +512,55 @@ object LabelTable {
         |       lb_big.label_type_desc,
         |       lb_big.severity,
         |       lb_big.temp,
-        |       lb_big.description
+        |       lb_big.description,
+        |       lb_val.val_counts,
+        |       lb_big.tag_list
         |FROM sidewalk.label AS lb1,
         |     sidewalk.gsv_data,
         |     sidewalk.audit_task AS at,
         |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
-        |      (
+        |     (
+        |         SELECT array_to_string(array_agg(concat_ws(':', validation_options.text, COALESCE(count, 0))), ',') AS val_counts
+        |         FROM (
+        |             SELECT validation_result, COUNT(label_validation_id) AS count
+        |             FROM label_validation
+        |             WHERE label_id = $labelId
+        |             GROUP BY validation_result
+        |         ) vals
+        |         RIGHT JOIN validation_options ON vals.validation_result = validation_options.validation_option_id
+        |     ) AS lb_val,
+        |     (
         |         SELECT lb.label_id,
         |                lb.gsv_panorama_id,
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
         |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
-        |                lab_desc.description
-        |          FROM label AS lb
-        |          LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |          LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
-        |          LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |          LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
-        |      ) AS lb_big
-        |WHERE lb1.label_id = ?
-        |      AND lb1.audit_task_id = at.audit_task_id
-        |      AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |      AND lb1.label_id = lb_big.label_id
-        |      AND at.user_id = u.user_id
-        |      AND lb1.label_id = lp.label_id
+        |                lab_desc.description,
+        |                the_tags.tag_list
+        |         FROM label AS lb
+        |         LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
+        |         LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
+        |         LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+        |         LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
+        |         LEFT JOIN (
+        |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
+        |             FROM sidewalk.label_tag
+        |             INNER JOIN sidewalk.tag ON label_tag.tag_id = tag.tag_id
+        |             GROUP BY label_id
+        |         ) AS the_tags
+        |             ON lb.label_id = the_tags.label_id
+        |     ) AS lb_big
+        |WHERE lb1.label_id = $labelId
+        |    AND lb1.audit_task_id = at.audit_task_id
+        |    AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+        |    AND lb1.label_id = lb_big.label_id
+        |    AND at.user_id = u.user_id
+        |    AND lb1.label_id = lp.label_id
         |ORDER BY lb1.label_id DESC""".stripMargin
     )
-    val metadata = selectQuery(labelId).list
-    // Add tags and validations metadata separately.
-    val metadataWithTags: LabelMetadata =
-      metadata.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
-    labelAndValidationsToMetadata(metadataWithTags, getValidationsFromLabelId(metadataWithTags.labelId))
+    selectQuery.list.head
   }
 
   /**
@@ -1039,32 +1053,6 @@ object LabelTable {
     )
   }
 
-  /**
-    * Returns a LabelMetadata object that has the label properties as well as the tags.
-    *
-    * @param label label from query
-    * @param tags list of tags as strings
-    * @return LabelMetadata object
-    */
-  def labelAndTagsToLabelMetadata(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String]), tags: List[String]): LabelMetadata = {
-    LabelMetadata(
-      label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8, label._9, label._10,label._11,
-      label._12,label._13,label._14,label._15,label._16, label._17, label._18, label._19, label._20, tags
-    )
-  }
-
-  /**
-   * Returns a labelAndValidationsToMetadata object that has the label properties as well as the validation counts.
-   */
-  def labelAndValidationsToMetadata(label: LabelMetadata, validations: Map[String, Int]): LabelMetadataWithValidation = {
-    LabelMetadataWithValidation(
-      label.labelId, label.gsvPanoramaId, label.tutorial, label.imageDate, label.heading, label.pitch, label.zoom,
-      label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.auditTaskId, label.userId,
-      label.username, label.timestamp, label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary,
-      label.description, validations, label.tags
-    )
-  }
-
   def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadataWithValidation): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
@@ -1137,24 +1125,6 @@ object LabelTable {
           |)""".stripMargin
       )
       getTagsQuery(labelId).list
-  }
-
-  /**
-   * Returns validation counts for a label ("agree" -> Int, "diagree" -> Int, "unclear" -> Int).
-   */
-  def getValidationsFromLabelId(labelId: Int): Map[String, Int] = db.withSession {implicit session =>
-    val getValidationsQuery = Q.query[Int, (String, Int)](
-      """SELECT validation_options.text, COALESCE(count, 0)
-        |From (
-        |    SELECT validation_result, COUNT(label_validation_id) AS count
-        |    FROM label_validation
-        |    WHERE label_id = ?
-        |    GROUP BY validation_result
-        |) validations
-        |RIGHT JOIN validation_options ON validations.validation_result = validation_options.validation_option_id
-        |ORDER BY validation_option_id""".stripMargin
-    )
-    getValidationsQuery(labelId).list.toMap
   }
 
   /*
