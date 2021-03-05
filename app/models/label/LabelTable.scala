@@ -175,6 +175,14 @@ object LabelTable {
     LabelValidationMetadataWithoutTags(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt,
                                        r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption))
 
+  implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
+    LabelValidationMetadata(
+      r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+      r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption,
+      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+    )
+  )
+
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
@@ -602,15 +610,15 @@ object LabelTable {
     */
   def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-    var potentialLabels: List[LabelValidationMetadataWithoutTags] = List()
+    var potentialLabels: List[LabelValidationMetadata] = List()
     val userIdStr = userId.toString
 
     while (selectedLabels.length < n) {
-      val selectRandomLabelsQuery = Q.query[(String, Int, Int, String, String, Int), LabelValidationMetadataWithoutTags] (
-        """SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
-          |       label_point.zoom, label_point.canvas_x, label_point.canvas_y,
-          |       label_point.canvas_width, label_point.canvas_height,
-          |       label_severity.severity, label_temporariness.temporary, label_description.description
+      val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
+        s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
+          |        label_point.zoom, label_point.canvas_x, label_point.canvas_y, label_point.canvas_width,
+          |        label_point.canvas_height, label_severity.severity, label_temporariness.temporary,
+          |        label_description.description, the_tags.tag_list
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -622,10 +630,9 @@ object LabelTable {
           |    FROM label
           |    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
           |    WHERE label.deleted = FALSE
-          |        AND (label_validation.user_id <> ? OR label_validation.user_id IS NULL)
+          |        AND (label_validation.user_id <> '$userIdStr' OR label_validation.user_id IS NULL)
           |    GROUP BY label.label_id
-          |) counts
-          |    ON label.label_id = counts.label_id
+          |) counts ON label.label_id = counts.label_id
           |LEFT JOIN label_severity ON label.label_id = label_severity.label_id
           |LEFT JOIN label_temporariness ON label.label_id = label_temporariness.label_id
           |LEFT JOIN label_description ON label.label_id = label_description.label_id
@@ -639,26 +646,31 @@ object LabelTable {
           |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
           |    WHERE mission.mission_type_id = 2
           |        AND label.deleted = FALSE
-          |        AND label.label_type_id = ?
+          |        AND label.label_type_id = $labelTypeId
           |    GROUP BY mission.user_id
-          |) needs_validations_query
-          |    ON mission.user_id = needs_validations_query.user_id
-          |WHERE label.label_type_id = ?
+          |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
+          |LEFT JOIN (
+          |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
+          |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
+          |    FROM label_tag
+          |    GROUP BY label_id
+          |) the_tags ON label.label_id = the_tags.label_id
+          |WHERE label.label_type_id = $labelTypeId
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
           |    AND gsv_data.expired = FALSE
-          |    AND mission.user_id <> ?
+          |    AND mission.user_id <> '$userIdStr'
           |    AND label.label_id NOT IN (
           |        SELECT label_id
           |        FROM label_validation
-          |        WHERE user_id = ?
+          |        WHERE user_id = '$userIdStr'
           |    )
           |-- Prioritize labels that have been validated fewer times and from users who have had less than 10
           |-- validations of this label type, then randomize it.
           |ORDER BY counts.validation_count, COALESCE(needs_validations, TRUE) DESC, RANDOM()
-          |LIMIT ?""".stripMargin
+          |LIMIT ${n * 5}""".stripMargin
       )
-      potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, userIdStr, n * 5)).list
+      potentialLabels = selectRandomLabelsQuery.list
 
       // Remove label that was just skipped (if one was skipped).
       potentialLabels = potentialLabels.filter(_.labelId != skippedLabelId.getOrElse(-1))
@@ -683,7 +695,7 @@ object LabelTable {
               val now = new DateTime(DateTimeZone.UTC)
               val timestamp: Timestamp = new Timestamp(now.getMillis)
               GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-              Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
+              Some(currLabel)
             } else {
               GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
               None
