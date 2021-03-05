@@ -152,7 +152,16 @@ object LabelTable {
 
   case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
 
-  implicit val labelMetadataWithValidationConverted = GetResult[LabelMetadataWithValidation](r =>
+  implicit val labelMetadataConverter = GetResult[LabelMetadata](r =>
+    LabelMetadata(
+      r.nextInt, r.nextString, r.nextBoolean, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt,
+      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestampOption, r.nextString, r.nextString,
+      r.nextIntOption, r.nextBoolean, r.nextStringOption,
+      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+    )
+  )
+
+  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadataWithValidation](r =>
     LabelMetadataWithValidation(
       r.nextInt, r.nextString, r.nextBoolean, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt,
       r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestampOption, r.nextString, r.nextString,
@@ -419,9 +428,7 @@ object LabelTable {
   }
 
   def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.query[(String, Int),(Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
-      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String])](
+    val selectQuery = Q.query[(String, Int), LabelMetadata](
       """SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
@@ -441,38 +448,47 @@ object LabelTable {
         |       lb_big.label_type_desc,
         |       lb_big.severity,
         |       lb_big.temp,
-        |       lb_big.description
+        |       lb_big.description,
+        |       lb_big.tag_list
         |FROM sidewalk.label AS lb1,
         |     sidewalk.gsv_data,
         |     sidewalk.audit_task AS at,
         |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
-        |      (
+        |     (
         |         SELECT lb.label_id,
         |                lb.gsv_panorama_id,
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
         |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
-        |                lab_desc.description
-        |          FROM label AS lb
-        |          LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |          LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
-        |          LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |          LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
-        |      ) AS lb_big
+        |                lab_desc.description,
+        |                the_tags.tag_list
+        |         FROM label AS lb
+        |         LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
+        |         LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
+        |         LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+        |         LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
+        |         LEFT JOIN (
+        |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
+        |             FROM sidewalk.label_tag
+        |             INNER JOIN sidewalk.tag ON label_tag.tag_id = tag.tag_id
+        |             GROUP BY label_id
+        |         ) AS the_tags
+        |             ON lb.label_id = the_tags.label_id
+        |     ) AS lb_big
         |WHERE u.user_id = ?
-        |      AND lb1.deleted = FALSE
-        |      AND lb1.tutorial = FALSE
-        |      AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |      AND lb1.audit_task_id = at.audit_task_id
-        |      AND lb1.label_id = lb_big.label_id
-        |      AND at.user_id = u.user_id
-        |      AND lb1.label_id = lp.label_id
+        |    AND lb1.deleted = FALSE
+        |    AND lb1.tutorial = FALSE
+        |    AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+        |    AND lb1.audit_task_id = at.audit_task_id
+        |    AND lb1.label_id = lb_big.label_id
+        |    AND at.user_id = u.user_id
+        |    AND lb1.label_id = lp.label_id
         |ORDER BY lb1.label_id DESC
         |LIMIT ?""".stripMargin
     )
-    selectQuery((userId, takeN)).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
+    selectQuery((userId, takeN)).list
   }
 
   def retrieveSingleLabelMetadata(labelId: Int): LabelMetadataWithValidation = db.withSession { implicit session =>
