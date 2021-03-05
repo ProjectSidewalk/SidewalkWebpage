@@ -722,7 +722,6 @@ object LabelTable {
   def retrieveLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String]): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
     // List to return.
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-    Logger.debug("Grabbing labels by type severity and tags");
 
     // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
@@ -818,7 +817,6 @@ object LabelTable {
   def retrieveAssortedLabels(n: Int, loadedLabelIds: Set[Int], severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
     // List to return.
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-    Logger.debug("Grabbing random assortment of labels");
 
     // Init random function
     val rand = SimpleFunction.nullary[Double]("random")
@@ -865,22 +863,17 @@ object LabelTable {
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
-    Logger.debug(addDescriptions.list.size + " addDescriptions")
-
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
 
     val labelTypesAsStrings = LabelTypeTable.validLabelTypes
 
     for (labelType <- labelTypesAsStrings) {
-      Logger.debug("in the loop")
       val labelsFilteredByType = newRandomLabelsList.filter(label => label.labelType == labelType)
-      Logger.debug(labelsFilteredByType.size + " filtered by type size")
       val selectedLabelsOfType: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
       var potentialStartIdx: Int = 0
 
       while (selectedLabelsOfType.length < (n / labelTypesAsStrings.size) + 1 && potentialStartIdx < labelsFilteredByType.size) {
-        Logger.debug("entered the loop with " + selectedLabelsOfType.length + " labels")
         val labelsNeeded: Int = (n / labelTypesAsStrings.size) + 1 - selectedLabelsOfType.length
         val newLabels: Seq[LabelValidationMetadata] =
           labelsFilteredByType.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
@@ -956,14 +949,10 @@ object LabelTable {
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
-    Logger.debug(addDescriptions.list.size + " addDescriptions")
-
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
 
     var potentialStartIdx: Int = 0
-
-    Logger.debug(newRandomLabelsList.size + "")
 
     // While the desired query size has not been met and there are still possibly valid labels to consider, traverse
     // through the list incrementally and see if a potentially valid label has pano data for viewability.
