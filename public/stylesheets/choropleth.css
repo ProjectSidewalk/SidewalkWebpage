@@ -27,27 +27,68 @@
     word-wrap: break-word;
 }
 
-#legend {
+#results-legend {
     display: block;
     position: absolute;
-    right: 20px;
+    right: 26px;
     top: 10px;
     background: rgb(255, 255, 255);
     width: 375px;
     font-family: 'Raleway', sans-serif;
-    padding: 10px;
+    padding: 10px 10px 0px 10px;
 }
 
-.legend label,
+#landing-legend {
+    display: block;
+    position: absolute;
+    left: 30px;
+    bottom: 10px;
+    background: rgb(255, 255, 255);
+    width: 325px;
+    font-family: 'Raleway', sans-serif;
+    padding: 8px 8px 0px 8px;
+}
+
+#admin-percentage-legend {
+    display: block;
+    position: absolute;
+    left: 30px;
+    bottom: 10px;
+    background: rgb(255, 255, 255);;
+    width: 325px;
+    font-family: 'Raleway', sans-serif;
+    padding: 6px 6px 0px 6px;
+}
+
 .legend span {
     display:block;
     float:right;
     height:15px;
-    width:10%;
+    width: 10%;
     text-align:left;
     font-size:16px;
     color:#808080;
 }
+
+.legend label {
+    display:block;
+    float:right;
+    height:15px;
+    text-align:left;
+    font-size:16px;
+    color:#808080;
+}
+
+#legend-percentages-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
+#legend-percentages-container label {
+    padding: 0;
+}
+
 
 .clearfix {
     width: 100%;

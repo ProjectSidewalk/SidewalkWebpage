@@ -9,7 +9,7 @@
         position: relative;">
         <div id="map-holder">
             <div id="choropleth"></div>
-            <div id="legend" style="display: none">
+            <div id="results-legend" style="display: none">
                 <strong style="font-size: 18px">@Messages("results.problems.per.mile")</strong>
                 <nav class='legend clearfix'>
                     <span style='background:#99000a;'></span>
@@ -22,16 +22,10 @@
                     <span style='background:#ff6670;'></span>
                     <span style='background:#ff8088;'></span>
                     <span style='background:#ff99a0;'></span>
-                    <label style='font-size: 14px; text-align: right;'>@Messages("results.legend.high")</label>
-                    <label></label>
-                    <label></label>
-                    <label></label>
-                    <label></label>
-                    <label></label>
-                    <label></label>
-                    <label></label>
-                    <label></label>
-                    <label style='font-size: 14px;'>@Messages("results.legend.low")</label>
+                    <div id="legend-percentages-container">
+                        <label style='font-size: 14px;'>@Messages("results.legend.low")</label>
+                        <label style='font-size: 14px; text-align: right;'>@Messages("results.legend.high")</label>
+                    </div>
                 </nav>
                 <div>
                     <p style="font-size: 11px;margin-top: 7px;line-height: 14px;">@Messages("results.legend.body")</div>
