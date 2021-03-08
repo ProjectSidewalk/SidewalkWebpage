@@ -483,7 +483,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function next(nextState) {
         if (typeof nextState == "function") {
-            var nextStateId = nextState.call(this);
+            // var nextStateId = nextState.call(this);
             status.state = getState(nextState.call(this));
             _visit(status.state);
         } else if (nextState in states) {
