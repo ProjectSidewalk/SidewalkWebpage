@@ -1,0 +1,116 @@
+---
+###########################
+###########################
+## Linter GitHub Actions ##
+###########################
+###########################
+name: Lint Code Base
+
+#
+# Documentation:
+# https://help.github.com/en/articles/workflow-syntax-for-github-actions
+#
+
+#############################
+# Start the job on all push #
+#############################
+on:
+  push:
+    branches-ignore: [master]
+    # Remove the line above to run when pushing to master
+  pull_request:
+    branches: [master]
+
+###############
+# Set the Job #
+###############
+jobs:
+  build:
+    # Name the Job
+    name: Lint Code Base
+    # Set the agent to run on
+    runs-on: ubuntu-latest
+
+    ##################
+    # Load all steps #
+    ##################
+    steps:
+      ##########################
+      # Checkout the code base #
+      ##########################
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+
+      ################################
+      # Run Linter against code base #
+      ################################
+      - name: Lint Code Base
+        uses: github/super-linter@v3
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          LINTER_RULES_PATH: /
+          VALIDATE_ANSIBLE: false
+          VALIDATE_ARM: false
+          VALIDATE_BASH: false
+          VALIDATE_BASH_EXEC: false
+          VALIDATE_CLOJURE: false
+          VALIDATE_CLOUDFORMATION: false
+          VALIDATE_COFFEE: false
+          VALIDATE_CSHARP: false
+          VALIDATE_CSS: false
+          VALIDATE_DART: false
+          VALIDATE_DOCKERFILE: false
+          VALIDATE_DOCKERFILE_HADOLINT: false
+          VALIDATE_EDITORCONFIG: false
+          VALIDATE_ENV: false
+          VALIDATE_GHERKIN: false
+          VALIDATE_GO: false
+          VALIDATE_GROOVY: false
+          # VALIDATE_HTML: false
+          VALIDATE_JAVA: false
+          # VALIDATE_JAVASCRIPT_ES: false
+          VALIDATE_JAVASCRIPT_STANDARD: false
+          # VALIDATE_JSON: false 
+          VALIDATE_JSX: false
+          VALIDATE_KOTLIN: false
+          VALIDATE_KUBERNETES_KUBEVAL: false
+          VALIDATE_LATEX: false
+          VALIDATE_LUA: false
+          VALIDATE_MARKDOWN: false
+          VALIDATE_OPENAPI: false
+          VALIDATE_PERL: false
+          VALIDATE_PHP: false
+          VALIDATE_PHP_BUILTIN: false
+          VALIDATE_PHP_PHPCS: false
+          VALIDATE_PHP_PHPSTAN: false
+          VALIDATE_PHP_PSALM: false
+          VALIDATE_PROTOBUF: false
+          VALIDATE_PYTHON: false
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_FLAKE8: false
+          VALIDATE_PYTHON_ISORT: false
+          VALIDATE_PYTHON_PYLINT: false
+          VALIDATE_POWERSHELL: false
+          VALIDATE_R: false
+          VALIDATE_RAKU: false
+          VALIDATE_RUBY: false
+          VALIDATE_SHELL_SHFMT: false
+          VALIDATE_SNAKEMAKE_LINT: false
+          VALIDATE_SNAKEMAKE_SNAKEFMT: false
+          VALIDATE_STATES: false
+          VALIDATE_SQL: false
+          VALIDATE_TEKTON: false
+          VALIDATE_TERRAFORM: false
+          VALIDATE_TERRAFORM_TERRASCAN: false
+          VALIDATE_TERRAGRUNT: false
+          VALIDATE_TSX: false
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_TYPESCRIPT_STANDARD: false
+          VALIDATE_XML: false
+          VALIDATE_YAML: false
+          JAVASCRIPT_ES_CONFIG_FILE: .eslintrc.json
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

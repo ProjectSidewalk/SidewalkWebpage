@@ -243,6 +243,7 @@ function initializeSubmittedLabels(map, southwest, northeast) {
                 map.removeLayer( featureLayer );
             } else if (map.getZoom() >= 15 ){
                 map.addLayer( featureLayer );
+                
             }
         });
     });
