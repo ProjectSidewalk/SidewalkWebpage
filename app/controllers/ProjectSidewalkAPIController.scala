@@ -1,6 +1,6 @@
 package controllers
 
-import helper.{ ShapefilesCreatorHelper, Street}
+import helper.ShapefilesCreatorHelper
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 
 import scala.collection.JavaConversions._
@@ -52,6 +52,12 @@ case class NeighborhoodAttributeSignificance (val name: String,
                                                 val score: Double,
                                                 val attributeScores: Array[Double],
                                                 val significanceScores: Array[Double])
+
+case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
+                                      val streetID: Int,
+                                      val score: Double,
+                                      val attributeScores: Array[Double],
+                                      val significanceScores: Array[Double])
 
 
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
@@ -143,31 +149,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     } else if (filetype != None && filetype.get == "shapefile") {
 
       val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
-      // for (current <- ) {
-      //   val currAttribute: Attribute = new Attribute();
-      //   currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
-      //   currAttribute.id = current.globalAttributeId
-      //   currAttribute.labelType = current.labelType
-      //   currAttribute.neighborhood = current.neighborhoodName
-      //   currAttribute.severity = current.severity.getOrElse(0)
-      //   currAttribute.temporary = current.temporary
-      //   attributeList.add(currAttribute);
-      // }
 
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
 
       val labelList: Buffer[GlobalAttributeWithLabelForAPI] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
-      // for(current <- ){
-      //   val currLabel: Label = new Label();
-      //   currLabel.coordinate = new JTSCoordinate(current.labelLng.toDouble, current.labelLat.toDouble)
-      //   currLabel.labelId = current.labelId
-      //   currLabel.attributeId = current.globalAttributeId
-      //   currLabel.neighborhoodName = current.neighborhoodName
-      //   currLabel.labelType = current.labelType
-      //   currLabel.severity = current.labelSeverity.getOrElse(0)
-      //   currLabel.temporary = current.labelTemporary
-      //   labelList.add(currLabel)
-      // }
 
       ShapefilesCreatorHelper.createLabelShapeFile("labels", labelList)
 
@@ -216,16 +201,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     } else if (filetype.isDefined && filetype.get == "shapefile") {
 
       val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
-      // for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-      //   val currAttribute: Attribute = new Attribute();
-      //   currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
-      //   currAttribute.id = current.globalAttributeId
-      //   currAttribute.labelType = current.labelType
-      //   currAttribute.neighborhood = current.neighborhoodName
-      //   currAttribute.severity = current.severity.getOrElse(0)
-      //   currAttribute.temporary = current.temporary
-      //   attributeList.add(currAttribute);
-      // }
 
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
 
@@ -320,9 +295,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val significance = Array(0.75, -1.0, -1.0, -1.0)
-
       val neighborhoodList: Buffer[NeighborhoodAttributeSignificance] = new ArrayBuffer[NeighborhoodAttributeSignificance]
-
       for (neighborhood <- neighborhoods) {
         val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
         val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
@@ -333,19 +306,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
           averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
           accessScore = computeAccessScore(averagedStreetFeatures, significance)
-
           val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
           coverage = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
 
           assert(coverage <= 1.0)
-          // neighborhoodList.add(new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId, coverage, accessScore))
-          // neighborhoodAttributeList.add(new Neighborhood.Attribute(neighborhood.regionId, coordinates, averagedStreetFeatures))
         } 
-        // else {
-
-        //   neighborhoodList.add( new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId))
-
-        // }
         neighborhoodList.add(new NeighborhoodAttributeSignificance(neighborhood.name.getOrElse("NA"), 
                                                                   coordinates, 
                                                                   neighborhood.regionId, 
@@ -354,23 +319,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                                                                   averagedStreetFeatures, 
                                                                   significance))
       }
-      // val attributes = for {
-      //   neighborhood <- neighborhoods
-      //   coordinates = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
-      //   streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
-      //   auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
-      //   accessScore: Double = computeAccessScore(streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray, significance)
-      //   coverage <- allStreetsIntersectingTheNeighborhood.size.toDouble / allStreetEdges.filter(_.geom.intersects(neighborhood.geom)).size.toDouble
-      //               if auditedStreetsIntersectingTheNeighborhood.nonEmpty
-      // }
-
       ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList)
-
-
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"));
-
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-
     } else {  // In GeoJSON format.
       Future.successful(Ok(getAccessScoreNeighborhoodsJson(version = 2, coordinates)))
     }
@@ -573,26 +524,17 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
     } else if (filetype != None && filetype.get == "shapefile"){
-      val streetVals: Buffer[Street] = new ArrayBuffer[Street]()
-      val streetAttributeList: Buffer[Street.Attribute] = new ArrayBuffer[Street.Attribute]()
-      val streetSignificanceList: Buffer[Street.Significance] = new ArrayBuffer[Street.Significance]()
+      val streetBuffer: Buffer[StreetAttributeSignificance] = new ArrayBuffer[StreetAttributeSignificance]
       for(streetAccessScore <- streetAccessScores){
-        val currGeom = streetAccessScore.streetEdge.geom.getCoordinates()
-        val streetId: Int = streetAccessScore.streetEdge.streetEdgeId
-        val coords: Array[JTSCoordinate] = currGeom.map(c => new JTSCoordinate(c.x, c.y))
-        val currStreet: Street = new Street()
-        currStreet.geometry = coords
-        currStreet.streetId = streetId
-        currStreet.score = streetAccessScore.score
-        streetVals.add(currStreet)
-
-        val currAttribute: Street.Attribute = new Street.Attribute(streetId, coords, streetAccessScore.attributes)
-        val currSignificance: Street.Significance = new Street.Significance(streetId, coords, streetAccessScore.significance)
-
-        streetAttributeList.add(currAttribute)
-        streetSignificanceList.add(currSignificance)
+        streetBuffer.add(
+          new StreetAttributeSignificance(
+            streetAccessScore.streetEdge.geom.getCoordinates().map(c => new JTSCoordinate(c.x, c.y)),
+            streetAccessScore.streetEdge.streetEdgeId,
+            streetAccessScore.score,
+            streetAccessScore.attributes,
+            streetAccessScore.significance))
       }
-      ShapefilesCreatorHelper.createStreetShapefile("streetValues", streetVals, streetAttributeList, streetSignificanceList)
+      ShapefilesCreatorHelper.createStreetShapefile("streetValues", streetBuffer)
 
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("streetScore", Array.apply("streetValues"))
 

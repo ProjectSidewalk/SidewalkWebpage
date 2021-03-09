@@ -23,6 +23,7 @@ import org.locationtech.jts.geom.Coordinate;
 import models.attribute.GlobalAttributeForAPI;
 import models.attribute.GlobalAttributeWithLabelForAPI;
 import controllers.NeighborhoodAttributeSignificance;
+import controllers.StreetAttributeSignificance;
 
 
 
@@ -207,7 +208,7 @@ public class ShapefilesCreatorHelper {
         createGeneralShapeFile(outputFile, TYPE, features);
     }
 
-    public static void createStreetShapefile(String outputFile, List<Street> streets, List<Street.Attribute> attributes, List<Street.Significance> significances) throws Exception{
+    public static void createStreetShapefile(String outputFile, List<StreetAttributeSignificance> streets) throws Exception{
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
          * shapefile.
@@ -265,139 +266,25 @@ public class ShapefilesCreatorHelper {
         // }
 
         for (int i = 0; i < streets.size(); i++) {
-            Street s = streets.get(i);
-            Street.Attribute a = attributes.get(i);
-            Street.Significance si = significances.get(i);
+            StreetAttributeSignificance s = streets.get(i);
 
-            featureBuilder.add(geometryFactory.createLineString(s.geometry));
-            featureBuilder.add(s.streetId);
-            featureBuilder.add(s.score);
-            featureBuilder.add(si.curbRamp);
-            featureBuilder.add(si.noCurbRamp);
-            featureBuilder.add(si.obstacle);
-            featureBuilder.add(si.surfaceProblem);
-            featureBuilder.add(a.curbRamp);
-            featureBuilder.add(a.noCurbRamp);
-            featureBuilder.add(a.obstacle);
-            featureBuilder.add(a.surfaceProblem);
+            featureBuilder.add(geometryFactory.createLineString(s.geometry()));
+            featureBuilder.add(s.streetID());
+            featureBuilder.add(s.score());
+            featureBuilder.add(s.significanceScores()[0]);
+            featureBuilder.add(s.significanceScores()[1]);
+            featureBuilder.add(s.significanceScores()[2]);
+            featureBuilder.add(s.significanceScores()[3]);
+            featureBuilder.add(s.attributeScores()[0]);
+            featureBuilder.add(s.attributeScores()[1]);
+            featureBuilder.add(s.attributeScores()[2]);
+            featureBuilder.add(s.attributeScores()[3]);
 
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
 
         }
-
-
-        createGeneralShapeFile(outputFile, TYPE, features);
-
-    }
-
-    public static void createStreetAttributeShapefile(String outputFile, List<Street.Attribute> streets) throws Exception{
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
-        final SimpleFeatureType TYPE =
-                DataUtilities.createType(
-                        "Location",
-                            "the_geom:LineString:srid=4326,"
-                                + // line geometry
-                                "streetId:Integer,"
-                                + // <- StreetId
-                                "curbRamp:Double,"
-                                + // <- curb ramp score
-                                "noCurbRamp:Double,"
-                                + // no Curb ramp score
-                                "obstacle:Double,"
-                                + // obstacle score
-                                "surfProb:Double" // Surface problem score
-                );
-
-
-
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
-        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for(Street.Attribute s : streets){
-            featureBuilder.add(geometryFactory.createLineString(s.geometry));
-            featureBuilder.add(s.streetId);
-            featureBuilder.add(s.curbRamp);
-            featureBuilder.add(s.noCurbRamp);
-            featureBuilder.add(s.obstacle);
-            featureBuilder.add(s.surfaceProblem);
-
-            SimpleFeature feature = featureBuilder.buildFeature(null);
-            features.add(feature);
-        }
-
-
-
-        createGeneralShapeFile(outputFile, TYPE, features);
-
-    }
-
-    public static void createStreetSignificanceShapefile(String outputFile, List<Street.Significance> streets) throws Exception{
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
-        final SimpleFeatureType TYPE =
-                DataUtilities.createType(
-                        "Location",
-                        "the_geom:LineString:srid=4326,"
-                                + // line geometry
-                                "streetId:Integer,"
-                                + // <- StreetId
-                                "curbRamp:Double,"
-                                + // <- curb ramp score
-                                "noCurbRamp:Double,"
-                                + // no Curb ramp score
-                                "obstacle:Double,"
-                                + // obstacle score
-                                "surfProb:Double" // Surface problem score
-                );
-
-
-
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
-        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for(Street.Significance s : streets){
-            featureBuilder.add(geometryFactory.createLineString(s.geometry));
-            featureBuilder.add(s.streetId);
-            featureBuilder.add(s.curbRamp);
-            featureBuilder.add(s.noCurbRamp);
-            featureBuilder.add(s.obstacle);
-            featureBuilder.add(s.surfaceProblem);
-
-            SimpleFeature feature = featureBuilder.buildFeature(null);
-            features.add(feature);
-        }
-
 
 
         createGeneralShapeFile(outputFile, TYPE, features);
@@ -475,147 +362,10 @@ public class ShapefilesCreatorHelper {
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
-
-        // for (int i = 0; i < neighborhoods.size(); i++) {
-        //     Neighborhood n = neighborhoods.get(i);
-        //     Neighborhood.Significance s = significances.get(i);
-        //     Neighborhood.Attribute f = attributes.get(i);
-        //     featureBuilder.add(geometryFactory.createPolygon(n.geometry));
-        //     featureBuilder.add(n.name);
-        //     featureBuilder.add(n.regionId);
-        //     featureBuilder.add(n.coverage);
-        //     featureBuilder.add(n.score);
-        //     featureBuilder.add(s.curbRamp);
-        //     featureBuilder.add(s.noCurbRamp);
-        //     featureBuilder.add(s.obstacle);
-        //     featureBuilder.add(s.surfaceProblem);
-        //     featureBuilder.add(f.curbRamp);
-        //     featureBuilder.add(f.noCurbRamp);
-        //     featureBuilder.add(f.obstacle);
-        //     featureBuilder.add(f.surfaceProblem);
-
-        //     SimpleFeature feature = featureBuilder.buildFeature(null);
-        //     features.add(feature);
-
-        // }
-
-
         createGeneralShapeFile(outputFile, TYPE, features);
 
     }
 
-
-    public static void createNeighborhoodAttributeShapefile(String outputFile, List<Neighborhood.Attribute> neighborhoods) throws Exception{
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
-        final SimpleFeatureType TYPE =
-                DataUtilities.createType(
-                        "Location",
-                        "the_geom:LineString:srid=4326,"
-                                + // line geometry
-                                "regionId:Integer,"
-                                + // <- StreetId
-                                "curbRamp:Double,"
-                                + // <- curb ramp score
-                                "noCurbRamp:Double,"
-                                + // no Curb ramp score
-                                "obstacle:Double,"
-                                + // obstacle score
-                                "surfProb:Double" // Surface problem score
-                );
-
-
-
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
-        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for(Neighborhood.Attribute n : neighborhoods){
-            featureBuilder.add(geometryFactory.createPolygon(n.geometry));
-            featureBuilder.add(n.regionId);
-            featureBuilder.add(n.curbRamp);
-            featureBuilder.add(n.noCurbRamp);
-            featureBuilder.add(n.obstacle);
-            featureBuilder.add(n.surfaceProblem);
-
-            SimpleFeature feature = featureBuilder.buildFeature(null);
-            features.add(feature);
-        }
-
-
-
-        createGeneralShapeFile(outputFile, TYPE, features);
-
-    }
-
-    public static void createNeighborhoodSignificanceShapefile(String outputFile, List<Neighborhood.Significance> neighborhoods) throws Exception{
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
-        final SimpleFeatureType TYPE =
-                DataUtilities.createType(
-                        "Location",
-                        "the_geom:LineString:srid=4326,"
-                                + // line geometry
-                                "regionId:Integer,"
-                                + // <- StreetId
-                                "curbRamp:Double,"
-                                + // <- curb ramp score
-                                "noCurbRamp:Double,"
-                                + // no Curb ramp score
-                                "obstacle:Double,"
-                                + // obstacle score
-                                "surfProb:Double" // Surface problem score
-                );
-
-
-
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
-        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for(Neighborhood.Significance n : neighborhoods){
-            featureBuilder.add(geometryFactory.createPolygon(n.geometry));
-            featureBuilder.add(n.regionId);
-            featureBuilder.add(n.curbRamp);
-            featureBuilder.add(n.noCurbRamp);
-            featureBuilder.add(n.obstacle);
-            featureBuilder.add(n.surfaceProblem);
-
-            SimpleFeature feature = featureBuilder.buildFeature(null);
-            features.add(feature);
-        }
-
-
-
-        createGeneralShapeFile(outputFile, TYPE, features);
-
-    }
 
     public static File zipShapeFiles(String name, String[] files) throws IOException{
         FileOutputStream fos = new FileOutputStream(name + ".zip");
