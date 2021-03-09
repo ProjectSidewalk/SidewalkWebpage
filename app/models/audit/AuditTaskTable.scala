@@ -167,11 +167,11 @@ object AuditTaskTable {
   /**
     * Returns the number of tasks completed.
     */
-  def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
+  def countCompletedAuditsPastWeek: Int = db.withSession { implicit session =>
     val countTasksQuery = Q.queryNA[Int](
       """SELECT COUNT(audit_task_id)
         |FROM sidewalk.audit_task
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND audit_task.completed = TRUE""".stripMargin
     )
     countTasksQuery.list.head

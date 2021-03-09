@@ -202,13 +202,13 @@ authenticate.email = Email address
 authenticate.password = Password
 authenticate.submit = Submit
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
-authenticate.non.member = Not a member? <a href="/signUp">Sign up now</a>
+authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
 authenticate.signup.new.account = Sign up for a new account
 authenticate.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
-authenticate.is.member = Already a member? <a href="/signIn">Sign in now</a>
+authenticate.is.member = Already a member? <a href="{0}">Sign in now</a>
 authenticate.signin.with.credentials = Sign in with your credentials
 
 authenticate.error.uhoh = Uh-oh!

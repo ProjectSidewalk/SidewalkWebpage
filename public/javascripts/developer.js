@@ -11,12 +11,12 @@ $(document).ready(function () {
     var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', null, {
         maxZoom: 19,
         minZoom: 9,
-        zoomSnap: 0.5
+        zoomSnap: 0.25
     }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
     var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
         maxZoom: 19,
         minZoom: 9,
-        zoomSnap: 0.5
+        zoomSnap: 0.25
     }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
     var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
         maxZoom: 19,

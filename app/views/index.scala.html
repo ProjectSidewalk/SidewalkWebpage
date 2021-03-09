@@ -98,26 +98,29 @@
         </div>
         <br>
         <div id="map-holder">
-            <div id="legend" style="display:none;">
+            <div id="choropleth"></div>
+            <div id="landing-legend">
                 <strong style="font-size: 18px">@Messages("landing.choropleth.legend")</strong>
                 <nav class='legend clearfix'>
-                    <span style='background:#03152f;width:9.09%'></span>
-                    <span style='background:#08306b;width:9.09%'></span>
-                    <span style='background:#08519c;width:9.09%'></span>
-                    <span style='background:#08719c;width:9.09%'></span>
-                    <span style='background:#2171b5;width:9.09%'></span>
-                    <span style='background:#4292c6;width:9.09%'></span>
-                    <span style='background:#6baed6;width:9.09%'></span>
-                    <span style='background:#82badb;width:9.09%'></span>
-                    <span style='background:#9ecae1;width:9.09%'></span>
-                    <span style='background:#b3d3e8;width:9.09%'></span>
-                    <span style='background:#c6dbef;width:9.09%'></span>
-                    <label style='width:8%'>100%</label>
-                    <label style='width:90%'></label>
-                    <label style='width:2%'>0%</label>
+                    <div style='width:100%;padding:0;'>
+                        <span style='background:#03152f;width:9.09%'></span>
+                        <span style='background:#08306b;width:9.09%'></span>
+                        <span style='background:#08519c;width:9.09%'></span>
+                        <span style='background:#08719c;width:9.09%'></span>
+                        <span style='background:#2171b5;width:9.09%'></span>
+                        <span style='background:#4292c6;width:9.09%'></span>
+                        <span style='background:#6baed6;width:9.09%'></span>
+                        <span style='background:#82badb;width:9.09%'></span>
+                        <span style='background:#9ecae1;width:9.09%'></span>
+                        <span style='background:#b3d3e8;width:9.09%'></span>
+                        <span style='background:#c6dbef;width:9.09%'></span>
+                    </div>
+                    <div id='legend-percentages-container'>
+                        <label>0%</label>
+                        <label>100%</label>
+                    </div>
                 </nav>
             </div>
-            <div id="choropleth"></div>
         </div>
     </div>
     <div class="ps-skyline">
@@ -158,9 +161,8 @@
             var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
             var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
             var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
-    </script>
+        </script>
     </div>
-    <!-- @leaderboard(5) -->
 
     <div class="container" id="machinelearning-container">
             <div class="im-centered3">
