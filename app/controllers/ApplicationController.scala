@@ -163,6 +163,14 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  //Future.successful(Redirect("/anonSignUp?url=/%3F" + request.rawQueryString.replace("&", "%26")))
+
+  def changeLanguage(url: String, language: String) = UserAwareAction.async { implicit request =>
+      
+
+      Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", language)))
+
+  }
   /**
     * Returns a developer page.
     */

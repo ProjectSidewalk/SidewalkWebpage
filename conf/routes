@@ -35,6 +35,7 @@ GET     /resetPassword                                       @controllers.UserCo
 GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
 GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
 GET     /finishSignUp                                        @controllers.SignUpController.finishSignUp(url: Option[String])
+GET     /changeLanguage                                      @controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String)
 POST    /signUp                                              @controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
