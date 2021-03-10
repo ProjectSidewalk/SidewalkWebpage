@@ -90,7 +90,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/SVLabel/css/svl.css',
                     'public/javascripts/SVLabel/css/*.css'
-                    ],
+                ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.css'
             },
             dist_validate: {
