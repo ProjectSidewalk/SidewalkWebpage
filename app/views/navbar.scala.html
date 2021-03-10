@@ -109,6 +109,10 @@
                             </li>
                         }
                         <li>
+                            <!-- TODO: Internationalization for sidewalk gallery name -->
+                            <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery">Gallery</a>
+                        </li>
+                        <li>
                             <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>
                             @Messages("navbar.leaderboard")
                             </a>
@@ -209,6 +213,9 @@ $(document).ready(function () {
     });
     $("#navbar-labelmap-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelMap");
+    });
+    $("#navbar-gallery-btn").on('click', function() {
+        logWebpageActivity("Click_module=Gallery");
     });
     $("#navbar-leaderboard-btn").on('click', function() {
         logWebpageActivity("Click_module=Leaderboard");

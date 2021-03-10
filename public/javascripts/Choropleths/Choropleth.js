@@ -42,7 +42,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         minZoom: 9,
         zoomControl: params.zoomControl,
         scrollWheelZoom: params.scrollWheelZoom,
-        zoomSnap: 0.5
+        zoomSnap: 0.25
     }).addLayer(L.mapbox.styleLayer(params.mapStyle));
 
     if (params.zoomSlider) L.control.zoomslider().addTo(choropleth);
@@ -330,6 +330,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             initializeChoroplethNeighborhoodPolygons(choropleth, data, layers, labelData);
         }
         $('#page-loading').hide();
+        $('#results-legend').show();
     }
 
     // Makes POST request that logs `activity` in WebpageActivityTable.

@@ -31,10 +31,6 @@ function Main (params) {
     svl.svImageWidth = 13312;
     svl.alpha_x = 4.6;
     svl.alpha_y = -4.65;
-    svl._labelCounter = 0;
-    svl.getLabelCounter = function () {
-        return svl._labelCounter++;
-    };
     svl.zoomFactor = {
         1: 1,
         2: 2.1,
