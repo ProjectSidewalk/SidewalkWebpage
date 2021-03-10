@@ -46,10 +46,10 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      auditTaskId: Int,
                                      gsvPanoramaId: String,
                                      labelType: String,
-                                     expired: Option[Boolean],
-                                     severity: Option[Int],
                                      lat: Float,
-                                     lng: Float)
+                                     lng: Float,
+                                     expired: Boolean,
+                                     severity: Option[Int])
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -190,7 +190,7 @@ object LabelTable {
     MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextBooleanOption, r.nextIntOption, r.nextFloat, r.nextFloat))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption))
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
@@ -1171,23 +1171,18 @@ object LabelTable {
     */
   def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
-      (_labels, _labelTypes) <- labelsWithoutDeleted.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
-    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType)
+      _l <- labelsWithoutDeleted
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
+      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat, _lPoint.lng, _gsv.expired)
 
-    val _epoints = for {
-      (l, p) <- _labels.leftJoin(gsvData).on(_._3 === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, l._4, p.expired.?)
+    val _labelsWithSeverity = for {
+      (l, s) <- _labels.leftJoin(severities).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, s.severity.?)
 
-    val _slabels = for {
-      (l, s) <- _epoints.leftJoin(severities).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, l._5, s.severity.?)
-
-    val _points = for {
-      (l, p) <- _slabels.leftJoin(labelPoints).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, l._5, l._6, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
-
-    val labelLocationList: List[LabelLocationWithSeverity] = _points.list.map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8))
-    labelLocationList
+    _labelsWithSeverity.list.map(LabelLocationWithSeverity.tupled)
   }
 
   /**
