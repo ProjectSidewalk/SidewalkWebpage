@@ -111,7 +111,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "label_id" -> label.labelId,
         "gsv_panorama_id" -> label.gsvPanoramaId,
         "label_type" -> label.labelType,
-        "severity" -> label.severity
+        "severity" -> label.severity,
+        "expired" -> label.expired
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
     }
