@@ -105,11 +105,13 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             pointToLayer: function (feature, latlng) {
                 let style = $.extend(true, {}, geojsonMarkerOptions);
                 style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                if (feature.properties.expired) {
-                    style.fillColor = 'lightgrey';
-                    style.color = colorMapping[feature.properties.label_type].missingPanoStrokeStyle;
-                } else if (params.includeLabelColor) {
-                    style.color = colorMapping[feature.properties.label_type].strokeStyle;
+                if (params.includeLabelColor) {
+                    if (feature.properties.expired) {
+                        style.fillColor = 'lightgrey';
+                        style.color = colorMapping[feature.properties.label_type].missingPanoStrokeStyle;
+                    } else {
+                        style.color = colorMapping[feature.properties.label_type].strokeStyle;
+                    }
                 }
                 return L.circleMarker(latlng, style);
             },
