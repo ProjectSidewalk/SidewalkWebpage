@@ -3,7 +3,7 @@ package controllers.helper
 import models.attribute.{GlobalAttributeTable, GlobalClusteringSessionTable, UserAttributeLabelTable, UserAttributeTable, UserClusteringSessionTable}
 import models.region.RegionTable
 import models.user.UserStatTable
-import play.api.Play
+import play.api.{Logger, Play}
 import play.api.Play.current
 import play.api.libs.json.Json
 
@@ -56,16 +56,16 @@ object AttributeControllerHelper {
     val key: String = Play.configuration.getString("internal-api-key").get
     val goodUsers: List[String] = UserStatTable.getIdsOfGoodUsersWithLabels
     val nUsers = goodUsers.length
-    println("N users = " + nUsers)
+    Logger.info("N users = " + nUsers)
 
     // Runs clustering for each good user.
     for ((userId, i) <- goodUsers.view.zipWithIndex) {
-      println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
+      Logger.info(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
       val clusteringOutput =
         Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
-      //      println(clusteringOutput)
+      // Logger.info(clusteringOutput)
     }
-    println("\nFinshed 100% of users!!\n")
+    Logger.info("\nFinshed 100% of users!!\n")
   }
 
   /**
@@ -80,12 +80,13 @@ object AttributeControllerHelper {
     val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
     //    val regionIds = List(199, 200, 203, 211, 261) // Small test set.
     val nRegions: Int = regionIds.length
+    Logger.info("N regions = " + nRegions)
 
     // Runs multi-user clustering within each region.
     for ((regionId, i) <- regionIds.view.zipWithIndex) {
-      println(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
+      Logger.info(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
       val clusteringOutput = Seq("python", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
     }
-    println("\nFinshed 100% of regions!!\n\n")
+    Logger.info("\nFinshed 100% of regions!!\n\n")
   }
 }
