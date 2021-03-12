@@ -26,16 +26,16 @@ object VersionTable {
   val db = play.api.db.slick.DB
   val versions = TableQuery[VersionTable]
 
-  // Grab secret from ENV variable
+  // Grab secret from ENV variable.
   val secretKeyString: String = Play.configuration.getString("google-maps-secret").get
 
-  // Decode secret key as Byte[]
+  // Decode secret key as Byte[].
   val secretKey: Array[Byte] = Base64.getDecoder().decode(secretKeyString.replace('-', '+').replace('_', '/'))
 
-  // Get an HMAC-SHA1 signing key from the raw key bytes
+  // Get an HMAC-SHA1 signing key from the raw key bytes.
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
 
-  // Get an HMAC-SHA1 Mac instance and initialize it with the HMAC-SHA1 key
+  // Get an HMAC-SHA1 Mac instance and initialize it with the HMAC-SHA1 key.
   val mac: Mac = Mac.getInstance("HmacSHA1")
   mac.init(sha1Key)
 
