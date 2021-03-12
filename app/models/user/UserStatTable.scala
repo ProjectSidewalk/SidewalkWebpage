@@ -158,52 +158,52 @@ object UserStatTable {
     }
     val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float])](
       s"""SELECT usernames.username,
-        |	label_counts.label_count,
-        |	mission_count,
-        |	distance_meters,
-        |	CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
+        |        label_counts.label_count,
+        |        mission_count,
+        |        distance_meters,
+        |        CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
         |FROM (
-        |	SELECT sidewalk_user.user_id, COUNT(label_id) AS label_count
-        |	FROM sidewalk_user
-        |	INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |	INNER JOIN role ON user_role.role_id = role.role_id
-        | INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-        |	INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
-        |	INNER JOIN label ON mission.mission_id = label.mission_id
-        |	WHERE label.deleted = FALSE
-        |	    AND label.tutorial = FALSE
-        |	    AND role.role IN ('Registered', 'Administrator', 'Researcher')
-        |     AND (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
-        |	    AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |	GROUP BY sidewalk_user.user_id
-        |	ORDER BY label_count DESC
-        |	LIMIT $n
+        |    SELECT sidewalk_user.user_id, COUNT(label_id) AS label_count
+        |    FROM sidewalk_user
+        |    INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |    INNER JOIN role ON user_role.role_id = role.role_id
+        |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
+        |    INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
+        |    INNER JOIN label ON mission.mission_id = label.mission_id
+        |    WHERE label.deleted = FALSE
+        |        AND label.tutorial = FALSE
+        |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
+        |        AND (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
+        |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+        |    GROUP BY sidewalk_user.user_id
+        |    ORDER BY label_count DESC
+        |    LIMIT $n
         |) "label_counts"
         |INNER JOIN (
-        |	SELECT user_id, username
-        |	FROM sidewalk_user
+        |    SELECT user_id, username
+        |    FROM sidewalk_user
         |) "usernames" ON label_counts.user_id = usernames.user_id
         |INNER JOIN (
-        |	SELECT user_id, COUNT(mission_id) AS mission_count, COALESCE(SUM(distance_progress), 0) AS distance_meters
-        |	FROM mission
-        |	WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
-        |	GROUP BY user_id
+        |    SELECT user_id, COUNT(mission_id) AS mission_count, COALESCE(SUM(distance_progress), 0) AS distance_meters
+        |    FROM mission
+        |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
+        |    GROUP BY user_id
         |) "missions_and_distance" ON label_counts.user_id = missions_and_distance.user_id
         |LEFT JOIN (
-        |	SELECT user_id,
-        |		   CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy,
-        |		   COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
-        |	FROM (
-        |		SELECT mission.user_id, label.label_id,
-        |			   COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
-        |			   COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
-        |		FROM mission
-        |		INNER JOIN label ON mission.mission_id = label.mission_id
-        |		INNER JOIN label_validation ON label.label_id = label_validation.label_id
-        |		WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |		GROUP BY mission.user_id, label.label_id
-        |	) agree_count
-        |	GROUP BY user_id
+        |    SELECT user_id,
+        |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy,
+        |           COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
+        |    FROM (
+        |        SELECT mission.user_id, label.label_id,
+        |               COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
+        |               COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
+        |        FROM mission
+        |        INNER JOIN label ON mission.mission_id = label.mission_id
+        |        INNER JOIN label_validation ON label.label_id = label_validation.label_id
+        |        WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+        |        GROUP BY mission.user_id, label.label_id
+        |    ) agree_count
+        |    GROUP BY user_id
         |) "accuracy" ON label_counts.user_id = accuracy.user_id
         |ORDER BY label_counts.label_count DESC;""".stripMargin
     )
