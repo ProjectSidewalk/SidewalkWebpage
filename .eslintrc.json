@@ -1,0 +1,90 @@
+{
+    "env": {
+        "browser": true,
+        "es6": true
+    },
+    "plugins": [],
+    "extends": [],
+    "parserOptions": {
+        "ecmaVersion": 7,
+        "sourceType": "module"
+    },
+    "ignorePatterns": [
+        "*",
+        "**/*.*",
+        "!public/",
+        "!public/javascripts/",
+        "!public/javascripts/*",
+        "!public/javascripts/**/*",
+        "public/javascripts/Admin/build/*",
+        "public/javascripts/common/detectMobileBrowser.js",
+        "public/javascripts/common/isMobile.js",
+        "public/javascripts/common/Panomarker.js",
+        "public/javascripts/Gallery/build/*",
+        "public/javascripts/Help/build/*",
+        "public/javascripts/lib/*",
+        "public/javascripts/Progress/build/*",
+        "public/javascripts/SVLabel/build/*",
+        "public/javascripts/SVValidate/build/*"
+    ],
+    "rules": {
+        "capitalized-comments": ["warn", "always"],
+        "comma-style": "error",
+        "curly": ["error", "multi-line", "consistent"],
+        "eol-last": ["error", "always"],
+        "eqeqeq": ["error", "always"],
+        "indent": "error",
+        "keyword-spacing": "error",
+        "max-len": ["warn", {"code": 120}],
+        "no-spaced-func": ["error"],
+        "no-tabs": "error",
+        "no-trailing-spaces": ["error"],
+        "no-unused-vars": "warn",
+        "one-var": ["error", "never"],
+        "padding-line-between-statements": [
+            "error",
+            { "blankLine": "always", "prev": "function", "next": "*"},
+            { "blankLine": "always", "prev": "*", "next": "function"}
+        ],
+        "quotes": ["error", "single"],
+        "semi": "error",
+        "spaced-comment": "error",
+        "space-before-blocks": ["error", "always"],
+        "space-in-parens": ["error", "never"],
+        "no-var": "error",
+        // Got most of the below rules from Airbnb style guide:
+        // https://github.com/airbnb/javascript/blob/master/packages/eslint-config-airbnb-base/rules/es6.js
+        "arrow-parens": ["error", "always"],
+        "arrow-spacing": ["error", { "before": true, "after": true }],
+        "constructor-super": "error",
+        "generator-star-spacing": ["error", "after"],
+        "no-class-assign": "error",
+        "no-confusing-arrow": ["error", { "allowParens": true }],
+        "no-const-assign": "error",
+        "no-dupe-class-members": "error",
+        "no-duplicate-imports": "error",
+        "no-new-symbol": "error",
+        "no-this-before-super": "error",
+        "no-useless-computed-key": "error",
+        "no-useless-constructor": "error",
+        "no-useless-rename": ["error", { "ignoreDestructuring": false, "ignoreImport": false, "ignoreExport": false }],
+        "object-shorthand": ["error", "always", { "ignoreConstructors": false, "avoidQuotes": true }],
+        "prefer-arrow-callback": ["error", { "allowNamedFunctions": false, "allowUnboundThis": true }],
+        "prefer-const": ["error", { "destructuring": "any", "ignoreReadBeforeAssign": true }],
+        "prefer-numeric-literals": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error",
+        "prefer-template": "error",
+        "require-yield": "error",
+        "rest-spread-spacing": ["error", "never"],
+        "sort-imports": ["off", {
+            "ignoreCase": false,
+            "ignoreDeclarationSort": false,
+            "ignoreMemberSort": false,
+            "memberSyntaxSortOrder": ["none", "all", "multiple", "single"]
+        }],
+        "symbol-description": "error",
+        "template-curly-spacing": "error",
+        "yield-star-spacing": ["error", "after"]
+    }
+}
