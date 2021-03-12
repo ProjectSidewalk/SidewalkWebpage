@@ -6,10 +6,8 @@ import java.net.URL
 import java.sql.Timestamp
 import java.util.Base64
 import models.utils.MyPostgresDriver.simple._
-import play.api.cache.Cache
 import play.api.Play
 import play.api.Play.current
-import scala.io.Source
 
 case class Version(versionId: String, versionStartTime: Timestamp, description: Option[String])
 
@@ -55,20 +53,24 @@ object VersionTable {
     versions.sortBy(_.versionStartTime.desc).list.head.versionStartTime.toString
   }
 
+  /**
+   * Signs a Google Maps request using a signing secret.
+   * https://developers.google.com/maps/documentation/maps-static/get-api-key#dig-sig-manual
+   */
   def signUrl(urlString: String): String = {
-    // Convert to Java URL for easy parsing of URL parts
+    // Convert to Java URL for easy parsing of URL parts.
     val url: URL = new URL(urlString)
 
-    // Gets everything but URL protocol and host that we want to sign
+    // Gets everything but URL protocol and host that we want to sign.
     val resource: String = url.getPath() + '?' + url.getQuery()
 
-    // Compute the binary signature for the request
+    // Compute the binary signature for the request.
     val sigBytes: Array[Byte] = mac.doFinal(resource.getBytes())
 
-    // Base 64 encode the binary signature and convert the signature to 'web safe' base 64
+    // Base 64 encode the binary signature and convert the signature to 'web safe' base 64.
     val signature: String = Base64.getEncoder().encodeToString(sigBytes).replace('+', '-').replace('/', '_')
 
-    // Return signed url
+    // Return signed url.
     urlString + "&signature=" + signature
   } 
 }

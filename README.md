@@ -36,7 +36,7 @@ WSL2 is recommended for much faster compile times (especially for Windows Home u
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
 
 ##### Transferring files from Windows to Linux VM
-One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself. 
+One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.
 
 1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
 1. Locate the Linux VM within your Project Sidewalk directory (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
