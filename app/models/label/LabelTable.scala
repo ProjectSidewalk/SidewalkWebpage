@@ -651,8 +651,9 @@ object LabelTable {
           |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
           |LEFT JOIN (
           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-          |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
+          |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
           |    FROM label_tag
+          |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
           |    GROUP BY label_id
           |) the_tags ON label.label_id = the_tags.label_id
           |WHERE label.label_type_id = $labelTypeId
