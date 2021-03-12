@@ -100,7 +100,6 @@ download
 # Keys
 rootkey.csv
 special_api_key.txt
-google_maps_api_key.txt
 
 # sidewalk-webpage-binary directory
 sidewalk-webpage/

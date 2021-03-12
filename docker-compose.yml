@@ -16,9 +16,10 @@ services:
       - "9000:9000"
     environment:
       - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
-      - SIDEWALK_CITY_ID=washington-dc
+      - SIDEWALK_CITY_ID=DUMMY_CITY_ID
       - SIDEWALK_EMAIL_ADDRESS=DUMMY_EMAIL_ADDRESS
       - SIDEWALK_EMAIL_PASSWORD=DUMMY_EMAIL_PASSWORD
+      - GOOGLE_MAPS_API_KEY=DUMMY_GOOGLE_API_KEY
       - GOOGLE_MAPS_SECRET=DUMMY_GOOGLE_SECRET
       - ENV_TYPE=test
 
@@ -32,6 +33,6 @@ services:
       - "./db:/opt"
     ports:
       - "5432:5432"
-    environment: 
+    environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=sidewalk

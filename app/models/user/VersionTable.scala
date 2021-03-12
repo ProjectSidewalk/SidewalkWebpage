@@ -55,21 +55,6 @@ object VersionTable {
     versions.sortBy(_.versionStartTime.desc).list.head.versionStartTime.toString
   }
 
-  /**
-    * Read in Google Maps API key from google_maps_api_key.txt (ask Mikey Saugstad for the file if you don't have it).
-    */
-  def getGoogleMapsAPIKey(): String = {
-    // Grab key from server-side cache. If it's not there, we grab from file then store it in cache.
-    Cache.getOrElse("googleMapsAPIKey") {
-      val bufferedSource = Source.fromFile("google_maps_api_key.txt")
-      val lines = bufferedSource.getLines()
-      val key: String = lines.next()
-      bufferedSource.close
-      Cache.set("googleMapsAPIKey", key)
-      key
-    }
-  }
-
   def signUrl(urlString: String): String = {
     // Convert to Java URL for easy parsing of URL parts
     val url: URL = new URL(urlString)
