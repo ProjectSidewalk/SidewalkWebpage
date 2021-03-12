@@ -20,6 +20,11 @@ import models.region.RegionTable
 import play.api.Play.current
 import play.api.{Logger, Play}
 
+/**
+ * Holds the HTTP requests associated with accessibility attributes and the label clustering used to create them.
+ *
+ * @param env The Silhouette environment.
+ */
 class AttributeController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
