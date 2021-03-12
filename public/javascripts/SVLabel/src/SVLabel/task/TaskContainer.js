@@ -409,12 +409,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return previousTasks.length;
     }
 
-	/**
+    /**
      * Checks if finishedTask makes the neighborhood complete across all users; if so, it displays the relevant overlay.
      *
-	 * @param finishedTask
-	 */
-	function updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask) {
+     * @param finishedTask
+     */
+    function updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask) {
         var wasNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
 
         // Only run this code if the neighborhood was set as incomplete
@@ -459,7 +459,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var userCandidateTasks = null;
 
         // Check if this task finishes the neighborhood across all users, if so, shows neighborhood complete overlay.
-		updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask);
+        updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask);
 
         // Find highest priority task not audited by the user
         var tasksNotCompletedByUser = self.getTasks().filter(function (t) {
