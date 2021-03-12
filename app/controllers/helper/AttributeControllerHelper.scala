@@ -8,7 +8,6 @@ import play.api.Play.current
 import play.api.libs.json.Json
 
 import scala.collection.immutable.Seq
-import scala.io.Source
 import scala.sys.process._
 
 object AttributeControllerHelper {
