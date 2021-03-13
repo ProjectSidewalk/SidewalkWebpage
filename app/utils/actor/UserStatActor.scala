@@ -5,6 +5,8 @@ import java.util.{Calendar, Locale, TimeZone}
 import akka.actor.{Actor, Cancellable, Props}
 import models.user.UserStatTable
 import play.api.Logger
+import java.sql.Timestamp
+import java.time.Instant
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
@@ -58,7 +60,10 @@ class UserStatActor extends Actor {
 
       val currentTimeStart: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Auto-scheduled computation of user stats starting at: $currentTimeStart")
-      UserStatTable.updateUserStatTable()
+      // Update stats for anyone who audited in past 36 hours.
+      val msCutoff: Long = 36 * 3600000L
+      val cutoffTime: Timestamp = new Timestamp(Instant.now.toEpochMilli - msCutoff)
+      UserStatTable.updateUserStatTable(cutoffTime)
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Updating user stats completed at: $currentEndTime")
   }
