@@ -127,10 +127,16 @@ footer {
     margin-left: 20px;
 }
 
-#language-button {
-    padding-top: 5px;
-    padding-bottom: 0px;
-    padding-left: 0px;  
+#language-button, #language-button:active {
+    background-color: transparent;
+    margin-top: 5px;
+    padding: 0px;
+    outline: none;
+}
+
+#nav-language-menu {
+    margin-top: -12px;
+    min-width: 69px;
 }
 
 .navbar-right.fixed-theme{
