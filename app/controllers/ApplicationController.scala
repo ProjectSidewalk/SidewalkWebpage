@@ -18,6 +18,11 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scala.util.Random
 
+/**
+ * Holds the HTTP requests for some of the basic web pages.
+ *
+ * @param env The Silhouette environment.
+ */
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -285,8 +290,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns the terms page.
-    *
-    * @return
     */
   def terms = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -335,8 +338,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns the Gallery page.
-   *
-   * @return
    */
   def gallery = UserAwareAction.async { implicit request =>
     request.identity match {

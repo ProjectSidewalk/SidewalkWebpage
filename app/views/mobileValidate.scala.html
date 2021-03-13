@@ -11,7 +11,7 @@
 
 @(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
-@main(title) {
+@main(title, Some("/mobile")) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
@@ -26,7 +26,6 @@
         </div>
     </div>
     <br class="clear">
-
     <div id="title-bar-holder">
         <!--<button id="back-button" class="button back-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>-->
         <div id="upper-menu-title-bar"></div>
@@ -35,7 +34,6 @@
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
         </button>
     </div>
-
     <div id="mobile-viewer">
         <div id="svv-panorama-holder">
             <div id="svv-panorama-outline">
@@ -60,6 +58,11 @@
         <div id="modal-mission-holder">
             <div id="modal-mission-background" class="modal-background"></div>
             <div id="modal-mission-foreground" class="modal-foreground">
+                @if(user && user.get.role.getOrElse("") != "Anonymous") {
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile">@{user.get.username}</button>
+                } else {
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
+                }
                 <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
@@ -105,6 +108,7 @@
                 </div>
             </div>
         </div>
+
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
@@ -232,5 +236,6 @@
             }
             svv.main = new Main(param);
         }
+
     </script>
 }

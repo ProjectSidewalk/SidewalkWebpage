@@ -28,7 +28,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/backbone-min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@VersionTable.getGoogleMapsAPIKey()&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@Play.configuration.getString("google-maps-api-key").get&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/main.css")'>
@@ -59,17 +59,21 @@
         @content
 
     </div>
-
+    @if(url.getOrElse("") != "/mobile") {
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
+        </head>
+    }
     @if(url.get == "/audit") {
-
         <script type="text/javascript">
             document.getElementsByTagName("body")[0].style.overflow = "hidden";
             document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
-
+    }
+    @if(url.get == "/audit" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
         <!-- footer code found in app/views/footer.scala.html -->
         @footer()
-    } else{
+    } else {
 
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 

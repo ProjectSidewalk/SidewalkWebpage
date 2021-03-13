@@ -176,7 +176,7 @@ object UserDAOSlick {
   /**
    * Returns a count of all users under the specified conditions.
    *
-   * @param timeInterval: can be "today", "yesterday", "week", or "month". If anything else, defaults to "all time"
+   * @param timeInterval: can be "today" or "week". If anything else, defaults to "all time"
    * @param taskCompletedOnly: if true, only counts users who have completed one audit task or at least one validation.
    *                           Defaults to false.
    * @param highQualityOnly: if true, only counts users who are marked as high quality. Defaults to false.
@@ -190,17 +190,9 @@ object UserDAOSlick {
         "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
       )
-      case "yesterday" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day"
-      )
       case "week" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)"
-      )
-      case "month" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)"
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       )
       case _ => ("TRUE", "TRUE")
     }
@@ -233,7 +225,7 @@ object UserDAOSlick {
                    |WHERE $highQualityOnlySql;
                  """.stripMargin
 
-    Q.queryNA[Int](countQuery).list.head
+    Q.queryNA[Int](countQuery).first
   }
 
   /**
@@ -255,7 +247,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).list.length
+    users.groupBy(x => x).map(_._1).size.run
   }
 
   /**
@@ -291,7 +283,7 @@ object UserDAOSlick {
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**
@@ -314,11 +306,11 @@ object UserDAOSlick {
   }
 
   /**
-   * Count the number of users of the given role who contributed validations yesterday.
+   * Count the number of users of the given role who contributed validations in the past week.
    *
    * We consider a "contribution" to mean that a user has validated at least one label.
    */
-  def countValidationUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
+  def countValidationUsersContributedPastWeek(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(mission.user_id))
         |FROM label_validation
@@ -326,30 +318,30 @@ object UserDAOSlick {
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date - interval '1' day
+        |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**
-   * Count num of researchers who contributed validations yesterday (incl Researcher, Administrator, and Owner roles).
+   * Count num of researchers who contributed validations in the past week (incl Researcher, Administrator, and Owner roles).
    */
-  def countValidationResearchersContributedYesterday: Int = db.withSession { implicit session =>
-    countValidationUsersContributedYesterday("Researcher") +
-      countValidationUsersContributedYesterday("Administrator") +
-      countValidationUsersContributedYesterday("Owner")
+  def countValidationResearchersContributedPastWeek: Int = db.withSession { implicit session =>
+    countValidationUsersContributedPastWeek("Researcher") +
+      countValidationUsersContributedPastWeek("Administrator") +
+      countValidationUsersContributedPastWeek("Owner")
   }
 
   /**
-   * Count the number of users who contributed validations yesterday (across all roles).
+   * Count the number of users who contributed validations in the past week (across all roles).
    */
-  def countAllValidationUsersContributedYesterday: Int = db.withSession { implicit session =>
-    countValidationUsersContributedYesterday("Registered") +
-      countValidationUsersContributedYesterday("Anonymous") +
-      countValidationUsersContributedYesterday("Turker") +
-      countValidationResearchersContributedYesterday
+  def countAllValidationUsersContributedPastWeek: Int = db.withSession { implicit session =>
+    countValidationUsersContributedPastWeek("Registered") +
+      countValidationUsersContributedPastWeek("Anonymous") +
+      countValidationUsersContributedPastWeek("Turker") +
+      countValidationResearchersContributedPastWeek
   }
 
   /**
@@ -369,7 +361,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).list.length
+    users.groupBy(x => x).map(_._1).size.run
   }
 
   /**
@@ -405,7 +397,7 @@ object UserDAOSlick {
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**
@@ -428,42 +420,43 @@ object UserDAOSlick {
   }
 
   /**
-   * Count the number of users of the given role who contributed yesterday.
+   * Count the number of users of the given role who contributed in the past week.
    *
    * We consider a "contribution" to mean that a user has completed at least one audit task.
    */
-  def countAuditUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
+  def countAuditUsersContributedPastWeek(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**
-   * Count the number of researchers who contributed yesterday (includes Researcher, Administrator, and Owner roles).
+   * Count the number of researchers who contributed in the past week (includes Researcher, Administrator, and Owner roles).
    */
-  def countAuditResearchersContributedYesterday: Int = db.withSession { implicit session =>
-    countAuditUsersContributedYesterday("Researcher") +
-      countAuditUsersContributedYesterday("Administrator") +
-      countAuditUsersContributedYesterday("Owner")
+  def countAuditResearchersContributedPastWeek: Int = db.withSession { implicit session =>
+    countAuditUsersContributedPastWeek("Researcher") +
+      countAuditUsersContributedPastWeek("Administrator") +
+      countAuditUsersContributedPastWeek("Owner")
   }
 
   /**
-   * Count the number of users who contributed yesterday (across all roles).
+   * Count the number of users who contributed in the past week (across all roles).
+   *
    */
-  def countAllAuditUsersContributedYesterday: Int = db.withSession { implicit session =>
-    countAuditUsersContributedYesterday("Registered") +
-      countAuditUsersContributedYesterday("Anonymous") +
-      countAuditUsersContributedYesterday("Turker") +
-      countAuditResearchersContributedYesterday
+  def countAllAuditUsersContributedPastWeek: Int = db.withSession { implicit session =>
+    countAuditUsersContributedPastWeek("Registered") +
+      countAuditUsersContributedPastWeek("Anonymous") +
+      countAuditUsersContributedPastWeek("Turker") +
+      countAuditResearchersContributedPastWeek
   }
 
   /**

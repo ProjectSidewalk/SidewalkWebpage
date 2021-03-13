@@ -28,7 +28,9 @@ GET     /leaderboard                                         @controllers.Applic
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
+GET     /signInMobile                                        @controllers.UserController.signInMobile(url: String ?= "/")
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
+GET     /signUpMobile                                        @controllers.UserController.signUpMobile(url: String ?= "/")
 GET     /signOut                                             @controllers.UserController.signOut(url: String ?= "/")
 GET     /forgotPassword                                      @controllers.UserController.forgotPassword(url: String ?= "/")
 GET     /resetPassword                                       @controllers.UserController.resetPassword(token: java.util.UUID)
@@ -68,6 +70,7 @@ GET     /adminapi/labelCounts                                @controllers.AdminC
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
+GET     /adminapi/updateUserStats                            @controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)

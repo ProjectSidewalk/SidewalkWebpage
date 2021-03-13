@@ -17,6 +17,11 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.i18n.Messages
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with resetting a user's password.
+ *
+ * @param env The Silhouette environment.
+ */
 class ResetPasswordController @Inject() (
                                           implicit val env: Environment[User, SessionAuthenticator],
                                           val userService: UserService,

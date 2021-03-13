@@ -46,7 +46,7 @@ object UserRoleTable {
   }
 
   def setRole(userId: UUID, newRole: Int): Int = db.withTransaction { implicit session =>
-    val userRoleId: Option[Int] = userRoles.filter(_.userId === userId.toString).map(_.userRoleId).list.headOption
+    val userRoleId: Option[Int] = userRoles.filter(_.userId === userId.toString).map(_.userRoleId).firstOption
     userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole))
   }
 }

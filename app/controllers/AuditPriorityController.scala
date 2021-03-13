@@ -8,6 +8,11 @@ import models.user.User
 import models.street.StreetEdgePriorityTable
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with maintaining the audit priority value for streets.
+ *
+ * @param env The Silhouette environment.
+ */
 class AuditPriorityController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 

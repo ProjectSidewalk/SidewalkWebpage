@@ -18,7 +18,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
 /**
- * The basic application controller.
+ * Holds the HTTP requests associated with the loading pages for authentication.
  *
  * @param env The Silhouette environment.
  */
@@ -37,11 +37,33 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+   * Get the mobile sign in page.
+   */
+  def signInMobile(url: String) = UserAwareAction.async { implicit request =>
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signInMobile(SignInForm.form, url)))
+    } else {
+      Future.successful(Redirect(url))
+    }
+  }
+
+  /**
    * Handles the Sign Up action.
    */
   def signUp(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
       Future.successful(Ok(views.html.signUp(SignUpForm.form)))
+    } else {
+      Future.successful(Redirect(url))
+    }
+  }
+
+  /**
+   * Get the mobile sign up page.
+   */
+  def signUpMobile(url: String) = UserAwareAction.async { implicit request =>
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signUpMobile(SignUpForm.form)))
     } else {
       Future.successful(Redirect(url))
     }
@@ -71,14 +93,16 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+   * Get the reset password page.
+   */
   def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
     authTokenService.validate(token).map {
       case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token))
       case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link"))
     }
   }
-
-
+  
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
   def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
