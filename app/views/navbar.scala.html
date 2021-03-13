@@ -123,7 +123,6 @@
                     </ul>
                 </li>
 
-                <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
                         <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
@@ -152,12 +151,11 @@
                     }
                 </li>
 
-                <li id="language-dropdown">
-                    <a id="language-button" data-toggle="dropdown" href="#" aria-label="Language Options" >
-                        <img style="width: 35px; height: 35px;" src="@routes.Assets.at("assets/language-icon.png")">
+                <li class="active dropdown navbar-lnk" id="language-dropdown">
+                    <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="Language Options" >
+                        <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")">
                             @lang.code
                         <b class="caret"></b>
-                        
                     </a>
                     <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="Language Options">
                         @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
