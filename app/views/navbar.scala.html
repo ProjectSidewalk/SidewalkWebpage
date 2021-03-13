@@ -42,7 +42,7 @@
                             // Output the result in an element with id="navbarTimer"
                             if (msRemaining < 0) {
                                 clearInterval(timerInterval);
-                                document.getElementById("navbarTimer").innerHTML = "EXPIRED";
+                                document.getElementById("navbarTimer").innerHTML = "@Messages("turk.expired.navbar")";
 
                                 // If on the audit or validation page and the timer has just expired, refresh page to
                                 // show HIT expiration overlay so they are unable to audit.
