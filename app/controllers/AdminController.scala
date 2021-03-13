@@ -539,4 +539,24 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
+
+  /**
+   * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
+   */
+  def updateUserStats(hoursCutoff: Option[Int]) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val cutoffTime: Timestamp = hoursCutoff match {
+        case Some(hours) =>
+          val msCutoff: Long = hours * 3600000L
+          new Timestamp(Instant.now.toEpochMilli - msCutoff)
+        case None =>
+          new Timestamp(Instant.EPOCH.toEpochMilli)
+      }
+
+      UserStatTable.updateUserStatTable(cutoffTime)
+      Future.successful(Ok("User stats updated!"))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
+  }
 }
