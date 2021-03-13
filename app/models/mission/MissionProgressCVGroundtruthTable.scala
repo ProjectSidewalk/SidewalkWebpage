@@ -70,7 +70,7 @@ object MissionProgressCVGroundtruthTable {
     * Note: these lat/lng positions are supplied by the client when the ground truth audit mission is created.
     * @param userId a user id
     * @param panoId a panoId that is part of an active CV ground truth audit mission for this user
-    * @return a lat/lng tuple specifing the location of the pano
+    * @return a lat/lng tuple specifying the location of the pano
     */
   def getPanoLatLng(userId: UUID, panoId: String):(Option[Float],Option[Float]) = db.withSession { implicit session =>
     val activeMission: Option[Mission] = MissionTable.getIncompleteCVGroundTruthMission(userId)
@@ -79,7 +79,7 @@ object MissionProgressCVGroundtruthTable {
         val result: CVMissionPanoStatus = cvMissionPanoStatuses.filter(statusEntry =>
           statusEntry.linkedMissionId === mission.missionId &&
           statusEntry.panoId === panoId
-        ).take(1).list.head
+        ).take(1).first
         (Some(result.lat), Some(result.lng))
       case None =>
         (None, None)

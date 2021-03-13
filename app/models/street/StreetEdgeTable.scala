@@ -170,8 +170,7 @@ object StreetEdgeTable {
       }
 
       // Get length of each street segment, sum the lengths, and convert from meters to miles.
-      val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
-      (distances.sum * 0.000621371).toFloat
+      edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
     }
   }
 
@@ -334,7 +333,7 @@ object StreetEdgeTable {
 
   /** Returns the distance of the given street edge. */
   def getStreetEdgeDistance(streetEdgeId: Int): Float = db.withSession { implicit session =>
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
   }
 
   def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
