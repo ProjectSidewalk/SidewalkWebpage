@@ -160,7 +160,7 @@ object AuditTaskTable {
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND audit_task.completed = TRUE""".stripMargin
     )
-    countTasksQuery.list.head
+    countTasksQuery.first
   }
 
   /**
@@ -173,7 +173,7 @@ object AuditTaskTable {
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND audit_task.completed = TRUE""".stripMargin
     )
-    countTasksQuery.list.head
+    countTasksQuery.first
   }
 
   /**

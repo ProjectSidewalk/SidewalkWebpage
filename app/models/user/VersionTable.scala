@@ -43,14 +43,14 @@ object VersionTable {
     * Returns current version ID.
     */
   def currentVersionId(): String = db.withSession { implicit session =>
-    versions.sortBy(_.versionStartTime.desc).list.head.versionId
+    versions.sortBy(_.versionStartTime.desc).first.versionId
   }
 
   /**
     * Returns timestamp of most recent update.
     */
   def currentVersionTimestamp(): String = db.withSession { implicit session =>
-    versions.sortBy(_.versionStartTime.desc).list.head.versionStartTime.toString
+    versions.sortBy(_.versionStartTime.desc).first.versionStartTime.toString
   }
 
   /**
