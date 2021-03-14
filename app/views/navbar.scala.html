@@ -161,7 +161,7 @@
                         @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
                             @if(language != lang.code) {
                                 <li>
-                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language)'>@language</a>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@language</a>
                                 </li>
                             } 
                         }
@@ -250,6 +250,8 @@ $(document).ready(function () {
     $("#navbar-dashboard-btn").on('click', function() {
         logWebpageActivity("Click_module=ToDashboard")
     });
+    // Logging clicks to the language button was moved to ApplicationController.scala b/c the redirect was happening
+    // before the log could be sent off.
 });
 </script>
 
