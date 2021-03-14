@@ -152,12 +152,12 @@
                 </li>
 
                 <li class="active dropdown navbar-lnk" id="language-dropdown">
-                    <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="Language Options" >
-                        <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")">
+                    <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
+                        <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
                             @lang.code
                         <b class="caret"></b>
                     </a>
-                    <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="Language Options">
+                    <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
                         @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
                             @if(language != lang.code) {
                                 <li>
