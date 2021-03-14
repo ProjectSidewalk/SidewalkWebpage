@@ -19,9 +19,17 @@ import play.api.mvc._
 import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with survey submission.
+ *
+ * @param env The Silhouette environment.
+ */
 class SurveyController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+   * Submit the data associated with a completed survey.
+   */
   def postSurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[SurveySingleSubmission]]
 
@@ -47,17 +55,17 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
 
         val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
 
-        val allSurveyQuestions = SurveyQuestionTable.listAll
-        val allSurveyQuestionIds = allSurveyQuestions.map(_.surveyQuestionId)
-        val answeredQuestionIds = submission.map(_.surveyQuestionId.toInt)
-        val unansweredQuestionIds = allSurveyQuestionIds diff answeredQuestionIds
+        val allSurveyQuestions: List[SurveyQuestion] = SurveyQuestionTable.listAll
+        val allSurveyQuestionIds: List[Int] = allSurveyQuestions.map(_.surveyQuestionId)
+        val answeredQuestionIds: Seq[Int] = submission.map(_.surveyQuestionId.toInt)
+        val unansweredQuestionIds: List[Int] = allSurveyQuestionIds diff answeredQuestionIds
         // Iterate over all the questions and check if there is a submission attribute matching question id.
         // Add the associated submission to the user_submission tables for that question.
 
 
         submission.foreach{ q =>
-          val questionId = q.surveyQuestionId.toInt
-          val temp_question = SurveyQuestionTable.getQuestionById(questionId)
+          val questionId: Int = q.surveyQuestionId.toInt
+          val temp_question: Option[SurveyQuestion] = SurveyQuestionTable.getQuestionById(questionId)
           temp_question match{
             case Some(question) =>
               if (question.surveyInputType != "free-text-feedback") {
@@ -73,7 +81,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
           }
         }
         unansweredQuestionIds.foreach{ questionId =>
-          val temp_question = SurveyQuestionTable.getQuestionById(questionId)
+          val temp_question: Option[SurveyQuestion] = SurveyQuestionTable.getQuestionById(questionId)
           temp_question match{
             case Some(question)=>
               if(question.surveyInputType != "free-text-feedback"){
@@ -93,6 +101,9 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
     )
   }
 
+  /**
+   * Determine whether or not a survey should be shown to the signed in user.
+   */
   def shouldDisplaySurvey = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>

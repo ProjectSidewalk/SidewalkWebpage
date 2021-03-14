@@ -45,19 +45,19 @@ object AMTAssignmentTable {
   }
 
   def getConfirmationCode(workerId: String, assignmentId: String): String = db.withTransaction { implicit session =>
-    amtAssignments.filter( x => x.workerId === workerId && x.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).list.head
+    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).first
   }
 
   def getMostRecentAssignmentId(workerId: String): String = db.withTransaction { implicit session =>
-    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).list.head
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).first
   }
 
   def getMostRecentAMTAssignmentId(workerId: String): Int = db.withTransaction { implicit session =>
-    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).list.head
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).first
   }
 
   def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).list.headOption
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).firstOption
   }
 
   /**
@@ -70,15 +70,15 @@ object AMTAssignmentTable {
   }
 
   def getMostRecentConfirmationCode(workerId: String): Option[String] = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).list.headOption
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).firstOption
   }
 
   def getMostRecentAssignment(workerId: String): Option[AMTAssignment] = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).list.headOption
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).firstOption
   }
 
   def getAssignment(workerId: String, assignmentId: String): Option[AMTAssignment] = db.withSession { implicit session =>
-    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).list.headOption
+    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).firstOption
   }
 
   /**

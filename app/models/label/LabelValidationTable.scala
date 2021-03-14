@@ -119,7 +119,7 @@ object LabelValidationTable {
    */
   def insertOrUpdate(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val oldValidation: Option[LabelValidation] =
-      validationLabels.filter(x => x.labelId === label.labelId && x.missionId === label.missionId).list.headOption
+      validationLabels.filter(x => x.labelId === label.labelId && x.missionId === label.missionId).firstOption
 
     oldValidation match {
       case Some(oldLabel) =>
@@ -168,7 +168,7 @@ object LabelValidationTable {
         GROUP BY user_id
       ) "accuracy";""".stripMargin
     )
-    accuracyQuery(userId.toString).list.headOption.flatten
+    accuracyQuery(userId.toString).firstOption.flatten
   }
 
   /**
@@ -306,7 +306,7 @@ object LabelValidationTable {
         |FROM sidewalk.label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /**
@@ -318,7 +318,7 @@ object LabelValidationTable {
         |FROM sidewalk.label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /**
@@ -331,7 +331,7 @@ object LabelValidationTable {
         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
         |   AND v.validation_result = $result""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /**
@@ -344,7 +344,7 @@ object LabelValidationTable {
          |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |   AND v.validation_result = $result""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /**

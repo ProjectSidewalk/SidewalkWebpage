@@ -13,10 +13,15 @@ import play.api.libs.json.{JsArray, JsObject, Json}
 import scala.concurrent.Future
 
 
+/**
+ * Holds the HTTP requests associated with Sidewalk Gallery.
+ *
+ * @param env The Silhouette environment.
+ */
 class GalleryController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  // Set of valid labels
+  // Set of valid labels.
   val validLabelIds: Set[Int] = LabelTypeTable.validLabelTypeIds
 
   /**
