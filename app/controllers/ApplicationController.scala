@@ -177,7 +177,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = UserAwareAction.async { implicit request =>
 
     // Build logger string.
-    val anonymousUser: DBUser = UserTable.find("anonymous").get
+    val user: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
     val oldLang: String = request2lang.code
@@ -185,12 +185,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val logText: String = s"Click_module=ChangeLanguage_from=${oldLang}_to=${newLang}_location=${clickLoc}_route=${url}"
 
     // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
-    request.identity match {
-      case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, logText, timestamp))
-      case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, logText, timestamp))
-    }
+    WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, logText, timestamp))
 
     // Update the cookie and redirect.
     Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", newLang)))
