@@ -36,6 +36,8 @@ navbar.signin = Sign in
 navbar.signout = Sign out
 navbar.dashboard = Your dashboard
 navbar.admin = Admin
+navbar.lang.aria = Language Options
+navbar.lang.icon.alt = languages icon
 
 landing.create.path = Let''s create a path for everyone
 landing.also.in = We are also in:

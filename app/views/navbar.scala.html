@@ -123,7 +123,6 @@
                     </ul>
                 </li>
 
-                <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
                         <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
@@ -150,6 +149,23 @@
                     } else {
                         <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
+                </li>
+
+                <li class="active dropdown navbar-lnk" id="language-dropdown">
+                    <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
+                        <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
+                            @lang.code
+                        <b class="caret"></b>
+                    </a>
+                    <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
+                        @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
+                            @if(language != lang.code) {
+                                <li>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@language</a>
+                                </li>
+                            } 
+                        }
+                    </ul>  
                 </li>
             </ul>
         </div>
@@ -234,6 +250,8 @@ $(document).ready(function () {
     $("#navbar-dashboard-btn").on('click', function() {
         logWebpageActivity("Click_module=ToDashboard")
     });
+    // Logging clicks to the language button was moved to ApplicationController.scala b/c the redirect was happening
+    // before the log could be sent off.
 });
 </script>
 

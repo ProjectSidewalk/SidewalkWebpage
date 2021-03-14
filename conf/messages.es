@@ -36,6 +36,8 @@ navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
+navbar.lang.aria = Opciones de idioma
+navbar.lang.icon.alt = icono de idiomas
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
