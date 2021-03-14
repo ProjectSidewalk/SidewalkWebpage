@@ -172,7 +172,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
    * Updates user language preference cookie, returns to current page.
    */
   def changeLanguage(url: String, language: String) = UserAwareAction.async { implicit request =>
-      Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", language)))
+    Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", language)))
   }
 
   /**
