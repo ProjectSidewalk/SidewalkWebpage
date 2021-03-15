@@ -42,7 +42,7 @@
                             // Output the result in an element with id="navbarTimer"
                             if (msRemaining < 0) {
                                 clearInterval(timerInterval);
-                                document.getElementById("navbarTimer").innerHTML = "EXPIRED";
+                                document.getElementById("navbarTimer").innerHTML = "@Messages("turk.expired.navbar")";
 
                                 // If on the audit or validation page and the timer has just expired, refresh page to
                                 // show HIT expiration overlay so they are unable to audit.
@@ -123,7 +123,6 @@
                     </ul>
                 </li>
 
-                <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
                         <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
@@ -150,6 +149,23 @@
                     } else {
                         <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
+                </li>
+
+                <li class="active dropdown navbar-lnk" id="language-dropdown">
+                    <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
+                        <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
+                            @lang.code
+                        <b class="caret"></b>
+                    </a>
+                    <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
+                        @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
+                            @if(language != lang.code) {
+                                <li>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@language</a>
+                                </li>
+                            } 
+                        }
+                    </ul>  
                 </li>
             </ul>
         </div>
@@ -234,21 +250,23 @@ $(document).ready(function () {
     $("#navbar-dashboard-btn").on('click', function() {
         logWebpageActivity("Click_module=ToDashboard")
     });
+    // Logging clicks to the language button was moved to ApplicationController.scala b/c the redirect was happening
+    // before the log could be sent off.
 });
 </script>
 
 @if(!user || user.get.role.getOrElse("") == "Anonymous") {
     <script type="text/javascript">
-            $(document).ready(function () {
-                $("#form-open-sign-up").on("mouseup", function () {
-                    $("#sign-in-modal").addClass("hidden");
-                    $("#sign-up-modal").removeClass("hidden");
-                });
-                $("#form-open-sign-in").on("mouseup", function () {
-                    $("#sign-up-modal").addClass("hidden");
-                    $("#sign-in-modal").removeClass("hidden");
-                });
+        $(document).ready(function () {
+            $("#form-open-sign-up").on("mouseup", function () {
+                $("#sign-in-modal").addClass("hidden");
+                $("#sign-up-modal").removeClass("hidden");
             });
+            $("#form-open-sign-in").on("mouseup", function () {
+                $("#sign-up-modal").addClass("hidden");
+                $("#sign-in-modal").removeClass("hidden");
+            });
+        });
     </script>
     <div class="modal fade" id="sign-in-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -314,198 +332,192 @@ $(document).ready(function () {
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
     <script>
-            $(document).ready(function() {
-                $("#navbar-agree-to-terms").click(function() {
-                    if ($(this).prop("checked")) {
-                        $("#sign-up-submit").prop("disabled", false);
-                    } else {
-                        $("#sign-up-submit").prop("disabled", true);
-                    }
-                });
-
-                $("[data-hide]").on("click", function(){
-                    $("." + $(this).attr("data-hide")).hide();
-                    // -or-, see below
-                    // $(this).closest("." + $(this).attr("data-hide")).hide();
-                });
-
-                // If on the sign in or sign up pages, remove the sign in button from the navbar.
-                if (location.pathname === '/signIn' || location.pathname === '/signUp') {
-                    $('#sign-in-modal-container').remove();
-                    $('#navbar-user-dropdown-list').remove();
+        $(document).ready(function() {
+            $("#navbar-agree-to-terms").click(function() {
+                if ($(this).prop("checked")) {
+                    $("#sign-up-submit").prop("disabled", false);
+                } else {
+                    $("#sign-up-submit").prop("disabled", true);
                 }
             });
 
-            // Callback function for checking sign-in results
-            function handleSignIn(data) {
-                //this means that logging in failed, alert user of failure
-                if(typeof data == 'string'){
-                    $('#incorrect-signin-alert').hide();
-                    $('#incorrect-login-modal-alert').show();
-                    return;
-                }
-
-                //otherwise, reflect login changes on user's end
-                var htmlString = $("#navbar-user-dropdown-list-signed-in").html();
-                htmlString = htmlString.replace(/__USERNAME__/g, data.username);
-
-                $("#navbar-user-dropdown-list").html(htmlString);
-                var path = window.location.pathname;
-
-                // Toggle the sign-in modal 
-                $('#sign-in-modal-container').modal('toggle');
-
-                if(path.includes("/audit") && svl) {
-                    svl.user.setProperty('username', data.username);
-
-                    // Turn neighborhood name into a link
-                    svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
-                    svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
-                    var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                    var href = "/contribution/" + data.username + "?regionId=" + neighborhood.getProperty("regionId");
-                    svl.statusFieldNeighborhood.setHref(href);
-
-                    // init: noInit is a flag that prevents the init functions in main from running
-                    // Need root directory to prevent cursor icons from disappearing
-                    Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
-                        .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
-
-                    // Prevent first-mission popups
-                    if (!svl.initialMissionInstruction) {
-                        svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer,
-                                svl.tracker);
-                    }
-                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructToCheckSidewalks);
-                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
-
-                }
-
-                // Append the link to the admin interface if it the user is admin
-                if (data.role === "Administrator" || data.role === "Owner") {
-                    var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
-                    $('#nav-user-menu').children('#dashboard-link').after(adminLi);
-                }
-
-            }
-
-
-            function invalidSignInUpAlert(signIn, message){
-                if(signIn){
-                    $('#incorrect-login-modal-alert').hide();
-                    $('#incorrect-signin-alert').html(
-                            '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
-                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
-                            '</div>'
-                    );
-                    $('#incorrect-signin-alert').show();
-                }
-                else{
-                    $('#invalid-signup-alert').hide();
-                    $('#incorrect-signup-alert').html(
-                            '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
-                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
-                            '</div>'
-                    );
-                    $('#incorrect-signup-alert').show();
-                }
-            }
-
-            // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
-            $('#sign-in-form').submit(function () {
-                var formData = $('#sign-in-form :input');
-                var email = formData[0].value;
-                var password = formData[1].value;
-
-                //if not a valid email address, do not submit form
-                if(!email){
-                    invalidSignInUpAlert(true, 'Please enter a valid email address.');
-                    return false;
-                }
-
-                if(!password){
-                    invalidSignInUpAlert(true, 'Please enter your password.');
-                    return false;
-                }
-
-                var data = $(this).serialize();
-
-                var url = '/authapi/authenticate';
-
-                $.ajax({
-                    type: "POST",
-                    url: url,
-                    data: data,
-                    success: function() {
-                        document.location.reload();
-                    },
-                    error: function() {
-                        invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
-                    }
-                });
+            $("[data-hide]").on("click", function(){
+                $("." + $(this).attr("data-hide")).hide();
+                // -or-, see below
+                // $(this).closest("." + $(this).attr("data-hide")).hide();
             });
 
-            // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
-            $('#sign-up-form').submit(function () {
-                var formData = $('#sign-up-form :input');
-                var username = formData[0].value;
-                var email = formData[1].value;
-                var password = formData[2].value;
-		var passwordConfirm = formData[3].value;
+            // If on the sign in or sign up pages, remove the sign in button from the navbar.
+            if (location.pathname === '/signIn' || location.pathname === '/signUp') {
+                $('#sign-in-modal-container').remove();
+                $('#navbar-user-dropdown-list').remove();
+            }
+        });
 
-                // If not a valid username/email/password, do not submit form.
-                if(!username){
-                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
-                    return false;
-                }
-                if(!email){
-                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
-                    return false;
-                }
-                if(!password){
-                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
-                    return false;
-                }
+        // Callback function for checking sign-in results
+        function handleSignIn(data) {
+            //this means that logging in failed, alert user of failure
+            if(typeof data == 'string'){
+                $('#incorrect-signin-alert').hide();
+                $('#incorrect-login-modal-alert').show();
+                return;
+            }
 
-		if (password !== passwordConfirm) {
-		    invalidSignInUpAlert(false, "@Messages("authenticate.error.password.mismatch")");
-		    return false;
-		}
+            //otherwise, reflect login changes on user's end
+            var htmlString = $("#navbar-user-dropdown-list-signed-in").html();
+            htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
-		if (password.length < 6) {
-		    invalidSignInUpAlert(false, "@Messages("authenticate.error.password.length")");
-		    return false;
-		}
+            $("#navbar-user-dropdown-list").html(htmlString);
+            var path = window.location.pathname;
 
-                var data = $(this).serialize();
+            // Toggle the sign-in modal
+            $('#sign-in-modal-container').modal('toggle');
 
-                var url = '/signUp';
-                $.post(url, data, handleSignIn).fail(function(e){
-                    var errorMessage = "";
-                    if(e.status === 409){
-                        if(e.responseText.toLowerCase().includes("email")){
-                            errorMessage = "@Messages("authenticate.error.email.exists")"
-                        }
-                        else{
-                            errorMessage = "@Messages("authenticate.error.username.exists")"
-                        }
-                    }
-                    else{ // Some other Bad Request
-                        errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
-                    }
-                    $('#incorrect-signup-alert').hide();
-                    $('#invalid-signup-alert').show();
-                    $('#invalid-signup-alert').html(
-                            '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
-                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + errorMessage +
-                            '</div>'
+            if(path.includes("/audit") && svl) {
+                svl.user.setProperty('username', data.username);
+
+                // Turn neighborhood name into a link
+                svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
+                svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
+                var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                var href = "/contribution/" + data.username + "?regionId=" + neighborhood.getProperty("regionId");
+                svl.statusFieldNeighborhood.setHref(href);
+
+                // init: noInit is a flag that prevents the init functions in main from running
+                // Need root directory to prevent cursor icons from disappearing
+                Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
+                    .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+
+                // Prevent first-mission popups
+                if (!svl.initialMissionInstruction) {
+                    svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                        svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer,  svl.tracker
                     );
-                });
+                }
+                svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructToCheckSidewalks);
+                svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
+            }
+
+            // Append the link to the admin interface if it the user is admin
+            if (data.role === "Administrator" || data.role === "Owner") {
+                var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
+                $('#nav-user-menu').children('#dashboard-link').after(adminLi);
+            }
+        }
+
+        function invalidSignInUpAlert(signIn, message){
+            if(signIn){
+                $('#incorrect-login-modal-alert').hide();
+                $('#incorrect-signin-alert').html(
+                    '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
+                    '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                    '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
+                    '</div>'
+                );
+                $('#incorrect-signin-alert').show();
+            }
+            else{
+                $('#invalid-signup-alert').hide();
+                $('#incorrect-signup-alert').html(
+                    '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
+                    '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                    '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
+                    '</div>'
+                );
+                $('#incorrect-signup-alert').show();
+            }
+        }
+
+        // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
+        $('#sign-in-form').submit(function () {
+            var formData = $('#sign-in-form :input');
+            var email = formData[0].value;
+            var password = formData[1].value;
+
+            //if not a valid email address, do not submit form
+            if(!email){
+                invalidSignInUpAlert(true, 'Please enter a valid email address.');
                 return false;
+            }
+
+            if(!password){
+                invalidSignInUpAlert(true, 'Please enter your password.');
+                return false;
+            }
+
+            var data = $(this).serialize();
+            var url = '/authapi/authenticate';
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: data,
+                success: function() {
+                    document.location.reload();
+                },
+                error: function() {
+                    invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+                }
             });
+        });
+
+        // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
+        $('#sign-up-form').submit(function () {
+            var formData = $('#sign-up-form :input');
+            var username = formData[0].value;
+            var email = formData[1].value;
+            var password = formData[2].value;
+            var passwordConfirm = formData[3].value;
+
+            // If not a valid username/email/password, do not submit form.
+            if(!username){
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
+                return false;
+            }
+            if(!email){
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
+                return false;
+            }
+            if(!password){
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
+                return false;
+            }
+
+            if (password !== passwordConfirm) {
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.password.mismatch")");
+                return false;
+            }
+
+            if (password.length < 6) {
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.password.length")");
+                return false;
+            }
+
+            var data = $(this).serialize();
+            var url = '/signUp';
+            $.post(url, data, handleSignIn).fail(function(e){
+                var errorMessage = "";
+                if(e.status === 409){
+                    if(e.responseText.toLowerCase().includes("email")){
+                        errorMessage = "@Messages("authenticate.error.email.exists")"
+                    }
+                    else{
+                        errorMessage = "@Messages("authenticate.error.username.exists")"
+                    }
+                }
+                else{ // Some other Bad Request
+                    errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
+                }
+                $('#incorrect-signup-alert').hide();
+                $('#invalid-signup-alert').show();
+                $('#invalid-signup-alert').html(
+                    '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
+                    '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                    '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + errorMessage +
+                    '</div>'
+                );
+            });
+            return false;
+        });
     </script>
     <template id="navbar-user-dropdown-list-signed-in">
         <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">

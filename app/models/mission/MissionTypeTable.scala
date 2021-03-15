@@ -31,7 +31,7 @@ object MissionTypeTable {
     * @return               ID associated with this mission type
     */
   def missionTypeToId(missionType: String): Int = db.withTransaction { implicit session =>
-    missionTypes.filter(_.missionType === missionType).map(_.missionTypeId).list.head
+    missionTypes.filter(_.missionType === missionType).map(_.missionTypeId).first
   }
 
   /**
@@ -41,7 +41,7 @@ object MissionTypeTable {
     * @return               Name field for this mission type
     */
   def missionTypeIdToMissionType(missionTypeId: Int): String = db.withTransaction { implicit session =>
-    missionTypes.filter(_.missionTypeId === missionTypeId).map(_.missionType).list.head
+    missionTypes.filter(_.missionTypeId === missionTypeId).map(_.missionType).first
   }
 
   /**

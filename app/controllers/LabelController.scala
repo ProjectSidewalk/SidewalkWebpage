@@ -14,9 +14,17 @@ import play.api.Play.current
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with getting label data.
+ *
+ * @param env The Silhouette environment.
+ */
 class LabelController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+   * Get the list of labels applied by the given user for their current audit mission in the given region.
+   */
   def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>

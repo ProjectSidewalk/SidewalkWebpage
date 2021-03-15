@@ -1,26 +1,27 @@
 package controllers
 
 import javax.inject.Inject
-import java.sql.Timestamp
-import java.time.Instant
-
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.label.{LabelTable, LabelTypeTable}
 import models.label.LabelTable._
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import play.api.libs.json.{JsObject, Json, JsValue, JsArray}
-import play.api.Logger
-
+import play.api.Play
+import play.api.Play.current
+import play.api.libs.json.{JsArray, JsObject, Json}
 import scala.concurrent.Future
-import scala.io.Source
 
 
+/**
+ * Holds the HTTP requests associated with Sidewalk Gallery.
+ *
+ * @param env The Silhouette environment.
+ */
 class GalleryController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  // Set of valid labels
+  // Set of valid labels.
   val validLabelIds: Set[Int] = LabelTypeTable.validLabelTypeIds
 
   /**
@@ -115,8 +116,8 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
       "&heading=" + heading +
       "&pitch=" + pitch +
       "&fov=" + getFov(zoom) +
-      "&key=" + VersionTable.getGoogleMapsAPIKey()
-    url
+      "&key=" + Play.configuration.getString("google-maps-api-key").get
+    VersionTable.signUrl(url)
   }
 
   /**
