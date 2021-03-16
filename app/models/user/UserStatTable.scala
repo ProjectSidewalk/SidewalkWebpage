@@ -67,6 +67,19 @@ object UserStatTable {
   }
 
   /**
+   * Get list of users where their data was included in clustering but they have since been marked as low quality.
+   */
+  def getIdsOfNewlyLowQualityUsers: List[String] = db.withSession { implicit session =>
+    val newLowQualityUsers = for {
+      _stat <- userStats if _stat.highQuality === false
+      _clustSession <- UserClusteringSessionTable.userClusteringSessions if _stat.userId === _clustSession.userId
+    } yield _stat.userId
+
+    // SELECT DISTINCT on the user_ids.
+    newLowQualityUsers.groupBy(x => x).map(_._1).list
+  }
+
+  /**
     * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
     */
   def updateUserStatTable(cutoffTime: Timestamp) = db.withSession { implicit session =>

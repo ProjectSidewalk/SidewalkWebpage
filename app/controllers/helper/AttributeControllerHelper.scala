@@ -55,10 +55,14 @@ object AttributeControllerHelper {
     val t1 = System.nanoTime
     val goodUsersToUpdate: List[String] = UserStatTable.getIdsOfGoodUsersWithLabels(cutoffTime)
     val t2 = System.nanoTime
+    val newBadUsers: List[String] = UserStatTable.getIdsOfNewlyLowQualityUsers
     val t3 = System.nanoTime
+    val usersToDelete: List[String] = (goodUsersToUpdate ++ newBadUsers).distinct
+    println(s"Good users to update: ${goodUsersToUpdate.length}")
+    println(s"Bad users to remove: ${newBadUsers.length}")
     // First truncate the user_clustering_session, user_attribute, and user_attribute_label tables.
 //    UserClusteringSessionTable.truncateTables()
-    UserClusteringSessionTable.deleteUsersClusteringSessions(goodUsersToUpdate)
+    UserClusteringSessionTable.deleteUsersClusteringSessions(usersToDelete)
     val t4 = System.nanoTime
 
     val key: String = Play.configuration.getString("internal-api-key").get
