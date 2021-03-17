@@ -62,6 +62,16 @@ object GlobalClusteringSessionTable {
     Q.updateNA("TRUNCATE TABLE global_clustering_session CASCADE").execute
   }
 
+  /**
+   * Deletes the global attributes for the selected region_ids.
+   *
+   * We run the delete on the `global_clustering_session` table, and it cascades to the `global_attribute` and
+   * `global_attribute_user_attribute` tables.
+   */
+  def deleteGlobalClusteringSessions(regionIds: List[Int]): Int = db.withTransaction { implicit session =>
+    globalClusteringSessions.filter(_.regionId inSet regionIds).delete
+  }
+
   def save(newSess: GlobalClusteringSession): Int = db.withTransaction { implicit session =>
     val newId: Int = (globalClusteringSessions returning globalClusteringSessions.map(_.globalClusteringSessionId)) += newSess
     newId
