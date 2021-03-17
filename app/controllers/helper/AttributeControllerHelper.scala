@@ -90,15 +90,14 @@ object AttributeControllerHelper {
     * Runs multi user clustering for the user attributes in each region.
     */
   def runMultiUserClustering() = {
-    val t1 = System.nanoTime
-
-    // First truncate the global_clustering_session, global_attribute, and global_attribute_user_attribute tables.
-    GlobalClusteringSessionTable.truncateTables()
-    val t2 = System.nanoTime
-
     val key: String = Play.configuration.getString("internal-api-key").get
-    val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
-    //    val regionIds = List(199, 200, 203, 211, 261) // Small test set.
+    val t1 = System.nanoTime
+    // Get the list of neighborhoods that need to be updated because the underlying users' clusters changed.
+    val regionIds: List[Int] = GlobalClusteringSessionTable.getNeighborhoodsToReCluster
+
+    // Delete the data for those regions.
+    GlobalClusteringSessionTable.deleteGlobalClusteringSessions(regionIds)
+    val t2 = System.nanoTime
     val nRegions: Int = regionIds.length
     Logger.info("N regions = " + nRegions)
 
@@ -109,7 +108,7 @@ object AttributeControllerHelper {
     }
     Logger.info("\nFinshed 100% of regions!!\n\n")
     val t3 = System.nanoTime
-    println(s"truncate time: ${(t2 - t1) / 1e9d}s")
+    println(s"delete time: ${(t2 - t1) / 1e9d}s")
     println(s"clustering time: ${(t3 - t2) / 1e9d}s")
   }
 }

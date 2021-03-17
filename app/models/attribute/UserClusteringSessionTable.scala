@@ -117,7 +117,7 @@ object UserClusteringSessionTable {
   }
 
   /**
-   * Deletes the entry in the `user_clustering_session` table and (almost) all connected data for the given users.
+   * Deletes the entries in the `user_clustering_session` table and (almost) all connected data for the given users.
    *
    * Deletes the entry in the `user_clustering_session` table, and the connected entries in the `user_attribute`,
    * `user_attribute_label`, and `global_attribute_user_attribute` tables. We leave the data in the `global_attribute`
