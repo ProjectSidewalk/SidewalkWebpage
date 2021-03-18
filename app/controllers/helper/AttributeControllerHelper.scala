@@ -1,12 +1,10 @@
 package controllers.helper
 
 import models.attribute.{GlobalAttributeTable, GlobalClusteringSessionTable, UserAttributeLabelTable, UserAttributeTable, UserClusteringSessionTable}
-import models.region.RegionTable
 import models.user.UserStatTable
 import play.api.{Logger, Play}
 import play.api.Play.current
 import play.api.libs.json.Json
-
 import java.sql.Timestamp
 import java.time.Instant
 import scala.collection.immutable.Seq
@@ -52,38 +50,27 @@ object AttributeControllerHelper {
    * Runs single user clustering for each high quality user who has placed a label since `cutoffTime`.
    */
   def runSingleUserClustering(cutoffTime: Timestamp) = {
-    val t1 = System.nanoTime
-    val goodUsersToUpdate: List[String] = UserStatTable.getIdsOfGoodUsersWithLabels(cutoffTime)
-    val t2 = System.nanoTime
-    val newBadUsers: List[String] = UserStatTable.getIdsOfNewlyLowQualityUsers
-    val t3 = System.nanoTime
-    val usersToDelete: List[String] = (goodUsersToUpdate ++ newBadUsers).distinct
-    println(s"Good users to update: ${goodUsersToUpdate.length}")
-    println(s"Bad users to remove: ${newBadUsers.length}")
-    // First truncate the user_clustering_session, user_attribute, and user_attribute_label tables.
-//    UserClusteringSessionTable.truncateTables()
-    UserClusteringSessionTable.deleteUsersClusteringSessions(usersToDelete)
-    val t4 = System.nanoTime
-
     val key: String = Play.configuration.getString("internal-api-key").get
-    val t5 = System.nanoTime
+
+    // Get list of users who's data we want to delete or re-cluster (or cluster for the first time).
+    val goodUsersToUpdate: List[String] = UserStatTable.getIdsOfGoodUsersWithLabels(cutoffTime)
+    val newBadUsers: List[String] = UserStatTable.getIdsOfNewlyLowQualityUsers
+    val usersToDelete: List[String] = (goodUsersToUpdate ++ newBadUsers).distinct
+
+    // Delete data from users we want to delete or re-cluster.
+    UserClusteringSessionTable.deleteUsersClusteringSessions(usersToDelete)
+
     val nUsers = goodUsersToUpdate.length
     Logger.info("N users = " + nUsers)
 
-    // Runs clustering for each good user.
+    // Run clustering for each user that we are re-clustering.
     for ((userId, i) <- goodUsersToUpdate.view.zipWithIndex) {
       Logger.info(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
       val clusteringOutput =
         Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
       // Logger.info(clusteringOutput)
     }
-    val t6 = System.nanoTime
-    Logger.info("\nFinshed 100% of users!!\n")
-    println(s"good user query time: ${(t2 - t1) / 1e9d}s")
-    println(s"bad user query time: ${(t3 - t2) / 1e9d}s")
-    println(s"delete users query time: ${(t4 - t3) / 1e9d}s")
-    println(s"get API key time: ${(t5 - t4) / 1e9d}s")
-    println(s"clustering time: ${(t6 - t5) / 1e9d}s")
+    Logger.info("Finshed 100% of users!!\n")
   }
 
   /**
@@ -91,13 +78,12 @@ object AttributeControllerHelper {
     */
   def runMultiUserClustering() = {
     val key: String = Play.configuration.getString("internal-api-key").get
-    val t1 = System.nanoTime
+
     // Get the list of neighborhoods that need to be updated because the underlying users' clusters changed.
     val regionIds: List[Int] = GlobalClusteringSessionTable.getNeighborhoodsToReCluster
 
     // Delete the data for those regions.
     GlobalClusteringSessionTable.deleteGlobalClusteringSessions(regionIds)
-    val t2 = System.nanoTime
     val nRegions: Int = regionIds.length
     Logger.info("N regions = " + nRegions)
 
@@ -106,9 +92,6 @@ object AttributeControllerHelper {
       Logger.info(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
       val clusteringOutput = Seq("python", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
     }
-    Logger.info("\nFinshed 100% of regions!!\n\n")
-    val t3 = System.nanoTime
-    println(s"delete time: ${(t2 - t1) / 1e9d}s")
-    println(s"clustering time: ${(t3 - t2) / 1e9d}s")
+    Logger.info("Finshed 100% of regions!!\n\n")
   }
 }

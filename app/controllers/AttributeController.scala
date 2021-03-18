@@ -9,7 +9,6 @@ import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import controllers.helper.AttributeControllerHelper
 import models.user.User
-
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.libs.json.Json
@@ -71,9 +70,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
           val msCutoff: Long = hours * 3600000L
           new Timestamp(Instant.now.toEpochMilli - msCutoff)
         case None =>
-          val msCutoff: Long = 36 * 3600000L
-//          new Timestamp(Instant.EPOCH.toEpochMilli)
-          new Timestamp(Instant.now.toEpochMilli - msCutoff)
+          new Timestamp(Instant.EPOCH.toEpochMilli)
       }
       val json = AttributeControllerHelper.runClustering(clusteringType, cutoffTime)
       Future.successful(Ok(json))

@@ -1,14 +1,12 @@
 package models.user
 
 import models.attribute.UserClusteringSessionTable
-
 import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.MissionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import java.sql.Timestamp
 import java.time.Instant
 import scala.slick.lifted.ForeignKeyQuery
