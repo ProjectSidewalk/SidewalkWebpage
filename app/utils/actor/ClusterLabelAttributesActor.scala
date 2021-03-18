@@ -5,6 +5,9 @@ import java.util.{Calendar, Locale, TimeZone}
 import akka.actor.{Actor, Cancellable, Props}
 import controllers.helper.AttributeControllerHelper
 import play.api.Logger
+
+import java.sql.Timestamp
+import java.time.Instant
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
@@ -59,7 +62,10 @@ class ClusterLabelAttributesActor extends Actor {
 
       val currentTimeStart: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
-      AttributeControllerHelper.runClustering("both")
+      // Update clusters for anyone who audited in the past 36 hours.
+      val msCutoff: Long = 36 * 3600000L
+      val cutoffTime: Timestamp = new Timestamp(Instant.now.toEpochMilli - msCutoff)
+      AttributeControllerHelper.runClustering("both", cutoffTime)
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Label attribute clustering completed at: $currentEndTime")
   }

@@ -70,7 +70,7 @@ if __name__ == '__main__':
     USER_ID = args.user_id.strip('\'\"') if args.user_id else None
     REGION_ID = args.region_id
 
-    N_PROCESSORS = 3
+    N_PROCESSORS = 8
 
     # Determine what type of clustering should be done from command line args, and set variable accordingly.
     getURL = None
