@@ -2,21 +2,22 @@ function Progress (_, $, difficultRegionIds, userRole) {
     var params = {
         popupType: 'completionRate',
         neighborhoodPolygonStyle: {
-            color: '#656565',
+            color: '#407770', 
             weight: 2,
             opacity: 0.80,
-            fillColor: '#606060',
-            fillOpacity: 0.1
+            fillColor: '#5d6d6b', 
+            fillOpacity: 0.1, 
+            dashArray: '6,6' 
         },
         mouseoverStyle: {
-            color: '#000',
+            color: '#3f5a58', 
             opacity: 1.0,
             weight: 3
         },
         mouseoutStyle: {
-            color: '#656565',
+            color: '#407770', 
             opacity: 0.8,
-            weight: 2
+            weight: 2,
         },
         webpageActivity: 'Click_module=UserMap_regionId=',
         defaultZoomIncrease: -1.0,
