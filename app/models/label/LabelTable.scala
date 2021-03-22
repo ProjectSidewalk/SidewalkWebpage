@@ -151,8 +151,6 @@ object LabelTable {
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
                              userRole: String, username: String, missionType: String, labelId: Int)
 
-  case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
-
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, description: Option[String], severity: Option[Int],
                                  temporary: Option[Boolean], tagIds: List[Int])
@@ -163,9 +161,6 @@ object LabelTable {
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
-
-  implicit val MiniMapResumeMetadataConverter = GetResult[MiniMapResumeMetadata](r =>
-    MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextIntOption, r.nextFloat, r.nextFloat))
@@ -184,20 +179,6 @@ object LabelTable {
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
-
-  /**
-    * Find all labels with given regionId and userId.
-    */
-  def resumeMiniMap(regionId: Int, userId: UUID): List[MiniMapResumeMetadata] = db.withSession { implicit session =>
-    val labelsWithCVMetadata = for {
-      _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
-      _lb <- labelsWithoutDeleted if _lb.missionId === _m.missionId
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-      _lp <- LabelPointTable.labelPoints if _lb.labelId === _lp.labelId
-
-    } yield (_lb.labelId, _lt.labelType, _lp.lat, _lp.lng)
-    labelsWithCVMetadata.list.map(label => MiniMapResumeMetadata.tupled(label))
-  }
 
   /**
     * Find a label based on temp_label_id and audit_task_id.

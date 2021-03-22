@@ -7,8 +7,8 @@
  */
 function LabelContainer($) {
     var self = this;
-    var currentCanvasLabels = [],
-        prevCanvasLabels = [];
+    var currentCanvasLabels = {},
+        prevCanvasLabels = {};
 
     var neighborhoodLabels = {};
 
@@ -31,7 +31,6 @@ function LabelContainer($) {
                     i = 0,
                     len = features.length;
                 for (; i < len; i++) {
-                    console.log(features[i].properties.label_id);
                     label = svl.labelFactory.create(null, {
                         labelId: features[i].properties.label_id
                     });
@@ -45,20 +44,6 @@ function LabelContainer($) {
     this.fetchLabelsInTheCurrentMission = function (regionId, callback) {
         $.getJSON(
             '/label/currentMission',
-            { regionId: regionId },
-            function (result) {
-                if (callback) callback(result);
-            });
-    };
-
-    /**
-     * Fetches all the labels that the user has placed in given region
-     * @param regionId - ID of region
-     * @param callback - function to handle response
-     */
-    this.miniMapLabelsInRegion = function (regionId, callback) {
-        $.getJSON(
-            '/label/miniMapResume',
             { regionId: regionId },
             function (result) {
                 if (callback) callback(result);
@@ -123,8 +108,12 @@ function LabelContainer($) {
                 label.setProperty("labelLat", labelArr[i].labelLat);
                 label.setProperty("labelLng", labelArr[i].labelLng);
                 label.setProperty("labelFillStyle", labelFillStyle);
+                
+                if (!(label.getPanoId() in prevCanvasLabels)) {
+                    prevCanvasLabels[label.getPanoId()] = [];
+                }
 
-                prevCanvasLabels.push(label);
+                prevCanvasLabels[label.getPanoId()].push(label);
 
                 if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
                     var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
@@ -140,16 +129,24 @@ function LabelContainer($) {
      * Returns canvas labels.
      */
     this.getCanvasLabels = function () {
-        return prevCanvasLabels.concat(currentCanvasLabels);
+        let prev = prevCanvasLabels[svl.map.getPanoId()] ? prevCanvasLabels[svl.map.getPanoId()] : [];
+        let curr = currentCanvasLabels[svl.map.getPanoId()] ? currentCanvasLabels[svl.map.getPanoId()] : [];
+        return prev.concat(curr);
     };
 
     /** Get current label */
     this.getCurrentLabels = function () {
-        return currentCanvasLabels;
+        return Object.keys(currentCanvasLabels).reduce(function (r, k) {
+            return r.concat(currentCanvasLabels[k]);     
+        }, []);
+        // return currentCanvasLabels;
     };
 
     this.getPreviousLabels = function () {
-        return prevCanvasLabels;
+        return Object.keys(prevCanvasLabels).reduce(function (r, k) {
+            return r.concat(prevCanvasLabels[k]);     
+        }, []);
+        //return prevCanvasLabels;
     };
 
     //find most recent instance of label with matching temporary ID
@@ -169,7 +166,8 @@ function LabelContainer($) {
 
     //remove old versions of this label, add updated label
     this.addUpdatedLabel = function (tempId) {
-        var otherLabels = _.filter(currentCanvasLabels,
+        // fix for object version
+        var otherLabels = _.filter(this.getCurrentLabels(),
             function(label){
                 return label.getProperty("temporary_label_id") !== tempId;
             });
@@ -181,12 +179,24 @@ function LabelContainer($) {
         var match = this.findLabelByTempId(tempId);
 
         // Label with this id doesn't exist in currentCanvasLabels
-        if(otherLabels.length === currentCanvasLabels.length){
-            currentCanvasLabels.push(match);
+        if(otherLabels.length === this.getCurrentLabels().length){
+            if (!(match.getPanoId() in currentCanvasLabels)) {
+                currentCanvasLabels[match.getPanoId()] = [];
+            }
+
+            currentCanvasLabels[match.getPanoId()].push(match);
         } else {
-            currentCanvasLabels = otherLabels;
-            if(match !== null)
-                currentCanvasLabels.push(match);
+            for (let key in currentCanvasLabels) {
+                currentCanvasLabels[key] = currentCanvasLabels[key].filter(label => label.getProperty("temporary_label_id") !== tempId);
+            }
+
+            if(match !== null) {
+                if (!(match.getPanoId() in currentCanvasLabels)) {
+                    currentCanvasLabels[match.getPanoId()] = [];
+                }
+            
+                currentCanvasLabels[match.getPanoId()].push(match);
+            }
         }
     };
 
@@ -200,7 +210,11 @@ function LabelContainer($) {
      * @param label
      */
     this.push = function (label) {
-        currentCanvasLabels.push(label);
+        if (!(label.getPanoId() in currentCanvasLabels)) {
+            currentCanvasLabels[label.getPanoId()] = [];
+        }
+    
+        currentCanvasLabels[label.getPanoId()].push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
 
         // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
@@ -247,13 +261,21 @@ function LabelContainer($) {
 
     /** Refresh */
     this.refresh = function () {
-        prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
-        currentCanvasLabels = [];
+        //prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
+        for (let key in currentCanvasLabels) {
+            if (!(key in prevCanvasLabels)) {
+                prevCanvasLabels[key] = currentCanvasLabels[key];
+            } else {
+                prevCanvasLabels[key] = prevCanvasLabels[key].concat(currentCanvasLabels[key]);
+            }
+        }
+
+        currentCanvasLabels = {};
     };
 
     /**  Flush the canvasLabels */
     this.removeAll = function () {
-        currentCanvasLabels = [];
+        currentCanvasLabels = {};
     };
 
     /**

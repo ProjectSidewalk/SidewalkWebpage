@@ -29,30 +29,6 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Fetches the labels that a user has added in the current region they are working in.
-    *
-    * @return A list of labels
-    */
-  def getLabelsForMiniMap(regionId: Int) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val labels: List[LabelTable.MiniMapResumeMetadata] = LabelTable.resumeMiniMap(regionId, user.userId)
-        val jsonList: List[JsObject] = labels.map { label =>
-          Json.obj(
-            "label_id" -> label.labelId,
-            "label_type" -> label.labelType,
-            "label_lat" -> label.lat,
-            "label_lng" -> label.lng
-          )
-        }
-        val featureCollection: JsObject = Json.obj("labels" -> jsonList)
-        Future.successful(Ok(featureCollection))
-      case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
-    }
-  }
-
-  /**
    * Fetches the labels that a user has added in the current region they are working in.
    *
    * @param regionId Region id
