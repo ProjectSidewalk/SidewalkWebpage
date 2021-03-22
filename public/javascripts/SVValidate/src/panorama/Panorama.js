@@ -105,7 +105,7 @@ function Panorama (label) {
      * @returns {PanoMarker}
      */
     function getPanomarker () {
-	return self.labelMarker;
+    return self.labelMarker;
     }
 
     /**

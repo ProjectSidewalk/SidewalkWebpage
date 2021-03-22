@@ -15,6 +15,11 @@ import play.extras.geojson
 import com.vividsolutions.jts.geom.Coordinate
 import collection.immutable.Seq
 
+/**
+ * Holds the HTTP requests associated with managing neighorhoods.
+ *
+ * @param env The Silhouette environment.
+ */
 class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 

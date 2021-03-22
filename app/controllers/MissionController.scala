@@ -12,6 +12,11 @@ import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with managing mission completion and reward.
+ *
+ * @param env The Silhouette environment.
+ */
 class MissionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -46,6 +51,9 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  /**
+   * Update completion of assignment for turkers.
+   */
   def postAMTAssignment = Action.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
 

@@ -23,6 +23,11 @@ import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with tasks submitted through the audit page.
+ *
+ * @param env The Silhouette environment.
+ */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -68,6 +73,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+   * Get the audit tasks in the given region for the signed in user.
+   */
   def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -143,15 +151,20 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+   * If applicable, update the audit task as complete and update the region_completion table.
+   */
   def updateAuditTaskCompleteness(auditTaskId: Int, auditTask: TaskSubmission, incomplete: Option[IncompleteTaskSubmission]): Unit = {
     // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion.
     if ((auditTask.completed.isDefined && auditTask.completed.get)
       || (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable")) {
       // if this was the first completed audit of this street edge, increase total audited distance of that region.
       if (!AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId)) {
+        AuditTaskTable.updateCompleted(auditTaskId, completed = true)
         RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
+      } else {
+        AuditTaskTable.updateCompleted(auditTaskId, completed = true)
       }
-      AuditTaskTable.updateCompleted(auditTaskId, completed = true)
     }
   }
 
@@ -187,6 +200,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
+  /**
+   * Helper function that updates database with all data submitted through the audit page.
+   */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption = identity

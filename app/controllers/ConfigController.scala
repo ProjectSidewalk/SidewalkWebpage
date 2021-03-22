@@ -11,9 +11,17 @@ import play.api.mvc.Action
 import play.api.libs.json._
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with getting data from the parameters in our config files.
+ *
+ * @param env The Silhouette environment.
+ */
 class ConfigController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+   * Get the city-specific parameters used to pan/zoom maps to correct location.
+   */
   def getCityMapParams() = Action.async { implicit request =>
     val cityStr: String = Play.configuration.getString("city-id").get
     val cityLat: Double = Play.configuration.getDouble("city-params.city-center-lat." + cityStr).get
@@ -31,6 +39,9 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
     )))
   }
 
+  /**
+   * Get the short version of the current city name.
+   */
   def getCityShortNameParam() = Action.async { implicit request =>
     val cityStr: String = Play.configuration.getString("city-id").get
     val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
