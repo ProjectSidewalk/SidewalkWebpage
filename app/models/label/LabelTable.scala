@@ -1,5 +1,6 @@
 package models.label
 
+import com.vividsolutions.jts.geom.Point
 import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
 import java.util.UUID
@@ -9,10 +10,6 @@ import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
-<<<<<<< HEAD
-import com.vividsolutions.jts.geom.Point
-=======
->>>>>>> 7edb3c2682d1f1c8f1857dbeedcd31a5913171ed
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
