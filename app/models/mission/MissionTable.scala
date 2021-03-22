@@ -155,8 +155,8 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included in this count
     * @return
     */
-  def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean): Int = db.withTransaction { implicit session =>
-    selectCompletedMissionsByAUser(userId, includeOnboarding).size
+  def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = db.withTransaction { implicit session =>
+    selectCompletedMissionsByAUser(userId, includeOnboarding, includeSkipped).size
   }
 
   /**
@@ -242,7 +242,7 @@ object MissionTable {
     * Check if the user has completed onboarding.
     */
   def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
-    selectCompletedMissionsByAUser(userId, includeOnboarding = true)
+    selectCompletedMissionsByAUser(userId, includeOnboarding = true, includeSkipped = true)
       .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
   }
 
@@ -265,10 +265,15 @@ object MissionTable {
     *
     * @param userId User's UUID
     * @param includeOnboarding should any onboarding missions be included
+    * @param includeSkipped should any skipped missions be included
     */
-  def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
+  def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): List[Mission] = db.withSession { implicit session =>
     val _missions = if (includeOnboarding) {
-      missions.filter(m => m.userId === userId.toString && m.completed)
+      if (includeSkipped) {
+        missions.filter(m => m.userId === userId.toString && m.completed)
+      } else {
+        missions.filter(m => m.userId === userId.toString && m.completed && !m.skipped)
+      }
     } else {
       missions.filter(m => m.userId === userId.toString && m.completed)
         .filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
