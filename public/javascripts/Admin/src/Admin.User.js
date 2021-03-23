@@ -2,19 +2,20 @@ function AdminUser(user) {
     var params = {
         popupType: 'none',
         neighborhoodPolygonStyle: {
-            color: '#888',
+            color: '#407770',
             weight: 2,
             opacity: 0.80,
-            fillColor: '#808080',
-            fillOpacity: 0.1
+            fillColor: '#5d6d6b',
+            fillOpacity: 0.1, 
+            dashArray: '6,6'
         },
         mouseoverStyle: {
-            color: '#000',
+            color: '#3f5a58',
             opacity: 1.0,
             weight: 3
         },
         mouseoutStyle: {
-            color: '#888',
+            color: '#407770',
             opacity: 0.8,
             weight: 2
         },

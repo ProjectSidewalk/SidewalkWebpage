@@ -17,7 +17,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
         mouseoutStyle: {
             color: '#407770', 
             opacity: 0.8,
-            weight: 2,
+            weight: 2
         },
         webpageActivity: 'Click_module=UserMap_regionId=',
         defaultZoomIncrease: -1.0,
