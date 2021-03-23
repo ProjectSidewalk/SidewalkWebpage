@@ -3,6 +3,8 @@ package controllers.helper;
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
+import scala.Option;
+import scala.runtime.AbstractFunction0;
 
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
@@ -138,7 +140,12 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.globalAttributeId());
             featureBuilder.add(a.labelType());
             featureBuilder.add(a.neighborhoodName());
-            featureBuilder.add(a.severity());
+            featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
+                @Override
+                public Integer apply() {
+                    return 0;
+                }
+            }));
             featureBuilder.add(a.temporary());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
