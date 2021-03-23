@@ -6,6 +6,7 @@ import models.label.LabelTable
 import models.mission.MissionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import java.sql.Timestamp
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{StaticQuery => Q}
 
@@ -59,24 +60,32 @@ object UserStatTable {
   }
 
   /**
-    * Call helper functions to update all columns in user_stat table.
+    * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
     */
-  def updateUserStatTable() = db.withSession { implicit session =>
-    updateAuditedDistance()
-    updateLabelsPerMeter()
-    updateHighQuality()
+  def updateUserStatTable(cutoffTime: Timestamp) = db.withSession { implicit session =>
+    updateAuditedDistance(cutoffTime)
+    updateLabelsPerMeter(cutoffTime)
+    updateHighQuality(cutoffTime)
   }
 
   /**
-    * Update meters_audited column in the user_stat table for all users.
+    * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
     */
-  def updateAuditedDistance() = db.withSession { implicit session =>
+  def updateAuditedDistance(cutoffTime: Timestamp) = db.withSession { implicit session =>
 
-    // Computes the audited distance in meters using the distance_progress column of the mission table.
-    val auditedDists: List[(String, Option[Float])] = (for {
+    // Get the list of users who have done any auditing since the cutoff time.
+    val usersToUpdate: List[String] = (for {
       _user <- userTable if _user.username =!= "anonymous"
       _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
-    } yield (_user.userId, _mission.distanceProgress)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum)).list
+      if _mission.missionEnd > cutoffTime
+    } yield _user.userId).groupBy(x => x).map(_._1).list
+
+    // Computes the audited distance in meters using the distance_progress column of the mission table.
+    val auditedDists: List[(String, Option[Float])] =
+      MissionTable.auditMissions
+        .filter(_.userId inSet usersToUpdate)
+        .groupBy(_.userId).map(x => (x._1, x._2.map(_.distanceProgress).sum))
+        .list
 
     // Update the meters_audited column in the user_stat table.
     for ((userId, auditedDist) <- auditedDists) {
@@ -86,20 +95,23 @@ object UserStatTable {
   }
 
   /**
-    * Update labels_per_meter column in the user_stat table for all users, run after `updateAuditedDistance`.
+    * Update labels_per_meter column in the user_stat table for all users who have done any auditing since `cutoffTime`.
     */
-  def updateLabelsPerMeter() = db.withSession { implicit session =>
+  def updateLabelsPerMeter(cutoffTime: Timestamp) = db.withSession { implicit session =>
 
-    // Compute label counts for each user that has audited.
+    // Get the list of users who have done any auditing since the cutoff time.
+    val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
+
+    // Compute label counts for each of those users.
     val labelCounts = (for {
-      _stat <- userStats if _stat.metersAudited > 0F
-      _mission <- MissionTable.auditMissions if _stat.userId === _mission.userId
+      _mission <- MissionTable.auditMissions
       _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
-    } yield (_stat.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
+      if _mission.userId inSet usersStatsToUpdate
+    } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
     // Compute labeling frequency using label counts above and the meters_audited column in user_stat table.
     val labelFreq: List[(String, Float)] = userStats
-      .filter(_.metersAudited > 0F)
+      .filter(_.userId inSet usersStatsToUpdate)
       .leftJoin(labelCounts).on(_.userId === _._1)
       .map { case (_stat, _count) =>
         (_stat.userId, _count._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
@@ -113,9 +125,11 @@ object UserStatTable {
   }
 
   /**
-    * Update high_quality column in the user_stat table, run after `updateAuditedDistance` and `updateLabelsPerMeter`.
-    */
-  def updateHighQuality() = db.withSession { implicit session =>
+   * Update high_quality column in the user_stat table, run after `updateAuditedDistance` and `updateLabelsPerMeter`.
+   *
+   * @return Number of user's whose records were updated.
+   */
+  def updateHighQuality(cutoffTime: Timestamp): Int = db.withSession { implicit session =>
 
     // Get users manually marked as low quality first.
     val lowQualityUsers: List[(String, Boolean)] =
@@ -133,11 +147,34 @@ object UserStatTable {
         )
       }.list
 
-    // Update the high_quality column in the user_stat table.
-    for ((userId, highQuality) <- lowQualityUsers ++ userQuality) {
-      val updateQuery = for {_userStat <- userStats if _userStat.userId === userId} yield _userStat.highQuality
-      updateQuery.update(highQuality)
-    }
+    // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
+    val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
+
+    // Make separate lists for low vs high quality users, then bulk update each.
+    val updateToLowQuaity: List[String] =
+      (lowQualityUsers ++ userQuality.filterNot(_._2)).map(_._1).filter(x => usersStatsToUpdate.contains(x))
+    val updateToHighQuality: List[String] =
+      userQuality.filter(_._2).map(_._1).filter(x => usersStatsToUpdate.contains(x))
+
+    val lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQuaity } yield _u.highQuality
+    val highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQuality } yield _u.highQuality
+
+    // Do both bulk updates, and return total number of updated rows.
+    lowQualityUpdateQuery.update(false) + highQualityUpdateQuery.update(true)
+  }
+
+  /**
+   * Helper function to get list of users who have done any auditing since the cutoff time.
+   */
+  def usersThatAuditedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
+    (for {
+      _user <- userTable
+      _userStat <- userStats if _user.userId === _userStat.userId
+      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
+      if _user.username =!= "anonymous"
+      if _userStat.metersAudited > 0F
+      if _mission.missionEnd > cutoffTime
+    } yield _user.userId).list
   }
 
   /**
@@ -158,52 +195,52 @@ object UserStatTable {
     }
     val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float])](
       s"""SELECT usernames.username,
-        |	label_counts.label_count,
-        |	mission_count,
-        |	distance_meters,
-        |	CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
+        |        label_counts.label_count,
+        |        mission_count,
+        |        distance_meters,
+        |        CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
         |FROM (
-        |	SELECT sidewalk_user.user_id, COUNT(label_id) AS label_count
-        |	FROM sidewalk_user
-        |	INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |	INNER JOIN role ON user_role.role_id = role.role_id
-        | INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-        |	INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
-        |	INNER JOIN label ON mission.mission_id = label.mission_id
-        |	WHERE label.deleted = FALSE
-        |	    AND label.tutorial = FALSE
-        |	    AND role.role IN ('Registered', 'Administrator', 'Researcher')
-        |     AND (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
-        |	    AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |	GROUP BY sidewalk_user.user_id
-        |	ORDER BY label_count DESC
-        |	LIMIT $n
+        |    SELECT sidewalk_user.user_id, COUNT(label_id) AS label_count
+        |    FROM sidewalk_user
+        |    INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |    INNER JOIN role ON user_role.role_id = role.role_id
+        |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
+        |    INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
+        |    INNER JOIN label ON mission.mission_id = label.mission_id
+        |    WHERE label.deleted = FALSE
+        |        AND label.tutorial = FALSE
+        |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
+        |        AND (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
+        |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+        |    GROUP BY sidewalk_user.user_id
+        |    ORDER BY label_count DESC
+        |    LIMIT $n
         |) "label_counts"
         |INNER JOIN (
-        |	SELECT user_id, username
-        |	FROM sidewalk_user
+        |    SELECT user_id, username
+        |    FROM sidewalk_user
         |) "usernames" ON label_counts.user_id = usernames.user_id
         |INNER JOIN (
-        |	SELECT user_id, COUNT(mission_id) AS mission_count, COALESCE(SUM(distance_progress), 0) AS distance_meters
-        |	FROM mission
-        |	WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
-        |	GROUP BY user_id
+        |    SELECT user_id, COUNT(mission_id) AS mission_count, COALESCE(SUM(distance_progress), 0) AS distance_meters
+        |    FROM mission
+        |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
+        |    GROUP BY user_id
         |) "missions_and_distance" ON label_counts.user_id = missions_and_distance.user_id
         |LEFT JOIN (
-        |	SELECT user_id,
-        |		   CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy,
-        |		   COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
-        |	FROM (
-        |		SELECT mission.user_id, label.label_id,
-        |			   COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
-        |			   COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
-        |		FROM mission
-        |		INNER JOIN label ON mission.mission_id = label.mission_id
-        |		INNER JOIN label_validation ON label.label_id = label_validation.label_id
-        |		WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |		GROUP BY mission.user_id, label.label_id
-        |	) agree_count
-        |	GROUP BY user_id
+        |    SELECT user_id,
+        |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy,
+        |           COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
+        |    FROM (
+        |        SELECT mission.user_id, label.label_id,
+        |               COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
+        |               COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
+        |        FROM mission
+        |        INNER JOIN label ON mission.mission_id = label.mission_id
+        |        INNER JOIN label_validation ON label.label_id = label_validation.label_id
+        |        WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+        |        GROUP BY mission.user_id, label.label_id
+        |    ) agree_count
+        |    GROUP BY user_id
         |) "accuracy" ON label_counts.user_id = accuracy.user_id
         |ORDER BY label_counts.label_count DESC;""".stripMargin
     )

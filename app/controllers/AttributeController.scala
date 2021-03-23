@@ -9,6 +9,7 @@ import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import controllers.helper.AttributeControllerHelper
 import models.user.User
+
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.libs.json.Json
@@ -16,8 +17,14 @@ import formats.json.AttributeFormats
 import models.attribute._
 import models.label.LabelTypeTable
 import models.region.RegionTable
-import play.api.Logger
+import play.api.Play.current
+import play.api.{Logger, Play}
 
+/**
+ * Holds the HTTP requests associated with accessibility attributes and the label clustering used to create them.
+ *
+ * @param env The Silhouette environment.
+ */
 class AttributeController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -44,13 +51,12 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   }
 
   /**
-    * Reads a key from a file and compares against input key, returning true if they match.
+    * Reads a key from env variable and compares against input key, returning true if they match.
     *
     * @return Boolean indicating whether the input key matches the true key.
     */
   def authenticate(key: String): Boolean = {
-    val trueKey: Option[String] = AttributeControllerHelper.readKeyFile()
-    if (trueKey.isDefined) trueKey.get == key else false
+    key == Play.configuration.getString("internal-api-key").get
   }
 
   /**
@@ -112,8 +118,8 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
       submission.fold(
         errors => {
-          println("Failed to parse JSON POST request for multi-user clustering results.")
-          println(Json.prettyPrint(request.body))
+          Logger.warn("Failed to parse JSON POST request for multi-user clustering results.")
+          Logger.info(Json.prettyPrint(request.body))
           Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
         },
         submission => {
@@ -174,8 +180,8 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
       submission.fold(
         errors => {
-          println("Failed to parse JSON POST request for multi-user clustering results.")
-          println(Json.prettyPrint(request.body))
+          Logger.error("Failed to parse JSON POST request for multi-user clustering results.")
+          Logger.info(Json.prettyPrint(request.body))
           Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
         },
         submission => {

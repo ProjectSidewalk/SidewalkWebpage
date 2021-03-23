@@ -145,7 +145,7 @@ object RegionTable {
       (_neighborhoods, _properties) <- filteredNeighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
       if _properties.key === "Neighborhood Name"
     } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
-    _regions.list.headOption.map(x => NamedRegion.tupled(x))
+    _regions.firstOption.map(x => NamedRegion.tupled(x))
   }
 
   /**
@@ -161,7 +161,7 @@ object RegionTable {
         (_regions, _properties) <- currentRegions.leftJoin(regionProperties).on(_.regionId === _.regionId)
         if _properties.key === "Neighborhood Name"
       } yield (_regions.regionId, _properties.value.?, _regions.geom)
-      _regions.list.headOption.map(x => NamedRegion.tupled(x))
+      _regions.firstOption.map(x => NamedRegion.tupled(x))
   }
 
   /**
@@ -220,6 +220,6 @@ object RegionTable {
         |    AND region_type_id = 2;
       """.stripMargin
     )
-    closestNeighborhoodQuery((lng, lat, lng, lat)).list.head
+    closestNeighborhoodQuery((lng, lat, lng, lat)).first
   }
 }

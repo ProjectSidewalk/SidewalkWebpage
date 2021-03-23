@@ -23,7 +23,7 @@ object SurveyQuestionTable{
   val surveyOptions = TableQuery[SurveyOptionTable]
 
   def getQuestionById(surveyQuestionId: Int): Option[SurveyQuestion] = db.withTransaction { implicit session =>
-    surveyQuestions.filter(_.surveyQuestionId === surveyQuestionId).list.headOption
+    surveyQuestions.filter(_.surveyQuestionId === surveyQuestionId).firstOption
   }
 
   def listOptionsByQuestion(surveyQuestionId: Int): Option[List[SurveyOption]] = db.withTransaction { implicit session =>

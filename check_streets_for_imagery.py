@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 from pandas.io.json import json_normalize
 import sys
-import os.path
+import os
 
 # Create CSV from street_edge table with street_edge_id, x1, y1, x2, y2
 # Name it street_edge_endpoints.csv and put it in the root directory, then run this script.
@@ -21,11 +21,9 @@ def write_output():
 if __name__ == '__main__':
 
     # Read google maps API key from file.
-    try:
-        with open("google_maps_api_key.txt", "r") as api_key_file:
-            api_key = api_key_file.readline().strip()
-    except IOError:
-        print "Couldn't read google_maps_api_key.txt file"
+    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+    if api_key is None:
+        print "Couldn't read GOOGLE_MAPS_API_KEY environment variable."
         exit(1)
 
     # Read street edge data from CSV.

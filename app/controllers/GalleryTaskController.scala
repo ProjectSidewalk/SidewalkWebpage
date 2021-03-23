@@ -1,25 +1,23 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.UUID
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-
 import controllers.headers.ProvidesHeader
-
 import formats.json.GalleryTaskSubmissionFormats._
-
 import models.user.User
 import models.gallery._
 import play.api.libs.json._
-import play.api.Logger
 import play.api.mvc._
-
 import scala.concurrent.Future
-import scala.collection.mutable.ListBuffer
 
+
+/**
+ * Holds the HTTP requests associated with validation tasks submitted through Sidewalk Gallery.
+ *
+ * @param env The Silhouette environment.
+ */
 class GalleryTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
