@@ -22,32 +22,33 @@
                 </select> -->
                 <div id="ribbon-menu-holder">
                     <span id="label-type-holder">
-                        <h4><b>Show</b></h4>
+                        <h4><b>@Messages("gallery.show")</b></h4>
                         <select id="label-select" disabled>
-                            <option value="Assorted">All</option>
-                            <option value="CurbRamp">Curb Ramp</option>
-                            <option value="NoCurbRamp">Missing Curb Ramp</option>
-                            <option value="Obstacle">Obstacle in Path</option>
-                            <option value="SurfaceProblem">Surface Problem</option>
-                            <option value="Occlusion">Can't See Sidewalk</option>
-                            <option value="NoSidewalk">No Sidewalk</option>
-                            <option value="Other">Other</option>
+                            <option value="Assorted">All</option> <!-- add translation-->
+                            <option value="CurbRamp">@Messages("curb.ramp")</option>
+                            <option value="NoCurbRamp">@Messages("missing.ramp")</option>
+                            <option value="Obstacle">@Messages("obstacle")</option>
+                            <option value="SurfaceProblem">@Messages("surface.problem")</option>
+                            <option value="Occlusion">@Messages("gallery.occlusion")</option> <!-- add translation-->
+                            <option value="NoSidewalk">@Messages("no.sidewalk")</option>
+                            <option value="Other">@Messages("other")</option>
                         </select>
                     </span>
                     
                 </div>
                 <div id="horizontal-line"></div>
                 <div id="filters">
-                    <h4><b>Filter by</b></h4>
-                    <h5 id="severity-header">Severity</h5>
+                    <h4><b>@Messages("gallery.filter.by")</b></h4>
+                    <h5 id="severity-header">@Messages("gallery.severity")</h5>
                     <span id="severity">
                     </span>
-                    <h5 id="tags-header">Tags</h5>
+                    <h5 id="tags-header">@Messages("gallery.tags")</h5>
                     <span id="tags">
                     </span>
                 </div>  
             </div>
             <div id="labels-not-found-text">
+                <!-- add translation-->
                 <span id="labels-not-found">No matches. <a href="/audit">Start exploring</a> to contribute more data!</span>
             </div>
             <div id="image-card-container" class="col-md-10">

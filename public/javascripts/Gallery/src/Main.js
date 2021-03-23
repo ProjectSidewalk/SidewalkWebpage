@@ -39,7 +39,6 @@ function Main (params) {
     }
 
     function _init() {
-        console.log("Gallery initialized");
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.
