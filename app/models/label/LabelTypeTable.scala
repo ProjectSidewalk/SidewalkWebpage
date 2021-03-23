@@ -36,13 +36,13 @@ object LabelTypeTable {
     * Gets the label type id from the label type name.
     */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
-    labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.head
+    labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).first
   }
 
   /**
     * Gets the label type name from the label type id.
     */
   def labelTypeIdToLabelType(labelTypeId: Int): String = db.withTransaction { implicit session =>
-    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).list.head
+    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).first
   }
 }

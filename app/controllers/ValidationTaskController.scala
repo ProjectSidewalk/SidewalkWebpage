@@ -18,15 +18,22 @@ import play.api.Logger
 import play.api.mvc._
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
-
 import formats.json.CommentSubmissionFormats._
 import java.time.Instant
 
+/**
+ * Holds the HTTP requests associated with tasks submitted through the validation page.
+ *
+ * @param env The Silhouette environment.
+ */
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue], progress: Option[JsValue])
 
+  /**
+   * Helper function that updates database with all data submitted through the validation page.
+   */
   def processValidationTaskSubmissions(submission: Seq[ValidationTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val userOption = identity
     val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {

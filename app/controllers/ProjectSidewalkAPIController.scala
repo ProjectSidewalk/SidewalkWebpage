@@ -41,7 +41,6 @@ import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
 import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
-
 import scala.concurrent.Future
 
 
@@ -60,6 +59,11 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                       val significanceScores: Array[Double])
 
 
+/**
+ * Holds the HTTP requests associated with API.
+ *
+ * @param env The Silhouette environment.
+ */
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 

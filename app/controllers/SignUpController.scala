@@ -235,9 +235,11 @@ class SignUpController @Inject() (
     }
   }
 
+  /**
+   * Creates a new account and assignment for the given turker.
+   */
   def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
-    val anonymousUser: DBUser = UserTable.find("anonymous").get
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
 
@@ -304,6 +306,9 @@ class SignUpController @Inject() (
     }
   }
 
+  /**
+   * Authenticates a turker who is returning to Project Sidewalk.
+   */
   def turkerSignIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
     val ipAddress: String = request.remoteAddress
 

@@ -46,9 +46,10 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      auditTaskId: Int,
                                      gsvPanoramaId: String,
                                      labelType: String,
-                                     severity: Option[Int],
                                      lat: Float,
-                                     lng: Float)
+                                     lng: Float,
+                                     expired: Boolean,
+                                     severity: Option[Int])
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -189,7 +190,7 @@ object LabelTable {
     MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextIntOption, r.nextFloat, r.nextFloat))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption))
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
@@ -212,10 +213,10 @@ object LabelTable {
     * Find a label based on temp_label_id and audit_task_id.
     */
   def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
-    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
+    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map {
       label => label.labelId
     }
-    labelIds.list.headOption
+    labelIds.firstOption
   }
 
   def countLabels: Int = db.withTransaction(implicit session =>
@@ -240,7 +241,7 @@ object LabelTable {
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND label.deleted = false""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /*
@@ -263,7 +264,7 @@ object LabelTable {
          |    )""".stripMargin
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
-    countQueryResult.list.head
+    countQueryResult.first
   }
 
   /*
@@ -277,7 +278,7 @@ object LabelTable {
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND label.deleted = false""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /*
@@ -298,7 +299,7 @@ object LabelTable {
          |    )""".stripMargin
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
-    countQueryResult.list.head
+    countQueryResult.first
   }
 
 
@@ -567,7 +568,7 @@ object LabelTable {
         |    AND lb1.label_id = lp.label_id
         |ORDER BY lb1.label_id DESC""".stripMargin
     )
-    selectQuery.list.head
+    selectQuery.first
   }
 
   /**
@@ -650,13 +651,15 @@ object LabelTable {
           |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
           |LEFT JOIN (
           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-          |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
+          |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
           |    FROM label_tag
+          |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
           |    GROUP BY label_id
           |) the_tags ON label.label_id = the_tags.label_id
           |WHERE label.label_type_id = $labelTypeId
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
+          |    AND label.street_edge_id <> $tutorialStreetId
           |    AND gsv_data.expired = FALSE
           |    AND mission.user_id <> '$userIdStr'
           |    AND label.label_id NOT IN (
@@ -1169,19 +1172,18 @@ object LabelTable {
     */
   def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
-      (_labels, _labelTypes) <- labelsWithoutDeleted.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
-    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
+      _l <- labelsWithoutDeleted
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
+      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat, _lPoint.lng, _gsv.expired)
 
-    val _slabels = for {
+    val _labelsWithSeverity = for {
       (l, s) <- _labels.leftJoin(severities).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, s.severity.?)
+    } yield (l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, s.severity.?)
 
-    val _points = for {
-      (l, p) <- _slabels.leftJoin(labelPoints).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, l._5, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
-
-    val labelLocationList: List[LabelLocationWithSeverity] = _points.list.map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7))
-    labelLocationList
+    _labelsWithSeverity.list.map(LabelLocationWithSeverity.tupled)
   }
 
   /**
@@ -1316,7 +1318,7 @@ object LabelTable {
          |LIMIT 1""".stripMargin
     )
     //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
-    selectStreetEdgeIdQuery((lng, lat)).list.headOption
+    selectStreetEdgeIdQuery((lng, lat)).firstOption
   }
 
   /**
@@ -1326,7 +1328,7 @@ object LabelTable {
     val recentMissionId: Option[Int] = MissionTable.missions
         .filter(m => m.userId === userId.toString && m.regionId === regionId)
         .sortBy(_.missionStart.desc)
-        .map(_.missionId).list.headOption
+        .map(_.missionId).firstOption
 
     recentMissionId match {
       case Some(missionId) => labelsWithoutDeleted.filter(_.missionId === missionId).list
