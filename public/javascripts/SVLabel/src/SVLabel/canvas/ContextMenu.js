@@ -463,33 +463,29 @@ function ContextMenu (uiContextMenu) {
                             position: 'inherit'
                         });
 
-                        /** The following code converts the first letter of each word in tag text to upppercase.
+                        /** The following code converts the first letter of tag text to upppercase.
                          *  Also, it extracts the character that can be pressed down to hit the label.
                         */
-                        const words = tagText.split(' ');
                         const displacementForUnderlineTag = 15;
                         var keypressChar;
-                        const text = words.map((word) => {
-                            if (word[0] === '<') {
-                                keypressChar = word[displacementForUnderlineTag];
-                                return word.substring(0,displacementForUnderlineTag) +
-                                        word[displacementForUnderlineTag].toUpperCase() +
-                                        word.substring(displacementForUnderlineTag + 1);
-                            } else {
-                                let index = word.indexOf('<');
-                                if (index > 0) {
-                                    keypressChar = word[index + displacementForUnderlineTag];
-                                }
-                                return word[0].toUpperCase() + word.substring(1);
-                            }
-                        }).join(' ');
+                        var text; 
+                        if (tagText[0] === '<') {
+                            keypressChar = tagText[displacementForUnderlineTag];
+                            text = tagText.substring(0,displacementForUnderlineTag) +
+                                    tagText[displacementForUnderlineTag].toUpperCase() +
+                                    tagText.substring(displacementForUnderlineTag + 1);
+                        } else {
+                            let index = tagText.indexOf('<');
+                            keypressChar = tagText[index + displacementForUnderlineTag];
+                            text = tagText[0].toUpperCase() + tagText.substring(1);
+                        }
 
                         $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
                             placement: 'top',
                             html: true,
                             delay: { "show": 300, "hide": 10 },
                             height: '130',
-                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='125'/><br/> <i>Press <tag-underline>"+keypressChar+"</tag-underline> To Add Tag</i>"
+                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='125'/><br/> <i>" + i18next.t('center-ui.context-menu.label-popup-shortcuts', {l: keypressChar}) + "</i>"
                         })).tooltip("show").tooltip("hide");
                         count += 1;
                     }
