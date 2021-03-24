@@ -114,6 +114,7 @@
             "severity": "Por favor haz clic para etiquetar la gravedad",
             "severity-example": "Ejemplo de nivel de gravedad {{n}}",
             "severity-shortcuts": "Presiona las teclas 1-5 para gravedad",
+            "label-popup-shortcuts": "Presiona <tag-underline>{{l}}</tag-underline> para agregar la etiqueta",
             "tag": {
                 "narrow": "muy <tag-underline>a</tag-underline>ngosta",
                 "points-into-traffic": "orientada hacia el tráfico (<tag-underline>p</tag-underline>)",
