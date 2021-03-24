@@ -180,7 +180,25 @@ public class ShapefilesCreatorHelper {
                                 + // <- Neighborhood Name
                                 "severity:Integer,"
                                 + // <- Severity
-                                "temp:Boolean" // Temporary flag
+                                "temporary:Boolean," 
+                                + // <- Temporary flag
+                                "neighborhood:String,"
+                                + // <- neighborhood name
+                                "gsvPanoID:String,"
+                                + // <- GSV Panorama ID
+                                "heading:Double,"
+                                + // <- heading of panorama
+                                "pitch:Double,"
+                                + // <- pitch of panorama
+                                "zoom:Integer,"
+                                + // <- zoom of panorama
+                                "canvasX:Integer,"
+                                + // <- canvasX position of panorama
+                                "canvasY:Integer,"
+                                + // <- canvasY position of panorama
+                                "canvasWidth:Integer,"
+                                + // <- width of source viewfinder
+                                "canvasHeight:Integer" // height of source viewfinder
                 );
 
 
@@ -211,7 +229,15 @@ public class ShapefilesCreatorHelper {
                 }
             }));
             featureBuilder.add(l.labelTemporary());
-
+            featureBuilder.add(l.neighborhoodName());
+            featureBuilder.add(l.gsvPanoramaId());
+            featureBuilder.add(l.heading());
+            featureBuilder.add(l.pitch());
+            featureBuilder.add(l.zoom());
+            featureBuilder.add(l.canvasX());
+            featureBuilder.add(l.canvasY());
+            featureBuilder.add(l.canvasWidth());
+            featureBuilder.add(l.canvasHeight());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
