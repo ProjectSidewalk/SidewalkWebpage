@@ -182,7 +182,7 @@ public class ShapefilesCreatorHelper {
                                 + // <- Severity
                                 "temporary:Boolean," 
                                 + // <- Temporary flag
-                                "neighborhood:String,"
+                                "nbr:String,"
                                 + // <- neighborhood name
                                 "gsvPanoID:String,"
                                 + // <- GSV Panorama ID
@@ -196,9 +196,9 @@ public class ShapefilesCreatorHelper {
                                 + // <- canvasX position of panorama
                                 "canvasY:Integer,"
                                 + // <- canvasY position of panorama
-                                "canvasWidth:Integer,"
+                                "canvasW:Integer,"
                                 + // <- width of source viewfinder
-                                "canvasHeight:Integer" // height of source viewfinder
+                                "canvasH:Integer" // height of source viewfinder
                 );
 
 
