@@ -324,7 +324,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                                                                   significance))
       }
       ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList)
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"));
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.
       Future.successful(Ok(getAccessScoreNeighborhoodsJson(version = 2, coordinates)))

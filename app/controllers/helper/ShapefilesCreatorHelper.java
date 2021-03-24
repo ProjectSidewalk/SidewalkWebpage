@@ -143,7 +143,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
                 public Integer apply() {
-                    return 0;
+                    return null;
                 }
             }));
             featureBuilder.add(a.temporary());
@@ -204,7 +204,12 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.globalAttributeId());
             featureBuilder.add(l.labelType());
             featureBuilder.add(l.neighborhoodName());
-            featureBuilder.add(l.labelSeverity());
+            featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
+                @Override
+                public Integer apply() {
+                    return null;
+                }
+            }));
             featureBuilder.add(l.labelTemporary());
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
