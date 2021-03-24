@@ -114,6 +114,11 @@ footer {
     padding: 0;
 }
 
+#nav-language-menu {
+    margin-top: -12px;
+    min-width: 69px;
+}
+
 .navbar-right.fixed-theme{
     position: relative;
     top: -15px;
@@ -142,6 +147,16 @@ footer {
     margin-right: auto;
 }
 
+#language-dropdown {
+    margin-top: 4px;
+    margin-left: 9px;
+}
+
+#language-icon {
+    height: 31px;
+    width: 31px;
+}
+
 .navbar-nav > li > a.navbar-button {
     -moz-border-radius: 15px;
     -webkit-border-radius: 15px;
@@ -159,6 +174,12 @@ footer {
     text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     outline: none;
+}
+
+.navbar-nav > li > a.navbar-button#language-button {
+    /* Override some of the navbar-button properties, removing the border. */
+    border: none;
+    padding: 0px 10px 0px;
 }
 
 .navbar-default .navbar-nav > .active > a {
@@ -1005,6 +1026,11 @@ kbd {
     box-shadow: 0 6px 12px rgba(0,0,0,.175);
 }
 
+.navbar-nav .open .dropdown-menu#nav-language-menu {
+    /* Override dropdown menu properties for the languages dropdown. */
+    top: 160%;
+}
+
 .tool-ui {
     position: relative;
 }
@@ -1340,7 +1366,7 @@ kbd {
         display: none !important;
     }
 
-    .collapse.in{
+    .collapse.in {
         display: block !important;
         overflow: hidden !important;
     }
@@ -1352,6 +1378,21 @@ kbd {
         -webkit-border-radius: 0 0 5px 5px;
         border-radius: 0 0 5px 5px;
         width: 100%;
+    }
+
+    #language-dropdown {
+        margin-top: 0px;
+        width: 100%
+    }
+
+    #language-dropdown > #language-button {
+        left: -9px;
+        padding-left: 19px;
+    }
+
+    .navbar-nav .open .dropdown-menu#nav-language-menu {
+        margin-top: initial;
+        left: -9px;
     }
 
     .navbar-nav.navbar-right:last-child {

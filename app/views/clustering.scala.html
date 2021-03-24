@@ -6,9 +6,12 @@
     <div id="content">
         <div class="container">
             <h1>Clustering labels into attributes</h1>
-            <button id="btnSingleUserClustering">Single User Clustering</button>
-            <button id="btnMultiUserClustering">Multi User Clustering</button>
-            <button id="btnBothClustering">Single AND Multi User Clustering</button>
+            <button id="btn-single-user-clustering">Single User Clustering</button>
+            <button id="btn-multi-user-clustering">Multi User Clustering</button>
+            <button id="btn-both-clustering">Single AND Multi User Clustering</button>
+            <br/>
+            <label for="hours-to-go-back">If updating only, (integer) hours to go back:</label>
+            <input id="hours-to-go-back" type="number">
             <p id="clustering-status"></p>
         </div>
     </div>
@@ -16,12 +19,14 @@
     @*Adds onclicks to each button that calls clustering code and extracts results from the response.*@
     <script>
         $(document).ready(function () {
-            let singleUserButton = document.getElementById('btnSingleUserClustering');
+            let singleUserButton = document.getElementById('btn-single-user-clustering');
             singleUserButton.onclick = function() {
                 $( "#clustering-status" ).html( 'Running...' );
+                let hours = document.getElementById('hours-to-go-back').value
+                let hoursParam = hours ? `&hoursCutoff=${hours}` : '';
                 $.ajax({
                     type: "get",
-                    url: "/runClustering?clusteringType=singleUser",
+                    url: "/runClustering?clusteringType=singleUser" + hoursParam,
                     contentType: 'application/json; charset=utf-8',
                     success: function (data) {
                         $( "#clustering-status" ).html(
@@ -37,7 +42,7 @@
             };
         });
         $(document).ready(function () {
-            let multiUserButton = document.getElementById('btnMultiUserClustering');
+            let multiUserButton = document.getElementById('btn-multi-user-clustering');
             multiUserButton.onclick = function() {
                 $( "#clustering-status" ).html( 'Running...' );
                 $.ajax({
@@ -58,12 +63,14 @@
             };
         });
         $(document).ready(function () {
-            let bothButton = document.getElementById('btnBothClustering');
+            let bothButton = document.getElementById('btn-both-clustering');
             bothButton.onclick = function() {
                 $( "#clustering-status" ).html( 'Running...' );
+                let hours = document.getElementById('hours-to-go-back').value
+                let hoursParam = hours ? `&hoursCutoff=${hours}` : '';
                 $.ajax({
                     type: "get",
-                    url: "/runClustering?clusteringType=both",
+                    url: "/runClustering?clusteringType=both" + hoursParam,
                     contentType: 'application/json; charset=utf-8',
                     success: function (data) {
                         $( "#clustering-status" ).html(

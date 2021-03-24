@@ -116,6 +116,30 @@ object UserClusteringSessionTable {
     Q.updateNA("TRUNCATE TABLE user_clustering_session CASCADE").execute
   }
 
+  /**
+   * Deletes the entries in the `user_clustering_session` table and (almost) all connected data for the given users.
+   *
+   * Deletes the entry in the `user_clustering_session` table, and the connected entries in the `user_attribute`,
+   * `user_attribute_label`, and `global_attribute_user_attribute` tables. We leave the data in the `global_attribute`
+   * alone. Since we can't use a join in a delete statement and the `user_attribute` table has foreign key constraints
+   * on both the `user_clustering_session` and `global_attribute_user_attribute` tables, we have to start by getting the
+   * list of `user_attribute_id`s to delete from the `global_attribute_user_attribute` first; then we can use
+   * `DELETE CASCADE` on the `user_clustering_session` table.
+   */
+  def deleteUsersClusteringSessions(usersToDelete: List[String]): Int = db.withTransaction { implicit session =>
+    // Get list of `user_attribute_id`s to delete from the `global_attribute_user_attribute` table.
+    val userAttributesToDelete: List[Int] = userClusteringSessions
+      .innerJoin(UserAttributeTable.userAttributes).on(_.userClusteringSessionId === _.userClusteringSessionId)
+      .filter(_._1.userId inSet usersToDelete)
+      .map(_._2.userAttributeId).list
+
+    // DELETE entries in `global_attribute_user_attribute` and then DELETE CASCADE entries in `user_clustering_session`.
+    val nGlobalAttributeLinksDeleted: Int = GlobalAttributeUserAttributeTable.globalAttributeUserAttributes
+      .filter(_.userAttributeId inSet userAttributesToDelete)
+      .delete
+    userClusteringSessions.filter(_.userId inSet usersToDelete).delete
+  }
+
   def save(newSess: UserClusteringSession): Int = db.withTransaction { implicit session =>
     val newId: Int = (userClusteringSessions returning userClusteringSessions.map(_.userClusteringSessionId)) += newSess
     newId

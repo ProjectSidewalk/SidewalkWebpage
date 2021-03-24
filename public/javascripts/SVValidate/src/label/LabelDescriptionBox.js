@@ -10,12 +10,12 @@ function LabelDescriptionBox () {
     let descriptionBox = $("#label-description-box");
 
     let smileyScale = {
-	    1: '/assets/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
-	    2: '/assets/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
-	    3: '/assets/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
-	    4: '/assets/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
-	    5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
-	};
+        1: '/assets/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
+        2: '/assets/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
+        3: '/assets/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
+        4: '/assets/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
+        5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
+    };
 
     /**
      * Sets the box's descriptions for the given label.

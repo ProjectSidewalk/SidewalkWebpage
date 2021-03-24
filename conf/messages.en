@@ -36,6 +36,8 @@ navbar.signin = Sign in
 navbar.signout = Sign out
 navbar.dashboard = Your dashboard
 navbar.admin = Admin
+navbar.lang.aria = Language Options
+navbar.lang.icon.alt = languages icon
 
 landing.create.path = Let''s create a path for everyone
 landing.also.in = We are also in:
@@ -192,8 +194,9 @@ validate.mission.complete.your.overall.total = Your Overall Total
 
 mobile.validate.leave.feedback = Leave Feedback
 
-turk.expired.title = Assignment Expired!
-turk.expired.body = You should receive your bonus amount in the next day or two. If you completed the HIT but did not submit your confirmation code on the mturk website, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
+turk.expired.navbar = TIME''S UP
+turk.expired.title = Time''s up!
+turk.expired.body = You should receive your bonus amount in the next two days. Please submit your confirmation code on the mturk website. If the assignment has already expired, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
 turk.submit.code = Submit this code for HIT verification on Amazon Mechanical Turk
 turk.mturk.code = Mturk Code
 turk.reward.earned = Total earned reward

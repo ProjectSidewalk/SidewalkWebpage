@@ -22,6 +22,11 @@ import play.api.Logger
 import play.api.mvc._
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with the validation page.
+ *
+ * @param env The Silhouette environment.
+ */
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val validationMissionStr: String = "validation"
