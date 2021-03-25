@@ -24,12 +24,12 @@
                     <span id="label-type-holder">
                         <h4><b>@Messages("gallery.show")</b></h4>
                         <select id="label-select" disabled>
-                            <option value="Assorted">All</option> <!-- add translation-->
+                            <option value="Assorted">@Messages("gallery.all")</option>
                             <option value="CurbRamp">@Messages("curb.ramp")</option>
                             <option value="NoCurbRamp">@Messages("missing.ramp")</option>
                             <option value="Obstacle">@Messages("obstacle")</option>
                             <option value="SurfaceProblem">@Messages("surface.problem")</option>
-                            <option value="Occlusion">@Messages("gallery.occlusion")</option> <!-- add translation-->
+                            <option value="Occlusion">@Messages("gallery.occlusion")</option>
                             <option value="NoSidewalk">@Messages("no.sidewalk")</option>
                             <option value="Other">@Messages("other")</option>
                         </select>
@@ -49,7 +49,7 @@
             </div>
             <div id="labels-not-found-text">
                 <!-- add translation-->
-                <span id="labels-not-found">No matches. <a href="/audit">Start exploring</a> to contribute more data!</span>
+                <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
             </div>
             <div id="image-card-container" class="col-md-10">
             </div>

@@ -38,5 +38,7 @@
         "height difference": "desnivel",
         "missing crosswalk": "paso peatonal ausente (i)",
         "no bus stop access": "No hay acceso a la parada de autobús"
-    }
+    },
+    "not applicable": "no aplicable",
+    "none": "ninguna"
 }
