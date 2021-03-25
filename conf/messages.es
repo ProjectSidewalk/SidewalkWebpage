@@ -294,10 +294,11 @@ leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los do
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a href="/audit"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
 
+gallery = Galería
 gallery.show = Mostrar
 gallery.filter.by = Filtrar por
 gallery.severity = Calificación
 gallery.tags = Etiquitas
 gallery.all = Todos
 gallery.occlusion = No puedo ver la banqueta
-gallery.labels.not.found = No hay resultados. <a href="/audit">Comienza a explorar</a> para aportar más datos
+gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
