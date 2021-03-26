@@ -57,32 +57,28 @@ function LabelContainer($) {
             for (let i = 0; i < len; i++) {
                 let povChange = svl.map.getPovChangeStatus();
 
-                // Temporarily change pov change status to true so that
-                // we can use util function to calculate the canvas coordinate
-                // to place label upon rerender. This is so the labels 
-                // appear in the correct location relative to the initial POV
+                // Temporarily change pov change status to true so that we can use util function to calculate the canvas
+                // coordinate to place label upon rerender. This is so the labels appear in the correct location
+                // relative to the initial POV.
                 povChange["status"] = true;
 
                 let originalCanvasCoord = {
                     x: labelArr[i].canvasX,
                     y: labelArr[i].canvasY
                 };
-
                 let originalPov = {
                     heading: labelArr[i].panoramaHeading,
                     pitch: labelArr[i].panoramaPitch,
                     zoom: labelArr[i].panoramaZoom
                 };
-
                 let originalPointPov = {
                     originalPov: util.panomarker.calculatePointPov(labelArr[i].canvasX, labelArr[i].canvasY, originalPov)
                 };
+                let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
+                    originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov()
+                );
 
-                let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(originalCanvasCoord,
-                                                                                originalPointPov.originalPov,
-                                                                                svl.map.getPov());
-
-                // Return the status to original
+                // Return the status to original.
                 povChange["status"] = false;
 
                 let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
@@ -98,7 +94,9 @@ function LabelContainer($) {
                     'storedInDatabase': true
                 };
 
-                let labelPoint = new Point(svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters);
+                let labelPoint = new Point(
+                    svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters
+                );
                 
                 labelPoint.setProperties(originalPointPov);
 
@@ -129,27 +127,26 @@ function LabelContainer($) {
      * Returns canvas labels.
      */
     this.getCanvasLabels = function () {
-        let prev = prevCanvasLabels[svl.map.getPanoId()] ? prevCanvasLabels[svl.map.getPanoId()] : [];
-        let curr = currentCanvasLabels[svl.map.getPanoId()] ? currentCanvasLabels[svl.map.getPanoId()] : [];
+        let panoId = svl.map.getPanoId();
+        let prev = prevCanvasLabels[panoId] ? prevCanvasLabels[panoId] : [];
+        let curr = currentCanvasLabels[panoId] ? currentCanvasLabels[panoId] : [];
         return prev.concat(curr);
     };
 
-    /** Get current label */
+    /** Get current labels. */
     this.getCurrentLabels = function () {
         return Object.keys(currentCanvasLabels).reduce(function (r, k) {
             return r.concat(currentCanvasLabels[k]);     
         }, []);
-        // return currentCanvasLabels;
     };
 
     this.getPreviousLabels = function () {
         return Object.keys(prevCanvasLabels).reduce(function (r, k) {
             return r.concat(prevCanvasLabels[k]);     
         }, []);
-        //return prevCanvasLabels;
     };
 
-    //find most recent instance of label with matching temporary ID
+    // Find most recent instance of label with matching temporary ID.
     this.findLabelByTempId = function (tempId) {
         var matchingLabels =  _.filter(svl.labelContainer.getCanvasLabels(),
             function(label) {
