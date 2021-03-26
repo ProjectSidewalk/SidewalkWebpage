@@ -26,7 +26,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 lat : undefined,
                 lng : undefined
             },
-            initialPanoId : undefined,
             panoramaPov : {
                 heading : 359,
                 pitch : -10,
@@ -124,8 +123,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
     if (params.latlng) {
         properties.latlng = params.latlng;
-    } else if (('Lat' in params) && ('Lng' in params)) {
-        properties.latlng = {'lat': params.Lat, 'lng': params.Lng};
+    } else if (('lat' in params) && ('lng' in params)) {
+        properties.latlng = {'lat': params.lat, 'lng': params.lng};
     } else {
         throw self.className + ': latlng not defined.';
     }
@@ -189,18 +188,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // http://blog.mridey.com/2010/05/controls-in-maps-javascript-api-v3.html
         // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
-        if (params.taskPanoId) {
-            panoramaOptions = {
-                mode : 'html4',
-                // position: fenway,
-                pov: properties.panoramaPov,
-                pano: params.taskPanoId,
-                showRoadLabels: false,
-                motionTracking: false,
-                motionTrackingControl: false
-            };
-        } else if (params.Lat && params.Lng) {
-            fenway = new google.maps.LatLng(params.Lat, params.Lng);
+        if (params.lat && params.lng) {
+            fenway = new google.maps.LatLng(params.lat, params.lng);
             panoramaOptions = {
                 mode : 'html4',
                 position: fenway,
@@ -209,7 +198,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 motionTracking: false,
                 motionTrackingControl: false
             };
-
         } else {
             console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
@@ -230,14 +218,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('disableDefaultUI', true);
             svl.panorama.set('linksControl', true);
             svl.panorama.set('navigationControl', false);
+            svl.panorama.set('showRoadLabels', true);
             svl.panorama.set('panControl', false);
             svl.panorama.set('scrollwheel', false);
             svl.panorama.set('zoomControl', false);
             svl.panorama.set('keyboardShortcuts', true);
         }
-
-
-        properties.initialPanoId = params.taskPanoId;
 
         // Attach listeners to dom elements
         uiMap.viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
@@ -267,10 +253,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Hide the dude on the top-left of the map.
         mapIconInterval = setInterval(_removeIcon, 0.2);
 
-        // For Internet Explore, append an extra canvas in viewControlLayer.
+        // For Internet Explore, append an extra canvas in view-control-layer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
+            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>');
         }
 
     }
@@ -511,14 +497,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             status.disableWalking = false;
         }
         return this;
-    }
-
-    /**
-     * Get the initial panorama id.
-     * @returns {undefined|*}
-     */
-    function getInitialPanoId () {
-        return properties.initialPanoId;
     }
 
     /**
@@ -1178,7 +1156,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             } else {
                 // Double click to walk. First check whether Street View is available at the point where user has
-                // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (25 meters),
+                // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (50 meters),
                 // then jump to the scene
                 if (!status.disableWalking) {
                     var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
@@ -1298,7 +1276,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {hideLinks} This object.
      */
     function hideLinks () {
-        var $paths = $("#viewControlLayer").find('path');
+        var $paths = $("#view-control-layer").find('path');
         $paths.css('visibility', 'hidden');
         $paths.css('pointer-events', 'none');
         // if (properties.browser === 'chrome') {
@@ -1946,7 +1924,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.enableClickZoom = enableClickZoom;
     self.enableWalking = enableWalking;
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
-    self.getInitialPanoId = getInitialPanoId;
     self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
     self.getMap = getMap;
     self.getMaxPitch = getMaxPitch;

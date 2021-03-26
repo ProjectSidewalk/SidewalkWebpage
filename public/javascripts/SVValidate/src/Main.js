@@ -100,8 +100,6 @@ function Main (param) {
 
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
-        svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
-        svv.ui.status.labelTypeExample = $("#label-type-example");
         svv.ui.status.missionDescription = $("#current-mission-description");
         svv.ui.status.currentMissionReward = $("#current-mission-reward");
         svv.ui.status.totalMissionReward = $("#total-mission-reward");
@@ -144,13 +142,11 @@ function Main (param) {
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
-        if (param.canvasCount === 1) {
-           svv.labelDescriptionBox = new LabelDescriptionBox();
-        }
-        svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
+        svv.labelDescriptionBox = new LabelDescriptionBox();
+        svv.validationContainer = new ValidationContainer(param.labelList);
 
-        // There are certain features that will only make sense if we have one validation interface on the screen.
-        if (param.canvasCount === 1 && !isMobile()) {
+        // There are certain features that will only make sense on desktop.
+        if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
             svv.labelVisibilityControl = new LabelVisibilityControl();
@@ -162,6 +158,7 @@ function Main (param) {
             svv.pinchZoom = new PinchZoomDetector();
         }
 
+        svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
@@ -173,14 +170,30 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svv.tracker.push("PageGainedFocus");
+            } else {
+                svv.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
+
         svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
-            $(".toolUI").css('opacity', 1);
+            $(".tool-ui").css('opacity', 1);
         });
         $('#sign-in-modal-container').on('show.bs.modal', function () {
             svv.keyboard.disableKeyboard();
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
     }
 

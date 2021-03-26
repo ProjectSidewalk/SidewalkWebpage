@@ -10,7 +10,7 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="brand navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
@@ -42,7 +42,7 @@
                             // Output the result in an element with id="navbarTimer"
                             if (msRemaining < 0) {
                                 clearInterval(timerInterval);
-                                document.getElementById("navbarTimer").innerHTML = "EXPIRED";
+                                document.getElementById("navbarTimer").innerHTML = "@Messages("turk.expired.navbar")";
 
                                 // If on the audit or validation page and the timer has just expired, refresh page to
                                 // show HIT expiration overlay so they are unable to audit.
@@ -70,66 +70,102 @@
                     </script>
                 }
                 @if(url.isDefined && url.get == "/audit") {
-                    <li class="navbarLink">
-                        <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
-                    </li>
-                }
-                @if(url.isDefined && url.get != "/validate") {
-                    <li class="navbarLink">
-                        <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/audit") {
-                    <li class="active navbarLink">
-                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
                 }
-                <li class="active navbarLink">
-                    <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                </li>
-                <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
-                    <li class="active navbarLink">
-                        <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                @if(url.isDefined && url.get != "/validate") {
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
                 }
-                <li class="active navbarLink">
-                    <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                <li class="active navbar-lnk">
+                    <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                 </li>
                 @if(url.isDefined && url.get == "/audit") {
-                    <li class = "navbarLink">
-                        <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
+                    <li class = "active navbar-lnk">
+                        <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
 
-                <!--<li><a href="#">Explore Accessibility!</a></li>-->
-                <li class="dropdown navbarLink" id="navbar-dropdown-list">
+                <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
+                    <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
+                        @Messages("navbar.data")
+                        <b class="caret"></b>
+                    </a>
+                    <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
+                        <li>
+                            <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                        </li>
+                        <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
+                            <li>
+                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                            </li>
+                        }
+                        <li>
+                            <!-- TODO: Internationalization for sidewalk gallery name -->
+                            <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery">Gallery</a>
+                        </li>
+                        <li>
+                            <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>
+                            @Messages("navbar.leaderboard")
+                            </a>
+                        </li>
+                        <li>
+                            <a id="navbar-api-btn" role="menuitem" href='@routes.ApplicationController.developer' aria-label="Developer A.P.I.">@Messages("footer.api")</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
-                        
-                        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+                        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
                             @user.get.username
                             <b class="caret"></b>
                         </a>
-                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-label="User options for @user.get.username">
                             <li role="presentation">
-                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
+                                <a id="navbar-dashboard-btn" role="menuitem" href='@routes.UserProfileController.userProfile(user.get.username)'>
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
-                                    <a href='@routes.AdminController.index' role="menuitem">
+                                    <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminController.index'>
                                         @Messages("navbar.admin")
                                     </a>
                                 </li>
                             }
                             <li role="presentation">
-                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
+                                <a id="navbar-sign-out-btn" role="button" href='@routes.UserController.signOut(url.getOrElse("/"))'>@Messages("navbar.signout")</a>
                             </li>
                         </ul>
                     } else {
-                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
+                </li>
+
+                <li class="active dropdown navbar-lnk" id="language-dropdown">
+                    <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
+                        <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
+                            @lang.code
+                        <b class="caret"></b>
+                    </a>
+                    <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
+                        @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
+                            @if(language != lang.code) {
+                                <li>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@language</a>
+                                </li>
+                            } 
+                        }
+                    </ul>  
                 </li>
             </ul>
         </div>
@@ -144,10 +180,10 @@
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
 $(document).ready(function () {
-    function logWebpageActivity(activity){
+    function logWebpageActivity(activity) {
         var currentRoute = window.location.pathname;
         var url = "/userapi/logWebpageActivity";
-        var async = true;
+        var async = false;
         var activityToSend = activity + "_location=Navbar_route=" + currentRoute;
         $.ajax({
             async: async,
@@ -163,85 +199,74 @@ $(document).ready(function () {
         });
     }
 
-    // Triggered when 'Sign In' in navbar is clicked
-    // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
-    $("#sign-in-button").on('click', function(){
-        logWebpageActivity("Click_module=SignIn");
-    });
-
-    // Triggered when 'Start Exploring' in navbar is clicked
-    $(".navbarStartBtn").on('click', function(){
-        logWebpageActivity("Click_module=StartExploring");
-    });
-
-    // Triggered when 'Start Validating' in navbar is clicked.
-    $(".navbarValidateBtn").on('click', function(){
-        logWebpageActivity("Click_module=StartValidating");
-    });
-
-    // Triggered when 'How to Label' in navbar is clicked.
-    $(".navbarGuideBtn").on('click', function() {
-        logWebpageActivity("Click_module=LabelingGuide");
-    });
-
-    // Triggered when 'Results' in navbar is clicked.
-    $(".navbarResultsBtn ").on('click', function(){
-        logWebpageActivity("Click_module=Results");
-    });
-
-    // Triggered when 'Label Map' in navbar is clicked.
-    $(".navbarLabelMapBtn ").on('click', function(){
-        logWebpageActivity("Click_module=LabelMap");
-    });
-
-    // Triggered when links that are only shown on the audit page are clicked.
-    // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
-    var helpText = "@Messages("navbar.help")";
-    var howtoText = "@Messages("navbar.howto")";
-    @if(url.isDefined && url.get == "/audit") {
-        $(".navbarLink").on('click', function (e) {
-            var activity = "Click_module=RetakeTutorial";
-            if (e.currentTarget.innerHTML.includes(helpText)) {
-                activity = "Click_module=Help";
-            } else if (e.currentTarget.innerHTML.includes(howtoText)) {
-                activity = "Click_module=LabelingGuide";
-            }
-            logWebpageActivity(activity);
-        });
-    }
-
-    // Triggered when Project Sidewalk logo on navbar is clicked
-    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
-    $("#brand").on('click', function(){
+    // The rest of this script logs whichever button is hit in the navbar.
+    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>".
+    $("#navbar-brand").on('click', function() {
         logWebpageActivity("Click_module=PSLogo");
     });
-
-    // Triggered when items in the user menu are clicked
-    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/help|...>""
-    $("#nav-user-menu").on('click', function(e){
-        var activity = "Click_module=SignOut";
-        if(e.target.innerText.includes("Admin")){
-            activity = "Click_module=ToAdmin";
-        }else if(e.target.innerText.includes("dashboard")){
-            activity = "Click_module=ToDashboard";
-        }
-        logWebpageActivity(activity);
+    $("#navbar-sign-in-btn").on('click', function() {
+        logWebpageActivity("Click_module=SignIn");
     });
+    $("#navbar-start-btn").on('click', function() {
+        logWebpageActivity("Click_module=StartExploring");
+    });
+    $("#navbar-validate-btn").on('click', function() {
+        logWebpageActivity("Click_module=StartValidating");
+    });
+    $("#navbar-guide-btn").on('click', function() {
+        logWebpageActivity("Click_module=LabelingGuide");
+    });
+    $("#navbar-retake-tutorial-btn").on('click', function() {
+        logWebpageActivity("Click_module=RetakeTutorial");
+    });
+    $("#navbar-help-btn").on('click', function() {
+        logWebpageActivity("Click_module=Help");
+    });
+
+    // The following buttons are in the Data drop down menu.
+    $("#navbar-results-btn").on('click', function() {
+        logWebpageActivity("Click_module=Results");
+    });
+    $("#navbar-labelmap-btn").on('click', function() {
+        logWebpageActivity("Click_module=LabelMap");
+    });
+    $("#navbar-gallery-btn").on('click', function() {
+        logWebpageActivity("Click_module=Gallery");
+    });
+    $("#navbar-leaderboard-btn").on('click', function() {
+        logWebpageActivity("Click_module=Leaderboard");
+    }); 
+    $("#navbar-api-btn").on('click', function() {
+        logWebpageActivity("Click_module=SidewalkAPI");
+    });
+    
+    // The following buttons are in the User drop down menu.
+    $("#navbar-sign-out-btn").on('click', function() {
+        logWebpageActivity("Click_module=SignOut");
+    });
+    $("#navbar-admin-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToAdmin");
+    });
+    $("#navbar-dashboard-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToDashboard")
+    });
+    // Logging clicks to the language button was moved to ApplicationController.scala b/c the redirect was happening
+    // before the log could be sent off.
 });
 </script>
 
 @if(!user || user.get.role.getOrElse("") == "Anonymous") {
     <script type="text/javascript">
-            $(document).ready(function () {
-                $("#form-open-sign-up").on("mouseup", function () {
-                    $("#sign-in-modal").addClass("hidden");
-                    $("#sign-up-modal").removeClass("hidden");
-                });
-                $("#form-open-sign-in").on("mouseup", function () {
-                    $("#sign-up-modal").addClass("hidden");
-                    $("#sign-in-modal").removeClass("hidden");
-                });
+        $(document).ready(function () {
+            $("#form-open-sign-up").on("mouseup", function () {
+                $("#sign-in-modal").addClass("hidden");
+                $("#sign-up-modal").removeClass("hidden");
             });
+            $("#form-open-sign-in").on("mouseup", function () {
+                $("#sign-up-modal").addClass("hidden");
+                $("#sign-in-modal").removeClass("hidden");
+            });
+        });
     </script>
     <div class="modal fade" id="sign-in-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -286,7 +311,7 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                    @text(forms.SignUpForm.form("username"), Messages("authenticate.username"), icon = "person")
+                    @text(forms.SignUpForm.form("username"), Messages("username"), icon = "person")
                     @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
                     @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
                     @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
@@ -307,201 +332,195 @@ $(document).ready(function () {
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
     <script>
-            $(document).ready(function() {
-                $("#navbar-agree-to-terms").click(function() {
-                    if ($(this).prop("checked")) {
-                        $("#sign-up-submit").prop("disabled", false);
-                    } else {
-                        $("#sign-up-submit").prop("disabled", true);
-                    }
-                });
-
-                $("[data-hide]").on("click", function(){
-                    $("." + $(this).attr("data-hide")).hide();
-                    // -or-, see below
-                    // $(this).closest("." + $(this).attr("data-hide")).hide();
-                });
-
-                // If on the sign in or sign up pages, remove the sign in button from the navbar.
-                if (location.pathname === '/signIn' || location.pathname === '/signUp') {
-                    $('#sign-in-modal-container').remove();
-                    $('#navbar-dropdown-list').remove();
+        $(document).ready(function() {
+            $("#navbar-agree-to-terms").click(function() {
+                if ($(this).prop("checked")) {
+                    $("#sign-up-submit").prop("disabled", false);
+                } else {
+                    $("#sign-up-submit").prop("disabled", true);
                 }
             });
 
-            // Callback function for checking sign-in results
-            function handleSignIn(data) {
-                //this means that logging in failed, alert user of failure
-                if(typeof data == 'string'){
-                    $('#incorrect-signin-alert').hide();
-                    $('#incorrect-login-modal-alert').show();
-                    return;
-                }
-
-                //otherwise, reflect login changes on user's end
-                var htmlString = $("#navbar-dropdown-list-signed-in").html();
-                htmlString = htmlString.replace(/__USERNAME__/g, data.username);
-
-                $("#navbar-dropdown-list").html(htmlString);
-                var path = window.location.pathname;
-
-                // Toggle the sign-in modal 
-                $('#sign-in-modal-container').modal('toggle');
-
-                if(path.includes("/audit") && svl) {
-                    svl.user.setProperty('username', data.username);
-
-                    // Turn neighborhood name into a link
-                    svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
-                    svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
-                    var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                    var href = "/contribution/" + data.username + "?regionId=" + neighborhood.getProperty("regionId");
-                    svl.statusFieldNeighborhood.setHref(href);
-
-                    // init: noInit is a flag that prevents the init functions in main from running
-                    // Need root directory to prevent cursor icons from disappearing
-                    Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
-                        .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
-
-                    // Prevent first-mission popups
-                    if (!svl.initialMissionInstruction) {
-                        svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer,
-                                svl.tracker);
-                    }
-                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructToCheckSidewalks);
-                    svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
-
-                }
-
-                // Append the link to the admin interface if it the user is admin
-                if (data.role === "Administrator" || data.role === "Owner") {
-                    var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
-                    $('#nav-user-menu').children('#dashboard-link').after(adminLi);
-                }
-
-            }
-
-
-            function invalidSignInUpAlert(signIn, message){
-                if(signIn){
-                    $('#incorrect-login-modal-alert').hide();
-                    $('#incorrect-signin-alert').html(
-                            '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
-                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
-                            '</div>'
-                    );
-                    $('#incorrect-signin-alert').show();
-                }
-                else{
-                    $('#invalid-signup-alert').hide();
-                    $('#incorrect-signup-alert').html(
-                            '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
-                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
-                            '</div>'
-                    );
-                    $('#incorrect-signup-alert').show();
-                }
-            }
-
-            // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
-            $('#sign-in-form').submit(function () {
-                var formData = $('#sign-in-form :input');
-                var email = formData[0].value;
-                var password = formData[1].value;
-
-                //if not a valid email address, do not submit form
-                if(!email){
-                    invalidSignInUpAlert(true, 'Please enter a valid email address.');
-                    return false;
-                }
-
-                if(!password){
-                    invalidSignInUpAlert(true, 'Please enter your password.');
-                    return false;
-                }
-
-                var data = $(this).serialize();
-
-                var url = '/authapi/authenticate';
-
-                $.ajax({
-                    type: "POST",
-                    url: url,
-                    data: data,
-                    success: function() {
-                        document.location.reload();
-                    },
-                    error: function() {
-                        invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
-                    }
-                });
+            $("[data-hide]").on("click", function(){
+                $("." + $(this).attr("data-hide")).hide();
+                // -or-, see below
+                // $(this).closest("." + $(this).attr("data-hide")).hide();
             });
 
-            // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
-            $('#sign-up-form').submit(function () {
-                var formData = $('#sign-up-form :input');
-                var username = formData[0].value;
-                var email = formData[1].value;
-                var password = formData[2].value;
-		var passwordConfirm = formData[3].value;
+            // If on the sign in or sign up pages, remove the sign in button from the navbar.
+            if (location.pathname === '/signIn' || location.pathname === '/signUp') {
+                $('#sign-in-modal-container').remove();
+                $('#navbar-user-dropdown-list').remove();
+            }
+        });
 
-                // If not a valid username/email/password, do not submit form.
-                if(!username){
-                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
-                    return false;
-                }
-                if(!email){
-                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
-                    return false;
-                }
-                if(!password){
-                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
-                    return false;
-                }
+        // Callback function for checking sign-in results
+        function handleSignIn(data) {
+            //this means that logging in failed, alert user of failure
+            if(typeof data == 'string'){
+                $('#incorrect-signin-alert').hide();
+                $('#incorrect-login-modal-alert').show();
+                return;
+            }
 
-		if (password !== passwordConfirm) {
-		    invalidSignInUpAlert(false, "@Messages("authenticate.error.password.mismatch")");
-		    return false;
-		}
+            //otherwise, reflect login changes on user's end
+            var htmlString = $("#navbar-user-dropdown-list-signed-in").html();
+            htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
-		if (password.length < 6) {
-		    invalidSignInUpAlert(false, "@Messages("authenticate.error.password.length")");
-		    return false;
-		}
+            $("#navbar-user-dropdown-list").html(htmlString);
+            var path = window.location.pathname;
 
-                var data = $(this).serialize();
+            // Toggle the sign-in modal
+            $('#sign-in-modal-container').modal('toggle');
 
-                var url = '/signUp';
-                $.post(url, data, handleSignIn).fail(function(e){
-                    var errorMessage = "";
-                    if(e.status === 409){
-                        if(e.responseText.toLowerCase().includes("email")){
-                            errorMessage = "@Messages("authenticate.error.email.exists")"
-                        }
-                        else{
-                            errorMessage = "@Messages("authenticate.error.username.exists")"
-                        }
-                    }
-                    else{ // Some other Bad Request
-                        errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
-                    }
-                    $('#incorrect-signup-alert').hide();
-                    $('#invalid-signup-alert').show();
-                    $('#invalid-signup-alert').html(
-                            '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
-                            '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + errorMessage +
-                            '</div>'
+            if(path.includes("/audit") && svl) {
+                svl.user.setProperty('username', data.username);
+
+                // Turn neighborhood name into a link
+                svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
+                svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
+                var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                var href = "/contribution/" + data.username + "?regionId=" + neighborhood.getProperty("regionId");
+                svl.statusFieldNeighborhood.setHref(href);
+
+                // init: noInit is a flag that prevents the init functions in main from running
+                // Need root directory to prevent cursor icons from disappearing
+                Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
+                    .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+
+                // Prevent first-mission popups
+                if (!svl.initialMissionInstruction) {
+                    svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                        svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer,  svl.tracker
                     );
-                });
+                }
+                svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructToCheckSidewalks);
+                svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
+            }
+
+            // Append the link to the admin interface if it the user is admin
+            if (data.role === "Administrator" || data.role === "Owner") {
+                var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
+                $('#nav-user-menu').children('#dashboard-link').after(adminLi);
+            }
+        }
+
+        function invalidSignInUpAlert(signIn, message){
+            if(signIn){
+                $('#incorrect-login-modal-alert').hide();
+                $('#incorrect-signin-alert').html(
+                    '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
+                    '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                    '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
+                    '</div>'
+                );
+                $('#incorrect-signin-alert').show();
+            }
+            else{
+                $('#invalid-signup-alert').hide();
+                $('#incorrect-signup-alert').html(
+                    '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
+                    '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                    '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
+                    '</div>'
+                );
+                $('#incorrect-signup-alert').show();
+            }
+        }
+
+        // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
+        $('#sign-in-form').submit(function () {
+            var formData = $('#sign-in-form :input');
+            var email = formData[0].value;
+            var password = formData[1].value;
+
+            //if not a valid email address, do not submit form
+            if(!email){
+                invalidSignInUpAlert(true, 'Please enter a valid email address.');
                 return false;
+            }
+
+            if(!password){
+                invalidSignInUpAlert(true, 'Please enter your password.');
+                return false;
+            }
+
+            var data = $(this).serialize();
+            var url = '/authapi/authenticate';
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: data,
+                success: function() {
+                    document.location.reload();
+                },
+                error: function() {
+                    invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+                }
             });
+        });
+
+        // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
+        $('#sign-up-form').submit(function () {
+            var formData = $('#sign-up-form :input');
+            var username = formData[0].value;
+            var email = formData[1].value;
+            var password = formData[2].value;
+            var passwordConfirm = formData[3].value;
+
+            // If not a valid username/email/password, do not submit form.
+            if(!username){
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
+                return false;
+            }
+            if(!email){
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
+                return false;
+            }
+            if(!password){
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
+                return false;
+            }
+
+            if (password !== passwordConfirm) {
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.password.mismatch")");
+                return false;
+            }
+
+            if (password.length < 6) {
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.password.length")");
+                return false;
+            }
+
+            var data = $(this).serialize();
+            var url = '/signUp';
+            $.post(url, data, handleSignIn).fail(function(e){
+                var errorMessage = "";
+                if(e.status === 409){
+                    if(e.responseText.toLowerCase().includes("email")){
+                        errorMessage = "@Messages("authenticate.error.email.exists")"
+                    }
+                    else{
+                        errorMessage = "@Messages("authenticate.error.username.exists")"
+                    }
+                }
+                else{ // Some other Bad Request
+                    errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
+                }
+                $('#incorrect-signup-alert').hide();
+                $('#invalid-signup-alert').show();
+                $('#invalid-signup-alert').html(
+                    '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
+                    '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
+                    '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + errorMessage +
+                    '</div>'
+                );
+            });
+            return false;
+        });
     </script>
-    <template id="navbar-dropdown-list-signed-in">
-        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+    <template id="navbar-user-dropdown-list-signed-in">
+        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
             __USERNAME__
             <b class="caret"></b>
         </a>
@@ -514,7 +533,7 @@ $(document).ready(function () {
             </li>
         </ul>
     </template>
-    <template id="navbar-dropdown-list-signed-out">
+    <template id="navbar-user-dropdown-list-signed-out">
         <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
             @Messages("navbar.signin")
         </a>

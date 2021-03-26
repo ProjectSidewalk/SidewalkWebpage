@@ -4,7 +4,7 @@
 		module="commons-parent"
 		revision="12"
 		status="release"
-		publication="20091020155754"
+		publication="20091020225754"
 	>
 		<description homepage="http://commons.apache.org/" />
 		<m:properties__commons.encoding>iso-8859-1</m:properties__commons.encoding>

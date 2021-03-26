@@ -4,7 +4,7 @@
 		module="aether-api"
 		revision="0.9.0.M2"
 		status="release"
-		publication="20130216115440"
+		publication="20130216195440"
 	>
 		<description homepage="">
 		The application programming interface for the repository system.

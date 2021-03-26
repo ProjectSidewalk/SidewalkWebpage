@@ -4,7 +4,6 @@ import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
 import models.street._
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -16,7 +15,6 @@ import models.user.User
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
-
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
@@ -30,8 +28,7 @@ case class NewTask(edgeId: Int, geom: LineString,
                    completed: Boolean // Has the user audited this street before (null if no corresponding user)
                   )  {
   /**
-    * This method converts the data into the GeoJSON format
-    * @return
+    * Converts the data into the GeoJSON format.
     */
   def toJSON: JsObject = {
     val coordinates: Array[Coordinate] = geom.getCoordinates
@@ -56,9 +53,6 @@ case class NewTask(edgeId: Int, geom: LineString,
   }
 }
 
-/**
- *
- */
 class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
   def amtAssignmentId = column[Option[Int]]("amt_assignment_id", O.Nullable)
@@ -80,9 +74,8 @@ class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("
     foreignKey("audit_task_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
-
 /**
- * Data access object for the audit_task table
+ * Data access object for the audit_task table.
  */
 object AuditTaskTable {
   import MyPostgresDriver.plainImplicits._
@@ -90,8 +83,6 @@ object AuditTaskTable {
   implicit val auditTaskConverter = GetResult[AuditTask](r => {
     AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean, r.nextFloat, r.nextFloat, r.nextBoolean)
   })
-
-//  case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)
 
   implicit val newTaskConverter = GetResult[NewTask](r => {
     val edgeId = r.nextInt
@@ -112,7 +103,6 @@ object AuditTaskTable {
 
   val db = play.api.db.slick.DB
   val auditTasks = TableQuery[AuditTaskTable]
-  val labels = TableQuery[LabelTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
@@ -121,18 +111,6 @@ object AuditTaskTable {
   val completedTasks = auditTasks.filter(_.completed)
   val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
   val nonDeletedStreetEdgeRegions = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions
-
-  case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
-
-  /**
-    * This method returns all the tasks
-    *
-    * @return
-    */
-  def all: List[AuditTask] = db.withSession { implicit session =>
-    auditTasks.list
-  }
 
   // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
   // TODO it would be better to only consier "good user" audits here, but it would take too long to calculate each time.
@@ -146,16 +124,16 @@ object AuditTaskTable {
     }
   }
 
+  case class AuditCountPerDay(date: String, count: Int)
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
+
   /**
     * Returns a count of the number of audits performed on each day with audits.
-    *
-    * @return
     */
   def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.queryNA[(String, Int)](
       """SELECT calendar_date, COUNT(audit_task_id)
-        |FROM
-        |(
+        |FROM (
         |    SELECT audit_task_id, task_start::date AS calendar_date
         |    FROM audit_task
         |) AS calendar
@@ -166,65 +144,47 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns the number of tasks completed
-    * @return
+    * Returns the number of tasks completed.
     */
   def countCompletedAudits: Int = db.withSession { implicit session =>
     completedTasks.length.run
   }
 
   /**
-    * Returns the number of tasks completed today
-    *
-    * Author: Manaswi Saha
-    * Date: Aug 30, 2016
+    * Returns the number of tasks completed today.
     */
   def countCompletedAuditsToday: Int = db.withSession { implicit session =>
-//    val dateFormat = new SimpleDateFormat("Y-mm-dd")
-//    val today = dateFormat.format(Calendar.getInstance().getTime())
-//    auditTasks.filter(_.taskEnd.toString() == today).filter(_.completed).length.run
-
     val countTasksQuery = Q.queryNA[Int](
-      """SELECT audit_task_id
+      """SELECT COUNT(audit_task_id)
         |FROM sidewalk.audit_task
-        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND audit_task.completed = TRUE""".stripMargin
     )
-    countTasksQuery.list.size
+    countTasksQuery.first
   }
 
   /**
-    * Returns the number of tasks completed
-    *
-    * Author: Manaswi Saha
-    * Date: Aug 30, 2016
+    * Returns the number of tasks completed.
     */
-  def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
+  def countCompletedAuditsPastWeek: Int = db.withSession { implicit session =>
     val countTasksQuery = Q.queryNA[Int](
-      """SELECT audit_task_id
+      """SELECT COUNT(audit_task_id)
         |FROM sidewalk.audit_task
-        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND audit_task.completed = TRUE""".stripMargin
     )
-    countTasksQuery.list.size
+    countTasksQuery.first
   }
 
   /**
-    * Returns the number of tasks completed by the given user
-    *
-    * @param userId
-    * @return
+    * Returns the number of tasks completed by the given user.
     */
   def countCompletedAuditsByUserId(userId: UUID): Int = db.withSession { implicit session =>
     completedTasks.filter(_.userId === userId.toString).length.run
   }
 
-
   /**
-    * Find a task
-    *
-    * @param auditTaskId
-    * @return
+    * Find a task.
     */
   def find(auditTaskId: Int): Option[AuditTask] = db.withSession { implicit session =>
     val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
@@ -233,9 +193,6 @@ object AuditTaskTable {
 
   /**
     * Gets list streets that the user has not audited.
-    *
-    * @param user
-    * @return
     */
   def streetEdgeIdsNotAuditedByUser(user: UUID): List[Int] = db.withSession { implicit session =>
 
@@ -247,10 +204,6 @@ object AuditTaskTable {
 
   /**
     * Gets the list of streets in the specified region that the user has not audited.
-    *
-    * @param user
-    * @param regionId
-    * @return
     */
   def streetEdgeIdsNotAuditedByUser(user: UUID, regionId: Int): List[Int] = db.withSession { implicit session =>
 
@@ -267,9 +220,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Verify if there are tasks available for the user in the given region
-    *
-    * @param user user id
+    * Check if there are tasks available for the user in the given region.
     */
   def isTaskAvailable(user: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
 
@@ -279,9 +230,6 @@ object AuditTaskTable {
 
   /**
     * Get a set of regions where the user has not completed all the street edges.
-    *
-    * @param user UUID for the user
-    * @return
     */
   def selectIncompleteRegions(user: UUID): Set[Int] = db.withSession { implicit session =>
     nonDeletedStreetEdgeRegions
@@ -291,10 +239,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Return a list of tasks associated with labels
-    *
-    * @param userId User id
-    * @return
+    * Return a list of tasks associated with labels.
     */
   def selectTasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
     val userTasks = for {
@@ -303,8 +248,7 @@ object AuditTaskTable {
     } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
 
     val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.leftJoin(labels).on(_._3 === _.auditTaskId)
-      if _labels.deleted === false
+      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithoutDeletedOrOnboarding).on(_._3 === _.auditTaskId)
     } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val tasksWithLabels = for {
@@ -314,23 +258,8 @@ object AuditTaskTable {
     tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
   }
 
-
-  /**
-   * Get the last audit task that the user conducted
-   *
-   * @param userId User id
-   * @return
-   */
-  def lastAuditTask(userId: UUID): Option[AuditTask] = db.withSession { implicit session =>
-    auditTasks.filter(_.userId === userId.toString).list.lastOption
-  }
-
   /**
     * Returns a true if the user has a completed audit task for the given street edge, false otherwise.
-    *
-    * @param streetEdgeId
-    * @param user
-    * @return
     */
   def userHasAuditedStreet(streetEdgeId: Int, user: UUID): Boolean = db.withSession { implicit session =>
     completedTasks.filter(task => task.streetEdgeId === streetEdgeId && task.userId === user.toString).list.nonEmpty
@@ -338,18 +267,13 @@ object AuditTaskTable {
 
   /**
     * Returns true if there is a completed audit task for the given street edge, false otherwise.
-    *
-    * @param streetEdgeId
-    * @return
     */
   def anyoneHasAuditedStreet(streetEdgeId: Int): Boolean = db.withSession { implicit session =>
     completedTasks.filter(_.streetEdgeId === streetEdgeId).list.nonEmpty
   }
 
   /**
-    * Return audited street edges
-    *
-    * @return
+    * Return audited street edges.
     */
   def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
     val _streetEdges = for {
@@ -360,10 +284,7 @@ object AuditTaskTable {
   }
 
   /**
-   * Return street edges audited by the given user
-   *
-   * @param userId User Id
-   * @return
+   * Return street edges audited by the given user.
    */
   def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
     val _streetEdges = for {
@@ -374,43 +295,8 @@ object AuditTaskTable {
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
-
-  /**
-    * Return audit counts for the last 31 days.
-    *
-    * @param userId User id
-    */
-  def selectAuditCountsPerDayByUserId(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
-    val selectAuditCountQuery =  Q.query[String, (String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id)
-        |FROM
-        |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, 30) n
-        |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |                              AND audit_task.user_id = ?
-        |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
-    )
-    selectAuditCountQuery(userId.toString).list.map(x => AuditCountPerDay.tupled(x))
-  }
-
-  /**
-    *
-    * @param userId
-    * @return
-    */
-  def selectCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
-    completedTasks.filter(_.userId === userId.toString).list
-  }
-
   /**
     * Get the sum of the line distance of all streets in the region that the user has not audited.
-    *
-    * @param userId
-    * @param regionId
-    * @return
     */
   def getUnauditedDistance(userId: UUID, regionId: Int): Float = db.withSession { implicit session =>
     val streetsLeft: List[Int] = streetEdgeIdsNotAuditedByUser(userId, regionId)
@@ -419,9 +305,6 @@ object AuditTaskTable {
 
   /**
     * Get a new task specified by the street edge id. Used when calling the /audit/street route.
-    *
-    * @param streetEdgeId Street edge id
-    * @return
     */
   def selectANewTask(streetEdgeId: Int, user: Option[UUID]): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -440,10 +323,11 @@ object AuditTaskTable {
   }
 
   /**
-    * Helper method for creating a task for computer vision ground truth auditing. In CV ground truth auditing, we create
-    * a task for *each* pano that needs to be audited, corresponding to the street segment closest to the pano. This method
-    * fetches the id of the pano closest to the provided panoid. This panoid *must* be part of an active CV groundtruth
-    * mission for the provided user.
+    * Helper method for creating a task for computer vision ground truth auditing.
+    *
+    * In CV ground truth auditing, we create a task for *each* pano that needs to be audited, corresponding to the
+    * street segment closest to the pano. This method fetches the id of the pano closest to the provided panoid. This
+    * panoid *must* be part of an active CV groundtruth mission for the provided user.
     * @param user the user performing a CV ground truth audit
     * @param panoid panoId to query
     * @return street segment id closest to pano
@@ -458,10 +342,9 @@ object AuditTaskTable {
   }
 
   /**
-    * Creates a computer vision ground truth audit task and inserts it into the database
+    * Creates a computer vision ground truth audit task and inserts it into the database.
     * @param user user performing the CV ground truth audit
     * @param panoid panoId that corresponds to the task
-    * @return
     */
   def createCVGroundTruthTaskByPanoId(user: User, panoid:String): Option[NewTask] = {
     val closestStreetEdgeId: Option[Int] = getStreetEdgeIdClosestToCVPanoId(user, panoid)
@@ -473,10 +356,6 @@ object AuditTaskTable {
 
   /**
    * Get a task that is in a given region. Used if a user has already been assigned a region, or from /audit/region.
-   *
-   * @param regionId region id
-   * @param user User ID.
-   * @return
    */
   def selectANewTaskInARegion(regionId: Int, user: UUID): Option[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -505,9 +384,6 @@ object AuditTaskTable {
 
   /**
     * Gets the metadata for a task from its audit_task_id.
-    *
-    * @param taskId
-    * @return
     */
   def selectTaskFromTaskId(taskId: Int): Option[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -524,9 +400,6 @@ object AuditTaskTable {
 
   /**
     * Get tasks in the region. Called when a list of tasks is requested through the API.
-    *
-    * @param regionId Region id
-    * @return
     */
   def selectTasksInARegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -543,10 +416,6 @@ object AuditTaskTable {
 
   /**
     * Get tasks in the region. Called when a user begins auditing a region.
-    *
-    * @param regionId Region id
-    * @param user User id
-    * @return
     */
   def selectTasksInARegion(regionId: Int, user: UUID): List[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -566,19 +435,8 @@ object AuditTaskTable {
     tasks.list.map(NewTask.tupled(_))
   }
 
-  def isAuditComplete(auditTaskId: Int): Boolean = db.withSession { implicit session =>
-    auditTasks.filter(_.auditTaskId === auditTaskId).list.headOption.map(_.completed).getOrElse(false)
-  }
-
-
   /**
    * Saves a new audit task.
-   *
-   * Reference for rturning the last inserted item's id
-   * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
-    *
-    * @param completedTask completed task
-   * @return
    */
   def save(completedTask: AuditTask): Int = db.withTransaction { implicit session =>
     val auditTaskId: Int =
@@ -589,24 +447,16 @@ object AuditTaskTable {
   /**
     * Update the `completed` column of the specified audit task row.
     * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
-    *
-    * @param auditTaskId Audit task id
-    * @param completed A completed flag
-    * @return
     */
-  def updateCompleted(auditTaskId: Int, completed: Boolean) = db.withTransaction { implicit session =>
+  def updateCompleted(auditTaskId: Int, completed: Boolean): Int = db.withTransaction { implicit session =>
     val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.completed
     q.update(completed)
   }
 
   /**
-    * Update the `current_lat`, `current_lng`, and `task_end` columns of the specified audit task row
-    *
-    * @param auditTaskId
-    * @param timestamp
-    * @return
+    * Update the `current_lat`, `current_lng`, and `task_end` columns of the specified audit task row.
     */
-  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float) = db.withTransaction { implicit session =>
+  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float): Int = db.withTransaction { implicit session =>
     val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng)
     q.update((Some(timestamp), lat, lng))
   }

@@ -96,9 +96,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
         // Survey prompt. Modal should display survey if
         // 1. User has completed numMissionsBeforeSurvey number of missions
-        // 2. The user has just completed more than 30% of the current mission
+        // 2. The user has just completed more than 60% of the current mission
         // 3. The user has not been shown the survey before
-        if (completionRate > 0.3 && completionRate < 0.9) {
+        if (completionRate > 0.6 && completionRate < 0.9) {
             $.ajax({
                 async: true,
                 url: '/survey/display',

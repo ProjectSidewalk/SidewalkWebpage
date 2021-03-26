@@ -4,7 +4,6 @@
 
 # Home page
 GET     /                                                    @controllers.ApplicationController.index
-POST    /                                                    controllers.TeaserController.teaserPost
 
 GET     /home                                                @controllers.ApplicationController.index
 GET     /api                                                 @controllers.ApplicationController.developer
@@ -14,6 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
+GET     /gallery                                             @controllers.ApplicationController.gallery
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
@@ -23,18 +23,21 @@ GET     /labelingGuide/obstacles                             @controllers.Applic
 GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
 GET     /mobile                                              @controllers.ValidationController.mobileValidate
-GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
+GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
+GET     /signInMobile                                        @controllers.UserController.signInMobile(url: String ?= "/")
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
+GET     /signUpMobile                                        @controllers.UserController.signUpMobile(url: String ?= "/")
 GET     /signOut                                             @controllers.UserController.signOut(url: String ?= "/")
 GET     /forgotPassword                                      @controllers.UserController.forgotPassword(url: String ?= "/")
 GET     /resetPassword                                       @controllers.UserController.resetPassword(token: java.util.UUID)
 GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
 GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
 GET     /finishSignUp                                        @controllers.SignUpController.finishSignUp(url: Option[String])
+GET     /changeLanguage                                      @controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
 POST    /signUp                                              @controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
@@ -67,6 +70,7 @@ GET     /adminapi/labelCounts                                @controllers.AdminC
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
+GET     /adminapi/updateUserStats                            @controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -94,7 +98,6 @@ POST    /audit/groundtruth/markComplete                      @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
-GET     /rapidValidate                                       @controllers.ValidationController.rapidValidate
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
@@ -105,35 +108,32 @@ POST    /task                                                @controllers.TaskCo
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
-POST    /validationLabelMap                                  @controllers.ValidationTaskController.postLabelMap
+POST    /galleryTask                                         @controllers.GalleryTaskController.post
+POST    /galleryTaskBeacon                                   @controllers.GalleryTaskController.postBeacon
+POST    /labelmap/validate                                   @controllers.ValidationTaskController.postLabelMapValidation
+POST    /labelmap/comment                                    @controllers.ValidationTaskController.postLabelMapComment
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
-GET     /getMissions                                         @controllers.UserProfileController.getMissions()
 GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
+GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String)
+GET     /label/labelsBySeveritiesAndTags                     @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String)
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
-GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
 GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
 
-# Map Edit
-GET     /map/edit                                            @controllers.MapController.edit
-
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets
-GET     /contribution/auditCounts                            @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
-GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
-GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                              @controllers.UserProfileController.userProfile(username: String)
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
@@ -156,7 +156,6 @@ GET     /v1/access/score/streets                             @controllers.Projec
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
-GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
 
 # Survey
 GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey
@@ -167,7 +166,7 @@ POST    /amtAssignment                                       @controllers.Missio
 
 # Clustering and Attributes
 GET     /clustering                                          @controllers.AttributeController.index
-GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both")
+GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both", hoursCutoff: Option[Int])
 GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
 GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
 POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)

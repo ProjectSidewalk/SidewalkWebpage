@@ -1,9 +1,6 @@
 package controllers
 
 import javax.inject.Inject
-import java.sql.Timestamp
-import java.time.Instant
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
@@ -13,17 +10,18 @@ import models.user.{User, UserCurrentRegionTable}
 import models.amt.AMTAssignmentTable
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
-
 import scala.concurrent.Future
 
-
+/**
+ * Holds the HTTP requests associated with managing mission completion and reward.
+ *
+ * @param env The Silhouette environment.
+ */
 class MissionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
     * Return the completed missions in the user's current region in a JSON array.
-    *
-    * @return
     */
   def getMissionsInCurrentRegion() = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -45,8 +43,6 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
   /**
     * Return the total reward earned by the user.
-    *
-    * @return
     */
   def getTotalRewardEarned() = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -55,6 +51,9 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  /**
+   * Update completion of assignment for turkers.
+   */
   def postAMTAssignment = Action.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
 
@@ -78,4 +77,3 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     )
   }
 }
-

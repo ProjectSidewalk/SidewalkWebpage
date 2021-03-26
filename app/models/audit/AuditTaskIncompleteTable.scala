@@ -3,10 +3,9 @@ package models.audit
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
-case class AuditTaskIncomplete(auditTaskIncompletId: Int, auditTaskId: Int, missionId: Int, issueDescription: String, lat: Float, lng: Float)
+case class AuditTaskIncomplete(auditTaskIncompleteId: Int, auditTaskId: Int, missionId: Int, issueDescription: String, lat: Float, lng: Float)
 
 class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag, Some("sidewalk"), "audit_task_incomplete") {
   def auditTaskIncompleteId = column[Int]("audit_task_incomplete_id", O.PrimaryKey, O.AutoInc)
@@ -26,23 +25,14 @@ class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag,
 }
 
 /**
- * Data access object for the audit_task_environment table
+ * Data access object for the audit_task_environment table.
  */
 object AuditTaskIncompleteTable {
   val db = play.api.db.slick.DB
   val incompletes = TableQuery[AuditTaskIncompleteTable]
 
-  def list: List[AuditTaskIncomplete] = db.withTransaction { implicit session =>
-    incompletes.list
-  }
-
   /**
-   * Saves a new audit task environment
-   *
-   * Reference for getting the item that has been inserted right now.
-   * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
-   * @param incomplete
-   * @return
+   * Saves a new audit task environment.
    */
   def save(incomplete: AuditTaskIncomplete): Int = db.withTransaction { implicit session =>
     val auditTaskIncompleteId: Int =

@@ -4,7 +4,7 @@
 		module="aopalliance"
 		revision="1.0"
 		status="release"
-		publication="20070226144340"
+		publication="20070226224340"
 	>
 		<license name="Public Domain" />
 		<description homepage="http://aopalliance.sourceforge.net">

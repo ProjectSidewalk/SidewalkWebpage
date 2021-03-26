@@ -1,54 +1,50 @@
 package controllers
 
 import javax.inject.Inject
-
+import java.sql.Timestamp
+import java.time.Instant
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import formats.json.TaskFormats._
-import formats.json.MissionFormat._
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit.AuditTaskTable
 import models.mission.MissionTable
 import models.label.{LabelTable, LabelValidationTable}
-import models.user.User
-import play.api.libs.json.{JsArray, JsObject, Json}
+import models.user.{User, WebpageActivityTable, WebpageActivity}
+import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
-
-
+import play.api.i18n.Messages
 import scala.concurrent.Future
 
-
 /**
- * The basic application controller.
+ * Holds the HTTP requests associated with the user dashboard.
  *
  * @param env The Silhouette environment.
  */
 class UserProfileController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
+  /**
+   * Loads the user dashboard page.
+   */
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val username: String = user.username
-        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user))))
+        // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+        val auditedDistance: Float =
+          if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
+          else MissionTable.getDistanceAudited(user.userId)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
+        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user), auditedDistance)))
       case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }
   }
 
-  def previousAudit = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val username: String = user.username
-        Future.successful(Ok(views.html.previousAudit(s"Project Sidewalk - $username", Some(user))))
-      case None => Future.successful(Redirect("/anonSignUp?url=/contribution/previousAudit"))
-    }
-  }
-
   /**
-   * Get a list of edges that are audited by users.
-    *
-    * @return
+   * Get the list of streets that have been audited by the signed in user.
    */
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -56,7 +52,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val streets = AuditTaskTable.selectStreetsAuditedByAUser(user.userId)
         val features: List[JsObject] = streets.map { edge =>
           val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-          val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+          val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
           val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
           val properties = Json.obj(
             "street_edge_id" -> edge.streetEdgeId,
@@ -73,6 +69,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+   * Get the list of streets that have been audited by any user.
+   */
   def getAllAuditedStreets = UserAwareAction.async { implicit request =>
     val streets = AuditTaskTable.selectStreetsAudited
     val features: List[JsObject] = streets.map { edge =>
@@ -90,40 +89,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    *
-    * @return
-    */
-  def getSubmittedTasks = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val tasks = AuditTaskTable.selectCompletedTasks(user.userId).map(t => Json.toJson(t))
-        Future.successful(Ok(JsArray(tasks)))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
-    }
-  }
-
-  /**
-    *
-    * @return
-    */
-  def getMissions = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val tasksWithLabels = MissionTable.selectMissions(user.userId).map(x => Json.toJson(x))
-        Future.successful(Ok(JsArray(tasksWithLabels)))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
-    }
-  }
-
-  /**
-   * Get a list of labels submitted by the user
-   * @return
+   * Get the list of labels submitted by the signed in user. Only include labels in the given region if supplied.
    */
   def getSubmittedLabels(regionId: Option[Int]) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -133,7 +99,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           case None => LabelTable.selectLocationsOfLabelsByUserId(user.userId)
         }
 
-        // val labels = LabelTable.selectLocationsOfLabelsByUserId(user.userId)
         val features: List[JsObject] = labels.map { label =>
           val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
           val properties = Json.obj(
@@ -150,90 +115,12 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         "error" -> "0",
         "message" -> "Your user id could not be found."
       )))
-    }
-  }
-
-  def getLabelsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val labels = LabelTable.selectLocationsOfLabelsByUserId(user.userId)
-        val features: List[JsObject] = labels.map { label =>
-          val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-          val properties = Json.obj(
-            "audit_task_id" -> label.auditTaskId,
-            "label_id" -> label.labelId,
-            "gsv_panorama_id" -> label.gsvPanoramaId,
-            "label_type" -> label.labelType
-          )
-          Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-        }
-        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-        Future.successful(Ok(featureCollection))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
-    }
-  }
-
-
-  def getInteractions = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(user.userId).map(x => Json.toJson(x))
-        Future.successful(Ok(JsArray(interactions)))
-      case None =>
-        Future.successful(Ok(Json.obj(
-          "error" -> "0",
-          "message" -> "We could not find your username."
-        )))
     }
   }
 
   /**
-   * Get user interaction records
-    *
-    * @return
+   * Get a count of the number of audits that have been completed each day.
    */
-  def getAuditTaskInteractions = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        AuditTaskTable.lastAuditTask(user.userId) match {
-          case Some(auditTask) =>
-            val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.selectAuditInteractionsWithLabels(auditTask.auditTaskId)
-            val featureCollection = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
-            Future.successful(Ok(featureCollection))
-          case None => Future.successful(Ok(Json.obj(
-            "error" -> "0",
-            "message" -> "There are no existing audit records."
-          )))
-        }
-      case None => Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "We could not find your username."
-      )))
-    }
-  }
-
-  /**
-    *
-    * @return
-    */
-  def getAuditCounts = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val auditCounts = AuditTaskTable.selectAuditCountsPerDayByUserId(user.userId)
-        val json = Json.arr(auditCounts.map(x => Json.obj(
-          "date" -> x.date, "count" -> x.count
-        )))
-        Future.successful(Ok(json))
-      case None => Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "We could not find your username."
-      )))
-    }
-  }
-
   def getAllAuditCounts = UserAwareAction.async { implicit request =>
     val auditCounts = AuditTaskTable.auditCounts
     val json = Json.arr(auditCounts.map(x => Json.obj(
@@ -242,6 +129,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(json))
   }
 
+  /**
+   * Get a count of the number of labels that have been added each day.
+   */
   def getAllLabelCounts = UserAwareAction.async { implicit request =>
     val labelCounts = LabelTable.selectLabelCountsPerDay
     val json = Json.arr(labelCounts.map(x => Json.obj(
@@ -250,6 +140,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(json))
   }
 
+  /**
+   * Get a count of the number of validations that have been completed each day.
+   */
   def getAllValidationCounts = UserAwareAction.async { implicit request =>
     val validationCounts = LabelValidationTable.getValidationsByDate
     val json = Json.arr(validationCounts.map(x => Json.obj(

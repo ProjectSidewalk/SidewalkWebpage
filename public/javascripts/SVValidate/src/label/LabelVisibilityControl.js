@@ -30,16 +30,16 @@ function LabelVisibilityControl () {
      * depending on current state.
      */
     function unhideLabel () {
-	let panomarker = svv.panorama.getPanomarker();
-	let label = svv.panorama.getCurrentLabel();
-	panomarker.setIcon(label.getIconUrl());
+        let panomarker = svv.panorama.getPanomarker();
+        let label = svv.panorama.getCurrentLabel();
+        panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
         let htmlString = `<u>H</u>ide Label</button>`;
         labelVisibilityButtonOnPano.html(htmlString);
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
-	labelVisibilityControlButton.html(htmlString);
+        labelVisibilityControlButton.html(htmlString);
     }
 
     /**
@@ -47,14 +47,14 @@ function LabelVisibilityControl () {
      */
     function hideLabel () {
         let panomarker = svv.panorama.getPanomarker();
-	panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
-	panomarker.draw();
+        panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
+        panomarker.draw();
         visible = false;
         let htmlString = `S<u>h</u>ow Label</button>`;
         labelVisibilityButtonOnPano.html(htmlString);
-	htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
-	labelVisibilityControlButton.html(htmlString);
+        labelVisibilityControlButton.html(htmlString);
     }
 
     /**
@@ -63,8 +63,8 @@ function LabelVisibilityControl () {
     function refreshLabel () {
         let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
-        $("#label-visibility-control-button").html(htmlString);
-        $("#label-visibility-control-button").css({
+        labelVisibilityControlButton.html(htmlString);
+        labelVisibilityControlButton.css({
             "background": ""
         });
     }
@@ -83,20 +83,20 @@ function LabelVisibilityControl () {
         svv.tracker.push("MouseOver_Label");
 
         let button = document.getElementById("label-visibility-button-on-pano");
-	let marker = document.getElementById("validate-pano-marker");
+        let marker = document.getElementById("validate-pano-marker");
 
         // Position the button to the top right corner of the label, 10px right and
         // 15px up from center of the label.
         button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
         button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
-	button.style.visibility = 'visible';
+        button.style.visibility = 'visible';
         
         // Position the box to the lower left corner of the label, 10px left and
         // 10px down from center of the label.
         let desBox = labelDescriptionBox[0];
         desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
         desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
-	desBox.style.visibility = 'visible';
+        desBox.style.visibility = 'visible';
     }
 
     /**
@@ -110,8 +110,8 @@ function LabelVisibilityControl () {
     labelVisibilityControlButton.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('mouseover', function (e) {
-	showTagsAndDeleteButton();
-	e.stopPropagation();
+        showTagsAndDeleteButton();
+        e.stopPropagation();
     });
     labelVisibilityButtonOnPano.on('mouseout', hideTagsAndDeleteButton);
 

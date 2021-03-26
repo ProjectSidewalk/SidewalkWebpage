@@ -131,7 +131,6 @@ function Canvas(ribbon) {
             canvasHeight: svl.canvasHeight,
             canvasDistortionAlphaX: svl.alpha_x,
             canvasDistortionAlphaY: svl.alpha_y,
-            //labelId: svl.getLabelCounter(),
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
@@ -141,7 +140,7 @@ function Canvas(ribbon) {
             panoramaLng: latlng.lng,
             panoramaHeading: pov.heading,
             panoramaPitch: pov.pitch,
-            panoramaZoom: pov.zoom,
+            panoramaZoom: parseInt(pov.zoom, 10),
             svImageWidth: svl.svImageWidth,
             svImageHeight: svl.svImageHeight,
             svMode: 'html4'
@@ -383,7 +382,7 @@ function Canvas(ribbon) {
      */
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
-            svl.tracker.push('Click_LabelDelete');
+            svl.tracker.push('Click_LabelDelete', {labelType: self.getCurrentLabel().getProperty('labelType')});
             var currLabel = self.getCurrentLabel();
             if (!currLabel) {
                 //

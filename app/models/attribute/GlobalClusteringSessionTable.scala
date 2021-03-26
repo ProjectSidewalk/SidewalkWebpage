@@ -1,20 +1,14 @@
 package models.attribute
 
-/**
-  * Created by misaugstad on 4/27/17.
-  */
-
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
-
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
 import scala.slick.jdbc.{StaticQuery => Q}
 import scala.language.postfixOps
 
 case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: java.sql.Timestamp)
-
 
 class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSession](tag, Some("sidewalk"), "global_clustering_session") {
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
@@ -29,14 +23,36 @@ class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSessi
 }
 
 /**
-  * Data access object for the GlobalClusteringSessionTable table
+  * Data access object for the GlobalClusteringSessionTable table.
   */
 object GlobalClusteringSessionTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalClusteringSessions: TableQuery[GlobalClusteringSessionTable] = TableQuery[GlobalClusteringSessionTable]
+  val globalAttributeUserAttributes: TableQuery[GlobalAttributeUserAttributeTable] = TableQuery[GlobalAttributeUserAttributeTable]
 
-  def getAllGlobalClusteringSessions: List[GlobalClusteringSession] = db.withTransaction { implicit session =>
-    globalClusteringSessions.list
+  /**
+   * Gets list of region_ids where the underlying data has been changed during single-user clustering.
+   *
+   * Data in the `global_attribute` table that is missing from the `global_attribute_user_attribute` table means that
+   * the user who contributed the data has added data or has been marked as low quality. Data in the `user_attribute`
+   * table that is missing from the `global_attribute_user_attribute` table means that this is a new user or they've
+   * added new data. SELECT DISTINCT on the associated region_ids from both queries yields all regions to update.
+   */
+  def getNeighborhoodsToReCluster: List[Int] = db.withSession { implicit session =>
+    // global_attribute left joins with global_attribute_user_attribute, nulls mean low quality/updated users.
+    val lowQualityOrUpdated = GlobalAttributeTable.globalAttributes
+      .leftJoin(globalAttributeUserAttributes).on(_.globalAttributeId === _.globalAttributeId)
+      .filter(_._2.globalAttributeId.?.isEmpty)
+      .map(_._1.regionId)
+
+    // global_attribute_user_attribute right joins with user_attribute, nulls mean new/updated users.
+    val newOrUpdated = globalAttributeUserAttributes
+      .rightJoin(UserAttributeTable.userAttributes).on(_.userAttributeId === _.userAttributeId)
+      .filter(_._1.userAttributeId.?.isEmpty)
+      .map(_._2.regionId)
+
+    // Combine the two (union removes duplicates)
+    (lowQualityOrUpdated union newOrUpdated).list
   }
 
   /**
@@ -44,6 +60,16 @@ object GlobalClusteringSessionTable {
     */
   def truncateTables(): Unit = db.withTransaction { implicit session =>
     Q.updateNA("TRUNCATE TABLE global_clustering_session CASCADE").execute
+  }
+
+  /**
+   * Deletes the global attributes for the selected region_ids.
+   *
+   * We run the delete on the `global_clustering_session` table, and it cascades to the `global_attribute` and
+   * `global_attribute_user_attribute` tables.
+   */
+  def deleteGlobalClusteringSessions(regionIds: List[Int]): Int = db.withTransaction { implicit session =>
+    globalClusteringSessions.filter(_.regionId inSet regionIds).delete
   }
 
   def save(newSess: GlobalClusteringSession): Int = db.withTransaction { implicit session =>

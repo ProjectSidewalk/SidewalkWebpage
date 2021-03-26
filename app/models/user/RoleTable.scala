@@ -19,10 +19,4 @@ object RoleTable {
   def getRoleNames: List[String] = db.withTransaction { implicit session =>
     roles.map(_.role).list
   }
-
-  def save(role: Role): Int = db.withTransaction { implicit session =>
-    val roleId: Int =
-      (roles returning roles.map(_.roleId)) += role
-    roleId
-  }
 }

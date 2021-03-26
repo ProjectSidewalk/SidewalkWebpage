@@ -1,13 +1,11 @@
 package controllers
 
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
-import models.user.{User, UserCurrentRegionTable}
-
+import models.user.User
 import scala.concurrent.Future
 import play.api.mvc._
 import models.region._
@@ -15,17 +13,18 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json._
 import play.extras.geojson
 import com.vividsolutions.jts.geom.Coordinate
-import play.api.Logger
-
 import collection.immutable.Seq
 
-
+/**
+ * Holds the HTTP requests associated with managing neighorhoods.
+ *
+ * @param env The Silhouette environment.
+ */
 class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-    * This returns the list of difficult neighborhood ids
-    * @return
+    * This returns the list of difficult neighborhood ids.
     */
   def getDifficultNeighborhoods = Action.async { implicit request =>
     Future.successful(Ok(Json.obj("regionIds" -> RegionTable.difficultRegionIds)))
@@ -33,7 +32,6 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
 
   /**
     * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
-    * @return
     */
   def listNeighborhoods = UserAwareAction.async { implicit request =>
     request.identity match {

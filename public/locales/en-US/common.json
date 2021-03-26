@@ -1,6 +1,6 @@
 {
     "measurement-system": "IS",
-    "unit-abbreviation-distance-user-dashboard": "mi",
+    "unit-distance-abbreviation": "mi",
     "unit-abbreviation-mission-distance": "ft",
     "unit-distance": "miles",
     "map": {

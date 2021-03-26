@@ -17,13 +17,12 @@ import models.services.UserService
 import models.user._
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json.{Json, JsError}
+import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.{Play, Logger}
 import play.api.Play.current
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.daos.UserDAO
-
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -48,8 +47,6 @@ class SignUpController @Inject() (
 
   /**
    * Registers a new user.
-   *
-   * @return The result to display.
    */
   def signUp(url: Option[String]) = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
@@ -158,8 +155,6 @@ class SignUpController @Inject() (
    * So /signUp handles the validation and database portions, it discards to old authenticator from the session cookie
    * and stores the new one in a temporary element, and then it redirects to /finishSignUp. Here, we remove the temp
    * authenticator and move it's data into the correct element in the cookie, finally completing the sign up.
-   * @param url
-   * @return
    */
   def finishSignUp(url: Option[String]) = UserAwareAction.async { implicit request =>
     if (request.session.get("authenticator").isEmpty && request.session.get("temp-authenticator").isDefined) {
@@ -190,9 +185,6 @@ class SignUpController @Inject() (
 
   /**
     * If there is no user signed in, an anon user with randomly generated username/password is created.
-    *
-    * @param url
-    * @return
     */
   def signUpAnon(url: String) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -243,9 +235,11 @@ class SignUpController @Inject() (
     }
   }
 
+  /**
+   * Creates a new account and assignment for the given turker.
+   */
   def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
-    val anonymousUser: DBUser = UserTable.find("anonymous").get
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
 
@@ -298,7 +292,7 @@ class SignUpController @Inject() (
           UserCurrentRegionTable.assignEasyRegion(user.userId)
           UserStatTable.addUserStatIfNew(user.userId)
 
-          // Add Timestamp
+          // Add Timestamp.
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
@@ -312,6 +306,9 @@ class SignUpController @Inject() (
     }
   }
 
+  /**
+   * Authenticates a turker who is returning to Project Sidewalk.
+   */
   def turkerSignIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
     val ipAddress: String = request.remoteAddress
 

@@ -4,7 +4,7 @@
 		module="jsr250-api"
 		revision="1.0"
 		status="release"
-		publication="20070515132559"
+		publication="20070515202559"
 	>
 		<license name="COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0" url="https://glassfish.dev.java.net/public/CDDLv1.0.html" />
 		<description homepage="http://jcp.org/aboutJava/communityprocess/final/jsr250/index.html">

@@ -37,7 +37,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
                     neighborhoodModel, onboardingModel, onboardingStates,
                     ribbon, statusField, statusModel, storage, taskContainer,
-                    tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
+                    tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
     var tutorialPC;
@@ -74,7 +74,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         fetchTutorialPointCloud();
 
-        $("#toolbar-onboarding-link").css("display", "none");
+        $("#navbar-retake-tutorial-btn").css("display", "none");
 
         var canvasUI = uiOnboarding.canvas.get(0);
         if (canvasUI) ctx = canvasUI.getContext('2d');
@@ -102,7 +102,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         ribbon.unlockDisableMode();
 
-        $("#left-column-jump-button").addClass('disabled');
+        uiLeft.jump.addClass('disabled');
+        uiLeft.stuck.addClass('disabled');
 
         compass.hideMessage();
 
@@ -119,7 +120,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function fetchTutorialPointCloud() {
         var client = new XMLHttpRequest();
-        client.open('GET', svl.rootDirectory + "doc/TutorialPointCloud.dat");
+        client.open('GET', svl.rootDirectory + "img/onboarding/TutorialPointCloud.dat");
         client.onreadystatechange = function() {
             tutorialPC = client.responseText;
         };
@@ -236,21 +237,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function clear() {
         if (ctx) ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        return this;
-    }
-
-    /**
-     * Draw a double click icon on the onboarding canvas
-     * @param x {number} X coordinate
-     * @param y {number} Y coordiante
-     * @returns {drawDoubleClickIcon}
-     */
-    function drawDoubleClickIcon(x, y) {
-        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
-        var image = document.getElementById("double-click-icon");
-        ctx.save();
-        ctx.drawImage(image, x - 50, y - 50, 100, 100);
-        ctx.restore();
         return this;
     }
 
@@ -469,8 +455,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier);
                 }
 
-            } else if (state.annotations[i].type == "double-click") {
-                drawDoubleClickIcon(canvasCoordinate.x, canvasCoordinate.y);
             }
         }
         povChange["status"] = false;
@@ -499,7 +483,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function next(nextState) {
         if (typeof nextState == "function") {
-            var nextStateId = nextState.call(this);
             status.state = getState(nextState.call(this));
             _visit(status.state);
         } else if (nextState in states) {
@@ -635,7 +618,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     case "sound":
                         audioEffect.blink();
                         break;
-                    case "jump":
+                    case "stuck":
                         modalSkip.blink();
                         break;
                     case "feedback":
@@ -850,7 +833,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _visitWalkTowards(state, listener) {
 
+        // Add a link to the second pano so that the user can click on it.
+        svl.panorama.setLinks([{
+            description: 'afterWalkTutorial',
+            heading: 340,
+            pano: 'afterWalkTutorial'
+        }]);
         mapService.unlockDisableWalking();
+        mapService.enableWalking();
         mapService.lockDisableWalking();
 
         blinkInterface(state);
@@ -874,25 +864,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
-
-        // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
-        // take the user to the right panorama. In that case, programmatically move the user.
-        var currentClick, previousClick;
-        var mouseUpCallback = function (e) {
-            currentClick = new Date().getTime();
-
-            // Check if the user has double clicked
-            if (previousClick && currentClick - previousClick < 300) {
-                //Previously, we checked if the user double-clicked on the correct location,
-                // it wasn't working correctly; we removed that. So it will jump them if they click anywhere
-                uiMap.viewControlLayer.off("mouseup", mouseUpCallback);
-                mapService.setPano(state.properties.panoId, true);
-                mapService.disableWalking();
-                callback();
-            }
-            previousClick = currentClick;
-        };
-        uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
     var flag = false;

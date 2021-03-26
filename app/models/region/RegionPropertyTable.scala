@@ -1,4 +1,5 @@
 package models.region
+
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -20,23 +21,10 @@ object RegionPropertyTable {
   val neighborhoodNames = regionProperties.filter(_.key === "Neighborhood Name")
 
   /**
-    * Returns a list of all the region properties
-    * @return A list of regionProperty objects.
-    */
-  def all: List[RegionProperty] = db.withSession { implicit session =>
-    regionProperties.list
-  }
-
-  /**
-    * Return the neighborhood name of the given region
-    * @param regionId Region id
-    * @return
+    * Return the neighborhood name of the given region.
     */
   def neighborhoodName(regionId: Int): Option[String] = db.withSession { implicit session =>
-    val regionProperty = regionProperties.filter(_.regionId === regionId).filter(_.key === "Neighborhood Name").list.headOption
-    regionProperty match {
-      case Some(rp) => Some(rp.value)
-      case _ => None
-    }
+    val regionProperty: Option[RegionProperty] = regionProperties.filter(_.regionId === regionId).filter(_.key === "Neighborhood Name").firstOption
+    regionProperty.map(_.value)
   }
 }

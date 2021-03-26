@@ -1,9 +1,5 @@
 package models.attribute
 
-/**
-  * Created by misaugstad on 4/27/17.
-  */
-
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable, LabelTemporarinessTable}
@@ -11,7 +7,6 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
-
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.language.postfixOps
@@ -24,7 +19,7 @@ case class LabelToCluster(userId: String,
                           severity: Option[Int],
                           temporary: Boolean) {
   /**
-    * This method converts the data into the JSON format
+    * Converts the data into the JSON format.
     *
     * @return
     */
@@ -43,7 +38,6 @@ case class LabelToCluster(userId: String,
 
 case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: java.sql.Timestamp)
 
-
 class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](tag, Some("sidewalk"), "user_clustering_session") {
   def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def userId: Column[String] = column[String]("user_id", O.NotNull)
@@ -57,7 +51,7 @@ class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](
 }
 
 /**
-  * Data access object for the UserClusteringSessionTable table
+  * Data access object for the UserClusteringSessionTable table.
   */
 object UserClusteringSessionTable {
   val db: slick.Database = play.api.db.slick.DB
@@ -67,15 +61,8 @@ object UserClusteringSessionTable {
     LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
   })
 
-  def getAllUserClusteringSessions: List[UserClusteringSession] = db.withTransaction { implicit session =>
-    userClusteringSessions.list
-  }
-
   /**
-    * Returns labels that were placed by the specified user, in the format needed for clustering.
-    *
-    * @param userId
-    * @return
+    * Returns labels that were placed by the specified user in the format needed for clustering.
     */
   def getUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
 
@@ -102,9 +89,6 @@ object UserClusteringSessionTable {
 
   /**
     * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
-    *
-    * @param regionId
-    * @return
     */
   def getClusteredLabelsInRegion(regionId: Int): List[LabelToCluster] = db.withTransaction { implicit session =>
     val labelsInRegion = for {
@@ -130,6 +114,30 @@ object UserClusteringSessionTable {
     */
   def truncateTables(): Unit = db.withTransaction { implicit session =>
     Q.updateNA("TRUNCATE TABLE user_clustering_session CASCADE").execute
+  }
+
+  /**
+   * Deletes the entries in the `user_clustering_session` table and (almost) all connected data for the given users.
+   *
+   * Deletes the entry in the `user_clustering_session` table, and the connected entries in the `user_attribute`,
+   * `user_attribute_label`, and `global_attribute_user_attribute` tables. We leave the data in the `global_attribute`
+   * alone. Since we can't use a join in a delete statement and the `user_attribute` table has foreign key constraints
+   * on both the `user_clustering_session` and `global_attribute_user_attribute` tables, we have to start by getting the
+   * list of `user_attribute_id`s to delete from the `global_attribute_user_attribute` first; then we can use
+   * `DELETE CASCADE` on the `user_clustering_session` table.
+   */
+  def deleteUsersClusteringSessions(usersToDelete: List[String]): Int = db.withTransaction { implicit session =>
+    // Get list of `user_attribute_id`s to delete from the `global_attribute_user_attribute` table.
+    val userAttributesToDelete: List[Int] = userClusteringSessions
+      .innerJoin(UserAttributeTable.userAttributes).on(_.userClusteringSessionId === _.userClusteringSessionId)
+      .filter(_._1.userId inSet usersToDelete)
+      .map(_._2.userAttributeId).list
+
+    // DELETE entries in `global_attribute_user_attribute` and then DELETE CASCADE entries in `user_clustering_session`.
+    val nGlobalAttributeLinksDeleted: Int = GlobalAttributeUserAttributeTable.globalAttributeUserAttributes
+      .filter(_.userAttributeId inSet userAttributesToDelete)
+      .delete
+    userClusteringSessions.filter(_.userId inSet usersToDelete).delete
   }
 
   def save(newSess: UserClusteringSession): Int = db.withTransaction { implicit session =>

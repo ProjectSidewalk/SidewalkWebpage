@@ -1,15 +1,11 @@
 @import models.user.User
-@import models.user.WebpageActivityTable
 @import models.region.RegionTable
-@import models.user.UserRoleTable
 @import models.daos.slick._
 @import models.audit._
 @import models.label._
-@import models.mission.MissionTable
 @import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
-@import java.util.UUID
 @import play.api.libs.json.Json
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
@@ -18,884 +14,899 @@
     else distance.toDouble
 }
 @main(title) {
-@navbar(user, Some("/admin"))
-<style>
-    .no-js #loader { display: none;  }
-    .js #loader { display: block; position: absolute; left: 100px; top: 0; }
-    .loader {
-        position: fixed;
-        left: 0px;
-        top: 0px;
-        width: 100%;
-        height: 100%;
-        z-index: 9999;
-        background: url('/assets/images/loader.gif') center no-repeat #fff ;
-    }
-</style>
-<div class="loader"></div>
-<div class="container">
-    <div id="row">
-        <div class="col-lg-2">
-        <ul class="nav nav-pills nav-stacked">
-            <li class="active"><a href="#tabs-1"data-toggle="pill" id="overview">Overview</a></li>
-            <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
-            <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
-            <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
-            <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
-            <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
-            <li onClick="window.open('/audit/groundtruth', '_blank');"><a data-toggle="pill" id="label-search">CV Ground Truth Audit</a></li>
-        </ul>
-        </div>
-        <div class="col-lg-10">
-            <div class="tab-content">
-            <div class="tab-pane active" id="tabs-1">
-                <div class="row">
-                    <div class="col-lg-7">
-                        <h1>Activities</h1>
-                        <table class="table table-striped table-condensed">
-                            <tr>
-                                <th></th>
-                                <th>Overall<sup>*</sup></th>
-                                <th>Today</th>
-                                <th>Yesterday</th>
-                            </tr>
-
-                            <tr>
-                                <th>Total Audit Users</th>
-                                <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
-                                <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
-                                <th>@UserDAOSlick.countAllAuditUsersContributedYesterday</th>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOSlick.countAuditUsersContributed(List("Registered"), false) (@UserDAOSlick.countAuditUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOSlick.countAuditUsersContributedToday("Registered")</td>
-                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Registered")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOSlick.countAuditUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Anonymous")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOSlick.countAuditUsersContributed(List("Turker"), false) (@UserDAOSlick.countAuditUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOSlick.countAuditUsersContributedToday("Turker")</td>
-                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Turker")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOSlick.countAuditResearchersContributed(false) (@UserDAOSlick.countAuditResearchersContributed(true))</td>
-                                <td>@UserDAOSlick.countAuditResearchersContributedToday</td>
-                                <td>@UserDAOSlick.countAuditResearchersContributedYesterday</td>
-                            </tr>
-
-                            <tr>
-                                <th>Total Labels</th>
-                                <th>@LabelTable.countLabels</th>
-                                <th>@LabelTable.countTodayLabels</th>
-                                <th>@LabelTable.countYesterdayLabels</th>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Curb Ramp</td>
-                                <td>@LabelTable.countLabelsBasedOnType("CurbRamp")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("CurbRamp")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("CurbRamp")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Missing Curb Ramp</td>
-                                <td>@LabelTable.countLabelsBasedOnType("NoCurbRamp")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("NoCurbRamp")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("NoCurbRamp")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Obstacle in Path</td>
-                                <td>@LabelTable.countLabelsBasedOnType("Obstacle")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("Obstacle")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("Obstacle")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Surface Problem</td>
-                                <td>@LabelTable.countLabelsBasedOnType("SurfaceProblem")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("SurfaceProblem")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("SurfaceProblem")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">No Sidewalk</td>
-                                <td>@LabelTable.countLabelsBasedOnType("NoSidewalk")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("NoSidewalk")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("NoSidewalk")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Other</td>
-                                <td>@LabelTable.countLabelsBasedOnType("Other")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("Other")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("Other")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Occlusion</td>
-                                <td>@LabelTable.countLabelsBasedOnType("Occlusion")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("Occlusion")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
-                            </tr>
-
-                            <tr>
-                                <th>Audits</th>
-                                <th>@AuditTaskTable.countCompletedAudits</th>
-                                <th>@AuditTaskTable.countCompletedAuditsToday</th>
-                                <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
-                            </tr>
-                            <tr>
-                                <th>Audited Distance</th>
-                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("admin.overview.distance")</td>
-                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceToday()))) @Messages("admin.overview.distance")</td>
-                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceYesterday()))) @Messages("admin.overview.distance")</td>
-                            </tr>
-                            <tr>
-                                <th>Total Validation Users</th>
-                                <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
-                                <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
-                                <th>@UserDAOSlick.countAllValidationUsersContributedYesterday</th>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
-                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Registered")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Anonymous")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
-                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Turker")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
-                                <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
-                                <td>@UserDAOSlick.countValidationResearchersContributedYesterday</td>
-                            </tr>
-
-                            <tr style="font-size: 90%;">
-                                <th>Total Validations</th>
-                                <td>@LabelValidationTable.countValidations</td>
-                                <td>@LabelValidationTable.countTodayValidations</td>
-                                <td>@LabelValidationTable.countYesterdayValidations</td>
-                            </tr>
-
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Agreed</td>
-                                <td>@LabelValidationTable.countValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
-                            </tr>
-
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Disagreed</td>
-                                <td>@LabelValidationTable.countValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
-                            </tr>
-
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Not Sure</td>
-                                <td>@LabelValidationTable.countValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
-                            </tr>
-                        </table>
-                        <sup>*</sup>Number of users in the parentheses represent #users who have completed at least 1
-                        audit task (in the case of # of audit users) or have validated at least one label (in the case
-                        of # of validation users). Numbers outside the parenthesis represent total #users who opened
-                        the audit tool regardless of finishing a task.
-                    </div>
-                    <div class="col-lg-5">
-                        <h1>Coverage</h1>
-                        <table class="table table-striped table-condensed">
-                            <tr>
-                                <th></th>
-                                <th>Coverage</th>
-                                <th>Total</th>
-                                <th>Rate</th>
-                            </tr>
-                            <tr>
-                                <th>Audited Streets</th>
-                                <td>@StreetEdgeTable.countAuditedStreets()</td>
-                                <td>@StreetEdgeTable.countTotalStreets()</td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Registered</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Registered")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Anonymous</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Turker</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Turker")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Researcher</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%</td>
-                            </tr>
-                            <tr>
-                                <th>Distance</th>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("admin.overview.distance")</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("admin.overview.distance")</td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Registered</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("admin.overview.distance")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Anonymous</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("admin.overview.distance")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Turker</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("admin.overview.distance")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">Researcher</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("admin.overview.distance")</td>
-                                <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%</td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="col-lg-4">
-                        <h1></h1>
-
-                    </div>
-                    <button onclick="admin.clearPlayCache()">@Messages("admin.clear.play.cache")</button>
-                    <p id="clearPlayCacheSuccess" style="color:green"></p>
-                </div>
-                <div class="row">
-                    <h1>Comments</h1>
-                    <div class="col-lg-12">
-                        <p>Last 100 comments</p>
-                        <table id="commentsTable" data-order='[[ 1, "desc" ]]'
-                               class="table table-striped table-condensed">
-                            <thead>
-                            <tr>
-                                <th class="col-md-2">Username</th>
-                                <th class="col-md-3" data-class-name="priority">Timestamp</th>
-                                <th class="col-md-2">Panorama Id</th>
-                                <th class="col-md-1">Interface</th>
-                                <th class="col-md-4">Comment</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @AuditTaskCommentTable.takeRightAuditAndValidationComments(100).map { comment =>
-                            <tr>
-                                <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
-                                </td>
-                                <td class = 'timestamp'>@comment.timestamp</td>
-                                <td>@comment.gsvPanoramaId</td>
-                                <td>@comment.commentType</td>
-                                <td>@comment.comment</td>
-                            </tr>
-                            }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    @navbar(user, Some("/admin"))
+    <style>
+        .no-js #loader { display: none;  }
+        .js #loader { display: block; position: absolute; left: 100px; top: 0; }
+        .loader {
+            position: fixed;
+            left: 0px;
+            top: 0px;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background: url('/assets/images/project_sidewalk_page_load.gif') center no-repeat #fff ;
+        }
+    </style>
+    <div class="loader"></div>
+    <div class="container">
+        <div id="row">
+            <div class="col-lg-2">
+            <ul class="nav nav-pills nav-stacked">
+                <li class="active"><a href="#tabs-1"data-toggle="pill" id="overview">Overview</a></li>
+                <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
+                <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
+                <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
+                <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
+                <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
+                <li onClick="window.open('/audit/groundtruth', '_blank');"><a data-toggle="pill" id="label-search">CV Ground Truth Audit</a></li>
+            </ul>
             </div>
-            <div id="tabs-2" class="tab-pane">
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div id="map-holder">
-                            <div id="admin-map"></div>
-                            <div id="map-label-legend">
-                                <div id="map-legend-title-holder">
-                                    <label id="map-legend-title">Legend</label>
-                                    <button id="map-legend-minimize-button" class="close">-</button>
-                                </div>
-                                <table class="table filter" id="legend-table">
-                                    <tr>
-                                        <td></td>
-                                        <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
-                                        <td colspan="2" align="left" style="font-weight:bold">Severity</td>
-                                    </tr>
-                                    <tr>
-                                        <td id="map-legend-curb-ramp" width="12px"></td>
-                                        <td width="190px">Curb Ramp</td>
-                                        <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
-                                        <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
-                                        <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
+            <div class="col-lg-10">
+                <div class="tab-content">
+                <div class="tab-pane active" id="tabs-1">
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <h1>Activities</h1>
+                            Today and Past Week are based on the Pacific time zone.
+                            <table class="table table-striped table-condensed">
+                                <tr>
+                                    <th></th>
+                                    <th>Overall<sup>*</sup></th>
+                                    <th>Today</th>
+                                    <th>Past Week</th>
+                                </tr>
+                                <tr>
+                                    <th>Total Users</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("all time", false, false) (@UserDAOSlick.countAllUsersContributed("all time", true, false))</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("today", false, false) (@UserDAOSlick.countAllUsersContributed("today", true, false))</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("week", false, false) (@UserDAOSlick.countAllUsersContributed("week", true, false))</th>
+                                </tr>
+                                <tr>
+                                    <th>Total Users (High Quality)</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("all time", false, true) (@UserDAOSlick.countAllUsersContributed("all time", true, true))</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("today", false, true) (@UserDAOSlick.countAllUsersContributed("today", true, true))</th>
+                                    <th>@UserDAOSlick.countAllUsersContributed("week", false, true) (@UserDAOSlick.countAllUsersContributed("week", true, true))</th>
+                                </tr>
+                                <tr>
+                                    <th>Total Audit Users</th>
+                                    <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
+                                    <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
+                                    <th>@UserDAOSlick.countAllAuditUsersContributedPastWeek</th>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Registered</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Registered"), false) (@UserDAOSlick.countAuditUsersContributed(List("Registered"), true))</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Registered")</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Registered")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Anonymous</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), true))</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Anonymous")</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Anonymous")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Turkers</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Turker"), false) (@UserDAOSlick.countAuditUsersContributed(List("Turker"), true))</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Turker")</td>
+                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Turker")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Researchers</td>
+                                    <td>@UserDAOSlick.countAuditResearchersContributed(false) (@UserDAOSlick.countAuditResearchersContributed(true))</td>
+                                    <td>@UserDAOSlick.countAuditResearchersContributedToday</td>
+                                    <td>@UserDAOSlick.countAuditResearchersContributedPastWeek</td>
+                                </tr>
 
+                                <tr>
+                                    <th>Total Labels</th>
+                                    <th>@LabelTable.countLabels</th>
+                                    <th>@LabelTable.countTodayLabels</th>
+                                    <th>@LabelTable.countPastWeekLabels</th>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Curb Ramp</td>
+                                    <td>@LabelTable.countLabelsBasedOnType("CurbRamp")</td>
+                                    <td>@LabelTable.countTodayLabelsBasedOnType("CurbRamp")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("CurbRamp")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Missing Curb Ramp</td>
+                                    <td>@LabelTable.countLabelsBasedOnType("NoCurbRamp")</td>
+                                    <td>@LabelTable.countTodayLabelsBasedOnType("NoCurbRamp")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("NoCurbRamp")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Obstacle in Path</td>
+                                    <td>@LabelTable.countLabelsBasedOnType("Obstacle")</td>
+                                    <td>@LabelTable.countTodayLabelsBasedOnType("Obstacle")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("Obstacle")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Surface Problem</td>
+                                    <td>@LabelTable.countLabelsBasedOnType("SurfaceProblem")</td>
+                                    <td>@LabelTable.countTodayLabelsBasedOnType("SurfaceProblem")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("SurfaceProblem")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">No Sidewalk</td>
+                                    <td>@LabelTable.countLabelsBasedOnType("NoSidewalk")</td>
+                                    <td>@LabelTable.countTodayLabelsBasedOnType("NoSidewalk")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("NoSidewalk")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Other</td>
+                                    <td>@LabelTable.countLabelsBasedOnType("Other")</td>
+                                    <td>@LabelTable.countTodayLabelsBasedOnType("Other")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("Other")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Occlusion</td>
+                                    <td>@LabelTable.countLabelsBasedOnType("Occlusion")</td>
+                                    <td>@LabelTable.countTodayLabelsBasedOnType("Occlusion")</td>
+                                    <td>@LabelTable.countPastWeekLabelsBasedOnType("Occlusion")</td>
+                                </tr>
+
+                                <tr>
+                                    <th>Audits</th>
+                                    <th>@AuditTaskTable.countCompletedAudits</th>
+                                    <th>@AuditTaskTable.countCompletedAuditsToday</th>
+                                    <th>@AuditTaskTable.countCompletedAuditsPastWeek</th>
+                                </tr>
+                                <tr>
+                                    <th>Audited Distance</th>
+                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr")</td>
+                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceToday()))) @Messages("dist.metric.abbr")</td>
+                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistancePastWeek()))) @Messages("dist.metric.abbr")</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Validation Users</th>
+                                    <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
+                                    <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
+                                    <th>@UserDAOSlick.countAllValidationUsersContributedPastWeek</th>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Registered</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Registered")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Anonymous</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Anonymous")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Turkers</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Turker")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Researchers</td>
+                                    <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
+                                    <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
+                                    <td>@UserDAOSlick.countValidationResearchersContributedPastWeek</td>
+                                </tr>
+
+                                <tr style="font-size: 90%;">
+                                    <th>Total Validations</th>
+                                    <th>@LabelValidationTable.countValidations</th>
+                                    <th>@LabelValidationTable.countTodayValidations</th>
+                                    <th>@LabelValidationTable.countPastWeekValidations</th>
+                                </tr>
+
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Agreed</td>
+                                    <td>@LabelValidationTable.countValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                    <td>@LabelValidationTable.countTodayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                    <td>@LabelValidationTable.countPastWeekValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                </tr>
+
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Disagreed</td>
+                                    <td>@LabelValidationTable.countValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                    <td>@LabelValidationTable.countTodayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                    <td>@LabelValidationTable.countPastWeekValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                </tr>
+
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Not Sure</td>
+                                    <td>@LabelValidationTable.countValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                    <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                    <td>@LabelValidationTable.countPastWeekValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                </tr>
+                            </table>
+                            <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have completed
+                            at least 1 audit task or have validated at least one label. The X is the total number of users
+                            who opened the audit or validation tool regardless of finishing a task.
+                        </div>
+                        <div class="col-lg-5">
+                            <h1>Coverage</h1>
+                            <table class="table table-striped table-condensed">
+                                <tr>
+                                    <th></th>
+                                    <th>Coverage</th>
+                                    <th>Total</th>
+                                    <th>Rate</th>
+                                </tr>
+                                <tr>
+                                    <th>Audited Streets</th>
+                                    <td>@StreetEdgeTable.countAuditedStreets()</td>
+                                    <td>@StreetEdgeTable.countTotalStreets()</td>
+                                    <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Registered</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Registered")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Anonymous</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Turker</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Turker")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Researcher</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%</td>
+                                </tr>
+                                <tr>
+                                    <th>Distance</th>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr")</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("dist.metric.abbr")</td>
+                                    <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Registered</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("dist.metric.abbr")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Anonymous</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("dist.metric.abbr")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Turker</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("dist.metric.abbr")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Researcher</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("dist.metric.abbr")</td>
+                                    <td></td>
+                                    <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-lg-4">
+                            <h1></h1>
+
+                        </div>
+                        <button onclick="admin.clearPlayCache()">@Messages("admin.clear.play.cache")</button>
+                        <p id="clearPlayCacheSuccess" style="color:green"></p>
+                    </div>
+                    <div class="row">
+                        <h1>Comments</h1>
+                        <div class="col-lg-12">
+                            <p>Last 100 comments</p>
+                            <table id="comments-table" data-order='[[ 1, "desc" ]]'
+                                class="table table-striped table-condensed">
+                                <thead>
+                                <tr>
+                                    <th class="col-md-2">Username</th>
+                                    <th class="col-md-3" data-class-name="priority">Timestamp</th>
+                                    <th class="col-md-2">Panorama Id</th>
+                                    <th class="col-md-1">Interface</th>
+                                    <th class="col-md-4">Comment</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @AuditTaskCommentTable.takeRightAuditAndValidationComments(100).map { comment =>
+                                <tr>
+                                    <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
+                                    </td>
+                                    <td class = 'timestamp'>@comment.timestamp</td>
+                                    <td>
+                                        <a class="show-comment-location" href="#" 
+                                        data-heading="@comment.heading" data-pitch="@comment.pitch" data-zoom="@comment.zoom" data-label-id="@comment.labelId">@comment.gsvPanoramaId</a>
+                                    </td>
+                                    <td>@comment.commentType</td>
+                                    <td>@comment.comment</td>
+                                </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="tabs-2" class="tab-pane">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div id="map-holder">
+                                <div id="label-map"></div>
+                                <div id="map-label-legend">
+                                    <div id="map-legend-title-holder">
+                                        <label id="map-legend-title">Legend</label>
+                                        <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
+                                    </div>
+                                    <table class="table filter" id="legend-table">
+                                        <tr>
+                                            <td></td>
+                                            <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
+                                            <td colspan="2" align="left" style="font-weight:bold">Severity</td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-curb-ramp" width="12px"></td>
+                                            <td width="190px">Curb Ramp</td>
+                                            <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
+                                            <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
+                                            <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
+
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-no-curb-ramp"></td>
+                                            <td>Missing Curb Ramp</td>
+                                            <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
+                                            <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
+                                            <td align= "center"><span id="missing-curb-ramp-severity-label">N/A - 5</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-obstacle"></td>
+                                            <td>Obstacle in Path</td>
+                                            <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
+                                            <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
+                                            <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
+                                        </tr>
+                                        <tr><td id="map-legend-surface-problem"></td>
+                                            <td>Surface Problem</td>
+                                            <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
+                                            <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
+                                            <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-no-sidewalk"></td>
+                                            <td>No Sidewalk</td>
+                                            <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
+                                            <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
+                                            <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-other"></td>
+                                            <td>Other</td>
+                                            <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
+                                            <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
+                                            <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-occlusion"></td>
+                                            <td>Can't see sidewalk</td>
+                                            <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider')"></td>
+                                        </tr>
+                                        <tr>
+                                        <td id="map-legend-audited-street"></td>
+                                        <td>Audited Street</td>
+                                        <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer()"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="tabs-3" class="tab-pane">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div id="map-holder">
+                                <div id="admin-choropleth"></div>
+                                <div id="admin-percentage-legend">
+                                    <strong>Percent of Neighborhood Complete</strong>
+                                    <nav class='legend clearfix'>
+                                        <span style='background:#03152f;width:9.09%'></span>
+                                        <span style='background:#08306b;width:9.09%'></span>
+                                        <span style='background:#08519c;width:9.09%'></span>
+                                        <span style='background:#08719c;width:9.09%'></span>
+                                        <span style='background:#2171b5;width:9.09%'></span>
+                                        <span style='background:#4292c6;width:9.09%'></span>
+                                        <span style='background:#6baed6;width:9.09%'></span>
+                                        <span style='background:#82badb;width:9.09%'></span>
+                                        <span style='background:#9ecae1;width:9.09%'></span>
+                                        <span style='background:#b3d3e8;width:9.09%'></span>
+                                        <span style='background:#c6dbef;width:9.09%'></span>
+                                         <div id="legend-percentages-container">
+                                            <label style='text-align: left'>0%</label>
+                                            <label style='text-align: right'>100%</label>
+                                        </div>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2>Coverage Percentage by Neighborhood</h2>
+                        <div class="col-lg-12">
+                            <div id="neighborhood-completion-rate"></div>
+                        </div>
+                        <button id="neighborhood-completion-sort-button">Sort By Completion %</button>
+                        <button id="neighborhood-alphabetical-sort-button">Sort Alphabetically</button>
+                        <h2>Neighborhood Coverage Percentages</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation: </span><span id="neighborhood-std"></span><br>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="neighborhood-completed-distance"></div>
+                        </div>
+
+                        <h2 style="...">City Coverage Progress</h2>
+                        <div class="col-lg-12">
+                            <div id="completion-progress-chart"></div>
+                        </div>
+
+                        <h2>Daily Audits</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation: </span><span id="audit-std"></span><br>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="audit-count-chart"></div>
+                        </div>
+
+                        <h2>Daily Label Counts</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation: </span><span id="label-std"></span><br>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="label-count-chart"></div>
+                        </div>
+
+                        <h2>Severity Ratings by Label Type</h2>
+                        <div class="col-lg-12">
+                            <div class="stats-grid">
+                                <p>
+                                    <span>Average (curb ramp): </span><span id="curb-ramp-mean"></span><br>
+                                    <span>Average (missing curb ramp): </span><span id="missing-ramp-mean"></span><br>
+                                    <span>Average (surface problem): </span><span id="surface-mean"></span><br>
+                                    <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
+                                    <span>Average (no sidewalk): </span><span id="no-sidewalk-mean"></span><br>
+                                    <span>Average (all label types): </span><span id="labels-mean"></span><br>
+                                </p>
+                                <p>
+                                    <span>Standard Deviation (curb ramp): </span><span id="curb-ramp-std"></span><br>
+                                    <span>Standard Deviation (missing curb ramp): </span><span id="missing-ramp-std"></span><br>
+                                    <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
+                                    <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
+                                    <span>Standard Deviation (no sidewalk): </span><span id="no-sidewalk-std"></span><br>
+                                    <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
+                                </p>
+                            </div>
+
+                            <div id="severity-histograms"></div>
+                        </div>
+
+                        <h2>Missions Completed By Users</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation (all users): </span><span id="missions-std"></span><br>
+                                <span>Standard Deviation (turker users): </span><span id="turker-missions-std"></span><br>
+                                <span>Standard Deviation (registered users): </span><span id="reg-missions-std"></span><br>
+                                <span>Standard Deviation (anon users): </span><span id="anon-missions-std"></span><br>
+                                <span>
+                                    Note: We only consider anonymous users who have completed at least one audit task.
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="mission-count-chart"></div>
+                        </div>
+                        <label><input type="checkbox" id="mission-count-include-researchers-checkbox"> Include researchers</label>
+
+                        <h2>Labels per User</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation (all users): </span><span id="all-labels-std"></span><br>
+                                <span>Standard Deviation (turker users): </span><span id="turker-labels-std"></span><br>
+                                <span>Standard Deviation (registered users): </span><span id="reg-labels-std"></span><br>
+                                <span>Standard Deviation (anon users): </span><span id="anon-labels-std"></span><br>
+                                <span>
+                                    Note: We only consider anonymous users who have completed at least one audit task.
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="label-count-hist"></div>
+                        </div>
+                        <label><input type="checkbox" id="label-count-include-researchers-checkbox"> Include researchers</label>
+
+                        <h2>Logins Per User</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation: </span><span id="login-count-std"></span><br>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="login-count-chart"></div>
+                        </div>
+                        <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
+
+                        <h2>How users access Audit Page from Landing Page:</h2>
+                        <div class="col-lg-12 col-md-4" style="align:left">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: right;">Activity</th>
+                                        <th style="text-align: right;">Number</th>
+                                        <th style="text-align: right;">Percentage of Audit Visitors(%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="audit-access-table-start-main">
+                                        <td style="text-align: right;">Click <i>Start Exploring (Main)</i></td>
+                                    </tr>
+                                    <tr id="audit-access-table-start-nav">
+                                        <td style="text-align: right;">Click <i>Start Exploring (Navbar)</i></td>
+                                    </tr>
+                                    <tr id="audit-access-table-choro">
+                                        <td style="text-align: right;">Click Via Choropleth</td>
+                                    </tr>
+                                    <tr id="audit-access-table-turker">
+                                        <td style="text-align: right;">Turker Redirect</td>
+                                    </tr>
+                                    <tr id="audit-access-table-total">
+                                        <td style="text-align: right;">Total <i>(Visit Audit)</i></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h2 class="d-block">User Performance (validation agreement)</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation: </span><span id="validation-agreed-std"></span><br>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="validation-agreed"></div>
+                        </div>
+
+                        <h2>Daily Validation Counts</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation: </span><span id="validation-std"></span><br>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="validation-count-chart"></div>
+                        </div>
+
+                        <h2>Validations per User</h2>
+                        <div class="col-lg-12">
+                            <p>
+                                <span>Standard Deviation (all users): </span><span id="all-validation-std"></span><br>
+                                <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>
+                                <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>
+                                <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>
+                                <span>
+                                    Note: We only consider anonymous users who have completed at least one validation task.
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-lg-12">
+                            <div id="validation-count-hist"></div>
+                        </div>
+                        <label><input type="checkbox" id="validation-count-include-researchers-checkbox"> Include researchers</label>
+
+                        <div class="row">
+                            <div class="col-lg-23">
+                                <h1>Validations Per Label Type</h1>
+                                <table class="table table-striped table-condensed">
+                                    <tr>
+                                        <th></th>
+                                        <th>Total</th>
+                                        <th>Agreed</th>
+                                        <th>Disagreed</th>
+                                        <th>Unsure</th>
                                     </tr>
                                     <tr>
-                                        <td id="map-legend-no-curb-ramp"></td>
-                                        <td>Missing Curb Ramp</td>
-                                        <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
-                                        <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="missing-curb-ramp-severity-label">N/A - 5</span></td>
+                                        <th>Overall</th>
+                                        <th>@LabelValidationTable.countValidations</th>
+                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations)))%</th>
+                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations)))%</th>
+                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations)))%</th>
                                     </tr>
-                                    <tr>
-                                        <td id="map-legend-obstacle"></td>
-                                        <td>Obstacle in Path</td>
-                                        <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
-                                        <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Curb Ramp</td>
+                                        <td>@LabelValidationTable.countValidationsByLabelType("CurbRamp")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
                                     </tr>
-                                    <tr><td id="map-legend-surface-problem"></td>
-                                        <td>Surface Problem</td>
-                                        <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
-                                        <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
-                                        <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Missing Curb Ramp</td>
+                                        <td>@LabelValidationTable.countValidationsByLabelType("NoCurbRamp")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
                                     </tr>
-                                    <tr>
-                                        <td id="map-legend-nosidewalk"></td>
-                                        <td>No Sidewalk</td>
-                                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
-                                        <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
-                                        <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Obstacle in Path</td>
+                                        <td>@LabelValidationTable.countValidationsByLabelType("Obstacle")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
                                     </tr>
-                                    <tr>
-                                        <td id="map-legend-other"></td>
-                                        <td>Other</td>
-                                        <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
-                                        <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Surface Problem</td>
+                                        <td>@LabelValidationTable.countValidationsByLabelType("SurfaceProblem")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
                                     </tr>
-                                    <tr>
-                                        <td id="map-legend-occlusion"></td>
-                                        <td>Can't see sidewalk</td>
-                                        <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider')"></td>
-                                    </tr>
-                                    <tr>
-                                      <td id="map-legend-audited-street"></td>
-                                      <td>Audited Street</td>
-                                      <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer();"></td>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">No Sidewalk</td>
+                                        <td>@LabelValidationTable.countValidationsByLabelType("NoSidewalk")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
                                     </tr>
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div id="tabs-3" class="tab-pane">
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div id="map-holder">
-                            <div id="legend" style="display:none;">
-                                <strong>Percent of Neighborhood Complete</strong>
-                                <nav class='legend clearfix'>
-                                    <span style='background:#03152f;width:9.09%'></span>
-                                    <span style='background:#08306b;width:9.09%'></span>
-                                    <span style='background:#08519c;width:9.09%'></span>
-                                    <span style='background:#08719c;width:9.09%'></span>
-                                    <span style='background:#2171b5;width:9.09%'></span>
-                                    <span style='background:#4292c6;width:9.09%'></span>
-                                    <span style='background:#6baed6;width:9.09%'></span>
-                                    <span style='background:#82badb;width:9.09%'></span>
-                                    <span style='background:#9ecae1;width:9.09%'></span>
-                                    <span style='background:#b3d3e8;width:9.09%'></span>
-                                    <span style='background:#c6dbef;width:9.09%'></span>
-                                    <label style='width:5%'>100%</label>
-                                    <label style='width:92%'></label>
-                                    <label style='width:3%'>0%</label>
-                                </nav>
-                            </div>
-                            <div id="admin-choropleth"></div>
-                        </div>
-                    </div>
-
-                    <h2>Coverage Percentage by Neighborhood</h2>
-                    <div class="col-lg-12">
-                        <div id="neighborhood-completion-rate"></div>
-                    </div>
-                    <button id="neighborhood-completion-sort-button">Sort By Completion %</button>
-                    <button id="neighborhood-alphabetical-sort-button">Sort Alphabetically</button>
-                    <h2>Neighborhood Coverage Percentages</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation: </span><span id="neighborhood-std"></span><br>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="neighborhood-completed-distance"></div>
-                    </div>
-
-                    <h2 style="...">City Coverage Progress</h2>
-                    <div class="col-lg-12">
-                        <div id="completion-progress-chart"></div>
-                    </div>
-
-                    <h2>Daily Audits</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation: </span><span id="audit-std"></span><br>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="audit-count-chart"></div>
-                    </div>
-
-                    <h2>Daily Label Counts</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation: </span><span id="label-std"></span><br>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="label-count-chart"></div>
-                    </div>
-
-                    <h2>Severity Ratings by Label Type</h2>
-                    <div class="col-lg-12">
-                        <div class="stats-grid">
-                            <p>
-                                <span>Average (curb ramp): </span><span id="curb-ramp-mean"></span><br>
-                                <span>Average (missing curb ramp): </span><span id="missing-ramp-mean"></span><br>
-                                <span>Average (surface problem): </span><span id="surface-mean"></span><br>
-                                <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
-                                <span>Average (no sidewalk): </span><span id="no-sidewalk-mean"></span><br>
-                                <span>Average (all label types): </span><span id="labels-mean"></span><br>
-                            </p>
-                            <p>
-                                <span>Standard Deviation (curb ramp): </span><span id="curb-ramp-std"></span><br>
-                                <span>Standard Deviation (missing curb ramp): </span><span id="missing-ramp-std"></span><br>
-                                <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
-                                <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
-                                <span>Standard Deviation (no sidewalk): </span><span id="no-sidewalk-std"></span><br>
-                                <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
-                            </p>
-                        </div>
-
-                        <div id="severity-histograms"></div>
-                    </div>
-
-                    <h2>Missions Completed By Users</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation (all users): </span><span id="missions-std"></span><br>
-                            <span>Standard Deviation (turker users): </span><span id="turker-missions-std"></span><br>
-                            <span>Standard Deviation (registered users): </span><span id="reg-missions-std"></span><br>
-                            <span>Standard Deviation (anon users): </span><span id="anon-missions-std"></span><br>
-                            <span>
-                                Note: We only consider anonymous users who have completed at least one audit task.
-                            </span>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="mission-count-chart"></div>
-                    </div>
-                    <label><input type="checkbox" id="mission-count-include-researchers-checkbox"> Include researchers</label>
-
-                    <h2>Labels per User</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation (all users): </span><span id="all-labels-std"></span><br>
-                            <span>Standard Deviation (turker users): </span><span id="turker-labels-std"></span><br>
-                            <span>Standard Deviation (registered users): </span><span id="reg-labels-std"></span><br>
-                            <span>Standard Deviation (anon users): </span><span id="anon-labels-std"></span><br>
-                            <span>
-                                Note: We only consider anonymous users who have completed at least one audit task.
-                            </span>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="label-count-hist"></div>
-                    </div>
-                    <label><input type="checkbox" id="label-count-include-researchers-checkbox"> Include researchers</label>
-
-                    <h2>Logins Per User</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation: </span><span id="login-count-std"></span><br>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="login-count-chart"></div>
-                    </div>
-                    <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
-
-                    <h2>How users access Audit Page from Landing Page:</h2>
-                    <div class="col-lg-12 col-md-4" style="align:left">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th style="text-align: right;">Activity</th>
-                                    <th style="text-align: right;">Number</th>
-                                    <th style="text-align: right;">Percentage of Audit Visitors(%)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr id="audit-access-table-start-main">
-                                    <td style="text-align: right;">Click <i>Start Exploring (Main)</i></td>
-                                </tr>
-                                <tr id="audit-access-table-start-nav">
-                                    <td style="text-align: right;">Click <i>Start Exploring (Navbar)</i></td>
-                                </tr>
-                                <tr id="audit-access-table-choro">
-                                    <td style="text-align: right;">Click Via Choropleth</td>
-                                </tr>
-                                <tr id="audit-access-table-turker">
-                                    <td style="text-align: right;">Turker Redirect</td>
-                                </tr>
-                                <tr id="audit-access-table-total">
-                                    <td style="text-align: right;">Total <i>(Visit Audit)</i></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <h2 class="d-block">User Performance (validation agreement)</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation: </span><span id="validation-agreed-std"></span><br>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="validation-agreed"></div>
-                    </div>
-
-                    <h2>Daily Validation Counts</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation: </span><span id="validation-std"></span><br>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="validation-count-chart"></div>
-                    </div>
-
-                    <h2>Validations per User</h2>
-                    <div class="col-lg-12">
-                        <p>
-                            <span>Standard Deviation (all users): </span><span id="all-validation-std"></span><br>
-                            <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>
-                            <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>
-                            <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>
-                            <span>
-                                Note: We only consider anonymous users who have completed at least one validation task.
-                            </span>
-                        </p>
-                    </div>
-                    <div class="col-lg-12">
-                        <div id="validation-count-hist"></div>
-                    </div>
-                    <label><input type="checkbox" id="validation-count-include-researchers-checkbox"> Include researchers</label>
-
+                <div id="tabs-4" class="tab-pane">
                     <div class="row">
-                        <div class="col-lg-23">
-                            <h1>Validations Per Label Type</h1>
-                            <table class="table table-striped table-condensed">
+                        <h1>Labels</h1>
+                        <div class="col-lg-12">
+                            <p>Recent labels</p>
+                            <table id="label-table" data-order='[[ 1, "desc" ]]' class="table table-striped table-condensed">
+                                <thead>
                                 <tr>
-                                    <th></th>
-                                    <th>Total</th>
-                                    <th>Agreed</th>
-                                    <th>Disagreed</th>
-                                    <th>Unsure</th>
+                                    <th class="col-md-1">Username</th>
+                                    <th class="col-md-1" data-class-name="priority">Timestamp</th>
+                                    <th class="col-md-1" style="min-width: 100px;">Label Type</th>
+                                    <th class="col-md-1">Severity</th>
+                                    <th class="col-md-1">Temp?</th>
+                                    <th class="col-md-3">Tags</th>
+                                    <th class="col-md-2">Description</th>
+                                    <th class="col-md-1">Agree</th>
+                                    <th class="col-md-1">Disagree</th>
+                                    <th class="col-md-1">Unsure</th>
+                                    <th class="col-md-1">GSV</th>
                                 </tr>
-                                <tr>
-                                    <th>Overall</th>
-                                    <th>@LabelValidationTable.countValidations</th>
-                                    <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                    <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                    <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Curb Ramp</td>
-                                    <td>@LabelValidationTable.countValidationsByLabelType("CurbRamp")</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
-                                </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Missing Curb Ramp</td>
-                                    <td>@LabelValidationTable.countValidationsByLabelType("NoCurbRamp")</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
-                                </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Obstacle in Path</td>
-                                    <td>@LabelValidationTable.countValidationsByLabelType("Obstacle")</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
-                                </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Surface Problem</td>
-                                    <td>@LabelValidationTable.countValidationsByLabelType("SurfaceProblem")</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
-                                </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">No Sidewalk</td>
-                                    <td>@LabelValidationTable.countValidationsByLabelType("NoSidewalk")</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
-                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
-                                </tr>
+                                </thead>
+                                <!-- using this id to locate the labelTags so we can insert the tags-->
+                                <tbody id = 'labelRows'>
+                                    @LabelTable.selectTopLabelsAndMetadata(5000).map { label =>
+                                        <tr>
+                                            <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
+                                            </td>
+                                            <td class = 'timestamp'>@label.timestamp</td>
+                                            <td>@label.labelTypeKey</td>
+                                            <td>@label.severity</td>
+                                            <td>@label.temporary</td>
+                                            <td>@label.tags.mkString(", ")</td>
+                                            <td>@label.description</td>
+                                            <td>@label.validations("agree")</td>
+                                            <td>@label.validations("disagree")</td>
+                                            <td>@label.validations("unclear")</td>
+                                            <td>
+                                                <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div id="tabs-4" class="tab-pane">
-                <div class="row">
-                    <h1>Labels</h1>
-                    <div class="col-lg-12">
-                        <p>Recent labels</p>
-                        <table id="labelTable" data-order='[[ 1, "desc" ]]' class="table table-striped table-condensed">
-                            <thead>
-                            <tr>
-                                <th class="col-md-1">Username</th>
-                                <th class="col-md-1" data-class-name="priority">Timestamp</th>
-                                <th class="col-md-1" style="min-width: 100px;">Label Type</th>
-                                <th class="col-md-1">Severity</th>
-                                <th class="col-md-1">Temp?</th>
-                                <th class="col-md-3">Tags</th>
-                                <th class="col-md-2">Description</th>
-                                <th class="col-md-1">Agree</th>
-                                <th class="col-md-1">Disagree</th>
-                                <th class="col-md-1">Unsure</th>
-                                <th class="col-md-1">GSV</th>
-                            </tr>
-                            </thead>
-                            <!-- using this id to locate the labelTags so we can insert the tags-->
-                            <tbody id = 'labelRows'>
-                                @LabelTable.selectTopLabelsAndMetadata(5000).map { label =>
-                                    <tr>
-                                        <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
-                                        </td>
-                                        <td class = 'timestamp'>@label.timestamp</td>
-                                        <td>@label.labelTypeKey</td>
-                                        <td>@label.severity</td>
-                                        <td>@label.temporary</td>
-                                        <td>@label.tags.mkString(", ")</td>
-                                        <td>@label.description</td>
-                                        <td>@label.validations("agree")</td>
-                                        <td>@label.validations("disagree")</td>
-                                        <td>@label.validations("unclear")</td>
-                                        <td>
-                                            <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
-                                        </td>
-                                    </tr>
+                <div id="tabs-5" class="tab-pane">
+                    <div class="row">
+                        <h1>Users</h1>
+                        <div class="col-lg-12">
+                            <table id="user-table" data-order='[[ 4, "desc" ]]' class="table table-striped table-condensed">
+                                <thead>
+                                <tr>
+                                    <th class="col-md-1">Username</th>
+                                    <th class="col-md-2">User Id</th>
+                                    <th class="col-md-1">Email</th>
+                                    <th class="col-md-1">Role</th>
+                                    <th class="col-md-1">Mission Count</th>
+                                    <th class="col-md-1">Audit Count</th>
+                                    <th class="col-md-1">Label Count</th>
+                                    <th class="col-md-1">Own Labels Validated</th>
+                                    <th class="col-md-1">% Own Labels Agree</th>
+                                    <th class="col-md-1">% Own Labels Disagree</th>
+                                    <th class="col-md-1">% Own Labels Unsure</th>
+                                    <th class="col-md-1">Others' Labels Validated</th>
+                                    <th class="col-md-1">% Others' Labels Validated & Agreed</th>
+                                    <th class="col-md-2">Date Registered</th>
+                                    <th class="col-md-2" data-class-name="priority">Last Login</th>
+                                    <th class="col-md-1">Login Count</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @UserDAOSlick.getUserStatsForAdminPage.map { u =>
+                                <tr>
+                                    <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
+                                    <td>@u.userId</td>
+                                    <td>@u.email</td>
+                                    <td>
+                                        @if(u.role != "Owner"){
+                                            <div class="dropdown">
+                                                <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown" style="cursor: default">
+                                                    @u.role
+                                                    <span class="caret"></span>
+                                                </button>
+                                                <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown@u.userId">
+                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Registered</a></li>
+                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Turker</a></li>
+                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Researcher</a></li>
+                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Administrator</a></li>
+                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Anonymous</a></li>
+                                                </ul>
+                                            </div>
+                                        } else {
+                                            @u.role
+                                        }</td>
+                                    <td>@u.completedMissions</td>
+                                    <td>@u.completedAudits</td>
+                                    <td>@u.labels</td>
+                                    <td>@u.ownValidated</td>
+                                    <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
+                                    <td>@("%.0f".format(u.ownValidatedDisagreedPct * 100))%</td>
+                                    <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
+                                    <td>@u.othersValidated</td>
+                                    <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
+                                    <td class = 'timestamp'>@u.signUpTime</td>
+                                    <td class = 'timestamp'>@u.lastSignInTime</td>
+                                    <td>@u.signInCount</td>
+                                </tr>
                                 }
-                            </tbody>
-                        </table>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div id="tabs-5" class="tab-pane">
-                <div class="row">
-                    <h1>Users</h1>
-                    <div class="col-lg-12">
-                        <table id="userTable" data-order='[[ 4, "desc" ]]' class="table table-striped table-condensed">
-                            <thead>
-                            <tr>
-                                <th class="col-md-1">Username</th>
-                                <th class="col-md-2">User Id</th>
-                                <th class="col-md-1">Email</th>
-                                <th class="col-md-1">Role</th>
-                                <th class="col-md-1">Mission Count</th>
-                                <th class="col-md-1">Audit Count</th>
-                                <th class="col-md-1">Label Count</th>
-                                <th class="col-md-1">Own Labels Validated</th>
-                                <th class="col-md-1">% Own Labels Agree</th>
-                                <th class="col-md-1">% Own Labels Disagree</th>
-                                <th class="col-md-1">% Own Labels Unsure</th>
-                                <th class="col-md-1">Others' Labels Validated</th>
-                                <th class="col-md-1">% Others' Labels Validated & Agreed</th>
-                                <th class="col-md-2">Date Registered</th>
-                                <th class="col-md-2" data-class-name="priority">Last Login</th>
-                                <th class="col-md-1">Login Count</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @UserDAOSlick.getUserStatsForAdminPage.map { u =>
-                            <tr>
-                                <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
-                                <td>@u.userId</td>
-                                <td>@u.email</td>
-                                <td>
-                                    @if(u.role != "Owner"){
-                                        <div class="dropdown">
-                                            <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown" style="cursor: default">
-                                                @u.role
-                                                <span class="caret"></span>
-                                            </button>
-                                            <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown@u.userId">
-                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Registered</a></li>
-                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Turker</a></li>
-                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Researcher</a></li>
-                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Administrator</a></li>
-                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Anonymous</a></li>
-                                            </ul>
-                                        </div>
-                                    } else {
-                                        @u.role
-                                    }</td>
-                                <td>@u.completedMissions</td>
-                                <td>@u.completedAudits</td>
-                                <td>@u.labels</td>
-                                <td>@u.ownValidated</td>
-                                <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
-                                <td>@("%.0f".format(u.ownValidatedDisagreedPct * 100))%</td>
-                                <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
-                                <td>@u.othersValidated</td>
-                                <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
-                                <td class = 'timestamp'>@u.signUpTime</td>
-                                <td class = 'timestamp'>@u.lastSignInTime</td>
-                                <td>@u.signInCount</td>
-                            </tr>
-                            }
-                            </tbody>
-                        </table>
-                    </div>
+                <div id="tabs-6" class="tab-pane">
+                    <h1>Label Search</h1>
+                    <form onSubmit="return false;">
+                        <div class="form-group">
+                            <label for="form-control-input">Label ID</label>
+                            <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
+                        </div>
+                    </form>
+                    <button type="submit" id="submit" class="btn btn-primary">Submit</button>
                 </div>
-            </div>
-            <div id="tabs-6" class="tab-pane">
-                <h1>Label Search</h1>
-                <form onSubmit="return false;">
-                    <div class="form-group">
-                        <label for="form-control-input">Label ID</label>
-                        <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
-                    </div>
-                </form>
-                <button type="submit" id="submit" class="btn btn-primary">Submit</button>
-            </div>
+                </div>
             </div>
         </div>
+
     </div>
+    <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesColor.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesPanomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript">
+        updateTimestamps("@lang.code");
+    </script>
 
-</div>
-<link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
-<link href='@routes.Assets.at("stylesheets/bootstrap.min.css")' rel="stylesheet"/>
-<link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
-<link href='@routes.Assets.at("stylesheets/ekko-lightbox.css")' rel="stylesheet"/>
-<link href='@routes.Assets.at("stylesheets/ekko-lightbox.min.css")' rel="stylesheet"/>
-<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
-<link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/3.0.0-beta.17/vega-embed.js"></script>
 
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
-<script type="text/javascript">
-    updateTimestamps("@lang.code");
-</script>
+    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/3.0.0-beta.17/vega-embed.js"></script>
+    <script>
+        var labelArr = new Array('N/A', 1, 2, 3, 4, 5);
+        var sliderToLabelMap = {};
+        sliderToLabelMap['curb-ramp-slider'] = '#curb-ramp-severity-label';
+        sliderToLabelMap['missing-curb-ramp-slider'] = '#missing-curb-ramp-severity-label';
+        sliderToLabelMap['obstacle-slider'] = '#obstacle-severity-label';
+        sliderToLabelMap['surface-problem-slider'] = '#surface-problem-severity-label';
+        sliderToLabelMap['occlusion-slider']  = '#occlusion-severity-label';
+        sliderToLabelMap['no-sidewalk-slider'] = '#no-sidewalk-severity-label';
+        sliderToLabelMap['other-slider'] = '#other-severity-label';
 
-<script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
-<link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-
-<script>
-    var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
-    var sliderToLabelMap = {};
-    sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
-    sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
-    sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
-    sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
-    sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
-    sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
-    sliderToLabelMap["other-slider"] = "#other-severity-label";
-
-    $( "*[id*='slider']" ).each(function() {
-        $(this).slider({
-            range: true,
-            min : 0,
-            max : 5,
-            step: 1,
-            values: [0,5],
-            slide: function(event, ui) {
-                if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
-                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
-                } else {
-                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
+        $("*[id*='slider']").each(function() {
+            $(this).slider({
+                range: true,
+                min : 0,
+                max : 5,
+                step: 1,
+                values: [0,5],
+                slide: function(event, ui) {
+                    if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
+                    } else {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ ' - ' + labelArr[ui.values[1]]);
+                    }
+                },
+                change: function(event,ui) {
+                    if (this.id === 'curb-ramp-slider') {
+                        admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
+                    } else if (this.id === 'missing-curb-ramp-slider') {
+                        admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
+                    } else if (this.id === 'obstacle-slider') {
+                        admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider');
+                    } else if (this.id === 'surface-problem-slider') {
+                        admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
+                    } else if (this.id === 'occlusion-slider') {
+                        admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
+                    } else if (this.id === 'no-sidewalk-slider') {
+                        admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
+                    } else if (this.id === 'other-slider') {
+                        admin.toggleLayers('Other', 'other', '#other-slider');
+                    }
                 }
-            },
-            change: function(event,ui) {
-                if (this.id == "curb-ramp-slider") {
-                    admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
-                } else if (this.id == "missing-curb-ramp-slider") {
-                    admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
-                } else if (this.id == "obstacle-slider") {
-                    admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
-                } else if (this.id == 'surface-problem-slider') {
-                    admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
-                } else if (this.id == 'occlusion-slider') {
-                    admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
-                } else if (this.id == 'no-sidewalk-slider') {
-                    admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
-                } else if (this.id == 'other-slider') {
-                    admin.toggleLayers('Other', 'other', '#other-slider');
-                }
-            }
+            });
         });
-    });
 
-</script>
-<script>
-    $(document).ready(function () {
-        // Gets all translations before loading the choropleths.
-        i18next.use(i18nextXHRBackend);
-        i18next.init({
-            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-            fallbackLng: 'en',
-            ns: ['common'],
-            defaultNS: 'common',
-            lng: "@lang.code",
-            debug: false
-        }, function(err, t) {
-            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.admin = Admin(_, $, c3, turf, difficultRegionIds);
-            $('#commentsTable').dataTable();
-            $('#labelTable').dataTable();
-            $('#userTable').dataTable();
-            $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
-            $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
+    </script>
+    <script>
+        $(document).ready(function () {
+            // Gets all translations before loading the choropleths.
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['common'],
+                defaultNS: 'common',
+                lng: '@lang.code',
+                debug: false
+            }, function(err, t) {
+                var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
+                window.admin = Admin(_, $, difficultRegionIds);
+                $('#comments-table').dataTable();
+                $('#label-table').dataTable();
+                $('#user-table').dataTable();
+                $('#tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
+                $('#tabs li').removeClass('ui-corner-top').addClass('ui-corner-left');
+            });
         });
-    });
-    $(window).load(function() {
-        $(".loader").fadeOut("slow");
-    })
-</script>
+        $(window).load(function() {
+            $('.loader').fadeOut('slow');
+        })
+    </script>
 }

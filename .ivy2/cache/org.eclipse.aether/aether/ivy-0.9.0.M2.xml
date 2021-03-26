@@ -4,7 +4,7 @@
 		module="aether"
 		revision="0.9.0.M2"
 		status="release"
-		publication="20130216115357"
+		publication="20130216195357"
 	>
 		<license name="Eclipse Public License, Version 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
 		<description homepage="http://www.eclipse.org/aether/">

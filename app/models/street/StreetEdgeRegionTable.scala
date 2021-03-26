@@ -4,7 +4,6 @@ import models.audit.AuditTaskTable
 import models.region._
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
@@ -33,6 +32,7 @@ object StreetEdgeRegionTable {
 
   /**
     * Get records based on the street edge id.
+    *
     * @param streetEdgeId
     * @return
     */
@@ -41,25 +41,8 @@ object StreetEdgeRegionTable {
   }
 
   /**
-    * Get records based on the street edge id.
-    * @param streetEdgeId
-    * @return
-    */
-  def selectNonDeletedByStreetEdgeId(streetEdgeId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    nonDeletedStreetEdgeRegions.filter(item => item.streetEdgeId === streetEdgeId).list
-  }
-
-  /**
     * Get records based on the region id.
-    * @param regionId
-    * @return
-    */
-  def selectByRegionId(regionId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    streetEdgeRegionTable.filter(item => item.regionId === regionId).list
-  }
-
-  /**
-    * Get records based on the region id.
+    *
     * @param regionId
     * @return
     */
@@ -78,18 +61,8 @@ object StreetEdgeRegionTable {
     val edgesAuditedInRegion: Int = (for {
       _edgeRegions <- nonDeletedStreetEdgeRegions if _edgeRegions.regionId === regionId
       _audits <- AuditTaskTable.completedTasks if _audits.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _audits.streetEdgeId).groupBy(x => x).map(_._1).list.length
+    } yield _audits.streetEdgeId).groupBy(x => x).map(_._1).size.run
 
     edgesAuditedInRegion == edgesInRegion
-  }
-
-  /**
-   * Save a record.
-   * @param streetEdgeId
-   * @param regionId
-   * @return
-   */
-  def save(streetEdgeId: Int, regionId: Int) = db.withSession { implicit session =>
-    streetEdgeRegionTable += StreetEdgeRegion(streetEdgeId, regionId)
   }
 }

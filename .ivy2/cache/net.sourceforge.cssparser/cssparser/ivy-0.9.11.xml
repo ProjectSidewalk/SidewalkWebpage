@@ -4,7 +4,7 @@
 		module="cssparser"
 		revision="0.9.11"
 		status="release"
-		publication="20131008110302"
+		publication="20131008180302"
 	>
 		<license name="GNU Lesser General Public License" url="http://www.gnu.org/licenses/lgpl.txt" />
 		<description homepage="http://cssparser.sourceforge.net/">

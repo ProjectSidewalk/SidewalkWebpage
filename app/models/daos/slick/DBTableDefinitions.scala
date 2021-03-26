@@ -4,8 +4,6 @@ import models.utils.MyPostgresDriver.simple._
 import java.sql.Timestamp
 import java.util.UUID
 
-import play.api.db.slick
-
 object DBTableDefinitions {
 
   case class DBUser (userId: String, username: String, email: String )

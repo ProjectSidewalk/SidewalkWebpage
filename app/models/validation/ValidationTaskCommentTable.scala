@@ -1,13 +1,8 @@
 package models.validation
 
 import java.sql.Timestamp
-
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
-import scala.slick.lifted.ForeignKeyQuery
 
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
                                  userId: String, ipAddress: String, gsvPanoramaId: String,
@@ -40,8 +35,6 @@ object ValidationTaskCommentTable {
 
   /**
     * Insert an validation_task_comment record.
-    * @param comment ValidationTaskComment object
-    * @return
     */
   def save(comment: ValidationTaskComment): Int = db.withTransaction { implicit session =>
     val validationTaskCommentId: Int =

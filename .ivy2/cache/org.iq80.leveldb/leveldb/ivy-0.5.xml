@@ -4,7 +4,7 @@
 		module="leveldb"
 		revision="0.5"
 		status="release"
-		publication="20130122104104"
+		publication="20130122184104"
 	>
 		<description homepage="">
 		Port of LevelDB to Java

@@ -3,14 +3,14 @@
 
 @main(title) {
     @navbar(user, Some("/labelingGuide/surfaceProblems"))
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/labelingGuidePanelResize.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/jquery.magnific-popup.js")'></script>
 
     <div class="spacer20"></div>
 
@@ -32,7 +32,7 @@
                             </div>
                             <li><a href='@routes.ApplicationController.labelingGuideObstacles'>Obstacles</a></li>
                             <li><a href='@routes.ApplicationController.labelingGuideNoSidewalk'>No Sidewalk</a></li>
-                            <li><a href='@routes.ApplicationController.labelingGuideOcclusion'>Occlusion</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideOcclusion'>Can't See the Sidewalk</a></li>
                         </ul>
                     </div>
                 </div>

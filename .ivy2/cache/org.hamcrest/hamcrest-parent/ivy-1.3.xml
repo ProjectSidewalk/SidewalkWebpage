@@ -4,7 +4,7 @@
 		module="hamcrest-parent"
 		revision="1.3"
 		status="release"
-		publication="20120709140657"
+		publication="20120709210657"
 	>
 		<license name="New BSD License" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="https://github.com/hamcrest/JavaHamcrest">

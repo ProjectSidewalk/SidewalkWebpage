@@ -1,16 +1,10 @@
 package models.region
 
-import java.util.UUID
-
-import math._
-import models.street.{StreetEdgeRegionTable, StreetEdgeTable, StreetEdge}
-import models.user.UserCurrentRegionTable
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
+import scala.slick.jdbc.GetResult
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: Option[String], totalDistance: Double, auditedDistance: Double)
@@ -24,7 +18,7 @@ class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, Some(
 }
 
 /**
-  * Data access object for the sidewalk_edge table
+  * Data access object for the region_completion table.
   */
 object RegionCompletionTable {
   import MyPostgresDriver.plainImplicits._
@@ -32,10 +26,6 @@ object RegionCompletionTable {
   implicit val regionCompletionConverter = GetResult[RegionCompletion](r => {
     RegionCompletion(r.nextInt, r.nextDouble, r.nextDouble)
   })
-
-//  implicit val namedRegionConverter = GetResult[NamedRegion](r => {
-//    NamedRegion(r.nextInt, r.nextStringOption, r.nextGeometry[Polygon])
-//  })
 
   case class StreetCompletion(regionId: Int, regionName: String, streetEdgeId: Int, completionCount: Int, distance: Double)
   implicit val streetCompletionConverter = GetResult[StreetCompletion](r => {
@@ -45,25 +35,19 @@ object RegionCompletionTable {
   val db = play.api.db.slick.DB
   val regionCompletions = TableQuery[RegionCompletionTable]
   val regions = TableQuery[RegionTable]
-  val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
-  val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
-  val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val regionCompletionsWithoutDeleted = for {
     (rc, r) <- regionCompletions.innerJoin(regionsWithoutDeleted).on(_.regionId === _.regionId)
     if r.deleted === false
   } yield rc
-  val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
   val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
   val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.innerJoin(neighborhoods).on(_.regionId === _.regionId) } yield se
 
-
   /**
-    * Returns a list of all neighborhoods with names
-    * @return
+    * Returns a list of all neighborhoods with names.
     */
   def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = db.withSession { implicit session =>
     val namedRegionCompletions = for {
@@ -73,17 +57,9 @@ object RegionCompletionTable {
 
     namedRegionCompletions.list.map(x => NamedRegionCompletion.tupled(x))
   }
-  /**
-    *
-    */
-
 
   /**
-    * Increments the `audited_distance` column of the corresponding region by the length of the specified street edge.
-    * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
-    *
-    * @param streetEdgeId street edge id
-    * @return
+    * Increase the `audited_distance` column of the corresponding region by the length of the specified street edge.
     */
   def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
 

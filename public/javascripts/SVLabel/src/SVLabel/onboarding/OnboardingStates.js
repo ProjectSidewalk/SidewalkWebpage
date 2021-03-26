@@ -130,7 +130,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 2,
+                "severity": 1,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1],
                 "maxLabelCount": 1
@@ -150,7 +150,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 2 ? "tag-attribute-1" : "redo-rate-attribute-1"
+                return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
             }
         },
         "redo-rate-attribute-1": {
@@ -175,56 +175,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity === 2 ? "tag-attribute-1" : "redo-rate-attribute-1"
-            }
-        },
-        "tag-attribute-1": {
-            "properties": {
-                "action": "AddTag",
-                "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1],
-                "maxLabelCount": 1
-            },
-            "message": {
-                "message": i18next.t('tutorial.tag-attribute-1') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var completedRate = 5 / numStates;
-                statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
-                var tags = this.getProperty('tagIds');
-                return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
-            }
-        },
-        "redo-tag-attribute-1": {
-            "properties": {
-                "action": "RedoAddTag",
-                "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1],
-                "maxLabelCount": 1
-            },
-            "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-1') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
-                "position": "top-right",
-                "parameters": null
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-1"});
-                var tags = this.getProperty('tagIds');
-                return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
+                return severity === 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
             }
         },
         "adjust-heading-angle-1": {
@@ -1600,15 +1551,6 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "parameters": null
             },
             "panoId": panoId,
-            "annotations": [
-                {
-                    "type": "double-click",
-                    "x": -600,
-                    "y": -403,
-                    "width": 100,
-                    "originalPov": {}
-                }
-            ],
             "transition": function () {
                 var completedRate = 36 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
@@ -1796,7 +1738,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "instruction-2": {
             "properties": {
                 "action": "Instruction",
-                "blinks": ["jump"],
+                "blinks": ["stuck"],
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1],
                 "maxLabelCount": 7
@@ -1806,7 +1748,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "position": "top-right",
                 "fade-direction": "fadeInRight",
                 "arrow": "left",
-                "top": 240,
+                "top": 235,
                 "left": 5
             },
             "panoId": afterWalkPanoId,

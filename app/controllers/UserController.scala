@@ -7,7 +7,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.UserFormats._
 import forms._
 import models.user._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -19,7 +18,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
 /**
- * The basic application controller.
+ * Holds the HTTP requests associated with the loading pages for authentication.
  *
  * @param env The Silhouette environment.
  */
@@ -28,8 +27,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Handles the Sign In action.
-   *
-   * @return The result to display.
    */
   def signIn(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
@@ -40,9 +37,18 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+   * Get the mobile sign in page.
+   */
+  def signInMobile(url: String) = UserAwareAction.async { implicit request =>
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signInMobile(SignInForm.form, url)))
+    } else {
+      Future.successful(Redirect(url))
+    }
+  }
+
+  /**
    * Handles the Sign Up action.
-   *
-   * @return The result to display.
    */
   def signUp(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
@@ -53,12 +59,20 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+   * Get the mobile sign up page.
+   */
+  def signUpMobile(url: String) = UserAwareAction.async { implicit request =>
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signUpMobile(SignUpForm.form)))
+    } else {
+      Future.successful(Redirect(url))
+    }
+  }
+
+  /**
    * Handles the Sign Out action.
-   *
-   * @return The result to display.
    */
   def signOut(url: String) = SecuredAction.async { implicit request =>
-//    val result = Future.successful(Redirect(routes.UserController.index()))
 
     // TODO: Find a better fix for issue #1026
     // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
@@ -70,8 +84,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Handles the 'forgot password' action
-   *
-   * @return The result to display
    */
   def forgotPassword(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
@@ -81,23 +93,17 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+   * Get the reset password page.
+   */
   def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
     authTokenService.validate(token).map {
       case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token))
       case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link"))
     }
   }
-
-
-  def userProfile(username: String) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => Future.successful(Ok(s"Hello $username!"))
-      case None => Future.successful(Redirect("/"))
-    }
-  }
-
-
-  // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp
+  
+  // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
   def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
     val submission = request.body.validate[String]
@@ -116,7 +122,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, submission, timestamp))
         }
-
         Future.successful(Ok(Json.obj()))
       }
     )

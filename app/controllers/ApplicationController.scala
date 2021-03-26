@@ -3,7 +3,6 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import scala.collection.JavaConverters._
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -15,22 +14,24 @@ import models.street.StreetEdgeTable
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.Messages
+
 import java.util.Calendar
 import play.api.mvc._
 
 import scala.concurrent.Future
 import scala.util.Random
 
+/**
+ * Holds the HTTP requests for some of the basic web pages.
+ *
+ * @param env The Silhouette environment.
+ */
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  val anonymousUser: DBUser = UserTable.find("anonymous").get
-
   /**
     * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.
-    * If no referrer is specified, then it just loads the landing page
-    *
-    * @return
+    * If no referrer is specified, then it just loads the landing page.
     */
   def index = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -43,7 +44,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case None =>
         qString.get("r")
     }
-
 
     referrer match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location
@@ -156,27 +156,43 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a page saying that we do not yet support mobile devices.
-    *
-    * @return
-    */
-  def mobile = UserAwareAction.async { implicit request =>
+   * Returns a page with the Leaderboard(s) on it.
+   */
+  def leaderboard = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
-        Future.successful(Ok(views.html.mobile("Project Sidewalk", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Leaderboard", timestamp))
+        Future.successful(Ok(views.html.leaderboardPage("Project Sidewalk - Leaderboard", Some(user))))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/mobile"))
+        Future.successful(Redirect("/anonSignUp?url=/leaderboard"))
     }
   }
 
   /**
+   * Updates user language preference cookie, returns to current page.
+   */
+  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = UserAwareAction.async { implicit request =>
+
+    // Build logger string.
+    val user: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+    val oldLang: String = request2lang.code
+    val clickLoc: String = clickLocation.getOrElse("Unknown")
+    val logText: String = s"Click_module=ChangeLanguage_from=${oldLang}_to=${newLang}_location=${clickLoc}_route=${url}"
+
+    // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
+    WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, logText, timestamp))
+
+    // Update the cookie and redirect.
+    Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", newLang)))
+  }
+
+  /**
     * Returns a developer page.
-    *
-    * @return
     */
   def developer = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -193,8 +209,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns a help  page.
-    *
-    * @return
     */
   def help = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -210,10 +224,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns labeling guide page
-    * @return
+    * Returns labeling guide page.
     */
-
   def labelingGuide = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
@@ -294,8 +306,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns the terms page.
-    *
-    * @return
     */
   def terms = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -312,8 +322,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns the results page that contains a cool visualization.
-   *
-   * @return
    */
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -330,8 +338,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns the labelmap page that contains a cool visualization.
-   *
-   * @return
    */
   def labelMap = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -347,9 +353,25 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns the Gallery page.
+   */
+  def gallery = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        // Log visit to Gallery
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user))))
+      case None =>
+        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
+        Future.successful(Redirect("/anonSignUp?url=/gallery"))
+    }
+  }
+
+  /**
     * Returns the demo page that contains a cool visualization that is a work-in-progress.
-    *
-    * @return
     */
   def demo = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -367,21 +389,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a page that tells Turkers that there are no further missions for them to complete at this time.
-    *
-    * @return
-    */
-  def noAvailableMissionIndex = Action.async { implicit request =>
-    Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
-  }
-
-  /**
     * Returns a page telling the turker that they already signed in with their worker id.
-    *
-    * @return
     */
   def turkerIdExists = Action.async { implicit request =>
     Future.successful(Ok(views.html.turkerIdExists("Project Sidewalk")))
   }
-
 }

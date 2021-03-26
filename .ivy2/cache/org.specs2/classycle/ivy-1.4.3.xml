@@ -4,7 +4,7 @@
 		module="classycle"
 		revision="1.4.3"
 		status="release"
-		publication="20140209040639"
+		publication="20140209120639"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://classycle.sourceforge.net/">

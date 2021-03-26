@@ -4,7 +4,7 @@
 		module="ant-parent"
 		revision="1.9.3"
 		status="release"
-		publication="20131223082630"
+		publication="20131223162630"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://ant.apache.org/">

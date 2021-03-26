@@ -4,28 +4,23 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
-
 import controllers.headers.ProvidesHeader
-
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import com.mohiva.play.silhouette.api.services.AuthInfoService
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-
 import forms.ResetPasswordForm
-
 import models.services.{ AuthTokenService, UserService }
 import models.user._
-
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.i18n.Messages
-
 import scala.concurrent.Future
 
 /**
- * The `Reset Password` controller.
+ * Holds the HTTP requests associated with resetting a user's password.
  *
+ * @param env The Silhouette environment.
  */
 class ResetPasswordController @Inject() (
                                           implicit val env: Environment[User, SessionAuthenticator],
@@ -39,7 +34,6 @@ class ResetPasswordController @Inject() (
    * Resets the password.
    *
    * @param token The token to identify a user.
-   * @return The result to display.
    */
   def reset(token: UUID) = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress

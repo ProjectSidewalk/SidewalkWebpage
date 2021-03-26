@@ -1,494 +1,87 @@
-function Admin(_, $, c3, turf, difficultRegionIds) {
+function Admin(_, $, difficultRegionIds) {
     var self = {};
-    self.markerLayer = null;
-    self.curbRampLayers = [];
-    self.missingCurbRampLayers = [];
-    self.obstacleLayers = [];
-    self.surfaceProblemLayers = [];
-    self.cantSeeSidewalkLayers = [];
-    self.noSidewalkLayers = [];
-    self.otherLayers = [];
-    self.mapLoaded = false;
-    self.graphsLoaded = false;
-
-    var neighborhoodPolygonLayer;
-
-    for (var i = 0; i < 6; i++) {
-        self.curbRampLayers[i] = [];
-        self.missingCurbRampLayers[i] = [];
-        self.obstacleLayers[i] = [];
-        self.surfaceProblemLayers[i] = [];
-        self.cantSeeSidewalkLayers[i] = [];
-        self.noSidewalkLayers[i] = [];
-        self.otherLayers[i] = [];
-    }
-
-    self.allLayers = {
-        "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
-        "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
-        "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
-    };
-
-    self.auditedStreetLayer = null;
-
-    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
-
-    // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-    var mapboxTiles = L.tileLayer(tileUrl, {
-        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-    });
-    var map = L.mapbox.map('admin-map', "mapbox.streets", {
-        maxZoom: 19,
-        minZoom: 9,
-        zoomSnap: 0.5
-    });
-
-    // a grayscale tileLayer for the choropleth
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('admin-choropleth', "mapbox.light", {
-        maxZoom: 19,
-        minZoom: 9,
-        legendControl: {
-            position: 'bottomleft'
-        },
-        zoomSnap: 0.5
-    });
-    choropleth.scrollWheelZoom.disable();
-
-    // Set the city-specific default zoom and location.
-    $.getJSON('/cityMapParams', function(data) {
-        map.setView([data.city_center.lat, data.city_center.lng]);
-        map.setZoom(data.default_zoom);
-        choropleth.setView([data.city_center.lat, data.city_center.lng]);
-        choropleth.setZoom(data.default_zoom);
-        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
-    });
-
-    // Initialize the map
-    /**
-     * This function adds a semi-transparent white polygon on top of a map.
-     */
-    function initializeOverlayPolygon(map, lat, lng) {
-        var overlayPolygon = {
-            "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature", "geometry": {
-                    "type": "Polygon", "coordinates": [
-                        [
-                            [lng + 2, lat - 2],
-                            [lng + 2, lat + 2],
-                            [lng - 2, lat + 2],
-                            [lng - 2, lat - 2],
-                            [lng + 2, lat - 2]
-                        ]
-                    ]
-                }
-            }]
-        };
-        var layer = L.geoJson(overlayPolygon);
-        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
-        layer.addTo(map);
-    }
-
-    /**
-     * render points
-     */
-    function initializeNeighborhoodPolygons(map) {
-        var neighborhoodPolygonStyle = {
-                color: '#888',
-                weight: 2,
-                opacity: 0.80,
-                fillColor: "#808080",
-                fillOpacity: 0.1
-            },
-            layers = [],
-            currentLayer;
-
-        function onEachNeighborhoodFeature(feature, layer) {
-
-            var regionId = feature.properties.region_id;
-            var userCompleted = feature.properties.user_completed;
-            var url = "/audit/region/" + regionId;
-            var popupContent = "???";
-
-            if (userCompleted) {
-                popupContent = "You already audited this entire neighborhood!";
-            } else {
-                popupContent = "Do you want to explore this area to find accessibility issues? " +
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
-            }
-            layer.bindPopup(popupContent);
-            layers.push(layer);
-
-            layer.on('mouseover', function (e) {
-                this.setStyle({color: "red", fillColor: "red"});
-                this.openPopup();
-            });
-            layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle(neighborhoodPolygonStyle);
-                }
-                //this.setStyle(neighborhoodPolygonStyle);
-            });
-            layer.on('click', function (e) {
-                currentLayer = this;
-            });
-        }
-
-        $.getJSON("/neighborhoods", function (data) {
-            neighborhoodPolygonLayer = L.geoJson(data, {
-                style: function (feature) {
-                    return $.extend(true, {}, neighborhoodPolygonStyle);
-                },
-                onEachFeature: onEachNeighborhoodFeature
-            })
-                .addTo(map);
-        });
-    }
-
-    /**
-     * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.
-     *
-     * @param p {float} represents a completion percentage, between 0 and 100
-     * @returns {string} color in hex
-     */
-    function getColor(p) {
-        //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
-        return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
-            p > 90 ? '#08306b' :
-                p > 80 ? '#08519c' :
-                    p > 70 ? '#08719c' :
-                        p > 60 ? '#2171b5' :
-                            p > 50 ? '#4292c6' :
-                                p > 40 ? '#6baed6' :
-                                    p > 30 ? '#82badb' :
-                                        p > 20 ? '#9ecae1' :
-                                            p > 10 ? '#b3d3e8' :
-                                                '#c6dbef';
-    }
-
-    /**
-     * render the neighborhood polygons, colored by completion percentage
-     */
-    function initializeChoroplethNeighborhoodPolygons(map, rates) {
-        var neighborhoodPolygonStyle = { // default bright red, used to check if any regions are missing data
-                color: '#888',
-                weight: 1,
-                opacity: 0.25,
-                fillColor: "#f00",
-                fillOpacity: 1.0
-            },
-            layers = [],
-            currentLayer;
-
-        // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
-        function style(feature) {
-            for (var i=0; i < rates.length; i++) {
-                if (rates[i].region_id === feature.properties.region_id) {
-                    return {
-                        color: '#888',
-                        weight: 1,
-                        opacity: 0.25,
-                        fillColor: getColor(rates[i].rate),
-                        fillOpacity: 0.35 + (0.4 * rates[i].rate / 100.0)
-                    }
-                }
-            }
-            return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
-        }
-
-        function onEachNeighborhoodFeature(feature, layer) {
-
-            var regionId = feature.properties.region_id;
-            var regionName = feature.properties.region_name;
-            var userCompleted = feature.properties.user_completed;
-            var compRate = -1.0;
-            var milesLeft = -1.0;
-            var url = "/audit/region/" + regionId;
-            var popupContent = "???";
-            for (var i=0; i < rates.length; i++) {
-                if (rates[i].region_id === feature.properties.region_id) {
-                    var measurementSystem = i18next.t('measurement-system');
-                    compRate = Math.round(rates[i].rate);
-                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
-                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
-                    if (measurementSystem === "metric") distanceLeft *= 0.001;
-                    else distanceLeft *= 0.000621371
-                    distanceLeft = Math.round(distanceLeft);
-
-                    var advancedMessage = '';
-                    if (difficultRegionIds.includes(feature.properties.region_id)) {
-                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
-                    }
-
-                    if (userCompleted) {
-                        popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.100-percent-complete") + "<br>" +
-                            i18next.t("map.thanks");
-                    } else if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (distanceLeft === 0) {
-                        popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.less-than-one-unit-left") + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (distanceLeft === 1) {
-                        var popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.distance-left-one-unit") + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else {
-                        var popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    }
-                    break;
-                }
-            }
-            layer.bindPopup(popupContent);
-            layers.push(layer);
-
-            layer.on('mouseover', function (e) {
-                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-                this.openPopup();
-            });
-            layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
-                }
-                //this.setStyle(neighborhoodPolygonStyle);
-            });
-            layer.on('click', function (e) {
-                currentLayer = this;
-            });
-        }
-
-        // adds the neighborhood polygons to the map
-        $.getJSON("/neighborhoods", function (data) {
-            neighborhoodPolygonLayer = L.geoJson(data, {
-                style: style,
-                onEachFeature: onEachNeighborhoodFeature
-            })
-                .addTo(map);
-        });
-    }
-
-    /**
-     * This function queries the streets that the user audited and visualize them as segments on the map.
-     */
-    function initializeAuditedStreets(map) {
-        var distanceAudited = 0,  // Distance audited in km
-            streetLinestringStyle = {
-                color: "black",
-                weight: 3,
-                opacity: 0.75
-            };
-
-        function onEachStreetFeature(feature, layer) {
-            if (feature.properties && feature.properties.type) {
-                layer.bindPopup(feature.properties.type);
-            }
-            layer.on({
-                'add': function () {
-                    layer.bringToBack()
-                }
-            })
-        }
-
-        $.getJSON("/contribution/streets/all", function (data) {
-
-            // Render audited street segments
-            self.auditedStreetLayer = L.geoJson(data, {
-                pointToLayer: L.mapbox.marker.style,
-                style: function (feature) {
-                    var style = $.extend(true, {}, streetLinestringStyle);
-                    style.color = "#000";
-                    style["stroke-width"] = 3;
-                    style.opacity = 0.75;
-                    style.weight = 3;
-
-                    return style;
-                },
-                onEachFeature: onEachStreetFeature
-            })
-                .addTo(map);
-
-            // Calculate total distance audited in (km)
-            for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.length(data.features[i]);
-            }
-            // document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
-        });
-    }
-
-    function initializeSubmittedLabels(map) {
-
-        $.getJSON("/adminapi/labels/all", function (data) {
-            // Count a number of each label type
-            var labelCounter = {
-                "CurbRamp": 0,
-                "NoCurbRamp": 0,
-                "Obstacle": 0,
-                "SurfaceProblem": 0,
-                "NoSidewalk": 0
-            };
-
-            for (var i = data.features.length - 1; i >= 0; i--) {
-                labelCounter[data.features[i].properties.label_type] += 1;
-            }
-            //document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
-            //document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
-            //document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
-            //document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
-
-            document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-nosidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
-            document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
-            document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
-
-            document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-
-            // Create layers for each of the 42 different label-severity combinations
-            initializeAllLayers(data);
-        });
-    }
-
-
-    function onEachLabelFeature(feature, layer) {
-        layer.on('click', function () {
-            self.adminGSVLabelView.showLabel(feature.properties.label_id);
-        });
-        layer.on({
-            'mouseover': function () {
-                layer.setRadius(15);
-            },
-            'mouseout': function () {
-                layer.setRadius(5);
-            }
-        })
-    }
-
-    var colorMapping = util.misc.getLabelColors(),
-        geojsonMarkerOptions = {
-            radius: 5,
-            fillColor: "#ff7800",
-            color: "#ffffff",
+    var mapLoaded = false;
+    var graphsLoaded = false;
+    var mapData = InitializeMapLayerContainer();
+    var map;
+    var auditedStreetLayer;
+    var analyticsTabMapParams = {
+        popupType: 'completionRate',
+        regionColors: [
+            '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
+            '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
+        ],
+        neighborhoodPolygonStyle: {
+            color: '#888',
             weight: 1,
-            opacity: 0.5,
-            fillOpacity: 0.5,
-            "stroke-width": 1
-        };
-
-    function createLayer(data) {
-        return L.geoJson(data, {
-            pointToLayer: function (feature, latlng) {
-                var style = $.extend(true, {}, geojsonMarkerOptions);
-                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                style.color = colorMapping[feature.properties.label_type].strokeStyle;
-                return L.circleMarker(latlng, style);
-            },
-            onEachFeature: onEachLabelFeature
-        })
-    }
-
-    function initializeAllLayers(data) {
-        for (var i = 0; i < data.features.length; i++) {
-            var labelType = data.features[i].properties.label_type;
-            if (labelType === "Occlusion") {
-                // console.log(data.features[i]);
-            }
-
-            if (data.features[i].properties.severity === 1) {
-                self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 2) {
-                self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 3) {
-                self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 4) {
-                self.allLayers[labelType][4].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 5) {
-                self.allLayers[labelType][5].push(data.features[i]);
-            } else { // No severity level
-                self.allLayers[labelType][0].push(data.features[i]);
-            }
-        }
-
-        Object.keys(self.allLayers).forEach(function (key) {
-            for (var i = 0; i < self.allLayers[key].length; i++) {
-                self.allLayers[key][i] = createLayer({
-                    "type": "FeatureCollection",
-                    "features": self.allLayers[key][i]
-                });
-                self.allLayers[key][i].addTo(map);
-            }
-        })
-    }
-
-    function clearMap() {
-        map.removeLayer(self.markerLayer);
-    }
-
-    function clearAuditedStreetLayer() {
-        map.removeLayer(self.auditedStreetLayer);
-    }
-
-    function redrawAuditedStreetLayer() {
-        initializeAuditedStreets(map);
-    }
-
-    function redrawLabels() {
-        initializeSubmittedLabels(map);
-    }
-
-    function toggleLayers(label, checkboxId, sliderId) {
-        if (document.getElementById(checkboxId).checked) {
-            if (checkboxId == "occlusion"){
-                for (var i = 0; i < self.allLayers[label].length; i++) {
-                    if (!map.hasLayer(self.allLayers[label][i])) {
-                        map.addLayer(self.allLayers[label][i]);
-                    }
-                }
-            }
-            else {
-                for (var i = 0; i < self.allLayers[label].length; i++) {
-                    if (!map.hasLayer(self.allLayers[label][i])
-                        && ($(sliderId).slider("option", "values")[0] <= i &&
-                        $(sliderId).slider("option", "values")[1] >= i )) {
-                        map.addLayer(self.allLayers[label][i]);
-                    } else if ($(sliderId).slider("option", "values")[0] > i
-                        || $(sliderId).slider("option", "values")[1] < i) {
-                        map.removeLayer(self.allLayers[label][i]);
-                    }
-                }
-            }
-        } else {
-            for (var i = 0; i < self.allLayers[label].length; i++) {
-                if (map.hasLayer(self.allLayers[label][i])) {
-                    map.removeLayer(self.allLayers[label][i]);
-                }
-            }
-        }
-    }
-
-    function toggleAuditedStreetLayer() {
-        if (document.getElementById('auditedstreet').checked) {
-            map.addLayer(self.auditedStreetLayer);
-        } else {
-            map.removeLayer(self.auditedStreetLayer);
-        }
-    }
+            opacity: 0.25,
+            fillColor: '#f00',
+            fillOpacity: 1.0
+        },
+        mouseoverStyle: {
+            opacity: 1.0,
+            weight: 3,
+            color: '#000'
+        },
+        mouseoutStyle: {
+            opacity: 0.25,
+            weight: 1,
+            color: '#888'
+        },
+        polygonFillMode: 'completionRate',
+        zoomControl: true,
+        scrollWheelZoom: false,
+        mapName: 'admin-choropleth',
+        mapStyle: 'mapbox://styles/mapbox/light-v10'
+    };
+    var mapTabMapParams = {
+        popupType: 'none',
+        neighborhoodPolygonStyle: {
+            color: '#888',
+            weight: 2,
+            opacity: 0.80,
+            fillColor: '#808080',
+            fillOpacity: 0.1
+        },
+        mouseoverStyle: {
+            color: '#000',
+            opacity: 1.0,
+            weight: 3
+        },
+        mouseoutStyle: {
+            color: '#888',
+            opacity: 0.8,
+            weight: 2
+        },
+        polygonFillMode: 'singleColor',
+        scrollWheelZoom: true,
+        zoomControl: true,
+        mapName: 'label-map',
+        mapStyle: 'mapbox://styles/mapbox/streets-v11'
+    };
+    var streetParams = {
+        labelPopup: true,
+        includeLabelColor: true,
+        streetColor: 'black'
+    };
 
     function initializeAdminGSVLabelView() {
         self.adminGSVLabelView = AdminGSVLabelView(true);
+    }
+
+    function initializeAdminGSVCommentView(){
+        self.adminGSVCommentView = AdminGSVCommentView(true);
+    }
+
+    function initializeAdminGSVCommentWindow(){
+        $('.show-comment-location').click(function(e) { 
+            e.preventDefault();
+            var heading = parseFloat($(this).data('heading'));
+            var pitch = parseFloat($(this).data('pitch'));
+            var zoom = Number($(this).data('zoom'));
+            var labelId = parseInt($(this).data('labelId'));
+            self.adminGSVCommentView.showCommentGSV(this.innerHTML, heading, pitch, zoom, labelId);
+        });
     }
 
     function initializeAdminLabelSearch() {
@@ -506,7 +99,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         return ['Researcher', 'Administrator', 'Owner'].indexOf(roleName) > 0;
     }
 
-    // Takes an array of objects and the name of a property of the objects, returns summary stats for that property
+    function toggleLayersAdmin(label, checkboxId, sliderId) {
+        toggleLayers(label, checkboxId, sliderId, map, mapData.allLayers);
+    }
+
+    function toggleAuditedStreetLayerAdmin() {
+        toggleAuditedStreetLayer(map, auditedStreetLayer);
+    }
+
+    // Takes an array of objects and the name of a property of the objects, returns summary stats for that property.
     function getSummaryStats(data, col, options) {
         options = options || {};
         var excludeResearchers = options.excludeResearchers || false;
@@ -540,7 +141,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         std /= filteredData.length;
         std = Math.sqrt(std);
 
-        return {mean:mean, median:median, std:std, min:min, max};
+        return {mean:mean, median:median, std:std, min:min, max:max};
     }
 
     // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
@@ -620,20 +221,29 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     $('.nav-pills').on('click', function (e) {
-        if (e.target.id == "visualization" && self.mapLoaded == false) {
-            initializeNeighborhoodPolygons(map);
-            initializeAuditedStreets(map);
-            // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
-            setTimeout(function(){
-                initializeSubmittedLabels(map);
-            }, 1000);
-            initializeAdminGSVLabelView();
-            setTimeout(function () {
-                map.invalidateSize(false);
-            }, 1);
-            self.mapLoaded = true;
+        if (e.target.id == "visualization" && mapLoaded == false) {
+            var loadPolygons = $.getJSON('/neighborhoods');
+            var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
+            var loadMapParams = $.getJSON('/cityMapParams');
+            var loadAuditedStreets = $.getJSON('/contribution/streets/all');
+            var loadSubmittedLabels = $.getJSON('/labels/all');
+            // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
+            var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
+                map = Choropleth(_, $, difficultRegionIds, mapTabMapParams, [], data1[0], data2[0], data3[0]);
+            });
+            // When the polygons have been rendered and the audited streets have loaded,
+            // the audited streets can be rendered.
+            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
+                auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
+            });
+            // When the audited streets have been rendered and the submitted labels have loaded,
+            // the submitted labels can be rendered.
+            $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), mapData, data2[0])
+            })
+            mapLoaded = true;
         }
-        else if (e.target.id == "analytics" && self.graphsLoaded == false) {
+        else if (e.target.id == "analytics" && graphsLoaded == false) {
 
             var opt = {
                 "mode": "vega-lite",
@@ -801,14 +411,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                // make a choropleth of neighborhood completion percentages
-                initializeChoroplethNeighborhoodPolygons(choropleth, data);
-                choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
-                setTimeout(function () {
-                    choropleth.invalidateSize(false);
-                }, 1);
+                // Create a choropleth.
+                var loadPolygons = $.getJSON('/neighborhoods');
+                var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
+                var loadMapParams = $.getJSON('/cityMapParams');
+                $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
+                    Choropleth(_, $, difficultRegionIds, analyticsTabMapParams, [], data1[0], data2[0], data3[0]);
+                });
 
-                // make charts showing neighborhood completion rate
+                // Make charts showing neighborhood completion rate.
                 for (var j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0; // change from proportion to percent
                 }
@@ -1112,6 +723,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
 
+                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
+                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
+
                 var allHistOpts = {
                     xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
                     binStep: 15, legendOffset: -80
@@ -1144,13 +760,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
-                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
-                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
-
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
+                
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
                 });
@@ -1181,6 +805,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
+
+                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
+                $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
 
                 var allHistOpts = {
                     xAxisTitle: "# Labels per User (all)", xDomain: [0, allStats.max], width: 187,
@@ -1214,13 +843,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
-                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
-                $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
 
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
                 });
@@ -1251,6 +888,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
+
+                $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
+                $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
+                $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Validations");
+                $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Validations");
 
                 var allHistOpts = {
                     xAxisTitle: "# Validations per User (all)", xDomain: [0, allStats.max], width: 187,
@@ -1284,13 +926,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
-                $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
-                $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Validations");
-                $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Validations");
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
 
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
                 });
@@ -1408,11 +1058,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             });
             });
             });
-            self.graphsLoaded = true;
+            graphsLoaded = true;
         }
     });
 
-    function changeRole(e){
+    function changeRole(e) {
         var userId = $(this).parent() // <li>
             .parent() // <ul>
             .siblings('button')
@@ -1432,7 +1082,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                // Change dropdown button to reflect new role
+                // Change dropdown button to reflect new role.
                 var button = $('#userRoleDropdown' + result.user_id);
                 var buttonContents = button.html();
                 var newRole = result.role;
@@ -1457,22 +1107,14 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
-
-    self.clearMap = clearMap;
-    self.redrawLabels = redrawLabels;
-    self.clearAuditedStreetLayer = clearAuditedStreetLayer;
-    self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
-    self.toggleLayers = toggleLayers;
-    self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
+    initializeAdminGSVCommentView();
+    initializeAdminGSVCommentWindow();
+    
     self.clearPlayCache = clearPlayCache;
+    self.toggleLayers = toggleLayersAdmin;
+    self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
 
     $('.change-role').on('click', changeRole);
-
-    // Functionality for the legend's minimize button.
-    $('#map-legend-minimize-button').click(function() {
-        $("#legend-table").slideToggle(0);
-        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
-    });
 
     return self;
 }

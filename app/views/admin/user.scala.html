@@ -24,7 +24,7 @@
                             <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td><td id="td-number-of-missing-curb-ramps"></td></tr>
                             <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td><td id="td-number-of-obstacles"></td></tr>
                             <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td><td id="td-number-of-surface-problems"></td></tr>
-                            <tr><td id="map-legend-nosidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
+                            <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
                             <tr><td id="map-legend-audited-street"></td><td>@Messages("dashboard.audited.street")</td></tr>
                         </table>
                     </div>
@@ -74,7 +74,7 @@
         <div class="row">
             <div class="col-lg-12">
                 <p>Recent labels</p>
-                <table id="labelTable" data-order='[[ 0, "desc" ]]' class="table table-striped table-condensed">
+                <table id="label-table" data-order='[[ 0, "desc" ]]' class="table table-striped table-condensed">
                     <thead>
                     <tr>
                         <th class="col-md-3" data-class-name="priority">Timestamp</th>
@@ -115,7 +115,7 @@
                         <th class="col-xs-1">No Sidewalk</th>
                         <th class="col-xs-1">Other</th>
                     </tr></thead>
-                <tbody id="task-contribution-table" ></tbody>
+                <tbody id="task-contribution-table"></tbody>
             </table>
         </div>
 
@@ -163,7 +163,6 @@
             </div>
         </div>
     </div>
-    <link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
@@ -171,21 +170,25 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesColor.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesPanomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
     </script>
@@ -204,9 +207,8 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                var username = '@user.get.username';
-                window.admin = AdminUser({username: username});
-                $('#labelTable').dataTable();
+                AdminUser('@user.get.username');
+                $('#label-table').dataTable();
             });
         });
     </script>

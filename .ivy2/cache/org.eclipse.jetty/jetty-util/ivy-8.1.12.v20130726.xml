@@ -4,7 +4,7 @@
 		module="jetty-util"
 		revision="8.1.12.v20130726"
 		status="release"
-		publication="20130726095535"
+		publication="20130726165535"
 	>
 		<description homepage="http://www.eclipse.org/jetty">
 		Utility classes for Jetty
