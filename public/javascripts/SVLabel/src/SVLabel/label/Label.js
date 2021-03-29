@@ -501,7 +501,6 @@ function Label (svl, pathIn, params) {
      * @returns {boolean}
      */
     function renderTag(ctx) {
-        console.log("tag being rendered");
         if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
             return false;
         }

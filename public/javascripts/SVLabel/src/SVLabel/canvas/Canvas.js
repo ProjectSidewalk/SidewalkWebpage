@@ -760,7 +760,6 @@ function Canvas(ribbon) {
      * @method
      */
     function render2() {
-        console.log("rendering");
         if (!ctx) {
             return this;
         }
