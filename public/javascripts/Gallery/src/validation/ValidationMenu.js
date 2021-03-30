@@ -17,9 +17,9 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
     const overlayHTML = `
         <div id="gallery-validation-button-holder">
-            <button id="gallery-card-agree-button" class="validation-button">Agree</button>
-            <button id="gallery-card-disagree-button" class="validation-button">Disagree</button>
-            <button id="gallery-card-not-sure-button" class="validation-button">Not Sure</button>
+            <button id="gallery-card-agree-button" class="validation-button">${i18next.t('gallery:agree')}</button>
+            <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('gallery:disagree')}</button>
+            <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('gallery:not sure')}</button>
         </div>
     `;
 

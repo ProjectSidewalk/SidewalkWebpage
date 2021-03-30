@@ -16,10 +16,6 @@
 }
 
 #gallery-validation-button-holder {
-    /* display: flex;
-    flex-flow: row wrap;
-    /* Then we define how is distributed the remaining space */
-    /*justify-content: space-around; */
     display: flex;
     flex-flow: row wrap;
     justify-content: center;
@@ -27,7 +23,7 @@
     bottom: 50px;
     left: 5px;
     right: 5px;
-    height: 10%;
+    height: 12.5%;
 }
 
 #gallery-card-agree-button {
@@ -64,6 +60,7 @@ p.label-severity, p.label-tags {
     color: white;
     opacity: 0;
     transition: .2s ease;
+    font-size: small;
 }
 
 .gallery-card:hover .validation-button {

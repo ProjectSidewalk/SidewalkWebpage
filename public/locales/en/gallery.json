@@ -1,4 +1,7 @@
 {
     "not applicable": "not applicable",
-    "none": "none"
+    "none": "none",
+    "agree": "Agree",
+    "disagree": "Disagree",
+    "not sure": "Not Sure"
 }
