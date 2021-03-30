@@ -114,7 +114,7 @@
             "severity": "Please click to label a severity",
             "severity-example": "Severity level {{n}} example",
             "severity-shortcuts": "Press keys 1-5 for severity",
-            "label-popup-shortcuts": "Press <tag-underline>{{l}}</tag-underline> to add tag",
+            "label-popup-shortcuts": "Press <tag-underline>{{c}}</tag-underline> to add tag",
             "tag": {
                 "narrow": "n<tag-underline>a</tag-underline>rrow",
                 "points-into-traffic": "<tag-underline>p</tag-underline>oints into traffic",

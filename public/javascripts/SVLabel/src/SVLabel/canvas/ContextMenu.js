@@ -454,7 +454,7 @@ function ContextMenu (uiContextMenu) {
                         // Add tag id as a class so that finding the element is easier later.
                         $("body").find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
 
-                        // Set tag texts to new underlined version as defined in the util label description map
+                        // Set tag texts to new underlined version as defined in the util label description map.
                         var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
                         $("body").find("button[id=" + count + "]").html(tagText);
 
@@ -463,30 +463,33 @@ function ContextMenu (uiContextMenu) {
                             position: 'inherit'
                         });
 
-                        /** The following code converts the first letter of tag text to upppercase.
-                         *  Also, it extracts the character that can be pressed down to hit the label.
-                        */
-                        const displacementForUnderlineTag = 15;
+                        // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
+                        const underlineClassOffset = 15;
                         var keypressChar;
-                        var text; 
+                        var tooltipHeader;
+                        // If first letter is used for keyboard shortcut, the string will start with "<tag-underline".
                         if (tagText[0] === '<') {
-                            keypressChar = tagText[displacementForUnderlineTag];
-                            text = tagText.substring(0,displacementForUnderlineTag) +
-                                    tagText[displacementForUnderlineTag].toUpperCase() +
-                                    tagText.substring(displacementForUnderlineTag + 1);
+                            keypressChar = tagText[underlineClassOffset];
+                            tooltipHeader = tagText.substring(0,underlineClassOffset) +
+                                tagText[underlineClassOffset].toUpperCase() +
+                                tagText.substring(underlineClassOffset + 1);
                         } else {
-                            let index = tagText.indexOf('<');
-                            keypressChar = tagText[index + displacementForUnderlineTag];
-                            text = tagText[0].toUpperCase() + tagText.substring(1);
+                            let underlineIndex = tagText.indexOf('<');
+                            keypressChar = tagText[underlineIndex + underlineClassOffset];
+                            tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
                         }
 
+                        // Add tooltip with tag example.
                         $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
                             placement: 'top',
                             html: true,
                             delay: { "show": 300, "hide": 10 },
                             height: '130',
-                            title: text + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" + tag.tag_id + ".png' height='125'/><br/> <i>" + i18next.t('center-ui.context-menu.label-popup-shortcuts', {l: keypressChar}) + "</i>"
+                            title: tooltipHeader + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" +
+                                tag.tag_id + ".png' height='125'/><br/> <i>" +
+                                i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keypressChar}) + "</i>"
                         })).tooltip("show").tooltip("hide");
+
                         count += 1;
                     }
                 });
