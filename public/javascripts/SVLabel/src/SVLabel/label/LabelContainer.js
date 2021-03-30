@@ -66,14 +66,17 @@ function LabelContainer($) {
                     x: labelArr[i].canvasX,
                     y: labelArr[i].canvasY
                 };
+
                 let originalPov = {
                     heading: labelArr[i].panoramaHeading,
                     pitch: labelArr[i].panoramaPitch,
                     zoom: labelArr[i].panoramaZoom
                 };
+
                 let originalPointPov = {
                     originalPov: util.panomarker.calculatePointPov(labelArr[i].canvasX, labelArr[i].canvasY, originalPov)
                 };
+
                 let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
                     originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov()
                 );
@@ -127,7 +130,7 @@ function LabelContainer($) {
     }
 
     /**
-     * Returns canvas labels.
+     * Returns canvas labels of the current pano ID.
      */
     this.getCanvasLabels = function () {
         let panoId = svl.map.getPanoId();
@@ -136,13 +139,20 @@ function LabelContainer($) {
         return prev.concat(curr);
     };
 
-    /** Get current labels. */
+    /** 
+     * Get current labels. 
+     * Note that this grabs labels from all panoIds in current session.
+     */
     this.getCurrentLabels = function () {
         return Object.keys(currentCanvasLabels).reduce(function (r, k) {
             return r.concat(currentCanvasLabels[k]);     
         }, []);
     };
 
+    /**
+     * Get previous labels.
+     * Note that this grabs labels from all panoIds in current session. 
+     */
     this.getPreviousLabels = function () {
         return Object.keys(prevCanvasLabels).reduce(function (r, k) {
             return r.concat(prevCanvasLabels[k]);     
