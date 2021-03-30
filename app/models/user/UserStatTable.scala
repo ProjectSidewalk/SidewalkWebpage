@@ -1,5 +1,6 @@
 package models.user
 
+import models.attribute.UserClusteringSessionTable
 import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
@@ -7,6 +8,7 @@ import models.mission.MissionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.sql.Timestamp
+import java.time.Instant
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{StaticQuery => Q}
 
@@ -43,20 +45,36 @@ object UserStatTable {
     userStats.map(x => (x.userId, x.highQuality))
   }
 
-  /**
-    * Get list of users where high_quality column is marked as TRUE and they have placed at least one label.
-    */
-  def getIdsOfGoodUsersWithLabels: List[String] = db.withSession { implicit session =>
 
+  /**
+   * Get list of users where `high_quality` column is marked as `TRUE` and they have placed a label since `cutoffTime`.
+   *
+   * @param cutoffTime Only get users who have placed a label since this time. Defaults to all time.
+   */
+  def getIdsOfGoodUsersWithLabels(cutoffTime: Timestamp = new Timestamp(Instant.EPOCH.toEpochMilli)): List[String] = db.withSession { implicit session =>
     // Get the list of users who have placed a label by joining with the label table.
     val usersWithLabels = for {
       _stat <- userStats if _stat.highQuality
       _mission <- MissionTable.auditMissions if _mission.userId === _stat.userId
       _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
+      if _label.timeCreated > cutoffTime
     } yield _stat.userId
 
-    // Select distinct on the name user_ids.
+    // SELECT DISTINCT on the user_ids.
     usersWithLabels.groupBy(x => x).map(_._1).list
+  }
+
+  /**
+   * Get list of users where their data was included in clustering but they have since been marked as low quality.
+   */
+  def getIdsOfNewlyLowQualityUsers: List[String] = db.withSession { implicit session =>
+    val newLowQualityUsers = for {
+      _stat <- userStats if _stat.highQuality === false
+      _clustSession <- UserClusteringSessionTable.userClusteringSessions if _stat.userId === _clustSession.userId
+    } yield _stat.userId
+
+    // SELECT DISTINCT on the user_ids.
+    newLowQualityUsers.groupBy(x => x).map(_._1).list
   }
 
   /**

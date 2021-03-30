@@ -9,7 +9,6 @@ import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import controllers.helper.AttributeControllerHelper
 import models.user.User
-
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.libs.json.Json
@@ -64,9 +63,16 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @param clusteringType One of "singleUser", "multiUser", or "both".
     */
-  def runClustering(clusteringType: String) = UserAwareAction.async { implicit request =>
+  def runClustering(clusteringType: String, hoursCutoff: Option[Int]) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val json = AttributeControllerHelper.runClustering(clusteringType)
+      val cutoffTime: Timestamp = hoursCutoff match {
+        case Some(hours) =>
+          val msCutoff: Long = hours * 3600000L
+          new Timestamp(Instant.now.toEpochMilli - msCutoff)
+        case None =>
+          new Timestamp(Instant.EPOCH.toEpochMilli)
+      }
+      val json = AttributeControllerHelper.runClustering(clusteringType, cutoffTime)
       Future.successful(Ok(json))
     } else {
       Future.successful(Redirect("/"))
