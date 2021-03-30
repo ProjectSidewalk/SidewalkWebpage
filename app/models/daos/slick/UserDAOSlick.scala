@@ -225,7 +225,7 @@ object UserDAOSlick {
                    |WHERE $highQualityOnlySql;
                  """.stripMargin
 
-    Q.queryNA[Int](countQuery).list.head
+    Q.queryNA[Int](countQuery).first
   }
 
   /**
@@ -247,7 +247,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).list.length
+    users.groupBy(x => x).map(_._1).size.run
   }
 
   /**
@@ -283,7 +283,7 @@ object UserDAOSlick {
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**
@@ -322,7 +322,7 @@ object UserDAOSlick {
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**
@@ -361,7 +361,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).list.length
+    users.groupBy(x => x).map(_._1).size.run
   }
 
   /**
@@ -397,7 +397,7 @@ object UserDAOSlick {
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**
@@ -436,7 +436,7 @@ object UserDAOSlick {
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
     )
-    countQuery(role).list.head
+    countQuery(role).first
   }
 
   /**

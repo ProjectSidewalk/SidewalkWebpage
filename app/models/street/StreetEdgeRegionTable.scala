@@ -61,7 +61,7 @@ object StreetEdgeRegionTable {
     val edgesAuditedInRegion: Int = (for {
       _edgeRegions <- nonDeletedStreetEdgeRegions if _edgeRegions.regionId === regionId
       _audits <- AuditTaskTable.completedTasks if _audits.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _audits.streetEdgeId).groupBy(x => x).map(_._1).list.length
+    } yield _audits.streetEdgeId).groupBy(x => x).map(_._1).size.run
 
     edgesAuditedInRegion == edgesInRegion
   }

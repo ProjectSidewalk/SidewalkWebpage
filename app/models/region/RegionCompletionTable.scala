@@ -59,7 +59,7 @@ object RegionCompletionTable {
   }
 
   /**
-    * Increments the `audited_distance` column of the corresponding region by the length of the specified street edge.
+    * Increase the `audited_distance` column of the corresponding region by the length of the specified street edge.
     */
   def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
 
