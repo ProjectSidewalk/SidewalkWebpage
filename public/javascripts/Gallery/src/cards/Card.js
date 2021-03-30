@@ -90,9 +90,9 @@ function Card (params, imageUrl) {
 
         // Clean up ternary operators with constants?
         let severityHeader = properties.severity ? properties.severity :
-                                                   getLabelType() === "Occlusion" ? i18next.t('not applicable') : i18next.t('none');
+                                                   getLabelType() === "Occlusion" ? i18next.t('gallery:not applicable') : i18next.t('gallery:none');
         let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
-                                                     getLabelType() === "Occlusion" ? i18next.t('not applicable') : i18next.t('none');
+                                                     getLabelType() === "Occlusion" ? i18next.t('gallery:not applicable') : i18next.t('gallery:none');
 
         const cardHtml = `
             <p class="label-severity"><b>${i18next.t('severity')}</b> ${severityHeader}</p>
