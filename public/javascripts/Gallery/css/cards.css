@@ -23,7 +23,7 @@
     bottom: 50px;
     left: 5px;
     right: 5px;
-    height: 12.5%;
+    height: 11.5%;
 }
 
 #gallery-card-agree-button {
@@ -60,7 +60,7 @@ p.label-severity, p.label-tags {
     color: white;
     opacity: 0;
     transition: .2s ease;
-    font-size: small;
+    font-size: 12px;
 }
 
 .gallery-card:hover .validation-button {
