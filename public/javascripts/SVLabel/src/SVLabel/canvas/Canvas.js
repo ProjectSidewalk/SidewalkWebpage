@@ -171,15 +171,15 @@ function Canvas(ribbon) {
               //update tooltips
               $('#severity-one').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                  title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.PNG' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                  title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
               });
               $('#severity-three').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                  title: i18next.t('center-ui.context-menu.severity-example', {n: 3}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.PNG' height='110' alt='CRseverity 3'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                  title: i18next.t('center-ui.context-menu.severity-example', {n: 3}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.png' height='110' alt='CRseverity 3'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
               });
               $('#severity-five').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                  title: i18next.t('center-ui.context-menu.severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.PNG' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                  title: i18next.t('center-ui.context-menu.severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
               });
             }
           }
