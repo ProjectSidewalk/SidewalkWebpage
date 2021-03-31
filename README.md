@@ -129,7 +129,7 @@ To look at and run queries on your database, you will want to install a database
 You'll connect to the database using the following credentials:
 ```
 Host: localhost:5432
-User: sidewalk
+User: postgres
 Password: sidewalk
 Database: sidewalk
 ```

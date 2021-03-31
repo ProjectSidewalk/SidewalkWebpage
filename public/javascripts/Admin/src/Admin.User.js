@@ -2,20 +2,21 @@ function AdminUser(user) {
     var params = {
         popupType: 'none',
         neighborhoodPolygonStyle: {
-            color: '#888',
+            color: '#407770',
             weight: 2,
-            opacity: 0.80,
-            fillColor: '#808080',
-            fillOpacity: 0.1
+            opacity: 0.6,
+            fillColor: '#5d6d6b',
+            fillOpacity: 0.1, 
+            dashArray: '6,6'
         },
         mouseoverStyle: {
-            color: '#000',
+            color: '#5d6d6b',
             opacity: 1.0,
-            weight: 3
+            weight: 2
         },
         mouseoutStyle: {
-            color: '#888',
-            opacity: 0.8,
+            color: '#407770',
+            opacity: 0.6,
             weight: 2
         },
         webpageActivity: 'Click_module=AdminUserMap_regionId=',
@@ -28,7 +29,7 @@ function AdminUser(user) {
     var streetParams = {
         labelPopup: true,
         includeLabelCounts: true,
-        streetColor: 'rgba(128, 128, 128, 1.0)',
+        streetColor: '#000000',
         useTotalAuditedDistance: true,
         progressElement: 'td-total-distance-audited-admin'
     };
