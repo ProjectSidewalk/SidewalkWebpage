@@ -27,8 +27,6 @@ import models.attribute.GlobalAttributeWithLabelForAPI;
 import controllers.NeighborhoodAttributeSignificance;
 import controllers.StreetAttributeSignificance;
 
-
-
 /**
  * This example reads data for point locations and associated attributes from a comma separated text
  * (CSV) file and exports them as a new shapefile. It illustrates how to build a feature type.
@@ -38,8 +36,7 @@ import controllers.StreetAttributeSignificance;
  */
 public class ShapefilesCreatorHelper {
 
-
-    public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception{
+    public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception {
         /*
          * Get an output file name and create the new shapefile
          */
@@ -49,8 +46,7 @@ public class ShapefilesCreatorHelper {
         params.put("url", new File(outputFile + ".shp").toURI().toURL());
         params.put("create spatial index", Boolean.TRUE);
 
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+        ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
 
         /*
          * TYPE is used as a template to describe the file contents
@@ -92,12 +88,10 @@ public class ShapefilesCreatorHelper {
             } finally {
                 transaction.close();
             }
-
         }
     }
 
     public static void createAttributeShapeFile(String outputFile, List<GlobalAttributeForAPI> attributes) throws Exception {
-
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
          * shapefile.
@@ -119,8 +113,6 @@ public class ShapefilesCreatorHelper {
                                 + // <- Severity
                                 "temporary:Boolean" // Temporary flag
                 );
-
-
 
         /*
          * A list to collect features as we create them.
@@ -151,14 +143,10 @@ public class ShapefilesCreatorHelper {
             features.add(feature);
         }
 
-
         createGeneralShapeFile(outputFile, TYPE, features);
-
     }
 
-
     public static void createLabelShapeFile(String outputFile, List<GlobalAttributeWithLabelForAPI> labels) throws Exception {
-
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
          * shapefile.
@@ -242,14 +230,12 @@ public class ShapefilesCreatorHelper {
             features.add(feature);
         }
 
-
         createGeneralShapeFile(outputFile, TYPE, features);
     }
 
     public static void createStreetShapefile(String outputFile, List<StreetAttributeSignificance> streets) throws Exception{
         /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
+         * We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
          *
          * See also the createFeatureType method below for another, more flexible approach.
          */
@@ -279,8 +265,6 @@ public class ShapefilesCreatorHelper {
                                 "nSurfce:Double" // Surface problem feature score
                 );
 
-
-
         /*
          * A list to collect features as we create them.
          */
@@ -303,9 +287,7 @@ public class ShapefilesCreatorHelper {
         //     features.add(feature);
         // }
 
-        for (int i = 0; i < streets.size(); i++) {
-            StreetAttributeSignificance s = streets.get(i);
-
+        for (StreetAttributeSignificance s : streets) {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
             featureBuilder.add(s.score());
@@ -318,21 +300,16 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.attributeScores()[2]);
             featureBuilder.add(s.attributeScores()[3]);
 
-
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
-
         }
 
-
         createGeneralShapeFile(outputFile, TYPE, features);
-
     }
 
     public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception{
         /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
+         * We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
          *
          * See also the createFeatureType method below for another, more flexible approach.
          */
@@ -364,10 +341,7 @@ public class ShapefilesCreatorHelper {
                                 "nObs:Double,"
                                 + // obstacle feature score
                                 "nSurfce:Double" // Surface problem feature score
-
                 );
-
-
 
         /*
          * A list to collect features as we create them.
@@ -404,7 +378,6 @@ public class ShapefilesCreatorHelper {
 
     }
 
-
     public static File zipShapeFiles(String name, String[] files) throws IOException{
         FileOutputStream fos = new FileOutputStream(name + ".zip");
         ZipOutputStream zipOut = new ZipOutputStream(fos);
@@ -426,18 +399,12 @@ public class ShapefilesCreatorHelper {
                     fis.close();
                     fileToZip.delete();
                 } catch (Exception e){
-
                 }
             }
-
         }
         zipOut.close();
         fos.close();
 
         return new File(name + ".zip");
     }
-
-
-
-
 }
