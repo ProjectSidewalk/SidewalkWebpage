@@ -9,7 +9,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
-import models.region.RegionPropertyTable
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -344,8 +343,8 @@ object MissionTable {
     val userMissions = missions.filter(_.userId === userId.toString)
 
     val missionsWithRegionName = for {
-      (_m, _rp) <- userMissions.leftJoin(RegionPropertyTable.neighborhoodNames).on(_.regionId === _.regionId)
-    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _rp.value.?, _m.distanceMeters, _m.labelsValidated)
+      (_m, _r) <- userMissions.leftJoin(RegionTable.regions).on(_.regionId === _.regionId)
+    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.description.?, _m.distanceMeters, _m.labelsValidated)
 
     val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>
       RegionalMission(m._1, MissionTypeTable.missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6)

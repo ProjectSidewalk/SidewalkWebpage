@@ -258,12 +258,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
         assert(coverage <= 1.0)
 
-        writer.println(neighborhood.name.getOrElse("NA") + "," + neighborhood.regionId + "," + accessScore + "," + 
+        writer.println(neighborhood.name + "," + neighborhood.regionId + "," + accessScore + "," +
                       coordStr + "," + coverage + "," + averagedStreetFeatures(0) + "," + averagedStreetFeatures(1) + "," + 
                       averagedStreetFeatures(2) + "," + averagedStreetFeatures(3) + "," + 
                       significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3))                
       } else {
-        writer.println(neighborhood.name.getOrElse("NA") + "," + neighborhood.regionId + "," + "NA" + "," + 
+        writer.println(neighborhood.name + "," + neighborhood.regionId + "," + "NA" + "," +
                       coordStr + ","  + 0.0 + "," + "NA" + "," + "NA" + "," + "NA" + "," + "NA" + "," + 
                       significance(0) + "," + significance(1) + "," + 
                       significance(2) + "," + significance(3))
