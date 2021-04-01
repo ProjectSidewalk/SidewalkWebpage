@@ -315,7 +315,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
           assert(coverage <= 1.0)
         } 
-        neighborhoodList.add(new NeighborhoodAttributeSignificance(neighborhood.name.getOrElse("NA"), 
+        neighborhoodList.add(new NeighborhoodAttributeSignificance(neighborhood.name,
                                                                   coordinates, 
                                                                   neighborhood.regionId, 
                                                                   coverage, 
