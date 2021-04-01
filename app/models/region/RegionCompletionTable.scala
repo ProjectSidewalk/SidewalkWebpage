@@ -7,7 +7,7 @@ import play.api.Play.current
 import scala.slick.jdbc.GetResult
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
-case class NamedRegionCompletion(regionId: Int, name: Option[String], totalDistance: Double, auditedDistance: Double)
+case class NamedRegionCompletion(regionId: Int, name: String, totalDistance: Double, auditedDistance: Double)
 
 class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, Some("sidewalk"), "region_completion") {
   def regionId = column[Int]("region_id", O.PrimaryKey)
@@ -35,25 +35,21 @@ object RegionCompletionTable {
   val db = play.api.db.slick.DB
   val regionCompletions = TableQuery[RegionCompletionTable]
   val regions = TableQuery[RegionTable]
-  val regionProperties = TableQuery[RegionPropertyTable]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
-  val regionCompletionsWithoutDeleted = for {
-    (rc, r) <- regionCompletions.innerJoin(regionsWithoutDeleted).on(_.regionId === _.regionId)
-    if r.deleted === false
-  } yield rc
-  val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
-  val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.innerJoin(neighborhoods).on(_.regionId === _.regionId) } yield se
+  val streetEdgeNeighborhood = for {
+    (se, n) <- streetEdgeRegion.innerJoin(regionsWithoutDeleted).on(_.regionId === _.regionId)
+  } yield se
 
   /**
     * Returns a list of all neighborhoods with names.
     */
   def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = db.withSession { implicit session =>
     val namedRegionCompletions = for {
-      (_neighborhoodCompletions, _regionProperties) <- regionCompletionsWithoutDeleted.leftJoin(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_neighborhoodCompletions.regionId, _regionProperties.value.?, _neighborhoodCompletions.totalDistance, _neighborhoodCompletions.auditedDistance)
+      _rc <- regionCompletions
+      _r <- regionsWithoutDeleted if _rc.regionId === _r.regionId
+    } yield (_r.regionId, _r.description, _rc.totalDistance, _rc.auditedDistance)
 
     namedRegionCompletions.list.map(x => NamedRegionCompletion.tupled(x))
   }

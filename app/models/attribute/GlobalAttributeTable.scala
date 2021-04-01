@@ -146,15 +146,15 @@ object GlobalAttributeTable {
     */
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     val attributes = for {
-      _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
-        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity))
-        // The line above gets attributes with null severity if severity = "none", all attributes if severity is unspecified,
-        // and attributes with the specified severity (e.g. severity = 3) otherwise.
-      _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
-      _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
-      if _labType.labelType =!= "Problem"
-    } yield (_att.globalAttributeId, _labType.labelType, _att.lat, _att.lng, _att.severity, _att.temporary, _nbhd._2)
-    attributes.list.map(a => GlobalAttributeForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7.get))
+      _ga <- globalAttributes if _ga.lat > minLat && _ga.lat < maxLat && _ga.lng > minLng && _ga.lng < maxLng &&
+        (_ga.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _ga.severity === toInt(severity))
+      // The line above gets attributes with null severity if severity = "none", all attributes if severity is unspecified,
+      // and attributes with the specified severity (e.g. severity = 3) otherwise.
+      _lt <- LabelTypeTable.labelTypes if _ga.labelTypeId === _lt.labelTypeId
+      _r <- RegionTable.regions if _ga.regionId === _r.regionId
+      if _lt.labelType =!= "Problem"
+    } yield (_ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary, _r.description)
+    attributes.list.map(GlobalAttributeForAPI.tupled)
   }
 
   /**
@@ -162,19 +162,19 @@ object GlobalAttributeTable {
     */
   def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = for {
-      _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
-        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity))
-      _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
-      _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
-      _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _att.globalAttributeId === _gaua.globalAttributeId
+      _ga <- globalAttributes if _ga.lat > minLat && _ga.lat < maxLat && _ga.lng > minLng && _ga.lng < maxLng &&
+        (_ga.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _ga.severity === toInt(severity))
+      _lt <- LabelTypeTable.labelTypes if _ga.labelTypeId === _lt.labelTypeId
+      _r <- RegionTable.regions if _ga.regionId === _r.regionId
+      _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId
       _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
-      _lab <- LabelTable.labels if _ual.labelId === _lab.labelId
-      _labPnt <- LabelTable.labelPoints if _lab.labelId === _labPnt.labelId
-      if _labType.labelType =!= "Problem"
+      _l <- LabelTable.labels if _ual.labelId === _l.labelId
+      _lp <- LabelTable.labelPoints if _l.labelId === _lp.labelId
+      if _lt.labelType =!= "Problem"
     } yield (
-      _att.globalAttributeId, _labType.labelType, _att.lat, _att.lng, _att.severity, _att.temporary, _nbhd._2,
-      _lab.labelId, _labPnt.lat, _labPnt.lng, _lab.gsvPanoramaId, _labPnt.heading, _labPnt.pitch, _labPnt.zoom,
-      _labPnt.canvasX, _labPnt.canvasY, _labPnt.canvasWidth, _labPnt.canvasHeight
+      _ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary, _r.description, _l.labelId,
+      _lp.lat, _lp.lng, _l.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
+      _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight
     )
 
     val withSeverity = for {
@@ -186,7 +186,7 @@ object GlobalAttributeTable {
     } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _t.temporary.?)
 
     withTemporary.list.map(a =>
-      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7.get, a._8, a._9.get, a._10.get, a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20.getOrElse(false))
+      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7, a._8, a._9.get, a._10.get, a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20.getOrElse(false))
     )
   }
 
