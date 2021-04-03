@@ -3,31 +3,28 @@ package models.region
 import java.util.UUID
 import com.vividsolutions.jts.geom.Polygon
 import models.audit.AuditTaskTable
+
 import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
 
-case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon, deleted: Boolean)
-case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
-case class NamedRegionAndUserCompletion(regionId: Int, name: Option[String], geom: Polygon, userCompleted: Boolean)
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+
+case class Region(regionId: Int, dataSource: String, description: String, geom: Polygon, deleted: Boolean)
+case class NamedRegion(regionId: Int, name: String, geom: Polygon)
+case class NamedRegionAndUserCompletion(regionId: Int, name: String, geom: Polygon, userCompleted: Boolean)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
-  def regionTypeId = column[Int]("region_type_id", O.NotNull)
   def dataSource = column[String]("data_source", O.Nullable)
   def description = column[String]("description", O.Nullable)
   def geom = column[Polygon]("geom")
   def deleted = column[Boolean]("deleted")
 
-  def * = (regionId, regionTypeId, dataSource, description, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
-
-  def regionType: ForeignKeyQuery[RegionTypeTable, RegionType] =
-    foreignKey("region_region_type_id_fkey", regionTypeId, TableQuery[RegionTypeTable])(_.regionTypeId)
+  def * = (regionId, dataSource, description, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
 }
 
 /**
@@ -37,11 +34,11 @@ object RegionTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val regionConverter = GetResult[Region](r => {
-    Region(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)
+    Region(r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)
   })
 
   implicit val namedRegionConverter = GetResult[NamedRegion](r => {
-    NamedRegion(r.nextInt, r.nextStringOption, r.nextGeometry[Polygon])
+    NamedRegion(r.nextInt, r.nextString, r.nextGeometry[Polygon])
   })
 
   case class StreetCompletion(regionId: Int, regionName: String, streetEdgeId: Int, completionCount: Int, distance: Double)
@@ -51,36 +48,25 @@ object RegionTable {
 
   val db = play.api.db.slick.DB
   val regions = TableQuery[RegionTable]
-  val regionProperties = TableQuery[RegionPropertyTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
   // These regions are buggy, so we steer new users away from them.
   // TODO make this city-agnostic. List(251, 281, 317, 366) for DC.
   val difficultRegionIds: List[Int] = List()
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
-  val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
-  val namedRegions = for {
-    (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
-    if _regionProperties.key === "Neighborhood Name"
-  } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
-  val namedNeighborhoods = for {
-    (_namedRegion, _neighborhood) <- namedRegions.innerJoin(neighborhoods).on(_._1 === _.regionId)
-  } yield _namedRegion
-
-  /**
-   * Returns a list of all the neighborhood regions.
-    *
-    * @return A list of Region objects.
-   */
-  def selectAllNeighborhoods: List[Region] = db.withSession { implicit session =>
-    regionsWithoutDeleted.filter(_.regionTypeId === 2).list
-  }
 
   /**
     * Returns a list of all neighborhoods with names.
     */
   def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
-    namedRegions.list.map(x => NamedRegion.tupled(x))
+    regionsWithoutDeleted.map(r => (r.regionId, r.description, r.geom)).list.map(NamedRegion.tupled)
+  }
+
+  /**
+   * Return the neighborhood name of the given region.
+   */
+  def neighborhoodName(regionId: Int): Option[String] = db.withSession { implicit session =>
+    regions.filter(_.regionId === regionId).map(_.description).firstOption
   }
 
   /**
@@ -140,28 +126,23 @@ object RegionTable {
     * Get the region specified by the region id.
     */
   def selectANamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
-    val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
-    val _regions = for {
-      (_neighborhoods, _properties) <- filteredNeighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
-      if _properties.key === "Neighborhood Name"
-    } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
-    _regions.firstOption.map(x => NamedRegion.tupled(x))
+    regionsWithoutDeleted
+      .filter(_.regionId === regionId)
+      .map(x => (x.regionId, x.description, x.geom))
+      .firstOption.map(NamedRegion.tupled)
   }
 
   /**
     * Get the neighborhood that is currently assigned to the user.
     */
   def selectTheCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-      val currentRegions = for {
-        (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
-        if ucr.userId === userId.toString
-      } yield r
+    val _currentRegion = for {
+      _region <- regionsWithoutDeleted
+      _userCurrRegion <- userCurrentRegions if _region.regionId === _userCurrRegion.regionId
+      if _userCurrRegion.userId === userId.toString
+    } yield (_region.regionId, _region.description, _region.geom)
 
-      val _regions = for {
-        (_regions, _properties) <- currentRegions.leftJoin(regionProperties).on(_.regionId === _.regionId)
-        if _properties.key === "Neighborhood Name"
-      } yield (_regions.regionId, _properties.value.?, _regions.geom)
-      _regions.firstOption.map(x => NamedRegion.tupled(x))
+    _currentRegion.firstOption.map(x => NamedRegion.tupled(x))
   }
 
   /**
@@ -171,11 +152,9 @@ object RegionTable {
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
-      """SELECT region.region_id, region_property.value, region.geom
-        |FROM sidewalk.region
-        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
+      """SELECT region.region_id, region.description, region.geom
+        |FROM region
         |WHERE region.deleted = FALSE
-        |    AND region.region_type_id = 2
         |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
     )
     val minLat = min(lat1, lat2)
@@ -189,16 +168,18 @@ object RegionTable {
    * Gets all named neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
    */
   def getNeighborhoodsWithUserCompletionStatus(userId: UUID): List[NamedRegionAndUserCompletion] = db.withSession { implicit session =>
+    val userTasks = AuditTaskTable.auditTasks.filter(a => a.completed && a.userId === userId.toString)
     // Gets regions that the user has not fully audited.
-    val incompleteRegionsForUser = StreetEdgeRegionTable.streetEdgeRegionTable // FROM street_edge_region
-      .leftJoin(AuditTaskTable.completedTasks).on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
+    val incompleteRegionsForUser = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
+      .leftJoin(userTasks).on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
       .filter(_._2.auditTaskId.?.isEmpty) // WHERE audit_task.audit_task_id IS NULL
       .groupBy(_._1.regionId) // GROUP BY region_id
       .map(_._1) // SELECT region_id
 
-    // Left join named neighborhoods and incomplete neighborhoods to record completion status.
-    namedNeighborhoods
-      .leftJoin(incompleteRegionsForUser).on(_._1 === _).map(x => (x._1._1, x._1._2, x._1._3, x._2.?.isEmpty))
+    // Left join named regions and incomplete neighborhoods to record completion status.
+    regionsWithoutDeleted
+      .leftJoin(incompleteRegionsForUser).on(_.regionId === _)
+      .map(x => (x._1.regionId, x._1.description, x._1.geom, x._2.?.isEmpty))
       .list.map(NamedRegionAndUserCompletion.tupled)
   }
 
@@ -213,11 +194,9 @@ object RegionTable {
         |         SELECT MIN(st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326))) AS min_dist
         |         FROM region
         |         WHERE region.deleted = FALSE
-        |             AND region.region_type_id = 2
         |     ) region_dists
         |WHERE st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326)) = min_dist
-        |    AND deleted = FALSE
-        |    AND region_type_id = 2;
+        |    AND deleted = FALSE;
       """.stripMargin
     )
     closestNeighborhoodQuery((lng, lat, lng, lat)).first

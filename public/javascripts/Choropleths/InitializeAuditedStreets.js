@@ -11,7 +11,6 @@ function InitializeAuditedStreets(map, params, streetData) {
     let distanceAudited = 0,  // Distance audited in km.
     streetLinestringStyle = {
         color: 'black',
-        weight: 3,
         opacity: 0.75
     };
 
@@ -29,11 +28,12 @@ function InitializeAuditedStreets(map, params, streetData) {
     auditedStreetLayer = L.geoJson(streetData, {
         pointToLayer: L.mapbox.marker.style,
         style: function (feature) {
-            let style = $.extend(true, {}, streetLinestringStyle);
-            style.color = params.streetColor;
-            style['stroke-width'] = 3;
-            style.opacity = 0.75;
-            style.weight = 3;
+            let style = {
+                color: params.streetColor,
+                opacity: 0.75,
+                'stroke-width': 3,
+                weight: 3
+            };
             return style;
         },
         onEachFeature: onEachStreetFeature

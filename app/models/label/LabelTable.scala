@@ -105,7 +105,7 @@ object LabelTable {
   val temporariness = TableQuery[LabelTemporarinessTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
-  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+  val neighborhoods = regions.filter(_.deleted === false)
 
   // Grab city id of database and the associated tutorial street id for the city
   val cityStr: String = Play.configuration.getString("city-id").get
@@ -1241,7 +1241,6 @@ object LabelTable {
         |WHERE label.deleted = FALSE
         |    AND label_point.lat IS NOT NULL
         |    AND region.deleted = FALSE
-        |    AND region.region_type_id = 2
         |    AND audit_task.user_id = ?
         |    AND region_id = ?""".stripMargin
     )
