@@ -135,7 +135,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLng:Float = max(lng1, lng2).toFloat
 
     // In CSV format.
-    if (filetype != None && filetype.get == "csv") {
+    if (filetype.isDefined && filetype.get == "csv") {
       val file = new java.io.File("access_attributes_with_labels.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Average Curb Ramp Score," +
@@ -150,7 +150,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
-    } else if (filetype != None && filetype.get == "shapefile") {
+    } else if (filetype.isDefined && filetype.get == "shapefile") {
 
       val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
 
@@ -226,11 +226,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     /**
     * Returns all the global attributes within the bounding box in geoJson.
     *
-    * @param lat1       First lattitude value for the bounding box
-    * @param lng1       First longitude value for the bounding box
-    * @param lat2       Second lattitude value for the bounding box
-    * @param lng2       Second longitude value for the bounding box
-    * @param severity   The severity of the attributes that should be added in the geojson
+    * @param lat1     First latttude value for the bounding box
+    * @param lng1     First longitude value for the bounding box
+    * @param lat2     Second latitude value for the bounding box
+    * @param lng2     Second longitude value for the bounding box
+    * @param severity The severity of the attributes that should be added in the geojson
     */
   def getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
@@ -264,11 +264,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   /**
     * E.g. /v1/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
-    * @param lat1       First lattitude value for the bounding box
-    * @param lng1       First longitude value for the bounding box
-    * @param lat2       Second lattitude value for the bounding box
-    * @param lng2       Second longitude value for the bounding box
-    * @return           The access score for the given neighborhood
+    * @param lat1 First latitude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
+    * @return     The access score for the given neighborhood
     */
   def getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
@@ -289,16 +289,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
     // In CSV format.
-    if (filetype != None && filetype.get == "csv") {
-      val file = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
+    if (filetype.isDefined && filetype.get == "csv") {
+      val file: File = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
-    } else if(filetype != None && filetype.get == "shapefile"){
+    } else if(filetype.isDefined && filetype.get == "shapefile"){
       // Gather all of the data that will be written to the Shapefile.
       val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version = 2, coordinates)
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
-      val significance = Array(0.75, -1.0, -1.0, -1.0)
+      val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
       val neighborhoodList: Buffer[NeighborhoodAttributeSignificance] = new ArrayBuffer[NeighborhoodAttributeSignificance]
       for (neighborhood <- neighborhoods) {
         val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
@@ -315,7 +315,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
           assert(coverage <= 1.0)
         } 
-        neighborhoodList.add(new NeighborhoodAttributeSignificance(neighborhood.name.getOrElse("NA"), 
+        neighborhoodList.add(new NeighborhoodAttributeSignificance(neighborhood.name,
                                                                   coordinates, 
                                                                   neighborhood.regionId, 
                                                                   coverage, 
@@ -352,7 +352,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val significance = Array(0.75, -1.0, -1.0, -1.0)
-    // Write each rown in the CSV.
+    // Write each row in the CSV.
     for (neighborhood <- neighborhoods) {
       val coordinates: Array[Coordinate] = neighborhood.geom.getCoordinates
       val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
@@ -481,11 +481,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * AccessScore:Street
     *
     * E.g., /v1/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
-    * @param lat1       First lattitude value for the bounding box
-    * @param lng1       First longitude value for the bounding box
-    * @param lat2       Second lattitude value for the bounding box
-    * @param lng2       Second longitude value for the bounding box
-    * @return           The access score for the given neighborhood
+    * @param lat1 First latttude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
+    * @return     The access score for the given neighborhood
     */
   def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
@@ -497,17 +497,17 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * AccessScore:Street V2 (using new clustering methods)
     *
     * E.g., /v2/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
-    * @param lat1       First lattitude value for the bounding box
-    * @param lng1       First longitude value for the bounding box
-    * @param lat2       Second lattitude value for the bounding box
-    * @param lng2       Second longitude value for the bounding box
-    * @return           The access score for the given neighborhood
+    * @param lat1 First latitude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
+    * @return     The access score for the given neighborhood
     */
   def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2)
     // In CSV format.
-    if (filetype != None && filetype.get == "csv") {
+    if (filetype.isDefined && filetype.get == "csv") {
       val file = new java.io.File("access_score_streets.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Region ID,Access Score,Coordinates,Average Curb Ramp Score," + 
@@ -527,7 +527,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
-    } else if (filetype != None && filetype.get == "shapefile"){
+    } else if (filetype.isDefined && filetype.get == "shapefile"){
       val streetBuffer: Buffer[StreetAttributeSignificance] = new ArrayBuffer[StreetAttributeSignificance]
       for(streetAccessScore <- streetAccessScores){
         streetBuffer.add(
