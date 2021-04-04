@@ -32,7 +32,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission], switchToValidation: Boolean)
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission], switchToValidation: Boolean, timePerformedQuery: Long)
 
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
@@ -208,7 +208,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val userOption = identity
       val streetEdgeId = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
-
+      val timeLastQueried: Timestamp = new Timestamp(data.auditTask.timeLastQueried)
+      val timePerformedQuery: Long = (Instant.now.toEpochMilli)
+      Logger.warn("there is a timestamp of " + timeLastQueried + " with current time as " + new Timestamp(timePerformedQuery))
       if (data.auditTask.auditTaskId.isDefined) {
         userOption match {
           case Some(user) =>
@@ -374,19 +376,22 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
+      // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent
+
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
       val switchToValidation = userOption.isDefined &&
         userOption.get.role.getOrElse("") == "Turker" &&
         MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
-      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation)
+      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, timePerformedQuery)
     }
 
     Future.successful(Ok(Json.obj(
       "audit_task_id" -> returnValues.head.auditTaskId,
       "street_edge_id" -> returnValues.head.streetEdgeId,
       "mission" -> returnValues.head.mission.map(_.toJSON),
-      "switch_to_validation" -> returnValues.head.switchToValidation
+      "switch_to_validation" -> returnValues.head.switchToValidation,
+      "timePerformedQuery" -> returnValues.head.timePerformedQuery
     )))
   }
 }

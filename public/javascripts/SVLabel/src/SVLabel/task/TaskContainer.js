@@ -18,6 +18,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var beforeJumpNewTask = null;
     var paths;
     var previousPaths = [];
+    var lastTimeDataSent = null;
 
     self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
     self.getFinishedAndInitNextTask = function (finished) {
@@ -188,6 +189,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             }
         });
     };
+
+    // self.updateTaskPriorities = function() {
+    //     $.ajax({
+
+    //     })
+    // }
 
     /**
      * Find incomplete tasks (i.e., street edges) that are connected to the given task.
@@ -391,6 +398,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     this.getTasks = function () {
         return self._tasks;
+    };
+
+    this.getLastTimeDataSent = function() {
+        return self.lastTimeDataSent;
     };
 
     /**

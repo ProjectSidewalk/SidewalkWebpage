@@ -16,9 +16,10 @@
  */
 function Form (labelContainer, missionModel, missionContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
-    var properties = {
+    let properties = {
         dataStoreUrl : undefined,
-        beaconDataStoreUrl : undefined
+        beaconDataStoreUrl : undefined,
+        timeLastQuried : new Date().getTime() // Assuming that Form is created when TaskContainer is created
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
@@ -51,7 +52,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             completed: task.isComplete(),
             current_lat: navigationModel.getPosition().lat,
             current_lng: navigationModel.getPosition().lng,
-            start_point_reversed: task.getProperty("startPointReversed")
+            start_point_reversed: task.getProperty("startPointReversed"),
+            time_data_last_queried: properties.timeLastQuried
         };
 
         data.environment = {
@@ -255,13 +257,16 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
-
+                    
                     // If the back-end says it is time to switch to validations, then do it immediately (mostly to
                     // prevent turkers from modifying JS variables to prevent switching to validation).
                     if (result.switch_to_validation) window.location.replace('/validate');
 
                     // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
+                    
+                    properties.timeLastQuried = result.timePerformedQuery;
+                    console.log(result.timePerformedQuery);
                 }
             },
             error: function (result) {
@@ -272,6 +277,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
     properties.dataStoreUrl = params.dataStoreUrl;
     properties.beaconDataStoreUrl = params.beaconDataStoreUrl;
+
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");
