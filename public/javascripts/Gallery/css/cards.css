@@ -60,7 +60,7 @@ p.label-severity, p.label-tags {
     color: white;
     opacity: 0;
     transition: .2s ease;
-    font-size: 12px;
+    font-size: 0.75vw;
 }
 
 .gallery-card:hover .validation-button {
