@@ -92,8 +92,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     }
   }
 
-  
-
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *
@@ -189,7 +187,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLat:Float = max(lat1, lat2).toFloat
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
-
     // In CSV format.
     if (filetype != None && filetype.get == "csv") {
       val accessAttributesfile = new java.io.File("access_attributes.csv")
@@ -203,25 +200,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
-
       val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
-
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
-
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("accessAttributes", Array("attributes"));
-
-
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-
     } else {  // In GeoJSON format.
       val features: List[JsObject] =
         GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
       Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
     }
   }
-
-
-
 
     /**
     * Returns all the global attributes within the bounding box in geoJson.
