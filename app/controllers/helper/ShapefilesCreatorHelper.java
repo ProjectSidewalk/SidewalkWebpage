@@ -96,7 +96,7 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:Point:srid=4326," // the geometry attribute: Point type
                         + "id:Integer," // a attribute ID
-                        + "label_type:String," // Label type
+                        + "labelType:String," // Label type
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean" // Temporary flag
