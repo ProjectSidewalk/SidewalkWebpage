@@ -270,7 +270,7 @@ public class ShapefilesCreatorHelper {
                 DataUtilities.createType(
                         "Location",
                         "the_geom:Polygon:srid=4326," // line geometry
-                        + "name:String," // Neighborhood Name
+                        + "neighborhd:String," // Neighborhood Name
                         + "regionId:Integer," // Neighborhood Id
                         + "coverage:Double," // coverage score
                         + "score:Double," // obstacle score
