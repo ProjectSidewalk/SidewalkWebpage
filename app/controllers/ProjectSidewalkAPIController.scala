@@ -1,35 +1,16 @@
 package controllers
 
-import helper.ShapefilesCreatorHelper
-import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
-
-import scala.collection.JavaConversions._
-import scala.collection.mutable.{ArrayBuffer, Buffer}
-import collection.immutable.Seq
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
-import java.io.{File, Serializable}
-import java.util.function.{Function => JavaFunction}
-import java.lang.{String => JavaString}
-import java.awt.{Point => JavaPoint}
 import java.time.Instant
 
 import javax.inject.Inject
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.opengis.geometry.coordinate.{GeometryFactory => GisGeometryFactory}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate, GeometryFactory => JTSGeometryFactory, Point => JTSPoint}
-import org.geotools.data.shapefile.{ShapefileDataStore, ShapefileDataStoreFactory, ShapefileDumper}
-import org.geotools.data.{DataStore, DataUtilities, DefaultTransaction, FeatureSource, FileDataStoreFactorySpi, Transaction}
-import org.geotools.feature.DefaultFeatureCollection
-import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
-import org.geotools.geometry.jts.JTSFactoryFinder
-import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureStore}
-import org.geotools.referencing.crs.DefaultGeographicCRS
 
 import math._
 import models.region._
@@ -41,7 +22,11 @@ import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
 import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
+import scala.collection.JavaConversions._
+import scala.collection.mutable.{ArrayBuffer, Buffer}
+import collection.immutable.Seq
 import scala.concurrent.Future
+import helper.ShapefilesCreatorHelper
 
 
 case class NeighborhoodAttributeSignificance (val name: String,
@@ -278,7 +263,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val file: File = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
+      val file: java.io.File = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if(filetype.isDefined && filetype.get == "shapefile"){
       // Gather all of the data that will be written to the Shapefile.
