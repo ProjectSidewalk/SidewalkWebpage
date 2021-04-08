@@ -504,7 +504,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val streetBuffer: Buffer[StreetAttributeSignificance] = new ArrayBuffer[StreetAttributeSignificance]
       for(streetAccessScore <- streetAccessScores){
         streetBuffer.add(
-          new StreetAttributeSignificance(
+          StreetAttributeSignificance(
             streetAccessScore.streetEdge.geom.getCoordinates().map(c => new JTSCoordinate(c.x, c.y)),
             streetAccessScore.streetEdge.streetEdgeId,
             streetAccessScore.score,
