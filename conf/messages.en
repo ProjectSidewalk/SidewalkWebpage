@@ -295,3 +295,12 @@ leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your lab
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a href="/audit"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a href="/signUp"><u>Sign up</u></a> to track your progress!
+
+gallery = Gallery
+gallery.show = Show
+gallery.filter.by = Filter By
+gallery.severity = Severity
+gallery.tags = Tags
+gallery.all = All
+gallery.occlusion = Can't See Sidewalk
+gallery.labels.not.found = No matches. <a href="/audit">Start exploring</a> to contribute more data!
