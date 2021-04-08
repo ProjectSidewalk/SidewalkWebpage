@@ -28,11 +28,8 @@ import controllers.NeighborhoodAttributeSignificance;
 import controllers.StreetAttributeSignificance;
 
 /**
- * This example reads data for point locations and associated attributes from a comma separated text
- * (CSV) file and exports them as a new shapefile. It illustrates how to build a feature type.
+ * This class handles the creation of Shapefile archives to be used by the SidewalkAPIController.
  *
- * <p>Note: to keep things simple in the code below the input file should not have additional spaces
- * or tabs between fields.
  */
 public class ShapefilesCreatorHelper {
 
@@ -101,17 +98,12 @@ public class ShapefilesCreatorHelper {
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
-                        "the_geom:Point:srid=4326,"
-                                + // <- the geometry attribute: Point type
-                                "id:Integer,"
-                                + // <- a attribute ID
-                                "label_type:String,"
-                                + // <- Label type
-                                "name:String,"
-                                + // <- Neighborhood Name
-                                "severity:Integer,"
-                                + // <- Severity
-                                "temporary:Boolean" // Temporary flag
+                        "the_geom:Point:srid=4326," // the geometry attribute: Point type
+                        + "id:Integer," // a attribute ID
+                        + "label_type:String," // Label type
+                        + "neighborhd:String," // Neighborhood Name
+                        + "severity:Integer," // Severity
+                        + "temporary:Boolean" // Temporary flag
                 );
 
         /*
@@ -156,37 +148,21 @@ public class ShapefilesCreatorHelper {
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
-                        "the_geom:Point:srid=4326,"
-                                + // <- the geometry attribute: Point type
-                                "labelId:Integer,"
-                                + // <- label ID
-                                "attribId:Integer,"
-                                + // <- attribute ID
-                                "lblType:String,"
-                                + // <- Label type
-                                "name:String,"
-                                + // <- Neighborhood Name
-                                "severity:Integer,"
-                                + // <- Severity
-                                "temporary:Boolean," 
-                                + // <- Temporary flag
-                                "neighborhd:String,"
-                                + // <- neighborhood name
-                                "gsvPanoID:String,"
-                                + // <- GSV Panorama ID
-                                "heading:Double,"
-                                + // <- heading of panorama
-                                "pitch:Double,"
-                                + // <- pitch of panorama
-                                "zoom:Integer,"
-                                + // <- zoom of panorama
-                                "canvasX:Integer,"
-                                + // <- canvasX position of panorama
-                                "canvasY:Integer,"
-                                + // <- canvasY position of panorama
-                                "canvasWdth:Integer,"
-                                + // <- width of source viewfinder
-                                "canvasHght:Integer" // height of source viewfinder
+                        "the_geom:Point:srid=4326," // the geometry attribute: Point type
+                        + "labelId:Integer," // label ID
+                        + "attribId:Integer," // attribute ID
+                        + "labelType:String," // Label type
+                        + "neighborhd:String," // Neighborhood Name
+                        + "severity:Integer," // Severity
+                        + "temporary:Boolean," // Temporary flag
+                        + "gsvPanoID:String," // GSV Panorama ID
+                        + "heading:Double," // heading of panorama
+                        + "pitch:Double," // pitch of panorama
+                        + "zoom:Integer," // zoom of panorama
+                        + "canvasX:Integer," // canvasX position of panorama
+                        + "canvasY:Integer," // canvasY position of panorama
+                        + "canvasWdth:Integer," // width of source viewfinder
+                        + "canvasHght:Integer" // height of source viewfinder
                 );
 
 
@@ -242,27 +218,17 @@ public class ShapefilesCreatorHelper {
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
-                        "the_geom:LineString:srid=4326,"
-                                + // <- the geometry attribute: Line type
-                                "streetId:Integer,"
-                                + // <- StreetId
-                                "score:Double," 
-                                + // street score
-                                "sigRamp:Double,"
-                                + // curb ramp significance score
-                                "sigNoRamp:Double,"
-                                + // no Curb ramp significance score
-                                "sigObs:Double,"
-                                + // obstacle significance score
-                                "sigSurfce:Double," 
-                                + // Surface problem significance score
-                                "nRamp:Double,"
-                                + // curb ramp feature score
-                                "nNoRamp:Double,"
-                                + // no Curb ramp feature score
-                                "nObs:Double,"
-                                + // obstacle feature score
-                                "nSurfce:Double" // Surface problem feature score
+                        "the_geom:LineString:srid=4326," // the geometry attribute: Line type
+                        + "streetId:Integer," // StreetId
+                        + "score:Double," // street score
+                        + "sigRamp:Double," // curb ramp significance score
+                        + "sigNoRamp:Double," // no Curb ramp significance score
+                        + "sigObs:Double," // obstacle significance score
+                        + "sigSurfce:Double," // Surface problem significance score
+                        + "nRamp:Double," // curb ramp feature score
+                        + "nNoRamp:Double," // no Curb ramp feature score
+                        + "nObs:Double," // obstacle feature score
+                        + "nSurfce:Double" // Surface problem feature score
                 );
 
         /*
@@ -277,15 +243,6 @@ public class ShapefilesCreatorHelper {
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
 
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        // for(Street s : streets){
-        //     featureBuilder.add(geometryFactory.createLineString(s.geometry));
-        //     featureBuilder.add(s.streetId);
-        //     featureBuilder.add(s.score);
-
-        //     SimpleFeature feature = featureBuilder.buildFeature(null);
-        //     features.add(feature);
-        // }
 
         for (StreetAttributeSignificance s : streets) {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
@@ -316,31 +273,19 @@ public class ShapefilesCreatorHelper {
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
-                        "the_geom:Polygon:srid=4326,"
-                                + // line geometry
-                                "name:String,"
-                                + // <- Neighborhood Name
-                                "regionId:Integer,"
-                                + // <- Neighborhood Id
-                                "coverage:Double,"
-                                + // coverage score
-                                "score:Double," 
-                                + // obstacle score
-                                "sigRamp:Double,"
-                                + // curb ramp significance score
-                                "sigNoRamp:Double,"
-                                + // no Curb ramp significance score
-                                "sigObs:Double,"
-                                + // obstacle significance score
-                                "sigSurfce:Double," 
-                                + // Surface problem significance score
-                                "nRamp:Double,"
-                                + // curb ramp feature score
-                                "nNoRamp:Double,"
-                                + // no Curb ramp feature score
-                                "nObs:Double,"
-                                + // obstacle feature score
-                                "nSurfce:Double" // Surface problem feature score
+                        "the_geom:Polygon:srid=4326," // line geometry
+                        + "name:String," // Neighborhood Name
+                        + "regionId:Integer," // Neighborhood Id
+                        + "coverage:Double," // coverage score
+                        + "score:Double," // obstacle score
+                        + "sigRamp:Double," // curb ramp significance score
+                        + "sigNoRamp:Double," // no Curb ramp significance score
+                        + "sigObs:Double," // obstacle significance score
+                        + "sigSurfce:Double," // Surface problem significance score
+                        + "nRamp:Double," // curb ramp feature score
+                        + "nNoRamp:Double," // no Curb ramp feature score
+                        + "nObs:Double," // obstacle feature score
+                        + "nSurfce:Double" // Surface problem feature score
                 );
 
         /*
@@ -378,7 +323,14 @@ public class ShapefilesCreatorHelper {
 
     }
 
-    public static File zipShapeFiles(String name, String[] files) throws IOException{
+    /* 
+     * Creates a zip archive from the given array of shapefile filenames, and returns
+     * the zip archive as a java File type.
+     *
+     * name - The name of the zip archive
+     * files - an array of names of shapefiles that should be in a zip archive
+     */
+    public static File zipShapeFiles(String name, String[] files) throws IOException {
         FileOutputStream fos = new FileOutputStream(name + ".zip");
         ZipOutputStream zipOut = new ZipOutputStream(fos);
         for (String outputFile: files){
