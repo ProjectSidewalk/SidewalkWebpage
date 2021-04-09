@@ -84,6 +84,14 @@ object StreetEdgePriorityTable {
     updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
   }
 
+  def streetEdgePrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriorityParameter] = db.withSession { implicit session => 
+    
+    val streetEdgePrioritiesFromIds = streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds).groupBy(x => (x.streetEdgeId, x.priority)).map(_._1)
+
+
+    streetEdgePrioritiesFromIds.list.map(x => StreetEdgePriorityParameter.tupled(x))
+  }
+
   /**
     * Recalculate the priority attribute for all streetEdges.
     *

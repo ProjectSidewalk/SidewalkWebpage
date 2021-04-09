@@ -16,7 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
-import models.street.StreetEdgePriorityTable
+import models.street.{StreetEdgePriorityTable, StreetEdgePriorityParameter}
 import models.user.{User, UserCurrentRegionTable}
 import play.api.Logger
 import play.api.libs.json._
@@ -32,7 +32,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission], switchToValidation: Boolean, timePerformedQuery: Long)
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission], switchToValidation: Boolean, streetEdgeIdsAfterTime: List[Int], newStreetEdgePriorities: List[Double], timePerformedQuery: Long)
 
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
@@ -210,7 +210,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val missionId: Int = data.missionProgress.missionId
       val timeLastQueried: Timestamp = new Timestamp(data.auditTask.timeLastQueried)
       val timePerformedQuery: Long = (Instant.now.toEpochMilli)
-      Logger.warn("there is a timestamp of " + timeLastQueried + " with current time as " + new Timestamp(timePerformedQuery))
+
       if (data.auditTask.auditTaskId.isDefined) {
         userOption match {
           case Some(user) =>
@@ -376,14 +376,23 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
-      // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent
+      // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent.
+      // Then qeury StreetEdgePriorityParameter with the result from AuditTaskTable. 
+      val queriedEdgeIdsAfterTime: List[Int] = AuditTaskTable.streetEdgeIdsUpdatedAfterTime(timeLastQueried)
+      val queriedStreetEdgePriorityParameters: List[StreetEdgePriorityParameter] = StreetEdgePriorityTable.streetEdgePrioritiesFromIds(queriedEdgeIdsAfterTime)
+      
+      // We set the streetEdgeIdsAfterTime and newStreetEdgePriorties parametets with queriedStreetEdgePriorityParameters
+      // because it keeps the indexes in order with each other. 
+      val streetEdgeIdsAfterTime = queriedStreetEdgePriorityParameters.map(x => x.streetEdgeId)
+      val newStreetEdgePriorities = queriedStreetEdgePriorityParameters.map(x => x.priorityParameter)
 
+      
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
       val switchToValidation = userOption.isDefined &&
         userOption.get.role.getOrElse("") == "Turker" &&
         MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
-      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, timePerformedQuery)
+      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, streetEdgeIdsAfterTime, newStreetEdgePriorities, timePerformedQuery)
     }
 
     Future.successful(Ok(Json.obj(
@@ -391,6 +400,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       "street_edge_id" -> returnValues.head.streetEdgeId,
       "mission" -> returnValues.head.mission.map(_.toJSON),
       "switch_to_validation" -> returnValues.head.switchToValidation,
+      "streetEdgeIdsAfterTime" -> returnValues.head.streetEdgeIdsAfterTime,
+      "newStreetEdgePriorities" -> returnValues.head.newStreetEdgePriorities,
       "timePerformedQuery" -> returnValues.head.timePerformedQuery
     )))
   }

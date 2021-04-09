@@ -264,9 +264,11 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
                     // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
-                    
+
                     properties.timeLastQuried = result.timePerformedQuery;
-                    console.log(result.timePerformedQuery);
+                    if (result.streetEdgeIdsAfterTime > 0) {
+                        taskContainer.updateTaskPriorities(result.streetEdgeIdsAfterTime, result.newStreetEdgePriorities);
+                    }
                 }
             },
             error: function (result) {

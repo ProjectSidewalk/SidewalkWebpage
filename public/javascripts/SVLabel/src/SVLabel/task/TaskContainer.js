@@ -190,11 +190,19 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         });
     };
 
-    // self.updateTaskPriorities = function() {
-    //     $.ajax({
-
-    //     })
-    // }
+    function updateTaskPriorities(streetEdgeIdsAfterTime, newStreetEdgePriorities) {
+        if (!Array.isArray(self._tasks)) {
+            console.error("_tasks is not an array. Probably the data is not loaded yet.");
+            return null;
+        }
+        for (let i = 0; i < streetEdgeIdsAfterTime.length; i++) {
+            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === streetEdgeIdsAfterTime[i];});
+            console.log("before: " + self._tasks[index].getStreetPriority() + " for " + self._tasks[index].getStreetEdgeId());
+            console.log("set as: " + newStreetEdgePriorities[i] + " for " + streetEdgeIdsAfterTime[i]);
+            self._tasks[index].setProperty('priority', newStreetEdgePriorities[i]);
+            console.log("after " + self._tasks[index].getStreetPriority());
+        }
+    }
 
     /**
      * Find incomplete tasks (i.e., street edges) that are connected to the given task.
@@ -674,4 +682,5 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
+    self.updateTaskPriorities = updateTaskPriorities;
 }
