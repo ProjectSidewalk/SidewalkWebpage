@@ -267,18 +267,11 @@ object MissionTable {
     * @param includeSkipped should any skipped missions be included
     */
   def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): List[Mission] = db.withSession { implicit session =>
-    val _missions = if (includeOnboarding) {
-      if (includeSkipped) {
-        missions.filter(m => m.userId === userId.toString && m.completed)
-      } else {
-        missions.filter(m => m.userId === userId.toString && m.completed && !m.skipped)
-      }
-    } else {
-      missions.filter(m => m.userId === userId.toString && m.completed)
-        .filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
-    }
+      val _m1 = missions.filter(m => m.userId === userId.toString && m.completed)
+      val _m2 = if (includeOnboarding) _m1 else _m1.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
+      val _m3 = if (includeSkipped) _m2 else _m2.filterNot(_.skipped)
 
-    _missions.list.groupBy(_.missionId).map(_._2.head).toList
+      _m3.list.groupBy(_.missionId).map(_._2.head).toList
   }
 
   /**
