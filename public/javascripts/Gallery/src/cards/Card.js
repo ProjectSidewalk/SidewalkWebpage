@@ -89,12 +89,14 @@ function Card (params, imageUrl) {
         panoImage.className = "static-gallery-image";
 
         // Clean up ternary operators with constants?
-        let severityHeader = properties.severity ? properties.severity : getLabelType() === "Occlusion" ? "not applicable" : "none";
-        let tagHeader = properties.tags.length > 0 ? properties.tags.join(", ") : getLabelType() === "Occlusion" ? "not applicable" : "none";
+        let severityHeader = properties.severity ? properties.severity :
+                                                   getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
+        let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
+                                                     getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
 
         const cardHtml = `
-            <p class="label-severity"><b>Severity:</b> ${severityHeader}</p>
-            <p class="label-tags"><b>Tags:</b> ${tagHeader}</p>
+            <p class="label-severity"><b>${i18next.t('severity')}</b> ${severityHeader}</p>
+            <p class="label-tags"><b>${i18next.t('tags')}</b> ${tagHeader}</p>
         `;
 
         card = document.createElement('div');

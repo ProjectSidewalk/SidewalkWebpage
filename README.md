@@ -1,3 +1,4 @@
+
 # Sidewalk Webpage
 Want a Project Sidewalk server set up for your city/municipality? You can read about things we consider when choosing new deployment cities on our [Wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities) including geographic diversity, presence of local advocates, funding, etc. You can also read some past discussions [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1379), [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1626), and [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/281). 
 
@@ -35,7 +36,7 @@ WSL2 is recommended for much faster compile times (especially for Windows Home u
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
 
 ##### Transferring files from Windows to Linux VM
-One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump and API keys) into the VM itself. 
+One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.
 
 1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
 1. Locate the Linux VM within your Project Sidewalk directory (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
@@ -62,8 +63,9 @@ Here are the instructions to run Project Sidewalk locally for the first time. If
 
 On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7) (built in to Win10). On Mac, use the basic terminal or, even better, [iTerm2](https://www.iterm2.com/). On Linux (or if you're using WSL2 on Windows), the default Linux Shell (such as [Bash](https://www.gnu.org/software/bash/)) is a great choice.
 
-1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `SidewalkWebpage/db` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
-1. If the database dump is for a city other than DC, modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
+1. Email Mikey (michaelssaugstad@gmail.com) and ask for a database dump and a Google Maps API key & secret (if you are not part of our team, you'll have to [create a Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) yourself). Rename the database dump `sidewalk-dump` and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
+1. Modify the `GOOGLE_MAPS_API_KEY` and `GOOGLE_MAPS_SECRET` lines in the `docker-compose.yml` using the key and secret you've acquired.
+1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
 1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
@@ -127,7 +129,7 @@ To look at and run queries on your database, you will want to install a database
 You'll connect to the database using the following credentials:
 ```
 Host: localhost:5432
-User: sidewalk
+User: postgres
 Password: sidewalk
 Database: sidewalk
 ```

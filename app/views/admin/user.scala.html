@@ -7,8 +7,8 @@
 
 @import java.util.UUID
 @import models.user.UserCurrentRegionTable
-@import models.region.RegionPropertyTable
 
+@import models.region.RegionTable
 @(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))(implicit lang: Lang)
 
 @main(title) {
@@ -60,7 +60,7 @@
                     <tr>
                         <th class="col-md-2">Current Neighborhood</th>
                         <td class="col-md-10">
-                            @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map {x => RegionPropertyTable.neighborhoodName(x)}.getOrElse("Unassigned"))
+                            @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
                             (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map{x => x}.getOrElse("NA")))
                         </td>
                     </tr>

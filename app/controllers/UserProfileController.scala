@@ -17,13 +17,16 @@ import play.api.i18n.Messages
 import scala.concurrent.Future
 
 /**
- * The basic application controller.
+ * Holds the HTTP requests associated with the user dashboard.
  *
  * @param env The Silhouette environment.
  */
 class UserProfileController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
+  /**
+   * Loads the user dashboard page.
+   */
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -41,7 +44,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Get a list of edges that are audited by users.
+   * Get the list of streets that have been audited by the signed in user.
    */
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -49,7 +52,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val streets = AuditTaskTable.selectStreetsAuditedByAUser(user.userId)
         val features: List[JsObject] = streets.map { edge =>
           val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-          val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+          val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
           val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
           val properties = Json.obj(
             "street_edge_id" -> edge.streetEdgeId,
@@ -66,6 +69,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+   * Get the list of streets that have been audited by any user.
+   */
   def getAllAuditedStreets = UserAwareAction.async { implicit request =>
     val streets = AuditTaskTable.selectStreetsAudited
     val features: List[JsObject] = streets.map { edge =>
@@ -83,7 +89,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Get a list of labels submitted by the user.
+   * Get the list of labels submitted by the signed in user. Only include labels in the given region if supplied.
    */
   def getSubmittedLabels(regionId: Option[Int]) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -93,7 +99,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           case None => LabelTable.selectLocationsOfLabelsByUserId(user.userId)
         }
 
-        // val labels = LabelTable.selectLocationsOfLabelsByUserId(user.userId)
         val features: List[JsObject] = labels.map { label =>
           val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
           val properties = Json.obj(
@@ -113,6 +118,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+   * Get a count of the number of audits that have been completed each day.
+   */
   def getAllAuditCounts = UserAwareAction.async { implicit request =>
     val auditCounts = AuditTaskTable.auditCounts
     val json = Json.arr(auditCounts.map(x => Json.obj(
@@ -121,6 +129,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(json))
   }
 
+  /**
+   * Get a count of the number of labels that have been added each day.
+   */
   def getAllLabelCounts = UserAwareAction.async { implicit request =>
     val labelCounts = LabelTable.selectLabelCountsPerDay
     val json = Json.arr(labelCounts.map(x => Json.obj(
@@ -129,6 +140,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(json))
   }
 
+  /**
+   * Get a count of the number of validations that have been completed each day.
+   */
   def getAllValidationCounts = UserAwareAction.async { implicit request =>
     val validationCounts = LabelValidationTable.getValidationsByDate
     val json = Json.arr(validationCounts.map(x => Json.obj(

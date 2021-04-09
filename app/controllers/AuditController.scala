@@ -25,6 +25,11 @@ import play.api.Play.current
 import play.api.mvc._
 import scala.concurrent.Future
 
+/**
+ * Holds HTTP requests associated with the audit page.
+ *
+ * @param env The Silhouette environment.
+ */
 class AuditController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
@@ -457,7 +462,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method handles a comment POST request. It parse the comment and insert it into the comment table.
+    * This method handles a comment POST request. It parses the comment and inserts it into the comment table.
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[CommentSubmission]

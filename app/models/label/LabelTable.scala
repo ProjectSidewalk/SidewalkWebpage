@@ -105,7 +105,7 @@ object LabelTable {
   val temporariness = TableQuery[LabelTemporarinessTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
-  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+  val neighborhoods = regions.filter(_.deleted === false)
 
   // Grab city id of database and the associated tutorial street id for the city
   val cityStr: String = Play.configuration.getString("city-id").get
@@ -213,10 +213,10 @@ object LabelTable {
     * Find a label based on temp_label_id and audit_task_id.
     */
   def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
-    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
+    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map {
       label => label.labelId
     }
-    labelIds.list.headOption
+    labelIds.firstOption
   }
 
   def countLabels: Int = db.withTransaction(implicit session =>
@@ -241,7 +241,7 @@ object LabelTable {
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND label.deleted = false""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /*
@@ -264,7 +264,7 @@ object LabelTable {
          |    )""".stripMargin
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
-    countQueryResult.list.head
+    countQueryResult.first
   }
 
   /*
@@ -278,7 +278,7 @@ object LabelTable {
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND label.deleted = false""".stripMargin
     )
-    countQuery.list.head
+    countQuery.first
   }
 
   /*
@@ -299,7 +299,7 @@ object LabelTable {
          |    )""".stripMargin
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
-    countQueryResult.list.head
+    countQueryResult.first
   }
 
 
@@ -568,7 +568,7 @@ object LabelTable {
         |    AND lb1.label_id = lp.label_id
         |ORDER BY lb1.label_id DESC""".stripMargin
     )
-    selectQuery.list.head
+    selectQuery.first
   }
 
   /**
@@ -651,8 +651,9 @@ object LabelTable {
           |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
           |LEFT JOIN (
           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-          |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
+          |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
           |    FROM label_tag
+          |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
           |    GROUP BY label_id
           |) the_tags ON label.label_id = the_tags.label_id
           |WHERE label.label_type_id = $labelTypeId
@@ -1240,7 +1241,6 @@ object LabelTable {
         |WHERE label.deleted = FALSE
         |    AND label_point.lat IS NOT NULL
         |    AND region.deleted = FALSE
-        |    AND region.region_type_id = 2
         |    AND audit_task.user_id = ?
         |    AND region_id = ?""".stripMargin
     )
@@ -1317,7 +1317,7 @@ object LabelTable {
          |LIMIT 1""".stripMargin
     )
     //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
-    selectStreetEdgeIdQuery((lng, lat)).list.headOption
+    selectStreetEdgeIdQuery((lng, lat)).firstOption
   }
 
   /**
@@ -1327,7 +1327,7 @@ object LabelTable {
     val recentMissionId: Option[Int] = MissionTable.missions
         .filter(m => m.userId === userId.toString && m.regionId === regionId)
         .sortBy(_.missionStart.desc)
-        .map(_.missionId).list.headOption
+        .map(_.missionId).firstOption
 
     recentMissionId match {
       case Some(missionId) => labelsWithoutDeleted.filter(_.missionId === missionId).list

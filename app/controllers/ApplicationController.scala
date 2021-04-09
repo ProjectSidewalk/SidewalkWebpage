@@ -9,15 +9,23 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.street.StreetEdgeTable
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.Messages
+
 import java.util.Calendar
 import play.api.mvc._
+
 import scala.concurrent.Future
 import scala.util.Random
 
+/**
+ * Holds the HTTP requests for some of the basic web pages.
+ *
+ * @param env The Silhouette environment.
+ */
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -164,6 +172,26 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Updates user language preference cookie, returns to current page.
+   */
+  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = UserAwareAction.async { implicit request =>
+
+    // Build logger string.
+    val user: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+    val oldLang: String = request2lang.code
+    val clickLoc: String = clickLocation.getOrElse("Unknown")
+    val logText: String = s"Click_module=ChangeLanguage_from=${oldLang}_to=${newLang}_location=${clickLoc}_route=${url}"
+
+    // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
+    WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, logText, timestamp))
+
+    // Update the cookie and redirect.
+    Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", newLang)))
+  }
+
+  /**
     * Returns a developer page.
     */
   def developer = UserAwareAction.async { implicit request =>
@@ -278,8 +306,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
     * Returns the terms page.
-    *
-    * @return
     */
   def terms = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -328,8 +354,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Returns the Gallery page.
-   *
-   * @return
    */
   def gallery = UserAwareAction.async { implicit request =>
     request.identity match {

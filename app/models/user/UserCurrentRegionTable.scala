@@ -22,7 +22,7 @@ object UserCurrentRegionTable {
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
   val regions = TableQuery[RegionTable]
 
-  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+  val neighborhoods = regions.filter(_.deleted === false)
 
   val experiencedUserMileageThreshold = 2.0
 

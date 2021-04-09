@@ -36,6 +36,8 @@ navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
+navbar.lang.aria = Opciones de idioma
+navbar.lang.icon.alt = icono de idiomas
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
@@ -191,8 +193,9 @@ validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
 
-turk.expired.title = ¡Asignación vencida!
-turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
+turk.expired.navbar = SE ACABÓ EL TIEMPO
+turk.expired.title = ¡Se acabó el tiempo!
+turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Por favor enviar su código de confirmación en el sitio web de mturk. Si la asignación ya ha vencido, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
 turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
 turk.mturk.code = Código de Mturk
 turk.reward.earned = Recompensa actual de la misión
@@ -290,3 +293,12 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a href="/audit"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
+
+gallery = Galería
+gallery.show = Mostrar
+gallery.filter.by = Filtrar por
+gallery.severity = Calificación
+gallery.tags = Etiquitas
+gallery.all = Todos
+gallery.occlusion = No puedo ver la banqueta
+gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!

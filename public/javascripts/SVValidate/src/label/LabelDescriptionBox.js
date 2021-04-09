@@ -10,12 +10,12 @@ function LabelDescriptionBox () {
     let descriptionBox = $("#label-description-box");
 
     let smileyScale = {
-	    1: '/assets/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
-	    2: '/assets/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
-	    3: '/assets/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
-	    4: '/assets/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
-	    5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
-	};
+        1: '/assets/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
+        2: '/assets/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
+        3: '/assets/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
+        4: '/assets/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
+        5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
+    };
 
     /**
      * Sets the box's descriptions for the given label.
@@ -37,7 +37,7 @@ function LabelDescriptionBox () {
 
         if (severity && severity != 0) {
             let span = document.createElement('span');
-            let htmlString = document.createTextNode(i18next.t('severity') + severity + ' ');
+            let htmlString = document.createTextNode(i18next.t('common:severity') + severity + ' ');
             desBox.appendChild(htmlString);
             let img = document.createElement('img');
             img.setAttribute('src', smileyScale[severity]);
@@ -63,8 +63,8 @@ function LabelDescriptionBox () {
 
         if (tags && tags.length > 0) {
             // Translate to correct language and separate tags with a comma.
-            let tag = tags.map(t => i18next.t('center-ui.tag.' + t)).join(', ');
-            let htmlString = document.createTextNode(i18next.t('tags') + tag);
+            let tag = tags.map(t => i18next.t('common:tag.' + t)).join(', ');
+            let htmlString = document.createTextNode(i18next.t('common:tags') + tag);
             desBox.appendChild(htmlString);
             desBox.appendChild(document.createElement("br"));
         }
