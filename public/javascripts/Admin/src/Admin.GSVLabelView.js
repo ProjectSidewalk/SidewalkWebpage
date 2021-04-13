@@ -42,9 +42,9 @@ function AdminGSVLabelView(admin) {
                                 '</button>' +
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
-                                '<textarea id="comment-textarea" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                                '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
                                 '<button id="comment-button" class="submit-button">' +
-                                    i18next.t('label-map.submit') +
+                                    i18next.t('common:label-map.submit') +
                                 '</button>' +
                             '</div>' +
                         '</div>' +
