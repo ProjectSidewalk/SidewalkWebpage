@@ -25,29 +25,31 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px">' +
                         '</div>' +
-                        '<h3>Is this label correct?</h3>' +
-                        '<div id="validation-button-holder">' +
-                            '<button id="validation-agree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                'Agree' +
-                            '</button>' +
-                            '<button id="validation-disagree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                'Disagree' +
-                            '</button>' +
-                            '<button id="validation-not-sure-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                'Not sure' +
-                            '</button>' +
+                        '<div id="validation-input-holder">' +
+                            '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
+                            '<div id="validation-button-holder" style="padding-top: 10px;">' +
+                                '<button id="validation-agree-button" class="validation-button"' +
+                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                    'Agree' +
+                                '</button>' +
+                                '<button id="validation-disagree-button" class="validation-button"' +
+                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                    'Disagree' +
+                                '</button>' +
+                                '<button id="validation-not-sure-button" class="validation-button"' +
+                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                    'Not sure' +
+                                '</button>' +
+                            '</div>' +
+                            '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
+                                '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                                '<button id="comment-button" class="submit-button">' +
+                                    i18next.t('common:label-map.submit') +
+                                '</button>' +
+                            '</div>' +
                         '</div>' +
-                        '<div id="validation-comment-holder">' +
-                            '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                            '<button id="comment-button" class="submit-button">' +
-                                i18next.t('common:label-map.submit') +
-                            '</button>' +
-                        '</div>' +
-                        '<div class="modal-footer">' +
-                            '<table class="table table-striped" style="font-size:small; margin-bottom: 0">' +
+                        '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
+                            '<table class="table table-striped" style="font-size:small;>' +
                                 '<tr>' +
                                     '<th>Label Type</th>' +
                                     '<td id="label-type-value"></td>' +
@@ -107,7 +109,7 @@ function AdminGSVLabelView(admin) {
         }
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-button-holder"), admin);
+        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.disagreeButton = self.modal.find("#validation-disagree-button");

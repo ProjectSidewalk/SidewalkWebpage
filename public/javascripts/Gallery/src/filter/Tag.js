@@ -34,7 +34,7 @@ function Tag (params) {
         tagElement = document.createElement('button');
         tagElement.className = "gallery-tag";
         tagElement.id = properties.tag;
-        tagElement.innerText = properties.tag;
+        tagElement.innerText = i18next.t('tag.' + properties.tag);
         tagElement.disabled = true;
 
         tagElement.onclick = handleTagClickCallback;
