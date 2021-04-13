@@ -1,0 +1,19 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
+
+@main(title) {
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/maintenance.css")'>
+
+    <div class="sidewalk-logo"></div>
+    <h2>Project Sidewalk is Down for Maintenance</h2>
+
+    <div class="msgbox">
+    We are in the process of updating our codebase. We apologize for the 
+    inconvenience. <br>
+    <br>
+    Stay tuned! The site will be up and running soon! <br>
+    <!-- If there are specific reason, add more information here -->
+    </div>
+
+    <div class="downpage-image"></div>
+}

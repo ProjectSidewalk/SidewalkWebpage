@@ -1,0 +1,39 @@
+.sidewalk-logo {  
+    background-color: white; 
+    width: 300px; 
+    height: 90px; 
+    background-image: url(../javascripts/SVValidate/img/logo.png);
+    background-position: center; 
+    background-size: cover; 
+
+    margin: 0px auto 50px auto; 
+}
+
+.msgbox {
+    width: 600px; 
+    margin: auto; 
+    padding: 5px; 
+    text-align: center; 
+
+    font-size: 18px; 
+    line-height: 20px; 
+}
+
+.downpage-image {
+    width: 720px; 
+    height: 480px; 
+    background-color: white; 
+    background-image: url(../images/downpage.png);
+    background-position:center; 
+    background-size: cover; 
+    margin: 0px auto 0px auto; 
+}
+
+h2 {
+    color: #386e6e; 
+    text-align: center;
+    font-size: 30px;
+    margin-top: 40px; 
+    margin-bottom: 20px; 
+    font-weight: bold;
+}
