@@ -48,7 +48,7 @@
                         <td>@user.get.username</td>
                         <td>@user.get.userId</td>
                         <td>@user.get.email</td>
-                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false)</td>
+                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false, includeSkipped = false)</td>
                         <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
                         <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
                         <td id="td-total-distance-audited-admin"></td>
