@@ -1,39 +1,64 @@
 .sidewalk-logo {  
-    background-color: white; 
-    width: 300px; 
-    height: 90px; 
-    background-image: url(../javascripts/SVValidate/img/logo.png);
-    background-position: center; 
-    background-size: cover; 
+    width: 50%;
+    max-width: 260px;
+    height: auto; 
+    margin: 0px auto 30px auto; 
+    display: block; 
+}
 
-    margin: 0px auto 50px auto; 
+.header {
+    color: #386e6e; 
+    width: 80%;
+    max-width: 720px; 
+    margin: auto; 
+    margin-bottom: 20px; 
+    text-align: center;
+
+    font-size: 32px;
+    font-weight: bold;
 }
 
 .msgbox {
-    width: 600px; 
-    margin: auto; 
-    padding: 5px; 
+    width: 80%;
+    max-width: 720px; 
+    margin: auto;  
     text-align: center; 
 
-    font-size: 18px; 
+    font-size: 17px; 
     line-height: 20px; 
 }
 
 .downpage-image {
-    width: 720px; 
-    height: 480px; 
-    background-color: white; 
-    background-image: url(../images/downpage.png);
-    background-position:center; 
-    background-size: cover; 
-    margin: 0px auto 0px auto; 
+    width: 90%;
+    max-width: 720px;
+    height: auto; 
+    margin-left: auto; 
+    margin-right: auto; 
+    padding-bottom: 16px; 
+    padding-top: 40px; 
+    display: block; 
 }
 
-h2 {
+.links {
+    margin-top: 30px;
+    display: flex; 
+    justify-content: center; 
+}
+
+.links > a {
+    margin: 6px;
     color: #386e6e; 
-    text-align: center;
-    font-size: 30px;
-    margin-top: 40px; 
-    margin-bottom: 20px; 
-    font-weight: bold;
+    font-weight: bold; 
+    text-decoration: none;
+
+}
+  
+
+@media screen and (max-width: 600px) {
+    .header {
+        font-size: 24px; 
+    }
+    .msgbox {
+        font-size: 15px; 
+    }
 }

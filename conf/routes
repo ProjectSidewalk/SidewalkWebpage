@@ -9,7 +9,6 @@ GET     /home                                                @controllers.Applic
 GET     /api                                                 @controllers.ApplicationController.developer
 GET     /developer                                           @controllers.ApplicationController.developer
 GET     /terms                                               @controllers.ApplicationController.terms
-GET     /maintenance                                         @controllers.ApplicationController.maintenance
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap

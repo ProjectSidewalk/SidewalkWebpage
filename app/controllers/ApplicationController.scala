@@ -323,18 +323,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
     * Returns the maintenance page.
     */
-  def maintenance = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Maintenance", timestamp))
-        Future.successful(Ok(views.html.maintenance("Project Sidewalk - Maintenance", Some(user))))
-      case None =>
-        Future.successful(Redirect("/anonSignUp?url=/maintenance"))
-    }
-  }
+def maintenance = UserAwareAction.async { implicit request =>
+  val user: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+  val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+  val ipAddress: String = request.remoteAddress
+  WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, "Visit_Maintenance", timestamp))
+  Future.successful(Ok(views.html.maintenance("Project Sidewalk - Maintenance", request.identity)))
+}
 
   /**
    * Returns the results page that contains a cool visualization.
