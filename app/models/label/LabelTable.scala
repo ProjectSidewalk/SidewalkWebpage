@@ -12,7 +12,6 @@ import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -729,21 +728,12 @@ object LabelTable {
     // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Prioritize labels to show by filtering out those that have been
-    // validated as "disagree" 3 or more times and have twice as many
-    // disagrees as agrees
-    val prioritizedLabels = Q.queryNA[(Int)](
-      """SELECT label.label_id
-        |FROM "sidewalk".label
-        |INNER JOIN "sidewalk".label_validation ON label.label_id = label_validation.label_id
-        |GROUP BY label.label_id
-        |HAVING COUNT(CASE WHEN validation_result = 2 THEN 1 END) < 3 
-        |    OR COUNT(CASE WHEN validation_result = 2 THEN 1 END) < (2 * COUNT(CASE WHEN validation_result = 1 THEN 1 END))""".stripMargin
-    ).list.toSet
+    // Get deprioritized labels
+    val deprioritized = deprioritizedLabels()
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labelsWithoutDeletedOrOnboarding if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId && (_lb.labelId inSet prioritizedLabels)
+      _lb <- labelsWithoutDeletedOrOnboarding if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId && !(_lb.labelId inSet deprioritized)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
@@ -836,21 +826,12 @@ object LabelTable {
     // Init random function
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Prioritize labels to show by filtering out those that have been
-    // validated as "disagree" 3 or more times and have twice as many
-    // disagrees as agrees
-    val prioritizedLabels = Q.queryNA[(Int)](
-      """SELECT label.label_id
-        |FROM "sidewalk".label
-        |INNER JOIN "sidewalk".label_validation ON label.label_id = label_validation.label_id
-        |GROUP BY label.label_id
-        |HAVING COUNT(CASE WHEN validation_result = 2 THEN 1 END) < 3 
-        |    OR COUNT(CASE WHEN validation_result = 2 THEN 1 END) < (2 * COUNT(CASE WHEN validation_result = 1 THEN 1 END))""".stripMargin
-    ).list.toSet
+    // Get deprioritized labels
+    val deprioritized = deprioritizedLabels()
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-        _lb <- labelsWithoutDeletedOrOnboarding if _lb.streetEdgeId =!= tutorialStreetId && (_lb.labelId inSet prioritizedLabels)
+        _lb <- labelsWithoutDeletedOrOnboarding if _lb.streetEdgeId =!= tutorialStreetId && !(_lb.labelId inSet deprioritized)
         _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
         _lp <- labelPoints if _lb.labelId === _lp.labelId
         _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
@@ -941,21 +922,12 @@ object LabelTable {
     // Init random function
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Prioritize labels to show by filtering out those that have been
-    // validated as "disagree" 3 or more times and have twice as many
-    // disagrees as agrees
-    val prioritizedLabels = Q.queryNA[(Int)](
-      """SELECT label.label_id
-        |FROM "sidewalk".label
-        |INNER JOIN "sidewalk".label_validation ON label.label_id = label_validation.label_id
-        |GROUP BY label.label_id
-        |HAVING COUNT(CASE WHEN validation_result = 2 THEN 1 END) < 3 
-        |    OR COUNT(CASE WHEN validation_result = 2 THEN 1 END) < (2 * COUNT(CASE WHEN validation_result = 1 THEN 1 END))""".stripMargin
-    ).list.toSet
+    // Get deprioritized labels
+    val deprioritized = deprioritizedLabels()
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labelsWithoutDeletedOrOnboarding if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId && (_lb.labelId inSet prioritizedLabels)
+      _lb <- labelsWithoutDeletedOrOnboarding if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId && !(_lb.labelId inSet deprioritized)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
@@ -1377,5 +1349,19 @@ object LabelTable {
     */
   def nextTempLabelId(auditTaskId: Option[Int]): Int = db.withSession { implicit session =>
     labels.filter(_.auditTaskId === auditTaskId).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
+  }
+
+  def deprioritizedLabels(): Set[Int] = db.withSession { implicit session =>
+    // Get set of deprioritized labels (to not show) by filtering out those that have been validated as "disagree" 3 or
+    // more times and have twice as many disagrees as agrees.
+    val deprioritizedLabels = Q.queryNA[(Int)](
+      """SELECT label.label_id
+        |FROM "sidewalk".label
+        |INNER JOIN "sidewalk".label_validation ON label.label_id = label_validation.label_id
+        |GROUP BY label.label_id
+        |HAVING COUNT(CASE WHEN validation_result = 2 THEN 1 END) > 2 
+        |   AND COUNT(CASE WHEN validation_result = 2 THEN 1 END) >= (2 * COUNT(CASE WHEN validation_result = 1 THEN 1 END))""".stripMargin
+    ).list.toSet
+    deprioritizedLabels
   }
 }
