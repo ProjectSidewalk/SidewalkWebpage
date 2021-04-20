@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.easytesting</groupId>
+  <artifactId>fest-util</artifactId>
+  <version>1.1.6</version>
+  <name>FEST Util</name>
+  <description>Utility methods used by FEST modules</description>
+  <inceptionYear>2007</inceptionYear>
+  <url>http://fest.easytesting.org</url>
+  <parent>
+    <groupId>org.easytesting</groupId>
+    <artifactId>fest</artifactId>
+    <version>1.0.8</version>
+  </parent>
+  <mailingLists>
+    <mailingList>
+      <name>Easy Testing Group</name>
+      <post>http://groups.google.com/group/easytesting</post>
+      <subscribe>http://groups.google.com/group/easytesting</subscribe>
+      <unsubscribe>http://groups.google.com/group/easytesting</unsubscribe>
+    </mailingList>
+  </mailingLists>
+  <scm>
+    <developerConnection>scm:git:git@github.com:alexruiz/fest-util.git</developerConnection>
+    <connection>scm:git:git://github.com/alexruiz/fest-util.git</connection>
+    <url>https://github.com/alexruiz/fest-util</url>
+  </scm>
+  <issueManagement>
+    <system>JIRA</system>
+    <url>http://jira.codehaus.org/browse/FEST</url>
+  </issueManagement>
+  <dependencies>
+    <dependency>
+    	<groupId>junit</groupId>
+    	<artifactId>junit</artifactId>
+    	<version>4.8.2</version>
+    	<scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
