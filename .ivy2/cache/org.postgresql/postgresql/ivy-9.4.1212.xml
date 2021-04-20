@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+	<info organisation="org.postgresql"
+		module="postgresql"
+		revision="9.4.1212"
+		status="release"
+		publication="20161102171350"
+	>
+		<license name="BSD-2-Clause" url="https://jdbc.postgresql.org/about/license.html" />
+		<description homepage="https://github.com/pgjdbc/pgjdbc">
+		Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database
+		</description>
+		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
+		<m:properties__javac.target>1.8</m:properties__javac.target>
+		<m:dependency.management__se.jiderhamn__classloader-leak-test-framework__version>1.1.1</m:dependency.management__se.jiderhamn__classloader-leak-test-framework__version>
+		<m:properties__jdbc.specification.version.nodot>42</m:properties__jdbc.specification.version.nodot>
+		<m:properties__postgresql.enforce.jdk.version>1.8</m:properties__postgresql.enforce.jdk.version>
+		<m:properties__jdbc.specification.version>4.2</m:properties__jdbc.specification.version>
+		<m:dependency.management__org.osgi__org.osgi.enterprise__version>4.2.0</m:dependency.management__org.osgi__org.osgi.enterprise__version>
+		<m:properties__skip.assembly>false</m:properties__skip.assembly>
+		<m:properties__postgresql.preprocessed.sources.directory>${project.build.directory}/gen-src</m:properties__postgresql.preprocessed.sources.directory>
+		<m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_0>com.google.guava__guava</m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_0>
+		<m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_1>org.slf4j__slf4j-api</m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_1>
+		<m:properties__postgresql.preprocessed.test.sources.directory>${project.build.directory}/gen-test-src</m:properties__postgresql.preprocessed.test.sources.directory>
+		<m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_2>org.slf4j__slf4j-simple</m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_2>
+		<m:properties__postgresql.driver.fullversion>PostgreSQL ${postgresql.jdbc.spec}</m:properties__postgresql.driver.fullversion>
+		<m:dependency.management__com.github.dblock.waffle__waffle-jna__version>1.7.5</m:dependency.management__com.github.dblock.waffle__waffle-jna__version>
+		<m:properties__template.default.pg.port>5432</m:properties__template.default.pg.port>
+		<m:maven.plugins>org.apache.maven.plugins__maven-site-plugin__null</m:maven.plugins>
+		<m:properties__waffle-jna.version>1.7.5</m:properties__waffle-jna.version>
+		<m:properties__build.properties.relative.path>${basedir}/..</m:properties__build.properties.relative.path>
+		<m:properties__skip.unzip-jdk-src>true</m:properties__skip.unzip-jdk-src>
+		<m:dependency.management__org.osgi__org.osgi.core__version>4.3.1</m:dependency.management__org.osgi__org.osgi.core__version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__se.jiderhamn__classloader-leak-test-framework__scope>test</m:dependency.management__se.jiderhamn__classloader-leak-test-framework__scope>
+		<m:properties__postgresql.jdbc.spec>JDBC${jdbc.specification.version}</m:properties__postgresql.jdbc.spec>
+		<m:properties__argLine>-Xmx512m</m:properties__argLine>
+		<m:properties__unzip.jdk.ant.build.xml>${project.build.directory}/unzip-jdk-ant.xml</m:properties__unzip.jdk.ant.build.xml>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="postgresql" type="bundle" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="se.jiderhamn" name="classloader-leak-test-framework" rev="1.1.1" force="true" conf="test->runtime(*),master(*)"/>
+		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
+		<override org="com.github.dblock.waffle" module="waffle-jna" matcher="exact" rev="1.7.5"/>
+		<override org="org.osgi" module="org.osgi.core" matcher="exact" rev="4.3.1"/>
+		<override org="org.osgi" module="org.osgi.enterprise" matcher="exact" rev="4.2.0"/>
+		<override org="se.jiderhamn" module="classloader-leak-test-framework" matcher="exact" rev="1.1.1"/>
+	</dependencies>
+</ivy-module>
