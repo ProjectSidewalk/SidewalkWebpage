@@ -6,7 +6,7 @@ util.panomarker = {};
  * 3D projection related functions
  *
  * These functions are for positioning the markers when the view is panned
- * The library used is adpated from: https://martinmatysiak.de/blog/view/panomarker/en
+ * The library used is adapted from: https://martinmatysiak.de/blog/view/panomarker/en
  * The math used is from:
  * http://stackoverflow.com/questions/21591462/get-heading-and-pitch-from-pixels-on-street-view/21753165?noredirect=1#comment72346716_21753165
  */
@@ -29,6 +29,7 @@ function sgn(x) {
 /**
  * This method returns the pov of a point on the canvas based on panorama's POV
  * and the canvas coordinate
+ * http://stackoverflow.com/questions/21591462/get-heading-and-pitch-from-pixels-on-street-view/21753165?noredirect=1#comment72346716_21753165
  *
  * @param canvasX
  * @param canvasY
@@ -134,12 +135,20 @@ function calculateImageCoordinateFromPointPov (pov) {
 
     var imageX, imageY;
     var zoomFactor = svl.zoomFactor[zoom];
+    console.log(zoom);
+    console.log(zoomFactor);
+    console.log(`zoom: ${zoom}`);
+    console.log(`zoomFactor: ${zoomFactor}`);
+    console.log(`heading: ${heading}`);
+    console.log(`pitch: ${pitch}`);
 
     var svImageWidth = svl.svImageWidth * zoomFactor;
     var svImageHeight = svl.svImageHeight * zoomFactor;
 
     imageX = (svImageWidth * (heading / 360) + ((svImageWidth / 360) / 2)) / zoomFactor;
     imageY = ((svImageHeight / 2) * (pitch / 90)) / zoomFactor;
+    console.log(`imageX: ${imageX}`);
+    console.log(`imageY: ${imageY}`);
 
     return {
         x: imageX,
