@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.easytesting</groupId>
+  <artifactId>fest-assert</artifactId>
+  <version>1.4</version>
+  <name>FEST Fluent Assertions</name>
+  <description>'Flexible' or 'fluent' assertions for testing</description>
+  <inceptionYear>2007</inceptionYear>
+  <url>http://fest.easytesting.org/assert</url>
+  <parent>
+    <groupId>org.easytesting</groupId>
+    <artifactId>fest</artifactId>
+    <version>1.0.8</version>
+  </parent>
+  <mailingLists>
+    <mailingList>
+      <name>Easy Testing Group</name>
+      <post>http://groups.google.com/group/easytesting</post>
+      <subscribe>http://groups.google.com/group/easytesting</subscribe>
+      <unsubscribe>http://groups.google.com/group/easytesting</unsubscribe>
+    </mailingList>
+  </mailingLists>
+  <scm>
+    <developerConnection>scm:git:git@github.com:alexruiz/fest-assert-1.x.git</developerConnection>
+    <connection>scm:git:git://github.com/alexruiz/fest-assert-1.x.git</connection>
+    <url>https://github.com/alexruiz/fest-assert-1.x</url>
+  </scm>
+  <issueManagement>
+    <system>JIRA</system>
+    <url>http://jira.codehaus.org/browse/FEST</url>
+  </issueManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.easytesting</groupId>
+      <artifactId>fest-util</artifactId>
+      <version>1.1.6</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.easytesting</groupId>
+      <artifactId>fest-reflect</artifactId>
+      <version>1.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.easytesting</groupId>
+      <artifactId>fest-test</artifactId>
+      <version>2.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.easytesting</groupId>
+      <artifactId>fest-mocks</artifactId>
+      <version>1.1.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
