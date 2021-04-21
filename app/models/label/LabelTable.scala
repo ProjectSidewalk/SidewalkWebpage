@@ -728,17 +728,18 @@ object LabelTable {
     // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Get deprioritized labels
+    // Get deprioritized labels.
     val deprioritized = deprioritizedLabels()
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labelsWithoutDeletedOrOnboarding if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId && !(_lb.labelId inSet deprioritized)
+      _lb <- labelsWithoutDeletedOrOnboarding if !(_lb.labelId inSet deprioritized)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
       _tags <- tagTable if _labeltags.tagId === _tags.tagId && ((_tags.tag inSet tags) || tags.isEmpty)
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
     } yield (_lb, _lp, _lt.labelType)
 
     // Join with severity to add severity.
@@ -802,11 +803,9 @@ object LabelTable {
             None
           }
         }.seq
-
       potentialStartIdx += labelsNeeded
       selectedLabels ++= newLabels
     }
-
     selectedLabels
   }
 
@@ -823,18 +822,19 @@ object LabelTable {
     // List to return.
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
 
-    // Init random function
+    // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Get deprioritized labels
+    // Get deprioritized labels.
     val deprioritized = deprioritizedLabels()
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-        _lb <- labelsWithoutDeletedOrOnboarding if _lb.streetEdgeId =!= tutorialStreetId && !(_lb.labelId inSet deprioritized)
-        _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-        _lp <- labelPoints if _lb.labelId === _lp.labelId
-        _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _lb <- labelsWithoutDeletedOrOnboarding if !(_lb.labelId inSet deprioritized)
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      if _lb.streetEdgeId =!= tutorialStreetId
     } yield (_lb, _lp, _lt.labelType)
 
     // Join with severity to add severity.
@@ -897,13 +897,11 @@ object LabelTable {
               None
             }
           }.seq
-
         potentialStartIdx += labelsNeeded
         selectedLabelsOfType ++= newLabels
       }
       selectedLabels ++= selectedLabelsOfType
     }
-
     selectedLabels
   }
 
@@ -919,18 +917,19 @@ object LabelTable {
     // List to return.
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     
-    // Init random function
+    // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Get deprioritized labels
+    // Get deprioritized labels.
     val deprioritized = deprioritizedLabels()
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labelsWithoutDeletedOrOnboarding if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId && !(_lb.labelId inSet deprioritized)
+      _lb <- labelsWithoutDeletedOrOnboarding if !(_lb.labelId inSet deprioritized)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
     } yield (_lb, _lp, _lt.labelType)
 
     // Filter out labels already grabbed before.
@@ -1354,14 +1353,13 @@ object LabelTable {
   def deprioritizedLabels(): Set[Int] = db.withSession { implicit session =>
     // Get set of deprioritized labels (to not show) by filtering out those that have been validated as "disagree" 3 or
     // more times and have twice as many disagrees as agrees.
-    val deprioritizedLabels = Q.queryNA[(Int)](
+    Q.queryNA[(Int)](
       """SELECT label.label_id
-        |FROM "sidewalk".label
-        |INNER JOIN "sidewalk".label_validation ON label.label_id = label_validation.label_id
+        |FROM label
+        |INNER JOIN label_validation ON label.label_id = label_validation.label_id
         |GROUP BY label.label_id
         |HAVING COUNT(CASE WHEN validation_result = 2 THEN 1 END) > 2 
         |   AND COUNT(CASE WHEN validation_result = 2 THEN 1 END) >= (2 * COUNT(CASE WHEN validation_result = 1 THEN 1 END))""".stripMargin
     ).list.toSet
-    deprioritizedLabels
   }
 }
