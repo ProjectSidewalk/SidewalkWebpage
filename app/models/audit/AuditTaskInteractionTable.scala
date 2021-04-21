@@ -193,4 +193,36 @@ object AuditTaskInteractionTable {
     }
     Json.obj("type" -> "FeatureCollection", "features" -> features)
   }
+
+  /**
+   * Calculate combined time spent auditing and validating for the given user using interaction logs.
+   *
+   * To do this, we take the important events from the audit_task_interaction and validation_task_interaction tables,
+   * get the difference between each consecutive timestamp, filter out the timestamp diffs that are greater than five
+   * minutes, and then sum those time diffs.
+   */
+  def getHoursAuditingAndValidating(userId: String): Float = db.withSession { implicit session =>
+    Q.queryNA[Float](
+      s"""SELECT CAST(extract( second from SUM(diff) ) / 60 +
+         |            extract( minute from SUM(diff) ) +
+         |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) / 60.0 AS hours_volunteered
+         |FROM (
+         |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |    FROM (
+         |        SELECT user_id, timestamp
+         |        FROM validation_task_interaction
+         |        INNER JOIN mission ON mission.mission_id = validation_task_interaction.mission_id
+         |        WHERE action IN ('ValidationButtonClick_Agree', 'ValidationButtonClick_Disagree', 'ValidationButtonClick_NotSure', 'ValidationKeyboardShortcut_Agree', 'ValidationKeyboardShortcut_Disagree', 'ValidationKeyboardShortcut_NotSure')
+         |            AND mission.user_id = '$userId'
+         |        UNION
+         |        SELECT user_id, timestamp
+         |        FROM audit_task_interaction
+         |        INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
+         |        WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
+         |            AND audit_task.user_id = '$userId'
+         |    )"timestamps"
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
+  }
 }

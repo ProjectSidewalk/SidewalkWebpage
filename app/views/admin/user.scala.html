@@ -9,6 +9,7 @@
 @import models.user.UserCurrentRegionTable
 
 @import models.region.RegionTable
+@import models.audit.AuditTaskInteractionTable
 @(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))(implicit lang: Lang)
 
 @main(title) {
@@ -39,30 +40,34 @@
                         <th class="col-md">Username</th>
                         <th class="col-md">User Id</th>
                         <th class="col-md">Email</th>
-                        <th class="col-md">Mission Count</th>
-                        <th class="col-md">Audited Street Count</th>
-                        <th class="col-md">Label Count</th>
-                        <th class="col-md">Total Distance Audited</th>
+                        <th class="col-md">Current Neighborhood</th>
                     </tr>
                     <tr>
                         <td>@user.get.username</td>
                         <td>@user.get.userId</td>
                         <td>@user.get.email</td>
-                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false, includeSkipped = false)</td>
-                        <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
-                        <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
-                        <td id="td-total-distance-audited-admin"></td>
+                        <td>
+                            @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
+                            (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map{x => x}.getOrElse("NA")))
+                        </td>
                     </tr>
                 </table>
             </div>
             <div class="col-lg-12">
-                <table class="table">
+                <table class="table table-striped table-condensed">
                     <tr>
-                        <th class="col-md-2">Current Neighborhood</th>
-                        <td class="col-md-10">
-                            @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
-                            (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map{x => x}.getOrElse("NA")))
-                        </td>
+                        <th class="col-md">Mission Count</th>
+                        <th class="col-md">Audited Street Count</th>
+                        <th class="col-md">Label Count</th>
+                        <th class="col-md">Total Distance Audited</th>
+                        <th class="col-md">Time spent auditing/validating</th>
+                    </tr>
+                    <tr>
+                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false, includeSkipped = false)</td>
+                        <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td id="td-total-distance-audited-admin"></td>
+                        <td>@AuditTaskInteractionTable.getHoursAuditingAndValidating(user.get.userId) hours</td>
                     </tr>
                 </table>
             </div>
