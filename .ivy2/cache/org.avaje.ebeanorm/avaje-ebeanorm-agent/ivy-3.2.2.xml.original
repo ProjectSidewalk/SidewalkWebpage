@@ -1,0 +1,81 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.avaje</groupId>
+    <artifactId>avaje-javaparent</artifactId>
+    <version>1.1</version>
+  </parent>
+
+  <groupId>org.avaje.ebeanorm</groupId>
+  <artifactId>avaje-ebeanorm-agent</artifactId>
+  <version>3.2.2</version>
+  <packaging>jar</packaging>
+
+  <name>avaje-ebeanorm-agent</name>
+  <url>http://www.avaje.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>rbygrave</id>
+      <name>Rob Bygrave</name>
+      <email>robin.bygrave@gmail.com</email>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/ebean-orm/avaje-ebeanorm-agent.git</connection>
+    <developerConnection>scm:git:https://github.com/ebean-orm/avaje-ebeanorm-agent.git</developerConnection>
+    <url>https://github.com/ebean-orm/avaje-ebeanorm-agent.git</url>
+  </scm>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.apache.ant</groupId>
+      <artifactId>ant</artifactId>
+      <version>1.7.0</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.2</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <build-version>${project.version}</build-version>
+            </manifestEntries>
+
+            <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+
+  </build>
+</project>

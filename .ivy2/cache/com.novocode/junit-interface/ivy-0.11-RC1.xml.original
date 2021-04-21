@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.novocode</groupId>
+    <artifactId>junit-interface</artifactId>
+    <packaging>jar</packaging>
+    <description>An implementation of sbt's test interface for JUnit 4</description>
+    <url>http://github.com/sbt/junit-interface/</url>
+    <version>0.11-RC1</version>
+    <licenses>
+        <license>
+            <name>Two-clause BSD-style license</name>
+            <url>http://github.com/sbt/junit-interface/blob/master/LICENSE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>JUnit-Interface</name>
+    <inceptionYear>2009</inceptionYear>
+    <organization>
+        <name>com.novocode</name>
+        <url>http://github.com/sbt/junit-interface/</url>
+    </organization>
+    <developers>
+        <developer>
+            <id>szeiger</id>
+            <name>Stefan Zeiger</name>
+            <timezone>+1</timezone>
+            <url>http://szeiger.de</url>
+        </developer>
+    </developers>
+    <scm>
+        <url>git@github.com:sbt/junit-interface.git/</url>
+        <connection>scm:git:git@github.com:sbt/junit-interface.git</connection>
+    </scm>
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-sbt</groupId>
+            <artifactId>test-interface</artifactId>
+            <version>1.0</version>
+        </dependency>
+    </dependencies>
+</project>
