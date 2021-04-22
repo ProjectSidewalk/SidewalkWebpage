@@ -1,4 +1,4 @@
-package models.label
+package models.user
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -23,8 +23,12 @@ object OrganizationTable {
   /**
     * Gets a list of all organizations.
     */
-  def getAllOrganizations: List[Organization] = db.withSession { implicit session => 
+  def getAllOrganizations: List[Organization] = db.withSession { implicit session =>
     organizations.list
+  }
+
+  def containsId(orgId: Int): Boolean = db.withSession { implicit session =>
+    organizations.filter(_.orgId === orgId).firstOption.isDefined
   }
 
   /**

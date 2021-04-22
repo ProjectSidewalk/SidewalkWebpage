@@ -1,4 +1,6 @@
 @import models.user.User
+@import models.user.OrganizationTable
+@import models.user.UserOrgTable
 @import models.region.RegionTable
 @import models.mission.MissionTable
 @import models.label.LabelTable
@@ -9,6 +11,33 @@
 @main(title) {
     @navbar(user, user.map(u=> "/contribution/" + u.username))
     <div class="container">
+
+        @if(user && user.get.role.getOrElse("") != "Anonymous") {
+            <div class="row" id="userprofile">
+                <h2>@user.get.username</h2>
+                @if(!UserOrgTable.getAllUserOrgs(user.get.userId).isEmpty) {
+                    <h3>@OrganizationTable.getOrganizationName(UserOrgTable.getAllUserOrgs(user.get.userId).head)</h3>
+                } else {
+                    <h3>No Organization</h3>
+                }
+                <div id="organization-dropdown" class="dropdown">
+                    <a id="join-organization" role="button" data-toggle="dropdown" href="#">
+                        Join Organization
+                    </a>
+                    <ul id="organization-menu" class="dropdown-menu" role="menu" style="z-index: 2000;">
+                        <li>
+                            <a id="-1" role="menuitem" class="put-user-org" href="#">Leave Organization</a>
+                        </li>
+                        @for(org <- OrganizationTable.getAllOrganizations) {
+                            <li>
+                                <a id="@org.orgId" role="menuitem" class="put-user-org" href="#">@org.orgName</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+        
         <div class="row" id="maprow">
             <div class="col-lg-12" id="mapcolumn">
                 <div id="map-holder">

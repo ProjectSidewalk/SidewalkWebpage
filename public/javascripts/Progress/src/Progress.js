@@ -56,4 +56,21 @@ function Progress (_, $, difficultRegionIds, userRole) {
         InitializeSubmittedLabels(map, streetParams, 'null', InitializeMapLayerContainer(), data2[0])
         setRegionFocus(map, layers);
     });
+
+    function putUserOrg(e) {
+        var orgId = $(this).attr('id');
+        $.ajax({
+            async: true,
+            url: '/userapi/setUserOrg/' + orgId,
+            type: 'put',
+            success: function (result) {
+                console.log("Success!")
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    $('.put-user-org').on('click', putUserOrg);
 }
