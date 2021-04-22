@@ -134,11 +134,11 @@ object AuditTaskInteractionTable {
         |       label_point.canvas_y AS canvas_y,
         |       label_point.canvas_width AS canvas_width,
         |       label_point.canvas_height AS canvas_height
-        |FROM sidewalk.audit_task_interaction AS interaction
-        |LEFT JOIN sidewalk.label ON interaction.temporary_label_id = label.temporary_label_id
+        |FROM audit_task_interaction AS interaction
+        |LEFT JOIN label ON interaction.temporary_label_id = label.temporary_label_id
         |                         AND interaction.audit_task_id = label.audit_task_id
-        |LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
+        |LEFT JOIN label_type ON label.label_type_id = label_type.label_type_id
+        |LEFT JOIN label_point ON label.label_id = label_point.label_id
         |WHERE interaction.audit_task_id = ?
         |    AND interaction.action NOT IN (
         |        'LowLevelEvent_mousemove', 'LowLevelEvent_mouseover', 'LowLevelEvent_mouseout', 'LowLevelEvent_click',

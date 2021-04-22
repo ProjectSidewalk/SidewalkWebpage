@@ -303,7 +303,7 @@ object LabelValidationTable {
   def countTodayValidations: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(v.label_id)
-        |FROM sidewalk.label_validation v
+        |FROM label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date""".stripMargin
     )
     countQuery.first
@@ -315,7 +315,7 @@ object LabelValidationTable {
   def countPastWeekValidations: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(v.label_id)
-        |FROM sidewalk.label_validation v
+        |FROM label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'""".stripMargin
     )
     countQuery.first
@@ -327,7 +327,7 @@ object LabelValidationTable {
   def countTodayValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT COUNT(v.label_id)
-        |FROM sidewalk.label_validation v
+        |FROM label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
         |   AND v.validation_result = $result""".stripMargin
     )
@@ -340,7 +340,7 @@ object LabelValidationTable {
   def countPastWeekValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT COUNT(v.label_id)
-         |FROM sidewalk.label_validation v
+         |FROM label_validation v
          |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |   AND v.validation_result = $result""".stripMargin
     )
