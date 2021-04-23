@@ -223,7 +223,7 @@ object LabelTable {
     labels.filter(_.deleted === false).length.run
   )
 
-  def countLabelsBasedOnType(labelTypeString: String): Int = db.withTransaction(implicit session =>
+  def countLabels(labelTypeString: String): Int = db.withTransaction(implicit session =>
     labels.filter(_.deleted === false).filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelTypeString)).length.run
   )
 
@@ -233,7 +233,6 @@ object LabelTable {
   * If the task goes over two days, then all labels for that audit task will be added for the task end date.
   */
   def countTodayLabels: Int = db.withSession { implicit session =>
-
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(label.label_id)
         |FROM sidewalk.audit_task
@@ -249,9 +248,8 @@ object LabelTable {
   *
   * If the task goes over two days, then all labels for that audit task will be added for the task end date.
   */
-  def countTodayLabelsBasedOnType(labelType: String): Int = db.withSession { implicit session =>
-
-    val countQuery =
+  def countTodayLabels(labelType: String): Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
          |FROM sidewalk.audit_task
          |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
@@ -262,9 +260,8 @@ object LabelTable {
          |        FROM sidewalk.label_type as lt
          |        WHERE lt.label_type='$labelType'
          |    )""".stripMargin
-    val countQueryResult = Q.queryNA[(Int)](countQuery)
-
-    countQueryResult.first
+    )
+    countQuery.first
   }
 
   /*
@@ -283,10 +280,9 @@ object LabelTable {
 
   /*
   * Counts the number of specific label types added during the last week.
-  * Date: Aug 28, 2016
   */
-  def countPastWeekLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
-    val countQuery =
+  def countPastWeekLabels(labelType: String): Int = db.withTransaction { implicit session =>
+    val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
          |FROM sidewalk.audit_task
          |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
@@ -297,11 +293,9 @@ object LabelTable {
          |        FROM sidewalk.label_type as lt
          |        WHERE lt.label_type='$labelType'
          |    )""".stripMargin
-    val countQueryResult = Q.queryNA[(Int)](countQuery)
-
-    countQueryResult.first
+    )
+    countQuery.first
   }
-
 
   /**
     * Returns the number of labels submitted by the given user.
@@ -309,7 +303,7 @@ object LabelTable {
     * @param userId User id
     * @return A number of labels submitted by the user
     */
-  def countLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
+  def countLabels(userId: UUID): Int = db.withSession { implicit session =>
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val _labels = for {
       (_tasks, _labels) <- tasks.innerJoin(labelsWithoutDeletedOrOnboarding).on(_.auditTaskId === _.auditTaskId)
@@ -1148,14 +1142,14 @@ object LabelTable {
   /*
    * Retrieves label and its metadata.
    */
-  def selectTopLabelsAndMetadata(n: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
+  def getRecentLabelMetadataWithValidations(n: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
     retrieveLabelMetadata(n)
   }
 
   /*
    * Retrieves label by user and its metadata.
    */
-  def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
+  def getRecentLabelMetadata(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
     retrieveLabelMetadata(n, userId.toString)
   }
 
@@ -1218,7 +1212,7 @@ object LabelTable {
   /**
    * Returns a list of labels submitted by the given user.
    */
-  def selectLocationsOfLabelsByUserId(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+  def getLabelLocations(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
     val _labels = for {
       ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeletedOrOnboarding on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString
@@ -1232,7 +1226,7 @@ object LabelTable {
     labelLocationList
   }
 
-  def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int): List[LabelLocation] = db.withSession { implicit session =>
+  def getLabelLocations(userId: UUID, regionId: Int): List[LabelLocation] = db.withSession { implicit session =>
     val selectQuery = Q.query[(String, Int), LabelLocation](
       """SELECT label.label_id,
         |       label.audit_task_id,

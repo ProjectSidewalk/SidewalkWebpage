@@ -63,9 +63,9 @@
                         <th class="col-md">Time spent auditing/validating</th>
                     </tr>
                     <tr>
-                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false, includeSkipped = false)</td>
-                        <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
-                        <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td>@MissionTable.countCompletedMissions(UUID.fromString(user.get.userId), includeOnboarding = false, includeSkipped = false)</td>
+                        <td>@AuditTaskTable.countCompletedAudits(UUID.fromString(user.get.userId))</td>
+                        <td>@LabelTable.countLabels(UUID.fromString(user.get.userId))</td>
                         <td id="td-total-distance-audited-admin"></td>
                         <td>@AuditTaskInteractionTable.getHoursAuditingAndValidating(user.get.userId) hours</td>
                     </tr>
@@ -90,7 +90,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    @LabelTable.selectTopLabelsAndMetadataByUser(1000, UUID.fromString(user.get.userId)).map { userLabel =>
+                    @LabelTable.getRecentLabelMetadata(1000, UUID.fromString(user.get.userId)).map { userLabel =>
                         <tr>
                             <td class = 'timestamp'>@userLabel.timestamp</td>
                             <td>@userLabel.labelTypeKey</td>
