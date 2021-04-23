@@ -13,6 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
+GET     /gallery                                             @controllers.ApplicationController.gallery
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
@@ -36,6 +37,7 @@ GET     /resetPassword                                       @controllers.UserCo
 GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
 GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
 GET     /finishSignUp                                        @controllers.SignUpController.finishSignUp(url: Option[String])
+GET     /changeLanguage                                      @controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
 POST    /signUp                                              @controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
@@ -68,6 +70,7 @@ GET     /adminapi/labelCounts                                @controllers.AdminC
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
+GET     /adminapi/updateUserStats                            @controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -105,6 +108,8 @@ POST    /task                                                @controllers.TaskCo
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
+POST    /galleryTask                                         @controllers.GalleryTaskController.post
+POST    /galleryTaskBeacon                                   @controllers.GalleryTaskController.postBeacon
 POST    /labelmap/validate                                   @controllers.ValidationTaskController.postLabelMapValidation
 POST    /labelmap/comment                                    @controllers.ValidationTaskController.postLabelMapComment
 
@@ -116,6 +121,8 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
+GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String)
+GET     /label/labelsBySeveritiesAndTags                     @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String)
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods
@@ -159,7 +166,7 @@ POST    /amtAssignment                                       @controllers.Missio
 
 # Clustering and Attributes
 GET     /clustering                                          @controllers.AttributeController.index
-GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both")
+GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both", hoursCutoff: Option[Int])
 GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
 GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
 POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)

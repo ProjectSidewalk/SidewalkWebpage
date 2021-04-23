@@ -20,10 +20,13 @@ import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
 import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
-
 import scala.concurrent.Future
 
-
+/**
+ * Holds the HTTP requests associated with API.
+ *
+ * @param env The Silhouette environment.
+ */
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -255,12 +258,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
         assert(coverage <= 1.0)
 
-        writer.println(neighborhood.name.getOrElse("NA") + "," + neighborhood.regionId + "," + accessScore + "," + 
+        writer.println(neighborhood.name + "," + neighborhood.regionId + "," + accessScore + "," +
                       coordStr + "," + coverage + "," + averagedStreetFeatures(0) + "," + averagedStreetFeatures(1) + "," + 
                       averagedStreetFeatures(2) + "," + averagedStreetFeatures(3) + "," + 
                       significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3))                
       } else {
-        writer.println(neighborhood.name.getOrElse("NA") + "," + neighborhood.regionId + "," + "NA" + "," + 
+        writer.println(neighborhood.name + "," + neighborhood.regionId + "," + "NA" + "," +
                       coordStr + ","  + 0.0 + "," + "NA" + "," + "NA" + "," + "NA" + "," + "NA" + "," + 
                       significance(0) + "," + significance(1) + "," + 
                       significance(2) + "," + significance(3))

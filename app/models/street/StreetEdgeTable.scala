@@ -170,8 +170,7 @@ object StreetEdgeTable {
       }
 
       // Get length of each street segment, sum the lengths, and convert from meters to miles.
-      val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
-      (distances.sum * 0.000621371).toFloat
+      edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
     }
   }
 
@@ -194,16 +193,16 @@ object StreetEdgeTable {
   }
 
   /**
-    * Calculates the distance audited yesterday by all users.
+    * Calculates the distance audited during the past week by all users.
     *
-    * @return The distance audited yesterday by all users in miles.
+    * @return The distance audited during the past week by all users in miles.
     */
-  def auditedStreetDistanceYesterday(): Float = db.withSession { implicit session =>
+  def auditedStreetDistancePastWeek(): Float = db.withSession { implicit session =>
     val getDistanceQuery = Q.queryNA[Float](
         """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
             |FROM street_edge
             |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-            |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day
+            |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
             |     AND street_edge.deleted = FALSE
             |     AND audit_task.completed = TRUE""".stripMargin
         )
@@ -334,7 +333,7 @@ object StreetEdgeTable {
 
   /** Returns the distance of the given street edge. */
   def getStreetEdgeDistance(streetEdgeId: Int): Float = db.withSession { implicit session =>
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
   }
 
   def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
@@ -350,7 +349,7 @@ object StreetEdgeTable {
         |       st_e.way_type,
         |       st_e.deleted,
         |       st_e.timestamp
-        |FROM sidewalk.street_edge AS st_e
+        |FROM street_edge AS st_e
         |WHERE st_e.deleted = FALSE
         |    AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
@@ -372,8 +371,8 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp
-        |FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |FROM street_edge
+        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE street_edge.deleted = FALSE
         |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
         |    AND audit_task.completed = TRUE""".stripMargin
@@ -394,8 +393,8 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp
-        |FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |FROM street_edge
+        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE street_edge.deleted = FALSE
         |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
         |    AND audit_task.completed = TRUE""".stripMargin

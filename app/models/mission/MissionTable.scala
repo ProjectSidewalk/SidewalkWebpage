@@ -9,7 +9,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
-import models.region.RegionPropertyTable
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -90,12 +89,12 @@ object MissionTable {
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
   val auditMissionTypeId: Int = db.withSession { implicit session =>
-    missionTypes.filter(_.missionType === "audit").map(_.missionTypeId).list.head
+    missionTypes.filter(_.missionType === "audit").map(_.missionTypeId).first
   }
   val auditMissions = missions.filter(_.missionTypeId === auditMissionTypeId)
 
   val validationMissionTypeId: Int = db.withSession { implicit session =>
-    missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
+    missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).first
   }
   val validationMissions = missions.filter(_.missionTypeId === validationMissionTypeId)
 
@@ -140,7 +139,7 @@ object MissionTable {
     *
     * @return the total number of labels the user has validated.
     */
-   def countCompletedValidationsByUserID(userId: UUID): Int = db.withSession { implicit session =>
+   def countCompletedValidations(userId: UUID): Int = db.withSession { implicit session =>
     (for {
       _missionType <- missionTypes
       _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
@@ -155,8 +154,8 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included in this count
     * @return
     */
-  def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean): Int = db.withTransaction { implicit session =>
-    selectCompletedMissionsByAUser(userId, includeOnboarding).size
+  def countCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = db.withTransaction { implicit session =>
+    selectCompletedMissions(userId, includeOnboarding, includeSkipped).size
   }
 
   /**
@@ -242,7 +241,7 @@ object MissionTable {
     * Check if the user has completed onboarding.
     */
   def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
-    selectCompletedMissionsByAUser(userId, includeOnboarding = true)
+    selectCompletedMissions(userId, includeOnboarding = true, includeSkipped = true)
       .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
   }
 
@@ -250,14 +249,14 @@ object MissionTable {
     * Checks if the specified mission is an onboarding mission.
     */
   def isOnboardingMission(missionId: Int): Boolean = db.withSession { implicit session =>
-    MissionTypeTable.onboardingTypeIds.contains(missions.filter(_.missionId === missionId).map(_.missionTypeId).list.head)
+    MissionTypeTable.onboardingTypeIds.contains(missions.filter(_.missionId === missionId).map(_.missionTypeId).first)
   }
 
   /**
     * Checks if the specified mission is a CV ground truth mission.
     */
   def isCVGroundTruthMission(missionId: Int): Boolean = db.withSession { implicit session =>
-    MissionTypeTable.missionTypeToId("cvGroundTruth") == missions.filter(_.missionId === missionId).map(_.missionTypeId).list.head
+    MissionTypeTable.missionTypeToId("cvGroundTruth") == missions.filter(_.missionId === missionId).map(_.missionTypeId).first
   }
 
   /**
@@ -265,30 +264,28 @@ object MissionTable {
     *
     * @param userId User's UUID
     * @param includeOnboarding should any onboarding missions be included
+    * @param includeSkipped should any skipped missions be included
     */
-  def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
-    val _missions = if (includeOnboarding) {
-      missions.filter(m => m.userId === userId.toString && m.completed)
-    } else {
-      missions.filter(m => m.userId === userId.toString && m.completed)
-        .filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
-    }
+  def selectCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): List[Mission] = db.withSession { implicit session =>
+      val _m1 = missions.filter(m => m.userId === userId.toString && m.completed)
+      val _m2 = if (includeOnboarding) _m1 else _m1.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
+      val _m3 = if (includeSkipped) _m2 else _m2.filterNot(_.skipped)
 
-    _missions.list.groupBy(_.missionId).map(_._2.head).toList
+      _m3.list.groupBy(_.missionId).map(_._2.head).toList
   }
 
   /**
     * Get the user's incomplete mission in the region if there is one.
     */
   def getCurrentMissionInRegion(userId: UUID, regionId: Int): Option[Mission] = db.withSession { implicit session =>
-    missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).list.headOption
+    missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).firstOption
   }
 
   /**
     * Returns the mission with the provided ID, if it exists.
     */
-  def getMissionById(missionId: Int): Option[Mission] = db.withSession { implicit session =>
-    missions.filter(m => m.missionId === missionId).list.headOption
+  def getMission(missionId: Int): Option[Mission] = db.withSession { implicit session =>
+    missions.filter(m => m.missionId === missionId).firstOption
   }
 
   def getCurrentValidationMission(userId: UUID, labelTypeId: Int, missionType: String): Option[Mission] = db.withSession { implicit session =>
@@ -298,7 +295,7 @@ object MissionTable {
         && m.missionTypeId === missionTypeId
         && m.labelTypeId === labelTypeId
         && !m.completed
-    ).list.headOption
+    ).firstOption
   }
 
   /**
@@ -308,17 +305,17 @@ object MissionTable {
     * @return an incomplete CV ground truth audit mission
     */
   def getIncompleteCVGroundTruthMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
-    val cvGroundTruthId: Int = missionTypes.filter(_.missionType === "cvGroundTruth").map(_.missionTypeId).list.head
+    val cvGroundTruthId: Int = missionTypes.filter(_.missionType === "cvGroundTruth").map(_.missionTypeId).first
     missions.filter(m => m.userId === userId.toString && m.missionTypeId === cvGroundTruthId && !m.completed)
-      .sortBy(_.missionId).list.headOption
+      .sortBy(_.missionId).firstOption
   }
 
   /**
     * Get the user's incomplete auditOnboarding mission if there is one.
     */
   def getIncompleteAuditOnboardingMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
-    val tutorialId: Int = missionTypes.filter(_.missionType === "auditOnboarding").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === tutorialId && !m.completed).list.headOption
+    val tutorialId: Int = missionTypes.filter(_.missionType === "auditOnboarding").map(_.missionTypeId).first
+    missions.filter(m => m.userId === userId.toString && m.missionTypeId === tutorialId && !m.completed).firstOption
   }
 
   /**
@@ -328,7 +325,7 @@ object MissionTable {
     * @param regionId region Id
     * @param includeOnboarding should region-less onboarding mission be included if complete
     */
-  def selectCompletedAuditMissionsByAUser(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
+  def selectCompletedAuditMissions(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
     val auditMissionTypes: List[String] = if (includeOnboarding) List("audit", "auditOnboarding") else List("audit")
     val auditMissionTypeIds: List[Int] = missionTypes.filter(_.missionType inSet auditMissionTypes).map(_.missionTypeId).list
     missions.filter(m => m.userId === userId.toString
@@ -344,8 +341,8 @@ object MissionTable {
     val userMissions = missions.filter(_.userId === userId.toString)
 
     val missionsWithRegionName = for {
-      (_m, _rp) <- userMissions.leftJoin(RegionPropertyTable.neighborhoodNames).on(_.regionId === _.regionId)
-    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _rp.value.?, _m.distanceMeters, _m.labelsValidated)
+      (_m, _r) <- userMissions.leftJoin(RegionTable.regions).on(_.regionId === _.regionId)
+    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.description.?, _m.distanceMeters, _m.labelsValidated)
 
     val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>
       RegionalMission(m._1, MissionTypeTable.missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6)
@@ -589,7 +586,7 @@ object MissionTable {
     */
   def getNextAuditMissionDistance(userId: UUID, regionId: Int): Float = {
     val distRemaining: Float = AuditTaskTable.getUnauditedDistance(userId, regionId)
-    val completedInRegion: Int = selectCompletedAuditMissionsByAUser(userId, regionId, includeOnboarding = false).length
+    val completedInRegion: Int = selectCompletedAuditMissions(userId, regionId, includeOnboarding = false).length
     val naiveMissionDist: Float =
       if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
       else                                                            distancesForFirstAuditMissions(completedInRegion)
@@ -620,7 +617,7 @@ object MissionTable {
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
     val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, None, false, None)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
-    missions.filter(_.missionId === missionId).list.head
+    missions.filter(_.missionId === missionId).first
   }
 
   /**
@@ -639,7 +636,7 @@ object MissionTable {
     val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
     val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
-    missions.filter(_.missionId === missionId).list.head
+    missions.filter(_.missionId === missionId).first
   }
 
   /**
@@ -652,7 +649,7 @@ object MissionTable {
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("cvGroundTruth")
     val newMission: Mission = Mission(0, missionTypeId, userId.toString, now, now, false, 0, false, None, None, None, None, None, None, false, None)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
-    missions.filter(_.missionId === missionId).list.head
+    missions.filter(_.missionId === missionId).first
   }
 
   /**
@@ -665,7 +662,7 @@ object MissionTable {
     val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
     val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, None, false, None)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMiss
-    missions.filter(_.missionId === missionId).list.head
+    missions.filter(_.missionId === missionId).first
   }
 
   /**
@@ -675,7 +672,7 @@ object MissionTable {
     (for {
       _mission <- missions if _mission.missionId === missionId
       _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
-    } yield _missionType.missionType).list.headOption
+    } yield _missionType.missionType).firstOption
   }
 
   /**
@@ -742,7 +739,7 @@ object MissionTable {
     */
   def updateValidationProgress(missionId: Int, labelsProgress: Int): Int = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionLabels: Int = missions.filter(_.missionId === missionId).map(_.labelsValidated).list.head.get
+    val missionLabels: Int = missions.filter(_.missionId === missionId).map(_.labelsValidated).first.get
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.labelsProgress, m.missionEnd)
 
     if (labelsProgress <= missionLabels) {

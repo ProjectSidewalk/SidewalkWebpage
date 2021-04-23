@@ -26,20 +26,28 @@ import play.api.mvc.BodyParsers
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
+
+import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
 /**
-  * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
+  * Holds the HTTP requests associated with the admin page.
   */
 class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  /**
+   * Checks if the given user is an Administrator.
+   */
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
       if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
     case _ => false
   }
 
+  /**
+   * Loads the admin page.
+   */
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       if (request.identity.nonEmpty) {
@@ -50,10 +58,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       }
       Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
+  /**
+   * Loads the admin version of the user dashboard page.
+   */
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
@@ -61,10 +72,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
+  /**
+   * Loads the page that replays an audit task.
+   */
   def task(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       AuditTaskTable.find(taskId) match {
@@ -72,12 +86,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case _ => Future.successful(Redirect("/"))
       }
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
   /**
-   * Get a list of all labels.
+   * Get a list of all labels for the admin page.
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -96,12 +110,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Future.successful(Ok(featureCollection))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
   /**
-   * Get a list of all labels.
+   * Get a list of all labels with metadata needed for /labelMap.
    */
   def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
     val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
@@ -111,7 +125,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "label_id" -> label.labelId,
         "gsv_panorama_id" -> label.gsvPanoramaId,
         "label_type" -> label.labelType,
-        "severity" -> label.severity
+        "severity" -> label.severity,
+        "expired" -> label.expired
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
     }
@@ -120,8 +135,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Admin API endpoint that produces JSON output of all labels with sufficient metadata to produce crops
-    * for computer vision applications.
+    * Get a list of all labels with metadata needed to produce crops for computer vision applications.
     */
   def getAllLabelCVMetadata = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -143,7 +157,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val featureCollection: JsObject = Json.obj("labels" -> jsonList)
       Future.successful(Ok(featureCollection))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -165,12 +179,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Future.successful(Ok(featureCollection))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
   /**
-    * Returns audit coverage of each neighborhood.
+    * Get audit coverage of each neighborhood.
     */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     RegionCompletionTable.initializeRegionCompletionTable()
@@ -199,7 +213,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       }))
       Future.successful(Ok(jsonArray))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -212,7 +226,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
       Future.successful(Ok(jsonArray))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -231,7 +245,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
       Future.successful(Ok(json))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -252,11 +266,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     Future.successful(Ok(JsArray(jsonObjectList)))
   }
 
+  /**
+   * Get the list of labels added by the given user.
+   */
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val labels = LabelTable.selectLocationsOfLabelsByUserId(UUID.fromString(user.userId))
+          val labels = LabelTable.getLabelLocations(UUID.fromString(user.userId))
           val features: List[JsObject] = labels.map { label =>
             val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
             val properties = Json.obj(
@@ -272,15 +289,18 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
+  /**
+   * Get the list of streets audited by the given user.
+   */
   def getStreetsAuditedByAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val streets = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
+          val streets = AuditTaskTable.getAuditedStreets(UUID.fromString(user.userId))
           val features: List[JsObject] = streets.map { edge =>
             val coordinates: Array[Coordinate] = edge.geom.getCoordinates
             val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
@@ -296,16 +316,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
   /**
-    * This method returns the tasks and labels submitted by the given user.
-    *
-    * @param username Username
-    * @return
-    */
+   * Get the list of labels added by the given user along with the associated audit tasks.
+   */
   def getSubmittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
@@ -315,10 +332,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
+  /**
+   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
+   */
   def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       AuditTaskTable.find(taskId) match {
@@ -330,7 +350,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
       }
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -347,7 +367,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
       }
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -364,6 +384,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+   * Get the list of pano IDs associated with labels in our database.
+   */
   def getAllPanoIds() = UserAwareAction.async { implicit request =>
 
     val labels = LabelTable.selectLocationsOfLabels
@@ -378,12 +401,19 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     Future.successful(Ok(featureCollection))
   }
 
+  /**
+   * Get a count of the number of labels placed by each user.
+   */
   def getAllUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerUser
-    val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "role" -> x._2, "count" -> x._3
-    )))
-    Future.successful(Ok(json))
+    if (isAdmin(request.identity)) {
+      val labelCounts = LabelTable.getLabelCountsPerUser
+      val json: JsArray = Json.arr(labelCounts.map(x => Json.obj(
+        "user_id" -> x._1, "role" -> x._2, "count" -> x._3
+      )))
+      Future.successful(Ok(json))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
 
   /**
@@ -391,12 +421,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * validated, and the number of their labels that were validated & agreed with.
     */
   def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
-    val validationCounts = LabelValidationTable.getValidationCountsPerUser
-
-    val json = Json.arr(validationCounts.map(x => Json.obj(
-      "user_id" -> x._1, "role" -> x._2, "count" -> x._4, "agreed" -> x._5
-    )))
-    Future.successful(Ok(json))
+    if (isAdmin(request.identity)) {
+      val validationCounts = LabelValidationTable.getValidationCountsPerUser
+      val json: JsArray = Json.arr(validationCounts.map(x => Json.obj(
+        "user_id" -> x._1, "role" -> x._2, "count" -> x._4, "agreed" -> x._5
+      )))
+      Future.successful(Ok(json))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
 
   /**
@@ -410,7 +443,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
       Future.successful(Ok(Json.arr(activities)))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -419,7 +452,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -433,7 +466,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(Json.arr(activities)))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -443,7 +476,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
       Future.successful(Ok(activities.length + ""))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
@@ -454,10 +487,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(activities.length + ""))
     } else {
-      Future.successful(Redirect("/"))
+      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
+  /**
+   * Updates the role in the database for the given user.
+   */
   def setUserRole = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
 
@@ -466,8 +502,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val userId = UUID.fromString(submission.userId)
-        val newRole = submission.roleId
+        val userId: UUID = UUID.fromString(submission.userId)
+        val newRole: String = submission.roleId
 
         if(isAdmin(request.identity)) {
           UserTable.findById(userId) match {
@@ -486,7 +522,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
               Future.successful(BadRequest("No user has this user ID"))
           }
         } else {
-          Future.successful(Redirect("/"))
+          Future.failed(new AuthenticationException("User is not an administrator"))
         }
       }
     )
@@ -494,9 +530,33 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   
   /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
   def clearPlayCache() = UserAwareAction.async { implicit request =>
-    val cacheController = Play.application.plugin[EhCachePlugin].get.manager
-    val cache = cacheController.getCache("play")
-    cache.removeAll()
-    Future.successful(Ok("success"))
+    if (isAdmin(request.identity)) {
+      val cacheController = Play.application.plugin[EhCachePlugin].get.manager
+      val cache = cacheController.getCache("play")
+      cache.removeAll()
+      Future.successful(Ok("success"))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
+  }
+
+  /**
+   * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
+   */
+  def updateUserStats(hoursCutoff: Option[Int]) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val cutoffTime: Timestamp = hoursCutoff match {
+        case Some(hours) =>
+          val msCutoff: Long = hours * 3600000L
+          new Timestamp(Instant.now.toEpochMilli - msCutoff)
+        case None =>
+          new Timestamp(Instant.EPOCH.toEpochMilli)
+      }
+
+      UserStatTable.updateUserStatTable(cutoffTime)
+      Future.successful(Ok("User stats updated!"))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
 }

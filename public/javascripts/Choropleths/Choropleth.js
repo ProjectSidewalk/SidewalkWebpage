@@ -42,7 +42,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         minZoom: 9,
         zoomControl: params.zoomControl,
         scrollWheelZoom: params.scrollWheelZoom,
-        zoomSnap: 0.5
+        zoomSnap: 0.25
     }).addLayer(L.mapbox.styleLayer(params.mapStyle));
 
     if (params.zoomSlider) L.control.zoomslider().addTo(choropleth);
@@ -117,7 +117,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                     let userCompleted = feature.properties.user_completed;
                     let url = '/audit/region/' + regionId;
                     let compRate = 100.0 * rates[ratesIndex].rate;
-                    let compRateRounded = Math.round(100.0 * rates[ratesIndex].rate);
+                    let compRateRounded = Math.floor(100.0 * rates[ratesIndex].rate);
                     let distanceLeft = rates[ratesIndex].total_distance_m - rates[ratesIndex].completed_distance_m;
                     // If using metric system, convert from meters to km. If using IS system, convert to miles.
                     let measurementSystem = i18next.t('measurement-system');
@@ -330,6 +330,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             initializeChoroplethNeighborhoodPolygons(choropleth, data, layers, labelData);
         }
         $('#page-loading').hide();
+        $('#results-legend').show();
     }
 
     // Makes POST request that logs `activity` in WebpageActivityTable.

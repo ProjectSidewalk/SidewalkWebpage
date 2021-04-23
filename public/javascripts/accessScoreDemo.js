@@ -7,7 +7,7 @@ $(document).ready(function () {
     map = L.mapbox.map('map', null, {
         maxZoom: 19,
         minZoom: 9,
-        zoomSnap: 0.5
+        zoomSnap: 0.25
     }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.

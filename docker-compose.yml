@@ -19,6 +19,9 @@ services:
       - SIDEWALK_CITY_ID=newberg-or
       - SIDEWALK_EMAIL_ADDRESS=DUMMY_EMAIL_ADDRESS
       - SIDEWALK_EMAIL_PASSWORD=DUMMY_EMAIL_PASSWORD
+      - GOOGLE_MAPS_API_KEY=AIzaSyD_TwZbLQcJsAzwTupyN3GATajH-TRDFvE
+      - GOOGLE_MAPS_SECRET=dAOHzb97v_oqiNmty3Fa8SFfUgE=
+      - INTERNAL_API_KEY=DUMMY_INTERNAL_API_KEY
       - ENV_TYPE=test
 
   db:
@@ -31,6 +34,6 @@ services:
       - "./db:/opt"
     ports:
       - "5432:5432"
-    environment: 
+    environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=sidewalk

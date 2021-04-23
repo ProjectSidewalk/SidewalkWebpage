@@ -112,8 +112,9 @@
         "context-menu": {
             "description": "Description (optional)",
             "severity": "Please click to label a severity",
-            "severity-example": "Severity Level {{n}} Example",
-            "severity-shortcuts": "Press Keys 1-5 for Severity",
+            "severity-example": "Severity level {{n}} example",
+            "severity-shortcuts": "Press keys 1-5 for severity",
+            "label-popup-shortcuts": "Press <tag-underline>{{c}}</tag-underline> to add tag",
             "tag": {
                 "narrow": "n<tag-underline>a</tag-underline>rrow",
                 "points-into-traffic": "<tag-underline>p</tag-underline>oints into traffic",
@@ -135,13 +136,12 @@
                 "sign": "s<tag-underline>i</tag-underline>gn",
                 "garage-entrance": "<tag-underline>g</tag-underline>arage entrance",
                 "stairs": "stai<tag-underline>r</tag-underline>s",
-                "street-vendor": "street ven<tag-underline>d</tag-underline>or",
-                "large-step": "<tag-underline>l</tag-underline>arge step",
+                "street-vendor": "street vendor (<tag-underline>u</tag-underline>)",
                 "bumpy": "bum<tag-underline>p</tag-underline>y",
                 "uneven-slanted": "<tag-underline>u</tag-underline>neven/slanted",
                 "cracks": "crac<tag-underline>k</tag-underline>s",
                 "grass": "<tag-underline>g</tag-underline>rass",
-                "narrow-sidewalk": "n<tag-underline>a</tag-underline>rrow sidewalk",
+                "narrow-sidewalk": "narro<tag-underline>w</tag-underline>",
                 "brick": "br<tag-underline>i</tag-underline>ck",
                 "very-broken": "very b<tag-underline>r</tag-underline>oken",
                 "ends-abruptly": "ends <tag-underline>a</tag-underline>bruptly",
@@ -150,7 +150,8 @@
                 "gravel-dirt-road": "gravel/<tag-underline>d</tag-underline>irt road",
                 "shared-pedestrian-car-space": "shared <tag-underline>p</tag-underline>edestrian/car space",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
-                "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess"
+                "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess",
+                "height-difference": "height <tag-underline>d</tag-underline>ifference"
             },
             "tooltip": {
                 "passable": "Passable",

@@ -348,14 +348,19 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.stairs')
                     },
                     'street vendor': {
-                        keyNumber: 68,
-                        keyChar: 'D',
+                        keyNumber: 85,
+                        keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.street-vendor')
                     },
-                    'large step': {
-                        keyNumber: 76,
-                        keyChar: 'L',
-                        text: i18next.t('center-ui.context-menu.tag.large-step')
+                    'height difference': {
+                        keyNumber: 68,
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.height-difference')
+                    },
+                    'narrow': {
+                        keyNumber: 87,
+                        keyChar: 'W',
+                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     }
                 }
             },
@@ -388,8 +393,8 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.grass')
                     },
                     'narrow sidewalk': {
-                        keyNumber: 65,
-                        keyChar: 'A',
+                        keyNumber: 87,
+                        keyChar: 'W',
                         text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     },
                     'brick': {
@@ -406,6 +411,11 @@ function UtilitiesMisc (JSON) {
                         keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.very-broken')
+                    },
+                    'height difference': {
+                        keyNumber: 68,
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.height-difference')
                     }
                 }
             },
@@ -588,53 +598,62 @@ var ColorScheme = (function () {
             Walk : {
                 id : 'Walk',
                 fillStyle : 'rgba(0, 0, 0, 1)',
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(0, 0, 0, .8)',
             },
             CurbRamp: {
                 id: 'CurbRamp',
                 fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(0, 222, 38, .8)',
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
                 fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(233, 39, 113, .8)',
             },
             Obstacle: {
                 id: 'Obstacle',
                 fillStyle: 'rgba(0, 161, 203, 1)',
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(0, 161, 203, .8)'
             },
             Other: {
                 id: 'Other',
                 fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
-                strokeStyle: '#0000ff'
-
+                strokeStyle: '#0000ff',
+                missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
             },
             Occlusion: {
                 id: 'Occlusion',
                 fillStyle: 'rgba(179, 179, 179, 1)',
-                strokeStyle: '#009902'
+                strokeStyle: '#009902',
+                missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
                 fillStyle: 'rgba(153, 131, 239, 1)',
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(153, 131, 239, .8)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
                 fillStyle: 'rgba(241, 141, 5, 1)',
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
             },
             Void: {
                 id: 'Void',
                 fillStyle: 'rgba(255, 255, 255, 1)',
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(255, 255, 255, .8)',
             },
             Unclear: {
                 id: 'Unclear',
                 fillStyle: 'rgba(128, 128, 128, 0.5)',
-                strokeStyle: '#ffffff'
+                strokeStyle: '#ffffff',
+                missingPanoStrokeStyle: 'rgba(128, 128, 128, 0.8)'
             }
         };
         return category ? colors[category].fillStyle : colors;

@@ -4,7 +4,8 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
 import akka.actor.{Actor, Cancellable, Props}
 import models.street.StreetEdgePriorityTable
-import play.api.Logger
+import play.api.Play.current
+import play.api.{Logger, Play}
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
@@ -16,22 +17,25 @@ class RecalculateStreetPriorityActor extends Actor {
 
   override def preStart(): Unit = {
     super.preStart()
-    // If we want to update the street_edge_priority table at 3am every day, we need to figure out how much time there
-    // is b/w now and the next 3am, then we can set the update interval to be 24 hours. So we make a calendar object for
-    // right now, and one for 3am today. If it is after 3am right now, we set the 3am object to be 3am tomorrow. Then we
-    // get the time difference between the 3am object and now.
+    // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
+    val cityId: String = Play.configuration.getString("city-id").get
+    val hoursOffset: Int = Play.configuration.getInt(s"city-params.update-offset-hours.${cityId}").get
 
+    // If we want to update the street_edge_priority table at 12:45 am PDT every day, we need to figure out how much
+    // time there is b/w now and the next 12:45 am, then we can set the update interval to be 24 hours. So we make a
+    // calendar object for right now, and one for 12:45 am today. If it is after 12:45 am right now, we set the 12:45 am
+    // object to be 12:45 am tomorrow. Then we get the time difference between the 12:45 am object and now.
     val currentTime: Calendar = Calendar.getInstance(TIMEZONE)
-    var timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
-    timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 10)
-    timeOfNextUpdate.set(Calendar.MINUTE, 0)
+    val timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
+    timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 7 + hoursOffset)
+    timeOfNextUpdate.set(Calendar.MINUTE, 45)
     timeOfNextUpdate.set(Calendar.SECOND, 0)
 
-    // If already past 3am, set next update to 3am tomorrow.
+    // If already past 12:45 am, set next update to 12:45 am tomorrow.
     if (currentTime.after(timeOfNextUpdate)) {
       timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
     }
-    // If it is after 3am, this should have just incremented.
+    // If it is after 12:45 am, this should have just incremented.
     val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
     val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
 

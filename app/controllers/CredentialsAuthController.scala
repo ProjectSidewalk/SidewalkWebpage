@@ -86,6 +86,9 @@ class CredentialsAuthController @Inject() (
     )
   }
 
+  /**
+   * Helper function to authenticate the given user.
+   */
   def signIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
     val ipAddress: String = request.remoteAddress
 

@@ -53,21 +53,15 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
         self.panoNotAvailable = $("<div id='pano-not-avail'>Oops, our fault but there is no longer imagery available " +
             "for this label.</div>").css({
-            width: '100%',
-            height: '100%',
-            position: 'absolute',
-            top: '0',
-            'font-size': '200%'
+            'font-size': '200%',
+            'padding-bottom': '15px'
         })[0];
 
         self.panoNotAvailableDetails =
             $("<div id='pano-not-avail-2'>We use the Google Maps API to show the sidewalk images and sometimes Google" +
                 " removes these images so we can no longer access them. Sorry about that.</div>").css({
-            width: '95%',
-            height: '100%',
-            position: 'absolute',
-            top: '90px',
-            'font-size': '85%'
+            'font-size': '85%',
+            'padding-bottom': '15px'
         })[0];
 
         self.svHolder.append($(self.panoCanvas));
@@ -151,28 +145,30 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we
                 // wait a full 2 seconds without getting a response from Google.
                 if (self.panorama.getStatus() === "OK" || self.panoId == 'tutorial' || self.panoId == 'afterWalkTutorial') {
-                    $(self.panoCanvas).css('visibility', 'visible');
-                    $(self.panoNotAvailable).css('visibility', 'hidden');
-                    $(self.panoNotAvailableDetails).css('visibility', 'hidden');
-                    $(self.buttonHolder).css('visibility', 'visible');
+                    $(self.panoCanvas).css('display', 'block');
+                    $(self.panoNotAvailable).css('display', 'none');
+                    $(self.panoNotAvailableDetails).css('display', 'none');
+                    $(self.buttonHolder).css('display', 'block');
                     if (self.label) renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
+                    $(self.svHolder).css('height', '');
                     $(self.panoNotAvailable).text('Oops, our fault but there is no longer imagery available for this label.');
-                    $(self.panoCanvas).css('visibility', 'hidden');
-                    $(self.panoNotAvailable).css('visibility', 'visible');
-                    $(self.panoNotAvailableDetails).css('visibility', 'visible');
-                    $(self.buttonHolder).css('visibility', 'hidden');
+                    $(self.panoCanvas).css('display', 'none');
+                    $(self.panoNotAvailable).css('display', 'block');
+                    $(self.panoNotAvailableDetails).css('display', 'block');
+                    $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
+                    $(self.svHolder).css('height', '');
                     $(self.panoNotAvailable).text('We had trouble connecting to Google Street View, please try again later!');
-                    $(self.panoCanvas).css('visibility', 'hidden');
-                    $(self.panoNotAvailable).css('visibility', 'visible');
-                    $(self.panoNotAvailable).css('visibility', 'hidden');
-                    $(self.buttonHolder).css('visibility', 'hidden');
+                    $(self.panoCanvas).css('display', 'none');
+                    $(self.panoNotAvailable).css('display', 'block');
+                    $(self.panoNotAvailableDetails).css('display', 'none');
+                    $(self.buttonHolder).css('display', 'none');
                 } else {
-                    setTimeout(callback, 100, n - 1);
+                    setTimeout(callback, 200, n - 1);
                 }
             }
-            setTimeout(callback, 100, 20);
+            setTimeout(callback, 200, 10);
         }
         return this;
     }

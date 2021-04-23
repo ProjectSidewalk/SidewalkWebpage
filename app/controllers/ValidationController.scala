@@ -22,6 +22,11 @@ import play.api.Logger
 import play.api.mvc._
 import scala.concurrent.Future
 
+/**
+ * Holds the HTTP requests associated with the validation page.
+ *
+ * @param env The Silhouette environment.
+ */
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val validationMissionStr: String = "validation"
@@ -94,7 +99,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, labelCount, None)
     val hasWork: Boolean = possibleLabTypeIds.nonEmpty
 
-    val completedValidations: Int = MissionTable.countCompletedValidationsByUserID(user.userId)
+    val completedValidations: Int = MissionTable.countCompletedValidations(user.userId)
     // Checks if there are still labels in the database for the user to validate.
     if (hasWork && missionSetProgress.missionType == "validation") {
       // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
