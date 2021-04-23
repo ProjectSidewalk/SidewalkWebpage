@@ -65,6 +65,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     } else {
                         console.error("Error loading Street View imagery");
                         svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(latLng)});
+                        console.log("initNextTask");
                         nextTaskIn.complete();
                         // no street view available in this range.
                         self.getFinishedAndInitNextTask(nextTaskIn);
@@ -78,12 +79,29 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     self.endTask = function (task, nextTask) {
         if (tracker) tracker.push("TaskEnd");
-
+        // console.log("endTask");
         task.complete();
         // Go through the tasks and mark the completed task as isComplete=true
         for (var i = 0, len = self._tasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() === self._tasks[i].getStreetEdgeId()) {
+                // The reference passed in from the method parameter and the array are not the same.
+                if (task === self._tasks[i]) {
+                    self._tasks[i].complete();
+                }
+
+                /* TESTING CODE TO DELETE ONCE DONE WITH PR. 
+                // TO TEST, COMMENT OUT self._task[i].complete() ABOVE AND UNCOMMENT BELOW CODE.
+                if (task === self._tasks[i]) {
+                    console.log('Same reference to same task! Expecting to see different priority values because we complete() the same reference.');
+                } else {
+                    console.log('Differenct reference to same task! Expecting to see same priority values because we complete() different references.');
+                }
+                console.log('Method Parameter Reference');
+                task.complete();
+                console.log('Array Reference');
                 self._tasks[i].complete();
+                console.log('');
+                */
             }
         }
 
@@ -195,12 +213,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             return null;
         }
+        
         for (let i = 0; i < streetEdgeIdsAfterTime.length; i++) {
             const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === streetEdgeIdsAfterTime[i];});
-            console.log("before: " + self._tasks[index].getStreetPriority() + " for " + self._tasks[index].getStreetEdgeId());
-            console.log("set as: " + newStreetEdgePriorities[i] + " for " + streetEdgeIdsAfterTime[i]);
+            console.log('updating ' + self._tasks[i].getStreetEdgeId());
+            //console.log("before: " + self._tasks[index].getStreetPriority() + " for " + self._tasks[index].getStreetEdgeId());
+            //console.log("set as: " + newStreetEdgePriorities[i] + " for " + streetEdgeIdsAfterTime[i]);
             self._tasks[index].setProperty('priority', newStreetEdgePriorities[i]);
-            console.log("after " + self._tasks[index].getStreetPriority());
+            //console.log("after " + self._tasks[index].getStreetPriority());
         }
     }
 

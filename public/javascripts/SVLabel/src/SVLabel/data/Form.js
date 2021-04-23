@@ -1,3 +1,5 @@
+const { registerMultiTask } = require("grunt");
+
 /**
  *
  * @param labelContainer
@@ -266,7 +268,12 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
 
                     properties.timeLastQuried = result.timePerformedQuery;
+
+                    // console.log("timeLastQueried: " + properties.timeLastQuried);
+                    // console.log("timePerformedQuery: " + result.timePerformedQuery)
                     if (result.streetEdgeIdsAfterTime > 0) {
+                        console.log(result.streetEdgeIdsAfterTime);
+                        console.log(result.newStreetEdgePriorities);
                         taskContainer.updateTaskPriorities(result.streetEdgeIdsAfterTime, result.newStreetEdgePriorities);
                     }
                 }

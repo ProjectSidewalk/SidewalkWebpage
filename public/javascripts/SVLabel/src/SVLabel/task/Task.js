@@ -255,7 +255,9 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     this.complete = function () {
         status.isComplete = true;
         properties.completedByAnyUser = true;
+        let oldPriority = properties.priority;
         properties.priority = 1 / (1 + (1 / properties.priority));
+        console.log("Street edge id: " +this.getStreetEdgeId() + "\nold priority: " + oldPriority + "\nnew priority: " + properties.priority);
         return this;
     };
 
