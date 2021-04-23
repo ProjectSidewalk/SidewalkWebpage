@@ -235,8 +235,8 @@ object LabelTable {
   def countTodayLabels: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(label.label_id)
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+        |FROM audit_task
+        |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND label.deleted = false""".stripMargin
     )
@@ -251,13 +251,13 @@ object LabelTable {
   def countTodayLabels(labelType: String): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
-         |FROM sidewalk.audit_task
-         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+         |FROM audit_task
+         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
          |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
          |    AND label.deleted = false
          |    AND label.label_type_id = (
          |        SELECT label_type_id
-         |        FROM sidewalk.label_type as lt
+         |        FROM label_type as lt
          |        WHERE lt.label_type='$labelType'
          |    )""".stripMargin
     )
@@ -270,8 +270,8 @@ object LabelTable {
   def countPastWeekLabels: Int = db.withTransaction { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(label.label_id)
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+        |FROM audit_task
+        |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND label.deleted = false""".stripMargin
     )
@@ -284,13 +284,13 @@ object LabelTable {
   def countPastWeekLabels(labelType: String): Int = db.withTransaction { implicit session =>
     val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
-         |FROM sidewalk.audit_task
-         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+         |FROM audit_task
+         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
          |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |    AND label.deleted = false
          |    AND label.label_type_id = (
          |        SELECT label_type_id
-         |        FROM sidewalk.label_type as lt
+         |        FROM label_type as lt
          |        WHERE lt.label_type='$labelType'
          |    )""".stripMargin
     )
@@ -376,11 +376,11 @@ object LabelTable {
         |       lb_big.description,
         |       val.val_counts,
         |       lb_big.tag_list
-        |FROM sidewalk.label AS lb1,
-        |     sidewalk.gsv_data,
-        |     sidewalk.audit_task AS at,
+        |FROM label AS lb1,
+        |     gsv_data,
+        |     audit_task AS at,
         |     sidewalk_user AS u,
-        |     sidewalk.label_point AS lp,
+        |     label_point AS lp,
         |     (
         |         SELECT lb.label_id,
         |                lb.gsv_panorama_id,
@@ -391,14 +391,14 @@ object LabelTable {
         |                lab_desc.description,
         |                the_tags.tag_list
         |         FROM label AS lb
-        |         LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
-        |         LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
-        |         LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
-        |         LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
+        |         LEFT JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
+        |         LEFT JOIN label_severity as sev ON lb.label_id = sev.label_id
+        |         LEFT JOIN label_description as lab_desc ON lb.label_id = lab_desc.label_id
+        |         LEFT JOIN label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
         |         LEFT JOIN (
         |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-        |             FROM sidewalk.label_tag
-        |             INNER JOIN sidewalk.tag ON label_tag.tag_id = tag.tag_id
+        |             FROM label_tag
+        |             INNER JOIN tag ON label_tag.tag_id = tag.tag_id
         |             GROUP BY label_id
         |         ) AS the_tags
         |             ON lb.label_id = the_tags.label_id
@@ -452,11 +452,11 @@ object LabelTable {
         |       lb_big.temp,
         |       lb_big.description,
         |       lb_big.tag_list
-        |FROM sidewalk.label AS lb1,
-        |     sidewalk.gsv_data,
-        |     sidewalk.audit_task AS at,
+        |FROM label AS lb1,
+        |     gsv_data,
+        |     audit_task AS at,
         |     sidewalk_user AS u,
-        |     sidewalk.label_point AS lp,
+        |     label_point AS lp,
         |     (
         |         SELECT lb.label_id,
         |                lb.gsv_panorama_id,
@@ -467,14 +467,14 @@ object LabelTable {
         |                lab_desc.description,
         |                the_tags.tag_list
         |         FROM label AS lb
-        |         LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |         LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
-        |         LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |         LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
+        |         LEFT JOIN label_type AS lbt ON lb.label_type_id = lbt.label_type_id
+        |         LEFT JOIN label_severity AS sev ON lb.label_id = sev.label_id
+        |         LEFT JOIN label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+        |         LEFT JOIN label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
         |         LEFT JOIN (
         |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-        |             FROM sidewalk.label_tag
-        |             INNER JOIN sidewalk.tag ON label_tag.tag_id = tag.tag_id
+        |             FROM label_tag
+        |             INNER JOIN tag ON label_tag.tag_id = tag.tag_id
         |             GROUP BY label_id
         |         ) AS the_tags
         |             ON lb.label_id = the_tags.label_id
@@ -517,11 +517,11 @@ object LabelTable {
         |       lb_big.description,
         |       lb_val.val_counts,
         |       lb_big.tag_list
-        |FROM sidewalk.label AS lb1,
-        |     sidewalk.gsv_data,
-        |     sidewalk.audit_task AS at,
+        |FROM label AS lb1,
+        |     gsv_data,
+        |     audit_task AS at,
         |     sidewalk_user AS u,
-        |     sidewalk.label_point AS lp,
+        |     label_point AS lp,
         |     (
         |         SELECT array_to_string(array_agg(concat_ws(':', validation_options.text, COALESCE(count, 0))), ',') AS val_counts
         |         FROM (
@@ -542,14 +542,14 @@ object LabelTable {
         |                lab_desc.description,
         |                the_tags.tag_list
         |         FROM label AS lb
-        |         LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |         LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
-        |         LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |         LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
+        |         LEFT JOIN label_type AS lbt ON lb.label_type_id = lbt.label_type_id
+        |         LEFT JOIN label_severity AS sev ON lb.label_id = sev.label_id
+        |         LEFT JOIN label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+        |         LEFT JOIN label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
         |         LEFT JOIN (
         |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-        |             FROM sidewalk.label_tag
-        |             INNER JOIN sidewalk.tag ON label_tag.tag_id = tag.tag_id
+        |             FROM label_tag
+        |             INNER JOIN tag ON label_tag.tag_id = tag.tag_id
         |             GROUP BY label_id
         |         ) AS the_tags
         |             ON lb.label_id = the_tags.label_id
@@ -1121,11 +1121,11 @@ object LabelTable {
   def getTagsFromLabelId(labelId: Int): List[String] = db.withSession { implicit session =>
       val getTagsQuery = Q.query[Int, (String)](
         """SELECT tag
-          |FROM sidewalk.tag
+          |FROM tag
           |WHERE tag.tag_id IN
           |(
           |    SELECT tag_id
-          |    FROM sidewalk.label_tag
+          |    FROM label_tag
           |    WHERE label_tag.label_id = ?
           |)""".stripMargin
       )
@@ -1199,9 +1199,9 @@ object LabelTable {
         |       label_type.label_type,
         |       label_point.lat,
         |       label_point.lng
-        |FROM sidewalk.label
-        |INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
+        |FROM label
+        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+        |INNER JOIN label_point ON label.label_id = label_point.label_id
         |WHERE label.deleted = false
         |    AND label_point.lat IS NOT NULL
         |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
@@ -1235,11 +1235,11 @@ object LabelTable {
         |       label_point.lat,
         |       label_point.lng,
         |       region.region_id
-        |FROM sidewalk.label
-        |INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
-        |INNER JOIN sidewalk.audit_task ON audit_task.audit_task_id = label.audit_task_id
-        |INNER JOIN sidewalk.region ON ST_Intersects(region.geom, label_point.geom)
+        |FROM label
+        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+        |INNER JOIN label_point ON label.label_id = label_point.label_id
+        |INNER JOIN audit_task ON audit_task.audit_task_id = label.audit_task_id
+        |INNER JOIN region ON ST_Intersects(region.geom, label_point.geom)
         |WHERE label.deleted = FALSE
         |    AND label_point.lat IS NOT NULL
         |    AND region.deleted = FALSE
