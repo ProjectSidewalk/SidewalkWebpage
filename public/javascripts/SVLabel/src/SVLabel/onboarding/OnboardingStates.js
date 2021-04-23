@@ -1247,6 +1247,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var completedRate;
                 var nextState;
 
+
                 if (tags.includes(22)) { // Where 22 is the tag_id of the "street has no sidewalks" tag
                     completedRate = 27 / numStates;
                     nextState = "redo-tag-attribute-6"; // We have selected the wrong tag here, so we move to the redo state
