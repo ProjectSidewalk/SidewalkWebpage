@@ -10,7 +10,7 @@ dist/*.js
 coverage/
 *.js.html
 .mailmap
-#.ivy2
+.ivy2
 bower.json
 component.json
 db/*-dump
