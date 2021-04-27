@@ -28,6 +28,102 @@ svg {
     border-top: 0;
 }
 
+#profile-container {
+    margin: 0px;
+    margin-top: 15px;
+}
+
+#username {
+    font-size: 40px;
+    font-family: raleway-bold, sans-serif;
+}
+
+#org-container {
+    display: flex;
+}
+
+#org-name-container {
+    display: flex;
+    font-size: 30px;
+    font-family: raleway, sans-serif;
+    margin-right: 15px;
+}
+
+.org-info-hoverable {
+    border-radius: 50%;
+    border: 1px solid #2D2A3F;
+    color: #2D2A3F;
+    font: normal normal normal 14px/1.4em raleway, sans-serif;
+    font-family: 'Raleway', sans-serif;
+    font-size: 14px;
+    height: 20px;
+    width: 20px;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+    outline: none;
+}
+
+.org-info-hoverable:hover {
+    background-color: #FCECBE;
+    border: 1px solid #FCECBE;
+    color: #2D2A3F;
+    text-decoration: none;
+    text-shadow: none;
+}
+
+.org-info-hoverable .org-info-content {
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.4s ease 0s, opacity 0.4s ease 0s;
+    border-radius: 10px;
+    text-align: center;
+    padding: 5px 5px;
+    border: 1px solid #2D2A3F;
+    color: #2D2A3F;
+    background-color: white;
+    font: normal normal normal 14px/1.4em raleway, sans-serif;
+    font-family: 'Raleway', sans-serif;
+    font-size: 14px;
+    text-decoration: none;
+    outline: none;
+    position: absolute;
+    z-index: 1;
+    max-width: 400px;
+}
+
+.org-info-hoverable:hover .org-info-content {
+    visibility: visible;
+    opacity: 1;
+}
+
+#edit-org-button {
+    -moz-border-radius: 15px;
+    -webkit-border-radius: 15px;
+    border-radius: 10px;
+    border: 1px solid #2D2A3F;
+    display: inline-block;
+    position: relative;
+    top: 8px;
+    cursor: pointer;
+    color: #2D2A3F;
+    font: normal normal normal 14px/1.4em raleway, sans-serif;
+    font-family: 'Raleway', sans-serif;
+    font-size: 14px;
+    padding: 5px 25px;
+    text-decoration: none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+    outline: none;
+}
+
+#edit-org-button:hover {
+    background-color: #FCECBE;
+    border: 1px solid #FCECBE;
+    color: #2D2A3F;
+    text-shadow: none;
+}
+
 .table-fixed thead {
     width: 98.5%;
 }

@@ -247,6 +247,10 @@ results.legend.high = High
 results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
 
+dashboard.no.org = No Organization
+dashboard.no.org.info = Use the "Edit" button to join/leave organizations. Contact michaelssaugstad@gmail.com if you do not see your organization.
+dashboard.edit.org = Edit
+dashboard.leave.org = Leave Organization
 dashboard.audited.street = Audited Street
 dashboard.total.distance.explored = Total Distance Explored
 dashboard.number.completed.missions = Number of Completed Missions
@@ -285,8 +289,10 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
+leaderboard.org.title = Organization Leaderboard
 leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
 leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
+leaderboard.org.detail = Top 10 contributers in
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
@@ -295,3 +301,4 @@ leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your lab
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a href="/audit"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a href="/signUp"><u>Sign up</u></a> to track your progress!
+leaderboard.encouragement.no.org = <a href="/contribution/__USERNAME__"><u>Join an organization</u></a> to compete against your teammates!

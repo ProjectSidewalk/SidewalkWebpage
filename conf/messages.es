@@ -246,6 +246,10 @@ results.legend.high = Alto
 results.legend.low = Bajo
 results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
 
+dashboard.no.org = Sin Organización
+dashboard.no.org.info = Utilice el botón "Editar" para unirse/salir organizaciones. Póngase en contacto con michaelssaugstad@gmail.com si no ve su organización.
+dashboard.edit.org = Editar
+dashboard.leave.org = Salir la Organización
 dashboard.audited.street = Calle auditada
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
@@ -283,8 +287,10 @@ admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general
 leaderboard.weekly.title = Tabla de clasificación semanal
+leaderboard.org.title = Tabla de organización
 leaderboard.overall.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
 leaderboard.weekly.detail = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
+leaderboard.org.detail = Los 10 contribuyentes mayor en
 leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
@@ -293,3 +299,4 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a href="/audit"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
+leaderboard.encouragement.no.org = <a href="/contribution/__USERNAME__"><u>Únete a una organización</u></a> para competir contra tus compañeros!

@@ -24,7 +24,7 @@ object UserOrgTable {
   /**
   * Get all organizations the given user is affiliated with.
   */
-  def getAllUserOrgs(userId: UUID): List[Int] = db.withSession { implicit session =>
+  def getAllOrgs(userId: UUID): List[Int] = db.withSession { implicit session =>
     userOrgs.filter(_.userId === userId.toString).map(_.orgId).list
   }
 
@@ -39,7 +39,11 @@ object UserOrgTable {
     * Inserts a user organization affiliation into the user_org table.
     */
   def save(userId: UUID, orgId: Int): Int = db.withSession { implicit session =>
-    userOrgs.insertOrUpdate(UserOrg(0, userId.toString, orgId))
+    if (OrganizationTable.containsId(orgId)) {
+      userOrgs.insertOrUpdate(UserOrg(0, userId.toString, orgId))
+    } else {
+      -1
+    }
   }
 
   /**

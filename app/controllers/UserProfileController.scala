@@ -159,16 +159,12 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val userId: UUID = user.userId
         if (user.role.getOrElse("") != "Anonymous") {
-          val allUserOrgs: List[Int] = UserOrgTable.getAllUserOrgs(userId);
+          val allUserOrgs: List[Int] = UserOrgTable.getAllOrgs(userId);
           if (allUserOrgs.headOption.isEmpty) {
-            if (OrganizationTable.containsId(orgId)) {
-              UserOrgTable.save(userId, orgId)
-            }
+            UserOrgTable.save(userId, orgId)
           } else if (allUserOrgs.head != orgId) {
             UserOrgTable.remove(userId, allUserOrgs.head)
-            if (OrganizationTable.containsId(orgId)) {
-              UserOrgTable.save(userId, orgId)
-            }
+            UserOrgTable.save(userId, orgId)
           }
         }
         Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))

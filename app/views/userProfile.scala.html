@@ -13,27 +13,43 @@
     <div class="container">
 
         @if(user && user.get.role.getOrElse("") != "Anonymous") {
-            <div class="row" id="userprofile">
-                <h2>@user.get.username</h2>
-                @if(!UserOrgTable.getAllUserOrgs(user.get.userId).isEmpty) {
-                    <h3>@OrganizationTable.getOrganizationName(UserOrgTable.getAllUserOrgs(user.get.userId).head)</h3>
-                } else {
-                    <h3>No Organization</h3>
-                }
-                <div id="organization-dropdown" class="dropdown">
-                    <a id="join-organization" role="button" data-toggle="dropdown" href="#">
-                        Join Organization
-                    </a>
-                    <ul id="organization-menu" class="dropdown-menu" role="menu" style="z-index: 2000;">
-                        <li>
-                            <a id="-1" role="menuitem" class="put-user-org" href="#">Leave Organization</a>
-                        </li>
-                        @for(org <- OrganizationTable.getAllOrganizations) {
-                            <li>
-                                <a id="@org.orgId" role="menuitem" class="put-user-org" href="#">@org.orgName</a>
-                            </li>
+            <div class="row" id="profile-container">
+                <div id="username">@user.get.username</div>
+                <div id="org-container">
+                    <div id="org-name-container">
+                        @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                            <div class="org-name">@OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</div>
+                        } else {
+                            <div class="org-name">@Messages("dashboard.no.org")</div>
                         }
-                    </ul>
+                        <a class="org-info-hoverable">i
+                            @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                                <div class="org-info-content">
+                                    @OrganizationTable.getOrganizationDescription(UserOrgTable.getAllOrgs(user.get.userId).head)
+                                </div>
+                            } else {
+                                <div class="org-info-content">
+                                    @Messages("dashboard.no.org.info")
+                                </div>
+                            }
+                        </a>
+                    </div>
+                    <div id="org-dropdown" class="dropdown">
+                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
+                            @Messages("dashboard.edit.org")
+                            <b class="caret"></b>
+                        </a>
+                        <ul id="org-menu" class="dropdown-menu" role="menu" style="z-index: 2000;">
+                            <li>
+                                <a id="-1" role="menuitem" class="put-user-org" href="/contribution/__USERNAME__">@Messages("dashboard.leave.org")</a>
+                            </li>
+                            @for(org <- OrganizationTable.getAllOrganizations) {
+                                <li>
+                                    <a id="@org.orgId" role="menuitem" class="put-user-org" href="/contribution/__USERNAME__">@org.orgName</a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
                 </div>
             </div>
         }
