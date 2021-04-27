@@ -14,6 +14,24 @@
     border-bottom-width: 0;
 }
 
+#user-table-container {
+    overflow-x: scroll;
+    -webkit-transform: rotateX(180deg); /* Moves scrollbar to top for easier navigation. */
+    width: 110%;
+}
+#user-table_wrapper {
+    -webkit-transform: rotateX(180deg); /* Adding scrollbar flips all text, this flips it back. */
+    font-size: 12px;
+}
+
+.role-dropdown {
+    font-size: 12px;
+}
+
+.change-role {
+    font-size: 12px;
+}
+
 #label-map, #admin-map {
     width: 100%;
     height: 800px;
