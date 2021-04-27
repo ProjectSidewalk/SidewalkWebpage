@@ -54,20 +54,20 @@ $(document).ready(function () {
         $('#attributes-with-labels-code').html(attributeWithLabelsURL);
         $('#attributes-link-CSV').attr('href', attributesURLCSV);
         $('#attributes-code-CSV').html(attributesURLCSV);
-        $('#attributes-link-ShapeFile').attr('href', attributesURLShapeFile);
-        $('#attributes-code-ShapeFile').html(attributesURLShapeFile);
+        $('#attributes-link-shapefile').attr('href', attributesURLShapeFile);
+        $('#attributes-code-shapefile').html(attributesURLShapeFile);
         $('#streets-link').attr('href', streetsURL);
         $('#streets-code').html(streetsURL);
         $('#streets-link-CSV').attr('href', streetsURLCSV);
         $('#streets-code-CSV').html(streetsURLCSV);
-        $('#streets-link-ShapeFile').attr('href', streetsURLShapeFile);
-        $('#streets-code-ShapeFile').html(streetsURLShapeFile);
+        $('#streets-link-shapefile').attr('href', streetsURLShapeFile);
+        $('#streets-code-shapefile').html(streetsURLShapeFile);
         $('#regions-link').attr('href', regionsURL);
         $('#regions-code').html(regionsURL);
         $('#regions-link-CSV').attr('href', regionsURLCSV);
         $('#regions-code-CSV').html(regionsURLCSV);
-        $('#regions-link-ShapeFile').attr('href', regionsURLShapeFile);
-        $('#regions-code-ShapeFile').html(regionsURLShapeFile);
+        $('#regions-link-shapefile').attr('href', regionsURLShapeFile);
+        $('#regions-code-shapefile').html(regionsURLShapeFile);
 
         // Set view center and max bounds for each map.
         mapAccessAttributes.setView([data.attribute.center_lat, data.attribute.center_lng], data.attribute.zoom);
