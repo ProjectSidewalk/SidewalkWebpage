@@ -41,7 +41,7 @@
                 <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
                 <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("dashboard.accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
-                <span class="user-stats-stat">@MissionTable.countCompletedMissions(user.get.userId, true, false)</span>
+                <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true, false)</span>
                 <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
                 <span class="user-stats-stat">@LabelTable.countLabels(user.get.userId)</span>
                 <span class="user-stats-stat">@LabelValidationTable.countValidations(user.get.userId)</span>
@@ -158,7 +158,7 @@
 
             const achievementTracker = new AchievementTracker();
             achievementTracker.updateBadgeAchievementGrid(
-                @MissionTable.countCompletedMissions(user.get.userId, includeOnboarding = true, includeSkipped = false),
+                @MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = true, includeSkipped = false),
                 @auditedDistance,
                 @LabelTable.countLabels(user.get.userId),
                 @LabelValidationTable.countValidations(user.get.userId),

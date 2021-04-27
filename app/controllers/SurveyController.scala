@@ -53,7 +53,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         val ipAddress: String = request.remoteAddress
         WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "SurveySubmit", timestamp))
 
-        val numMissionsCompleted: Int = MissionTable.countCompletedMissions(UUID.fromString(userId), includeOnboarding = false, includeSkipped = true)
+        val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false, includeSkipped = true)
 
         val allSurveyQuestions: List[SurveyQuestion] = SurveyQuestionTable.listAll
         val allSurveyQuestionIds: List[Int] = allSurveyQuestions.map(_.surveyQuestionId)
@@ -112,7 +112,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         // The survey will show exactly once, in the middle of the 2nd mission.
         val numMissionsBeforeSurvey = 1
         val surveyShown = WebpageActivityTable.findUserActivity("SurveyShown", userId).length
-        val displaySurvey = (MissionTable.countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true) == numMissionsBeforeSurvey && (surveyShown == 0))
+        val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false, includeSkipped = true) == numMissionsBeforeSurvey && (surveyShown == 0))
 
         //maps displaymodal to true in the future.
         Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))

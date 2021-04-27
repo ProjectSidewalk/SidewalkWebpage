@@ -154,8 +154,8 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included in this count
     * @return
     */
-  def countCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = db.withTransaction { implicit session =>
-    selectCompletedMissions(userId, includeOnboarding, includeSkipped).size
+  def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = db.withTransaction { implicit session =>
+    selectCompletedMissionsByAUser(userId, includeOnboarding, includeSkipped).size
   }
 
   /**
@@ -241,7 +241,7 @@ object MissionTable {
     * Check if the user has completed onboarding.
     */
   def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
-    selectCompletedMissions(userId, includeOnboarding = true, includeSkipped = true)
+    selectCompletedMissionsByAUser(userId, includeOnboarding = true, includeSkipped = true)
       .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
   }
 
@@ -266,7 +266,7 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included
     * @param includeSkipped should any skipped missions be included
     */
-  def selectCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): List[Mission] = db.withSession { implicit session =>
+  def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): List[Mission] = db.withSession { implicit session =>
       val _m1 = missions.filter(m => m.userId === userId.toString && m.completed)
       val _m2 = if (includeOnboarding) _m1 else _m1.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
       val _m3 = if (includeSkipped) _m2 else _m2.filterNot(_.skipped)

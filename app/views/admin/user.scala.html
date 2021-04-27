@@ -46,10 +46,10 @@
                         <td>@user.get.username</td>
                         <td>@user.get.userId</td>
                         <td>@user.get.email</td>
-                        <td>
-                            @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
-                            (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.get.userId)).map{x => x}.getOrElse("NA")))
-                        </td>
+                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false, includeSkipped = false)</td>
+                        <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td id="td-total-distance-audited-admin"></td>
                     </tr>
                 </table>
             </div>
