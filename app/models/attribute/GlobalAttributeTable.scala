@@ -40,7 +40,6 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
   }
   val attributesToArray = Array(globalAttributeId, labelType, neighborhoodName,
                                 lat.toString, lng.toString, severity.getOrElse("NA").toString, temporary.toString)
-  
 }
 
 case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
