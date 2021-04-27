@@ -278,7 +278,7 @@ object UserDAOSlick {
         |INNER JOIN mission ON label_validation.user_id = mission.user_id
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
         |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
@@ -317,7 +317,7 @@ object UserDAOSlick {
         |INNER JOIN mission ON label_validation.user_id = mission.user_id
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
         |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
@@ -388,10 +388,10 @@ object UserDAOSlick {
   def countAuditUsersContributedToday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
-        |FROM audit_task
+        |FROM sidewalk.audit_task
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
@@ -427,10 +427,10 @@ object UserDAOSlick {
   def countAuditUsersContributedPastWeek(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
-        |FROM audit_task
+        |FROM sidewalk.audit_task
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?

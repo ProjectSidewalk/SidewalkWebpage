@@ -43,8 +43,8 @@
 
                 <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true, false)</span>
                 <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
-                <span class="user-stats-stat">@LabelTable.countLabels(user.get.userId)</span>
-                <span class="user-stats-stat">@LabelValidationTable.countValidations(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelTable.countLabelsByUserId(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
                 <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
 
             </div>
@@ -160,8 +160,8 @@
             achievementTracker.updateBadgeAchievementGrid(
                 @MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = true, includeSkipped = false),
                 @auditedDistance,
-                @LabelTable.countLabels(user.get.userId),
-                @LabelValidationTable.countValidations(user.get.userId),
+                @LabelTable.countLabelsByUserId(user.get.userId),
+                @LabelValidationTable.countValidationsByUserId(user.get.userId),
             );
         });
     });

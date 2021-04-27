@@ -76,14 +76,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of "dc", "seattle", "newberg", "columbus", "cdmx", "spgg", or "pittsburgh", depending on which city your database dump is for.
-
-    ```
-    docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
-    docker exec -it projectsidewalk-db psql -c "CREATE ROLE sidewalk_<city-name> SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
-    ```
-
-1. Run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
+1. In a separate terminal, run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) (particularly, [this entry](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#running-make-import-dump-dbsidewalk-fails)). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
 1. Run `npm start` from inside the Docker shell. If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
 
     The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Successful output of this command will look like:

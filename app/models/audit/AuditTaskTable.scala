@@ -156,7 +156,7 @@ object AuditTaskTable {
   def countCompletedAuditsToday: Int = db.withSession { implicit session =>
     val countTasksQuery = Q.queryNA[Int](
       """SELECT COUNT(audit_task_id)
-        |FROM audit_task
+        |FROM sidewalk.audit_task
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
         |    AND audit_task.completed = TRUE""".stripMargin
     )
@@ -169,7 +169,7 @@ object AuditTaskTable {
   def countCompletedAuditsPastWeek: Int = db.withSession { implicit session =>
     val countTasksQuery = Q.queryNA[Int](
       """SELECT COUNT(audit_task_id)
-        |FROM audit_task
+        |FROM sidewalk.audit_task
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND audit_task.completed = TRUE""".stripMargin
     )
@@ -179,7 +179,7 @@ object AuditTaskTable {
   /**
     * Returns the number of tasks completed by the given user.
     */
-  def countCompletedAudits(userId: UUID): Int = db.withSession { implicit session =>
+  def countCompletedAuditsByUserId(userId: UUID): Int = db.withSession { implicit session =>
     completedTasks.filter(_.userId === userId.toString).length.run
   }
 
@@ -194,7 +194,7 @@ object AuditTaskTable {
   /**
     * Gets list streets that the user has not audited.
     */
-  def getStreetEdgeIdsNotAudited(user: UUID): List[Int] = db.withSession { implicit session =>
+  def streetEdgeIdsNotAuditedByUser(user: UUID): List[Int] = db.withSession { implicit session =>
 
     val edgesAuditedByUser: List[Int] =
       completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
@@ -205,7 +205,7 @@ object AuditTaskTable {
   /**
     * Gets the list of streets in the specified region that the user has not audited.
     */
-  def getStreetEdgeIdsNotAudited(user: UUID, regionId: Int): List[Int] = db.withSession { implicit session =>
+  def streetEdgeIdsNotAuditedByUser(user: UUID, regionId: Int): List[Int] = db.withSession { implicit session =>
 
     val edgesAuditedByUser: List[Int] =
       completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
@@ -224,7 +224,7 @@ object AuditTaskTable {
     */
   def isTaskAvailable(user: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
 
-    val availableTasks: Int = getStreetEdgeIdsNotAudited(user, regionId).length
+    val availableTasks: Int = streetEdgeIdsNotAuditedByUser(user, regionId).length
     availableTasks > 0
   }
 
@@ -233,7 +233,7 @@ object AuditTaskTable {
     */
   def selectIncompleteRegions(user: UUID): Set[Int] = db.withSession { implicit session =>
     nonDeletedStreetEdgeRegions
-      .filter(_.streetEdgeId inSet getStreetEdgeIdsNotAudited(user))
+      .filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user))
       .map(_.regionId)
       .list.toSet
   }
@@ -286,7 +286,7 @@ object AuditTaskTable {
   /**
    * Return street edges audited by the given user.
    */
-  def getAuditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
+  def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
     val _streetEdges = for {
       (_tasks, _edges) <- completedTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
       if _tasks.userId === userId.toString
@@ -299,7 +299,7 @@ object AuditTaskTable {
     * Get the sum of the line distance of all streets in the region that the user has not audited.
     */
   def getUnauditedDistance(userId: UUID, regionId: Int): Float = db.withSession { implicit session =>
-    val streetsLeft: List[Int] = getStreetEdgeIdsNotAudited(userId, regionId)
+    val streetsLeft: List[Int] = streetEdgeIdsNotAuditedByUser(userId, regionId)
     streetEdgesWithoutDeleted.filter(_.streetEdgeId inSet streetsLeft).map(_.geom.transform(26918).length).list.sum
   }
 
@@ -361,7 +361,7 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Get the streets that the user has not already completed.
-    val edgesInRegion = streetEdges.filter(_.streetEdgeId inSet getStreetEdgeIdsNotAudited(user, regionId))
+    val edgesInRegion = streetEdges.filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user, regionId))
 
     // Join with other queries to get completion count and priority for each of the street edges.
     val possibleTasks = for {

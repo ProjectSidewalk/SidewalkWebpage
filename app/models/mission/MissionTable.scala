@@ -139,7 +139,7 @@ object MissionTable {
     *
     * @return the total number of labels the user has validated.
     */
-   def countCompletedValidations(userId: UUID): Int = db.withSession { implicit session =>
+   def countCompletedValidationsByUserID(userId: UUID): Int = db.withSession { implicit session =>
     (for {
       _missionType <- missionTypes
       _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
@@ -264,14 +264,13 @@ object MissionTable {
     *
     * @param userId User's UUID
     * @param includeOnboarding should any onboarding missions be included
-    * @param includeSkipped should any skipped missions be included
     */
   def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): List[Mission] = db.withSession { implicit session =>
       val _m1 = missions.filter(m => m.userId === userId.toString && m.completed)
       val _m2 = if (includeOnboarding) _m1 else _m1.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
       val _m3 = if (includeSkipped) _m2 else _m2.filterNot(_.skipped)
 
-      _m3.list.groupBy(_.missionId).map(_._2.head).toList
+    _missions.list.groupBy(_.missionId).map(_._2.head).toList
   }
 
   /**
@@ -284,7 +283,7 @@ object MissionTable {
   /**
     * Returns the mission with the provided ID, if it exists.
     */
-  def getMission(missionId: Int): Option[Mission] = db.withSession { implicit session =>
+  def getMissionById(missionId: Int): Option[Mission] = db.withSession { implicit session =>
     missions.filter(m => m.missionId === missionId).firstOption
   }
 
@@ -325,7 +324,7 @@ object MissionTable {
     * @param regionId region Id
     * @param includeOnboarding should region-less onboarding mission be included if complete
     */
-  def selectCompletedAuditMissions(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
+  def selectCompletedAuditMissionsByAUser(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
     val auditMissionTypes: List[String] = if (includeOnboarding) List("audit", "auditOnboarding") else List("audit")
     val auditMissionTypeIds: List[Int] = missionTypes.filter(_.missionType inSet auditMissionTypes).map(_.missionTypeId).list
     missions.filter(m => m.userId === userId.toString
@@ -586,7 +585,7 @@ object MissionTable {
     */
   def getNextAuditMissionDistance(userId: UUID, regionId: Int): Float = {
     val distRemaining: Float = AuditTaskTable.getUnauditedDistance(userId, regionId)
-    val completedInRegion: Int = selectCompletedAuditMissions(userId, regionId, includeOnboarding = false).length
+    val completedInRegion: Int = selectCompletedAuditMissionsByAUser(userId, regionId, includeOnboarding = false).length
     val naiveMissionDist: Float =
       if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
       else                                                            distancesForFirstAuditMissions(completedInRegion)
