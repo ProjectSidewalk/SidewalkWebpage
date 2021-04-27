@@ -296,7 +296,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           case Some(user) =>
             if(isAdmin(request.identity) && MissionTable.userOwnsMission(user.userId, submission.missionId)) {
               // Get the ongoing CV ground truth mission for this user.
-              val currentCVMission: Option[Mission] = MissionTable.getMissionById(submission.missionId)
+              val currentCVMission: Option[Mission] = MissionTable.getMission(submission.missionId)
 
               // Mark the pano complete.
               currentCVMission match {

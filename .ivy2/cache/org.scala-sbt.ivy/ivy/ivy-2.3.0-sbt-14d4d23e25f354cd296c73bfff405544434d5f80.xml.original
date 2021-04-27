@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt.ivy" module="ivy" revision="2.3.0-sbt-14d4d23e25f354cd296c73bfff405544434d5f80" status="release" publication="20140730185250">
+		<description>
+		ivy
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="ivy" type="jar" ext="jar" conf="compile"/>
+		<artifact name="ivy" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+		<artifact name="ivy" type="doc" ext="jar" conf="docs" e:classifier="javadoc"/>
+	</publications>
+	<dependencies>
+		
+		
+		<dependency org="org.apache.ant" name="ant-nodeps" rev="1.7.1" conf="provided->default(compile)"/>
+		<dependency org="commons-httpclient" name="commons-httpclient" rev="3.0" conf="provided->default(compile)"/>
+		<dependency org="org.bouncycastle" name="bcpg-jdk14" rev="1.45" conf="provided->default(compile)"/>
+		<dependency org="com.jcraft" name="jsch.agentproxy.jsch" rev="0.0.6" conf="provided->default(compile)"/>
+		<dependency org="com.jcraft" name="jsch.agentproxy" rev="0.0.6" conf="provided->default(compile)"/>
+		<dependency org="com.jcraft" name="jsch.agentproxy.connector-factory" rev="0.0.6" conf="provided->default(compile)"/>
+		<dependency org="commons-vfs" name="commons-vfs" rev="1.0" conf="provided->default(compile)"/>
+		<dependency org="oro" name="oro" rev="2.0.8" conf="provided->default(compile)"/>
+	</dependencies>
+</ivy-module>

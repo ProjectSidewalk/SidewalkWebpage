@@ -299,3 +299,12 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a href="/audit"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
+
+gallery = Galería
+gallery.show = Mostrar
+gallery.filter.by = Filtrar por
+gallery.severity = Calificación
+gallery.tags = Etiquitas
+gallery.all = Todos
+gallery.occlusion = No puedo ver la banqueta
+gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!

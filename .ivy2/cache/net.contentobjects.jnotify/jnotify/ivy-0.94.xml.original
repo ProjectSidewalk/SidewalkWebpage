@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<project>
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>net.contentobjects.jnotify</groupId>
+  <artifactId>jnotify</artifactId>
+  <version>0.94</version>
+
+  <name>JNotify</name>
+  <description>A Java library that allow Java applications to receive file system events on Windows and Linux.</description>
+  <url>http://jnotify.sourceforge.net/</url>
+
+  <scm>
+    <connection>scm:cvs:pserver:anonymous@jnotify.cvs.sourceforge.net:/cvsroot/jnotify:jnotify</connection>
+    <url>http://jnotify.cvs.sourceforge.net/viewvc/jnotify/jnotify</url>
+  </scm>
+
+  <developers>
+    <developer>
+      <id>mdonoughe</id>
+      <name>Matthew Donoughe</name>
+    </developer>
+    <developer>
+      <id>omry_y</id>
+      <name>Omry Yadan</name>
+    </developer>
+    <developer>
+      <id>vvainer</id>
+      <name>Vitaly Vainer</name>
+    </developer>
+  </developers>
+
+  <licenses>
+    <license>
+      <name>The GNU Lesser General Public License, Version 2.1</name>
+      <url>http://www.gnu.org/licenses/lgpl-2.1.html</url>
+      <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>Eclipse Public License (EPL), Version 1.0</name>
+      <url>http://www.eclipse.org/legal/epl-v10.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+</project>

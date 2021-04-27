@@ -9,7 +9,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
-import models.region.RegionPropertyTable
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -140,7 +139,7 @@ object MissionTable {
     *
     * @return the total number of labels the user has validated.
     */
-   def countCompletedValidationsByUserID(userId: UUID): Int = db.withSession { implicit session =>
+   def countCompletedValidations(userId: UUID): Int = db.withSession { implicit session =>
     (for {
       _missionType <- missionTypes
       _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
@@ -155,8 +154,8 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included in this count
     * @return
     */
-  def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean): Int = db.withTransaction { implicit session =>
-    selectCompletedMissionsByAUser(userId, includeOnboarding).size
+  def countCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = db.withTransaction { implicit session =>
+    selectCompletedMissions(userId, includeOnboarding, includeSkipped).size
   }
 
   /**
@@ -242,7 +241,7 @@ object MissionTable {
     * Check if the user has completed onboarding.
     */
   def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
-    selectCompletedMissionsByAUser(userId, includeOnboarding = true)
+    selectCompletedMissions(userId, includeOnboarding = true, includeSkipped = true)
       .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
   }
 
@@ -265,16 +264,14 @@ object MissionTable {
     *
     * @param userId User's UUID
     * @param includeOnboarding should any onboarding missions be included
+    * @param includeSkipped should any skipped missions be included
     */
-  def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
-    val _missions = if (includeOnboarding) {
-      missions.filter(m => m.userId === userId.toString && m.completed)
-    } else {
-      missions.filter(m => m.userId === userId.toString && m.completed)
-        .filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
-    }
+  def selectCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): List[Mission] = db.withSession { implicit session =>
+      val _m1 = missions.filter(m => m.userId === userId.toString && m.completed)
+      val _m2 = if (includeOnboarding) _m1 else _m1.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
+      val _m3 = if (includeSkipped) _m2 else _m2.filterNot(_.skipped)
 
-    _missions.list.groupBy(_.missionId).map(_._2.head).toList
+      _m3.list.groupBy(_.missionId).map(_._2.head).toList
   }
 
   /**
@@ -287,7 +284,7 @@ object MissionTable {
   /**
     * Returns the mission with the provided ID, if it exists.
     */
-  def getMissionById(missionId: Int): Option[Mission] = db.withSession { implicit session =>
+  def getMission(missionId: Int): Option[Mission] = db.withSession { implicit session =>
     missions.filter(m => m.missionId === missionId).firstOption
   }
 
@@ -328,7 +325,7 @@ object MissionTable {
     * @param regionId region Id
     * @param includeOnboarding should region-less onboarding mission be included if complete
     */
-  def selectCompletedAuditMissionsByAUser(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
+  def selectCompletedAuditMissions(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
     val auditMissionTypes: List[String] = if (includeOnboarding) List("audit", "auditOnboarding") else List("audit")
     val auditMissionTypeIds: List[Int] = missionTypes.filter(_.missionType inSet auditMissionTypes).map(_.missionTypeId).list
     missions.filter(m => m.userId === userId.toString
@@ -344,8 +341,8 @@ object MissionTable {
     val userMissions = missions.filter(_.userId === userId.toString)
 
     val missionsWithRegionName = for {
-      (_m, _rp) <- userMissions.leftJoin(RegionPropertyTable.neighborhoodNames).on(_.regionId === _.regionId)
-    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _rp.value.?, _m.distanceMeters, _m.labelsValidated)
+      (_m, _r) <- userMissions.leftJoin(RegionTable.regions).on(_.regionId === _.regionId)
+    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.description.?, _m.distanceMeters, _m.labelsValidated)
 
     val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>
       RegionalMission(m._1, MissionTypeTable.missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6)
@@ -589,7 +586,7 @@ object MissionTable {
     */
   def getNextAuditMissionDistance(userId: UUID, regionId: Int): Float = {
     val distRemaining: Float = AuditTaskTable.getUnauditedDistance(userId, regionId)
-    val completedInRegion: Int = selectCompletedAuditMissionsByAUser(userId, regionId, includeOnboarding = false).length
+    val completedInRegion: Int = selectCompletedAuditMissions(userId, regionId, includeOnboarding = false).length
     val naiveMissionDist: Float =
       if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
       else                                                            distancesForFirstAuditMissions(completedInRegion)
