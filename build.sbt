@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "6.14.6"
+version := "6.14.7"
 
 scalaVersion := "2.10.5"
 
@@ -33,7 +33,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.slick" %% "slick" % "2.1.0",
   "com.typesafe.play" %% "play-slick" % "0.8.0",
   "com.typesafe.play" %% "play-mailer" % "2.4.1",
-  "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
+  "org.postgresql" % "postgresql" % "9.4.1212",
   "com.mohiva" %% "play-silhouette" % "2.0.2",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta5",
   "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
