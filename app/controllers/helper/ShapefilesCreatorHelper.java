@@ -189,7 +189,6 @@ public class ShapefilesCreatorHelper {
                 }
             }));
             featureBuilder.add(l.labelTemporary());
-            featureBuilder.add(l.neighborhoodName());
             featureBuilder.add(l.gsvPanoramaId());
             featureBuilder.add(l.heading());
             featureBuilder.add(l.pitch());
