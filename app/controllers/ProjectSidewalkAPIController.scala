@@ -30,18 +30,18 @@ import helper.ShapefilesCreatorHelper
 
 
 case class NeighborhoodAttributeSignificance (val name: String,
-                                                val geometry: Array[JTSCoordinate],
-                                                val regionID: Int,
-                                                val coverage: Double,
-                                                val score: Double,
-                                                val attributeScores: Array[Double],
-                                                val significanceScores: Array[Double])
+                                              val geometry: Array[JTSCoordinate],
+                                              val regionID: Int,
+                                              val coverage: Double,
+                                              val score: Double,
+                                              val attributeScores: Array[Double],
+                                              val significanceScores: Array[Double])
 
 case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
-                                      val streetID: Int,
-                                      val score: Double,
-                                      val attributeScores: Array[Double],
-                                      val significanceScores: Array[Double])
+                                        val streetID: Int,
+                                        val score: Double,
+                                        val attributeScores: Array[Double],
+                                        val significanceScores: Array[Double])
 
 
 /**
@@ -123,8 +123,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val writer = new java.io.PrintStream(file)
       val header: String = "Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Average Curb Ramp Score," +
         "Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score," +
-        "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
-        "Surface Problem Significance"
+        "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
@@ -274,7 +273,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Gets the Access Score of the neighborhoods within the coordinates in a shapefile format
+   * Gets the Access Score of the neighborhoods within the coordinates in a shapefile format.
+   *
+   * @param coordinates: A coordinate representation of the bounding box for the query. Every neighborhood
+   *                     within this bounding box will have their access score calculated and returned.
+   * @return             A shapefile representation of the access scores within the given coordinates.
    */
   def getAccessScoreNeighborhoodsShapefile(coordinates: Array[Double]): java.io.File = {
     // Gather all of the data that will be written to the Shapefile.
@@ -283,10 +286,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
+    // Create a list of NeighborhoodAttributeSignificance objects to pass to the helper class.
     val neighborhoodList: Buffer[NeighborhoodAttributeSignificance] = new ArrayBuffer[NeighborhoodAttributeSignificance]
+    // Populate every object in the list.
     for (neighborhood <- neighborhoods) {
       val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
       val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
+      // set default values for everything to 0, so null values will be 0 as well.
       var coverage: Double = 0.0
       var accessScore: Double = 0.0
       var averagedStreetFeatures: Array[Double] = Array(0.0,0.0,0.0,0.0,0.0)
@@ -307,6 +313,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                                                                 averagedStreetFeatures, 
                                                                 significance))
     }
+    // Send the list of objects to the helper class.
     ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList)
     val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"))
     shapefile
