@@ -65,7 +65,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
             url: '/userapi/setUserOrg/' + orgId,
             type: 'put',
             success: function (result) {
-                $('#org-name-container').load(window.location.href + ' #org-name');
+                $('#org-name-container').load(window.location.href + ' .org-name');
             },
             error: function (result) {
                 console.error(result);
