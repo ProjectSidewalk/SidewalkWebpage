@@ -14,7 +14,7 @@
 
         @if(user && user.get.role.getOrElse("") != "Anonymous") {
             <div class="row" id="profile-container">
-                <div id="username">@user.get.username</div>
+                <div class="username">@user.get.username</div>
                 <div id="org-container">
                     <div id="org-name-container">
                         @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
@@ -22,30 +22,17 @@
                         } else {
                             <div class="org-name">@Messages("dashboard.no.org")</div>
                         }
-                        <a class="org-info-hoverable">i
-                            @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-                                <div class="org-info-content">
-                                    @OrganizationTable.getOrganizationDescription(UserOrgTable.getAllOrgs(user.get.userId).head)
-                                </div>
-                            } else {
-                                <div class="org-info-content">
-                                    @Messages("dashboard.no.org.info")
-                                </div>
-                            }
-                        </a>
                     </div>
-                    <div id="org-dropdown" class="dropdown">
-                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
-                            @Messages("dashboard.edit.org")
-                            <b class="caret"></b>
-                        </a>
-                        <ul id="org-menu" class="dropdown-menu" role="menu" style="z-index: 2000;">
-                            <li>
-                                <a id="-1" role="menuitem" class="put-user-org" href="/contribution/__USERNAME__">@Messages("dashboard.leave.org")</a>
+                    <div id="edit-org-dropdown" class="dropdown">
+                        <a id="edit-org-button" class="org-content org-hoverable" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b></a>
+                        <ul id="edit-org-menu" class="dropdown-menu" role="menu">
+                            <li class="edit-org-row">
+                                <a id="-1" role="menuitem" class="put-user-org">@Messages("dashboard.leave.org")</a>
                             </li>
                             @for(org <- OrganizationTable.getAllOrganizations) {
-                                <li>
-                                    <a id="@org.orgId" role="menuitem" class="put-user-org" href="/contribution/__USERNAME__">@org.orgName</a>
+                                <li class="edit-org-row">
+                                    <div id="org-description-content" class="org-content description-content">@org.orgDescription</div>
+                                    <a id="@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
                                 </li>
                             }
                         </ul>
