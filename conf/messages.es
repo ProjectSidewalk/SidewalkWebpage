@@ -247,7 +247,6 @@ results.legend.low = Bajo
 results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
 
 dashboard.no.org = Sin Organización
-dashboard.no.org.info = Utilice el botón "Editar" para unirse/salir organizaciones. Póngase en contacto con michaelssaugstad@gmail.com si no ve su organización.
 dashboard.edit.org = Editar
 dashboard.leave.org = Salir la Organización
 dashboard.audited.street = Calle auditada

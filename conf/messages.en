@@ -248,7 +248,6 @@ results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
 
 dashboard.no.org = No Organization
-dashboard.no.org.info = Use the "Edit" button to join/leave organizations. Contact michaelssaugstad@gmail.com if you do not see your organization.
 dashboard.edit.org = Edit
 dashboard.leave.org = Leave Organization
 dashboard.audited.street = Audited Street
