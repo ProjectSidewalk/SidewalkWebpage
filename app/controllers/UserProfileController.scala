@@ -154,6 +154,13 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(json))
   }
 
+  /**
+   * Sets the org of the given user. 
+   *
+   * @param orgId The id of the org the user is to be added to.
+   *              If the id is not a valid org (e.g. 0), then the user is removed from their current org without
+   *              being added to a new one.
+   */
   def setUserOrg(orgId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>

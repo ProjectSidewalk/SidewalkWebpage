@@ -205,6 +205,7 @@ object UserStatTable {
    * does not count).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
+   * @param orgId The id of the org over which to compute stats
    * @return
    */
   def getLeaderboardStats(n: Int, timePeriod: String = "overall", orgId: Option[Int] = None): List[LeaderboardStat] = db.withSession { implicit session =>

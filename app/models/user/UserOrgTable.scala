@@ -22,33 +22,48 @@ object UserOrgTable {
   val userOrgs = TableQuery[UserOrgTable]
 
   /**
-  * Get all organizations the given user is affiliated with.
-  */
+   * Gets all organizations the given user is affiliated with.
+   *
+   * @param userId The id of the user.
+   * @return A list of all organizations the given user is affiliated with.
+   */
   def getAllOrgs(userId: UUID): List[Int] = db.withSession { implicit session =>
     userOrgs.filter(_.userId === userId.toString).map(_.orgId).list
   }
 
   /**
-  * Get all users affiliated with the given organization.
-  */
+   * Gets all users affiliated with the given organization.
+   *
+   * @param orgId The id of the org.
+   * @return A list of all users affiliated with the given organization.
+   */
   def getAllUsers(orgId: Int): List[String] = db.withSession { implicit session =>
     userOrgs.filter(_.orgId === orgId).map(_.userId).list
   }
   
   /**
-    * Inserts a user organization affiliation into the user_org table.
-    */
+   * Saves a new user-org affiliation if and only if the given orgId is valid.
+   *
+   * @param userId The id of the user.
+   * @param orgId The id of the org.
+   * @return The id of the new user-org affiliation. 
+   *         However, if the given orgId is invalid, then it returns 0.
+   */
   def save(userId: UUID, orgId: Int): Int = db.withSession { implicit session =>
     if (OrganizationTable.containsId(orgId)) {
       userOrgs.insertOrUpdate(UserOrg(0, userId.toString, orgId))
     } else {
-      -1
+      0
     }
   }
 
   /**
-    * Removes a user organization affiliation from the user_org table.
-    */
+   * Removes a user-org affiliation.
+   *
+   * @param userId The id of the user.
+   * @param orgId The id of the org.
+   * @return The id of the removed user-org affiliation.
+   */
   def remove(userId: UUID, orgId: Int): Int = db.withSession { implicit session =>
     userOrgs.filter(r => r.userId === userId.toString && r.orgId === orgId).delete
   }
