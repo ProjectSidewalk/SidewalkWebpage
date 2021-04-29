@@ -32,7 +32,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
           println(s"problem with /neighborhoodMissions: user has no current region.")
 
         val completedMissions: List[Mission] =
-          MissionTable.selectCompletedAuditMissionsByAUser(user.userId, userCurrentRegion.get, includeOnboarding = true)
+          MissionTable.selectCompletedAuditMissions(user.userId, userCurrentRegion.get, includeOnboarding = true)
 
         Future.successful(Ok(JsArray(completedMissions.map(_.toJSON))))
 

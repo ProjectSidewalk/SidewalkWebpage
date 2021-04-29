@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.typesafe.netty</groupId>
+    <artifactId>netty-http-pipelining</artifactId>
+    <version>1.1.2</version>
+
+    <description>This library provides a handler and some new message types that enable http pipelining in Netty
+    </description>
+    <inceptionYear>2013</inceptionYear>
+    <url>https://github.com/typesafehub/netty-http-pipelining</url>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/typesafehub/netty-http-pipelining/issues</url>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>Apache 2</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>Typesafe</name>
+        <url>http://typesafe.com/</url>
+    </organization>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+            <version>3.6.3.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <scm>
+        <connection>scm:git://github.com/typesafehub/netty-http-pipelining.git</connection>
+        <developerConnection>scm:git:git@github.com:typesafehub/netty-http-pipelining.git</developerConnection>
+        <url>scm:git://github.com/typesafehub/netty-http-pipelining.git</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>typesafe-releases</id>
+            <url>https://private-repo.typesafe.com/typesafe/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>typesafe-snapshots</id>
+            <url>https://private-repo.typesafe.com/typesafe/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+</project>
