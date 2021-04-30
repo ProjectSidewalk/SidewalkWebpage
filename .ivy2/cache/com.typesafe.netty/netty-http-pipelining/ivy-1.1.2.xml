@@ -4,7 +4,7 @@
 		module="netty-http-pipelining"
 		revision="1.1.2"
 		status="release"
-		publication="20150421150439"
+		publication="20210429071134"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="https://github.com/typesafehub/netty-http-pipelining">
