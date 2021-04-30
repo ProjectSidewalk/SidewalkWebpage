@@ -1,4 +1,3 @@
-
 # --- !Ups
 INSERT INTO version VALUES ('6.14.7', now(), 'Adds Spanish translations for Sidewalk Gallery.');
 
