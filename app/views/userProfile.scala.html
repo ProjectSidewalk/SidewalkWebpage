@@ -24,14 +24,16 @@
                         }
                     </div>
                     <div id="edit-org-dropdown" class="dropdown">
-                        <a id="edit-org-button" class="org-content org-hoverable" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b></a>
+                        <a id="edit-org-button" class="description-hoverable org-content org-hoverable" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b>
+                            <div id="edit-org-info" class="org-content description-content info-content">@Messages("dashboard.edit.info")</div>
+                        </a>
                         <ul id="edit-org-menu" class="dropdown-menu" role="menu">
-                            <li class="edit-org-row">
+                            <li class="description-hoverable">
                                 <a id="0" role="menuitem" class="put-user-org">@Messages("dashboard.leave.org")</a>
                             </li>
                             @for(org <- OrganizationTable.getAllOrganizations) {
-                                <li class="edit-org-row">
-                                    <div id="org-description-content" class="org-content description-content">@org.orgDescription</div>
+                                <li class="description-hoverable">
+                                    <div class="org-content description-content info-content">@org.orgDescription</div>
                                     <a id="@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
                                 </li>
                             }

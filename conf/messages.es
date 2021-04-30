@@ -248,6 +248,7 @@ results.legend.body = Los barrios grises carecen de datos suficientes para evalu
 
 dashboard.no.org = Sin Organización
 dashboard.edit.org = Editar
+dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a sidewalk@cs.uw.edu con el nombre y la descripción de su organización.
 dashboard.leave.org = Salir la Organización
 dashboard.audited.street = Calle auditada
 dashboard.total.distance.explored = Distancia total explorada
@@ -286,10 +287,10 @@ admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general
 leaderboard.weekly.title = Tabla de clasificación semanal
-leaderboard.org.title = Tabla de organización
+leaderboard.org.title = Tabla de
 leaderboard.overall.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
 leaderboard.weekly.detail = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
-leaderboard.org.detail = Los 10 contribuyentes mayor en
+leaderboard.org.detail = Los 10 contribuyentes mayor a
 leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
