@@ -1,0 +1,204 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.avaje</groupId>
+    <artifactId>avaje-parent</artifactId>
+    <version>1.1</version>
+  </parent>
+
+  <artifactId>avaje-javaparent</artifactId>
+  <version>1.1</version>
+  <packaging>pom</packaging>
+  <name>avaje-javaparent</name>
+
+  <description>
+    This is for Java artifacts. It primarily is designed around testing.
+  </description>
+
+  <properties>
+    <avaje.skip.integration.tests>false</avaje.skip.integration.tests>
+    <avaje.skip.integration.tests.in.bamboo>false</avaje.skip.integration.tests.in.bamboo>
+    <avaje.skip.functional.tests>false</avaje.skip.functional.tests>
+    <avaje.skip.functional.tests.in.bamboo>false</avaje.skip.functional.tests.in.bamboo>
+  </properties>
+
+  <url>http://www.avaje.org</url>
+  <licenses>
+    <license>
+       <name>The Apache Software License, Version 2.0</name>
+       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+       <distribution>repo</distribution>
+     </license>
+  </licenses>
+  <developers>
+    <developer>
+       <id>rbygrave</id>
+       <name>Rob Bygrave</name>
+       <email>robin.bygrave@gmail.com</email>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:git@github.com:rbygrave/avaje-javaparent-pom.git</connection>
+    <developerConnection>scm:git:git@github.com:rbygrave/avaje-javaparent-pom.git</developerConnection>
+    <url>git@github.com:rbygrave/avaje-javaparent-pom.git</url>
+  </scm>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-dep-list</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>list</goal>
+            </goals>
+            <configuration>
+              <outputFile>${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/dependency.list</outputFile>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-dep-tree</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>tree</goal>
+            </goals>
+            <configuration>
+              <outputFile>${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/dependency.tree</outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-artifacts</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/dependency.tree</file>
+                  <type>tree</type>
+                  <classifier>dependency</classifier>
+                </artifact>
+                <artifact>
+                  <file>${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/dependency.list</file>
+                  <type>list</type>
+                  <classifier>dependency</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--
+        Exclude integration and functional tests in the normal test phase.
+        Integration tests are run in a separate surefire run in the test
+        phase; functional tests are run later via the failsafe plugin.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <failIfNoTests>false</failIfNoTests>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+          </includes>
+          <excludes>
+            <exclude>**/*$*</exclude>
+            <exclude>**/*IntegrationTest.java</exclude>
+            <exclude>**/*IntegrationTests.java</exclude>
+            <exclude>**/*FunctionalTest.java</exclude>
+            <exclude>**/*FunctionalTests.java</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>integration-test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <skipTests>${avaje.skip.integration.tests}</skipTests>
+              <includes>
+                <include>**/*IntegrationTest.java</include>
+                <include>**/*IntegrationTests.java</include>
+              </includes>
+              <excludes>
+                <exclude>**/*$*</exclude>
+              </excludes>
+              <test>${it.test}</test>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--
+        Run functional tests via the failsafe plugin. Unlike surefire this
+        won't cause the build to fail immediately on test failures, so the
+        post-integration-test phase gets a chance to clean up. The test
+        results are then checked in the verify phase. The failsafe reports
+        are generated in the surefire-reports directory so that Bamboo
+        picks them up correctly.
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>failsafe-maven-plugin</artifactId>
+        <version>2.4.3-alpha-1</version>
+        <configuration>
+          <argLine>-Xms512M -Xmx512M</argLine>
+          <failIfNoTests>false</failIfNoTests>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+          <summaryFile>${project.build.directory}/surefire-reports/failsafe-summary.xml</summaryFile>
+          <skipTests>${avaje.skip.functional.tests}</skipTests>
+          <excludes>
+            <exclude>**/*$*</exclude>
+          </excludes>
+          <includes>
+            <include>**/*FunctionalTest.java</include>
+            <include>**/*FunctionalTests.java</include>
+          </includes>
+          <test>${ft.test}</test>
+        </configuration>
+        <executions>
+          <execution>
+            <id>functional-test</id>
+            <goals>
+              <goal>integration-test</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>verify</id>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>cobertura-maven-plugin</artifactId>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+</project>

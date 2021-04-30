@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.typesafe.play</groupId>
+    <artifactId>build-link</artifactId>
+    <packaging>jar</packaging>
+    <description>Build-Link</description>
+    <url>https://playframework.com</url>
+    <version>2.3.8</version>
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>Build-Link</name>
+    <organization>
+        <name>com.typesafe.play</name>
+        <url>https://playframework.com</url>
+    </organization>
+    <dependencies>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-exceptions</artifactId>
+            <version>2.3.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.18.2-GA</version>
+        </dependency>
+    </dependencies>
+    <repositories>
+        <repository>
+            <id>TypesafeReleasesRepository</id>
+            <name>Typesafe Releases Repository</name>
+            <url>https://repo.typesafe.com/typesafe/releases/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+</project>

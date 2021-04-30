@@ -1,0 +1,38 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.specs2</groupId>
+  <artifactId>classycle</artifactId>
+  <name>classycle</name>
+  <version>1.4.3</version>
+  <packaging>jar</packaging>
+
+ <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+
+  <description>dependency analysis for specs2</description>
+  <url>http://classycle.sourceforge.net/</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:svn:http://classycle.svn.sourceforge.net/svn/trunk/</connection>
+    <developerConnection>scm:svn:https://classycle.svn.sourceforge.net/svn/trunk/</developerConnection>
+    <url>http://classycle.svn.sourceforge.net/svn/trunk</url>
+  </scm>
+  <developers>
+    <developer>
+      <id>Franz-Josef Elmer</id>
+      <name>Franz-Josef Elmer</name>
+    </developer>
+  </developers>
+  
+
+</project>

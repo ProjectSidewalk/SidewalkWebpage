@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.scala-lang"
 		module="scala-reflect"
 		revision="2.10.4"
 		status="release"
 		publication="20140318214707"
+		e:info.apiURL="http://www.scala-lang.org/api/2.10.4/"
 	>
 		<license name="BSD-like" url="http://www.scala-lang.org/downloads/license.html
 			" />
 		<description homepage="http://www.scala-lang.org/">
 		Compiler for the Scala Programming Language
 		</description>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__info.apiURL>http://www.scala-lang.org/api/2.10.4/</m:properties__info.apiURL>
 	</info>
 	<configurations>
