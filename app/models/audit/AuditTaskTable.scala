@@ -220,6 +220,17 @@ object AuditTaskTable {
   }
 
   /**
+    * Returns a list of streetEdgeId's that were completed after a certain time
+    */
+  def streetEdgeIdsUpdatedAfterTime(timestamp: Timestamp): List[Int] = db.withSession { implicit session =>
+
+    // StreetEdgeId's that occur after specified time and are completed
+    val streetEdgeIdsAfterTime = auditTasks.filter(_.taskEnd > timestamp).filter(_.completed).map(_.streetEdgeId)
+    
+    streetEdgeIdsAfterTime.list
+  }
+
+  /**
     * Check if there are tasks available for the user in the given region.
     */
   def isTaskAvailable(user: UUID, regionId: Int): Boolean = db.withSession { implicit session =>

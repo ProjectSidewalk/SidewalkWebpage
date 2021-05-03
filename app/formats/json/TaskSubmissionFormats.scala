@@ -10,7 +10,7 @@ object TaskSubmissionFormats {
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
   case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryLabel: Option[JsBoolean], description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
-  case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean)
+  case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, timeLastQueried: Long)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
@@ -93,7 +93,8 @@ object TaskSubmissionFormats {
       (JsPath \ "completed").readNullable[Boolean] and
       (JsPath \ "current_lat").read[Float] and
       (JsPath \ "current_lng").read[Float] and
-      (JsPath \ "start_point_reversed").read[Boolean]
+      (JsPath \ "start_point_reversed").read[Boolean] and
+      (JsPath \ "time_data_last_queried").read[Long]
     )(TaskSubmission.apply _)
 
   implicit val gsvLinkSubmissionReads: Reads[GSVLinkSubmission] = (

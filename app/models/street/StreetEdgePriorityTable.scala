@@ -85,6 +85,19 @@ object StreetEdgePriorityTable {
   }
 
   /**
+    * Returns list of StreetEdgePriorityParameter from a list of strings
+    * 
+    * @param streetEdgeIds List of street edge ids
+    * @return 
+    */
+  def streetEdgePrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriorityParameter] = db.withSession { implicit session => 
+    
+    val streetEdgePrioritiesFromIds = streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds).groupBy(x => (x.streetEdgeId, x.priority)).map(_._1)
+
+    streetEdgePrioritiesFromIds.list.map(x => StreetEdgePriorityParameter.tupled(x))
+  }
+
+  /**
     * Recalculate the priority attribute for all streetEdges.
     *
     * Computes a weighted sum of factors that influence priority (e.g. audit count). It takes a list of functions that
