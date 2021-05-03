@@ -4,7 +4,7 @@
 		module="play_2.10"
 		revision="2.3.8"
 		status="release"
-		publication="20150421161335"
+		publication="20210429090053"
 	>
 		<license name="Apache-2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="https://playframework.com">
