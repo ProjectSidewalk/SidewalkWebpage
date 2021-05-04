@@ -84,8 +84,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Go through the tasks and mark the completed task as isComplete=true
         for (var i = 0, len = self._tasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() === self._tasks[i].getStreetEdgeId()) {
-                // The reference passed in from the method parameter and the array are not the same.
                 if (task !== self._tasks[i]) {
+                    // The reference passed in from the method parameter and the array are not the same.
                     self._tasks[i].complete();
                 }
 
