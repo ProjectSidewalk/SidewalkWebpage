@@ -85,6 +85,7 @@ if __name__ == '__main__':
             n_success = 0
             n_fail = 0
             coords = list(street['geom'].coords)
+            n_coord = len(coords)
             # Check for imagery every 15 meters along the street using a smaller radius than endpoints. We use 25 m for
             # the endpoints to guarantee we have a place for someone to start. Then we use 15 m at every point along the
             # street to ensure that we are not actually finding imagery for a nearby street.
@@ -100,9 +101,14 @@ if __name__ == '__main__':
                 else:
                     n_success += 1
 
-            # If there is no imagery on at least 50% of the street or if an endpoint is missing imagery and there is no
-            # imagery on at least 25% of the street, add to streets_with_no_imagery.
-            if n_success <= n_fail or (n_success <= 3 * n_fail and (first_endpoint_fail or second_endpoint_fail)):
-                streets_with_no_imagery = streets_with_no_imagery.append({'street_edge_id': street.street_edge_id, 'region_id': street.region_id}, ignore_index=True)
+                # If there is no imagery on at least 50% of the street or if an endpoint is missing imagery and there is
+                # no imagery on at least 25% of the street, add to streets_with_no_imagery. If at any point while
+                # looping through the points we meet one of those criteria (or we find that we will not be able to meet
+                # either criteria because there have already been enough points with imagery), we break out of the loop.
+                if n_fail >= 0.5 * n_coord or (n_fail >= 0.25 * n_coord and (first_endpoint_fail or second_endpoint_fail)):
+                    streets_with_no_imagery = streets_with_no_imagery.append({'street_edge_id': street.street_edge_id, 'region_id': street.region_id}, ignore_index=True)
+                    break
+                elif n_success > 0.75 * n_coord or (n_success > 0.5 * n_coord and not first_endpoint_fail and not second_endpoint_fail):
+                    break
 
     write_output()
