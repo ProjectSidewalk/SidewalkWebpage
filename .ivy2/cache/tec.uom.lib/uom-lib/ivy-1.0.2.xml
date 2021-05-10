@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="tec.uom.lib"
 		module="uom-lib"
 		revision="1.0.2"
@@ -23,6 +23,7 @@
 		<m:dependency.management__javax.measure__unit-api__version>1.0</m:dependency.management__javax.measure__unit-api__version>
 		<m:properties__lib.version>${project.version}</m:properties__lib.version>
 		<m:properties__maven-compiler.version>3.6.1</m:properties__maven-compiler.version>
+		<e:sbtTransformHash>2d084e3c28d4b3a0d20db0318da98667f7a8e121</e:sbtTransformHash>
 		<m:properties__jdkVersion>1.7</m:properties__jdkVersion>
 		<m:properties__maven.compile.sourceLevel>${jdkVersion}</m:properties__maven.compile.sourceLevel>
 		<m:properties__project.build.javaVersion>${jdkVersion}</m:properties__project.build.javaVersion>

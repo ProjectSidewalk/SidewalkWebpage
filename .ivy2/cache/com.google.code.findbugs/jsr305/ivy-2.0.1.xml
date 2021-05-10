@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.google.code.findbugs"
 		module="jsr305"
 		revision="2.0.1"
@@ -10,6 +10,7 @@
 		<description homepage="http://findbugs.sourceforge.net/">
 		JSR305 Annotations for Findbugs
 		</description>
+		<e:sbtTransformHash>8b8fdc22f369f3bf1b6e521946a5a46d9e90b447</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

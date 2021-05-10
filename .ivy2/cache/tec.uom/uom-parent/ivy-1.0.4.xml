@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="tec.uom"
 		module="uom-parent"
 		revision="1.0.4"
@@ -20,6 +20,7 @@
 		<m:properties__junit.version>4.12</m:properties__junit.version>
 		<m:dependency.management__javax.measure__unit-api__version>1.0</m:dependency.management__javax.measure__unit-api__version>
 		<m:properties__maven-compiler.version>3.6.1</m:properties__maven-compiler.version>
+		<e:sbtTransformHash>4ff44c9637cef65aa5134924332fea386e1463dc</e:sbtTransformHash>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2</m:maven.plugins>
 		<m:properties__sourceEncoding>UTF-8</m:properties__sourceEncoding>

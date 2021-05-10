@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.sun.xml.bind.mvn"
 		module="jaxb-txw-parent"
 		revision="2.4.0-b180830.0438"
 		status="release"
 		publication="20180830114035"
 	>
+		<license name="CDDL+GPL License" url="http://glassfish.java.net/public/CDDL+GPL_1_1.html" />
 		<description homepage="">
 		JAXB TXW parent module. Contains sources for TXW component.
 		</description>
@@ -55,6 +56,7 @@
 		<m:properties__fastinfoset.version>1.2.15</m:properties__fastinfoset.version>
 		<m:properties__istack.version>3.0.7</m:properties__istack.version>
 		<m:dependency.management__org.glassfish.jaxb__jaxb-runtime__version>2.4.0-b180830.0438</m:dependency.management__org.glassfish.jaxb__jaxb-runtime__version>
+		<e:sbtTransformHash>79588aabc671afd9a34cd4a2338d4bf427434503</e:sbtTransformHash>
 		<m:properties__felix.osgi.core>6.0.0</m:properties__felix.osgi.core>
 		<m:maven.plugins>org.apache.maven.plugins__maven-dependency-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.codehaus.mojo__buildnumber-maven-plugin__null|org.glassfish.build__gfnexus-maven-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-dependency-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.codehaus.mojo__buildnumber-maven-plugin__null|org.glassfish.build__gfnexus-maven-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null</m:maven.plugins>
 		<m:properties__felix.junit4osgi>1.0.0</m:properties__felix.junit4osgi>

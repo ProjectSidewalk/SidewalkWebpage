@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.fusesource.leveldbjni"
 		module="leveldbjni-linux64"
 		revision="1.5"
 		status="release"
 		publication="20130123221810"
 	>
+		<license name="The BSD 3-Clause License" url="http://www.opensource.org/licenses/BSD-3-Clause" />
 		<description homepage="">
 		The leveldbjni linux 64 native libraries
 		</description>
 		<m:properties__hawtjni-version>1.6</m:properties__hawtjni-version>
 		<m:properties__leveldb-api-version>0.5</m:properties__leveldb-api-version>
+		<e:sbtTransformHash>80ad7074f2139389cb44b56547822681dfd35eaf</e:sbtTransformHash>
 		<m:properties__forge-project-id-uc>LEVELDBJNI</m:properties__forge-project-id-uc>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.maven.plugins__maven-jar-plugin__2.3.1|org.fusesource.hawtjni__maven-hawtjni-plugin__1.6</m:maven.plugins>
@@ -32,7 +34,7 @@
 		<artifact name="leveldbjni-linux64" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni" rev="1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni" rev="1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

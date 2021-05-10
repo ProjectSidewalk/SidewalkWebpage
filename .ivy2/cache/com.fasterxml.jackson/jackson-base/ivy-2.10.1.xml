@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.fasterxml.jackson"
 		module="jackson-base"
 		revision="2.10.1"
 		status="release"
 		publication="20191109225431"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="">
 		Parent pom for components of Jackson dataprocessor: includes base settings as well
 as consistent set of dependencies across components. NOTE: NOT to be used by components outside
@@ -46,6 +47,7 @@ of Jackson: application code should only rely on `jackson-bom`
 		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
 		<m:properties__moditect.sourceGroup>${project.groupId}</m:properties__moditect.sourceGroup>
 		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>57780824ec043a8cecd4e17f784999efbfcbd5ff</e:sbtTransformHash>
 		<m:properties__osgi.import>*</m:properties__osgi.import>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|null__maven-enforcer-plugin__null|org.sonatype.plugins__nexus-staging-maven-plugin__1.6.6</m:maven.plugins>
 		<m:properties__version.plugin.source>3.0.1</m:properties__version.plugin.source>
@@ -126,55 +128,6 @@ of Jackson: application code should only rely on `jackson-bom`
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-osgi" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-cbor" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jr" module="jackson-jr-objects" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-xml" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-jaxb-annotations" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-parameter-names" matcher="exact" rev="2.10.1"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
-		<override org="com.fasterxml.jackson.jaxrs" module="jackson-jaxrs-yaml-provider" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-hppc" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jr" module="jackson-jr-all" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-json-org" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jaxrs" module="jackson-jaxrs-smile-provider" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-smile" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.core" module="jackson-annotations" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jaxrs" module="jackson-jaxrs-xml-provider" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-scala_2.11" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-scala_2.10" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-afterburner" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-scala_2.13" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-csv" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-jaxrs" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-scala_2.12" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-protobuf" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-ion" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-properties" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-jdk8" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-mrbean" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jaxrs" module="jackson-jaxrs-base" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.core" module="jackson-core" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-paranamer" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-hibernate4" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jaxrs" module="jackson-jaxrs-cbor-provider" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-yaml" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-hibernate5" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-kotlin" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jr" module="jackson-jr-stree" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-hibernate3" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-joda" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.dataformat" module="jackson-dataformat-avro" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-guice" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.module" module="jackson-module-jsonSchema" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.core" module="jackson-databind" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jr" module="jackson-jr-retrofit2" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.jaxrs" module="jackson-jaxrs-json-provider" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-jsr353" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-jsr310" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-pcollections" matcher="exact" rev="2.10.1"/>
-		<override org="com.fasterxml.jackson.datatype" module="jackson-datatype-guava" matcher="exact" rev="2.10.1"/>
-		<override org="javax.activation" module="javax.activation-api" matcher="exact" rev="1.2.0"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

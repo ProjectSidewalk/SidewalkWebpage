@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="systems.uom"
 		module="systems-common-java8"
 		revision="0.7.2"
 		status="release"
 		publication="20170903012847"
 	>
+		<license name="BSD" url="LICENSE" />
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
 		<m:dependency.management__tec.uom__uom-se__version>1.0.8</m:dependency.management__tec.uom__uom-se__version>
@@ -16,6 +17,7 @@
 		<m:dependency.management__javax.measure__unit-api__version>1.0</m:dependency.management__javax.measure__unit-api__version>
 		<m:properties__lib.version>1.0.2</m:properties__lib.version>
 		<m:properties__maven-compiler.version>3.6.1</m:properties__maven-compiler.version>
+		<e:sbtTransformHash>85e7aec2fcf4af9a5f9bfce470f478be1a45e6fd</e:sbtTransformHash>
 		<m:properties__maven.compile.sourceLevel>${jdkVersion}</m:properties__maven.compile.sourceLevel>
 		<m:properties__project.build.javaVersion>${jdkVersion}</m:properties__project.build.javaVersion>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
@@ -55,17 +57,10 @@
 		<artifact name="systems-common-java8" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="tec.uom" name="uom-se" rev="1.0.8" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="si.uom" name="si-quantity" rev="0.7.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="si.uom" name="si-units-java8" rev="0.7.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="systems.uom" name="systems-quantity" rev="0.7.2" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="si.uom" module="si-units" matcher="exact" rev="0.7.1"/>
-		<override org="javax.measure" module="unit-api" matcher="exact" rev="1.0"/>
-		<override org="si.uom" module="si-quantity" matcher="exact" rev="0.7.1"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
-		<override org="si.uom" module="si-units-java8" matcher="exact" rev="0.7.1"/>
-		<override org="tec.uom" module="uom-se" matcher="exact" rev="1.0.8"/>
-		<override org="systems.uom" module="systems-quantity" matcher="exact" rev="0.7.2"/>
+		<dependency org="tec.uom" name="uom-se" rev="1.0.8" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="si.uom" name="si-quantity" rev="0.7.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="si.uom" name="si-units-java8" rev="0.7.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="systems.uom" name="systems-quantity" rev="0.7.2" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

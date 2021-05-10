@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.geotools"
 		module="plugin"
 		revision="23.0"
@@ -153,6 +153,7 @@
 		<m:properties__solrj.version>7.2.1</m:properties__solrj.version>
 		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalarcbinarygrid__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalarcbinarygrid__version>
 		<m:dependency.management__it.geosolutions.jaiext.scale2__jt-scale2__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.scale2__jt-scale2__version>
+		<e:sbtTransformHash>1a8c7b1cfba6a2f2025ee31bf6d9f9f7c7470612</e:sbtTransformHash>
 		<m:properties__qa>false</m:properties__qa>
 		<m:dependency.management__org.apache.xmlgraphics__batik-svg-dom__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-svg-dom__version>
 		<m:maven.plugins>org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null</m:maven.plugins>
@@ -231,161 +232,7 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="it.geosolutions.jaiext.buffer" module="jt-buffer" matcher="exact" rev="1.1.14"/>
-		<override org="javax.media" module="jai_imageio" matcher="exact" rev="1.1"/>
-		<override org="org.jaitools" module="jt-vectorbinarize" matcher="exact" rev="1.5.0"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalrpftoc" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-netcdf" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.jaiext.piecewise" module="jt-piecewise" matcher="exact" rev="1.1.14"/>
-		<override org="org.eclipse.xsd" module="org.eclipse.xsd" matcher="exact" rev="2.12.0"/>
-		<override org="org.postgis" module="postgis-driver" matcher="exact" rev="1.0"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalsrp" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.jaiext.zonal" module="jt-zonal" matcher="exact" rev="1.1.14"/>
-		<override org="commons-logging" module="commons-logging" matcher="exact" rev="1.1.1"/>
-		<override org="it.geosolutions.jaiext.iterators" module="jt-iterators" matcher="exact" rev="1.1.14"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
-		<override org="it.geosolutions.jaiext.colorconvert" module="jt-colorconvert" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.jaiext.mosaic" module="jt-mosaic" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-png" matcher="exact" rev="1.3.2"/>
-		<override org="org.easymock" module="easymock" matcher="exact" rev="3.6"/>
-		<override org="org.elasticsearch.client" module="elasticsearch-rest-client" matcher="exact" rev="7.4.0"/>
-		<override org="net.sf.ehcache" module="ehcache" matcher="exact" rev="2.10.3"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-grib1" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalkakadujp2" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdaldted" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalvrt" matcher="exact" rev="1.3.2"/>
-		<override org="org.easymock" module="easymock" matcher="exact" rev="3.6"/>
-		<override org="org.locationtech.jts" module="jts-example" matcher="exact" rev="1.16.1"/>
-		<override org="mysql" module="mysql-connector-java" matcher="exact" rev="5.1.46"/>
-		<override org="org.apache.solr" module="solr-solrj" matcher="exact" rev="7.2.1"/>
-		<override org="com.google.guava" module="guava" matcher="exact" rev="25.1-jre"/>
-		<override org="com.github.davidmoten" module="geo" matcher="exact" rev="0.7.4"/>
-		<override org="org.apache.xmlgraphics" module="batik-svggen" matcher="exact" rev="1.10"/>
-		<override org="org.hamcrest" module="hamcrest-library" matcher="exact" rev="1.3"/>
-		<override org="org.hamcrest" module="hamcrest-all" matcher="exact" rev="1.3"/>
-		<override org="org.easymock" module="easymockclassextension" matcher="exact" rev="3.2"/>
-		<override org="it.geosolutions.jaiext.rlookup" module="jt-rlookup" matcher="exact" rev="1.1.14"/>
-		<override org="xpp3" module="xpp3" matcher="exact" rev="1.1.3.4.O"/>
-		<override org="xmlunit" module="xmlunit" matcher="exact" rev="1.6"/>
-		<override org="org.apache.xmlgraphics" module="batik-codec" matcher="exact" rev="1.10"/>
-		<override org="com.ibm.icu" module="icu4j" matcher="exact" rev="3.4.4"/>
-		<override org="it.geosolutions.jaiext.binarize" module="jt-binarize" matcher="exact" rev="1.1.14"/>
-		<override org="org.hsqldb" module="hsqldb" matcher="exact" rev="2.4.1"/>
-		<override org="it.geosolutions.jaiext.colorindexer" module="jt-colorindexer" matcher="exact" rev="1.1.14"/>
-		<override org="simple-jndi" module="simple-jndi" matcher="exact" rev="0.11.4.1"/>
-		<override org="org.apache.httpcomponents" module="httpclient" matcher="exact" rev="4.5.11"/>
-		<override org="it.geosolutions.jaiext.stats" module="jt-stats" matcher="exact" rev="1.1.14"/>
-		<override org="org.apache.xmlgraphics" module="batik-util" matcher="exact" rev="1.10"/>
-		<override org="org.apache.ant" module="ant" matcher="exact" rev="1.8.1"/>
-		<override org="commons-cli" module="commons-cli" matcher="exact" rev="1.4"/>
-		<override org="org.apache.commons" module="commons-lang3" matcher="exact" rev="3.8.1"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalecw" matcher="exact" rev="1.3.2"/>
-		<override org="org.apache.xmlgraphics" module="batik-rasterizer" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.jaiext.scale" module="jt-scale" matcher="exact" rev="1.1.14"/>
-		<override org="org.jaitools" module="jt-utils" matcher="exact" rev="1.5.0"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-tiff" matcher="exact" rev="1.3.2"/>
-		<override org="velocity" module="velocity" matcher="exact" rev="1.4"/>
-		<override org="org.apache.xmlgraphics" module="batik-awt-util" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.jaiext.rescale" module="jt-rescale" matcher="exact" rev="1.1.14"/>
-		<override org="commons-beanutils" module="commons-beanutils" matcher="exact" rev="1.9.2"/>
-		<override org="com.fasterxml.jackson.core" module="jackson-annotations" matcher="exact" rev="2.10.1"/>
-		<override org="org.mockito" module="mockito-core" matcher="exact" rev="2.23.0"/>
-		<override org="commons-dbcp" module="commons-dbcp" matcher="exact" rev="1.4"/>
-		<override org="it.geosolutions.jaiext.nullop" module="jt-nullop" matcher="exact" rev="1.1.14"/>
-		<override org="org.apache.xmlgraphics" module="batik-transcoder" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalmrsid" matcher="exact" rev="1.3.2"/>
-		<override org="com.fasterxml.jackson.core" module="jackson-databind" matcher="exact" rev="2.10.1"/>
-		<override org="commons-httpclient" module="commons-httpclient" matcher="exact" rev="3.1"/>
-		<override org="it.geosolutions.jaiext.bandmerge" module="jt-bandmerge" matcher="exact" rev="1.1.14"/>
-		<override org="com.googlecode.json-simple" module="json-simple" matcher="exact" rev="1.1.1"/>
-		<override org="it.geosolutions.jaiext.imagefunction" module="jt-imagefunction" matcher="exact" rev="1.1.14"/>
-		<override org="org.ejml" module="ejml-ddense" matcher="exact" rev="0.34"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-hdf4" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.jaiext.format" module="jt-format" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalidrisi" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalecwjp2" matcher="exact" rev="1.3.2"/>
-		<override org="edu.ucar" module="netcdf4" matcher="exact" rev="4.6.11"/>
-		<override org="systems.uom" module="systems-common-java8" matcher="exact" rev="0.7.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-utilities" matcher="exact" rev="1.3.2"/>
-		<override org="org.hamcrest" module="hamcrest-core" matcher="exact" rev="1.3"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalerdasimg" matcher="exact" rev="1.3.2"/>
-		<override org="org.eclipse.emf" module="org.eclipse.emf.ecore" matcher="exact" rev="2.15.0"/>
-		<override org="com.oracle" module="ojdbc7" matcher="exact" rev="12.1.0.2"/>
-		<override org="oro" module="oro" matcher="exact" rev="2.0.8"/>
-		<override org="org.apache.xmlgraphics" module="batik-bridge" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.jaiext.affine" module="jt-affine" matcher="exact" rev="1.1.14"/>
-		<override org="org.apache.xmlgraphics" module="batik-script" matcher="exact" rev="1.10"/>
-		<override org="no.ecc.vectortile" module="java-vector-tile" matcher="exact" rev="1.3.7"/>
-		<override org="commons-collections" module="commons-collections" matcher="exact" rev="3.2.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-geocore" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.jaiext.classifier" module="jt-classifier" matcher="exact" rev="1.1.14"/>
-		<override org="simple-jndi" module="simple-jndi" matcher="exact" rev="0.11.4.1"/>
-		<override org="it.geosolutions.jaiext.vectorbin" module="jt-vectorbin" matcher="exact" rev="1.1.14"/>
-		<override org="jfree" module="eastwood" matcher="exact" rev="1.1.1-20090908"/>
-		<override org="it.geosolutions.jaiext.bandcombine" module="jt-bandcombine" matcher="exact" rev="1.1.14"/>
-		<override org="org.mockito" module="mockito-core" matcher="exact" rev="2.23.0"/>
-		<override org="org.apache.xmlgraphics" module="batik-ext" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalnitf" matcher="exact" rev="1.3.2"/>
-		<override org="xpp3" module="xpp3_min" matcher="exact" rev="1.1.4c"/>
-		<override org="javax.media" module="jai_core" matcher="exact" rev="1.1.3"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
-		<override org="org.apache.solr" module="solr-solrj" matcher="exact" rev="7.2.1"/>
-		<override org="log4j" module="log4j" matcher="exact" rev="1.2.12"/>
-		<override org="javax.media" module="jai_codec" matcher="exact" rev="1.1.3"/>
-		<override org="com.oracle" module="sdoapi" matcher="exact" rev="10.2.0"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-streams" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.jaiext.shadedrelief" module="jt-shadedrelief" matcher="exact" rev="1.1.14"/>
-		<override org="org.easymock" module="easymockclassextension" matcher="exact" rev="3.2"/>
-		<override org="org.eclipse.emf" module="org.eclipse.emf.ecore.xmi" matcher="exact" rev="2.15.0"/>
-		<override org="org.locationtech.spatial4j" module="spatial4j" matcher="exact" rev="0.6"/>
-		<override org="com.mockrunner" module="mockrunner-jdbc" matcher="exact" rev="2.0.1"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalarcbinarygrid" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.jaiext.scale2" module="jt-scale2" matcher="exact" rev="1.1.14"/>
-		<override org="org.apache.xmlgraphics" module="batik-svg-dom" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-arcgrid" matcher="exact" rev="1.3.2"/>
-		<override org="com.h2database" module="h2" matcher="exact" rev="1.1.119"/>
-		<override org="com.mockrunner" module="mockrunner-jdbc" matcher="exact" rev="2.0.1"/>
-		<override org="edu.ucar" module="cdm" matcher="exact" rev="4.6.11"/>
-		<override org="xmlunit" module="xmlunit" matcher="exact" rev="1.6"/>
-		<override org="org.locationtech.jts" module="jts-core" matcher="exact" rev="1.16.1"/>
-		<override org="org.apache.xmlgraphics" module="batik-parser" matcher="exact" rev="1.10"/>
-		<override org="org.apache.xmlgraphics" module="batik-css" matcher="exact" rev="1.10"/>
-		<override org="org.jdom" module="jdom2" matcher="exact" rev="2.0.6"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-kakadu" matcher="exact" rev="1.3.2"/>
-		<override org="org.slf4j" module="slf4j-jdk14" matcher="exact" rev="1.4.0"/>
-		<override org="org.apache.xmlgraphics" module="batik-dom" matcher="exact" rev="1.10"/>
-		<override org="org.apache.xmlgraphics" module="batik-anim" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.jaiext.lookup" module="jt-lookup" matcher="exact" rev="1.1.14"/>
-		<override org="commons-beanutils" module="commons-beanutils" matcher="exact" rev="1.9.2"/>
-		<override org="commons-pool" module="commons-pool" matcher="exact" rev="1.5.4"/>
-		<override org="org.apache.xmlgraphics" module="batik-gvt" matcher="exact" rev="1.10"/>
-		<override org="it.geosolutions.jaiext.orderdither" module="jt-orderdither" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalenvihdr" matcher="exact" rev="1.3.2"/>
-		<override org="org.wkb4j" module="wkb4j" matcher="exact" rev="1.0-RC1"/>
-		<override org="it.geosolutions.jaiext.warp" module="jt-warp" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.jaiext.utilities" module="jt-utilities" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.jaiext.translate" module="jt-translate" matcher="exact" rev="1.1.14"/>
-		<override org="com.oracle" module="ojdbc14" matcher="exact" rev="10.2.0.3.0"/>
-		<override org="org.jaitools" module="jt-zonalstats" matcher="exact" rev="1.5.0"/>
-		<override org="com.fasterxml.jackson.core" module="jackson-core" matcher="exact" rev="2.10.1"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-imagereadmt" matcher="exact" rev="1.3.2"/>
-		<override org="commons-io" module="commons-io" matcher="exact" rev="2.6"/>
-		<override org="javax.xml.bind" module="jaxb-api" matcher="exact" rev="2.4.0-b180830.0359"/>
-		<override org="it.geosolutions.jaiext.bandselect" module="jt-bandselect" matcher="exact" rev="1.1.14"/>
-		<override org="org.postgresql" module="postgresql" matcher="exact" rev="42.2.5"/>
-		<override org="edu.ucar" module="bufr" matcher="exact" rev="4.6.11"/>
-		<override org="org.eclipse.emf" module="org.eclipse.emf.common" matcher="exact" rev="2.15.0"/>
-		<override org="it.geosolutions.jaiext.errordiffusion" module="jt-errordiffusion" matcher="exact" rev="1.1.14"/>
-		<override org="org.apache.xmlgraphics" module="batik-xml" matcher="exact" rev="1.10"/>
-		<override org="org.openplans" module="spatialdb" matcher="exact" rev="0.1"/>
-		<override org="it.geosolutions.jaiext.border" module="jt-border" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalehdr" matcher="exact" rev="1.3.2"/>
-		<override org="org.xerial" module="sqlite-jdbc" matcher="exact" rev="3.30.1"/>
-		<override org="it.geosolutions.jaiext.algebra" module="jt-algebra" matcher="exact" rev="1.1.14"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalmrsidjp2" matcher="exact" rev="1.3.2"/>
-		<override org="joda-time" module="joda-time" matcher="exact" rev="2.10.1"/>
-		<override org="it.geosolutions.jaiext.crop" module="jt-crop" matcher="exact" rev="1.1.14"/>
+		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

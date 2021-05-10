@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.sun.xml.fastinfoset"
 		module="fastinfoset-project"
 		revision="1.2.15"
@@ -14,6 +14,7 @@
 		<m:properties__findbugs.exclude>${project.basedir}/exclude.xml</m:properties__findbugs.exclude>
 		<m:properties__findbugs.skip>false</m:properties__findbugs.skip>
 		<m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>2.1</m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>
+		<e:sbtTransformHash>efa61e3084522798b5b5b68ced553bf388b4d58d</e:sbtTransformHash>
 		<m:properties__junit-version>4.12</m:properties__junit-version>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>
@@ -35,7 +36,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.apache.maven" module="maven-plugin-tools-api" matcher="exact" rev="2.1"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

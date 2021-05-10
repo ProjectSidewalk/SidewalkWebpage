@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="xerces"
 		module="xercesImpl"
 		revision="2.11.0"
@@ -18,6 +18,7 @@
 
     Xerces2 is able to parse documents written according to the XML 1.1 Recommendation, except that it does not yet provide an option to enable normalization checking as described in section 2.13 of this specification. It also handles namespaces according to the XML Namespaces 1.1 Recommendation, and will correctly serialize XML 1.1 documents if the DOM level 3 load/save APIs are in use.
 		</description>
+		<e:sbtTransformHash>b6cdde7ef5617303459f555a4f6d24297c22a06c</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -35,7 +36,7 @@
 		<artifact name="xercesImpl" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="xml-apis" name="xml-apis" rev="1.4.01" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="xml-resolver" name="xml-resolver" rev="1.2" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="xml-apis" name="xml-apis" rev="1.4.01" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="xml-resolver" name="xml-resolver" rev="1.2" force="true" conf="optional->compile(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

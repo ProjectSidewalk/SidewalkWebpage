@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.jvnet.staxex"
 		module="stax-ex"
 		revision="1.8"
@@ -14,6 +14,7 @@
 		</description>
 		<m:properties__findbugs.threshold>Low</m:properties__findbugs.threshold>
 		<m:properties__findbugs.skip>false</m:properties__findbugs.skip>
+		<e:sbtTransformHash>2db4e4536f48ae0bdb4d3c888d3d7415dd90ef04</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>
 		<m:maven.plugins>null__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-javadoc-plugin__null|org.codehaus.mojo__findbugs-maven-plugin__null|org.glassfish.copyright__glassfish-copyright-maven-plugin__null|org.codehaus.mojo__cobertura-maven-plugin__null|org.codehaus.mojo__buildnumber-maven-plugin__null|null__maven-jar-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.maven.plugins__maven-deploy-plugin__null</m:maven.plugins>
@@ -34,7 +35,7 @@
 		<artifact name="stax-ex" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="javax.activation" name="activation" rev="1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="javax.activation" name="activation" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

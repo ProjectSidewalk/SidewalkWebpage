@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.google.j2objc"
 		module="j2objc-annotations"
 		revision="1.1"
@@ -11,6 +11,7 @@
 		A set of annotations that provide additional information to the J2ObjC
     translator to modify the result of translation.
 		</description>
+		<e:sbtTransformHash>585faa7f7bfd89ccee2aae26ae7c91daa2517963</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-javadoc-plugin__2.10.3|org.apache.maven.plugins__maven-source-plugin__2.4|org.apache.maven.plugins__maven-gpg-plugin__1.6</m:maven.plugins>

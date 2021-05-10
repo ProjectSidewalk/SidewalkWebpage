@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="tec.uom"
 		module="uom-se"
 		revision="1.0.8"
@@ -20,6 +20,7 @@
 		<m:properties__lib.version>1.0.2</m:properties__lib.version>
 		<m:properties__additionalparam>-Xdoclint:none</m:properties__additionalparam>
 		<m:properties__maven-compiler.version>3.6.1</m:properties__maven-compiler.version>
+		<e:sbtTransformHash>b024747754b29cabd3ba45014957d5fe7f2e5a0a</e:sbtTransformHash>
 		<m:dependency.management__tec.uom.lib__uom-lib-common__version>1.0.2</m:dependency.management__tec.uom.lib__uom-lib-common__version>
 		<m:properties__maven.compile.sourceLevel>${jdkVersion}</m:properties__maven.compile.sourceLevel>
 		<m:properties__project.build.javaVersion>${jdkVersion}</m:properties__project.build.javaVersion>
@@ -53,13 +54,9 @@
 		<artifact name="uom-se" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="javax.measure" name="unit-api" rev="1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="tec.uom.lib" name="uom-lib-common" rev="1.0.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.hamcrest" name="hamcrest-all" rev="1.3" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="javax.measure" module="unit-api" matcher="exact" rev="1.0"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
-		<override org="tec.uom.lib" module="uom-lib-common" matcher="exact" rev="1.0.2"/>
-		<override org="org.hamcrest" module="hamcrest-all" matcher="exact" rev="1.3"/>
+		<dependency org="javax.measure" name="unit-api" rev="1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="tec.uom.lib" name="uom-lib-common" rev="1.0.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.hamcrest" name="hamcrest-all" rev="1.3" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

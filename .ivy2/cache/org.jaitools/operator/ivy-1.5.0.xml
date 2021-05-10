@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.jaitools"
 		module="operator"
 		revision="1.5.0"
 		status="release"
 		publication="20180629081942"
 	>
+		<license name="Simplified BSD" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="">
 		Image operators compatible with Java Advanced Imaging (JAI)
 		</description>
@@ -13,6 +14,7 @@
 		<m:dependency.management__javax.media__jai_codec__version>1.1.3</m:dependency.management__javax.media__jai_codec__version>
 		<m:properties__jts.version>1.15.1</m:properties__jts.version>
 		<m:dependency.management__javax.media__jai_imageio__version>1.1</m:dependency.management__javax.media__jai_imageio__version>
+		<e:sbtTransformHash>c09470a55bc34308a90d972305db08734d2d955d</e:sbtTransformHash>
 		<m:dependency.management__org.locationtech.jts__jts-core__version>1.15.1</m:dependency.management__org.locationtech.jts__jts-core__version>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:dependency.management__javax.media__jai_core__version>1.1.3</m:dependency.management__javax.media__jai_core__version>
@@ -34,14 +36,9 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.5" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="javax.media" name="jai_codec" rev="1.1.3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="javax.media" name="jai_imageio" rev="1.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<override org="org.locationtech.jts" module="jts-core" matcher="exact" rev="1.15.1"/>
-		<override org="javax.media" module="jai_core" matcher="exact" rev="1.1.3"/>
-		<override org="javax.media" module="jai_codec" matcher="exact" rev="1.1.3"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.5"/>
-		<override org="javax.media" module="jai_imageio" matcher="exact" rev="1.1"/>
+		<dependency org="junit" name="junit" rev="4.5" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="javax.media" name="jai_codec" rev="1.1.3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="javax.media" name="jai_imageio" rev="1.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

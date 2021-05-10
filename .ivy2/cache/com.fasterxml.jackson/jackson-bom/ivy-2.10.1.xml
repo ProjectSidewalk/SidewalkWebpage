@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.fasterxml.jackson"
 		module="jackson-bom"
 		revision="2.10.1"
 		status="release"
 		publication="20191109225410"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="https://github.com/FasterXML/jackson-bom" />
 		<m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-json-provider__version>2.10.1</m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-json-provider__version>
 		<m:properties__osgi.export>${project.groupId}.*;version=${project.version}</m:properties__osgi.export>
@@ -40,6 +41,7 @@
 		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-osgi__version>2.10.1</m:dependency.management__com.fasterxml.jackson.module__jackson-module-osgi__version>
 		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
 		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>b30b1996c67ec78fcf8f8fbe360441529b6e9e1c</e:sbtTransformHash>
 		<m:properties__osgi.import>*</m:properties__osgi.import>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1</m:maven.plugins>
 		<m:properties__version.plugin.source>3.0.1</m:properties__version.plugin.source>

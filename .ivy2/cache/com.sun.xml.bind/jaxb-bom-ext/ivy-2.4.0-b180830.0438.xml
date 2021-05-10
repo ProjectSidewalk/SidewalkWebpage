@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.sun.xml.bind"
 		module="jaxb-bom-ext"
 		revision="2.4.0-b180830.0438"
@@ -29,6 +29,7 @@
 		<m:properties__istack.version>3.0.7</m:properties__istack.version>
 		<m:properties__dtd-parser.version>1.4</m:properties__dtd-parser.version>
 		<m:dependency.management__org.glassfish.jaxb__jaxb-runtime__version>2.4.0-b180830.0438</m:dependency.management__org.glassfish.jaxb__jaxb-runtime__version>
+		<e:sbtTransformHash>3b5961c20b354bdbbe372723aecad05cd21ca531</e:sbtTransformHash>
 		<m:dependency.management__org.apache.ant__ant__version>1.10.2</m:dependency.management__org.apache.ant__ant__version>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:dependency.management__com.sun.xml.bind__jaxb-jxc__version>2.4.0-b180830.0438</m:dependency.management__com.sun.xml.bind__jaxb-jxc__version>

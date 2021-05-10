@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.sun.xml.fastinfoset"
 		module="FastInfoset"
 		revision="1.2.15"
 		status="release"
 		publication="20180829143904"
 	>
+		<license name="Apache License, Version 2.0" url="http://www.opensource.org/licenses/apache2.0.php" />
 		<description homepage="http://fi.java.net" />
 		<m:properties__findbugs.threshold>Low</m:properties__findbugs.threshold>
 		<m:properties__findbugs.exclude>${project.basedir}/exclude.xml</m:properties__findbugs.exclude>
 		<m:properties__findbugs.skip>false</m:properties__findbugs.skip>
 		<m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>2.1</m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>
+		<e:sbtTransformHash>ec4c3db72e66c448b94973768513267ea5d123cf</e:sbtTransformHash>
 		<m:properties__junit-version>4.12</m:properties__junit-version>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>
@@ -33,7 +35,6 @@
 		<artifact name="FastInfoset" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.apache.maven" module="maven-plugin-tools-api" matcher="exact" rev="2.1"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

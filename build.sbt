@@ -1,12 +1,10 @@
 import play.PlayScala
 
-import scalariform.formatter.preferences._
-
 name := """sidewalk-webpage"""
 
 version := "6.14.7"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.10.6"
 
 sources in (Compile,doc) := Seq.empty
 
@@ -35,7 +33,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-mailer" % "2.4.1",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "com.mohiva" %% "play-silhouette" % "2.0.2",
-  "net.codingwell" %% "scala-guice" % "4.0.0-beta5",
+  "net.codingwell" %% "scala-guice" % "4.1.0" exclude ("com.google.code.findbugs", "jsr305"),
   "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
   "com.github.tminglei" %% "slick-pg" % "0.8.4",
   "joda-time" % "joda-time" % "2.10.8",
@@ -67,16 +65,5 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 javaOptions ++= Seq("-Xmx3072M", "-Xms2048M")
 
 javaOptions in Test += "-Dconfig.file=conf/application.test.conf"
-
-//********************************************************
-// Scalariform settings
-//********************************************************
-
-defaultScalariformSettings
-
-ScalariformKeys.preferences := ScalariformKeys.preferences.value
-  .setPreference(FormatXml, false)
-  .setPreference(DoubleIndentClassDeclaration, false)
-  .setPreference(PreserveDanglingCloseParenthesis, true)
 
 fork in run := true

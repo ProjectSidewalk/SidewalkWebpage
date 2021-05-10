@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.fusesource.leveldbjni"
 		module="leveldbjni-all"
 		revision="1.7"
 		status="release"
 		publication="20130513131202"
 	>
+		<license name="The BSD 3-Clause License" url="http://www.opensource.org/licenses/BSD-3-Clause" />
 		<description homepage="">
 		An uber jar which contains all the leveldbjni platform libraries and dependencies
 		</description>
 		<m:properties__hawtjni-version>1.8</m:properties__hawtjni-version>
 		<m:properties__leveldb-api-version>0.5</m:properties__leveldb-api-version>
+		<e:sbtTransformHash>5c67928d290bdb75e0954e495bb3aaa80e2d6e1b</e:sbtTransformHash>
 		<m:properties__forge-project-id-uc>LEVELDBJNI</m:properties__forge-project-id-uc>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.felix__maven-bundle-plugin__2.3.7</m:maven.plugins>
@@ -32,12 +34,12 @@
 		<artifact name="leveldbjni-all" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni" rev="1.7" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-osx" rev="1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-linux32" rev="1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-linux64" rev="1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-win32" rev="1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-win64" rev="1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni" rev="1.7" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-osx" rev="1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-linux32" rev="1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-linux64" rev="1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-win32" rev="1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-win64" rev="1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

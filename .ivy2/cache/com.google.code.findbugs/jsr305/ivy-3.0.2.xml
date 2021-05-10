@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.google.code.findbugs"
 		module="jsr305"
 		revision="3.0.2"
@@ -10,6 +10,7 @@
 		<description homepage="http://findbugs.sourceforge.net/">
 		JSR305 Annotations for Findbugs
 		</description>
+		<e:sbtTransformHash>31865e381a65b123ac72395dc4ba63150ee9e5a1</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-javadoc-plugin__2.9.1|org.apache.maven.plugins__maven-compiler-plugin__3.0|org.apache.maven.plugins__maven-source-plugin__2.4|org.apache.felix__maven-bundle-plugin__2.4.0|org.apache.maven.plugins__maven-jar-plugin__2.4|org.sonatype.plugins__nexus-staging-maven-plugin__1.6.3|org.apache.maven.plugins__maven-gpg-plugin__1.5</m:maven.plugins>

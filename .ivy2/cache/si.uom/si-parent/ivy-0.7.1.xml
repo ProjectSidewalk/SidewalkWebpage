@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="si.uom"
 		module="si-parent"
 		revision="0.7.1"
 		status="release"
 		publication="20170902223116"
 	>
+		<license name="BSD" url="http://opensource.org/licenses/BSD-3-Clause" />
 		<description homepage="">
 		Units of Measurement SI (Système International d&apos;Unités)
 		</description>
@@ -17,6 +18,7 @@
 		<m:properties__lib.version>1.0.2</m:properties__lib.version>
 		<m:properties__si.quantity.version>0.7.1</m:properties__si.quantity.version>
 		<m:properties__maven-compiler.version>3.6.1</m:properties__maven-compiler.version>
+		<e:sbtTransformHash>4a9eeb18436bb058c53b471645e4d0dc56732ac1</e:sbtTransformHash>
 		<m:properties__maven.compile.sourceLevel>${jdkVersion}</m:properties__maven.compile.sourceLevel>
 		<m:properties__project.build.javaVersion>${jdkVersion}</m:properties__project.build.javaVersion>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>

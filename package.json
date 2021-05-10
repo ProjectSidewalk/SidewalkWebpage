@@ -15,7 +15,7 @@
     "grunt-concat": "grunt concat && grunt concat_css",
     "build": "npm install && grunt",
     "debug": "npm run grunt-concat && grunt watch & sbt -jvm-debug 9998 run",
-    "start": "npm run grunt-concat && grunt watch & sbt -Dsbt.ivy.home='.ivy2' -Dsbt.global.base='.sbt' -Dsbt.repository.config='.sbt/repositories' compile \"~ run\"",
+    "start": "npm run grunt-concat && grunt watch & sbt -Dsbt.ivy.home='.ivy2' -Dsbt.global.base='.sbt' -Dsbt.repository.config='.sbt/repositories' compile \"~ run\" shell",
     "test": "grunt && grunt test"
   }
 }

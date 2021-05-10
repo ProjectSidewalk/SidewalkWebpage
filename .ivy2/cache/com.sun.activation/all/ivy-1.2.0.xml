@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.sun.activation"
 		module="all"
 		revision="1.2.0"
@@ -45,6 +45,7 @@
 		<m:properties__activation.packages.import>
 	    *
 	</m:properties__activation.packages.import>
+		<e:sbtTransformHash>c49d4f0ea8c5f73168231e0fabd98d443238f2f5</e:sbtTransformHash>
 		<m:properties__activation.extensionName>
 	    ${project.groupId}.${project.artifactId}
 	</m:properties__activation.extensionName>

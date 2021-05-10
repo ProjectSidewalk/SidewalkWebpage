@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="tec.uom.lib"
 		module="uom-lib-common"
 		revision="1.0.2"
 		status="release"
 		publication="20170605215610"
 	>
+		<license name="BSD" url="LICENSE.txt" />
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
 		<m:properties__project.reporting.outputEncoding>${sourceEncoding}</m:properties__project.reporting.outputEncoding>
@@ -20,6 +21,7 @@
 		<m:dependency.management__javax.measure__unit-api__version>1.0</m:dependency.management__javax.measure__unit-api__version>
 		<m:properties__lib.version>${project.version}</m:properties__lib.version>
 		<m:properties__maven-compiler.version>3.6.1</m:properties__maven-compiler.version>
+		<e:sbtTransformHash>da82444262baa25ea755c49937500eab6aead7cb</e:sbtTransformHash>
 		<m:properties__jdkVersion>1.7</m:properties__jdkVersion>
 		<m:properties__maven.compile.sourceLevel>${jdkVersion}</m:properties__maven.compile.sourceLevel>
 		<m:properties__project.build.javaVersion>${jdkVersion}</m:properties__project.build.javaVersion>
@@ -47,10 +49,7 @@
 		<artifact name="uom-lib-common" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="javax.measure" name="unit-api" rev="1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="tec.units" module="unit-ri" matcher="exact" rev="1.0.2"/>
-		<override org="javax.measure" module="unit-api" matcher="exact" rev="1.0"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
+		<dependency org="javax.measure" name="unit-api" rev="1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

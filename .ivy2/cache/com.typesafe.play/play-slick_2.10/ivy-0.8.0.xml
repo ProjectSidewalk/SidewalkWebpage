@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.typesafe.play"
 		module="play-slick_2.10"
 		revision="0.8.0"
@@ -10,6 +10,7 @@
 		<description homepage="https://github.com/playframework/play-slick">
 		play-slick
 		</description>
+		<e:sbtTransformHash>6eda1e7a4f843cb128dbf8e0c900fc85489bab6c</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,19 +28,19 @@
 		<artifact name="play-slick_2.10" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="play_2.10" rev="2.3.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="play-jdbc_2.10" rev="2.3.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.slick" name="slick_2.10" rev="2.1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.google.code.findbugs" name="jsr305" rev="2.0.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.reflections" name="reflections" rev="0.9.8" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="play_2.10" rev="2.3.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="play-jdbc_2.10" rev="2.3.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.slick" name="slick_2.10" rev="2.1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.google.code.findbugs" name="jsr305" rev="2.0.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.reflections" name="reflections" rev="0.9.8" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)">
 			<exclude org="com.google.guava" module="guava" name="*" type="*" ext="*" conf="" matcher="exact"/>
 			<exclude org="javassist" module="javassist" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="org.hsqldb" name="hsqldb" rev="2.3.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.typesafe.play" name="play-test_2.10" rev="2.3.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.typesafe.slick" name="slick-testkit_2.10" rev="2.1.0" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-all" rev="1.9.5" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.hsqldb" name="hsqldb" rev="2.3.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.typesafe.play" name="play-test_2.10" rev="2.3.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.typesafe.slick" name="slick-testkit_2.10" rev="2.1.0" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-all" rev="1.9.5" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

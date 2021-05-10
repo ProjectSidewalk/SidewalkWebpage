@@ -6,13 +6,15 @@
 		status="release"
 		publication="20180829122517"
 	>
+		<license name="CDDL 1.1" url="https://glassfish.java.net/public/CDDL+GPL_1_1.html" />
+		<license name="GPL2 w/ CPE" url="https://glassfish.java.net/public/CDDL+GPL_1_1.html" />
 		<description homepage="" />
 		<m:properties__netbeans.hint.jdkPlatform>JDK_1.7</m:properties__netbeans.hint.jdkPlatform>
 		<m:properties__findbugs.threshold>Low</m:properties__findbugs.threshold>
 		<m:properties__findbugs.exclude>exclude.xml</m:properties__findbugs.exclude>
 		<m:properties__findbugs.skip>false</m:properties__findbugs.skip>
 		<m:properties__maven.api.version>3.5.2</m:properties__maven.api.version>
-		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
+		<e:sbtTransformHash>5981dce730490a896e8c65eabe69a093bb35dd98</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.codehaus.mojo__buildnumber-maven-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.codehaus.mojo__buildnumber-maven-plugin__null|org.apache.felix__maven-bundle-plugin__null|null__maven-jar-plugin__null</m:maven.plugins>
@@ -33,6 +35,6 @@
 		<artifact name="istack-commons-runtime" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

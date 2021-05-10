@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.servlet"
 		module="javax.servlet-api"
 		revision="3.0.1"
@@ -12,6 +12,7 @@
 		<m:properties__findbugs.threshold>High</m:properties__findbugs.threshold>
 		<m:properties__bundle.symbolicName>javax.servlet-api</m:properties__bundle.symbolicName>
 		<m:properties__findbugs.version>2.3.1</m:properties__findbugs.version>
+		<e:sbtTransformHash>448a8b2efeeef8d15638127e3d83545ce4865ff8</e:sbtTransformHash>
 		<m:properties__spec.title>Java(TM) Servlet API Design Specification</m:properties__spec.title>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>

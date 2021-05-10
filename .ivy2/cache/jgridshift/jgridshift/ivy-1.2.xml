@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="jgridshift"
 		module="jgridshift"
 		revision="1.2"
@@ -7,6 +7,7 @@
 		publication="20200406220519"
 	>
 		<description homepage="" />
+		<e:sbtTransformHash>4d33f661b526d23a417be3f685cda04121dbabf0</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

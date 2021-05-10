@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.google.protobuf"
 		module="protobuf-java"
 		revision="2.5.0"
@@ -11,6 +11,7 @@
 		Protocol Buffers are a way of encoding structured data in an efficient yet
     extensible format.
 		</description>
+		<e:sbtTransformHash>d2082fd094be222129a4c56d05e58a5572aeb25e</e:sbtTransformHash>
 		<m:maven.plugins>null__maven-compiler-plugin__null|null__maven-surefire-plugin__null|null__maven-antrun-plugin__null|org.apache.felix__maven-bundle-plugin__null</m:maven.plugins>
 	</info>
 	<configurations>
@@ -29,8 +30,8 @@
 		<artifact name="protobuf-java" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.4" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easymock" name="easymock" rev="2.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easymock" name="easymockclassextension" rev="2.2.1" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easymock" name="easymock" rev="2.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easymock" name="easymockclassextension" rev="2.2.1" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

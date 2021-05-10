@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="xalan"
 		module="xalan"
 		revision="2.7.1"
 		status="release"
 		publication="20080930080254"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://xml.apache.org/xalan-j/">
 		Xalan-Java is an XSLT processor for transforming XML documents into HTML,
     text, or other XML document types. It implements XSL Transformations (XSLT)
@@ -13,6 +14,7 @@
     the command line, in an applet or a servlet, or as a module in other program.
 		</description>
 		<m:properties__organization.logo>http://www.apache.org/images/asf_logo_wide.gif</m:properties__organization.logo>
+		<e:sbtTransformHash>ee7150c9af7b59e2947bde2e52fd89a48263a11e</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -30,7 +32,7 @@
 		<artifact name="xalan" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="xalan" name="serializer" rev="2.7.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="xerces" name="xercesImpl" rev="2.9.0" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="xalan" name="serializer" rev="2.7.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="xerces" name="xercesImpl" rev="2.9.0" force="true" conf="optional->compile(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

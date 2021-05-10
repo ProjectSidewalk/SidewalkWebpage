@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.typesafe.play"
 		module="play_2.10"
 		revision="2.3.9"
@@ -10,6 +10,7 @@
 		<description homepage="https://playframework.com">
 		Play
 		</description>
+		<e:sbtTransformHash>96343d153799b9a79ad2bb30de05b01a72c6cab2</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,41 +28,41 @@
 		<artifact name="play_2.10" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="build-link" rev="2.3.9" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="play-iteratees_2.10" rev="2.3.9" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="play-json_2.10" rev="2.3.9" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="twirl-api_2.10" rev="1.0.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="io.netty" name="netty" rev="3.9.8.Final" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.netty" name="netty-http-pipelining" rev="1.1.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.slf4j" name="jul-to-slf4j" rev="1.7.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.slf4j" name="jcl-over-slf4j" rev="1.7.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="ch.qos.logback" name="logback-core" rev="1.1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="ch.qos.logback" name="logback-classic" rev="1.1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.akka" name="akka-actor_2.10" rev="2.3.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.akka" name="akka-slf4j_2.10" rev="2.3.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.scala-stm" name="scala-stm_2.10" rev="0.7" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="commons-codec" name="commons-codec" rev="1.9" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="joda-time" name="joda-time" rev="2.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.joda" name="joda-convert" rev="1.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.apache.commons" name="commons-lang3" rev="3.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.3.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.3.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.3.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="xerces" name="xercesImpl" rev="2.11.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.transaction" name="jta" rev="1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.google.guava" name="guava" rev="16.0.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scala-lang" name="scala-reflect" rev="2.10.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.specs2" name="specs2-core_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.specs2" name="specs2-junit_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.specs2" name="specs2-mock_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.specs2" name="specs2-matcher-extra_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.novocode" name="junit-interface" rev="0.11-RC1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easytesting" name="fest-assert" rev="1.4" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-all" rev="1.9.5" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.specs2" name="specs2-scalacheck_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.3" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="build-link" rev="2.3.9" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="play-iteratees_2.10" rev="2.3.9" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="play-json_2.10" rev="2.3.9" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="twirl-api_2.10" rev="1.0.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="io.netty" name="netty" rev="3.9.8.Final" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.netty" name="netty-http-pipelining" rev="1.1.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.slf4j" name="jul-to-slf4j" rev="1.7.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.slf4j" name="jcl-over-slf4j" rev="1.7.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="ch.qos.logback" name="logback-core" rev="1.1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="ch.qos.logback" name="logback-classic" rev="1.1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.akka" name="akka-actor_2.10" rev="2.3.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.akka" name="akka-slf4j_2.10" rev="2.3.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.scala-stm" name="scala-stm_2.10" rev="0.7" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="commons-codec" name="commons-codec" rev="1.9" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="joda-time" name="joda-time" rev="2.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.joda" name="joda-convert" rev="1.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.apache.commons" name="commons-lang3" rev="3.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.3.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.3.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.3.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="xerces" name="xercesImpl" rev="2.11.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.transaction" name="jta" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.google.guava" name="guava" rev="16.0.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scala-lang" name="scala-reflect" rev="2.10.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.specs2" name="specs2-core_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.specs2" name="specs2-junit_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.specs2" name="specs2-mock_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.specs2" name="specs2-matcher-extra_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.novocode" name="junit-interface" rev="0.11-RC1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easytesting" name="fest-assert" rev="1.4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-all" rev="1.9.5" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.specs2" name="specs2-scalacheck_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.3" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

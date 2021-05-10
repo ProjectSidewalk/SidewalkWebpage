@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="commons-io"
 		module="commons-io"
 		revision="2.6"
 		status="release"
 		publication="20171015100052"
 	>
+		<license name="Apache License, Version 2.0" url="https://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://commons.apache.org/proper/commons-io/">
 		The Apache Commons IO library contains utility classes, stream implementations, file filters,
 file comparators, endian transformation classes, and much more.
@@ -72,6 +73,7 @@ file comparators, endian transformation classes, and much more.
 		<m:properties__commons.clirr.version>2.8</m:properties__commons.clirr.version>
 		<m:properties__commons.japicmp.breakBuildOnBinaryIncompatibleModifications>true</m:properties__commons.japicmp.breakBuildOnBinaryIncompatibleModifications>
 		<m:properties__commons.release.3.binary.suffix>-bin</m:properties__commons.release.3.binary.suffix>
+		<e:sbtTransformHash>3e83a0a47124e45dbc4892856b5f312ae869b4b5</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.7</m:properties__maven.compiler.target>
 		<m:properties__checkstyle.plugin.version>2.17</m:properties__checkstyle.plugin.version>
 		<m:properties__commons.compiler.version>3.6.0</m:properties__commons.compiler.version>
@@ -122,6 +124,6 @@ file comparators, endian transformation classes, and much more.
 		<artifact name="commons-io" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -13,7 +13,7 @@
 		</description>
 		<m:properties__sbtVersion>0.13</m:properties__sbtVersion>
 		<m:properties__scalaVersion>2.10</m:properties__scalaVersion>
-		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
+		<e:sbtTransformHash>9f929a33ea7e74331ff0479bef5716d7fdd0b6dc</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -31,8 +31,8 @@
 		<artifact name="sbt-idea" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-sbt" name="sbt" rev="0.13.0-RC3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.2" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="commons-io" name="commons-io" rev="2.0.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.scala-sbt" name="sbt" rev="0.13.0-RC3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.2" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="commons-io" name="commons-io" rev="2.0.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

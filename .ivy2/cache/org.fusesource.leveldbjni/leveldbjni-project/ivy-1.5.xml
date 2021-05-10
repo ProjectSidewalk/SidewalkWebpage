@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.fusesource.leveldbjni"
 		module="leveldbjni-project"
 		revision="1.5"
@@ -12,6 +12,7 @@
 		</description>
 		<m:properties__hawtjni-version>1.6</m:properties__hawtjni-version>
 		<m:properties__leveldb-api-version>0.5</m:properties__leveldb-api-version>
+		<e:sbtTransformHash>aa2034773076fef9badc28ce634d0ea299c8350f</e:sbtTransformHash>
 		<m:properties__forge-project-id-uc>LEVELDBJNI</m:properties__forge-project-id-uc>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3</m:maven.plugins>
@@ -32,6 +33,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

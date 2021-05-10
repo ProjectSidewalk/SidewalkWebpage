@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.xml.bind"
 		module="jaxb-api-parent"
 		revision="2.4.0-b180830.0359"
@@ -21,6 +21,7 @@
 		<m:properties__activation.version>1.2.0</m:properties__activation.version>
 		<m:properties__release.spec.feedback>javaee-spec@javaee.groups.io</m:properties__release.spec.feedback>
 		<m:properties__mrjar.sourceDirectory>${project.basedir}/src/main/mr-jar</m:properties__mrjar.sourceDirectory>
+		<e:sbtTransformHash>e14b99a1004bcac3f974be5eae6b816b89607d7b</e:sbtTransformHash>
 		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>
 		<m:properties__extension.name>javax.xml.bind</m:properties__extension.name>
 		<m:properties__mrjar.build.outputDirectory>${project.build.directory}/classes-mrjar</m:properties__mrjar.build.outputDirectory>

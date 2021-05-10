@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="it.geosolutions.jaiext"
 		module="jaiext"
 		revision="1.1.14"
@@ -19,6 +19,7 @@
 		<m:properties__apache.version>2.1</m:properties__apache.version>
 		<m:properties__junit.version>4.11</m:properties__junit.version>
 		<m:properties__test.maxPermSize>512m</m:properties__test.maxPermSize>
+		<e:sbtTransformHash>ac13f07494c5f1867203692572f1e8cac170e3ac</e:sbtTransformHash>
 		<m:properties__guava.version>27.0-jre</m:properties__guava.version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__3.1|org.apache.maven.plugins__maven-surefire-plugin__2.15|org.eluder.coveralls__coveralls-maven-plugin__4.0.0|org.apache.maven.plugins__maven-jar-plugin__2.4|org.apache.maven.plugins__maven-source-plugin__2.2.1|null__maven-assembly-plugin__2.1|org.apache.maven.plugins__maven-javadoc-plugin__2.10.3</m:maven.plugins>
 		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
@@ -52,19 +53,10 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.media" name="jai_codec" rev="1.1.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.media" name="jai_imageio" rev="1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.locationtech.jts" name="jts-core" rev="1.15.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="javax.media" module="jai_core" matcher="exact" rev="1.1.3"/>
-		<override org="javax.media" module="jai_codec" matcher="exact" rev="1.1.3"/>
-		<override org="javax.media" module="jai_imageio" matcher="exact" rev="1.1"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.11"/>
-		<override org="org.locationtech.jts" module="jts-core" matcher="exact" rev="1.15.1"/>
-		<override org="com.google.guava" module="guava" matcher="exact" rev="27.0-jre"/>
-		<override org="org.antlr" module="antlr4-runtime" matcher="exact" rev="4.7.1"/>
-		<override org="org.hamcrest" module="hamcrest-library" matcher="exact" rev="1.3"/>
-		<override org="org.codehaus.janino" module="janino" matcher="exact" rev="3.0.8"/>
+		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.media" name="jai_codec" rev="1.1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.media" name="jai_imageio" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.locationtech.jts" name="jts-core" rev="1.15.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

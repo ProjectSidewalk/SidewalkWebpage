@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.reflections"
 		module="reflections"
 		revision="0.9.8"
 		status="release"
 		publication="20120524192141"
 	>
+		<license name="WTFPL" url="http://en.wikipedia.org/wiki/WTFPL" />
 		<description homepage="http://code.google.com/p/reflections/">
 		Reflections - a Java runtime metadata analysis
 		</description>
+		<e:sbtTransformHash>6c2efe0513d2ed297f2bedc5d6389cb73fcefe2b</e:sbtTransformHash>
 		<m:maven.plugins>null__maven-resources-plugin__2.5|null__maven-source-plugin__2.1.2|null__maven-javadoc-plugin__2.8|null__maven-compiler-plugin__2.3.2|null__maven-surefire-plugin__2.12|null__maven-resources-plugin__2.5|null__maven-source-plugin__2.1.2|null__maven-javadoc-plugin__2.8|null__maven-compiler-plugin__2.3.2|null__maven-surefire-plugin__2.12</m:maven.plugins>
 	</info>
 	<configurations>
@@ -27,13 +29,13 @@
 		<artifact name="reflections" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="com.google.guava" name="guava" rev="11.0.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javassist" name="javassist" rev="3.12.1.GA" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="dom4j" name="dom4j" rev="1.6.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.google.code.gson" name="gson" rev="1.4" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="javax.servlet" name="servlet-api" rev="2.5" force="true" conf="optional->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.slf4j" name="slf4j-simple" rev="1.6.1" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.5" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="com.google.guava" name="guava" rev="11.0.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javassist" name="javassist" rev="3.12.1.GA" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="dom4j" name="dom4j" rev="1.6.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.google.code.gson" name="gson" rev="1.4" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="javax.servlet" name="servlet-api" rev="2.5" force="true" conf="optional->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="slf4j-simple" rev="1.6.1" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.5" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

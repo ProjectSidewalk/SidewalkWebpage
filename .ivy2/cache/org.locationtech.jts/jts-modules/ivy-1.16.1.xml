@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.locationtech.jts"
 		module="jts-modules"
 		revision="1.16.1"
 		status="release"
 		publication="20190218235729"
 	>
+		<license name="Eclipse Publish License, Version 1.0" url="https://github.com/locationtech/jts/blob/master/LICENSE_EPLv1.txt" />
+		<license name="Eclipse Distribution License - v 1.0" url="https://github.com/locationtech/jts/blob/master/LICENSE_EDLv1.txt" />
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>3.7</m:dependency.management__junit__junit__version>
 		<m:properties__sde-version>9.1</m:properties__sde-version>
@@ -14,6 +16,7 @@
 		<m:properties__json-simple-version>1.1.1</m:properties__json-simple-version>
 		<m:dependency.management__com.googlecode.json-simple__json-simple__version>1.1.1</m:dependency.management__com.googlecode.json-simple__json-simple__version>
 		<m:dependency.management__org.jdom__jdom2__version>2.0.6</m:dependency.management__org.jdom__jdom2__version>
+		<e:sbtTransformHash>d5ff5382fb14163d76df30788e5a2180d092e001</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.8</m:properties__maven.compiler.target>
 		<m:properties__jdom-version>2.0.6</m:properties__jdom-version>
 		<m:dependency.management__com.oracle__ojdbc7__version>11.1.0.7.0</m:dependency.management__com.oracle__ojdbc7__version>
@@ -37,11 +40,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.7" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="com.googlecode.json-simple" module="json-simple" matcher="exact" rev="1.1.1"/>
-		<override org="org.apache.commons" module="commons-lang3" matcher="exact" rev="3.7"/>
-		<override org="org.jdom" module="jdom2" matcher="exact" rev="2.0.6"/>
-		<override org="com.oracle" module="ojdbc7" matcher="exact" rev="11.1.0.7.0"/>
-		<override org="junit" module="junit" matcher="exact" rev="3.7"/>
+		<dependency org="junit" name="junit" rev="3.7" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

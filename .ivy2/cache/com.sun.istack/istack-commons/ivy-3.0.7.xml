@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.sun.istack"
 		module="istack-commons"
 		revision="3.0.7"
@@ -16,6 +16,7 @@
 		<m:properties__findbugs.exclude>exclude.xml</m:properties__findbugs.exclude>
 		<m:properties__findbugs.skip>false</m:properties__findbugs.skip>
 		<m:properties__maven.api.version>3.5.2</m:properties__maven.api.version>
+		<e:sbtTransformHash>6abeb4c2fb364900e1a1ff79966157f4600fea37</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.codehaus.mojo__buildnumber-maven-plugin__null|org.apache.felix__maven-bundle-plugin__null</m:maven.plugins>
@@ -35,6 +36,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

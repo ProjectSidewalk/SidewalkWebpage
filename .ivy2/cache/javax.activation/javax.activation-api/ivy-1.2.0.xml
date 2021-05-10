@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.activation"
 		module="javax.activation-api"
 		revision="1.2.0"
 		status="release"
 		publication="20170906231319"
 	>
+		<license name="CDDL/GPLv2+CE" url="https://github.com/javaee/activation/blob/master/LICENSE.txt" />
 		<description homepage="" />
 		<m:properties__copyright-plugin.version>1.42</m:properties__copyright-plugin.version>
 		<m:properties__activation.bundle.symbolicName>
@@ -42,6 +43,7 @@
 		<m:properties__activation.packages.import>
 	    *
 	</m:properties__activation.packages.import>
+		<e:sbtTransformHash>d62cd0e650cb1a6ed54450e865aa38457fb33fdd</e:sbtTransformHash>
 		<m:properties__activation.extensionName>
 	    javax.activation
 	</m:properties__activation.extensionName>

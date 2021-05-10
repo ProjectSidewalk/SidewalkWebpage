@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="it.geosolutions.imageio-ext"
 		module="imageio-ext-streams"
 		revision="1.3.2"
 		status="release"
 		publication="20190603120716"
 	>
+		<license name="Lesser General Public License (LGPL)" url="http://www.gnu.org/copyleft/lesser.txt" />
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
 		<m:dependency.management__javax.media__jai_codec__version>1.1.3</m:dependency.management__javax.media__jai_codec__version>
@@ -13,24 +14,25 @@
 		<m:properties__path.native>${env.JAVA_HOME}/bin</m:properties__path.native>
 		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-streams__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-streams__version>
 		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdal-bindings__version>2.2.0</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdal-bindings__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-imagereadmt__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-imagereadmt__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-test-data__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-test-data__version>
+		<e:sbtTransformHash>c8364cf1f3ae7b87f5e930a09a80d4186f57f643</e:sbtTransformHash>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadujni__version>5.2.6</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadujni__version>
+		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1</m:maven.plugins>
+		<m:properties__kakadu.version>5.2.6</m:properties__kakadu.version>
+		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
 		<m:properties__java.lib>${env.JAVA_HOME}/jre/lib/ext</m:properties__java.lib>
 		<m:dependency.management__org.mockito__mockito-core__version>2.28.2</m:dependency.management__org.mockito__mockito-core__version>
 		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-utilities__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-utilities__version>
-		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-imagereadmt__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-imagereadmt__version>
 		<m:properties__gdal.version>2.2.0</m:properties__gdal.version>
 		<m:properties__interactive.tests>false</m:properties__interactive.tests>
-		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-test-data__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-test-data__version>
 		<m:properties__test.maxHeapSize>512M</m:properties__test.maxHeapSize>
 		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadu__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadu__version>
 		<m:properties__extensive.tests>false</m:properties__extensive.tests>
 		<m:dependency.management__org.mockito__mockito-core__scope>test</m:dependency.management__org.mockito__mockito-core__scope>
 		<m:properties__m2.localrepo>${settings.localRepository}</m:properties__m2.localrepo>
 		<m:dependency.management__javax.media__jai_core__version>1.1.3</m:dependency.management__javax.media__jai_core__version>
-		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadujni__version>5.2.6</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadujni__version>
-		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__2.1</m:maven.plugins>
-		<m:properties__kakadu.version>5.2.6</m:properties__kakadu.version>
 		<m:properties__java.awt.headless>true</m:properties__java.awt.headless>
-		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -48,23 +50,11 @@
 		<artifact name="imageio-ext-streams" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="it.geosolutions.imageio-ext" name="imageio-ext-test-data" rev="1.3.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="it.geosolutions.imageio-ext" name="imageio-ext-utilities" rev="1.3.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.media" name="jai_codec" rev="1.1.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.media" name="jai_imageio" rev="1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-test-data" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-utilities" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-kakadujni" matcher="exact" rev="5.2.6"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdal-bindings" matcher="exact" rev="2.2.0"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-kakadu" matcher="exact" rev="1.3.2"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-streams" matcher="exact" rev="1.3.2"/>
-		<override org="javax.media" module="jai_core" matcher="exact" rev="1.1.3"/>
-		<override org="javax.media" module="jai_codec" matcher="exact" rev="1.1.3"/>
-		<override org="it.geosolutions.imageio-ext" module="imageio-ext-imagereadmt" matcher="exact" rev="1.3.2"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
-		<override org="org.mockito" module="mockito-core" matcher="exact" rev="2.28.2"/>
-		<override org="javax.media" module="jai_imageio" matcher="exact" rev="1.1"/>
+		<dependency org="it.geosolutions.imageio-ext" name="imageio-ext-test-data" rev="1.3.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="it.geosolutions.imageio-ext" name="imageio-ext-utilities" rev="1.3.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.media" name="jai_codec" rev="1.1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.media" name="jai_imageio" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

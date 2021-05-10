@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.fusesource.hawtjni"
 		module="hawtjni-project"
 		revision="1.8"
@@ -14,6 +14,7 @@
 		<m:properties__scala-plugin-version>2.15.2</m:properties__scala-plugin-version>
 		<m:properties__jetty-plugin-version>7.0.1.v20091125</m:properties__jetty-plugin-version>
 		<m:properties__slf4j-version>1.6.1</m:properties__slf4j-version>
+		<e:sbtTransformHash>3cc4721ac39a5be0b7994639fc666b30ed884009</e:sbtTransformHash>
 		<m:properties__scala-version>2.9.0-1</m:properties__scala-version>
 		<m:properties__scalate-version>1.5.1</m:properties__scalate-version>
 		<m:properties__forge-project-id-uc>HAWTJNI</m:properties__forge-project-id-uc>

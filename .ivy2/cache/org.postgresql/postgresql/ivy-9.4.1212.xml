@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.postgresql"
 		module="postgresql"
 		revision="9.4.1212"
@@ -25,6 +25,7 @@
 		<m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_2>org.slf4j__slf4j-simple</m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_2>
 		<m:properties__postgresql.driver.fullversion>PostgreSQL ${postgresql.jdbc.spec}</m:properties__postgresql.driver.fullversion>
 		<m:dependency.management__com.github.dblock.waffle__waffle-jna__version>1.7.5</m:dependency.management__com.github.dblock.waffle__waffle-jna__version>
+		<e:sbtTransformHash>cae4833c0ce18d2e898549a48d8e087f6526cdb6</e:sbtTransformHash>
 		<m:properties__template.default.pg.port>5432</m:properties__template.default.pg.port>
 		<m:maven.plugins>org.apache.maven.plugins__maven-site-plugin__null</m:maven.plugins>
 		<m:properties__waffle-jna.version>1.7.5</m:properties__waffle-jna.version>
@@ -53,12 +54,7 @@
 		<artifact name="postgresql" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="se.jiderhamn" name="classloader-leak-test-framework" rev="1.1.1" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
-		<override org="com.github.dblock.waffle" module="waffle-jna" matcher="exact" rev="1.7.5"/>
-		<override org="org.osgi" module="org.osgi.core" matcher="exact" rev="4.3.1"/>
-		<override org="org.osgi" module="org.osgi.enterprise" matcher="exact" rev="4.2.0"/>
-		<override org="se.jiderhamn" module="classloader-leak-test-framework" matcher="exact" rev="1.1.1"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="se.jiderhamn" name="classloader-leak-test-framework" rev="1.1.1" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

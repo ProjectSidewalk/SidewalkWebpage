@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache"
 		module="apache"
 		revision="18"
@@ -16,13 +16,14 @@
 		</description>
 		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
 		<m:properties__distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</m:properties__distMgmtSnapshotsUrl>
-		<m:properties__distMgmtSnapshotsName>Apache Development Snapshot Repository</m:properties__distMgmtSnapshotsName>
 		<m:properties__organization.logo>https://www.apache.org/images/asf_logo_wide.gif</m:properties__organization.logo>
-		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
 		<m:properties__gpg.useagent>true</m:properties__gpg.useagent>
-		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__surefire.version>2.19.1</m:properties__surefire.version>
+		<m:properties__distMgmtSnapshotsName>Apache Development Snapshot Repository</m:properties__distMgmtSnapshotsName>
+		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
+		<e:sbtTransformHash>95606afa0c6d077c85c2bcbe83453e62c1eb20e8</e:sbtTransformHash>
+		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-site-plugin__null</m:maven.plugins>
 		<m:properties__maven.compiler.source>1.6</m:properties__maven.compiler.source>
 	</info>
