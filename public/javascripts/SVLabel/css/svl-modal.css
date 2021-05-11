@@ -168,15 +168,15 @@
 }
 
 .modal-foreground .mapbox #map-legend #green-square {
-    fill: rgba(20,220,120,1);
+    fill: rgba(88,225,172,1);
 }
 
 .modal-foreground .mapbox #map-legend #blue-square {
-    fill: rgba(70,130,180,1);
+    fill: rgba(82,161,224,1);
 }
 
 .modal-foreground .mapbox #map-legend #gray-square {
-    fill: rgba(100,100,100,1);
+    fill: rgba(100,122,145,1);
 }
 
 .modal-foreground .leaflet-zoom-hide svg {
@@ -282,4 +282,8 @@
 
 #modal-surface-problem-foreground {
     border: solid 3px rgba(241, 141, 5, 1);
+}
+
+.modal-column-space {
+    padding-left: 0px; 
 }

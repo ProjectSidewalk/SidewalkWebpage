@@ -132,7 +132,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
         // render svg segments
         function renderPath(missionTasks){
-            var missionTaskLayerStyle = {color: "rgb(20,220,120)", opacity: 1, weight: 5 };
+            var missionTaskLayerStyle = {color: "rgb(88,225,172)", opacity: 1, weight: 5 };
 
             var len = missionTasks.length;
             for (var i = 0; i < len; i++) {
@@ -165,8 +165,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         var i;
         var geojsonFeature;
         var layer;
-        var completedTaskAllUsersLayerStyle = { color: "rgb(100,100,100)", opacity: 1, weight: 5 };
-        var completedTaskLayerStyle = { color: "rgb(70,130,180)", opacity: 1, weight: 5 };
+        var completedTaskAllUsersLayerStyle = { color: "rgb(100,122,145)", opacity: 1, weight: 5 };
+        var completedTaskLayerStyle = { color: "rgb(82,161,224)", opacity: 1, weight: 5 };
         var leafletMap = this._map;
 
         // remove previous tasks
