@@ -23,26 +23,22 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  jdbc,
-  anorm,
-  cache,
-  "com.typesafe.play" %% "filters-helpers" % "2.3.9",
+  "com.typesafe.play" %% "play-jdbc" % "2.3.10",
+  "com.typesafe.play" %% "anorm" % "2.3.10",
+  "com.typesafe.play" %% "play-cache" % "2.3.10",
+  "com.typesafe.play" %% "filters-helpers" % "2.3.10",
   "com.vividsolutions" % "jts" % "1.13",
   "com.typesafe.slick" %% "slick" % "2.1.0",
-  "com.typesafe.play" %% "play-slick" % "0.8.0",
+  "com.typesafe.play" %% "play-slick" % "0.8.1",
   "com.typesafe.play" %% "play-mailer" % "2.4.1",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "com.mohiva" %% "play-silhouette" % "2.0.2",
   "net.codingwell" %% "scala-guice" % "4.1.0" exclude ("com.google.code.findbugs", "jsr305"),
   "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
-  "com.github.tminglei" %% "slick-pg" % "0.8.4",
-  "joda-time" % "joda-time" % "2.10.8",
-  "org.geotools" % "gt-coverage" % "23.0",
-  "org.geotools" % "gt-epsg-hsql" % "23.0",
-  "org.geotools" % "gt-geotiff" % "23.0",
-  "org.geotools" % "gt-main" % "23.0" exclude("javax.media", "jai_core"),
-  "org.geotools" % "gt-referencing" % "23.0",
-  "org.geotools" % "gt-shapefile" % "23.0"
+  "com.github.tminglei" %% "slick-pg" % "0.8.6",
+  "joda-time" % "joda-time" % "2.10.10",
+  "org.geotools" % "gt-epsg-hsql" % "25.0",
+  "org.geotools" % "gt-shapefile" % "25.0"
 ).map(_.force())
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)

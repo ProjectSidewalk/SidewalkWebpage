@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>net.codingwell</groupId>
+    <artifactId>scala-guice_2.10</artifactId>
+    <packaging>jar</packaging>
+    <description>Scala syntax for Guice</description>
+    <url>https://github.com/codingwell/scala-guice</url>
+    <version>4.1.0</version>
+    <licenses>
+        <license>
+            <name>Apache 2</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>Scala Guice</name>
+    <organization>
+        <name>net.codingwell</name>
+        <url>https://github.com/codingwell/scala-guice</url>
+    </organization>
+    <scm>
+        <connection>scm:git:https://github.com/codingwell/scala-guice.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:codingwell/scala-guice.git</developerConnection>
+        <url>https://github.com/codingwell/scala-guice</url>
+    </scm>
+    <developers>
+        <developer>
+            <id>tsuckow</id>
+            <name>Thomas Suckow</name>
+            <email>tsuckow@gmail.com</email>
+            <url>http://codingwell.net</url>
+            <organization>Coding Well</organization>
+            <organizationUrl>http://codingwell.net</organizationUrl>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
+    <contributors>
+        <contributor>
+            <name>Ben Lings</name>
+            <roles>
+                <role>creator</role>
+            </roles>
+        </contributor>
+    </contributors>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.10.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-multibindings</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.10</artifactId>
+            <version>3.0.0-RC4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+    </dependencies>
+</project>

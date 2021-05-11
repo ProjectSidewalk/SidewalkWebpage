@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+	<info organisation="com.thoughtworks.paranamer"
+		module="paranamer"
+		revision="2.6"
+		status="release"
+		publication="20131009035654"
+	>
+		<license name="BSD" url="LICENSE.txt" />
+		<description homepage="" />
+		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>
+		<m:properties__codehausDistMgmtSnapshotsUrl>https://nexus.codehaus.org/content/repositories/snapshots/</m:properties__codehausDistMgmtSnapshotsUrl>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-javadoc-plugin__null|com.thoughtworks.paranamer__paranamer-maven-plugin__null|org.apache.maven.plugins__maven-dependency-plugin__null</m:maven.plugins>
+		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="paranamer" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.mockito" name="mockito-all" rev="1.9.0" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="javax.inject" name="javax.inject" rev="1" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="net.sourceforge.f2j" name="arpack_combined_all" rev="0.1" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="net.sourceforge.f2j" name="arpack_combined_all" rev="0.1" force="true" conf="test->runtime(*),master(*)">
+			<artifact name="arpack_combined_all" type="jar" ext="jar" conf="" m:classifier="javadoc"/>
+		</dependency>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
+		<override org="junit" module="junit" matcher="exact" rev="4.11"/>
+	</dependencies>
+</ivy-module>
