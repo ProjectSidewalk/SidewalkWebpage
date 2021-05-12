@@ -129,6 +129,9 @@ POST    /label/geo/random/:labelType/:labelId                @controllers.Valida
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
 GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
 
+# Location Picker 
+GET     /locationPicker                                      @controllers.LocationSelectionController.select()
+
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets

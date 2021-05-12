@@ -48,7 +48,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t('mission-start.body') + '</p>\
+        <p id="modal-mission-start-body">' + i18next.t('mission-start.body') + '</p>\
         <div class="spacer10"></div>';
 
     var returningToMissionHTML = ' <figure> \
@@ -209,7 +209,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             //enter key
             if (e.keyCode == 13 && self._status.isOpen){
                 svl.tracker.push("KeyboardShortcut_ModalMissionOk");
-                $("#modal-mission-close-button").trigger("click", {lowLevelLogging: false});
+                $("#").trigger("click", {lowLevelLogging: false});
             }
         });
     };

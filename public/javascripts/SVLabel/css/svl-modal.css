@@ -250,7 +250,6 @@
 
 #modal-mission-close-button {
     width: 200px;
-    float: right;
 }
 
 .modal-background {
@@ -282,4 +281,15 @@
 
 #modal-surface-problem-foreground {
     border: solid 3px rgba(241, 141, 5, 1);
+}
+
+#modal-mission-navigation-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#modal-mission-start-choose-start {
+    padding-top: 5px;
+    font-size: 15px;
 }

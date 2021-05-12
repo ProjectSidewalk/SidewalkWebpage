@@ -135,6 +135,8 @@ audit.mission.complete.legend.this.mission = This Mission
 audit.mission.complete.legend.previous.missions = Previous Missions
 audit.mission.complete.legend.others.missions = Other Users'' Missions
 
+audit.mission.start.location = Or choose your start location
+
 audit.survey.title = Please take this one-time survey about Project Sidewalk
 audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
 audit.survey.enjoyment.option.1 = Very boring

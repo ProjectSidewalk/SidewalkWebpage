@@ -1,0 +1,32 @@
+@import models.user.User
+@import models.region.RegionTable
+@import play.api.libs.json.Json
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
+
+@main(title) {
+    @navbar(user, Some("/location"))
+        <link href="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.css" rel="stylesheet">
+        <link rel="stylesheet" href='@routes.Assets.at("stylesheets/locationSelection.css")'>
+
+        <script src="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+
+    <div>
+        <!--TODO: Change the instructions to be language adaptive-->
+        <div id="instructions">Select the street you would like to audit:</div>
+        <div id="map"></div>
+    </div>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/LocationSelection/LocationMap.js")'></script>
+    <script>
+         window.onload = function() {
+            $(document).ready(function () {
+                var loadMapParams = $.getJSON('/cityMapParams');
+                $.when(loadMapParams).done(function(data) {
+                        map = LocationMap($, data);
+                        self.map = map;
+                });
+            });
+        }
+    </script>
+}
+

@@ -1,0 +1,18 @@
+/*
+* Styling for the location selection page
+*/
+
+#map {
+    width: 700px;
+    height: 700px;
+    margin: auto;
+    padding-top: 10px;
+}
+
+#instructions {
+    text-align: center;
+    font-size: 20px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    font-family: Raleway, sans-serif;
+}

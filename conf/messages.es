@@ -135,6 +135,8 @@ audit.mission.complete.legend.this.mission = Esta misión
 audit.mission.complete.legend.previous.missions = Misiones anteriores
 audit.mission.complete.legend.others.missions = Misiones de otras
 
+audit.mission.start.location = O elige tu ubicación de inicio
+
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?
 audit.survey.enjoyment.option.1 = Muy aburrido
