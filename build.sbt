@@ -4,7 +4,7 @@ name := """sidewalk-webpage"""
 
 version := "6.14.7"
 
-scalaVersion := "2.10.6"
+scalaVersion := "2.10.7"
 
 sources in (Compile,doc) := Seq.empty
 
@@ -33,7 +33,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-mailer" % "2.4.1",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "com.mohiva" %% "play-silhouette" % "2.0.2",
-  "net.codingwell" %% "scala-guice" % "4.1.0" exclude ("com.google.code.findbugs", "jsr305"),
+  "net.codingwell" %% "scala-guice" % "4.1.1",
   "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
   "com.github.tminglei" %% "slick-pg" % "0.8.6",
   "joda-time" % "joda-time" % "2.10.10",
