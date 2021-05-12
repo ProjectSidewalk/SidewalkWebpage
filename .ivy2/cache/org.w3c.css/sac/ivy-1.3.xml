@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.w3c.css"
 		module="sac"
 		revision="1.3"
@@ -10,6 +10,7 @@
 		<description homepage="http://www.w3.org/Style/CSS/SAC/">
 		SAC is a standard interface for CSS parsers.
 		</description>
+		<e:sbtTransformHash>1f83dc995bd8b28b1beab7b828be906cd7a9cb20</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

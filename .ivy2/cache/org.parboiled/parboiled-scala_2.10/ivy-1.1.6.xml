@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.parboiled"
 		module="parboiled-scala_2.10"
 		revision="1.1.6"
@@ -10,6 +10,7 @@
 		<description homepage="http://parboiled.org">
 		Elegant parsing in Java and Scala - lightweight, easy-to-use, powerful
 		</description>
+		<e:sbtTransformHash>ee415b6062e79ea6c66e9a885b48dd16a64c357f</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,9 +28,9 @@
 		<artifact name="parboiled-scala_2.10" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.parboiled" name="parboiled-core" rev="1.1.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.testng" name="testng" rev="5.14.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scalatest" name="scalatest_2.10" rev="1.9.1" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.parboiled" name="parboiled-core" rev="1.1.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.testng" name="testng" rev="5.14.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalatest" name="scalatest_2.10" rev="1.9.1" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

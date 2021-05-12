@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.ow2.asm"
 		module="asm"
 		revision="4.1"
 		status="release"
 		publication="20121014153745"
 	>
+		<license name="BSD" url="http://asm.objectweb.org/license.html" />
 		<description homepage="" />
 		<m:properties__ow2DistMgmtSnapshotsUrl>http://repository.ow2.org/nexus/content/repositories/snapshots</m:properties__ow2DistMgmtSnapshotsUrl>
 		<m:properties__organization.logo>
@@ -15,6 +16,7 @@
 		<m:dependency.management__org.ow2.asm__asm-xml__version>4.1</m:dependency.management__org.ow2.asm__asm-xml__version>
 		<m:dependency.management__org.ow2.asm__asm-util__version>4.1</m:dependency.management__org.ow2.asm__asm-util__version>
 		<m:properties__ow2DistMgmtReleasesUrl>http://repository.ow2.org/nexus/service/local/staging/deploy/maven2</m:properties__ow2DistMgmtReleasesUrl>
+		<e:sbtTransformHash>c8ab900888e999eef75ab1427bb02b1bdf8833d2</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1</m:maven.plugins>
 		<m:dependency.management__org.ow2.asm__asm-tree__version>4.1</m:dependency.management__org.ow2.asm__asm-tree__version>

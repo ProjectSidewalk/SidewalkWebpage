@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.iq80.leveldb"
 		module="leveldb"
 		revision="0.5"
 		status="release"
 		publication="20130122184104"
 	>
+		<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="">
 		Port of LevelDB to Java
 		</description>
+		<e:sbtTransformHash>b31602e907ce6af19c5534bb2a3cee422c8d3d0c</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-source-plugin__null|null__maven-jar-plugin__null|org.apache.maven.plugins__maven-shade-plugin__1.4|com.github.wvengen__proguard-maven-plugin__2.0.5</m:maven.plugins>
@@ -29,12 +31,12 @@
 		<artifact name="leveldb" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.iq80.leveldb" name="leveldb-api" rev="0.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.xerial.snappy" name="snappy-java" rev="1.0.3" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="org.iq80.snappy" name="snappy" rev="0.2" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="com.google.guava" name="guava" rev="12.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="joda-time" name="joda-time" rev="1.6.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.testng" name="testng" rev="6.0.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="1.1" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.iq80.leveldb" name="leveldb-api" rev="0.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.xerial.snappy" name="snappy-java" rev="1.0.3" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.iq80.snappy" name="snappy" rev="0.2" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="com.google.guava" name="guava" rev="12.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="joda-time" name="joda-time" rev="1.6.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.testng" name="testng" rev="6.0.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="1.1" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

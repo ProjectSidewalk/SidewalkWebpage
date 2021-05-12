@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.typesafe.play"
 		module="play-ws_2.10"
 		revision="2.3.8"
@@ -10,6 +10,7 @@
 		<description homepage="https://playframework.com">
 		Play-WS
 		</description>
+		<e:sbtTransformHash>7cc66a06320dcd49232914efc7c2b6f4deb47319</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,17 +28,17 @@
 		<artifact name="play-ws_2.10" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="play_2.10" rev="2.3.8" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.typesafe.play" name="play-test_2.10" rev="2.3.8" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.google.guava" name="guava" rev="16.0.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.ning" name="async-http-client" rev="1.8.15" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="oauth.signpost" name="signpost-core" rev="1.2.1.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="oauth.signpost" name="signpost-commonshttp4" rev="1.2.1.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.specs2" name="specs2-core_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.specs2" name="specs2-junit_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.specs2" name="specs2-mock_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.specs2" name="specs2-matcher-extra_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-all" rev="1.9.5" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="play_2.10" rev="2.3.8" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.play" name="play-test_2.10" rev="2.3.8" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.google.guava" name="guava" rev="16.0.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.ning" name="async-http-client" rev="1.8.15" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="oauth.signpost" name="signpost-core" rev="1.2.1.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="oauth.signpost" name="signpost-commonshttp4" rev="1.2.1.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.specs2" name="specs2-core_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.specs2" name="specs2-junit_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.specs2" name="specs2-mock_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.specs2" name="specs2-matcher-extra_2.10" rev="2.3.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-all" rev="1.9.5" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

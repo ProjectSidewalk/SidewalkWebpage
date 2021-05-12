@@ -7,7 +7,4 @@ resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositor
 
 
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.3.8")
-
-// Use the Scalariform plugin to reformat the code
-addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.3.0")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.3.10")

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="net.jcip"
 		module="jcip-annotations"
 		revision="1.0"
@@ -7,6 +7,7 @@
 		publication="20080814064805"
 	>
 		<description homepage="http://jcip.net/" />
+		<e:sbtTransformHash>8e69245bf03ebda31bd81526e8b640f94e59d88c</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

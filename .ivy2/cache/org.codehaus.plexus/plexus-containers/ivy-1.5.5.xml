@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.codehaus.plexus"
 		module="plexus-containers"
 		revision="1.5.5"
 		status="release"
 		publication="20100930201450"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="">
 		Plexus IoC Container core with companion tools.
 		</description>
@@ -25,6 +26,7 @@
 		<m:properties__plexusDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/plexus-snapshots</m:properties__plexusDistMgmtSnapshotsUrl>
 		<m:dependency.management__org.codehaus.plexus__plexus-utils__version>1.4.5</m:dependency.management__org.codehaus.plexus__plexus-utils__version>
 		<m:dependency.management__jdom__jdom__version>1.0</m:dependency.management__jdom__jdom__version>
+		<e:sbtTransformHash>52f4f908b39683a076a2eafae5d75fbb20818ea3</e:sbtTransformHash>
 		<m:dependency.management__org.codehaus.plexus__plexus-classworlds__version>2.2.2</m:dependency.management__org.codehaus.plexus__plexus-classworlds__version>
 		<m:maven.plugins>null__maven-compiler-plugin__null</m:maven.plugins>
 		<m:dependency.management__org.codehaus.plexus__plexus-container-default__version>1.5.5</m:dependency.management__org.codehaus.plexus__plexus-container-default__version>
@@ -44,19 +46,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.codehaus.plexus" module="plexus-container-default" matcher="exact" rev="1.5.5"/>
-		<override org="org.codehaus.plexus" module="plexus-component-annotations" matcher="exact" rev="1.5.5"/>
-		<override org="org.codehaus.plexus" module="plexus-component-metadata" matcher="exact" rev="1.5.5"/>
-		<override org="org.codehaus.plexus" module="plexus-classworlds" matcher="exact" rev="2.2.2"/>
-		<override org="org.codehaus.plexus" module="plexus-utils" matcher="exact" rev="1.4.5"/>
-		<override org="org.apache.xbean" module="xbean-reflect" matcher="exact" rev="3.4"/>
-		<override org="com.thoughtworks.qdox" module="qdox" matcher="exact" rev="1.9.2"/>
-		<override org="jdom" module="jdom" matcher="exact" rev="1.0"/>
-		<override org="org.apache.maven" module="maven-plugin-api" matcher="exact" rev="2.0.9"/>
-		<override org="org.apache.maven" module="maven-model" matcher="exact" rev="2.0.9"/>
-		<override org="org.apache.maven" module="maven-project" matcher="exact" rev="2.0.9"/>
-		<override org="com.google.collections" module="google-collections" matcher="exact" rev="1.0"/>
-		<override org="junit" module="junit" matcher="exact" rev="3.8.2"/>
+		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

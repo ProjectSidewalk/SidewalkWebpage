@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.commons"
 		module="commons-parent"
 		revision="12"
 		status="release"
 		publication="20091020225754"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://commons.apache.org/" />
 		<m:properties__commons.encoding>iso-8859-1</m:properties__commons.encoding>
 		<m:properties__commons.docEncoding>${commons.encoding}</m:properties__commons.docEncoding>
@@ -22,6 +23,7 @@
 		<m:properties__commons.osgi.symbolicName>org.apache.commons.${commons.componentid}</m:properties__commons.osgi.symbolicName>
 		<m:properties__maven.compile.source>1.3</m:properties__maven.compile.source>
 		<m:properties__commons.release.name>${project.artifactId}-${commons.release.version}</m:properties__commons.release.name>
+		<e:sbtTransformHash>e0cb1809d8684787d51c8e2a7df903f9dccaf18e</e:sbtTransformHash>
 		<m:properties__commons.rc.version>RC1</m:properties__commons.rc.version>
 		<m:maven.plugins>null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.apache.felix__maven-bundle-plugin__null|null__maven-idea-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.commons__commons-build-plugin__null</m:maven.plugins>
 	</info>
