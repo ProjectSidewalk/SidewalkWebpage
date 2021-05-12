@@ -35,7 +35,9 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg" % "0.8.6",
   "joda-time" % "joda-time" % "2.10.10",
   "org.geotools" % "gt-epsg-hsql" % "25.0",
-  "org.geotools" % "gt-shapefile" % "25.0"
+  "org.geotools" % "gt-shapefile" % "25.0",
+  // Below are transitive dependencies that were missing jars in default repositories.
+  "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar"
 ).map(_.force())
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)

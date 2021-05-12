@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.media"
 		module="jai_core"
 		revision="1.1.3"
@@ -10,6 +10,7 @@
 		<description homepage="https://jai.dev.java.net/">
 		The Java Advanced Imaging API extends the Java 2 platform by allowing sophisticated, high-performance image processing to be incorporated into Java applets and applications. It is a set of classes providing imaging functionality beyond that of Java 2D and the Java Foundation classes, though it is designed for compatibility with those APIs. This API implements a set of core image processing capabilities including image tiling, regions of interest, deferred execution and a set of core image processing operators, including many common point, area, and frequency domain operators.
 		</description>
+		<e:sbtTransformHash>b369285a8bb7c5088a5ceadc53e7faa1198d5582</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
