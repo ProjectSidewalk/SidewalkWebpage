@@ -110,7 +110,7 @@
 }
 
 .modal-foreground #modal-mission-complete-message {
-    font-size: 11pt;
+    font-size: 10pt;
 }
 
 .modal-foreground .blue-btn {
@@ -288,6 +288,6 @@
     padding-left: 0px; 
 }
 
-.btn-bottom {
-    margin-top: 24px; 
+.more-spacing {
+    margin-top: 28px; 
 }
