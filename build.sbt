@@ -10,9 +10,6 @@ sources in (Compile,doc) := Seq.empty
 
 publishArtifact in (Compile, packageDoc) := false
 
-// uncomment this when the sbt version is updated to > 0.13.7
-// updateOptions := updateOptions.value.withCachedResolution(true)
-
 resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
 
 resolvers += Resolver.sonatypeRepo("snapshots")
