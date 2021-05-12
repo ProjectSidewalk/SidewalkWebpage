@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.avaje"
 		module="avaje-parent"
 		revision="1.1"
@@ -10,6 +10,7 @@
 		<description homepage="http://www.avaje.org">
 		Packaging parent for Avaje projects.
 		</description>
+		<e:sbtTransformHash>b30558ab5932258dee21f01752f433662c376d02</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|null__maven-source-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1</m:maven.plugins>

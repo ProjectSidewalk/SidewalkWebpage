@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="tech.units"
+		module="indriya"
+		revision="2.0.2"
+		status="release"
+		publication="20200112172532"
+	>
+		<license name="BSD" url="LICENSE" />
+		<description homepage="https://unitsofmeasurement.github.io/indriya">
+		Unit Standard (JSR 385) Reference Implementation.
+		</description>
+		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
+		<m:properties__junit.jupiter.version>5.5.2</m:properties__junit.jupiter.version>
+		<m:properties__maven.surefire.version>2.20</m:properties__maven.surefire.version>
+		<m:properties__compile.exclude.files>module-info.java</m:properties__compile.exclude.files>
+		<m:properties__maven.compiler.version>3.8.1</m:properties__maven.compiler.version>
+		<m:dependency.management__org.hamcrest__hamcrest-all__scope>test</m:dependency.management__org.hamcrest__hamcrest-all__scope>
+		<m:properties__maven.source.version>3.1.0</m:properties__maven.source.version>
+		<m:properties__osgi.version>5.0.0</m:properties__osgi.version>
+		<m:properties__junit.version>4.12</m:properties__junit.version>
+		<m:properties__maven.compile.targetLevel>${jdkVersion}</m:properties__maven.compile.targetLevel>
+		<m:dependency.management__javax.measure__unit-api__version>2.0</m:dependency.management__javax.measure__unit-api__version>
+		<m:dependency.management__org.osgi__org.osgi.annotation__scope>provided</m:dependency.management__org.osgi__org.osgi.annotation__scope>
+		<m:properties__maven.site.version>3.8.2</m:properties__maven.site.version>
+		<m:properties__felix.version>4.1.0</m:properties__felix.version>
+		<m:properties__lib.version>2.0</m:properties__lib.version>
+		<m:properties__additionalparam>-Xdoclint:none</m:properties__additionalparam>
+		<m:dependency.management__org.osgi__org.osgi.core__scope>provided</m:dependency.management__org.osgi__org.osgi.core__scope>
+		<m:properties__jacoco.version>0.8.4</m:properties__jacoco.version>
+		<e:sbtTransformHash>5f72496b89a5acbd444e747aabc6b47bb5f3b606</e:sbtTransformHash>
+		<m:properties__maven.compile.sourceLevel>${jdkVersion}</m:properties__maven.compile.sourceLevel>
+		<m:properties__project.build.javaVersion>${jdkVersion}</m:properties__project.build.javaVersion>
+		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-compiler-plugin__null|null__maven-surefire-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.maven.plugins__maven-pmd-plugin__3.2|org.apache.maven.plugins__maven-surefire-plugin__2.20|org.apache.maven.plugins__maven-surefire-report-plugin__2.16|org.jacoco__jacoco-maven-plugin__null|org.codehaus.mojo__cobertura-maven-plugin__2.7|org.eluder.coveralls__coveralls-maven-plugin__4.3.0|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-javadoc-plugin__3.1.1|com.mycila__license-maven-plugin__null</m:maven.plugins>
+		<m:properties__sourceEncoding>UTF-8</m:properties__sourceEncoding>
+		<m:properties__proj.version>${project.version}</m:properties__proj.version>
+		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
+		<m:properties__project.reporting.outputEncoding>${sourceEncoding}</m:properties__project.reporting.outputEncoding>
+		<m:properties__maven.javadoc.version>3.1.1</m:properties__maven.javadoc.version>
+		<m:dependency.management__tech.uom.lib__uom-lib-common__version>2.0</m:dependency.management__tech.uom.lib__uom-lib-common__version>
+		<m:dependency.management__org.osgi__org.osgi.compendium__scope>provided</m:dependency.management__org.osgi__org.osgi.compendium__scope>
+		<m:properties__slf4j.version>1.7.28</m:properties__slf4j.version>
+		<m:dependency.management__org.osgi__org.osgi.core__version>5.0.0</m:dependency.management__org.osgi__org.osgi.core__version>
+		<m:dependency.management__org.hamcrest__hamcrest-all__version>2.0.0.0</m:dependency.management__org.hamcrest__hamcrest-all__version>
+		<m:properties__jsr.version>2.0</m:properties__jsr.version>
+		<m:dependency.management__org.osgi__org.osgi.annotation__version>6.0.0</m:dependency.management__org.osgi__org.osgi.annotation__version>
+		<m:properties__jacoco.plugin.version>0.8.4</m:properties__jacoco.plugin.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__hamcrest.version>2.0.0.0</m:properties__hamcrest.version>
+		<m:properties__thisYear>2020</m:properties__thisYear>
+		<m:properties__osgi.compendium.version>${osgi.version}</m:properties__osgi.compendium.version>
+		<m:properties__junit.platform.version>1.1.1</m:properties__junit.platform.version>
+		<m:properties__maven.jar.version>3.1.0</m:properties__maven.jar.version>
+		<m:dependency.management__org.osgi__org.osgi.compendium__version>5.0.0</m:dependency.management__org.osgi__org.osgi.compendium__version>
+		<m:properties__jdkVersion>1.8</m:properties__jdkVersion>
+		<m:properties__osgi.annotation.version>6.0.0</m:properties__osgi.annotation.version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="indriya" type="bundle" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="javax.measure" name="unit-api" rev="2.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="tech.uom.lib" name="uom-lib-common" rev="2.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.inject" name="javax.inject" rev="1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.osgi" name="org.osgi.annotation" rev="6.0.0" force="true" conf="optional->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.osgi" name="org.osgi.compendium" rev="5.0.0" force="true" conf="optional->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.osgi" name="org.osgi.core" rev="5.0.0" force="true" conf="optional->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.hamcrest" name="hamcrest-junit" rev="2.0.0.0" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.junit.jupiter" name="junit-jupiter-api" rev="5.5.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.junit.jupiter" name="junit-jupiter-params" rev="5.5.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.junit.jupiter" name="junit-jupiter-engine" rev="5.5.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.junit.platform" name="junit-platform-launcher" rev="1.1.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.junit.platform" name="junit-platform-runner" rev="1.1.1" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

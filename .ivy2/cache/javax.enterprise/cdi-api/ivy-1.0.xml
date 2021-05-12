@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.enterprise"
 		module="cdi-api"
 		revision="1.0"
 		status="release"
 		publication="20091108224421"
 	>
+		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="">
 		APIs for JSR-299: Contexts and Dependency Injection for Java EE
 		</description>
@@ -21,6 +22,7 @@
 		<m:dependency.management__javax.enterprise__cdi-api__version>1.0</m:dependency.management__javax.enterprise__cdi-api__version>
 		<m:dependency.management__org.jboss.weld__weld-api__version>1.0</m:dependency.management__org.jboss.weld__weld-api__version>
 		<m:properties__jstl.api.version>1.2</m:properties__jstl.api.version>
+		<e:sbtTransformHash>bafdcc2c9c008a2d5ac7dadf50a27c3825043be4</e:sbtTransformHash>
 		<m:dependency.management__javax.el__el-api__version>2.1.2-b04</m:dependency.management__javax.el__el-api__version>
 		<m:properties__interceptor.api.version>1.1</m:properties__interceptor.api.version>
 		<m:properties__atinject.api.version>1</m:properties__atinject.api.version>
@@ -68,33 +70,14 @@
 		<artifact name="cdi-api" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="javax.el" name="el-api" rev="2.1.2-b04" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="org.jboss.ejb3" name="jboss-ejb3-api" rev="3.1.0" force="true" conf="optional->compile(*),master(*)">
+		<dependency org="javax.el" name="el-api" rev="2.1.2-b04" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.jboss.ejb3" name="jboss-ejb3-api" rev="3.1.0" force="true" conf="optional->compile(*),master(compile)">
 			<exclude org="jbossws" module="jboss-jaxrpc" name="*" type="*" ext="*" conf="" matcher="exact"/>
 			<exclude org="org.jboss.javaee" module="jboss-transaction-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
 			<exclude org="jboss.jbossws" module="jboss-jaxrpc" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="org.jboss.interceptor" name="jboss-interceptor-api" rev="1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.annotation" name="jsr250-api" rev="1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.inject" name="javax.inject" rev="1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<override org="org.jboss.weld" module="weld-spi" matcher="exact" rev="1.0"/>
-		<override org="javax.faces" module="jsf-api" matcher="exact" rev="1.2_13"/>
-		<override org="org.jboss.ejb3" module="jboss-ejb3-api" matcher="exact" rev="3.1.0"/>
-		<override org="javax.validation" module="validation-api" matcher="exact" rev="1.0.0.GA"/>
-		<override org="javax.servlet" module="jstl" matcher="exact" rev="1.2"/>
-		<override org="javax.transaction" module="jta" matcher="exact" rev="1.0.1B"/>
-		<override org="commons-httpclient" module="commons-httpclient" matcher="exact" rev="3.1"/>
-		<override org="javax.inject" module="javax.inject" matcher="exact" rev="1"/>
-		<override org="javax.jms" module="jms" matcher="exact" rev="1.1"/>
-		<override org="org.testng" module="testng" matcher="exact" rev="5.10"/>
-		<override org="javax.servlet" module="servlet-api" matcher="exact" rev="2.5"/>
-		<override org="javax.servlet.jsp" module="jsp-api" matcher="exact" rev="2.1"/>
-		<override org="javax.xml.ws" module="jaxws-api" matcher="exact" rev="2.1"/>
-		<override org="org.jboss.weld" module="weld-api" matcher="exact" rev="1.0"/>
-		<override org="javax.enterprise" module="cdi-api" matcher="exact" rev="1.0"/>
-		<override org="org.jboss.interceptor" module="jboss-interceptor-api" matcher="exact" rev="1.1"/>
-		<override org="javax.el" module="el-api" matcher="exact" rev="2.1.2-b04"/>
-		<override org="javax.annotation" module="jsr250-api" matcher="exact" rev="1.0"/>
-		<override org="javax.persistence" module="persistence-api" matcher="exact" rev="1.0"/>
+		<dependency org="org.jboss.interceptor" name="jboss-interceptor-api" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.annotation" name="jsr250-api" rev="1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.inject" name="javax.inject" rev="1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

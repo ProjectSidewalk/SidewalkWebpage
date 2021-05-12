@@ -1,38 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.eclipse.aether"
 		module="aether-util"
 		revision="0.9.0.M2"
 		status="release"
 		publication="20130216195542"
 	>
+		<license name="Eclipse Public License, Version 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
 		<description homepage="">
 		A collection of utility classes to ease usage of the repository system.
 		</description>
 		<m:dependency.management__junit__junit__version>4.8.2</m:dependency.management__junit__junit__version>
-		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
 		<m:dependency.management__org.eclipse.aether__aether-util__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-util__version>
-		<m:dependency.management__org.sonatype.sisu__sisu-inject-plexus__version>2.3.0</m:dependency.management__org.sonatype.sisu__sisu-inject-plexus__version>
 		<m:dependency.management__org.eclipse.aether__aether-connector-asynchttpclient__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-connector-asynchttpclient__version>
 		<m:properties__sonatypeOssDistMgmtSnapshotsId>sonatype-nexus-snapshots</m:properties__sonatypeOssDistMgmtSnapshotsId>
-		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
-		<m:dependency.management__org.eclipse.aether__aether-api__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-api__version>
 		<m:dependency.management__javax.inject__javax.inject__scope>provided</m:dependency.management__javax.inject__javax.inject__scope>
 		<m:dependency.management__org.eclipse.aether__aether-test-util__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-test-util__version>
-		<m:dependency.management__org.eclipse.aether__aether-test-util__scope>test</m:dependency.management__org.eclipse.aether__aether-test-util__scope>
-		<m:dependency.management__javax.inject__javax.inject__version>1</m:dependency.management__javax.inject__javax.inject__version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__version>1.5.5</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__version>
-		<m:dependency.management__org.eclipse.aether__aether-spi__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-spi__version>
-		<m:dependency.management__org.eclipse.aether__aether-connector-wagon__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-connector-wagon__version>
-		<m:properties__bundle.symbolicName>org.eclipse.aether.util</m:properties__bundle.symbolicName>
 		<m:dependency.management__org.eclipse.aether__aether-connector-file__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-connector-file__version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>provided</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
+		<e:sbtTransformHash>9279f07aad4c81954b7d6cabe3f8d3b2dd442663</e:sbtTransformHash>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.2</m:dependency.management__org.slf4j__slf4j-api__version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__1.7|org.apache.maven.plugins__maven-enforcer-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__1.7|org.codehaus.mojo__animal-sniffer-maven-plugin__null|org.codehaus.mojo__clirr-maven-plugin__null|org.apache.felix__maven-bundle-plugin__null</m:maven.plugins>
-		<m:properties__surefire.redirectTestOutputToFile>true</m:properties__surefire.redirectTestOutputToFile>
 		<m:dependency.management__org.eclipse.aether__aether-impl__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-impl__version>
 		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
+		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
+		<m:dependency.management__org.sonatype.sisu__sisu-inject-plexus__version>2.3.0</m:dependency.management__org.sonatype.sisu__sisu-inject-plexus__version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__org.eclipse.aether__aether-api__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-api__version>
+		<m:dependency.management__org.eclipse.aether__aether-test-util__scope>test</m:dependency.management__org.eclipse.aether__aether-test-util__scope>
+		<m:dependency.management__javax.inject__javax.inject__version>1</m:dependency.management__javax.inject__javax.inject__version>
+		<m:dependency.management__org.eclipse.aether__aether-spi__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-spi__version>
+		<m:dependency.management__org.eclipse.aether__aether-connector-wagon__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-connector-wagon__version>
+		<m:properties__bundle.symbolicName>org.eclipse.aether.util</m:properties__bundle.symbolicName>
+		<m:properties__surefire.redirectTestOutputToFile>true</m:properties__surefire.redirectTestOutputToFile>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -50,21 +52,8 @@
 		<artifact name="aether-util" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.eclipse.aether" name="aether-api" rev="0.9.0.M2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.eclipse.aether" name="aether-test-util" rev="0.9.0.M2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.eclipse.aether" module="aether-spi" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-test-util" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-connector-file" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-connector-wagon" matcher="exact" rev="0.9.0.M2"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.8.2"/>
-		<override org="javax.inject" module="javax.inject" matcher="exact" rev="1"/>
-		<override org="org.eclipse.aether" module="aether-util" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-connector-asynchttpclient" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-impl" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.sonatype.sisu" module="sisu-inject-plexus" matcher="exact" rev="2.3.0"/>
-		<override org="org.eclipse.aether" module="aether-api" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.codehaus.plexus" module="plexus-component-annotations" matcher="exact" rev="1.5.5"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.6.2"/>
+		<dependency org="org.eclipse.aether" name="aether-api" rev="0.9.0.M2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.eclipse.aether" name="aether-test-util" rev="0.9.0.M2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache"
 		module="apache"
 		revision="19"
@@ -23,6 +23,7 @@
 		<m:properties__assembly.tarLongFileMode>posix</m:properties__assembly.tarLongFileMode>
 		<m:properties__distMgmtSnapshotsName>Apache Development Snapshot Repository</m:properties__distMgmtSnapshotsName>
 		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
+		<e:sbtTransformHash>cffe41fb7af38176ab149bfb2d96a6e630f2536f</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-site-plugin__null</m:maven.plugins>
 		<m:properties__maven.compiler.source>1.6</m:properties__maven.compiler.source>

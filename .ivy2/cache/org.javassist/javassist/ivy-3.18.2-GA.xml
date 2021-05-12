@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.javassist"
 		module="javassist"
 		revision="3.18.2-GA"
@@ -13,6 +13,7 @@
 		Javassist (JAVA programming ASSISTant) makes Java bytecode manipulation
     simple.  It is a class library for editing bytecodes in Java.
 		</description>
+		<e:sbtTransformHash>25b54a246fd71165e35899d319fcafd4fbd61707</e:sbtTransformHash>
 		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.12|org.apache.maven.plugins__maven-jar-plugin__null|null__maven-source-plugin__2.0.3|org.apache.maven.plugins__maven-javadoc-plugin__2.7|org.apache.felix__maven-bundle-plugin__2.1.0</m:maven.plugins>
 	</info>
 	<configurations>
@@ -31,6 +32,6 @@
 		<artifact name="javassist" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.8.1" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="3.8.1" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

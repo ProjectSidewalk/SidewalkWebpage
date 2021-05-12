@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.github.tminglei</groupId>
+    <artifactId>slick-pg_2.10</artifactId>
+    <packaging>jar</packaging>
+    <description>Slick extensions for PostgreSQL</description>
+    <version>0.8.6</version>
+    <name>slick-pg</name>
+    <organization>
+        <name>slick-pg</name>
+    </organization>
+    <url>https://github.com/tminglei/slick-pg</url>
+    <licenses>
+        <license>
+            <name>BSD-style</name>
+            <url>http://www.opensource.org/licenses/bsd-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>git@github.com:tminglei/slick-pg.git</url>
+        <connection>scm:git:git@github.com:tminglei/slick-pg.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>tminglei</id>
+            <name>Minglei Tu</name>
+            <timezone>+8</timezone>
+        </developer>
+    </developers>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.tminglei</groupId>
+            <artifactId>slick-pg_core_2.10</artifactId>
+            <version>0.8.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <version>2.10.7</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.slick</groupId>
+            <artifactId>slick_2.10</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>9.4-1201-jdbc41</version>
+        </dependency>
+    </dependencies>
+</project>

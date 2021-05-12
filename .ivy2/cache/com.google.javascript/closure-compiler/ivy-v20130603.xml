@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.google.javascript"
 		module="closure-compiler"
 		revision="v20130603"
@@ -15,6 +15,7 @@
     JavaScript apps, including Gmail, Google Web Search, Google Maps, and
     Google Docs.
 		</description>
+		<e:sbtTransformHash>37510c14846d7c1239906ad56844de8c91287ae2</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -32,12 +33,12 @@
 		<artifact name="closure-compiler" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="args4j" name="args4j" rev="2.0.16" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.google.guava" name="guava" rev="14.0.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.google.protobuf" name="protobuf-java" rev="2.4.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.json" name="json" rev="20090211" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.google.code.findbugs" name="jsr305" rev="1.3.9" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="caja" name="caja" rev="r4939" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="args4j" name="args4j" rev="2.0.16" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.google.guava" name="guava" rev="14.0.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.google.protobuf" name="protobuf-java" rev="2.4.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.json" name="json" rev="20090211" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.google.code.findbugs" name="jsr305" rev="1.3.9" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="caja" name="caja" rev="r4939" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

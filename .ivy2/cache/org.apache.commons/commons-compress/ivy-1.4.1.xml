@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.commons"
 		module="commons-compress"
 		revision="1.4.1"
 		status="release"
 		publication="20120522045732"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://commons.apache.org/compress/">
 		Apache Commons Compress software defines an API for working with compression and archive formats.
 These include: bzip2, gzip, pack200, xz and ar, cpio, jar, tar, zip, dump.
@@ -36,6 +37,7 @@ These include: bzip2, gzip, pack200, xz and ar, cpio, jar, tar, zip, dump.
 		<m:properties__minSeverity>info</m:properties__minSeverity>
 		<m:properties__commons.clirr.version>2.3</m:properties__commons.clirr.version>
 		<m:properties__commons.release.3.binary.suffix>-bin</m:properties__commons.release.3.binary.suffix>
+		<e:sbtTransformHash>27e5fcd77c4567c9381bb3fdfaec441973fe70e9</e:sbtTransformHash>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.8|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.8|null__maven-assembly-plugin__null|null__maven-jar-plugin__null</m:maven.plugins>
 		<m:properties__commons.jira.id>COMPRESS</m:properties__commons.jira.id>
 		<m:properties__commons.javadoc.version>2.8.1</m:properties__commons.javadoc.version>
@@ -70,7 +72,7 @@ These include: bzip2, gzip, pack200, xz and ar, cpio, jar, tar, zip, dump.
 		<artifact name="commons-compress" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.tukaani" name="xz" rev="1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.tukaani" name="xz" rev="1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

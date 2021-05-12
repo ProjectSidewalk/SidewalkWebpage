@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="javax.measure"
+		module="unit-api"
+		revision="2.0"
+		status="release"
+		publication="20190707204037"
+	>
+		<license name="BSD" url="LICENSE" />
+		<description homepage="http://unitsofmeasurement.github.io/unit-api/">
+		Units of Measurement Standard - This JSR specifies Java packages for modeling and working with measurement values, quantities and their corresponding units.
+		</description>
+		<m:properties__junit.jupiter.version>5.5.0</m:properties__junit.jupiter.version>
+		<m:properties__maven.surefire.version>2.22.1</m:properties__maven.surefire.version>
+		<m:properties__maven.compile.targetLevel>${jdkVersion}</m:properties__maven.compile.targetLevel>
+		<m:properties__maven.site.version>3.7.1</m:properties__maven.site.version>
+		<m:properties__felix.version>3.4.0</m:properties__felix.version>
+		<m:properties__sonar.exclusions>src/main/java/javax/measure/BinaryPrefix.java,src/main/java/javax/measure/MetricPrefix.java</m:properties__sonar.exclusions>
+		<m:properties__additionalparam>-Xdoclint:none</m:properties__additionalparam>
+		<m:properties__maven.resources.version>3.1.0</m:properties__maven.resources.version>
+		<e:sbtTransformHash>f74f6c785b94fa4aee19f2cefc2413cb5f67c32d</e:sbtTransformHash>
+		<m:properties__maven.compile.sourceLevel>${jdkVersion}</m:properties__maven.compile.sourceLevel>
+		<m:properties__github.global.server>github</m:properties__github.global.server>
+		<m:properties__project.build.javaVersion>${jdkVersion}</m:properties__project.build.javaVersion>
+		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.jacoco__jacoco-maven-plugin__0.8.3|org.eluder.coveralls__coveralls-maven-plugin__4.3.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|org.apache.maven.plugins__maven-javadoc-plugin__3.1.0|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.felix__maven-bundle-plugin__3.4.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|com.mycila__license-maven-plugin__null|net.revelc.code__formatter-maven-plugin__null|org.apache.maven.plugins__maven-site-plugin__3.7.1</m:maven.plugins>
+		<m:properties__sourceEncoding>UTF-8</m:properties__sourceEncoding>
+		<m:properties__project.reporting.outputEncoding>${sourceEncoding}</m:properties__project.reporting.outputEncoding>
+		<m:properties__maven.javadoc.version>3.1.0</m:properties__maven.javadoc.version>
+		<m:properties__jacoco.plugin.version>0.8.3</m:properties__jacoco.plugin.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__thisYear>2019</m:properties__thisYear>
+		<m:properties__jdkOptionalVersion>9</m:properties__jdkOptionalVersion>
+		<m:properties__basedir>.</m:properties__basedir>
+		<m:properties__maven.compile.version>3.8.1</m:properties__maven.compile.version>
+		<m:properties__maven.surefire-report.version>2.22.1</m:properties__maven.surefire-report.version>
+		<m:properties__maven.jar.version>3.1.0</m:properties__maven.jar.version>
+		<m:properties__jdkVersion>8</m:properties__jdkVersion>
+		<m:properties__github.maven.version>0.12</m:properties__github.maven.version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="unit-api" type="bundle" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.junit.jupiter" name="junit-jupiter-api" rev="5.5.0" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.junit.jupiter" name="junit-jupiter-engine" rev="5.5.0" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>
