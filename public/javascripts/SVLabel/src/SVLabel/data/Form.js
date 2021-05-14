@@ -53,7 +53,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             current_lat: navigationModel.getPosition().lat,
             current_lng: navigationModel.getPosition().lng,
             start_point_reversed: task.getProperty("startPointReversed"),
-            time_data_last_queried: properties.timeLastQuried
+            time_data_last_queried: properties.timeLastQuried,
+            task_percentage_completed: (task.getAuditedDistance()/task.lineDistance())
         };
 
         data.environment = {
@@ -268,7 +269,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     properties.timeLastQuried = result.timePerformedQuery;
 
                     // console.log("timeLastQueried: " + properties.timeLastQuried);
-                    // console.log("timePerformedQuery: " + result.timePerformedQuery)
+                    // console.log("timePerformedQuery: " + result.timePerformedQuery);
+                    
                     if (result.streetEdgeIdsAfterTime > 0) {
                         console.log(result.streetEdgeIdsAfterTime);
                         console.log(result.newStreetEdgePriorities);

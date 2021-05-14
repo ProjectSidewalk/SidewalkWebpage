@@ -376,15 +376,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
-      // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent.
-      // Then qeury StreetEdgePriorityParameter with the result from AuditTaskTable. 
-      val queriedEdgeIdsAfterTime: List[Int] = AuditTaskTable.streetEdgeIdsUpdatedAfterTime(timeLastQueried)
-      val queriedStreetEdgePriorityParameters: List[StreetEdgePriorityParameter] = StreetEdgePriorityTable.streetEdgePrioritiesFromIds(queriedEdgeIdsAfterTime)
+      //var streetEdgeIdsAfterTime = List.empty[Int]
+      //var newStreetEdgePriorities = List.empty[Double]
       
-      // We set the streetEdgeIdsAfterTime and newStreetEdgePriorties parametets with queriedStreetEdgePriorityParameters
-      // because it keeps the indexes in order with each other. 
+      // if the percentage of the task completed is greater than sixty percent, we update.
+     // if (auditTask.taskPercentageCompleted > 0.60) {
+        // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent.
+        // Then qeury StreetEdgePriorityParameter with the result from AuditTaskTable. 
+        val queriedEdgeIdsAfterTime: List[Int] = AuditTaskTable.streetEdgeIdsUpdatedAfterTime(timeLastQueried)
+        val queriedStreetEdgePriorityParameters: List[StreetEdgePriorityParameter] = StreetEdgePriorityTable.streetEdgePrioritiesFromIds(queriedEdgeIdsAfterTime)
+        
+        // We set the streetEdgeIdsAfterTime and newStreetEdgePriorties parametets with queriedStreetEdgePriorityParameters
+        // because it keeps the indexes in order with each other. 
       val streetEdgeIdsAfterTime = queriedStreetEdgePriorityParameters.map(x => x.streetEdgeId)
       val newStreetEdgePriorities = queriedStreetEdgePriorityParameters.map(x => x.priorityParameter)
+     // }
 
       
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
