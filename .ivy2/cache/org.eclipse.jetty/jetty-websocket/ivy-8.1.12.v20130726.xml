@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.eclipse.jetty"
 		module="jetty-websocket"
 		revision="8.1.12.v20130726"
 		status="release"
 		publication="20130726170437"
 	>
+		<license name="Apache Software License - Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
+		<license name="Eclipse Public License - Version 1.0" url="http://www.eclipse.org/org/documents/epl-v10.php" />
 		<description homepage="http://www.eclipse.org/jetty" />
 		<m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>2.0</m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>
 		<m:dependency.management__junit__junit__version>4.8.1</m:dependency.management__junit__junit__version>
@@ -23,6 +25,7 @@
 		<m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>2.0</m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>
 		<m:properties__jetty.url>http://www.eclipse.org/jetty</m:properties__jetty.url>
 		<m:dependency.management__org.eclipse.jetty.orbit__javax.transaction__version>1.1.1.v201105210645</m:dependency.management__org.eclipse.jetty.orbit__javax.transaction__version>
+		<e:sbtTransformHash>dd63c267eb3224eb7ec60078b7ac16c957019526</e:sbtTransformHash>
 		<m:dependency.management__org.eclipse.jetty.orbit__javax.servlet__version>3.0.0.v201112011016</m:dependency.management__org.eclipse.jetty.orbit__javax.servlet__version>
 		<m:dependency.management__org.eclipse.jetty.orbit__javax.annotation__version>1.1.0.v201108011116</m:dependency.management__org.eclipse.jetty.orbit__javax.annotation__version>
 		<m:properties__orbit-servlet-api-version>3.0.0.v201112011016</m:properties__orbit-servlet-api-version>
@@ -47,27 +50,12 @@
 		<artifact name="jetty-websocket" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.eclipse.jetty.orbit" name="javax.servlet" rev="3.0.0.v201112011016" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.eclipse.jetty" name="jetty-server" rev="8.1.12.v20130726" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.eclipse.jetty" name="jetty-util" rev="8.1.12.v20130726" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.eclipse.jetty" name="jetty-io" rev="8.1.12.v20130726" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.eclipse.jetty" name="jetty-http" rev="8.1.12.v20130726" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.eclipse.jetty.toolchain" name="jetty-test-helper" rev="2.0" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.eclipse.jetty" name="jetty-servlet" rev="8.1.12.v20130726" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.servlet" matcher="exact" rev="3.0.0.v201112011016"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.annotation" matcher="exact" rev="1.1.0.v201108011116"/>
-		<override org="org.apache.maven" module="maven-plugin-tools-api" matcher="exact" rev="2.0"/>
-		<override org="org.eclipse.jetty.toolchain" module="jetty-test-helper" matcher="exact" rev="2.0"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.transaction" matcher="exact" rev="1.1.1.v201105210645"/>
-		<override org="org.hamcrest" module="hamcrest-all" matcher="exact" rev="1.1"/>
-		<override org="org.eclipse.jetty.orbit" module="org.objectweb.asm" matcher="exact" rev="3.1.0.v200803061910"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.8.1"/>
-		<override org="org.slf4j" module="jcl104-over-slf4j" matcher="exact" rev="1.6.1"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.security.auth.message" matcher="exact" rev="1.0.0.v201108011116"/>
-		<override org="org.slf4j" module="log4j-over-slf4j" matcher="exact" rev="1.6.1"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.activation" matcher="exact" rev="1.1.0.v201105071233"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.mail.glassfish" matcher="exact" rev="1.4.1.v201005082020"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.6.1"/>
-		<override org="org.mockito" module="mockito-core" matcher="exact" rev="1.8.5"/>
+		<dependency org="org.eclipse.jetty.orbit" name="javax.servlet" rev="3.0.0.v201112011016" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-server" rev="8.1.12.v20130726" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-util" rev="8.1.12.v20130726" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-io" rev="8.1.12.v20130726" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-http" rev="8.1.12.v20130726" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.eclipse.jetty.toolchain" name="jetty-test-helper" rev="2.0" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-servlet" rev="8.1.12.v20130726" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.codehaus.plexus"
 		module="plexus-utils"
 		revision="3.0.17"
 		status="release"
 		publication="20140127151020"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://plexus.codehaus.org/plexus-utils">
 		A collection of various utility classes to ease working with strings, files, command lines, XML and
     more.
@@ -21,6 +22,7 @@
 		<m:properties__sisu-inject.version>2.1.1</m:properties__sisu-inject.version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>compile</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
 		<m:dependency.management__org.slf4j__jcl-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jcl-over-slf4j__version>
+		<e:sbtTransformHash>d39c34b82ed035b3a1728eb7d4e53f9692f5b53f</e:sbtTransformHash>
 		<m:dependency.management__org.slf4j__jul-to-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jul-to-slf4j__version>
 		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.1</m:dependency.management__org.slf4j__slf4j-api__version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.1.1|org.apache.maven.plugins__maven-compiler-plugin__null</m:maven.plugins>
@@ -61,18 +63,6 @@
 		<artifact name="plexus-utils" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.codehaus.plexus" module="plexus-utils" matcher="exact" rev="2.0.5"/>
-		<override org="org.codehaus.plexus" module="plexus-classworlds" matcher="exact" rev="2.4"/>
-		<override org="org.sonatype.sisu" module="sisu-inject-bean" matcher="exact" rev="2.1.1"/>
-		<override org="org.sonatype.sisu" module="sisu-guice" matcher="exact" rev="2.9.4"/>
-		<override org="org.slf4j" module="jcl-over-slf4j" matcher="exact" rev="1.6.1"/>
-		<override org="org.slf4j" module="slf4j-simple" matcher="exact" rev="1.6.1"/>
-		<override org="javax.inject" module="javax.inject" matcher="exact" rev="1"/>
-		<override org="org.sonatype.sisu" module="sisu-inject-plexus" matcher="exact" rev="2.1.1"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.8.2"/>
-		<override org="org.codehaus.plexus" module="plexus-component-annotations" matcher="exact" rev="1.5.5"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.6.1"/>
-		<override org="org.slf4j" module="jul-to-slf4j" matcher="exact" rev="1.6.1"/>
+		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

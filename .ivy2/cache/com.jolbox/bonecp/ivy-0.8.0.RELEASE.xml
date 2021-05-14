@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.jolbox"
 		module="bonecp"
 		revision="0.8.0.RELEASE"
 		status="release"
 		publication="20131023114844"
 	>
+		<license name="Apache v2" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="">
 		Lightweight connection pool.
 		</description>
@@ -22,6 +23,7 @@
 		<m:dependency.management__org.powermock__powermock-module-junit4__scope>test</m:dependency.management__org.powermock__powermock-module-junit4__scope>
 		<m:properties__maven.compiler.showDeprecation>true</m:properties__maven.compiler.showDeprecation>
 		<m:dependency.management__org.powermock__powermock-module-junit4__version>1.5</m:dependency.management__org.powermock__powermock-module-junit4__version>
+		<e:sbtTransformHash>098e7b9ff5cdd25a4ce69b8c19bfcb5f91cf3b24</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:dependency.management__org.hibernate__hibernate-core__version>4.2.5.Final</m:dependency.management__org.hibernate__hibernate-core__version>
 		<m:properties__guava.version>15.0</m:properties__guava.version>
@@ -60,32 +62,15 @@
 		<artifact name="bonecp" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="com.google.guava" name="guava" rev="15.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="postgresql" name="postgresql" rev="9.1-901-1.jdbc4" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.jolbox" name="bonecp-test-commons" rev="0.8.0.RELEASE" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.jolbox" name="bonecp-jdk-compat" rev="0.8.0.RELEASE" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.thoughtworks.qdox" name="qdox" rev="1.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-all" rev="1.8.4" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easymock" name="easymock" rev="3.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="com.jolbox" module="bonecp-test-commons" matcher="exact" rev="0.8.0.RELEASE"/>
-		<override org="com.jolbox" module="bonecp" matcher="exact" rev="0.8.0.RELEASE"/>
-		<override org="org.hibernate" module="hibernate-core" matcher="exact" rev="4.2.5.Final"/>
-		<override org="org.springframework" module="spring-jdbc" matcher="exact" rev="3.2.4.RELEASE"/>
-		<override org="com.google.guava" module="guava" matcher="exact" rev="15.0"/>
-		<override org="org.slf4j" module="slf4j-log4j12" matcher="exact" rev="1.7.2"/>
-		<override org="commons-dbcp" module="commons-dbcp" matcher="exact" rev="1.4"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.10"/>
-		<override org="commons-cli" module="commons-cli" matcher="exact" rev="1.2"/>
-		<override org="log4j" module="log4j" matcher="exact" rev="1.2.17"/>
-		<override org="com.thoughtworks.qdox" module="qdox" matcher="exact" rev="1.12"/>
-		<override org="org.powermock" module="powermock-api-easymock" matcher="exact" rev="1.5"/>
-		<override org="com.jolbox" module="bonecp-jdk-compat" matcher="exact" rev="0.8.0.RELEASE"/>
-		<override org="c3p0" module="c3p0" matcher="exact" rev="0.9.1.2"/>
-		<override org="org.easymock" module="easymock" matcher="exact" rev="3.1"/>
-		<override org="org.powermock" module="powermock-module-junit4" matcher="exact" rev="1.5"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.7.2"/>
+		<dependency org="com.google.guava" name="guava" rev="15.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="postgresql" name="postgresql" rev="9.1-901-1.jdbc4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.jolbox" name="bonecp-test-commons" rev="0.8.0.RELEASE" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.jolbox" name="bonecp-jdk-compat" rev="0.8.0.RELEASE" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.thoughtworks.qdox" name="qdox" rev="1.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-all" rev="1.8.4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easymock" name="easymock" rev="3.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.google.guava"
 		module="guava-parent"
 		revision="16.0.1"
@@ -21,6 +21,7 @@
 		<m:dependency.management__org.truth0__truth__exclusion_0>com.google.guava__guava</m:dependency.management__org.truth0__truth__exclusion_0>
 		<m:dependency.management__org.easymock__easymock__version>3.0</m:dependency.management__org.easymock__easymock__version>
 		<m:dependency.management__com.google.caliper__caliper__version>0.5-rc1</m:dependency.management__com.google.caliper__caliper__version>
+		<e:sbtTransformHash>8df65e1333661a50d7ba28d0ba9098a94103032a</e:sbtTransformHash>
 		<m:dependency.management__org.mockito__mockito-core__scope>test</m:dependency.management__org.mockito__mockito-core__scope>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|null__maven-gpg-plugin__1.4</m:maven.plugins>

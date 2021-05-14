@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="ch.qos.logback"
 		module="logback-parent"
 		revision="1.1.1"
@@ -25,6 +25,7 @@
 		<m:properties__javax.mail.version>1.4</m:properties__javax.mail.version>
 		<m:properties__tomcat.version>7.0.21</m:properties__tomcat.version>
 		<m:dependency.management__org.codehaus.groovy__groovy-all__version>2.0.7</m:dependency.management__org.codehaus.groovy__groovy-all__version>
+		<e:sbtTransformHash>5045d1f0910a2ad858d73621103aaecc319bc122</e:sbtTransformHash>
 		<m:properties__maven-surefire-plugin.version>2.14.1</m:properties__maven-surefire-plugin.version>
 		<m:properties__maven-license-plugin.version>1.9.0</m:properties__maven-license-plugin.version>
 		<m:dependency.management__mysql__mysql-connector-java__version>5.1.9</m:dependency.management__mysql__mysql-connector-java__version>
@@ -62,26 +63,7 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easytesting" name="fest-assert" rev="1.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="ch.qos.logback" module="logback-core" matcher="exact" rev="1.1.1"/>
-		<override org="ch.qos.logback" module="logback-core" matcher="exact" rev="1.1.1"/>
-		<override org="ch.qos.logback" module="logback-classic" matcher="exact" rev="1.1.1"/>
-		<override org="ch.qos.logback" module="logback-access" matcher="exact" rev="1.1.1"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.7.6"/>
-		<override org="org.codehaus.janino" module="janino" matcher="exact" rev="2.6.1"/>
-		<override org="org.codehaus.groovy" module="groovy-all" matcher="exact" rev="2.0.7"/>
-		<override org="org.fusesource.jansi" module="jansi" matcher="exact" rev="1.9"/>
-		<override org="javax.mail" module="mail" matcher="exact" rev="1.4"/>
-		<override org="dom4j" module="dom4j" matcher="exact" rev="1.6.1"/>
-		<override org="hsqldb" module="hsqldb" matcher="exact" rev="1.8.0.7"/>
-		<override org="com.h2database" module="h2" matcher="exact" rev="1.2.132"/>
-		<override org="postgresql" module="postgresql" matcher="exact" rev="8.4-701.jdbc4"/>
-		<override org="mysql" module="mysql-connector-java" matcher="exact" rev="5.1.9"/>
-		<override org="org.apache.tomcat" module="tomcat-catalina" matcher="exact" rev="7.0.21"/>
-		<override org="org.apache.tomcat" module="tomcat-coyote" matcher="exact" rev="7.0.21"/>
-		<override org="org.eclipse.jetty" module="jetty-server" matcher="exact" rev="7.5.1.v20110908"/>
-		<override org="org.apache.geronimo.specs" module="geronimo-jms_1.1_spec" matcher="exact" rev="1.0"/>
-		<override org="javax.servlet" module="servlet-api" matcher="exact" rev="2.5"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easytesting" name="fest-assert" rev="1.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

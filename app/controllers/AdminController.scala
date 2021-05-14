@@ -273,7 +273,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val labels = LabelTable.selectLocationsOfLabelsByUserId(UUID.fromString(user.userId))
+          val labels = LabelTable.getLabelLocations(UUID.fromString(user.userId))
           val features: List[JsObject] = labels.map { label =>
             val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
             val properties = Json.obj(
@@ -300,7 +300,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val streets = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
+          val streets = AuditTaskTable.getAuditedStreets(UUID.fromString(user.userId))
           val features: List[JsObject] = streets.map { edge =>
             val coordinates: Array[Coordinate] = edge.geom.getCoordinates
             val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list

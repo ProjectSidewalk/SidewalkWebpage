@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="commons-codec"
 		module="commons-codec"
 		revision="1.9"
 		status="release"
 		publication="20131221035739"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://commons.apache.org/proper/commons-codec/">
 		The Apache Commons Codec package contains simple encoder and decoders for
      various formats such as Base64 and Hexadecimal.  In addition to these
@@ -47,6 +48,7 @@
 		<m:properties__commons.jacoco.haltOnFailure>false</m:properties__commons.jacoco.haltOnFailure>
 		<m:properties__commons.clirr.version>2.5</m:properties__commons.clirr.version>
 		<m:properties__commons.release.3.binary.suffix>-bin</m:properties__commons.release.3.binary.suffix>
+		<e:sbtTransformHash>c80793656c5682298d36b782693e576de4a2b24e</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.9|org.apache.maven.plugins__maven-scm-publish-plugin__1.0-beta-2|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.9|org.apache.maven.plugins__maven-scm-publish-plugin__1.0-beta-2|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-jar-plugin__2.4|org.apache.maven.plugins__maven-assembly-plugin__2.4</m:maven.plugins>
 		<m:properties__commons.jira.id>CODEC</m:properties__commons.jira.id>
@@ -90,6 +92,6 @@
 		<artifact name="commons-codec" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

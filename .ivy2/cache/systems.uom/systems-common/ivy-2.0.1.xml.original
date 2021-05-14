@@ -1,0 +1,153 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>systems.uom</groupId>
+		<artifactId>systems-parent</artifactId>
+		<version>2.0.1</version>
+	</parent>
+	<artifactId>systems-common</artifactId>
+	<name>Units of Measurement Common Unit Systems</name>
+	<!-- ======================================================= -->
+	<!-- Build Settings -->
+	<!-- ======================================================= -->
+	<properties>
+		<jdkVersion>1.8</jdkVersion>
+		<project.build.javaVersion>${jdkVersion}</project.build.javaVersion>
+		<maven.compile.targetLevel>${jdkVersion}</maven.compile.targetLevel>
+		<maven.compile.sourceLevel>${jdkVersion}</maven.compile.sourceLevel>
+	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>javax.measure</groupId>
+				<artifactId>unit-api</artifactId>
+				<version>${jsr.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>tech.units</groupId>
+				<artifactId>indriya</artifactId>
+				<version>${ri.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>systems.uom</groupId>
+				<artifactId>systems-quantity</artifactId>
+				<version>${quantity.version}</version>
+				<scope>provided</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	<dependencies>
+		<dependency>
+			<groupId>javax.measure</groupId>
+			<artifactId>unit-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>tech.units</groupId>
+			<artifactId>indriya</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>si.uom</groupId>
+			<artifactId>si-quantity</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>si.uom</groupId>
+			<artifactId>si-units</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>systems.uom</groupId>
+			<artifactId>systems-quantity</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- Testing -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-runner</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	
+	<build>
+		<plugins>
+			<!-- ======================================================= -->
+			<!-- Packaging (OSGi bundle) -->
+			<!-- ======================================================= -->
+			<plugin>
+				<groupId>biz.aQute.bnd</groupId>
+				<artifactId>bnd-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>bnd-process</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- ======================================================= -->
+			<!-- JAR packaging -->
+			<!-- ======================================================= -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+					</archive>
+				</configuration>
+			</plugin>
+			
+			<!-- ======================================================= -->
+			<!-- Source Attachment -->
+			<!-- ======================================================= -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+			</plugin>
+
+			<!-- ======================================================= -->
+			<!-- JavaDoc Attachment -->
+			<!-- ======================================================= -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+			</plugin>
+
+			<!-- ======================================================= -->
+			<!-- Packaging (OSGi bundle) -->
+			<!-- ======================================================= -->
+			<!--
+			<plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions>
+						<Export-Package>systems.uom.common, systems.uom.common.ancient, systems.uom.common.spi</Export-Package>
+						<Private-Package>systems.uom.common.internal</Private-Package>
+						<Import-Package>*,tech.units.indriya.format</Import-Package>
+					</instructions>
+				</configuration>
+			</plugin>
+			-->
+		</plugins>
+	</build>
+</project>

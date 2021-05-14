@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.jolbox"
 		module="bonecp-parent"
 		revision="0.8.0.RELEASE"
@@ -23,6 +23,7 @@
 		<m:dependency.management__org.powermock__powermock-module-junit4__scope>test</m:dependency.management__org.powermock__powermock-module-junit4__scope>
 		<m:properties__maven.compiler.showDeprecation>true</m:properties__maven.compiler.showDeprecation>
 		<m:dependency.management__org.powermock__powermock-module-junit4__version>1.5</m:dependency.management__org.powermock__powermock-module-junit4__version>
+		<e:sbtTransformHash>39b2f7d1915aee14ffa9be85713d507a33d62dc1</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:dependency.management__org.hibernate__hibernate-core__version>4.2.5.Final</m:dependency.management__org.hibernate__hibernate-core__version>
 		<m:properties__guava.version>15.0</m:properties__guava.version>

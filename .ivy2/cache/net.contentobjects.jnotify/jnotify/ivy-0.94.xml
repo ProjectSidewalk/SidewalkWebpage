@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="net.contentobjects.jnotify"
 		module="jnotify"
 		revision="0.94"
@@ -11,6 +11,7 @@
 		<description homepage="http://jnotify.sourceforge.net/">
 		A Java library that allow Java applications to receive file system events on Windows and Linux.
 		</description>
+		<e:sbtTransformHash>24d0143e0c93a08e334a240b83e45afbad3d9340</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

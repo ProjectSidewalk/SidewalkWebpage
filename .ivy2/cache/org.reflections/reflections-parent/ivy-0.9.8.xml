@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.reflections"
 		module="reflections-parent"
 		revision="0.9.8"
@@ -10,6 +10,7 @@
 		<description homepage="http://code.google.com/p/reflections/">
 		Reflections - a Java runtime metadata analysis
 		</description>
+		<e:sbtTransformHash>e04ff6bca5b0fa892e4f73df3e5404f14241c257</e:sbtTransformHash>
 		<m:maven.plugins>null__maven-resources-plugin__2.5|null__maven-source-plugin__2.1.2|null__maven-javadoc-plugin__2.8|null__maven-compiler-plugin__2.3.2|null__maven-surefire-plugin__2.12</m:maven.plugins>
 	</info>
 	<configurations>
