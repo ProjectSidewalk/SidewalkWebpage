@@ -126,7 +126,7 @@ function Card (params, imageUrl) {
      */
     function updateWidth(w) {
         width = w;
-        card.style.width = w + "px";
+        // card.style.width = w + "px";
 
         imageDim.w = w - 10;
         imageDim.h = imageDim.w / widthHeightRatio;       
