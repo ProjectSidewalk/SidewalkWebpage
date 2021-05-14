@@ -1,5 +1,3 @@
-const { registerMultiTask } = require("grunt");
-
 /**
  *
  * @param labelContainer
