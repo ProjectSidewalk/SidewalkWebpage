@@ -104,7 +104,7 @@
     },
     "right-ui": {
         "current-mission": {
-            "message-first-mission": "Explore for for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
+            "message-first-mission": "Explore for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
             "message": "Explore __PLACEHOLDER__ of this neighborhood"
         }
     },
