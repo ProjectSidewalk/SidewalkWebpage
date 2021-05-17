@@ -79,7 +79,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     self.endTask = function (task, nextTask) {
         if (tracker) tracker.push("TaskEnd");
-        // console.log("endTask");
         task.complete();
         // Go through the tasks and mark the completed task as isComplete=true
         for (var i = 0, len = self._tasks.length;  i < len; i++) {
@@ -216,7 +215,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         
         for (let i = 0; i < streetEdgeIdsAfterTime.length; i++) {
             const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === streetEdgeIdsAfterTime[i];});
-            console.log('updating ' + self._tasks[i].getStreetEdgeId());
+            console.log('updating ' + self._tasks[index].getStreetEdgeId());
             //console.log("before: " + self._tasks[index].getStreetPriority() + " for " + self._tasks[index].getStreetEdgeId());
             //console.log("set as: " + newStreetEdgePriorities[i] + " for " + streetEdgeIdsAfterTime[i]);
             self._tasks[index].setProperty('priority', newStreetEdgePriorities[i]);

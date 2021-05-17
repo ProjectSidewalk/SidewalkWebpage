@@ -271,7 +271,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     // console.log("timeLastQueried: " + properties.timeLastQuried);
                     // console.log("timePerformedQuery: " + result.timePerformedQuery);
                     
-                    if (result.streetEdgeIdsAfterTime > 0) {
+                    console.log("Task Percentage: " + (task.getAuditedDistance()/task.lineDistance()));
+                    console.log("StreetEdgeIdsAfterTime length = " + result.streetEdgeIdsAfterTime.length);
+                    if (result.streetEdgeIdsAfterTime.length > 0) {
                         console.log(result.streetEdgeIdsAfterTime);
                         console.log(result.newStreetEdgePriorities);
                         taskContainer.updateTaskPriorities(result.streetEdgeIdsAfterTime, result.newStreetEdgePriorities);

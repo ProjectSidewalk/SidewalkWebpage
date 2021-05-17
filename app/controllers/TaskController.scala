@@ -208,8 +208,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val userOption = identity
       val streetEdgeId = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
-      val timeLastQueried: Timestamp = new Timestamp(data.auditTask.timeLastQueried)
-      val timePerformedQuery: Long = (Instant.now.toEpochMilli)
 
       if (data.auditTask.auditTaskId.isDefined) {
         userOption match {
@@ -376,21 +374,28 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
-      //var streetEdgeIdsAfterTime = List.empty[Int]
-      //var newStreetEdgePriorities = List.empty[Double]
-      
-      // if the percentage of the task completed is greater than sixty percent, we update.
-     // if (auditTask.taskPercentageCompleted > 0.60) {
+      // Default values to use. We update these if
+      // the percentage of the task completed is greater than 0.60
+      var streetEdgeIdsAfterTime = List.empty[Int]
+      var newStreetEdgePriorities = List.empty[Double]
+      var timePerformedQuery: Long = data.auditTask.timeLastQueried
+
+      // If the percentage of the task completed is greater than sixty percent, we update.
+      if (data.auditTask.taskPercentageCompleted > 0.60) {
+        // Update the time we performed the query to be now.
+        timePerformedQuery = (Instant.now.toEpochMilli)
+
         // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent.
         // Then qeury StreetEdgePriorityParameter with the result from AuditTaskTable. 
+        val timeLastQueried: Timestamp = new Timestamp(data.auditTask.timeLastQueried)
         val queriedEdgeIdsAfterTime: List[Int] = AuditTaskTable.streetEdgeIdsUpdatedAfterTime(timeLastQueried)
         val queriedStreetEdgePriorityParameters: List[StreetEdgePriorityParameter] = StreetEdgePriorityTable.streetEdgePrioritiesFromIds(queriedEdgeIdsAfterTime)
         
         // We set the streetEdgeIdsAfterTime and newStreetEdgePriorties parametets with queriedStreetEdgePriorityParameters
         // because it keeps the indexes in order with each other. 
-      val streetEdgeIdsAfterTime = queriedStreetEdgePriorityParameters.map(x => x.streetEdgeId)
-      val newStreetEdgePriorities = queriedStreetEdgePriorityParameters.map(x => x.priorityParameter)
-     // }
+        streetEdgeIdsAfterTime = queriedStreetEdgePriorityParameters.map(x => x.streetEdgeId)
+        newStreetEdgePriorities = queriedStreetEdgePriorityParameters.map(x => x.priorityParameter)
+      }
 
       
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
