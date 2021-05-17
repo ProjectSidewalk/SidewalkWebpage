@@ -266,13 +266,14 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
 
-                    properties.timeLastQuried = result.timePerformedQuery;
-
-                    // console.log("timeLastQueried: " + properties.timeLastQuried);
-                    // console.log("timePerformedQuery: " + result.timePerformedQuery);
                     
-                    console.log("Task Percentage: " + (task.getAuditedDistance()/task.lineDistance()));
-                    console.log("StreetEdgeIdsAfterTime length = " + result.streetEdgeIdsAfterTime.length);
+
+                    console.log("timeLastQueried: " + (new Date(properties.timeLastQuried)).toString());
+                    console.log("timePerformedQuery: " + (new Date(result.timePerformedQuery)).toString());
+                    
+                    properties.timeLastQuried = result.timePerformedQuery;
+                    // console.log("Task Percentage: " + (task.getAuditedDistance()/task.lineDistance()));
+                    // console.log("StreetEdgeIdsAfterTime length = " + result.streetEdgeIdsAfterTime.length);
                     if (result.streetEdgeIdsAfterTime.length > 0) {
                         console.log(result.streetEdgeIdsAfterTime);
                         console.log(result.newStreetEdgePriorities);
