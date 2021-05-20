@@ -417,10 +417,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return self._tasks;
     };
 
-    this.getLastTimeDataSent = function() {
-        return self.lastTimeDataSent;
-    };
-
     /**
      * Check if the current task is the first task in this session
      * @returns {boolean}
