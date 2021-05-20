@@ -83,24 +83,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Go through the tasks and mark the completed task as isComplete=true
         for (var i = 0, len = self._tasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() === self._tasks[i].getStreetEdgeId()) {
+                // Check if the reference passed in from the method parameter and the array are the same.
+                // This is needed because otherwise we could update a reference to the same task twice.
                 if (task !== self._tasks[i]) {
-                    // The reference passed in from the method parameter and the array are not the same.
                     self._tasks[i].complete();
                 }
-
-                /* TESTING CODE TO DELETE ONCE DONE WITH PR. 
-                // TO TEST, COMMENT OUT self._task[i].complete() ABOVE AND UNCOMMENT BELOW CODE.
-                if (task === self._tasks[i]) {
-                    console.log('Same reference to same task! Expecting to see different priority values because we complete() the same reference.');
-                } else {
-                    console.log('Differenct reference to same task! Expecting to see same priority values because we complete() different references.');
-                }
-                console.log('Method Parameter Reference');
-                task.complete();
-                console.log('Array Reference');
-                self._tasks[i].complete();
-                console.log('');
-                */
             }
         }
 
