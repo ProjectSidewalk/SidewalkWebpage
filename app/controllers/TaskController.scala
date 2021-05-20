@@ -374,8 +374,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
-      // Default values to use. We update these if
-      // the percentage of the task completed is greater than 0.60
+      // Default values to use. We update these if the percentage of the task completed is greater than 0.60
       var streetEdgeIdsAfterTime = List.empty[Int]
       var newStreetEdgePriorities = List.empty[Double]
       var timePerformedQuery: Long = data.auditTask.timeLastQueried
@@ -386,13 +385,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         timePerformedQuery = (Instant.now.toEpochMilli)
 
         // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent.
-        // Then qeury StreetEdgePriorityParameter with the result from AuditTaskTable. 
+        // Then query StreetEdgePriorityTable with the result from AuditTaskTable. 
         val timeLastQueried: Timestamp = new Timestamp(data.auditTask.timeLastQueried)
         val queriedEdgeIdsAfterTime: List[Int] = AuditTaskTable.streetEdgeIdsUpdatedAfterTime(timeLastQueried)
         val queriedStreetEdgePriorityParameters: List[StreetEdgePriorityParameter] = StreetEdgePriorityTable.streetEdgePrioritiesFromIds(queriedEdgeIdsAfterTime)
         
         // We set the streetEdgeIdsAfterTime and newStreetEdgePriorties parametets with queriedStreetEdgePriorityParameters
-        // because it keeps the indexes in order with each other. 
+        // because it keeps the tuples in order with each other. 
         streetEdgeIdsAfterTime = queriedStreetEdgePriorityParameters.map(x => x.streetEdgeId)
         newStreetEdgePriorities = queriedStreetEdgePriorityParameters.map(x => x.priorityParameter)
       }

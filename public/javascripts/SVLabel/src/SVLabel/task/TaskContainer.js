@@ -207,19 +207,22 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         });
     };
 
+    /**
+     * Update the task priorities within this TaskContainer. We use this method within Form.js to
+     * update task priorites from the database.
+     * @param streetEdgeIdsAfterTime
+     * @param newStreetEdgePriorities
+    */
     function updateTaskPriorities(streetEdgeIdsAfterTime, newStreetEdgePriorities) {
         if (!Array.isArray(self._tasks)) {
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             return null;
         }
-        
+
+        // Loop through all streetEdgeIdsAfterTime and update them with self._tasks.
         for (let i = 0; i < streetEdgeIdsAfterTime.length; i++) {
             const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === streetEdgeIdsAfterTime[i];});
-            console.log('updating ' + self._tasks[index].getStreetEdgeId());
-            //console.log("before: " + self._tasks[index].getStreetPriority() + " for " + self._tasks[index].getStreetEdgeId());
-            //console.log("set as: " + newStreetEdgePriorities[i] + " for " + streetEdgeIdsAfterTime[i]);
             self._tasks[index].setProperty('priority', newStreetEdgePriorities[i]);
-            //console.log("after " + self._tasks[index].getStreetPriority());
         }
     }
 

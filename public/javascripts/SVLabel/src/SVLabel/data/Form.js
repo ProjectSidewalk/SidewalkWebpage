@@ -266,17 +266,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
 
-                    
-
-                    console.log("timeLastQueried: " + (new Date(properties.timeLastQuried)).toString());
-                    console.log("timePerformedQuery: " + (new Date(result.timePerformedQuery)).toString());
-                    
+                    // Update the time the database performed the query to update our local task priorities with
+                    // The database tasks priorities for streetEdge's.
                     properties.timeLastQuried = result.timePerformedQuery;
-                    // console.log("Task Percentage: " + (task.getAuditedDistance()/task.lineDistance()));
-                    // console.log("StreetEdgeIdsAfterTime length = " + result.streetEdgeIdsAfterTime.length);
                     if (result.streetEdgeIdsAfterTime.length > 0) {
-                        console.log(result.streetEdgeIdsAfterTime);
-                        console.log(result.newStreetEdgePriorities);
                         taskContainer.updateTaskPriorities(result.streetEdgeIdsAfterTime, result.newStreetEdgePriorities);
                     }
                 }

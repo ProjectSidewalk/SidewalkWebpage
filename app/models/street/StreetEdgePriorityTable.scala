@@ -85,10 +85,10 @@ object StreetEdgePriorityTable {
   }
 
   /**
-    * Returns list of StreetEdgePriorityParameter from a list of strings
+    * Returns list of StreetEdgePriorityParameter from a list of streetEdgeIds.
     * 
-    * @param streetEdgeIds List of street edge ids
-    * @return 
+    * @param streetEdgeIds List[Int] of street edge ids.
+    * @return
     */
   def streetEdgePrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriorityParameter] = db.withSession { implicit session => 
     
