@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="net.sf.ehcache"
 		module="ehcache-core"
 		revision="2.6.8"
@@ -25,6 +25,7 @@
 		<m:properties__skipDeploy>false</m:properties__skipDeploy>
 		<m:properties__terracotta-releases-url>http://nexus.terracotta.lan:8080/content/repositories/terracotta-releases</m:properties__terracotta-releases-url>
 		<m:properties__terracotta-staging-url>http://nexus.terracotta.lan:8080/content/repositories/terracotta-staging</m:properties__terracotta-staging-url>
+		<e:sbtTransformHash>c3bfe90c88b2915e7cf10062be7b3b2a431c4053</e:sbtTransformHash>
 		<m:properties__name>ehcache</m:properties__name>
 		<m:properties__checkstyle-version>1.0</m:properties__checkstyle-version>
 		<m:properties__testResources>src/test/resources</m:properties__testResources>
@@ -49,30 +50,30 @@
 		<artifact name="ehcache-core" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.slf4j" name="slf4j-jdk14" rev="1.6.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="javax.servlet" name="servlet-api" rev="2.4" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.hibernate" name="hibernate-core" rev="3.5.1-Final" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="javax.transaction" name="jta" rev="1.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="net.sf.ehcache" name="sizeof-agent" rev="1.0.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.codehaus.btm" name="btm" rev="2.0.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="net.sf.hibernate" name="hibernate" rev="2.1.8" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)">
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.slf4j" name="slf4j-jdk14" rev="1.6.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="javax.servlet" name="servlet-api" rev="2.4" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.hibernate" name="hibernate-core" rev="3.5.1-Final" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="javax.transaction" name="jta" rev="1.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="net.sf.ehcache" name="sizeof-agent" rev="1.0.1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.codehaus.btm" name="btm" rev="2.0.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="net.sf.hibernate" name="hibernate" rev="2.1.8" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)">
 			<exclude org="javax.transaction" module="jta" name="*" type="*" ext="*" conf="" matcher="exact"/>
 			<exclude org="javax.security" module="jacc" name="*" type="*" ext="*" conf="" matcher="exact"/>
 			<exclude org="net.sf.ehcache" module="ehcache" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="org.hamcrest" name="hamcrest-core" rev="1.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.hamcrest" name="hamcrest-library" rev="1.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="dom4j" name="dom4j" rev="1.6.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="javassist" name="javassist" rev="3.4.GA" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.hibernate" name="hibernate-ehcache" rev="3.3.2.GA" force="true" conf="test->runtime(*),master(*)">
+		<dependency org="org.hamcrest" name="hamcrest-core" rev="1.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.hamcrest" name="hamcrest-library" rev="1.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="dom4j" name="dom4j" rev="1.6.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="javassist" name="javassist" rev="3.4.GA" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.hibernate" name="hibernate-ehcache" rev="3.3.2.GA" force="true" conf="test->runtime(*),master(compile)">
 			<exclude org="net.sf.ehcache" module="ehcache" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="commons-logging" name="commons-logging" rev="1.1.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.apache.derby" name="derby" rev="10.5.3.0_1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-core" rev="1.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.sun.xsom" name="xsom" rev="20100725" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.beanshell" name="bsh" rev="1.3.0" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="commons-logging" name="commons-logging" rev="1.1.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.apache.derby" name="derby" rev="10.5.3.0_1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-core" rev="1.8.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.sun.xsom" name="xsom" rev="20100725" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.beanshell" name="bsh" rev="1.3.0" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

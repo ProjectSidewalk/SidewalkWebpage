@@ -6,12 +6,13 @@
 		status="release"
 		publication="20130123220531"
 	>
+		<license name="The BSD 3-Clause License" url="http://www.opensource.org/licenses/BSD-3-Clause" />
 		<description homepage="">
 		The leveldbjni OS X universal native libraries
 		</description>
 		<m:properties__hawtjni-version>1.6</m:properties__hawtjni-version>
 		<m:properties__leveldb-api-version>0.5</m:properties__leveldb-api-version>
-		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
+		<e:sbtTransformHash>d9f8f08eb002687d54f2e30edfce482feafe6f5d</e:sbtTransformHash>
 		<m:properties__forge-project-id-uc>LEVELDBJNI</m:properties__forge-project-id-uc>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.maven.plugins__maven-jar-plugin__2.3.1|org.fusesource.hawtjni__maven-hawtjni-plugin__1.6</m:maven.plugins>
@@ -33,10 +34,10 @@
 		<artifact name="leveldbjni-osx" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.fusesource.leveldbjni" name="leveldbjni" rev="1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*);test->runtime(*),master(*)">
+		<dependency org="org.fusesource.leveldbjni" name="leveldbjni" rev="1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*);test->runtime(*),master(compile)">
 			<artifact name="leveldbjni" type="jar" ext="jar" conf="compile,runtime"/>
 			<artifact name="leveldbjni" type="test-jar" ext="jar" conf="test" m:classifier="tests"/>
 		</dependency>
-		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.7" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

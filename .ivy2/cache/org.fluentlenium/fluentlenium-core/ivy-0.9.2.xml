@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.fluentlenium"
 		module="fluentlenium-core"
 		revision="0.9.2"
@@ -11,14 +11,15 @@
 		Core of FluentLenium
 		</description>
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>
-		<m:dependency.management__org.easytesting__fest-assert__version>1.4</m:dependency.management__org.easytesting__fest-assert__version>
 		<m:properties__project.reporting.outputEncoding>${project.build.sourceEncoding}</m:properties__project.reporting.outputEncoding>
 		<m:dependency.management__org.eclipse.jetty__jetty-server__scope>test</m:dependency.management__org.eclipse.jetty__jetty-server__scope>
-		<m:dependency.management__org.seleniumhq.selenium__selenium-java__version>2.39.0</m:dependency.management__org.seleniumhq.selenium__selenium-java__version>
-		<m:dependency.management__org.eclipse.jetty__jetty-server__version>7.2.2.v20101205</m:dependency.management__org.eclipse.jetty__jetty-server__version>
-		<m:dependency.management__org.mockito__mockito-core__scope>test</m:dependency.management__org.mockito__mockito-core__scope>
 		<m:dependency.management__org.mockito__mockito-core__version>1.8.5</m:dependency.management__org.mockito__mockito-core__version>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__org.easytesting__fest-assert__version>1.4</m:dependency.management__org.easytesting__fest-assert__version>
+		<m:dependency.management__org.seleniumhq.selenium__selenium-java__version>2.39.0</m:dependency.management__org.seleniumhq.selenium__selenium-java__version>
+		<m:dependency.management__org.eclipse.jetty__jetty-server__version>7.2.2.v20101205</m:dependency.management__org.eclipse.jetty__jetty-server__version>
+		<e:sbtTransformHash>c4afbc4a75be2eb6f46b96a8b3bf777ff44ea28b</e:sbtTransformHash>
+		<m:dependency.management__org.mockito__mockito-core__scope>test</m:dependency.management__org.mockito__mockito-core__scope>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-compiler-plugin__3.1|null__maven-failsafe-plugin__2.6|null__maven-surefire-plugin__2.8.1|org.mortbay.jetty__jetty-maven-plugin__7.2.2.v20101205|org.apache.maven.plugins__maven-release-plugin__2.1|null__maven-remote-resources-plugin__1.1|null__maven-assembly-plugin__2.2-beta-2|com.mycila.maven-license-plugin__maven-license-plugin__1.9.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-compiler-plugin__3.1|null__maven-failsafe-plugin__2.6|null__maven-surefire-plugin__2.8.1|org.mortbay.jetty__jetty-maven-plugin__7.2.2.v20101205|org.apache.maven.plugins__maven-release-plugin__2.1|null__maven-remote-resources-plugin__1.1|null__maven-assembly-plugin__2.2-beta-2|com.mycila.maven-license-plugin__maven-license-plugin__1.9.0</m:maven.plugins>
 		<m:dependency.management__org.easytesting__fest-assert__scope>test</m:dependency.management__org.easytesting__fest-assert__scope>
@@ -39,15 +40,10 @@
 		<artifact name="fluentlenium-core" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.seleniumhq.selenium" name="selenium-java" rev="2.39.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.eclipse.jetty" name="jetty-server" rev="7.2.2.v20101205" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easytesting" name="fest-assert" rev="1.4" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-core" rev="1.8.5" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.seleniumhq.selenium" module="selenium-java" matcher="exact" rev="2.39.0"/>
-		<override org="org.eclipse.jetty" module="jetty-server" matcher="exact" rev="7.2.2.v20101205"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.11"/>
-		<override org="org.mockito" module="mockito-core" matcher="exact" rev="1.8.5"/>
-		<override org="org.easytesting" module="fest-assert" matcher="exact" rev="1.4"/>
+		<dependency org="org.seleniumhq.selenium" name="selenium-java" rev="2.39.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-server" rev="7.2.2.v20101205" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easytesting" name="fest-assert" rev="1.4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-core" rev="1.8.5" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

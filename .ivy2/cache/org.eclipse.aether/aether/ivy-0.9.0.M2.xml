@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.eclipse.aether"
 		module="aether"
 		revision="0.9.0.M2"
@@ -27,6 +27,7 @@
 		<m:dependency.management__org.eclipse.aether__aether-connector-wagon__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-connector-wagon__version>
 		<m:dependency.management__org.eclipse.aether__aether-connector-file__version>0.9.0.M2</m:dependency.management__org.eclipse.aether__aether-connector-file__version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>provided</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
+		<e:sbtTransformHash>834dd56cfbb0807544f88d1d2ce4500e088ad260</e:sbtTransformHash>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.2</m:dependency.management__org.slf4j__slf4j-api__version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__1.7</m:maven.plugins>

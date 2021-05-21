@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.httpcomponents"
 		module="httpcomponents-core"
 		revision="4.0.1"
@@ -11,6 +11,7 @@
 		Core components to build HTTP enabled services
 		</description>
 		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
+		<e:sbtTransformHash>d6b5e3d162fed0f6d3258c7bdf55ef2b7297d6b8</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|null__maven-remote-resources-plugin__1.0|null__maven-source-plugin__null|null__maven-javadoc-plugin__null|null__maven-site-plugin__null|null__maven-release-plugin__null|null__maven-assembly-plugin__2.2-beta-3|null__maven-antrun-plugin__null|com.atlassian.maven.plugins__maven-clover2-plugin__null|com.agilejava.docbkx__docbkx-maven-plugin__2.0.8</m:maven.plugins>
 	</info>

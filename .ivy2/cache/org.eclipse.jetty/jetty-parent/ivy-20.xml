@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.eclipse.jetty"
 		module="jetty-parent"
 		revision="20"
@@ -11,6 +11,7 @@
 		<description homepage="http://www.eclipse.org/jetty">
 		Administrative parent pom for Jetty modules
 		</description>
+		<e:sbtTransformHash>20311e9658fe4ff357470dfde796d34331310cd4</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-release-plugin__null</m:maven.plugins>
 	</info>

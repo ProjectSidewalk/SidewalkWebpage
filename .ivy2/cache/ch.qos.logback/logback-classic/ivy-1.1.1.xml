@@ -25,7 +25,7 @@
 		<m:properties__javax.mail.version>1.4</m:properties__javax.mail.version>
 		<m:properties__tomcat.version>7.0.21</m:properties__tomcat.version>
 		<m:dependency.management__org.codehaus.groovy__groovy-all__version>2.0.7</m:dependency.management__org.codehaus.groovy__groovy-all__version>
-		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
+		<e:sbtTransformHash>ebd62298195975296ed4c029a1b08a97d516341d</e:sbtTransformHash>
 		<m:properties__maven-surefire-plugin.version>2.14.1</m:properties__maven-surefire-plugin.version>
 		<m:properties__maven-license-plugin.version>1.9.0</m:properties__maven-license-plugin.version>
 		<m:dependency.management__mysql__mysql-connector-java__version>5.1.9</m:dependency.management__mysql__mysql-connector-java__version>
@@ -64,34 +64,34 @@
 		<artifact name="logback-classic" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="ch.qos.logback" name="logback-core" rev="1.1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*);test->runtime(*),master(*)">
+		<dependency org="ch.qos.logback" name="logback-core" rev="1.1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*);test->runtime(*),master(compile)">
 			<artifact name="logback-core" type="jar" ext="jar" conf="compile,runtime"/>
 			<artifact name="logback-core" type="test-jar" ext="jar" conf="test" m:classifier="tests"/>
 		</dependency>
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*);test->runtime(*),master(*)">
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*);test->runtime(*),master(compile)">
 			<artifact name="slf4j-api" type="jar" ext="jar" conf="compile,runtime"/>
 			<artifact name="slf4j-api" type="test-jar" ext="jar" conf="test" m:classifier="tests"/>
 		</dependency>
-		<dependency org="org.slf4j" name="slf4j-ext" rev="1.7.6" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.slf4j" name="log4j-over-slf4j" rev="1.7.6" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.slf4j" name="jul-to-slf4j" rev="1.7.6" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="dom4j" name="dom4j" rev="1.6.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="hsqldb" name="hsqldb" rev="1.8.0.7" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="com.h2database" name="h2" rev="1.2.132" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="postgresql" name="postgresql" rev="8.4-701.jdbc4" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="mysql" name="mysql-connector-java" rev="5.1.9" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="javax.mail" name="mail" rev="1.4" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="org.codehaus.janino" name="janino" rev="2.6.1" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="org.codehaus.groovy" name="groovy-all" rev="2.0.7" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="org.slf4j" name="integration" rev="1.7.6" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.apache.geronimo.specs" name="geronimo-jms_1.1_spec" rev="1.0" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="javax.servlet" name="servlet-api" rev="2.5" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="com.icegreen" name="greenmail" rev="1.3" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.subethamail" name="subethasmtp" rev="2.1.0" force="true" conf="test->runtime(*),master(*)">
+		<dependency org="org.slf4j" name="slf4j-ext" rev="1.7.6" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="log4j-over-slf4j" rev="1.7.6" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="jul-to-slf4j" rev="1.7.6" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="dom4j" name="dom4j" rev="1.6.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="hsqldb" name="hsqldb" rev="1.8.0.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.h2database" name="h2" rev="1.2.132" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="postgresql" name="postgresql" rev="8.4-701.jdbc4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="mysql" name="mysql-connector-java" rev="5.1.9" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="javax.mail" name="mail" rev="1.4" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.codehaus.janino" name="janino" rev="2.6.1" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.codehaus.groovy" name="groovy-all" rev="2.0.7" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.slf4j" name="integration" rev="1.7.6" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.apache.geronimo.specs" name="geronimo-jms_1.1_spec" rev="1.0" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="javax.servlet" name="servlet-api" rev="2.5" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="com.icegreen" name="greenmail" rev="1.3" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.subethamail" name="subethasmtp" rev="2.1.0" force="true" conf="test->runtime(*),master(compile)">
 			<exclude org="org.slf4j" module="slf4j-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="org.apache.felix" name="org.apache.felix.main" rev="2.0.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easytesting" name="fest-assert" rev="1.2" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.apache.felix" name="org.apache.felix.main" rev="2.0.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easytesting" name="fest-assert" rev="1.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

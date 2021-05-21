@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.fasterxml.jackson.core"
 		module="jackson-databind"
 		revision="2.3.2"
 		status="release"
 		publication="20140302031312"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<license name="GNU Lesser General Public License, Version 2.1" url="http://www.gnu.org/licenses/lgpl-2.1.html" />
 		<description homepage="http://wiki.fasterxml.com/JacksonHome">
 		General data-binding functionality for Jackson: works on core streaming API
 		</description>
@@ -47,6 +49,7 @@ com.fasterxml.jackson.databind.util
 		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
 		<m:properties__javac.target.version>1.6</m:properties__javac.target.version>
 		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>ac18e46b4b55cacb2b42e67e95f438f93286bb72</e:sbtTransformHash>
 		<m:properties__osgi.import>
 com.fasterxml.jackson.annotation,
 com.fasterxml.jackson.core,
@@ -79,11 +82,11 @@ javax.xml.datatype, javax.xml.namespace, javax.xml.parsers
 		<artifact name="jackson-databind" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.3.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.3.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="cglib" name="cglib" rev="2.2.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.codehaus.groovy" name="groovy" rev="1.7.9" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.hibernate" name="hibernate-cglib-repack" rev="2.1_3" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.3.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.3.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="cglib" name="cglib" rev="2.2.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.codehaus.groovy" name="groovy" rev="1.7.9" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.hibernate" name="hibernate-cglib-repack" rev="2.1_3" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

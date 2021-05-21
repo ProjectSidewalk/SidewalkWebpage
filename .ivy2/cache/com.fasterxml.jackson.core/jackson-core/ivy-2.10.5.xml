@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="com.fasterxml.jackson.core"
+		module="jackson-core"
+		revision="2.10.5"
+		status="release"
+		publication="20200721014242"
+	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<description homepage="https://github.com/FasterXML/jackson-core">
+		Core Jackson processing abstractions (aka Streaming API), implementation for JSON
+		</description>
+		<m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-json-provider__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-json-provider__version>
+		<m:properties__osgi.export>com.fasterxml.jackson.core;version=${project.version},
+com.fasterxml.jackson.core.*;version=${project.version}
+    </m:properties__osgi.export>
+		<m:properties__version.plugin.site>3.1</m:properties__version.plugin.site>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-cbor__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-cbor__version>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.13__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.13__version>
+		<m:properties__javac.src.version>1.6</m:properties__javac.src.version>
+		<m:properties__version.plugin.moditect>1.0.0.Beta2</m:properties__version.plugin.moditect>
+		<m:properties__version.plugin.gpg>1.6</m:properties__version.plugin.gpg>
+		<m:properties__javac.target.version>1.6</m:properties__javac.target.version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hibernate4__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hibernate4__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hibernate3__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hibernate3__version>
+		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-smile__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-smile__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jdk8__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jdk8__version>
+		<m:properties__jackson.version.datatype>${jackson.version}</m:properties__jackson.version.datatype>
+		<m:properties__project.build.resourceEncoding>UTF-8</m:properties__project.build.resourceEncoding>
+		<m:properties__osgi.versionpolicy>${range;[===,=+);${@}}</m:properties__osgi.versionpolicy>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jsr353__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jsr353__version>
+		<m:properties__jackson.version.jaxrs>${jackson.version}</m:properties__jackson.version.jaxrs>
+		<m:properties__jackson.version.databind>${jackson.version}</m:properties__jackson.version.databind>
+		<m:properties__jackson.version.core>${jackson.version}</m:properties__jackson.version.core>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-eclipse-collections__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-eclipse-collections__version>
+		<m:properties__version.plugin.javadoc>3.0.1</m:properties__version.plugin.javadoc>
+		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
+		<m:properties__packageVersion.package>${project.groupId}.json</m:properties__packageVersion.package>
+		<m:properties__jackson.version.module>${jackson.version}</m:properties__jackson.version.module>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jaxrs__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jaxrs__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-joda__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-joda__version>
+		<m:properties__maven.build.timestamp.format>yyyy-MM-dd HH:mm:ssZ</m:properties__maven.build.timestamp.format>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-xml__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-xml__version>
+		<m:properties__moditect.sourceArtifact>${project.artifactId}</m:properties__moditect.sourceArtifact>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-pcollections__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-pcollections__version>
+		<m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-retrofit2__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-retrofit2__version>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-osgi__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-osgi__version>
+		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
+		<m:properties__moditect.sourceGroup>${project.groupId}</m:properties__moditect.sourceGroup>
+		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>5d76dc9bc843abed810e480d1f2e6ab9d711b7a4</e:sbtTransformHash>
+		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
+		<m:properties__osgi.import>*</m:properties__osgi.import>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|null__maven-enforcer-plugin__null|org.sonatype.plugins__nexus-staging-maven-plugin__1.6.6|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1|null__maven-enforcer-plugin__null|org.sonatype.plugins__nexus-staging-maven-plugin__1.6.6|org.jacoco__jacoco-maven-plugin__0.8.4|null__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|com.google.code.maven-replacer-plugin__replacer__null|org.moditect__moditect-maven-plugin__null</m:maven.plugins>
+		<m:properties__version.plugin.source>3.0.1</m:properties__version.plugin.source>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-parameter-names__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-parameter-names__version>
+		<m:properties__version.plugin.compiler>3.8.0</m:properties__version.plugin.compiler>
+		<m:properties__jackson.version.module.scala>${jackson.version.module}</m:properties__jackson.version.module.scala>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.11__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.11__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hibernate5__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hibernate5__version>
+		<m:properties__version.plugin.enforcer>3.0.0-M1</m:properties__version.plugin.enforcer>
+		<m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-yaml-provider__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-yaml-provider__version>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-afterburner__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-afterburner__version>
+		<m:properties__moditect.sourceVersion>${project.version}</m:properties__moditect.sourceVersion>
+		<m:properties__javax.activation.version>1.2.0</m:properties__javax.activation.version>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-csv__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-csv__version>
+		<m:properties__javac.debuglevel>lines,source,vars</m:properties__javac.debuglevel>
+		<m:properties__version.plugin.bundle>4.2.0</m:properties__version.plugin.bundle>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-paranamer__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-paranamer__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hppc__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-hppc__version>
+		<m:properties__version.plugin.resources>2.7</m:properties__version.plugin.resources>
+		<m:properties__packageVersion.dir>com/fasterxml/jackson/core/json</m:properties__packageVersion.dir>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-ion__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-ion__version>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-yaml__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-yaml__version>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.10__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.10__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-json-org__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-json-org__version>
+		<m:properties__version.plugin.jar>3.1.2</m:properties__version.plugin.jar>
+		<m:properties__jackson.version.annotations>${jackson.version}</m:properties__jackson.version.annotations>
+		<m:properties__version.plugin.replacer>1.5.3</m:properties__version.plugin.replacer>
+		<m:properties__version.plugin.clean>2.6.1</m:properties__version.plugin.clean>
+		<m:properties__jackson.version.dataformat>${jackson.version}</m:properties__jackson.version.dataformat>
+		<m:dependency.management__com.fasterxml.jackson.core__jackson-annotations__version>2.10.5</m:dependency.management__com.fasterxml.jackson.core__jackson-annotations__version>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-avro__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-avro__version>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-jsonSchema__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-jsonSchema__version>
+		<m:dependency.management__com.fasterxml.jackson.core__jackson-core__version>2.10.5</m:dependency.management__com.fasterxml.jackson.core__jackson-core__version>
+		<m:properties__version.plugin.cobertura>2.7</m:properties__version.plugin.cobertura>
+		<m:properties__version.plugin.install>3.0.0-M1</m:properties__version.plugin.install>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-mrbean__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-mrbean__version>
+		<m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-cbor-provider__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-cbor-provider__version>
+		<m:properties__jackson.version.module.kotlin>${jackson.version.module}</m:properties__jackson.version.module.kotlin>
+		<m:properties__packageVersion.template.input>${basedir}/src/main/java/${packageVersion.dir}/PackageVersion.java.in</m:properties__packageVersion.template.input>
+		<m:dependency.management__com.fasterxml.jackson.core__jackson-databind__version>2.10.5</m:dependency.management__com.fasterxml.jackson.core__jackson-databind__version>
+		<m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-xml-provider__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-xml-provider__version>
+		<m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-all__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-all__version>
+		<m:properties__javadoc.maxmemory>1g</m:properties__javadoc.maxmemory>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-guice__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-guice__version>
+		<m:dependency.management__javax.activation__javax.activation-api__version>1.2.0</m:dependency.management__javax.activation__javax.activation-api__version>
+		<m:properties__jackson.version>2.10.5</m:properties__jackson.version>
+		<m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-base__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-base__version>
+		<m:properties__version.junit>4.12</m:properties__version.junit>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-protobuf__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-protobuf__version>
+		<m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-properties__version>2.10.5</m:dependency.management__com.fasterxml.jackson.dataformat__jackson-dataformat-properties__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-guava__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-guava__version>
+		<m:properties__version.plugin.surefire>2.22.2</m:properties__version.plugin.surefire>
+		<m:properties__osgi.includeResource>{maven-resources}</m:properties__osgi.includeResource>
+		<m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-smile-provider__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jaxrs__jackson-jaxrs-smile-provider__version>
+		<m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jsr310__version>2.10.5</m:dependency.management__com.fasterxml.jackson.datatype__jackson-datatype-jsr310__version>
+		<m:properties__version.plugin.shade>3.2.1</m:properties__version.plugin.shade>
+		<m:properties__version.plugin.release>2.5.3</m:properties__version.plugin.release>
+		<m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-stree__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-stree__version>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.12__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-scala_2.12__version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-kotlin__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-kotlin__version>
+		<m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-objects__version>2.10.5</m:dependency.management__com.fasterxml.jackson.jr__jackson-jr-objects__version>
+		<m:properties__version.plugin.deploy>3.0.0-M1</m:properties__version.plugin.deploy>
+		<m:properties__jackson.version.jacksonjr>${jackson.version}</m:properties__jackson.version.jacksonjr>
+		<m:properties__maven.compiler.source>1.6</m:properties__maven.compiler.source>
+		<m:dependency.management__com.fasterxml.jackson.module__jackson-module-jaxb-annotations__version>2.10.5</m:dependency.management__com.fasterxml.jackson.module__jackson-module-jaxb-annotations__version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="jackson-core" type="bundle" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.annotation"
 		module="jsr250-api"
 		revision="1.0"
@@ -10,6 +10,7 @@
 		<description homepage="http://jcp.org/aboutJava/communityprocess/final/jsr250/index.html">
 		JSR-250 Reference Implementation by Glassfish
 		</description>
+		<e:sbtTransformHash>8dbda33f72fec87c5c0410620521ce16a3accb98</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

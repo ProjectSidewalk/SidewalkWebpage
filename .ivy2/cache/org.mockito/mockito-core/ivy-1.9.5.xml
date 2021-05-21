@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.mockito"
 		module="mockito-core"
 		revision="1.9.5"
@@ -10,6 +10,7 @@
 		<description homepage="http://www.mockito.org">
 		Mock objects library for java
 		</description>
+		<e:sbtTransformHash>ce2f2cbc0d67a047e2ae22aa39cb35352cb2b2ae</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,7 +28,7 @@
 		<artifact name="mockito-core" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.hamcrest" name="hamcrest-core" rev="1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.objenesis" name="objenesis" rev="1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.hamcrest" name="hamcrest-core" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.objenesis" name="objenesis" rev="1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

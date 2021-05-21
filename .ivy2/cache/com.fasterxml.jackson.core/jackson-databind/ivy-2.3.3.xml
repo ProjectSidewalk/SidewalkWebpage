@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.fasterxml.jackson.core"
 		module="jackson-databind"
 		revision="2.3.3"
 		status="release"
 		publication="20140410165535"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<license name="GNU Lesser General Public License, Version 2.1" url="http://www.gnu.org/licenses/lgpl-2.1.html" />
 		<description homepage="http://wiki.fasterxml.com/JacksonHome">
 		General data-binding functionality for Jackson: works on core streaming API
 		</description>
-		<m:properties__javadoc.version>2.8.1</m:properties__javadoc.version>
 		<m:properties__packageVersion.package>com.fasterxml.jackson.databind.cfg</m:properties__packageVersion.package>
-		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
 		<m:properties__packageVersion.template.input>${basedir}/src/main/java/${packageVersion.dir}/PackageVersion.java.in</m:properties__packageVersion.template.input>
 		<m:properties__osgi.export>
 com.fasterxml.jackson.databind,
@@ -35,18 +35,15 @@ com.fasterxml.jackson.databind.ser.std,
 com.fasterxml.jackson.databind.type,
 com.fasterxml.jackson.databind.util
     </m:properties__osgi.export>
-		<m:properties__project.build.resourceEncoding>UTF-8</m:properties__project.build.resourceEncoding>
 		<m:properties__maven.build.timestamp.format>yyyy-MM-dd HH:mm:ssZ</m:properties__maven.build.timestamp.format>
-		<m:properties__osgi.versionpolicy>${range;[===,=+);${@}}</m:properties__osgi.versionpolicy>
 		<m:properties__javac.debuglevel>lines,source,vars</m:properties__javac.debuglevel>
-		<m:properties__surefire.version>2.12</m:properties__surefire.version>
 		<m:properties__javac.src.version>1.6</m:properties__javac.src.version>
-		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__javadoc.maxmemory>1g</m:properties__javadoc.maxmemory>
 		<m:properties__packageVersion.dir>com/fasterxml/jackson/databind/cfg</m:properties__packageVersion.dir>
 		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
 		<m:properties__javac.target.version>1.6</m:properties__javac.target.version>
 		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>5af5184fa9e5794c62c2334ac841384cd95e6108</e:sbtTransformHash>
 		<m:properties__osgi.import>
 com.fasterxml.jackson.annotation,
 com.fasterxml.jackson.core,
@@ -59,9 +56,15 @@ com.fasterxml.jackson.core.type,
 org.xml.sax,org.w3c.dom, org.w3c.dom.bootstrap, org.w3c.dom.ls,
 javax.xml.datatype, javax.xml.namespace, javax.xml.parsers
 </m:properties__osgi.import>
-		<m:properties__replacer.version>1.5.2</m:properties__replacer.version>
 		<m:properties__bundle.version>2.3.7</m:properties__bundle.version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.1.1|org.apache.maven.plugins__maven-compiler-plugin__2.5.1|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.12|org.apache.felix__maven-bundle-plugin__2.3.7|org.apache.maven.plugins__maven-jar-plugin__2.4|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.7|org.apache.maven.plugins__maven-enforcer-plugin__1.1.1|org.apache.maven.plugins__maven-compiler-plugin__2.5.1|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.12|org.apache.felix__maven-bundle-plugin__2.3.7|org.apache.maven.plugins__maven-jar-plugin__2.4|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.7|org.apache.maven.plugins__maven-surefire-plugin__2.12|org.apache.maven.plugins__maven-javadoc-plugin__2.8.1|org.apache.maven.plugins__maven-compiler-plugin__null|com.google.code.maven-replacer-plugin__replacer__null</m:maven.plugins>
+		<m:properties__javadoc.version>2.8.1</m:properties__javadoc.version>
+		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
+		<m:properties__project.build.resourceEncoding>UTF-8</m:properties__project.build.resourceEncoding>
+		<m:properties__osgi.versionpolicy>${range;[===,=+);${@}}</m:properties__osgi.versionpolicy>
+		<m:properties__surefire.version>2.12</m:properties__surefire.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__replacer.version>1.5.2</m:properties__replacer.version>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -79,11 +82,11 @@ javax.xml.datatype, javax.xml.namespace, javax.xml.parsers
 		<artifact name="jackson-databind" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.3.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.3.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="cglib" name="cglib" rev="2.2.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.codehaus.groovy" name="groovy" rev="1.7.9" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.hibernate" name="hibernate-cglib-repack" rev="2.1_3" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.3.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.3.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="cglib" name="cglib" rev="2.2.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.codehaus.groovy" name="groovy" rev="1.7.9" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.hibernate" name="hibernate-cglib-repack" rev="2.1_3" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>
