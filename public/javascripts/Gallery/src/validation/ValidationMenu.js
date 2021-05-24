@@ -14,6 +14,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
     };
 
     let currSelected = null;
+    let card = null;
 
     const overlayHTML = `
         <div id="gallery-validation-button-holder">
@@ -31,6 +32,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
     function _init() {
         // TODO: compress this code.
+        let card = $(uiCardImage)
         agreeButton.click(function() {
             if (currSelected) {
                 currSelected.attr('class', 'validation-button');
@@ -38,7 +40,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
             currSelected = agreeButton;
             agreeButton.attr('class', 'validation-button-selected');
-
+            card.css('background-color', '#99ff99')
             validateLabel("Agree");
         });
         
@@ -49,7 +51,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
             currSelected = disagreeButton;
             disagreeButton.attr('class', 'validation-button-selected');
-
+            card.css('background-color', '#ff9999')
             validateLabel("Disagree");
         });
         
@@ -60,10 +62,10 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
             currSelected = notSureButton;
             notSureButton.attr('class', 'validation-button-selected');
-
+            card.css('background-color', '#fdebc5')
             validateLabel("NotSure");
         });
-
+        
         uiCardImage.appendChild(overlay[0]);
     }
 
