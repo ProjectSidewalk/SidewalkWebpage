@@ -80,7 +80,7 @@ function Card (params, imageUrl) {
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.className = "label-icon";
-        let iconCoords = getIconCoords();
+        let iconCoords = getIconPercent();
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
 
@@ -103,8 +103,8 @@ function Card (params, imageUrl) {
         card.className = "gallery-card";
         card.innerHTML = cardHtml;
 
-        card.prepend(panoImage);
         card.appendChild(labelIcon);
+        card.prepend(panoImage);
 
         validationMenu = new ValidationMenu(card, properties);
     }
@@ -112,10 +112,10 @@ function Card (params, imageUrl) {
     /**
      * Return object with label coords on static image.
      */
-    function getIconCoords () {
+    function getIconPercent () {
         return {
-            x: imageDim.w * properties.canvas_x / properties.canvas_width,
-            y: imageDim.h * properties.canvas_y / properties.canvas_height
+            x: 100 * properties.canvas_x / (properties.canvas_width + 10),
+            y: 100 * properties.canvas_y / (properties.canvas_height + 50)
         };
     }
 
@@ -131,9 +131,9 @@ function Card (params, imageUrl) {
         imageDim.w = w - 10;
         imageDim.h = imageDim.w / widthHeightRatio;       
 
-        let iconCoords = getIconCoords();
-        labelIcon.style.left = iconCoords.x + "px";
-        labelIcon.style.top = iconCoords.y + "px";
+        let iconCoords = getIconPercent();
+        labelIcon.style.left = iconCoords.x  + "%";
+        labelIcon.style.top = iconCoords.y + "%";
     }
 
     /**

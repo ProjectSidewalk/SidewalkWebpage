@@ -49,7 +49,7 @@
     display: flex;
     justify-content: center;
     margin: auto;
-    width: 50%;
+    width: 25%;
 }
 
 #footer-spacing {
@@ -61,6 +61,8 @@
     grid-template-areas: 
         'sidebar main'
         'sidebar paging';
+
+    grid-template-rows: repeat(3, minmax(calc(100vh - 686px), auto));
     grid-gap: 2px;
     /* background-color: #2196F3; */
     padding: 10px;
