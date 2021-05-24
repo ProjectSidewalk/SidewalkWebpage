@@ -12,14 +12,9 @@
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
 
     @navbar(user, Some("/gallery"))
-    <div id="gallery-overview-container" class="container-fluid">
-        <div class="row sidebar">
-            <div id="card-filter" class="col-md-2">
-                <!-- <h4><b>Sort by</b></h4>
-                <select id="card-sort-select">
-                    <option value="sort_LeastSevere">Least Severe</option>
-                    <option value="sort_MostSevere">Most Severe</option>
-                </select> -->
+    <div class="grid-container">
+        <div class="sidebar">
+            <div id="card-filter"> 
                 <div id="ribbon-menu-holder">
                     <span id="label-type-holder">
                         <h4><b>@Messages("gallery.show")</b></h4>
@@ -47,27 +42,18 @@
                     </span>
                 </div>  
             </div>
-            <div id="labels-not-found-text">
-                <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
-            </div>
-            <div id="image-card-container" class="col-md-10">
-            </div>
         </div>
-        <div class="row">
-            <div class="col-md-5"></div>
-            <div class="col-md-2">
-                <div id="page-control">
-                    <button class="paging" id="prev-page">&lt</button>
-                    <div class="paging" id="page-number"></div>
-                    <button class="paging" id="next-page">&gt</button>
-                </div>
-            </div>
-            <div class="col-md-5"></div>
+        <div id="labels-not-found-text">
+            <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
         </div>
-        <div class="row">
-            <div id="footer-spacing"></div>
-        </div>
+        <div id="image-card-container" class="cards"></div>
+        <div class="page-control">
+            <button class="paging" id="prev-page">&lt</button>
+            <div class="paging" id="page-number"></div>
+            <button class="paging" id="next-page">&gt</button>
+        </div>  
     </div>
+      
     @footer()
 
     <script type="text/javascript">

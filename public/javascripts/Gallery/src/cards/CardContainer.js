@@ -81,7 +81,7 @@ function CardContainer(uiCardContainer) {
         pageNumberDisplay = document.createElement('h2');
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
-        $("#page-control").hide();
+        $(".page-control").hide();
         sg.tagContainer.disable();
         $("#prev-page").prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
@@ -319,7 +319,7 @@ function CardContainer(uiCardContainer) {
      */
     function render() {
         $("#page-loading").show();
-        $("#page-control").hide();
+        $(".page-control").hide();
          
         // TODO: should we try to just empty in the render method? Or assume it's 
         // already been emptied in a method utilizing render?
@@ -351,7 +351,7 @@ function CardContainer(uiCardContainer) {
             Promise.all(imagePromises).then(() => {
                 imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
                 $("#page-loading").hide();
-                $("#page-control").show();
+                $(".page-control").show();
                 sg.tagContainer.enable();
                 $("#label-select").prop("disabled", false);
             });
@@ -372,7 +372,7 @@ function CardContainer(uiCardContainer) {
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
         $("#page-loading").show();
-        $("#page-control").hide();
+        $(".page-control").hide();
         clearCardContainer(uiCardContainer.holder);
     }
 
