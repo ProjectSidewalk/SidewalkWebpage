@@ -6,6 +6,7 @@
 		status="release"
 		publication="20130806195710"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>3.8.2</m:dependency.management__junit__junit__version>
 		<m:properties__forgeSnapshotId>forge-snapshots</m:properties__forgeSnapshotId>
@@ -18,7 +19,7 @@
 		<m:properties__sisu-inject.version>2.1.1</m:properties__sisu-inject.version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>compile</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
 		<m:dependency.management__org.slf4j__jcl-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jcl-over-slf4j__version>
-		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
+		<e:sbtTransformHash>c05333bfdad70ab8d155bd876a23c99075836242</e:sbtTransformHash>
 		<m:dependency.management__org.slf4j__jul-to-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jul-to-slf4j__version>
 		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.1</m:dependency.management__org.slf4j__slf4j-api__version>
 		<m:maven.plugins>org.codehaus.plexus__plexus-component-metadata__null|org.codehaus.plexus__plexus-component-metadata__null</m:maven.plugins>
@@ -60,6 +61,6 @@
 		<artifact name="plexus-interpolation" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

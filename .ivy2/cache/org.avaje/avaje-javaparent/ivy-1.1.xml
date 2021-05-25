@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.avaje"
 		module="avaje-javaparent"
 		revision="1.1"
@@ -11,6 +11,7 @@
 		This is for Java artifacts. It primarily is designed around testing.
 		</description>
 		<m:properties__avaje.skip.functional.tests.in.bamboo>false</m:properties__avaje.skip.functional.tests.in.bamboo>
+		<e:sbtTransformHash>83957d30c21d9034b793478659c2be01c3b8d261</e:sbtTransformHash>
 		<m:properties__avaje.skip.functional.tests>false</m:properties__avaje.skip.functional.tests>
 		<m:properties__avaje.skip.integration.tests>false</m:properties__avaje.skip.integration.tests>
 		<m:properties__project.build.sourceEncoding>UTF8</m:properties__project.build.sourceEncoding>

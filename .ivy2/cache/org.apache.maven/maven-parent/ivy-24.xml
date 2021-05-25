@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.maven"
 		module="maven-parent"
 		revision="24"
@@ -21,6 +21,7 @@
 		<m:properties__distMgmtSnapshotsName>Apache Development Snapshot Repository</m:properties__distMgmtSnapshotsName>
 		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
 		<m:dependency.management__org.apache.maven.plugin-tools__maven-plugin-annotations__version>3.2</m:dependency.management__org.apache.maven.plugin-tools__maven-plugin-annotations__version>
+		<e:sbtTransformHash>259afc63691f1044093df14ff6217eb72b4ac489</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:properties__maven.site.cache>${user.home}/maven-sites</m:properties__maven.site.cache>
 		<m:properties__sonar.host.url>https://analysis.apache.org/</m:properties__sonar.host.url>

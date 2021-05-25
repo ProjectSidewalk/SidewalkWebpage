@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.fusesource.hawtjni"
 		module="hawtjni-runtime"
 		revision="1.8"
 		status="release"
 		publication="20130513125423"
 	>
+		<license name="Eclipse Public License - v 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="">
 		The API that projects using HawtJNI should build against.
 		</description>
 		<m:properties__scala-plugin-version>2.15.2</m:properties__scala-plugin-version>
 		<m:properties__jetty-plugin-version>7.0.1.v20091125</m:properties__jetty-plugin-version>
 		<m:properties__slf4j-version>1.6.1</m:properties__slf4j-version>
+		<e:sbtTransformHash>2020edd3644e32be6df4d050f0b9d44ec1cf50af</e:sbtTransformHash>
 		<m:properties__scala-version>2.9.0-1</m:properties__scala-version>
 		<m:properties__scalate-version>1.5.1</m:properties__scalate-version>
 		<m:properties__forge-project-id-uc>HAWTJNI</m:properties__forge-project-id-uc>

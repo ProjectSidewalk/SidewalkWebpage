@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="io.spray"
 		module="spray-json_2.10"
 		revision="1.2.6"
@@ -10,6 +10,7 @@
 		<description homepage="https://github.com/spray/spray-json">
 		A Scala library for easy and idiomatic JSON (de)serialization
 		</description>
+		<e:sbtTransformHash>750f5a4eee46efed3360beb8aa118667f32b5289</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,9 +28,9 @@
 		<artifact name="spray-json_2.10" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.parboiled" name="parboiled-scala_2.10" rev="1.1.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.specs2" name="specs2_2.10" rev="2.3.10" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.3" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.parboiled" name="parboiled-scala_2.10" rev="1.1.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.specs2" name="specs2_2.10" rev="2.3.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.3" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.vafer"
 		module="jdeb"
 		revision="1.3"
@@ -14,6 +14,7 @@
 		</description>
 		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
 		<m:properties__mavenVersion>3.2.2</m:properties__mavenVersion>
+		<e:sbtTransformHash>87ab50ecf50bb9cb4474bed55c7478d0d1cf667b</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
 		<m:properties__mavenPluginPluginVersion>3.3</m:properties__mavenPluginPluginVersion>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
@@ -36,14 +37,14 @@
 		<artifact name="jdeb" type="maven-plugin" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="commons-io" name="commons-io" rev="2.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.apache.commons" name="commons-compress" rev="1.7" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.apache.maven" name="maven-core" rev="3.2.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.apache.maven" name="maven-plugin-api" rev="3.2.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.apache.maven.plugin-tools" name="maven-plugin-annotations" rev="3.3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="org.apache.ant" name="ant" rev="1.9.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.bouncycastle" name="bcpg-jdk15on" rev="1.51" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-core" rev="1.9.5" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="commons-io" name="commons-io" rev="2.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.apache.commons" name="commons-compress" rev="1.7" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.apache.maven" name="maven-core" rev="3.2.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.apache.maven" name="maven-plugin-api" rev="3.2.2" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.apache.maven.plugin-tools" name="maven-plugin-annotations" rev="3.3" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="org.apache.ant" name="ant" rev="1.9.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.bouncycastle" name="bcpg-jdk15on" rev="1.51" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-core" rev="1.9.5" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.activation"
 		module="activation"
 		revision="1.1.1"
@@ -10,6 +10,7 @@
 		<description homepage="http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp">
 		The JavaBeans(TM) Activation Framework is used by the JavaMail(TM) API to manage MIME data
 		</description>
+		<e:sbtTransformHash>01cf491bebcb9d4f27c38295971046e2d63d902c</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

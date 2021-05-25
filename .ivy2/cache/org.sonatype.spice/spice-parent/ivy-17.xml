@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.sonatype.spice"
 		module="spice-parent"
 		revision="17"
@@ -18,6 +18,7 @@
 		<m:properties__sisu-inject.version>2.1.1</m:properties__sisu-inject.version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>compile</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
 		<m:dependency.management__org.slf4j__jcl-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jcl-over-slf4j__version>
+		<e:sbtTransformHash>9824423a75c72b7b16b9c48770aec3c91bae114e</e:sbtTransformHash>
 		<m:dependency.management__org.slf4j__jul-to-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jul-to-slf4j__version>
 		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.1</m:dependency.management__org.slf4j__slf4j-api__version>
 		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>

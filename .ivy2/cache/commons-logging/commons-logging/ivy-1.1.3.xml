@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="commons-logging"
 		module="commons-logging"
 		revision="1.1.3"
 		status="release"
 		publication="20130516200523"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://commons.apache.org/proper/commons-logging/">
 		Commons Logging is a thin adapter allowing configurable bridging to other,
     well known logging systems.
@@ -42,6 +43,7 @@
 		<m:properties__commons.clirr.version>2.5</m:properties__commons.clirr.version>
 		<m:properties__skipSurefireReport>true</m:properties__skipSurefireReport>
 		<m:properties__commons.release.3.binary.suffix>-bin</m:properties__commons.release.3.binary.suffix>
+		<e:sbtTransformHash>a59a462ddbbef545301c48e76677b4a3fdb95f5d</e:sbtTransformHash>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.8|org.apache.maven.plugins__maven-scm-publish-plugin__1.0-beta-2|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.8|org.apache.maven.plugins__maven-scm-publish-plugin__1.0-beta-2|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__1.0|org.apache.maven.plugins__maven-surefire-plugin__null|org.codehaus.mojo__cobertura-maven-plugin__2.5.2|org.apache.maven.plugins__maven-failsafe-plugin__2.12|org.apache.maven.plugins__maven-assembly-plugin__2.3|org.apache.maven.plugins__maven-dependency-plugin__2.4|org.apache.maven.plugins__maven-scm-publish-plugin__null</m:maven.plugins>
 		<m:properties__commons.jira.id>LOGGING</m:properties__commons.jira.id>
 		<m:properties__commons.javadoc.javaee.link>http://download.oracle.com/javaee/6/api/</m:properties__commons.javadoc.javaee.link>
@@ -85,10 +87,10 @@
 		<artifact name="commons-logging" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.8.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="log4j" name="log4j" rev="1.2.17" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="logkit" name="logkit" rev="1.0.1" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="avalon-framework" name="avalon-framework" rev="4.1.5" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="javax.servlet" name="servlet-api" rev="2.3" force="true" conf="optional->compile(*),provided(*),runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="3.8.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="log4j" name="log4j" rev="1.2.17" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="logkit" name="logkit" rev="1.0.1" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="avalon-framework" name="avalon-framework" rev="4.1.5" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="javax.servlet" name="servlet-api" rev="2.3" force="true" conf="optional->compile(*),provided(*),runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

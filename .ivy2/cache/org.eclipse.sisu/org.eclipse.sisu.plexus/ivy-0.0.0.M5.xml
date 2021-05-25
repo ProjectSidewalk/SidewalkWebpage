@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.eclipse.sisu"
 		module="org.eclipse.sisu.plexus"
 		revision="0.0.0.M5"
 		status="release"
 		publication="20130725232947"
 	>
+		<license name="Eclipse Public License, Version 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
 		<description homepage="" />
 		<m:properties__tycho-version>0.18.1</m:properties__tycho-version>
 		<m:properties__tycho.scmUrl>scm:git:http://git.eclipse.org/gitroot/sisu/org.eclipse.sisu.plexus.git</m:properties__tycho.scmUrl>
+		<e:sbtTransformHash>51e1e0eaadd9ede7ab6b241ef60ed12dec0e0289</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
@@ -31,23 +33,23 @@
 		<artifact name="org.eclipse.sisu.plexus" type="eclipse-plugin" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.4" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="javax.enterprise" name="cdi-api" rev="1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.4" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="javax.enterprise" name="cdi-api" rev="1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)">
 			<exclude org="javax.el" module="el-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
 			<exclude org="org.jboss.ejb3" module="jboss-ejb3-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
 			<exclude org="org.jboss.interceptor" module="jboss-interceptor-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="com.google.guava" name="guava" rev="10.0.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.sonatype.sisu" name="sisu-guice" rev="3.1.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+		<dependency org="com.google.guava" name="guava" rev="10.0.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.sonatype.sisu" name="sisu-guice" rev="3.1.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)">
 			<artifact name="sisu-guice" type="jar" ext="jar" conf="" m:classifier="no_aop"/>
 			<exclude org="org.sonatype.sisu" module="sisu-guava" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="org.eclipse.sisu" name="org.eclipse.sisu.inject" rev="0.0.0.M5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+		<dependency org="org.eclipse.sisu" name="org.eclipse.sisu.inject" rev="0.0.0.M5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)">
 			<exclude org="com.google.inject" module="guice" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="org.codehaus.plexus" name="plexus-component-annotations" rev="1.5.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.codehaus.plexus" name="plexus-classworlds" rev="2.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.codehaus.plexus" name="plexus-utils" rev="2.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-component-annotations" rev="1.5.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-classworlds" rev="2.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-utils" rev="2.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="optional->compile(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

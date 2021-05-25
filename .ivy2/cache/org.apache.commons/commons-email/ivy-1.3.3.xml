@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.commons"
 		module="commons-email"
 		revision="1.3.3"
 		status="release"
 		publication="20140705152515"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://commons.apache.org/proper/commons-email/">
 		Apache Commons Email aims to provide an API for sending email. It is built on top of
         the JavaMail API, which it aims to simplify.
@@ -47,6 +48,7 @@
 		<m:properties__commons.jacoco.haltOnFailure>false</m:properties__commons.jacoco.haltOnFailure>
 		<m:properties__commons.clirr.version>2.6.1</m:properties__commons.clirr.version>
 		<m:properties__commons.release.3.binary.suffix>-bin</m:properties__commons.release.3.binary.suffix>
+		<e:sbtTransformHash>1c9360b4c6cbc7c61520a89c151c09983940633b</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:properties__commons.compiler.version>3.1</m:properties__commons.compiler.version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-assembly-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.3.1|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.10|org.apache.maven.plugins__maven-scm-publish-plugin__1.0|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-assembly-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.3.1|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__0.10|org.apache.maven.plugins__maven-scm-publish-plugin__1.0|org.apache.maven.plugins__maven-surefire-plugin__null|null__maven-assembly-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-release-plugin__null|org.apache.maven.plugins__maven-scm-publish-plugin__null</m:maven.plugins>
@@ -92,14 +94,14 @@
 		<artifact name="commons-email" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="javax.mail" name="mail" rev="1.4.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="javax.activation" name="activation" rev="1.1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="commons-io" name="commons-io" rev="2.2" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.subethamail" name="subethasmtp" rev="3.1.7" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.powermock" name="powermock-module-junit4" rev="1.4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.powermock" name="powermock-api-easymock" rev="1.4.12" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.easymock" name="easymock" rev="3.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.slf4j" name="slf4j-jdk14" rev="1.6.1" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="javax.mail" name="mail" rev="1.4.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="javax.activation" name="activation" rev="1.1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="commons-io" name="commons-io" rev="2.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.subethamail" name="subethasmtp" rev="3.1.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.powermock" name="powermock-module-junit4" rev="1.4.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.powermock" name="powermock-api-easymock" rev="1.4.12" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easymock" name="easymock" rev="3.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="slf4j-jdk14" rev="1.6.1" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

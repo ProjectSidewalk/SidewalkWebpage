@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.parboiled"
 		module="parboiled-java"
 		revision="1.1.5"
@@ -10,6 +10,7 @@
 		<description homepage="http://parboiled.org">
 		Elegant parsing in Java and Scala - lightweight, easy-to-use, powerful
 		</description>
+		<e:sbtTransformHash>707ecf7dcb6472fb9cd735cdf9d01cb354e4f309</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,12 +28,12 @@
 		<artifact name="parboiled-java" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.parboiled" name="parboiled-core" rev="1.1.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.testng" name="testng" rev="5.14.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scalatest" name="scalatest_2.10" rev="1.9.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.ow2.asm" name="asm" rev="4.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.ow2.asm" name="asm-tree" rev="4.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.ow2.asm" name="asm-analysis" rev="4.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.ow2.asm" name="asm-util" rev="4.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.parboiled" name="parboiled-core" rev="1.1.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.testng" name="testng" rev="5.14.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalatest" name="scalatest_2.10" rev="1.9.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.ow2.asm" name="asm" rev="4.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.ow2.asm" name="asm-tree" rev="4.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.ow2.asm" name="asm-analysis" rev="4.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.ow2.asm" name="asm-util" rev="4.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>
