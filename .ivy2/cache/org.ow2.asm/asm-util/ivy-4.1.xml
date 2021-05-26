@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.ow2.asm"
 		module="asm-util"
 		revision="4.1"
 		status="release"
 		publication="20121014153900"
 	>
+		<license name="BSD" url="http://asm.objectweb.org/license.html" />
 		<description homepage="" />
 		<m:properties__ow2DistMgmtSnapshotsUrl>http://repository.ow2.org/nexus/content/repositories/snapshots</m:properties__ow2DistMgmtSnapshotsUrl>
 		<m:properties__organization.logo>
@@ -15,6 +16,7 @@
 		<m:dependency.management__org.ow2.asm__asm-xml__version>4.1</m:dependency.management__org.ow2.asm__asm-xml__version>
 		<m:dependency.management__org.ow2.asm__asm-util__version>4.1</m:dependency.management__org.ow2.asm__asm-util__version>
 		<m:properties__ow2DistMgmtReleasesUrl>http://repository.ow2.org/nexus/service/local/staging/deploy/maven2</m:properties__ow2DistMgmtReleasesUrl>
+		<e:sbtTransformHash>6da7299f8f518ced38b7f0a6fefaa34681f102c2</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1</m:maven.plugins>
 		<m:dependency.management__org.ow2.asm__asm-tree__version>4.1</m:dependency.management__org.ow2.asm__asm-tree__version>
@@ -37,12 +39,6 @@
 		<artifact name="asm-util" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.ow2.asm" name="asm-tree" rev="4.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<override org="org.ow2.asm" module="asm" matcher="exact" rev="4.1"/>
-		<override org="org.ow2.asm" module="asm-xml" matcher="exact" rev="4.1"/>
-		<override org="org.ow2.asm" module="asm-util" matcher="exact" rev="4.1"/>
-		<override org="org.ow2.asm" module="asm-tree" matcher="exact" rev="4.1"/>
-		<override org="org.ow2.asm" module="asm-commons" matcher="exact" rev="4.1"/>
-		<override org="org.ow2.asm" module="asm-analysis" matcher="exact" rev="4.1"/>
+		<dependency org="org.ow2.asm" name="asm-tree" rev="4.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

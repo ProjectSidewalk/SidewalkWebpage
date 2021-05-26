@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.httpcomponents"
 		module="project"
 		revision="4.0"
@@ -9,6 +9,7 @@
 		<description homepage="http://hc.apache.org/">
 		Components to build HTTP enabled services
 		</description>
+		<e:sbtTransformHash>596c22a00aa676ea8fbe81f8b13ea49b2ce58fb3</e:sbtTransformHash>
 		<m:maven.plugins>null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.apache.maven.plugins__maven-site-plugin__null</m:maven.plugins>
 	</info>
 	<configurations>

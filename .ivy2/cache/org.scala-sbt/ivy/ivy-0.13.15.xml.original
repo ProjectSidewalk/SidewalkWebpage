@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt" module="ivy" revision="0.13.15" status="release" publication="20170409160812">
+		<description>
+		Ivy
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="ivy" type="jar" ext="jar" conf="compile"/>
+		<artifact name="ivy" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.6" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="interface" rev="0.13.15" conf="compile->default(compile)" e:component="xsbti"/>
+		<dependency org="org.scala-sbt" name="cross" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="logging" rev="0.13.15" conf="compile->default(compile);test->test"/>
+		<dependency org="org.scala-sbt" name="io" rev="0.13.15" conf="compile->default(compile);test->test"/>
+		<dependency org="org.scala-sbt" name="collections" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt.ivy" name="ivy" rev="2.3.0-sbt-48dd0744422128446aee9ac31aa356ee203cc9f4" conf="compile->default(compile)"/>
+		<dependency org="com.jcraft" name="jsch" rev="0.1.50" transitive="false" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="serialization_2.10" rev="0.1.2" conf="compile->default(compile)"/>
+		<dependency org="org.scala-lang" name="scala-reflect" rev="2.10.6" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="launcher-interface" rev="1.0.1" conf="compile->default(compile)"/>
+	</dependencies>
+</ivy-module>

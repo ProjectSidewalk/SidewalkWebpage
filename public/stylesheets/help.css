@@ -79,10 +79,6 @@ figure figcaption {
 }
 
 /* the youtube videos */
-iframe {
-    margin-top: 30px;
-}
-
 ul.reference {
     list-style-type: none;
     padding-left: 0;

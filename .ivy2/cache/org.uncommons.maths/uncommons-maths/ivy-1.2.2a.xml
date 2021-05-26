@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.uncommons.maths"
 		module="uncommons-maths"
 		revision="1.2.2a"
@@ -10,6 +10,7 @@
 		<description homepage="http://maths.uncommons.org/">
 		Random number generators, probability distributions, combinatorics and statistics for Java.
 		</description>
+		<e:sbtTransformHash>9e59ee77e0e60f8b3e18ff8cda461d0c9e9536f0</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,7 +28,7 @@
 		<artifact name="uncommons-maths" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="jfree" name="jcommon" rev="1.0.12" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="jfree" name="jfreechart" rev="1.0.8a" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="jfree" name="jcommon" rev="1.0.12" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="jfree" name="jfreechart" rev="1.0.8a" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

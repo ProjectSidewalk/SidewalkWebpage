@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.scala-lang.modules</groupId>
+    <artifactId>scala-pickling_2.10</artifactId>
+    <packaging>jar</packaging>
+    <description>scala-pickling</description>
+    <url>https://github.com/scala/pickling</url>
+    <version>0.10.1</version>
+    <licenses>
+        <license>
+            <name>BSD-like</name>
+            <url>http://www.scala-lang.org/downloads/license.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>scala-pickling</name>
+    <organization>
+        <name>LAMP/EPFL</name>
+        <url>http://lamp.epfl.ch</url>
+    </organization>
+    <scm>
+        <url>https://github.com/scala/pickling</url>
+        <connection>git@github.com:scala/pickling.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>xeno-by</id>
+            <name>Eugene Burmako</name>
+            <email>@xeno_by</email>
+            <url>http://github.com/xeno-by</url>
+        </developer>
+        <developer>
+            <id>heathermiller</id>
+            <name>Heather Miller</name>
+            <email>@heathercmiller</email>
+            <url>http://github.com/heathermiller</url>
+        </developer>
+        <developer>
+            <id>phaller</id>
+            <name>Philipp Haller</name>
+            <email>@philippkhaller</email>
+            <url>http://github.com/phaller</url>
+        </developer>
+        <developer>
+            <id>havocp</id>
+            <name>Havoc Pennington</name>
+            <email>@havocp</email>
+            <url>https://github.com/havocp</url>
+        </developer>
+        <developer>
+            <id>eed3si9n</id>
+            <name>Eugene Yokota</name>
+            <email>@eed3si9n</email>
+            <url>https://github.com/eed3si9n</url>
+        </developer>
+        <developer>
+            <id>jsuereth</id>
+            <name>Josh Suereth</name>
+            <email>@jsuereth</email>
+            <url>https://github.com/jsuereth</url>
+        </developer>
+    </developers>
+    <inceptionYear>2013</inceptionYear>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-compiler</artifactId>
+            <version>2.10.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.10.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>testutil_2.10</artifactId>
+            <version>0.10.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <version>2.10.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.10</artifactId>
+            <version>2.1.7</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalacheck</groupId>
+            <artifactId>scalacheck_2.10</artifactId>
+            <version>1.11.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalamacros</groupId>
+            <artifactId>quasiquotes_2.10</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+    </dependencies>
+</project>

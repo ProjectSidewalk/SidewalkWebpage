@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.httpcomponents"
 		module="httpcomponents-client"
 		revision="4.0.1"
@@ -14,6 +14,7 @@
 		<m:properties__commons-codec.version>1.3</m:properties__commons-codec.version>
 		<m:properties__commons-logging.version>1.1.1</m:properties__commons-logging.version>
 		<m:properties__mime4j.version>0.6</m:properties__mime4j.version>
+		<e:sbtTransformHash>fdcc8a2b59275d515ab6237ca53960d40191bcbf</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__junit.version>3.8.2</m:properties__junit.version>
 		<m:properties__httpcore.version>4.0.1</m:properties__httpcore.version>

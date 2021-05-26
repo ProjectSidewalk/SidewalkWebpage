@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.httpcomponents"
 		module="httpcomponents-core"
 		revision="4.3.1"
@@ -23,6 +23,7 @@
 		<m:properties__hc.jxr.version>2.3</m:properties__hc.jxr.version>
 		<m:properties__hc.site.url>scp://people.apache.org/www/hc.apache.org/</m:properties__hc.site.url>
 		<m:properties__maven.compiler.showDeprecation>false</m:properties__maven.compiler.showDeprecation>
+		<e:sbtTransformHash>8e0a0cb00bd4871b0a0e6655f8dbf083baa38ade</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-compiler-plugin__null|null__maven-jar-plugin__null|null__maven-jar-plugin__null|null__maven-source-plugin__null|null__maven-javadoc-plugin__null|null__maven-site-plugin__null|com.agilejava.docbkx__docbkx-maven-plugin__null|null__maven-resources-plugin__null|org.apache.maven.plugins__maven-checkstyle-plugin__2.9.1|org.codehaus.mojo__clirr-maven-plugin__2.5</m:maven.plugins>
 		<m:dependency.management__commons-logging__commons-logging__version>1.1.3</m:dependency.management__commons-logging__commons-logging__version>
