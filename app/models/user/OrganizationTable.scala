@@ -8,7 +8,7 @@ case class Organization(orgId: Int, orgName: String, orgDescription: String)
 class OrganizationTable(tag: slick.lifted.Tag) extends Table[Organization](tag, Some("sidewalk"), "organization") {
   def orgId = column[Int]("org_id", O.PrimaryKey, O.AutoInc)
   def orgName = column[String]("org_name", O.NotNull)
-  def orgDescription = column[String]("org_description")
+  def orgDescription = column[String]("org_description", O.NotNull)
 
   def * = (orgId, orgName, orgDescription) <> ((Organization.apply _).tupled, Organization.unapply)
 }

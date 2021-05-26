@@ -58,6 +58,23 @@ function Progress (_, $, difficultRegionIds, userRole) {
         setRegionFocus(map, layers);
     });
 
+    function logWebpageActivity(activity){
+        var url = "/userapi/logWebpageActivity";
+        var async = false;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activity),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     function putUserOrg(e) {
         var orgId = $(this).attr('id');
         $.ajax({
@@ -65,7 +82,8 @@ function Progress (_, $, difficultRegionIds, userRole) {
             url: '/userapi/setUserOrg/' + orgId,
             type: 'put',
             success: function (result) {
-                $('#org-name-container').load(window.location.href + ' .org-name');
+                window.location.reload();
+                logWebpageActivity("Click_module=EditedOrg");
             },
             error: function (result) {
                 console.error(result);

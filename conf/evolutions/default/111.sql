@@ -4,7 +4,7 @@ CREATE TABLE organization
 (
   org_id SERIAL NOT NULL,
   org_name TEXT NOT NULL,
-  org_description TEXT,
+  org_description TEXT NOT NULL,
   PRIMARY KEY (org_id)
 );
 
