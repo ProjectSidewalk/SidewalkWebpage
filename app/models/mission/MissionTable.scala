@@ -135,20 +135,6 @@ object MissionTable {
   })
 
   /**
-    * Count the total number of labels the user has validated.
-    *
-    * @return the total number of labels the user has validated.
-    */
-   def countCompletedValidations(userId: UUID): Int = db.withSession { implicit session =>
-    (for {
-      _missionType <- missionTypes
-      _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
-      if _missionType.missionType === "validation" && _mission.userId === userId.toString
-    } yield _mission.labelsProgress).list.flatten.sum
-  }
-
-
-  /**
     * Count the number of missions completed by a user.
     *
     * @param includeOnboarding should any onboarding missions be included in this count

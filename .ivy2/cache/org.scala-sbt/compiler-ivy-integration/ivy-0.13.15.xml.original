@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt" module="compiler-ivy-integration" revision="0.13.15" status="release" publication="20170409160931">
+		<description>
+		Compiler Ivy Integration
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="compiler-ivy-integration" type="jar" ext="jar" conf="compile"/>
+		<artifact name="compiler-ivy-integration" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.6" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="ivy" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="compile" rev="0.13.15" conf="compile->default(compile)"/>
+	</dependencies>
+</ivy-module>

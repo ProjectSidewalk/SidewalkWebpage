@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.easytesting"
 		module="fest-util"
 		revision="1.1.6"
 		status="release"
 		publication="20110217101512"
 	>
+		<license name="Apache License, Version 2.0" url="LICENSE.txt" />
 		<description homepage="http://fest.easytesting.org">
 		Utility methods used by FEST modules
 		</description>
 		<m:dependency.management__junit__junit__version>4.8.2</m:dependency.management__junit__junit__version>
+		<e:sbtTransformHash>7b50a65c1816c9a434516fd0d500cf433120f2bb</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-resources-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|com.atlassian.maven.plugins__maven-clover2-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-javadoc-plugin__null|org.apache.maven.plugins__maven-dependency-plugin__null|null__maven-assembly-plugin__null|org.apache.maven.plugins__maven-resources-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|com.atlassian.maven.plugins__maven-clover2-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-javadoc-plugin__null|org.apache.maven.plugins__maven-dependency-plugin__null|null__maven-assembly-plugin__null</m:maven.plugins>
 		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
@@ -30,7 +32,6 @@
 		<artifact name="fest-util" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.8.2"/>
+		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

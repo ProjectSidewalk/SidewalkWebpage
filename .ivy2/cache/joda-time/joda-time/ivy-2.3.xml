@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="joda-time"
 		module="joda-time"
 		revision="2.3"
@@ -24,6 +24,7 @@
 		<m:properties__maven-plugin-plugin.version>3.2</m:properties__maven-plugin-plugin.version>
 		<m:properties__maven-resources-plugin.version>2.6</m:properties__maven-resources-plugin.version>
 		<m:properties__maven-project-info-reports-plugin.version>2.7</m:properties__maven-project-info-reports-plugin.version>
+		<e:sbtTransformHash>6f54405b18f54371e474245a893ff0ec1c396aec</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:properties__maven-surefire-plugin.version>2.15</m:properties__maven-surefire-plugin.version>
 		<m:properties__maven-checkstyle-plugin.version>2.10</m:properties__maven-checkstyle-plugin.version>
@@ -63,7 +64,7 @@
 		<artifact name="joda-time" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.joda" name="joda-convert" rev="1.2" force="true" conf="optional->compile(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.joda" name="joda-convert" rev="1.2" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

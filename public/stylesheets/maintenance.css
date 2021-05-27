@@ -1,0 +1,64 @@
+.sidewalk-logo {  
+    width: 50%;
+    max-width: 260px;
+    height: auto; 
+    margin: 0px auto 30px auto; 
+    display: block; 
+}
+
+.header {
+    color: #386e6e; 
+    width: 80%;
+    max-width: 720px; 
+    margin: auto; 
+    margin-bottom: 20px; 
+    text-align: center;
+
+    font-size: 32px;
+    font-weight: bold;
+}
+
+.msgbox {
+    width: 80%;
+    max-width: 720px; 
+    margin: auto;  
+    text-align: center; 
+
+    font-size: 17px; 
+    line-height: 20px; 
+}
+
+.downpage-image {
+    width: 90%;
+    max-width: 720px;
+    height: auto; 
+    margin-left: auto; 
+    margin-right: auto; 
+    padding-bottom: 16px; 
+    padding-top: 40px; 
+    display: block; 
+}
+
+.links {
+    margin-top: 30px;
+    display: flex; 
+    justify-content: center; 
+}
+
+.links > a {
+    margin: 6px;
+    color: #386e6e; 
+    font-weight: bold; 
+    text-decoration: none;
+
+}
+  
+
+@media screen and (max-width: 600px) {
+    .header {
+        font-size: 24px; 
+    }
+    .msgbox {
+        font-size: 15px; 
+    }
+}

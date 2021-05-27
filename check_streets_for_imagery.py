@@ -10,14 +10,19 @@ from shapely.geometry import LineString
 # Name it street_edge_endpoints.csv and put it in the root directory, then run this script.
 # It will output a CSV called streets_with_no_imagery.csv. Use this to mark those edges as "deleted" in the database.
 
-def write_output():
+def write_output(no_imagery_df, curr_street):
     print # Adds newline after the progress percentage.
+
+    # If we aren't done, save the last street we were working on at the end to keep track of our progress.
+    if curr_street is not None:
+        no_imagery_df = no_imagery_df.append({'street_edge_id': curr_street.street_edge_id, 'region_id': curr_street.region_id}, ignore_index=True)
+
     # Convert street_edge_id column from float to int.
-    streets_with_no_imagery.street_edge_id = streets_with_no_imagery.street_edge_id.astype('int32')
-    streets_with_no_imagery.region_id = streets_with_no_imagery.region_id.astype('int32')
+    no_imagery_df.street_edge_id = no_imagery_df.street_edge_id.astype('int32')
+    no_imagery_df.region_id = no_imagery_df.region_id.astype('int32')
 
     # Output both_endpoints_data and one_endpoint_data as CSVs.
-    streets_with_no_imagery.to_csv('streets_with_no_imagery.csv', mode='a', header=incl_headers, index=False)
+    no_imagery_df.to_csv('streets_with_no_imagery.csv', index=False)
 
 DISTANCE = 0.000135 # Approximately 15 meters in lat/lng. We don't need it to be super accurate here.
 def redistribute_vertices(geom):
@@ -48,13 +53,14 @@ if __name__ == '__main__':
     streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id', 'region_id'])
 
     # Get current progress and remove data we've already checked.
-    incl_headers = True
     if os.path.isfile('streets_with_no_imagery.csv'):
-        no_imagery_progress_data = pd.read_csv('streets_with_no_imagery.csv')
-        progress = no_imagery_progress_data.iloc[-1]['street_edge_id']
+        streets_with_no_imagery = pd.read_csv('streets_with_no_imagery.csv')
+        progress = streets_with_no_imagery.iloc[-1]['street_edge_id']
         progress_index = int(street_data[street_data.street_edge_id == progress]['id'])
-        street_data = street_data[street_data.id > progress_index]
-        incl_headers = False
+        street_data = street_data[street_data.id >= progress_index]
+
+        # Drop last row, which was only used to hold our current progress through the script.
+        streets_with_no_imagery.drop(streets_with_no_imagery.tail(1).index, inplace=True)
 
     # Loop through the streets, adding any that are missing GSV imagery to streets_with_no_imagery.
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=' + api_key
@@ -72,7 +78,7 @@ if __name__ == '__main__':
             first_endpoint = requests.get(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1))
             second_endpoint = requests.get(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2))
         except (requests.exceptions.RequestException, KeyboardInterrupt) as e:
-            write_output()
+            write_output(streets_with_no_imagery, street)
             exit(1)
         first_endpoint_fail = json_normalize(first_endpoint.json()).status[0] == 'ZERO_RESULTS'
         second_endpoint_fail = json_normalize(second_endpoint.json()).status[0] == 'ZERO_RESULTS'
@@ -93,7 +99,7 @@ if __name__ == '__main__':
                 try:
                     response = requests.get(gsv_url + '&location=' + str(coord[1]) + ',' + str(coord[0]))
                 except (requests.exceptions.RequestException, KeyboardInterrupt) as e:
-                    write_output()
+                    write_output(streets_with_no_imagery, street)
                     exit(1)
                 response_status = json_normalize(response.json()).status[0]
                 if response_status == 'ZERO_RESULTS':
@@ -111,4 +117,4 @@ if __name__ == '__main__':
                 elif n_success > 0.75 * n_coord or (n_success > 0.5 * n_coord and not first_endpoint_fail and not second_endpoint_fail):
                     break
 
-    write_output()
+    write_output(streets_with_no_imagery, None)

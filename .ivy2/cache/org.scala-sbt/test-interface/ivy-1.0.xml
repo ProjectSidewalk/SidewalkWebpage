@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.scala-sbt"
 		module="test-interface"
 		revision="1.0"
@@ -10,6 +10,7 @@
 		<description homepage="http://www.scala-sbt.org">
 		Uniform test interface to Scala/Java test frameworks (specs, ScalaCheck, ScalaTest, JUnit and other)
 		</description>
+		<e:sbtTransformHash>36a37d952e7e6e9dfd4922f31c2f58ae46dff6aa</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,6 +28,6 @@
 		<artifact name="test-interface" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scalatest" name="scalatest_2.10" rev="2.0.M6-SNAP24" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.scalatest" name="scalatest_2.10" rev="2.0.M6-SNAP24" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

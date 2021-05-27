@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.fasterxml.jackson.core"
 		module="jackson-core"
 		revision="2.3.2"
 		status="release"
 		publication="20140301013828"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<license name="GNU Lesser General Public License, Version 2.1" url="http://www.gnu.org/licenses/lgpl-2.1.html" />
 		<description homepage="http://wiki.fasterxml.com/JacksonHome">
 		Core Jackson abstractions, basic JSON streaming API implementation
 		</description>
@@ -28,6 +30,7 @@ com.fasterxml.jackson.core.*;version=${project.version}
 		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
 		<m:properties__javac.target.version>1.6</m:properties__javac.target.version>
 		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>ee414d811a47878ea299a9225ca68815959d00d3</e:sbtTransformHash>
 		<m:properties__osgi.import>*</m:properties__osgi.import>
 		<m:properties__replacer.version>1.5.2</m:properties__replacer.version>
 		<m:properties__bundle.version>2.3.7</m:properties__bundle.version>
@@ -49,6 +52,6 @@ com.fasterxml.jackson.core.*;version=${project.version}
 		<artifact name="jackson-core" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

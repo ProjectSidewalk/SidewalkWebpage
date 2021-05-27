@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="oauth.signpost"
 		module="oauth-signpost"
 		revision="1.2.1.2"
@@ -11,6 +11,7 @@
 		A simple, light-weight, and modular OAuth client library for the
     Java platform.
 		</description>
+		<e:sbtTransformHash>d70609cc21f0fda3a15cf7d04c466aadd4e3b362</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-jar-plugin__2.2|org.apache.maven.plugins__maven-javadoc-plugin__2.6.1|null__maven-release-plugin__2.0-beta-9</m:maven.plugins>
 	</info>
@@ -29,7 +30,7 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.5" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.mockito" name="mockito-core" rev="1.9.0" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.5" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.mockito" name="mockito-core" rev="1.9.0" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.junit"
 		module="junit-bom"
 		revision="5.3.1"
@@ -14,14 +14,15 @@
 		<m:dependency.management__org.junit.platform__junit-platform-runner__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-runner__version>
 		<m:dependency.management__org.junit.platform__junit-platform-engine__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-engine__version>
 		<m:dependency.management__org.junit.jupiter__junit-jupiter-params__version>5.3.1</m:dependency.management__org.junit.jupiter__junit-jupiter-params__version>
+		<m:dependency.management__org.junit.platform__junit-platform-console__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-console__version>
+		<m:dependency.management__org.junit.platform__junit-platform-suite-api__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-suite-api__version>
+		<m:dependency.management__org.junit.platform__junit-platform-launcher__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-launcher__version>
 		<m:dependency.management__org.junit.jupiter__junit-jupiter-migrationsupport__version>5.3.1</m:dependency.management__org.junit.jupiter__junit-jupiter-migrationsupport__version>
 		<m:dependency.management__org.junit.platform__junit-platform-commons__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-commons__version>
-		<m:dependency.management__org.junit.platform__junit-platform-console__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-console__version>
 		<m:dependency.management__org.junit.platform__junit-platform-surefire-provider__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-surefire-provider__version>
+		<e:sbtTransformHash>090f68a463295c944685e3ba15c7711be0d54882</e:sbtTransformHash>
 		<m:dependency.management__org.junit.jupiter__junit-jupiter-api__version>5.3.1</m:dependency.management__org.junit.jupiter__junit-jupiter-api__version>
-		<m:dependency.management__org.junit.platform__junit-platform-suite-api__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-suite-api__version>
 		<m:dependency.management__org.junit.vintage__junit-vintage-engine__version>5.3.1</m:dependency.management__org.junit.vintage__junit-vintage-engine__version>
-		<m:dependency.management__org.junit.platform__junit-platform-launcher__version>1.3.1</m:dependency.management__org.junit.platform__junit-platform-launcher__version>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

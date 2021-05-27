@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.sonatype.spice"
 		module="spice-parent"
 		revision="12"
@@ -21,6 +21,7 @@
 		<m:properties__forgeSnapshotUrl>http://repository.sonatype.org/content/repositories/snapshots</m:properties__forgeSnapshotUrl>
 		<m:dependency.management__org.codehaus.plexus__plexus-utils__version>1.5.5</m:dependency.management__org.codehaus.plexus__plexus-utils__version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>provided</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
+		<e:sbtTransformHash>aae26f21bfb14d6cff52e6a6b1d53d2c6d4da115</e:sbtTransformHash>
 		<m:properties__jetty.version>6.1.12</m:properties__jetty.version>
 		<m:properties__forgeReleaseId>forge-releases</m:properties__forgeReleaseId>
 		<m:dependency.management__org.codehaus.plexus__plexus-container-default__scope>provided</m:dependency.management__org.codehaus.plexus__plexus-container-default__scope>

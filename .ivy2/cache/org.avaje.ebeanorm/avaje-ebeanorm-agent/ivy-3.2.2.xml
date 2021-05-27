@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.avaje.ebeanorm"
 		module="avaje-ebeanorm-agent"
 		revision="3.2.2"
@@ -9,6 +9,7 @@
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://www.avaje.org" />
 		<m:properties__avaje.skip.functional.tests.in.bamboo>false</m:properties__avaje.skip.functional.tests.in.bamboo>
+		<e:sbtTransformHash>7b9b1a01a953408d4bf2bf754fb5089e1d18269a</e:sbtTransformHash>
 		<m:properties__avaje.skip.functional.tests>false</m:properties__avaje.skip.functional.tests>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__avaje.skip.integration.tests>false</m:properties__avaje.skip.integration.tests>
@@ -32,7 +33,7 @@
 		<artifact name="avaje-ebeanorm-agent" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.apache.ant" name="ant" rev="1.7.0" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.apache.ant" name="ant" rev="1.7.0" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

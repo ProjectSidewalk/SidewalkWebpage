@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="net.java.dev.jna"
 		module="jna"
 		revision="3.4.0"
@@ -10,6 +10,7 @@
 		<description homepage="https://github.com/twall/jna">
 		Java Native Access
 		</description>
+		<e:sbtTransformHash>1b135eab7953708bdc3e19bef1163dace8885331</e:sbtTransformHash>
 		<m:maven.plugins>org.jvnet.maven-antrun-extended-plugin__maven-antrun-extended-plugin__null</m:maven.plugins>
 	</info>
 	<configurations>
