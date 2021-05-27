@@ -492,7 +492,7 @@ function Main (params) {
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
         svl.ui.googleMaps.overlay = $("#google-maps-overlay");
-
+        
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");

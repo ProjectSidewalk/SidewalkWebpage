@@ -19,6 +19,7 @@ psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
     GRANT ALL ON ALL TABLES IN SCHEMA sidewalk TO sidewalk;
     ALTER DEFAULT PRIVILEGES IN SCHEMA sidewalk GRANT ALL ON TABLES TO sidewalk;
     ALTER DEFAULT PRIVILEGES IN SCHEMA sidewalk GRANT ALL ON SEQUENCES TO sidewalk;
+    
 EOSQL
 
 pg_restore -U sidewalk -d $1 /opt/$1-dump

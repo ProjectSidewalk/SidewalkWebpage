@@ -463,6 +463,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             hideLinks();
             uiMap.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
+
         }
         return this;
     }
@@ -583,8 +584,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {*}
      */
     function getLinkLayer () {
+       
         return uiMap.pano.find('svg').parent();
     }
+
+    /**
+     * Get link layer to show report and terms of service links
+     * @returns {*}
+     */
+
+    function getBottomLinkLayer() {
+
+        var links = $(uiMap.pano.find("a")[6]).parent().parent().parent()
+        return links;
+    }
+   
 
     self.getStatus = function (key) {
         return status[key];
@@ -1360,12 +1374,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This method brings the links (<, >) to the view control layer so that a user can click them to walk around
+     * This method brings the links to the view control layer so that a user can click them to walk around
      */
     function makeLinksClickable () {
         // Bring the layer with arrows forward.
         var $links = getLinkLayer();
+        var $bottomLinks = getBottomLinkLayer();
+
         uiMap.viewControlLayer.append($links);
+        uiMap.viewControlLayer.append($bottomlinks);
 
         if (properties.browser === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
