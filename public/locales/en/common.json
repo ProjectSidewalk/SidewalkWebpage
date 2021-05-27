@@ -27,7 +27,7 @@
     "add-comment": "Add comment here...",
     "submit": "Submit comment"
   },
-  "severity": "Severity: ",
+  "severity": "Severity ",
   "tags": "Tags: ",
   "tag": {
     "narrow": "narrow",

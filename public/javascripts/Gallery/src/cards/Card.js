@@ -94,11 +94,27 @@ function Card (params, imageUrl) {
         let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
                                                      getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
 
-        const cardHtml = `
-            <p class="label-severity"><b>${i18next.t('severity')}</b> ${severityHeader}</p>
-            <p class="label-tags"><b>${i18next.t('tags')}</b> ${tagHeader}</p>
-        `;
-
+        // const cardHtml = `
+        //     <p class="label-severity"><b>${i18next.t('severity')}</b> ${severityHeader}</p>
+        //     <p class="label-tags"><b>${i18next.t('tags')}</b> ${tagHeader}</p>
+        // `;
+        // const testText = `
+        //     <p class="gallery-card-label-type">Hello</p>
+        // `
+        const cardHtml = `<div class="card-header">
+                            <img class="label-icon" src=${iconImagePaths[getLabelType()]}>
+                            <div>${getLabelType()}</div>        
+                        </div>
+                        <div class="card-info">
+                        <div class="card-severity">
+                            <div class="label-severity-header"><b>${i18next.t('severity')}</b></div>
+                            <div class="label-severity-content">${severityHeader}</div>
+                        </div>
+                        <div class="card-tags">
+                            <div class="label-tags-header"><b>${i18next.t('tags')}</b></div>
+                            <div class="label-tags-content">${tagHeader}</div>
+                        </div>
+                        </div>`
         card = document.createElement('div');
         card.className = "gallery-card";
         card.innerHTML = cardHtml;
@@ -114,8 +130,8 @@ function Card (params, imageUrl) {
      */
     function getIconPercent () {
         return {
-            x: 100 * properties.canvas_x / (properties.canvas_width + 10),
-            y: 100 * properties.canvas_y / (properties.canvas_height + 50)
+            x: 100 * properties.canvas_x / (properties.canvas_width),
+            y: 100 * properties.canvas_y / (properties.canvas_height)
         };
     }
 

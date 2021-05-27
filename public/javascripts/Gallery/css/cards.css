@@ -1,19 +1,41 @@
 .gallery-card {
     position: relative;
     display: inline-block;
-    border-style: solid;
-    border-width: 1px;
-    padding: 5px;
-    border-radius: 5px;
-    margin: 2px;
-    width: auto;
-    height: 100%;
+    /* border-style: solid;
+    border-width: 1px; */
+    padding: 0px;
+    margin: 5px;
+    /* border-top-left-radius: 25px;
+    border-top-right-radius: 25px; */
+    border-radius: 20px;
+    padding-bottom: 3%;
+    width: 22vw;
+    height: auto;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
     grid-area: 'gallery-card';
+}
+.gallery-card:after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    opacity: 0;
+    bottom:0;
+    left:0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    transition: opacity 0.3s ease-in-out;
+}
+.gallery-card:hover:after {
+    opacity: 1;
 }
 
 .static-gallery-image {
     width: 100%;
     height: auto;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
 }
 
 #gallery-validation-button-holder {
@@ -21,56 +43,132 @@
     flex-flow: row wrap;
     justify-content: center;
     position: absolute;
-    bottom: 55px;
-    left: 5px;
-    right: 5px;
-    height: 11.5%;
+    /* bottom: -11.5%; */
+    left:0;
+    right:0;
+    height: 12%;
+    color: black;
+    font-size: 0.75vw;
+    font-weight: bold;
+    z-index: 2;
 }
 
 #gallery-card-agree-button {
-    background-color: green;
     width: 33%;
+    border-bottom-left-radius: 20px;
+    border-right: 1px solid #dcdbdb;
 }
 
 #gallery-card-disagree-button {
-    background-color: red;
     width: 34%;
+
 }
 
 #gallery-card-not-sure-button {
-    background-color:orange;
+    border-left: 1px solid #dcdbdb;
     width: 33%;
+    border-bottom-right-radius: 20px;
+}
+
+.card-header {
+    display: flex;
+    position: absolute;
+    left: 1vw;
+    top: 1vh;
+    font-family: 'raleway-regular';
+    font-weight: bold;
+    color:white;
+    font-size: 1.1vw;
+    align-items: center;
+}
+
+.card-header > img {
+    position: relative;
+    width: auto;
+    height: 12px;
+    margin-right: 3px;
+}
+
+.card-info {
+    display: flex;
+    position: absolute;
+    bottom: 12%;
+    height: 20%;
+    width: 100%;
+    padding-bottom: 5%;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    font-size: 0.9vw;
+    font-family: 'raleway-regular';
+    flex-flow: space-evenly;
+}
+
+.card-severity {
+    display: flex;
+    width: 60%;
+    height: 100%;
+    flex-direction: column;
+    color: white;
+}
+
+.label-severity-header {
+    color: white;
+}
+.label-severity-content {
+    color: white;
+}
+
+.card-tags {
+    display: flex;
+    width: 30%;
+    height: 100%;
+    flex-direction: column;
+    color:white;
+    right: 0px;
+}
+
+.label-tags-header {
+    
+}
+.label-tags-content {
+    text-overflow: ellipsis;
+    
 }
 
 .label-icon {
     position: absolute;
     width: 12px;
-    z-index: 2;
+    z-index: 1;
 }
 
-p.label-severity, p.label-tags {
+/* p.label-severity, p.label-tags {
     margin: 2px 0;
     width: 100%;
     height: 20px;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-}
+} */
 
 .validation-button, .validation-button-selected {
-    color: white;
+    /* color: white; */
     opacity: 0;
     transition: .2s ease;
     font-size: 0.75vw;
+    font-weight: bold;
+    font-family: 'raleway-regular';
+    background-color: white;
+    border-style: none;
+    color: #2d2a3f;
 }
 
-.gallery-card:hover .validation-button {
-    opacity: 0.5;
-}
-
-.gallery-card:hover .validation-button-selected {
+.validation-button {
     opacity: 1;
+}
 
+.validation-button-selected {
+    opacity: 1;
+    background-color: gray;
     /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
-    outline: -webkit-focus-ring-color auto 1px;
+    /* outline: -webkit-focus-ring-color auto 1px; */
 }
