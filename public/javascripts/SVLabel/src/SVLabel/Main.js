@@ -590,7 +590,6 @@ function Main (params) {
         svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
         svl.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
-        svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
         svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
         svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");

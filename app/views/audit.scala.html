@@ -542,10 +542,8 @@
                                 <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> @Messages("audit.mission.complete.legend.previous.missions")</span><br>
                                 <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg> @Messages("audit.mission.complete.legend.others.missions")</span>
                             </div>
-
                         </div>
-                        <div class="col-sm-5 modal-column-space">
-                            <p><span id="modal-mission-complete-message"></span></p>
+                        <div id="modal-mission-complete-right-col" class="col-sm-5">
                             <h3>@Messages("audit.mission.complete.labels.title")</h3>
                             <table class="table">
                                 <tr>
@@ -609,7 +607,7 @@
                             @if(user && user.get.role.getOrElse("") == "Turker") {
                                 <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
                             } else {
-                                <button class="btn btn-primary more-spacing" id="modal-mission-complete-close-button-primary"></button>
+                                <button class="btn btn-primary turker-code-offset" id="modal-mission-complete-close-button-primary"></button>
                             }
                             
                             <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
