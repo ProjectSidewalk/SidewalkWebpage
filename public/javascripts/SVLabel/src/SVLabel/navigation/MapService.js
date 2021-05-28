@@ -241,6 +241,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
             google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
             google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
+            google.maps.event.addListener(svl.panorama, "zoom_changed", handlerZoomChange);
         }
 
         // Connect the map view and panorama view
@@ -1030,9 +1031,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         povChange["status"] = false;
 
         if ("compass" in svl) { svl.compass.update(); }
+        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(getPosition().lat, getPosition().lng, getPov().heading, getPov().zoom); }
+        
         svl.tracker.push("POV_Changed");
     }
 
+    /**
+     * Callback for zoom update
+     */
+     function handlerZoomChange () {
+        // This is a callback function that is fired when zoom is changed
+        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(getPosition().lat, getPosition().lng, getPov().heading, getPov().zoom); }
+        
+        svl.tracker.push("ZOOM_Changed");
+    }
+    
     /**
      * This is a callback function that is fired with the mouse down event
      * on the view control layer (where you control street view angle.)

@@ -30,6 +30,14 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         tutorialTask: tutorialTask
     };
 
+    const w = 0.0008;
+    const h = 0.0008;
+    var angle;
+    var minAngle;
+    var maxAngle;
+    var observedArea;
+    var fovArea;
+
     /**
      * This method takes a task parameters and set up the current task.
      * @param geojson Description of the next task in json format.
@@ -52,6 +60,12 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         }
 
         paths = null;
+
+        angle= null;
+        minAngle = null;
+        maxAngle = null;
+        observedArea = null;
+        fovArea = null;
     };
 
     this.setStreetEdgeDirection = function (currentLat, currentLng) {
@@ -489,6 +503,105 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             }
         }
     };
+
+    /**
+     * From PanoMarker spec
+     * @param zoom
+     * @returns {number}
+     */
+    function get3dFov(zoom) {
+        return zoom <= 2 ?
+            126.5 - zoom * 36.75 :  // linear descent
+            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
+    }
+
+    function radians(degrees) {
+        return degrees / 180 * Math.PI;
+    }
+
+    this.resetObservedArea = function() {
+        if (observedArea) {
+            observedArea.setMap(null);
+        }
+        if (fovArea) {
+            fovArea.setMap(null);
+        }
+        angle= null;
+        minAngle = null;
+        maxAngle = null;
+        observedArea = null;
+        fovArea = null;
+    }
+
+    function renderArea(area, lat, lng, min, max, color) {
+        var coords = [];
+        if (max - min < 360) {
+            const cosMin = Math.cos(radians(min));
+            const sinMin = Math.sin(radians(min));
+            const hMin = Math.min(Math.abs(h / 2 / cosMin), Math.abs(w / 2 / sinMin));
+            coords.push({lat: lat, lng: lng});
+            coords.push({lat: lat + hMin * cosMin, lng: lng + hMin * sinMin});
+        }
+        const hCorner = Math.sqrt(w * w + h * h) / 2;
+        var cornerAngle = Math.ceil((min - 45) / 90) * 90 + 45;
+        while (cornerAngle < max) {
+            coords.push({lat: lat + hCorner * Math.cos(radians(cornerAngle)), lng: lng + hCorner * Math.sin(radians(cornerAngle))});
+            cornerAngle += 90;
+        }
+        if (max - min < 360) {
+            const cosMax = Math.cos(radians(max));
+            const sinMax = Math.sin(radians(max));
+            const hMax = Math.min(Math.abs(h / 2 / sinMax), Math.abs(w / 2 / cosMax));
+            coords.push({lat: lat + hMax * cosMax, lng: lng + hMax * sinMax});
+        }
+        if (area) {
+            area.setMap(null);
+        }
+        area = new google.maps.Polygon({
+            path: coords,
+            strokeColor: color,
+            strokeOpacity: 0.5,
+            strokeWeight: 2,
+            fillColor: color,
+            fillOpacity: 0.2,
+        });
+        area.setMap(svl.map.getMap());
+        return area;
+    }
+
+    this.renderObservedArea = function(lat, lng, heading, zoom) {
+        const fov = get3dFov(zoom);
+        if (angle === null) {
+            angle = heading;
+        }
+        if (heading - angle > 180) {
+            heading -= 360;
+        }
+        if (heading - angle < -180) {
+            heading += 360;
+        }
+        const newMinAngle = heading - fov / 2;
+        const newMaxAngle = heading + fov / 2;
+        if (maxAngle - minAngle < 360) {
+            if (minAngle === null) {
+                minAngle = newMinAngle;
+            }
+            if (maxAngle === null) {
+                maxAngle = newMaxAngle;
+            }
+            if (newMaxAngle > maxAngle) {
+                maxAngle = newMaxAngle;
+            }
+            if (newMinAngle < minAngle) {
+                minAngle = newMinAngle;
+            }
+        }
+        angle = heading;
+        observedArea = renderArea(observedArea, lat, lng, minAngle, maxAngle, '#0000ff');
+        fovArea = renderArea(fovArea, lat, lng, newMinAngle, newMaxAngle, '#000088');
+        const observedRatio = Math.min((maxAngle - minAngle), 360) / 360;
+        console.log(observedRatio);
+    }
 
     /**
      * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.

@@ -586,6 +586,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * TODO This should be done somewhere else.
      */
     function update () {
+        currentTask.resetObservedArea();
+
         for (var i = 0, len = previousTasks.length; i < len; i++) {
             previousTasks[i].render();
         }
@@ -593,6 +595,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var currentLatLng = navigationModel.getPosition();
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
+    }
+
+    function updateObservedArea(lat, lng, heading, zoom) {
+        if (heading != 0) {
+            currentTask.renderObservedArea(lat, lng, heading, zoom);
+        }
     }
 
     /**
@@ -662,5 +670,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.removeTutorialTask = removeTutorialTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
+    self.updateObservedArea = updateObservedArea;
     self.updateAuditedDistance = updateAuditedDistance;
 }
