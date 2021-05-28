@@ -595,7 +595,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function getBottomLinkLayer() {
 
-        var links = $(uiMap.pano.find("a")[6]).parent().parent().parent()
+        var links = $(uiMap.pano.find("a")[6]).parent().parent().parent();
+        
         return links;
     }
    
@@ -1374,13 +1375,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This method brings the links to the view control layer so that a user can click them to walk around
+     * This method brings the links to the view control layer 
+     * so that a user can click them to walk around
      */
     function makeLinksClickable () {
-        // Bring the layer with arrows forward.
+        // Bring the layer with arrows and bottom links forward.
         var $links = getLinkLayer();
-        var $bottomLinks = getBottomLinkLayer();
-
+        var $bottomlinks = getBottomLinkLayer();
+        
+        
         uiMap.viewControlLayer.append($links);
         uiMap.viewControlLayer.append($bottomlinks);
 
@@ -1983,6 +1986,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
     self.getMoveDelay = getMoveDelay;
+    self.makeLinksClickable = makeLinksClickable;
+
     _init(params);
     return self;
 }

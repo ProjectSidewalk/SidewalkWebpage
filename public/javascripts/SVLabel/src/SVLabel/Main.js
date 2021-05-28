@@ -436,6 +436,8 @@ function Main (params) {
                 svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
             }
 
+            
+            svl.map.makeLinksClickable();
             // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;
