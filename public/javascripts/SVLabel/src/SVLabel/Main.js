@@ -436,6 +436,9 @@ function Main (params) {
                 svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
             }
 
+            // Check make all links on the panorama clickable
+            svl.map.makeLinksClickable();
+            
             // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;
