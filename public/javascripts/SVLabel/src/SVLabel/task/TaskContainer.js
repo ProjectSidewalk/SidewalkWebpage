@@ -597,10 +597,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         currentTask.render();
     }
 
-    function updateObservedArea(lat, lng, heading, zoom) {
-        if (heading != 0) {
-            currentTask.renderObservedArea(lat, lng, heading, zoom);
-        }
+    function updateObservedArea() {
+        currentTask.renderObservedArea();
     }
 
     /**

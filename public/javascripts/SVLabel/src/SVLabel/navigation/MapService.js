@@ -1031,7 +1031,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         povChange["status"] = false;
 
         if ("compass" in svl) { svl.compass.update(); }
-        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(getPosition().lat, getPosition().lng, getPov().heading, getPov().zoom); }
+        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(); }
         
         svl.tracker.push("POV_Changed");
     }
@@ -1041,7 +1041,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
      function handlerZoomChange () {
         // This is a callback function that is fired when zoom is changed
-        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(getPosition().lat, getPosition().lng, getPov().heading, getPov().zoom); }
+        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(); }
         
         svl.tracker.push("ZOOM_Changed");
     }

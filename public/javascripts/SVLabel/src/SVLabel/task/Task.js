@@ -30,8 +30,13 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         tutorialTask: tutorialTask
     };
 
-    const w = 0.0008;
-    const h = 0.0008;
+    //const w = 0.00105;
+    //const h = 0.001;
+    const w = 0.0005;
+    const h = 0.0005;
+    const cornerAngle = toDegrees(Math.atan2(w, h));
+    var lat;
+    var lng;
     var angle;
     var minAngle;
     var maxAngle;
@@ -61,6 +66,8 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
 
         paths = null;
 
+        lat = null;
+        lng = null;
         angle= null;
         minAngle = null;
         maxAngle = null;
@@ -515,43 +522,39 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
     }
 
-    function radians(degrees) {
+    function toDegrees(radians) {
+        return radians / Math.PI * 180;
+    }
+
+    function toRadians(degrees) {
         return degrees / 180 * Math.PI;
     }
-
-    this.resetObservedArea = function() {
-        if (observedArea) {
-            observedArea.setMap(null);
-        }
-        if (fovArea) {
-            fovArea.setMap(null);
-        }
-        angle= null;
-        minAngle = null;
-        maxAngle = null;
-        observedArea = null;
-        fovArea = null;
-    }
-
-    function renderArea(area, lat, lng, min, max, color) {
-        var coords = [];
+    
+    function renderArea(area, min, max, color) {
+        let coords = [];
         if (max - min < 360) {
-            const cosMin = Math.cos(radians(min));
-            const sinMin = Math.sin(radians(min));
-            const hMin = Math.min(Math.abs(h / 2 / cosMin), Math.abs(w / 2 / sinMin));
+            let cosMin = Math.cos(toRadians(min));
+            let sinMin = Math.sin(toRadians(min));
+            let hMin = Math.min(Math.abs(h / 2 / cosMin), Math.abs(w / 2 / sinMin));
             coords.push({lat: lat, lng: lng});
             coords.push({lat: lat + hMin * cosMin, lng: lng + hMin * sinMin});
         }
-        const hCorner = Math.sqrt(w * w + h * h) / 2;
-        var cornerAngle = Math.ceil((min - 45) / 90) * 90 + 45;
-        while (cornerAngle < max) {
-            coords.push({lat: lat + hCorner * Math.cos(radians(cornerAngle)), lng: lng + hCorner * Math.sin(radians(cornerAngle))});
-            cornerAngle += 90;
+        let corners = new Map();
+        for (let offset = -360; offset <= 360; offset += 360) {
+            corners.set(-180 + cornerAngle + offset, {lat: lat - h / 2, lng: lng - w / 2});
+            corners.set(-cornerAngle + offset, {lat: lat + h / 2, lng: lng - w / 2});
+            corners.set(cornerAngle + offset, {lat: lat + h / 2, lng: lng + w / 2});
+            corners.set(180 - cornerAngle + offset, {lat: lat - h / 2, lng: lng + w / 2});
+        }
+        for (let [a, c] of corners) {
+            if (min < a && a < max) {
+                coords.push(c)
+            }
         }
         if (max - min < 360) {
-            const cosMax = Math.cos(radians(max));
-            const sinMax = Math.sin(radians(max));
-            const hMax = Math.min(Math.abs(h / 2 / sinMax), Math.abs(w / 2 / cosMax));
+            let cosMax = Math.cos(toRadians(max));
+            let sinMax = Math.sin(toRadians(max));
+            let hMax = Math.min(Math.abs(h / 2 / cosMax), Math.abs(w / 2 / sinMax));
             coords.push({lat: lat + hMax * cosMax, lng: lng + hMax * sinMax});
         }
         if (area) {
@@ -569,8 +572,28 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         return area;
     }
 
-    this.renderObservedArea = function(lat, lng, heading, zoom) {
-        const fov = get3dFov(zoom);
+    this.resetObservedArea = function() {
+        let position = svl.map.getPosition();
+        lat = position.lat;
+        lng = position.lng;
+        // if (observedArea) {
+        //     observedArea.setMap(null);
+        // }
+        if (fovArea) {
+            fovArea.setMap(null);
+        }
+        angle= null;
+        minAngle = null;
+        maxAngle = null;
+        observedArea = null;
+        fovArea = null;
+    }
+
+    this.renderObservedArea = function() {
+        let pov = svl.map.getPov();
+        let heading = pov.heading;
+        let zoom = pov.zoom;
+        let fov = get3dFov(zoom);
         if (angle === null) {
             angle = heading;
         }
@@ -580,8 +603,8 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         if (heading - angle < -180) {
             heading += 360;
         }
-        const newMinAngle = heading - fov / 2;
-        const newMaxAngle = heading + fov / 2;
+        let newMinAngle = heading - fov / 2;
+        let newMaxAngle = heading + fov / 2;
         if (maxAngle - minAngle < 360) {
             if (minAngle === null) {
                 minAngle = newMinAngle;
@@ -597,10 +620,9 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             }
         }
         angle = heading;
-        observedArea = renderArea(observedArea, lat, lng, minAngle, maxAngle, '#0000ff');
-        fovArea = renderArea(fovArea, lat, lng, newMinAngle, newMaxAngle, '#000088');
-        const observedRatio = Math.min((maxAngle - minAngle), 360) / 360;
-        console.log(observedRatio);
+        observedArea = renderArea(observedArea, minAngle, maxAngle, '#0000ff');
+        fovArea = renderArea(fovArea, newMinAngle, newMaxAngle, '#000088');
+        let observedRatio = Math.min((maxAngle - minAngle), 360) / 360;
     }
 
     /**
