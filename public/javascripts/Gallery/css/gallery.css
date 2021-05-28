@@ -61,7 +61,7 @@
     grid-template-areas: 
         'sidebar main gallery-modal'
         'sidebar paging gallery-modal';
-    grid-template-columns: 1fr 3fr;
+    grid-template-columns: 1fr 1fr 3fr;
     /* grid-template-rows: repeat(3, minmax(calc(100vh - 686px), auto)); */
     grid-gap: 2px;
     /* background-color: #2196F3; */
@@ -85,6 +85,72 @@
 
 .gallery-modal {
     grid-area: 'gallery-modal';
-    width: px;
+    display: flex;
+    height: 90vh;
+    /* position: sticky; */
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    flex-direction: column;
+    align-items: center;
+}
+
+.gallery-modal-header {
+    width: 90%;
+    height: 10%;
+    margin-top: 2%;
+    background-color: red;
+    font-size: 24px;
+}
+
+.gallery-modal-pano {
+    width: 100%;
+    height: 50%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5%;
+}
+
+.gallery-modal-pano-display {
     background-color: blue;
+    width: 90%;
+    height: 100%;
+}
+
+.gallery-modal-pano-paging {
+    height: 30px;
+    width: 30px;
+    background-color: black;
+}
+
+.gallery-modal-info {
+    display: flex;
+    height: 20%;
+    width: 90%;
+    background-color: orange;
+    flex-wrap: wrap;
+}
+.gallery-modal-info > #severity {
+    width:40%;
+    height:50%;
+    background-color: aqua;
+}
+
+.gallery-modal-info > #tags {
+    width: 60%;
+    height: 50%;
+    background-color: brown;
+}
+
+.gallery-modal-info > #temporary {
+    width: 40%;
+    height: 50%;
+    background-color: green;
+}
+
+.gallery-modal-info > #description {
+    width: 60%;
+    height: 50%;
+    background-color: chartreuse;
 }
