@@ -574,17 +574,36 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
 
     this.resetObservedArea = function() {
         let position = svl.map.getPosition();
-        lat = position.lat;
-        lng = position.lng;
-        // if (observedArea) {
-        //     observedArea.setMap(null);
-        // }
+        let newLat = position.lat;
+        let newLng = position.lng;
+        if (observedArea) {
+            observedArea.setMap(null);
+        }
         if (fovArea) {
             fovArea.setMap(null);
         }
+        if (lat) {
+            if (newLat > lat) {
+                if (newLng > lng) {
+                    maxAngle = toDegrees(Math.atan2(- w / 2, lat + h / 2 - newLat)) + 360;
+                    minAngle = toDegrees(Math.atan2(lng + w / 2 - newLng, - h / 2));
+                } else {
+                    maxAngle = toDegrees(Math.atan2(lng - w / 2 - newLng, - h / 2)) + 360;
+                    minAngle = toDegrees(Math.atan2(w / 2, lat + h / 2 - newLat));
+                }
+            } else {
+                if (newLng > lng) {
+                    maxAngle = toDegrees(Math.atan2(lng + w / 2 - newLng, h / 2));
+                    minAngle = toDegrees(Math.atan2(- w / 2, lat - h / 2 - newLat));
+                } else {
+                    maxAngle = toDegrees(Math.atan2(w / 2, lat - h / 2 - newLat));
+                    minAngle = toDegrees(Math.atan2(lng - w / 2 - newLng, h / 2));
+                }
+            }
+        }
+        lat = newLat;
+        lng = newLng;
         angle= null;
-        minAngle = null;
-        maxAngle = null;
         observedArea = null;
         fovArea = null;
     }
