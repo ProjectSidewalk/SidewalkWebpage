@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.h2database"
 		module="h2"
 		revision="1.3.175"
@@ -10,6 +10,7 @@
 		<description homepage="http://www.h2database.com">
 		H2 Database Engine
 		</description>
+		<e:sbtTransformHash>0226b6889fa25599392852db3aebec2b41c4366a</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

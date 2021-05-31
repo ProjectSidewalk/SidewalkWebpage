@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.fusesource"
 		module="fusesource-pom"
 		revision="1.9"
@@ -10,6 +10,7 @@
 		<description homepage="http://fusesource.com/">
 		This is a shared POM parent for FuseSource Maven projects
 		</description>
+		<e:sbtTransformHash>88ec51caf0bba170f9b16a49ae1b73f798007407</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-scm-plugin__1.5</m:maven.plugins>
 	</info>

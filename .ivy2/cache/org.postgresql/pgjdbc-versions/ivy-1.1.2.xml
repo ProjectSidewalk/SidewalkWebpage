@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.postgresql"
 		module="pgjdbc-versions"
 		revision="1.1.2"
@@ -26,6 +26,7 @@
 		<m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_2>org.slf4j__slf4j-simple</m:dependency.management__com.github.dblock.waffle__waffle-jna__exclusion_2>
 		<m:properties__postgresql.driver.fullversion>PostgreSQL ${postgresql.jdbc.spec}</m:properties__postgresql.driver.fullversion>
 		<m:dependency.management__com.github.dblock.waffle__waffle-jna__version>1.7.5</m:dependency.management__com.github.dblock.waffle__waffle-jna__version>
+		<e:sbtTransformHash>6e68f4fae91ace8c5e4b9763eb1f8538d44394c9</e:sbtTransformHash>
 		<m:properties__template.default.pg.port>5432</m:properties__template.default.pg.port>
 		<m:properties__argLine>-Xmx512m</m:properties__argLine>
 		<m:properties__unzip.jdk.ant.build.xml>${project.build.directory}/unzip-jdk-ant.xml</m:properties__unzip.jdk.ant.build.xml>

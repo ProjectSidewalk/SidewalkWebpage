@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="io.apigee.trireme"
 		module="trireme-node10"
 		revision="0.7.5"
 		status="release"
 		publication="20140516230041"
 	>
+		<license name="MIT License" url="http://opensource.org/licenses/MIT" />
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>
 		<m:dependency.management__io.netty__netty-transport__version>4.0.14.Final</m:dependency.management__io.netty__netty-transport__version>
@@ -17,6 +18,7 @@
 		<m:dependency.management__ch.qos.logback__logback-classic__version>1.0.9</m:dependency.management__ch.qos.logback__logback-classic__version>
 		<m:dependency.management__io.netty__netty-handler__version>4.0.14.Final</m:dependency.management__io.netty__netty-handler__version>
 		<m:dependency.management__io.netty__netty-codec-http__version>4.0.14.Final</m:dependency.management__io.netty__netty-codec-http__version>
+		<e:sbtTransformHash>52b4bd1cd1963efe0a36e9a3b765a9f32e3628eb</e:sbtTransformHash>
 		<m:dependency.management__io.netty__netty-common__version>4.0.14.Final</m:dependency.management__io.netty__netty-common__version>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-dependency-plugin__null|org.apache.maven.plugins__maven-jar-plugin__2.4|com.mycila.maven-license-plugin__maven-license-plugin__1.9.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-dependency-plugin__null|org.apache.maven.plugins__maven-jar-plugin__2.4|com.mycila.maven-license-plugin__maven-license-plugin__1.9.0</m:maven.plugins>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="xml-apis"
 		module="xml-apis"
 		revision="1.4.01"
@@ -19,6 +19,7 @@
     that&apos;s the W3C; for SAX it&apos;s David Megginson and sax.sourceforge.net; for 
     JAXP it&apos;s Sun.
 		</description>
+		<e:sbtTransformHash>e359866b0b7a8ef36796e6f50fe8f58eae9e4107</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt" module="actions" revision="0.13.15" status="release" publication="20170409161023">
+		<description>
+		Actions
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="actions" type="jar" ext="jar" conf="compile"/>
+		<artifact name="actions" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.6" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="classpath" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="completion" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="api" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="compiler-integration" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="compiler-ivy-integration" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="interface" rev="0.13.15" conf="compile->default(compile)" e:component="xsbti"/>
+		<dependency org="org.scala-sbt" name="io" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="ivy" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="logging" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="process" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="run" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="relation" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="task-system" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="tasks" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="tracking" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="testing" rev="0.13.15" conf="compile->default(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.4" conf="test->default(compile)"/>
+		<dependency org="org.specs2" name="specs2_2.10" rev="2.3.11" conf="test->default(compile)"/>
+		<dependency org="junit" name="junit" rev="4.11" conf="test->default(compile)"/>
+	</dependencies>
+</ivy-module>

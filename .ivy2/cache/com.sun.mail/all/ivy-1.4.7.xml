@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.sun.mail"
 		module="all"
 		revision="1.4.7"
@@ -28,6 +28,7 @@
 		<m:properties__findbugs.version>
 	    2.4.0
 	</m:properties__findbugs.version>
+		<e:sbtTransformHash>9b7e1d0a290b9531b9a39530227107480bf86e9f</e:sbtTransformHash>
 		<m:properties__mail.spec.version>1.4</m:properties__mail.spec.version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.glassfish.hk2__osgiversion-maven-plugin__2.0.0|null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__null</m:maven.plugins>
 		<m:properties__findbugs.threshold>
@@ -75,13 +76,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="javax.activation" name="activation" rev="1.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<override org="com.sun.mail" module="javax.mail" matcher="exact" rev="1.4.7"/>
-		<override org="com.sun.mail" module="dsn" matcher="exact" rev="1.4.7"/>
-		<override org="com.sun.mail" module="gimap" matcher="exact" rev="1.4.7"/>
-		<override org="com.sun.mail" module="mbox" matcher="exact" rev="1.4.7"/>
-		<override org="com.sun.mail" module="taglib" matcher="exact" rev="1.4.7"/>
-		<override org="javax.servlet" module="servlet-api" matcher="exact" rev="2.5"/>
-		<override org="javax.servlet.jsp" module="jsp-api" matcher="exact" rev="2.1"/>
+		<dependency org="javax.activation" name="activation" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

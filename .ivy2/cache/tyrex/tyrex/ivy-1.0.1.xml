@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="tyrex"
 		module="tyrex"
 		revision="1.0.1"
@@ -7,6 +7,7 @@
 		publication="20051108222044"
 	>
 		<description homepage="" />
+		<e:sbtTransformHash>78d5e3df8e623d5354ab5c12bee3ae9ebaf92369</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

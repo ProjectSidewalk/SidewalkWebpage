@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.sonatype.plexus"
 		module="plexus-sec-dispatcher"
 		revision="1.3"
 		status="release"
 		publication="20090429200532"
 	>
+		<license name="Apache Public License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="http://spice.sonatype.org/${project.artifactId}" />
 		<m:dependency.management__junit__junit__version>4.5</m:dependency.management__junit__junit__version>
-		<m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_2>log4j__log4j</m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_2>
+		<m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_2>commons-logging__commons-logging</m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_2>
 		<m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_1>commons-logging__commons-logging-api</m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_1>
 		<m:dependency.management__org.mortbay.jetty__jetty-client__version>6.1.12</m:dependency.management__org.mortbay.jetty__jetty-client__version>
-		<m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_0>commons-logging__commons-logging</m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_0>
+		<m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_0>log4j__log4j</m:dependency.management__org.codehaus.plexus__plexus-container-default__exclusion_0>
 		<m:properties__forgeSnapshotId>forge-snapshots</m:properties__forgeSnapshotId>
 		<m:properties__forgeReleaseUrl>http://repository.sonatype.org/content/repositories/releases</m:properties__forgeReleaseUrl>
 		<m:dependency.management__org.mortbay.jetty__jetty-util__version>6.1.12</m:dependency.management__org.mortbay.jetty__jetty-util__version>
@@ -20,6 +21,7 @@
 		<m:properties__forgeSnapshotUrl>http://repository.sonatype.org/content/repositories/snapshots</m:properties__forgeSnapshotUrl>
 		<m:dependency.management__org.codehaus.plexus__plexus-utils__version>1.5.5</m:dependency.management__org.codehaus.plexus__plexus-utils__version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>provided</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
+		<e:sbtTransformHash>d31e10025273efb2fc9b632b12401bf69c519706</e:sbtTransformHash>
 		<m:properties__jetty.version>6.1.12</m:properties__jetty.version>
 		<m:properties__forgeReleaseId>forge-releases</m:properties__forgeReleaseId>
 		<m:dependency.management__org.codehaus.plexus__plexus-container-default__scope>provided</m:dependency.management__org.codehaus.plexus__plexus-container-default__scope>
@@ -44,20 +46,13 @@
 		<artifact name="plexus-sec-dispatcher" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.codehaus.plexus" name="plexus-utils" rev="1.5.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.sonatype.plexus" name="plexus-cipher" rev="1.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.codehaus.plexus" name="plexus-container-default" rev="1.0-alpha-9-stable-1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)">
-			<exclude org="commons-logging" module="commons-logging" name="*" type="*" ext="*" conf="" matcher="exact"/>
-			<exclude org="commons-logging" module="commons-logging-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
+		<dependency org="org.codehaus.plexus" name="plexus-utils" rev="1.5.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.sonatype.plexus" name="plexus-cipher" rev="1.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-container-default" rev="1.0-alpha-9-stable-1" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)">
 			<exclude org="log4j" module="log4j" name="*" type="*" ext="*" conf="" matcher="exact"/>
+			<exclude org="commons-logging" module="commons-logging-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
+			<exclude org="commons-logging" module="commons-logging" name="*" type="*" ext="*" conf="" matcher="exact"/>
 		</dependency>
-		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.codehaus.plexus" module="plexus-utils" matcher="exact" rev="1.5.5"/>
-		<override org="org.mortbay.jetty" module="jetty" matcher="exact" rev="6.1.12"/>
-		<override org="org.mortbay.jetty" module="jetty-client" matcher="exact" rev="6.1.12"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.5"/>
-		<override org="org.codehaus.plexus" module="plexus-container-default" matcher="exact" rev="1.0-beta-3.0.5"/>
-		<override org="org.mortbay.jetty" module="jetty-util" matcher="exact" rev="6.1.12"/>
-		<override org="org.codehaus.plexus" module="plexus-component-annotations" matcher="exact" rev="1.0-beta-3.0.5"/>
+		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>
