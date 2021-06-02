@@ -1,0 +1,33 @@
+@(title: String)(implicit lang: Lang)
+
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8" />
+    <title>@title</title>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/maintenance.css")'>
+    <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/main.css")'>
+</head>
+<body>
+    <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' alt="sidewalk logo" class="sidewalk-logo">
+    <div class="header">
+        Project Sidewalk is Down for Maintenance
+    </div>
+    <img src='@routes.Assets.at("images/downpage.png")' alt="construction" class="downpage-image">
+    
+    <div class="msgbox">
+        We are in the process of updating our codebase. We apologize for the 
+        inconvenience. <br>
+        <br>
+        Stay tuned! The site will be up and running soon! <br>
+        <!-- If there are specific reason, add more information here -->
+    </div>
+    <div class="links">
+        <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
+        <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
+        <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
+        <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.at("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
+    </div>
+
+</body>
+
