@@ -80,7 +80,8 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/data/*.js',
                     'public/javascripts/Gallery/src/filter/*.js',
                     'public/javascripts/Gallery/src/validation/*.js',
-                    'public/javascripts/Gallery/src/*.js'
+                    'public/javascripts/Gallery/src/*.js',
+                    'public/javascripts/common/Panomarker.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
             }
