@@ -83,22 +83,31 @@
 .card {
 }
 
+.gallery-modal-close {
+    left: 0px;
+    top: 10%;
+    position: relative;
+    font-size: 30px;
+    cursor: pointer;
+}
+
 .gallery-modal {
     grid-area: 'gallery-modal';
     display: flex;
     height: 90vh;
-    /* position: sticky; */
+    position: fixed;
     border-radius: 20px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     flex-direction: column;
     align-items: center;
+    width: 50vw;
+    right:2vw;
 }
 
 .gallery-modal-header {
-    width: 90%;
+    width: 100%;
     height: 10%;
     margin-top: 2%;
-    background-color: red;
     font-size: 24px;
 }
 
@@ -129,29 +138,30 @@
     display: flex;
     height: 20%;
     width: 90%;
-    background-color: orange;
     flex-wrap: wrap;
 }
-.gallery-modal-info > #severity {
+.gallery-modal-info-severity {
     width:40%;
     height:50%;
-    background-color: aqua;
 }
 
-.gallery-modal-info > #tags {
+.gallery-modal-info-tags {
     width: 60%;
     height: 50%;
-    background-color: brown;
 }
 
-.gallery-modal-info > #temporary {
+.gallery-modal-info-temporary {
     width: 40%;
     height: 50%;
-    background-color: green;
 }
 
-.gallery-modal-info > #description {
+.gallery-modal-info-description {
     width: 60%;
     height: 50%;
-    background-color: chartreuse;
+}
+
+.modal-top-holder {
+    display: flex;
+    align-content: space-between;
+    width: 90%;
 }

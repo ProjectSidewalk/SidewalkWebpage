@@ -32,15 +32,25 @@ function Modal(uiModal) {
 
     let header = null
 
+    let closeButton = null
+
     function _init() {
         panoHolder = $('.actual-pano')
-        tags = $('.gallery-modal-info' > '#tags')
+        tags = $('.gallery-modal-info-tags')
         severity = $('.gallery-modal-info-severity')
-        temporary = $('.gallery-modal-info' > '#temporary')
-        description = $('.gallery-modal-info' > '#description')
+        temporary = $('.gallery-modal-info-temporary')
+        description = $('.gallery-modal-info-description')
         header = $('.gallery-modal-header')
         
         pano = new GalleryPanorama(panoHolder)
+
+        closeButton = $('.gallery-modal-close')
+        closeButton.click(closeModal)
+    }
+
+    function closeModal() {
+        $('.grid-container').css("grid-template-columns", "1fr 3fr")
+        uiModal.hide()
     }
 
     function loadPano() {
@@ -48,8 +58,13 @@ function Modal(uiModal) {
         pano.renderLabel(label)
         header.text(properties.label_type)
         // severity.text(properties.severity)
-        // temporary.text('' + properties.temporary)
+        let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
+        properties.label_type === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
+        temporary.text('' + properties.temporary)
         severity.text('' + properties.severity)
+        tags.text(tagHeader)
+        description.text(properties.description)
+        $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr")
     }
 
     function updateProperties(newProps) {

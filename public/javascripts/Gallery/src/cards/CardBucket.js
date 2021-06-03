@@ -69,7 +69,7 @@ function CardBucket(inputCards) {
      * @returns {Card} the matching card
      */
     function findCardByImageId(imageId) {
-        console.log(bucket)
+        // console.log(bucket)
         for (let i = 0; i < bucket.length; i++) {
             if (bucket[i].getImageId() == imageId) {
                 return bucket[i]

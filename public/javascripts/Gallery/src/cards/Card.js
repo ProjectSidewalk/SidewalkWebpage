@@ -154,7 +154,7 @@ function Card (params, imageUrl) {
 
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
-        validationMenu = new ValidationMenu(card, properties);
+        validationMenu = new ValidationMenu(imageHolder, properties);
 
         
 
