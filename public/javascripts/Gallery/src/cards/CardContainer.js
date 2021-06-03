@@ -47,6 +47,8 @@ function CardContainer(uiCardContainer) {
 
     let pagewidth;
 
+    let modal;
+
     // Map Cards to a CardBucket containing Cards of their label type.
     let cardsByType = {
         Assorted: new CardBucket(),
@@ -91,6 +93,19 @@ function CardContainer(uiCardContainer) {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
+
+        modal = new Modal($('.gallery-modal'));
+
+        $("#image-card-container").on('click', '.gallery-card',  (event) => {
+            $('.gallery-modal').attr('style', 'display: flex')
+            modal.updateProperties(findCard(event.target.id).getProperties())
+            modal.loadPano()
+        })
+    }
+
+    function findCard(id) {
+        let card = currentCards.findCardByImageId(id)
+        return card
     }
 
     function handleNextPageClick() {

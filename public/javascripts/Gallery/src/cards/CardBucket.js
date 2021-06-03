@@ -11,7 +11,7 @@ function CardBucket(inputCards) {
     /**
      * Add a Card to bucket.
      * 
-     * @param {*} card Card to add.
+     * @param {Card} card Card to add.
      */
     function push(card) {
         bucket.push(card);
@@ -62,6 +62,20 @@ function CardBucket(inputCards) {
     function copy() {
         return new CardBucket([...bucket]);
     }
+    
+    /**
+     * 
+     * @param {*} imageId 
+     * @returns {Card} the matching card
+     */
+    function findCardByImageId(imageId) {
+        console.log(bucket)
+        for (let i = 0; i < bucket.length; i++) {
+            if (bucket[i].getImageId() == imageId) {
+                return bucket[i]
+            }
+        }
+    }
 
     self.push = push;
     self.filterOnTags = filterOnTags;
@@ -69,6 +83,7 @@ function CardBucket(inputCards) {
     self.getCards = getCards;
     self.getSize = getSize;
     self.copy = copy;
+    self.findCardByImageId = findCardByImageId;
 
     return this;
 }

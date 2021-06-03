@@ -18,6 +18,8 @@ function Card (params, imageUrl) {
 
     let widthHeightRatio = (4/3);
 
+    let imageId = null;
+
     // Properties of the label in the card.
     let properties = {
         label_id: undefined,
@@ -67,6 +69,8 @@ function Card (params, imageUrl) {
     // The static pano image.
     const panoImage = new Image();
 
+    const modal = $('.gallery-modal')
+
     /**
      * Initialize Card.
      * 
@@ -84,7 +88,7 @@ function Card (params, imageUrl) {
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
 
-        let imageId = "label_id_" + properties.label_id;
+        imageId = "label_id_" + properties.label_id;
         panoImage.id = imageId;
         panoImage.className = "static-gallery-image";
 
@@ -101,28 +105,37 @@ function Card (params, imageUrl) {
         // const testText = `
         //     <p class="gallery-card-label-type">Hello</p>
         // `
-        const cardHtml = `<div class="card-header">
-                            <img class="label-icon" src=${iconImagePaths[getLabelType()]}>
-                            <div>${getLabelType()}</div>        
-                        </div>
-                        <div class="card-info">
-                        <div class="card-severity">
-                            <div class="label-severity-header"><b>${i18next.t('severity')}</b></div>
-                            <div class="label-severity-content">${severityHeader}</div>
-                        </div>
-                        <div class="card-tags">
-                            <div class="label-tags-header"><b>${i18next.t('tags')}</b></div>
-                            <div class="label-tags-content">${tagHeader}</div>
-                        </div>
+        const cardHtml = `
+                        <div class='gallery-card'>
+                            <div class="card-header">
+                                <img class="label-icon" src=${iconImagePaths[getLabelType()]}>
+                                <div>${getLabelType()}</div>        
+                            </div>
+                            <div class="card-info">
+                                <div class="card-severity">
+                                    <div class="label-severity-header"><b>${i18next.t('severity')}</b></div>
+                                    <div class="label-severity-content">${severityHeader}</div>
+                                </div>
+                            </div>
+                            <div class="card-tags">
+                                <div class="label-tags-header"><b>${i18next.t('tags')}</b></div>
+                                <div class="label-tags-content">${tagHeader}</div>
+                            </div>
                         </div>`
-        card = document.createElement('div');
+        card = document.createElement('div')
+        // card.on('click', () => {
+        //     alert('clicked!')
+        // })
         card.className = "gallery-card";
-        card.innerHTML = cardHtml;
 
-        card.appendChild(labelIcon);
-        card.prepend(panoImage);
+        // card.innerHTML = cardHtml;
 
-        validationMenu = new ValidationMenu(card, properties);
+        // card.append(labelIcon);
+        card.append(panoImage);
+        // validationMenu = new ValidationMenu(card, properties);
+        
+
+
     }
 
     /**
@@ -261,6 +274,10 @@ function Card (params, imageUrl) {
         }
     }
 
+    function getImageId() {
+        return imageId
+    }
+
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;
@@ -271,6 +288,7 @@ function Card (params, imageUrl) {
     self.renderSize = renderSize;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
+    self.getImageId = getImageId;
 
     _init(params);
     return this;
