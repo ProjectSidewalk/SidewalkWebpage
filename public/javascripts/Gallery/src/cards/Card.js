@@ -123,16 +123,39 @@ function Card (params, imageUrl) {
                             </div>
                         </div>`
         card = document.createElement('div')
-        // card.on('click', () => {
-        //     alert('clicked!')
-        // })
         card.className = "gallery-card";
+        let imageHolder = document.createElement('div')
+        card.appendChild(imageHolder)
+        let cardHeader = document.createElement('div')
+        cardHeader.className = 'card-header'
+        cardHeader.innerHTML = `<img class="label-icon" src=${iconImagePaths[getLabelType()]}> <div>${getLabelType()}</div>`
+        card.appendChild(cardHeader)
+
+        let cardInfo = document.createElement('div')
+        cardInfo.className = 'card-info'
+        let cardSeverity = document.createElement('div')
+        cardSeverity.className = 'card-severity'
+        cardSeverity.innerHTML = `<div class="label-severity-header"><b>${i18next.t('severity')}</b></div> 
+                                <div class="label-severity-content">${severityHeader}</div>`;
+        cardInfo.appendChild(cardSeverity)
+
+        let cardTags = document.createElement('div')
+        cardTags.className = 'card-tags'
+        cardTags.innerHTML = `<div class="card-tags">
+                                <div class="label-tags-header"><b>${i18next.t('tags')}</b></div>
+                                <div class="label-tags-content">${tagHeader}</div>
+                            </div>`
+        cardInfo.appendChild(cardTags)
+
+        imageHolder.appendChild(cardInfo)
+
 
         // card.innerHTML = cardHtml;
 
-        // card.append(labelIcon);
-        card.append(panoImage);
-        // validationMenu = new ValidationMenu(card, properties);
+        imageHolder.appendChild(labelIcon);
+        imageHolder.appendChild(panoImage);
+        validationMenu = new ValidationMenu(card, properties);
+
         
 
 

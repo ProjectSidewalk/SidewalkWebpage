@@ -36,6 +36,8 @@ function Main (params) {
         sg.ui.cardContainer.prevPage = $("#prev-page");
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
+
+        $('.gallery-modal').hide()
     }
 
     function _init() {
