@@ -8,6 +8,8 @@
     margin: 2px 2px;
     text-align: left;
     background-color: white;
+    color: black;
+    width: fit-content;
 }
 
 .gallery-tag:disabled {

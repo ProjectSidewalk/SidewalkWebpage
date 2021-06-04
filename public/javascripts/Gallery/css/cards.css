@@ -105,7 +105,7 @@
 
 .card-severity {
     display: flex;
-    width: 60%;
+    width: 40%;
     height: 100%;
     flex-direction: column;
     color: white;
@@ -116,11 +116,13 @@
 }
 .label-severity-content {
     color: white;
+    display: flex;
+    flex-direction: row;
 }
 
 .card-tags {
     display: flex;
-    width: 30%;
+    width: 60%;
     height: 100%;
     flex-direction: column;
     color:white;
@@ -132,7 +134,8 @@
 }
 .label-tags-content {
     text-overflow: ellipsis;
-    
+    width:fit-content;
+    color: black;
 }
 
 .label-icon {
@@ -171,4 +174,21 @@
     background-color: gray;
     /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
     /* outline: -webkit-focus-ring-color auto 1px; */
+}
+
+.severity-circle {
+    color: white;
+    border-color: white;
+    border: 1px solid white;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    text-align: center;
+    margin: 2px;
+    font-size: 10px;
+}
+#current-severity {
+    border: 2px solid black;
+    background-color: white;
+    color:black;
 }

@@ -61,7 +61,9 @@ function Modal(uiModal) {
         let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
         properties.label_type === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
         temporary.text('' + properties.temporary)
-        severity.text('' + properties.severity)
+        severity.empty()
+        new SeverityDisplay(severity, properties.severity)
+        // severity.text('' + properties.severity)
         tags.text(tagHeader)
         description.text(properties.description)
         $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr")

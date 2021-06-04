@@ -135,16 +135,14 @@ function Card (params, imageUrl) {
         cardInfo.className = 'card-info'
         let cardSeverity = document.createElement('div')
         cardSeverity.className = 'card-severity'
-        cardSeverity.innerHTML = `<div class="label-severity-header"><b>${i18next.t('severity')}</b></div> 
-                                <div class="label-severity-content">${severityHeader}</div>`;
+        cardSeverity.innerHTML = `<div class="label-severity-header"><b>${i18next.t('severity')}</b></div> `;
+        let severityHolder = new SeverityDisplay(cardSeverity, properties.severity)
         cardInfo.appendChild(cardSeverity)
 
         let cardTags = document.createElement('div')
         cardTags.className = 'card-tags'
-        cardTags.innerHTML = `<div class="card-tags">
-                                <div class="label-tags-header"><b>${i18next.t('tags')}</b></div>
-                                <div class="label-tags-content">${tagHeader}</div>
-                            </div>`
+        cardTags.innerHTML = `<div class="label-tags-header"><b>${i18next.t('tags')}</b></div>`
+        let tagContent = new TagDisplay(cardTags, properties.tags)
         cardInfo.appendChild(cardTags)
 
         imageHolder.appendChild(cardInfo)
