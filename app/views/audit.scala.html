@@ -604,13 +604,18 @@
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
-                            @if(user && user.get.role.getOrElse("") == "Turker") {
+                            @if(user && user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                                 <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
+                                <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
                             } else {
-                                <button class="btn btn-primary turker-code-offset" id="modal-mission-complete-close-button-primary"></button>
+                                @if(user && user.get.role.getOrElse("") == "Turker") {
+                                    <button class="btn btn-primary turker-code-offset-no-confirmation" id="modal-mission-complete-close-button-primary"></button>
+                                    <button class="btn btn-secondary turker-code-offset-no-confirmation" id="modal-mission-complete-close-button-secondary"></button>
+                                } else {
+                                    <button class="btn btn-primary turker-code-offset" id="modal-mission-complete-close-button-primary"></button>
+                                    <button class="btn btn-secondary turker-code-offset" id="modal-mission-complete-close-button-secondary"></button>
+                                }
                             }
-                            
-                            <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
                         </div>
                     </div>
                 </div>
