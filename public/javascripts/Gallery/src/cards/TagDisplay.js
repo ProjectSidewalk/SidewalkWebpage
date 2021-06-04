@@ -1,14 +1,14 @@
-function TagDisplay(container, tags) {
+function TagDisplay(container, tags, isModal=false) {
     let self = this
     function _init() {
-        if (tags.length > 0) {
+        if (tags.length > 0 || isModal) {
             let tagsText = tags.map(t => i18next.t('tag.' + t))
             // console.log(tagsText)
 
             $(container).empty()
             let tagHeader = document.createElement('div')
             tagHeader.className = 'label-tags-header'
-            tagHeader.innerText = 'Tags:'
+            tagHeader.innerHTML = '<b>Tags:</b>'
             $(container).append(tagHeader)
 
             let tagContainer = document.createElement('div')
@@ -20,11 +20,11 @@ function TagDisplay(container, tags) {
                 tagTest.className = 'gallery-tag'
                 tagTest.innerText = tagsText[i]
                 $(tagContainer).append(tagTest)
-                remainingWidth -= $(tagTest).width()
+                remainingWidth -= ($(tagTest).width() + 8)
                 if (remainingWidth < 0) {
                     tagTest.remove()
                 }
-                console.log(remainingWidth)
+                // console.log(remainingWidth)
             }
             // console.log($(tagTest).width())
             // console.log($(tagTest).width())

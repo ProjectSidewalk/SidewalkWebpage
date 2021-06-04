@@ -96,7 +96,7 @@ function CardContainer(uiCardContainer) {
 
         modal = new Modal($('.gallery-modal'));
 
-        $("#image-card-container").on('click', '.gallery-card',  (event) => {
+        $("#image-card-container").on('click', '.static-gallery-image',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex')
             modal.updateProperties(findCard(event.target.id).getProperties())
             modal.loadPano()

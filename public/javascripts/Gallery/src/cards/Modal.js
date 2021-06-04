@@ -57,16 +57,26 @@ function Modal(uiModal) {
         pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom)
         pano.renderLabel(label)
         header.text(properties.label_type)
+        description.empty()
+        temporary.empty()
         // severity.text(properties.severity)
         let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
         properties.label_type === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
-        temporary.text('' + properties.temporary)
+        let temporaryHeader = document.createElement('div')
+        temporaryHeader.innerHTML = `<div><b>Temporary</b></div><div>${'' + properties.temporary}</div>`
+        temporary.append(temporaryHeader)
         severity.empty()
-        new SeverityDisplay(severity, properties.severity)
+        new SeverityDisplay(severity, properties.severity, true)
         // severity.text('' + properties.severity)
         tags.text(tagHeader)
-        description.text(properties.description)
+        // description.text(properties.description)
         $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr")
+        new TagDisplay(tags, properties.tags, true)
+
+        let descriptionText = properties.description === null ? "" : properties.description
+        let descriptionObject = document.createElement('div')
+        descriptionObject.innerHTML = `<div><b>Description</b></div><div>${descriptionText}</div>`
+        description.append(descriptionObject)
     }
 
     function updateProperties(newProps) {

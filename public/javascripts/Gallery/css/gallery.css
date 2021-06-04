@@ -80,9 +80,6 @@
     flex-flow: row wrap;
 }
 
-.card {
-}
-
 .gallery-modal-close {
     left: 0px;
     top: 10%;
@@ -102,6 +99,8 @@
     align-items: center;
     width: 50vw;
     right:2vw;
+    font-family: 'raleway-regular';
+    font-size: 20px;
 }
 
 .gallery-modal-header {
@@ -113,7 +112,7 @@
 
 .gallery-modal-pano {
     width: 100%;
-    height: 50%;
+    height: 63%;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -143,6 +142,8 @@
 .gallery-modal-info-severity {
     width:40%;
     height:50%;
+    display: flex;
+    flex-direction: column;
 }
 
 .gallery-modal-info-tags {
@@ -153,6 +154,8 @@
 .gallery-modal-info-temporary {
     width: 40%;
     height: 50%;
+    display: flex;
+    flex-direction: column;
 }
 
 .gallery-modal-info-description {
@@ -164,4 +167,22 @@
     display: flex;
     align-content: space-between;
     width: 90%;
+}
+
+.modal-severity-circle {
+    color: black;
+    border-color: white;
+    border: 1px solid black;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    text-align: center;
+    margin: 2px;
+    background-color: white;
+    font-size: 25px;
+}
+#modal-current-severity {
+    border: 2px solid black;
+    background-color: black;
+    color:white;
 }
