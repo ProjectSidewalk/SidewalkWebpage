@@ -129,8 +129,10 @@
     right: 0px;
 }
 
-.label-tags-header {
-    
+.label-tags-holder {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
 }
 .label-tags-content {
     text-overflow: ellipsis;

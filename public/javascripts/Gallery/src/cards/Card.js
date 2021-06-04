@@ -142,7 +142,7 @@ function Card (params, imageUrl) {
         let cardTags = document.createElement('div')
         cardTags.className = 'card-tags'
         cardTags.innerHTML = `<div class="label-tags-header"><b>${i18next.t('tags')}</b></div>`
-        let tagContent = new TagDisplay(cardTags, properties.tags)
+        cardTags.id = properties.label_id
         cardInfo.appendChild(cardTags)
 
         imageHolder.appendChild(cardInfo)
@@ -267,6 +267,14 @@ function Card (params, imageUrl) {
     function renderSize(cardContainer, width) {
         updateWidth(width);
         render(cardContainer);
+        renderTags();
+    }
+
+    function renderTags() {
+        // console.log(properties.label_id)
+        let selector = ".card-tags#" + properties.label_id
+        // console.log($(selector).width())
+        let tagContent = new TagDisplay(selector, properties.tags)
     }
 
     /**

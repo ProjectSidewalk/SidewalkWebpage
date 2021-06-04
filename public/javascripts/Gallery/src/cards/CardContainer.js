@@ -366,7 +366,7 @@ function CardContainer(uiCardContainer) {
             Promise.all(imagePromises).then(() => {
                 imagesToLoad.forEach((card) => {
                     card.renderSize(uiCardContainer.holder, cardWidth)
-                    console.log($('.label-tags-header').width())
+                    // console.log($('.label-tags-header').width())
                 });
                 $("#page-loading").hide();
                 $(".page-control").show();
