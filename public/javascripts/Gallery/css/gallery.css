@@ -129,8 +129,11 @@
 
 .gallery-modal-pano-paging {
     height: 30px;
-    width: 30px;
-    background-color: black;
+    width: 50px;
+    color: black;
+    text-align: center;
+    font-size: 50px;
+    cursor: pointer;
 }
 
 .gallery-modal-info {
