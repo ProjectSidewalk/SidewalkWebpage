@@ -1,3 +1,11 @@
+/**
+ * A Modal element that provides extended information about a label,
+ * along with placing a label in a GSV Panorama to aid the user in 
+ * contextualizing the location of labels.
+ * 
+ * @param {HTMLElement} uiModal The container for the Modal in the DOM
+ * @returns 
+ */
 function Modal(uiModal) {
     
     let self = this;
@@ -20,75 +28,89 @@ function Modal(uiModal) {
         tags: []
     };
 
-    let panoHolder = null
-    let tags = null
-    let severity = null
-    let temporary = null
-    let description = null
-
-    let pano = null
-
-    let label = null
-
-    let header = null
-
-    let closeButton = null
-
+    /**
+     * The initialization function for the Modal. It serves to bind the DOM elements of the Modal
+     * to class variables, for future access when populating the fields. It also instantiates
+     * the GSV panorama in the specified location of the Modal.
+     */
     function _init() {
-        panoHolder = $('.actual-pano')
-        tags = $('.gallery-modal-info-tags')
-        severity = $('.gallery-modal-info-severity')
-        temporary = $('.gallery-modal-info-temporary')
-        description = $('.gallery-modal-info-description')
-        header = $('.gallery-modal-header')
-        
-        pano = new GalleryPanorama(panoHolder)
-
-        closeButton = $('.gallery-modal-close')
-        closeButton.click(closeModal)
+        self.panoHolder = $('.actual-pano')
+        self.tags = $('.gallery-modal-info-tags')
+        self.severity = $('.gallery-modal-info-severity')
+        self.temporary = $('.gallery-modal-info-temporary')
+        self.description = $('.gallery-modal-info-description')
+        self.header = $('.gallery-modal-header')
+        self.pano = new GalleryPanorama(self.panoHolder)
+        self.closeButton = $('.gallery-modal-close')
+        self.closeButton.click(closeModal)
     }
 
+    /**
+     * Performs the actions to close the Modal
+     */
     function closeModal() {
         $('.grid-container').css("grid-template-columns", "1fr 3fr")
         uiModal.hide()
     }
 
-    function loadPano() {
-        pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom)
-        pano.renderLabel(label)
-        header.text(properties.label_type)
-        description.empty()
-        temporary.empty()
-        // severity.text(properties.severity)
-        let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
-        properties.label_type === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
+    /**
+     * Resets the fields of the Modal
+     */
+    function resetModal() {
+        self.description.empty()
+        self.temporary.empty()
+        self.severity.empty()
+    }
+
+    /**
+     * Populates the information in the Modal
+     */
+    function populateModalDescriptionFields() {
+        // Adds the severity display to the Modal
+        new SeverityDisplay(self.severity, properties.severity, true)
+        // Adds the tag display to the Modal
+        new TagDisplay(self.tags, properties.tags, true)
+        // Adds the information about the temporary property to the Modal
         let temporaryHeader = document.createElement('div')
         temporaryHeader.innerHTML = `<div><b>Temporary</b></div><div>${'' + properties.temporary}</div>`
-        temporary.append(temporaryHeader)
-        severity.empty()
-        new SeverityDisplay(severity, properties.severity, true)
-        // severity.text('' + properties.severity)
-        tags.text(tagHeader)
-        // description.text(properties.description)
-        $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr")
-        new TagDisplay(tags, properties.tags, true)
-
+        self.temporary.append(temporaryHeader)
+        // Adds the information about the description of the label to the Modal
         let descriptionText = properties.description === null ? "" : properties.description
         let descriptionObject = document.createElement('div')
         descriptionObject.innerHTML = `<div><b>Description</b></div><div>${descriptionText}</div>`
-        description.append(descriptionObject)
+        self.description.append(descriptionObject)
     }
 
+    /**
+     * Performs the actions needed to open the modal
+     */
+    function openModal() {
+        resetModal()
+        populateModalDescriptionFields()
+        self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom)
+        self.pano.renderLabel(self.label)
+        self.header.text(properties.label_type)    
+    }
+
+    /**
+     * Updates the local variables to the properties of a new label and creates a 
+     * GalleryPanoramaLabel object that uses the new label properties
+     * 
+     * @param newProps The new properties to push into the Modal
+     */
     function updateProperties(newProps) {
         for (let attrName in newProps) {
             properties[attrName] = newProps[attrName]
         }
-        label = new GalleryPanoramaLabel(properties.label_id, properties.label_type, properties.canvas_x, properties.canvas_y, properties.canvas_width, properties.canvas_height, properties.heading, properties.pitch, properties.zoom)
+        self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type, 
+                                                properties.canvas_x, properties.canvas_y, 
+                                                properties.canvas_width, properties.canvas_height, 
+                                                properties.heading, properties.pitch, properties.zoom)
     }
 
     _init()
 
     self.updateProperties = updateProperties;
-    self.loadPano = loadPano;
+    self.openModal = openModal;
     return self
 }

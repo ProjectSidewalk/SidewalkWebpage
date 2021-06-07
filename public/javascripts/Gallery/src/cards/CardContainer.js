@@ -98,8 +98,9 @@ function CardContainer(uiCardContainer) {
 
         $("#image-card-container").on('click', '.static-gallery-image',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex')
+            $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr")
             modal.updateProperties(findCard(event.target.id).getProperties())
-            modal.loadPano()
+            modal.openModal()
         })
     }
 
