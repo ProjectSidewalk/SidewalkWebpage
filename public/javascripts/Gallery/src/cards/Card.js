@@ -259,10 +259,11 @@ function Card (params, imageUrl) {
         renderTags();
     }
 
+    /**
+     * Renders the tags on the card when the card is loaded onto on the DOM
+     */
     function renderTags() {
-        // console.log(properties.label_id)
         let selector = ".card-tags#" + properties.label_id
-        // console.log($(selector).width())
         let tagContent = new TagDisplay(selector, properties.tags)
     }
 
@@ -292,6 +293,10 @@ function Card (params, imageUrl) {
         }
     }
 
+    /**
+     * Returns the current ImageID being displayed in the image
+     * @returns the image ID of the card that is being displayed
+     */
     function getImageId() {
         return imageId
     }
