@@ -1,14 +1,12 @@
 /**
- *
- *
- * @param svHolder: One single DOM element
- * @param admin
- * @returns {{className: string}}
- * @constructor
+ * A holder class that inserts a GSV Pano into the supplied DOM element
+ * 
+ * @param {HTMLElement} svHolder The DOM element that the GSV Pano will be placed in
+ * @returns {GalleryPanorama} The gallery panorama that was generated
  */
  function GalleryPanorama(svHolder) {
     var self = {
-        className: "AdminPanorama",
+        className: "GalleryPanorama",
         label: undefined,
         labelMarkers: [],
         panoId: undefined,
@@ -271,55 +269,6 @@
         return zoom <= 2 ?
             126.5 - zoom * 36.75 :  // linear descent
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
-    }
-
-    /**
-     * TODO: Find a way to use the method in MapService.js to avoid copied code.
-     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
-     * tutorial view or the "after walk" view.
-     * @param pano - the pano ID/name of the wanted custom panorama.
-     * @returns custom Google Street View panorama.
-     * */
-    function getCustomPanorama(pano) {
-        if (pano === 'tutorial') {
-            return {
-                location: {
-                    pano: 'tutorial',
-                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
-                },
-                links: [{
-                    heading: 342,
-                    description: 'Exit',
-                    pano: "afterWalkTutorial"
-                }],
-                copyright: 'Imagery (c) 2010 Google',
-                tiles: {
-                    tileSize: new google.maps.Size(2048, 1024),
-                    worldSize: new google.maps.Size(4096, 2048),
-                    centerHeading: 51,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return "/assets/javascripts/SVLabel/img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
-                    }
-                }
-            };
-        } else if (pano === 'afterWalkTutorial') {
-            return {
-                location: {
-                    pano: 'afterWalkTutorial',
-                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
-                },
-                links: [],
-                copyright: 'Imagery (c) 2010 Google',
-                tiles: {
-                    tileSize: new google.maps.Size(1700, 850),
-                    worldSize: new google.maps.Size(3400, 1700),
-                    centerHeading: 344,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return "/assets/javascripts/SVLabel/img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
-                    }
-                }
-            };
-        }
     }
 
     //init
