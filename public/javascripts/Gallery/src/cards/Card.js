@@ -98,13 +98,6 @@ function Card (params, imageUrl) {
         let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
                                                      getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
 
-        // const cardHtml = `
-        //     <p class="label-severity"><b>${i18next.t('severity')}</b> ${severityHeader}</p>
-        //     <p class="label-tags"><b>${i18next.t('tags')}</b> ${tagHeader}</p>
-        // `;
-        // const testText = `
-        //     <p class="gallery-card-label-type">Hello</p>
-        // `
         const cardHtml = `
                         <div class='gallery-card'>
                             <div class="card-header">
@@ -153,10 +146,6 @@ function Card (params, imageUrl) {
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
         validationMenu = new ValidationMenu(imageHolder, properties);
-
-        
-
-
     }
 
     /**
@@ -182,7 +171,7 @@ function Card (params, imageUrl) {
         imageDim.h = imageDim.w / widthHeightRatio;       
 
         let iconCoords = getIconPercent();
-        labelIcon.style.left = iconCoords.x  + "%";
+        labelIcon.style.left = iconCoords.x + "%";
         labelIcon.style.top = iconCoords.y + "%";
     }
 
