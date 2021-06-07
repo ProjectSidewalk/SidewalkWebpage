@@ -64,12 +64,12 @@ function CardBucket(inputCards) {
     }
     
     /**
+     * Gets the card that has the matching imageId
      * 
-     * @param {*} imageId 
-     * @returns {Card} the matching card
+     * @param {String} imageId the id to search for
+     * @returns {Card} The card in the card bucket that contains the imageId
      */
     function findCardByImageId(imageId) {
-        // console.log(bucket)
         for (let i = 0; i < bucket.length; i++) {
             if (bucket[i].getImageId() == imageId) {
                 return bucket[i]
