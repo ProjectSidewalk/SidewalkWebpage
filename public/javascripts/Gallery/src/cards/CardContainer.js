@@ -104,6 +104,12 @@ function CardContainer(uiCardContainer) {
         })
     }
 
+    /**
+     * Find the card which contains the image with the same imageID as supplied
+     * 
+     * @param {String} id The id of the image Id to find
+     * @returns finds the matching card and returns it
+     */
     function findCard(id) {
         let card = currentCards.findCardByImageId(id)
         return card
