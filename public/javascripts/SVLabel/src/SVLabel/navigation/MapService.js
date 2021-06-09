@@ -592,7 +592,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {*}
      */
     function getBottomLinkLayer () {
-        var links = $(uiMap.pano.find("a")[6]).parent().parent().parent();
+        var links = $(uiMap.pano.find("a")[5]).parent().parent().parent();
         return links;
     }
 
@@ -1978,7 +1978,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
     self.getMoveDelay = getMoveDelay;
-    // this.makeLinksClickable = makeLinksClickable;
+    self.makeLinksClickable = makeLinksClickable;
     _init(params);
     return self;
 }

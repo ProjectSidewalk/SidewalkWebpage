@@ -82,7 +82,7 @@ function Main (params) {
 
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
-
+    
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
@@ -109,6 +109,7 @@ function Main (params) {
         // Set map parameters and instantiate it.
         var mapParam = { lat: SVLat, lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 } };
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
+        svl.map.makeLinksClickable();
         svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
@@ -435,7 +436,7 @@ function Main (params) {
             if(!svl.taskContainer.hasMaxPriorityTask()) {
                 svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
             }
-            
+            svl.map.makeLinksClickable();
             // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;
