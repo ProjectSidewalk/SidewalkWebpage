@@ -88,61 +88,39 @@ function Card (params, imageUrl) {
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
 
+        // Create an element for the image in the card
         imageId = "label_id_" + properties.label_id;
         panoImage.id = imageId;
         panoImage.className = "static-gallery-image";
 
-        // Clean up ternary operators with constants?
-        let severityHeader = properties.severity ? properties.severity :
-                                                   getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
-        let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
-                                                     getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
-
-        const cardHtml = `
-                        <div class='gallery-card'>
-                            <div class="card-header">
-                                <img class="label-icon" src=${iconImagePaths[getLabelType()]}>
-                                <div>${getLabelType()}</div>        
-                            </div>
-                            <div class="card-info">
-                                <div class="card-severity">
-                                    <div class="label-severity-header"><b>${i18next.t('severity')}</b></div>
-                                    <div class="label-severity-content">${severityHeader}</div>
-                                </div>
-                            </div>
-                            <div class="card-tags">
-                                <div class="label-tags-header"><b>${i18next.t('tags')}</b></div>
-                                <div class="label-tags-content">${tagHeader}</div>
-                            </div>
-                        </div>`
+        // Create the container card
         card = document.createElement('div')
         card.className = "gallery-card";
         let imageHolder = document.createElement('div')
         card.appendChild(imageHolder)
+        // Create the div for the label type of the card and the icon
         let cardHeader = document.createElement('div')
         cardHeader.className = 'card-header'
         cardHeader.innerHTML = `<img class="label-icon" src=${iconImagePaths[getLabelType()]}> <div>${getLabelType()}</div>`
         card.appendChild(cardHeader)
 
+        // Create the div for the severity and tags information
         let cardInfo = document.createElement('div')
         cardInfo.className = 'card-info'
+        // Create the div to store the severity of the label
         let cardSeverity = document.createElement('div')
         cardSeverity.className = 'card-severity'
-        // cardSeverity.innerHTML = `<div class="label-severity-header"><b>${i18next.t('severity')}</b></div> `;
         let severityHolder = new SeverityDisplay(cardSeverity, properties.severity)
         cardInfo.appendChild(cardSeverity)
-
+        // Create the div to store the tags related to a card. The tags will not be populated until the card is added to the DOM
         let cardTags = document.createElement('div')
         cardTags.className = 'card-tags'
         cardTags.innerHTML = `<div class="label-tags-header"></div>`
         cardTags.id = properties.label_id
         cardInfo.appendChild(cardTags)
 
+        // append the overlays for label information on top of the image
         imageHolder.appendChild(cardInfo)
-
-
-        // card.innerHTML = cardHtml;
-
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
         validationMenu = new ValidationMenu(imageHolder, properties);
