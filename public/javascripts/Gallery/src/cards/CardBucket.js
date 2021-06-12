@@ -72,7 +72,7 @@ function CardBucket(inputCards) {
     function findCardByImageId(imageId) {
         for (let i = 0; i < bucket.length; i++) {
             if (bucket[i].getImageId() == imageId) {
-                return bucket[i]
+                return bucket[i];
             }
         }
     }
