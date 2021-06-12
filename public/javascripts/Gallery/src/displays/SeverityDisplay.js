@@ -1,6 +1,6 @@
 
 /**
- * An object that creates a display for severity based on the Mock for Sidewalk Gallery v1.1
+ * An object that creates a display for the severity
  * 
  * @param {HTMLElement} container The DOM element that contains the display
  * @param {Number} severity The severity to display
