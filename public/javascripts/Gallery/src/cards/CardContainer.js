@@ -88,9 +88,9 @@ function CardContainer(uiCardContainer) {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
-
+        // Creates the Modal object in the DOM element currently present.
         modal = new Modal($('.gallery-modal'));
-
+        // Add the click event for opening the Modal when a card is clicked.
         $("#image-card-container").on('click', '.static-gallery-image',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex')
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr")
@@ -100,7 +100,7 @@ function CardContainer(uiCardContainer) {
     }
 
     /**
-     * Find the card which contains the image with the same imageID as supplied
+     * Find the card which contains the image with the same imageID as supplied.
      * 
      * @param {String} id The id of the image Id to find
      * @returns finds the matching card and returns it
