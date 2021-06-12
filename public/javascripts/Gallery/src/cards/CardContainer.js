@@ -44,7 +44,6 @@ function CardContainer(uiCardContainer) {
     let pageNumberDisplay = null;
     let pagewidth;
     let modal;
-
     // Map Cards to a CardBucket containing Cards of their label type.
     let cardsByType = {
         Assorted: new CardBucket(),
