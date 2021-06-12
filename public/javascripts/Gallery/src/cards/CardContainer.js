@@ -106,7 +106,7 @@ function CardContainer(uiCardContainer) {
      * @returns finds the matching card and returns it
      */
     function findCard(id) {
-        return currentCards.findCardByImageId(id)
+        return currentCards.findCardByImageId(id);
     }
 
     function handleNextPageClick() {
