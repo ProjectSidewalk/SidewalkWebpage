@@ -40,13 +40,9 @@ function CardContainer(uiCardContainer) {
 
     // Current label type of cards being shown.
     let currentLabelType = 'Assorted';
-
     let currentPage = 1;
-
     let pageNumberDisplay = null;
-
     let pagewidth;
-
     let modal;
 
     // Map Cards to a CardBucket containing Cards of their label type.
