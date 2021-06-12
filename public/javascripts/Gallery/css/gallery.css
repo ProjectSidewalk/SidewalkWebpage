@@ -28,8 +28,8 @@
 }
 
 .sidebar {
-    padding-left: 10px; 
-    padding-top: 40px; 
+    padding-left: 10px;
+    padding-top: 40px;
     min-height: calc(100vh - 686px);
     width: 250px;
     grid-area: 'sidebar';
