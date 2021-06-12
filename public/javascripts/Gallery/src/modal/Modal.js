@@ -71,12 +71,12 @@ function Modal(uiModal) {
         new TagDisplay(self.tags, properties.tags, true)
         // Adds the information about the temporary property to the Modal
         let temporaryHeader = document.createElement('div')
-        temporaryHeader.innerHTML = `<div><b>Temporary</b></div><div>${'' + properties.temporary}</div>`
+        temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${'' + properties.temporary}</div>`
         self.temporary.append(temporaryHeader)
         // Adds the information about the description of the label to the Modal
         let descriptionText = properties.description === null ? "" : properties.description
         let descriptionObject = document.createElement('div')
-        descriptionObject.innerHTML = `<div><b>Description</b></div><div>${descriptionText}</div>`
+        descriptionObject.innerHTML = `<div><b>${i18next.t("description")}</b></div><div>${descriptionText}</div>`
         self.description.append(descriptionObject)
     }
 
@@ -102,9 +102,9 @@ function Modal(uiModal) {
             properties[attrName] = newProps[attrName]
         }
         self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type, 
-                                                properties.canvas_x, properties.canvas_y, 
-                                                properties.canvas_width, properties.canvas_height, 
-                                                properties.heading, properties.pitch, properties.zoom)
+                                              properties.canvas_x, properties.canvas_y, 
+                                              properties.canvas_width, properties.canvas_height, 
+                                              properties.heading, properties.pitch, properties.zoom)
     }
 
     _init()

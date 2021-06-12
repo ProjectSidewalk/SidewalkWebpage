@@ -29,6 +29,8 @@
   },
   "severity": "Calificación ",
   "tags": "Etiquitas ",
+  "temporary": "Temporal",
+  "description" : "Descripción",
   "tag": {
     "narrow": "muy angosta",
     "points into traffic": "orientada hacia el tráfico",
