@@ -1,7 +1,6 @@
 /**
- * A Modal element that provides extended information about a label,
- * along with placing a label in a GSV Panorama to aid the user in 
- * contextualizing the location of labels.
+ * A Modal element that provides extended information about a label, along with placing a label in a GSV Panorama to 
+ * aid the user in contextualizing the location of labels.
  * 
  * @param {HTMLElement} uiModal The container for the Modal in the DOM
  * @returns 
