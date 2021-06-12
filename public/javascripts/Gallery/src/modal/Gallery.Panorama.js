@@ -5,7 +5,7 @@
  * @returns {GalleryPanorama} The gallery panorama that was generated
  */
  function GalleryPanorama(svHolder) {
-    var self = {
+    let self = {
         className: "GalleryPanorama",
         label: undefined,
         labelMarkers: undefined,
@@ -13,7 +13,7 @@
         panorama: undefined,
     };
 
-    var icons = {
+    const icons = {
         CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
         NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
         Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
@@ -24,7 +24,7 @@
     };
 
     // Determined experimentally; varies w/ GSV Panorama size
-    var zoomLevel = {
+    const zoomLevel = {
         1: 1,
         2: 1.95,
         3: 2.95
@@ -71,8 +71,8 @@
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
-            var currentPano = self.panorama.getPano();
-            let marker = self.labelMarkers
+            const currentPano = self.panorama.getPano();
+            const marker = self.labelMarkers
             if (marker !== undefined) {
                 if (marker.panoId === currentPano) {
                     marker.marker.setVisible(true);
@@ -145,7 +145,7 @@
 
                 // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we
                 // wait a full 2 seconds without getting a response from Google.
-                if (self.panorama.getStatus() === "OK" || self.panoId == 'tutorial' || self.panoId == 'afterWalkTutorial') {
+                if (self.panorama.getStatus() === "OK") {
                     $(self.panoCanvas).css('display', 'block');
                     $(self.panoNotAvailable).css('display', 'none');
                     $(self.panoNotAvailableDetails).css('display', 'none');
@@ -181,8 +181,8 @@
      * @returns {renderLabel}
      */
     function renderLabel (label) {
-        var url = icons[label['label_type']];
-        var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
+        const url = icons[label['label_type']];
+        const pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
         self.labelMarkers = {
@@ -216,36 +216,36 @@
             return x >= 0 ? 1 : -1;
         }
 
-        var PI = Math.PI;
-        var cos = Math.cos;
-        var sin = Math.sin;
-        var tan = Math.tan;
-        var sqrt = Math.sqrt;
-        var atan2 = Math.atan2;
-        var asin = Math.asin;
-        var fov = get3dFov(zoom) * PI / 180.0;
-        var width = canvas_width;
-        var height = canvas_height;
-        var h0 = heading * PI / 180.0;
-        var p0 = pitch * PI / 180.0;
-        var f = 0.5 * width / tan(0.5 * fov);
-        var x0 = f * cos(p0) * sin(h0);
-        var y0 = f * cos(p0) * cos(h0);
-        var z0 = f * sin(p0);
-        var du = (canvas_x) - width / 2;
-        var dv = height / 2 - (canvas_y - 5);
-        var ux = sgn(cos(p0)) * cos(h0);
-        var uy = -sgn(cos(p0)) * sin(h0);
-        var uz = 0;
-        var vx = -sin(p0) * sin(h0);
-        var vy = -sin(p0) * cos(h0);
-        var vz = cos(p0);
-        var x = x0 + du * ux + dv * vx;
-        var y = y0 + du * uy + dv * vy;
-        var z = z0 + du * uz + dv * vz;
-        var R = sqrt(x * x + y * y + z * z);
-        var h = atan2(x, y);
-        var p = asin(z / R);
+        const PI = Math.PI;
+        let cos = Math.cos;
+        let sin = Math.sin;
+        let tan = Math.tan;
+        let sqrt = Math.sqrt;
+        let atan2 = Math.atan2;
+        let asin = Math.asin;
+        const fov = get3dFov(zoom) * PI / 180.0;
+        const width = canvas_width;
+        const height = canvas_height;
+        const h0 = heading * PI / 180.0;
+        const p0 = pitch * PI / 180.0;
+        const f = 0.5 * width / tan(0.5 * fov);
+        const x0 = f * cos(p0) * sin(h0);
+        const y0 = f * cos(p0) * cos(h0);
+        const z0 = f * sin(p0);
+        const du = (canvas_x) - width / 2;
+        const dv = height / 2 - (canvas_y - 5);
+        const ux = sgn(cos(p0)) * cos(h0);
+        const uy = -sgn(cos(p0)) * sin(h0);
+        const uz = 0;
+        const vx = -sin(p0) * sin(h0);
+        const vy = -sin(p0) * cos(h0);
+        const vz = cos(p0);
+        const x = x0 + du * ux + dv * vx;
+        const y = y0 + du * uy + dv * vy;
+        const z = z0 + du * uz + dv * vz;
+        const R = sqrt(x * x + y * y + z * z);
+        const h = atan2(x, y);
+        const p = asin(z / R);
         return {
             heading: h * 180.0 / PI,
             pitch: p * 180.0 / PI
