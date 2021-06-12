@@ -8,7 +8,7 @@
     var self = {
         className: "GalleryPanorama",
         label: undefined,
-        labelMarkers: [],
+        labelMarkers: undefined,
         panoId: undefined,
         panorama: undefined,
     };
@@ -72,13 +72,15 @@
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
             var currentPano = self.panorama.getPano();
-            for (var marker of self.labelMarkers) {
+            let marker = self.labelMarkers
+            if (marker !== undefined) {
                 if (marker.panoId === currentPano) {
                     marker.marker.setVisible(true);
                 } else {
                     marker.marker.setVisible(false);
                 }
             }
+
         });
 
         if (self.panorama) {
@@ -183,7 +185,7 @@
         var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
-        self.labelMarkers.push({
+        self.labelMarkers = {
             panoId: self.panorama.getPano(),
             marker: new PanoMarker({
                 container: self.panoCanvas,
@@ -193,7 +195,7 @@
                 size: new google.maps.Size(20, 20),
                 anchor: new google.maps.Point(10, 10)
             })
-        });
+        };
         return this;
     }
 
