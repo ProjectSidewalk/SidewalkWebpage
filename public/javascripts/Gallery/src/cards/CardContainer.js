@@ -365,10 +365,7 @@ function CardContainer(uiCardContainer) {
 
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
-                imagesToLoad.forEach((card) => {
-                    card.renderSize(uiCardContainer.holder, cardWidth)
-                    // console.log($('.label-tags-header').width())
-                });
+                imagesToLoad.forEach((card) => {card.renderSize(uiCardContainer.holder, cardWidth)});
                 $("#page-loading").hide();
                 $(".page-control").show();
                 sg.tagContainer.enable();
