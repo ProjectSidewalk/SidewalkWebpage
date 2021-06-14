@@ -262,3 +262,22 @@
         }
     }
 </h4>
+
+<script>
+    $("#leaderboard-encouragement").on('click', 'a', function(e){
+        var url = "/userapi/logWebpageActivity";
+        var async = false;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify("Click_module=Encouragement"),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    });
+</script>
