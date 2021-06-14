@@ -83,7 +83,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
             type: 'put',
             success: function (result) {
                 window.location.reload();
-                logWebpageActivity("Click_module=EditedOrg");
+                logWebpageActivity("Click_module=JoiningOrg=" + orgId);
             },
             error: function (result) {
                 console.error(result);

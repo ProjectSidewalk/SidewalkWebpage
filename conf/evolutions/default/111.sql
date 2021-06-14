@@ -1,4 +1,3 @@
-
 # --- !Ups
 CREATE TABLE organization
 (

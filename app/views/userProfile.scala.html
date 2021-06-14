@@ -29,7 +29,7 @@
                         </a>
                         <ul id="edit-org-menu" class="dropdown-menu" role="menu">
                             @if(OrganizationTable.getAllOrganizations.isEmpty) {
-                                <li style="padding: 3px 20px;">@Messages("dashboard.orgs.unavailable")</li>
+                                <li class="menu-info-container">@Messages("dashboard.orgs.unavailable")</li>
                             }
                             @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
                                 <li>

@@ -77,8 +77,6 @@ svg {
     color: #2D2A3F;
     background-color: white;
     font: normal normal normal 14px/1.4em 'Raleway', sans-serif;
-    font-family: 'Raleway', sans-serif;
-    font-size: 14px;
     text-decoration: none;
     outline: none;
 }
@@ -119,10 +117,13 @@ svg {
     cursor: auto;
     border: none;
     left: 102%;
-    z-index: 2500;
     width: 200px;
     padding: 5px 5px;
     box-shadow: 0 6px 12px rgb(0 0 0 / 18%);
+}
+
+.menu-info-container {
+    padding: 3px 20px;
 }
 
 .table-fixed thead {
