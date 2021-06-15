@@ -48,7 +48,7 @@
             position: 'relative',
             top: '0px',
             width: '100%',
-            height: '550px'
+            height: '60vh'
         })[0];
 
         self.panoNotAvailable = $("<div id='pano-not-avail'>Oops, our fault but there is no longer imagery available " +

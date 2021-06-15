@@ -70,11 +70,24 @@ function CardBucket(inputCards) {
      * @returns {Card} The card in the card bucket that contains the imageId.
      */
     function findCardByImageId(imageId) {
+        let index = findCardIndexByImageId(imageId);
+        if (index === -1) {
+            return undefined;
+        }
+        return bucket[index];
+    }
+
+    function getCardByIndex(index) {
+        return bucket[index]
+    }
+
+    function findCardIndexByImageId(imageId) {
         for (let i = 0; i < bucket.length; i++) {
             if (bucket[i].getImageId() == imageId) {
-                return bucket[i];
+                return i;
             }
         }
+        return -1;
     }
 
     self.push = push;
@@ -84,6 +97,8 @@ function CardBucket(inputCards) {
     self.getSize = getSize;
     self.copy = copy;
     self.findCardByImageId = findCardByImageId;
+    self.findCardIndexByImageId = findCardIndexByImageId;
+    self.getCardByIndex = getCardByIndex;
 
     return this;
 }

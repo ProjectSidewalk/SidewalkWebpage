@@ -94,7 +94,9 @@ function CardContainer(uiCardContainer) {
         $("#image-card-container").on('click', '.static-gallery-image',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex')
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr")
-            modal.updateProperties(findCard(event.target.id).getProperties())
+            const cardId = event.target.id
+            modal.updateProperties(findCard(cardId).getProperties())
+            modal.updateCardIndex(findCardIndex(cardId))
             modal.openModal()
         })
     }
@@ -103,10 +105,30 @@ function CardContainer(uiCardContainer) {
      * Find the card which contains the image with the same imageID as supplied.
      * 
      * @param {String} id The id of the image Id to find
-     * @returns finds the matching card and returns it
+     * @returns {Card} finds the matching card and returns it
      */
     function findCard(id) {
         return currentCards.findCardByImageId(id);
+    }
+
+    /**
+     * Returns the index of a card in the current CardBucket in use. 
+     * 
+     * @param {String} id The id of the image Id to find
+     * @returns {Number} the index of the matching card in the current CardBucket
+     */
+    function findCardIndex(id) {
+        return currentCards.findCardIndexByImageId(id);
+    }
+
+    /**
+     * Gets a card from the current CardBucket given an index.
+     * 
+     * @param {Number} index the index of the card to find
+     * @returns {Card} the Card that has the matching index in the current CardBucket
+     */
+    function getCardByIndex(index) {
+        return currentCards.getCardByIndex(index);
     }
 
     function handleNextPageClick() {
@@ -432,6 +454,10 @@ function CardContainer(uiCardContainer) {
         });
     }
 
+    function getCurrentPage() {
+        return currentPage;
+    }
+
     self.fetchLabelsByType = fetchLabelsByType;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
@@ -444,6 +470,8 @@ function CardContainer(uiCardContainer) {
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;
     self.clearCards = clearCards;
+    self.getCardByIndex = getCardByIndex;
+    self.getCurrentPage = getCurrentPage;
 
     _init();
     return this;

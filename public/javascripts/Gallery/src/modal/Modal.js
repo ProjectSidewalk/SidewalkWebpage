@@ -41,7 +41,12 @@ function Modal(uiModal) {
         self.header = $('.gallery-modal-header')
         self.pano = new GalleryPanorama(self.panoHolder)
         self.closeButton = $('.gallery-modal-close')
+        self.leftArrow = $('#prev-label')
+        self.rightArrow = $('#next-label')
         self.closeButton.click(closeModal)
+        self.rightArrow.click(nextLabel)
+        self.leftArrow.click(previousLabel)
+        self.cardIndex = -1;
     }
 
     /**
@@ -71,7 +76,8 @@ function Modal(uiModal) {
         new TagDisplay(self.tags, properties.tags, true)
         // Adds the information about the temporary property to the Modal
         let temporaryHeader = document.createElement('div')
-        temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${'' + properties.temporary}</div>`
+        let temporaryText = properties.temporary ? "Yes" : "No"
+        temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${temporaryText}</div>`
         self.temporary.append(temporaryHeader)
         // Adds the information about the description of the label to the Modal
         let descriptionText = properties.description === null ? "" : properties.description
@@ -88,7 +94,7 @@ function Modal(uiModal) {
         populateModalDescriptionFields()
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom)
         self.pano.renderLabel(self.label)
-        self.header.text(properties.label_type)    
+        self.header.text(i18next.t('gallery.' + properties.label_type))   
     }
 
     /**
@@ -107,9 +113,62 @@ function Modal(uiModal) {
                                               properties.heading, properties.pitch, properties.zoom)
     }
 
+    /**
+     * Updates the index of the current label being displayed in the modal.
+     * 
+     * @param {Number} newIndex The new index of the card being displayed 
+     */
+    function updateCardIndex(newIndex) {
+        updateModalCardByIndex(newIndex)
+    }
+
+    /**
+     * Tries to update the current card to the given input index.
+     * 
+     * @param {Number} index The index of the card to update to
+     */
+    function updateModalCardByIndex(index) {
+        self.cardIndex = index;
+        updateProperties(sg.cardContainer.getCardByIndex(index).getProperties())
+        openModal()
+        let page = sg.cardContainer.getCurrentPage()
+        if (index > (page - 1) * 9) {
+            self.leftArrow.prop('disabled', false)
+        } else {
+            self.leftArrow.prop('disabled', true)
+        }
+        if (index < page * 9 - 1) {
+            self.rightArrow.prop('disabled', false)
+        } else {
+            self.rightArrow.prop('disabled', true)
+        }
+    }
+
+    /**
+     * Moves to the next label.
+     */
+    function nextLabel() {
+        let page = sg.cardContainer.getCurrentPage()
+        if (self.cardIndex < page * 9 - 1) {
+            updateModalCardByIndex(self.cardIndex + 1);
+        }
+    }
+
+    /**
+     * Moves to the previous label.
+     */
+    function previousLabel() {
+        let page = sg.cardContainer.getCurrentPage()
+        if (self.cardIndex > (page - 1) * 9) {
+            updateModalCardByIndex(self.cardIndex - 1);
+        }
+    }
+
     _init()
 
     self.updateProperties = updateProperties;
     self.openModal = openModal;
+    self.updateCardIndex = updateCardIndex;
+
     return self
 }
