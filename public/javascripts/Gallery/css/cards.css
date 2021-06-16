@@ -67,7 +67,7 @@
     position: absolute;
     left: 1vw;
     top: 1vh;
-    font-family: 'raleway-regular';
+    font-family: 'raleway-regular', sans-serif;
     font-weight: bold;
     color:white;
     font-size: 1.1vw;
@@ -143,7 +143,7 @@
     transition: .2s ease;
     font-size: 0.75vw;
     font-weight: bold;
-    font-family: 'raleway-regular';
+    font-family: 'raleway-regular', sans-serif;
     background-color: white;
     border-style: none;
     color: #2d2a3f;

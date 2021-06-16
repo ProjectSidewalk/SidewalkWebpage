@@ -28,9 +28,8 @@ function Modal(uiModal) {
     };
 
     /**
-     * The initialization function for the Modal. It serves to bind the DOM elements of the Modal
-     * to class variables, for future access when populating the fields. It also instantiates
-     * the GSV panorama in the specified location of the Modal.
+     * Initialization function for the Modal. Serves to bind the DOM elements of the Modal to class variables for future
+     * access when populating the fields. It also instantiates the GSV panorama in the specified location of the Modal.
      */
     function _init() {
         self.panoHolder = $('.actual-pano')
@@ -50,67 +49,69 @@ function Modal(uiModal) {
     }
 
     /**
-     * Performs the actions to close the Modal
+     * Performs the actions to close the Modal.
      */
     function closeModal() {
-        $('.grid-container').css("grid-template-columns", "1fr 3fr")
-        uiModal.hide()
+        $('.grid-container').css("grid-template-columns", "1fr 3fr");
+        uiModal.hide();
     }
 
     /**
-     * Resets the fields of the Modal
+     * Resets the fields of the Modal.
      */
     function resetModal() {
-        self.description.empty()
-        self.temporary.empty()
-        self.severity.empty()
+        self.description.empty();
+        self.temporary.empty();
+        self.severity.empty();
     }
 
     /**
-     * Populates the information in the Modal
+     * Populates the information in the Modal.
      */
     function populateModalDescriptionFields() {
-        // Adds the severity display to the Modal
-        new SeverityDisplay(self.severity, properties.severity, true)
-        // Adds the tag display to the Modal
-        new TagDisplay(self.tags, properties.tags, true)
-        // Adds the information about the temporary property to the Modal
-        let temporaryHeader = document.createElement('div')
-        let temporaryText = properties.temporary ? "Yes" : "No"
-        temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${temporaryText}</div>`
-        self.temporary.append(temporaryHeader)
-        // Adds the information about the description of the label to the Modal
-        let descriptionText = properties.description === null ? "" : properties.description
-        let descriptionObject = document.createElement('div')
-        descriptionObject.innerHTML = `<div><b>${i18next.t("description")}</b></div><div>${descriptionText}</div>`
-        self.description.append(descriptionObject)
+        // Add severity and tag display to the modal.
+        new SeverityDisplay(self.severity, properties.severity, true);
+        new TagDisplay(self.tags, properties.tags, true);
+
+        // Add the information about the temporary property to the Modal.
+        let temporaryHeader = document.createElement('div');
+        let temporaryText = properties.temporary ? "Yes" : "No";
+        temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${temporaryText}</div>`;
+        self.temporary.append(temporaryHeader);
+
+        // Add the information about the description of the label to the Modal.
+        let descriptionText = properties.description === null ? "" : properties.description;
+        let descriptionObject = document.createElement('div');
+        descriptionObject.innerHTML = `<div><b>${i18next.t("description")}</b></div><div>${descriptionText}</div>`;
+        self.description.append(descriptionObject);
     }
 
     /**
-     * Performs the actions needed to open the modal
+     * Performs the actions needed to open the modal.
      */
     function openModal() {
-        resetModal()
-        populateModalDescriptionFields()
-        self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom)
-        self.pano.renderLabel(self.label)
-        self.header.text(i18next.t('gallery.' + properties.label_type))   
+        resetModal();
+        populateModalDescriptionFields();
+        self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
+        self.pano.renderLabel(self.label);
+        self.header.text(i18next.t('gallery.' + properties.label_type));
     }
 
     /**
-     * Updates the local variables to the properties of a new label and creates a 
-     * GalleryPanoramaLabel object that uses the new label properties
+     * Updates the local variables to the properties of a new label and creates a new GalleryPanoramaLabel object.
      * 
      * @param newProps The new properties to push into the Modal
      */
     function updateProperties(newProps) {
-        for (let attrName in newProps) {
-            properties[attrName] = newProps[attrName]
+        for (const attrName in newProps) {
+            if (newProps.hasOwnProperty(attrName)) {
+                properties[attrName] = newProps[attrName];
+            }
         }
         self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type, 
                                               properties.canvas_x, properties.canvas_y, 
                                               properties.canvas_width, properties.canvas_height, 
-                                              properties.heading, properties.pitch, properties.zoom)
+                                              properties.heading, properties.pitch, properties.zoom);
     }
 
     /**
@@ -119,7 +120,7 @@ function Modal(uiModal) {
      * @param {Number} newIndex The new index of the card being displayed 
      */
     function updateCardIndex(newIndex) {
-        updateModalCardByIndex(newIndex)
+        updateModalCardByIndex(newIndex);
     }
 
     /**
@@ -129,18 +130,18 @@ function Modal(uiModal) {
      */
     function updateModalCardByIndex(index) {
         self.cardIndex = index;
-        updateProperties(sg.cardContainer.getCardByIndex(index).getProperties())
-        openModal()
-        let page = sg.cardContainer.getCurrentPage()
+        updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
+        openModal();
+        let page = sg.cardContainer.getCurrentPage();
         if (index > (page - 1) * 9) {
-            self.leftArrow.prop('disabled', false)
+            self.leftArrow.prop('disabled', false);
         } else {
-            self.leftArrow.prop('disabled', true)
+            self.leftArrow.prop('disabled', true);
         }
         if (index < page * 9 - 1) {
-            self.rightArrow.prop('disabled', false)
+            self.rightArrow.prop('disabled', false);
         } else {
-            self.rightArrow.prop('disabled', true)
+            self.rightArrow.prop('disabled', true);
         }
     }
 
@@ -148,7 +149,7 @@ function Modal(uiModal) {
      * Moves to the next label.
      */
     function nextLabel() {
-        let page = sg.cardContainer.getCurrentPage()
+        let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * 9 - 1) {
             updateModalCardByIndex(self.cardIndex + 1);
         }
@@ -158,17 +159,17 @@ function Modal(uiModal) {
      * Moves to the previous label.
      */
     function previousLabel() {
-        let page = sg.cardContainer.getCurrentPage()
+        let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex > (page - 1) * 9) {
             updateModalCardByIndex(self.cardIndex - 1);
         }
     }
 
-    _init()
+    _init();
 
     self.updateProperties = updateProperties;
     self.openModal = openModal;
     self.updateCardIndex = updateCardIndex;
 
-    return self
+    return self;
 }

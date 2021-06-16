@@ -56,8 +56,7 @@ function CardBucket(inputCards) {
     }
 
     /**
-     * Return a copy of this CardBucket. 
-     * This is not a deepcopy (the cards themselves are not copied).
+     * Return a copy of this CardBucket. This is not a deepcopy (the cards themselves are not copied).
      */
     function copy() {
         return new CardBucket([...bucket]);
@@ -78,12 +77,12 @@ function CardBucket(inputCards) {
     }
 
     function getCardByIndex(index) {
-        return bucket[index]
+        return bucket[index];
     }
 
     function findCardIndexByImageId(imageId) {
         for (let i = 0; i < bucket.length; i++) {
-            if (bucket[i].getImageId() == imageId) {
+            if (bucket[i].getImageId() === imageId) {
                 return i;
             }
         }

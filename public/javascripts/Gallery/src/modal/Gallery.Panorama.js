@@ -68,7 +68,13 @@
         self.svHolder.append($(self.panoNotAvailable));
         self.svHolder.append($(self.panoNotAvailableDetails));
 
-        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
+        let panoOptions = {
+            mode: 'html4',
+            showRoadLabels: false,
+            motionTracking: false,
+            motionTrackingControl: false
+        };
+        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, panoOptions) : null;
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
             const currentPano = self.panorama.getPano();
@@ -95,9 +101,6 @@
             self.panorama.set('motionTracking', false);
             self.panorama.set('motionTrackingControl', false);
             self.panorama.set('showRoadLabels', false);
-
-            // Disable moving by clicking if on /labelmap, enable if on admin page.
-            self.panorama.set('clickToGo', false)
         }
 
         return this;
