@@ -588,11 +588,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Get link layer of bottom links
+     * Get link layer of bottom links.
      * @returns {*}
      */
     function getBottomLinkLayer () {
-        var links = $(uiMap.pano.find("a")[5]).parent().parent().parent();
+        var links = $('.gm-style-cc').slice(0, 2);
         return links;
     }
 
