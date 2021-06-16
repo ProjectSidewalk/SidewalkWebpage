@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.ow2.asm"
 		module="asm-parent"
 		revision="4.1"
@@ -18,6 +18,7 @@
 		<m:dependency.management__org.ow2.asm__asm-xml__version>4.1</m:dependency.management__org.ow2.asm__asm-xml__version>
 		<m:dependency.management__org.ow2.asm__asm-util__version>4.1</m:dependency.management__org.ow2.asm__asm-util__version>
 		<m:properties__ow2DistMgmtReleasesUrl>http://repository.ow2.org/nexus/service/local/staging/deploy/maven2</m:properties__ow2DistMgmtReleasesUrl>
+		<e:sbtTransformHash>cdeb7a9c3c8a8f43b1fa5e31bea3088475b5921f</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1|org.apache.maven.plugins__maven-enforcer-plugin__1.0-beta-1</m:maven.plugins>
 		<m:dependency.management__org.ow2.asm__asm-tree__version>4.1</m:dependency.management__org.ow2.asm__asm-tree__version>

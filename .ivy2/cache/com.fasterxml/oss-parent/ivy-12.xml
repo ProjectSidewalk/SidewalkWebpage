@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.fasterxml"
 		module="oss-parent"
 		revision="12"
@@ -26,6 +26,7 @@
 		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
 		<m:properties__javac.target.version>1.6</m:properties__javac.target.version>
 		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>d10ad4ad845ea1723ba213e103ea63940b92f6ab</e:sbtTransformHash>
 		<m:properties__osgi.import>*</m:properties__osgi.import>
 		<m:properties__replacer.version>1.5.2</m:properties__replacer.version>
 		<m:properties__bundle.version>2.3.7</m:properties__bundle.version>

@@ -15,8 +15,9 @@ function Card (params, imageUrl) {
     let validationMenu = null;
 
     // The width-height ratio for the card
-
     let widthHeightRatio = (4/3);
+
+    let imageId = null;
 
     // Properties of the label in the card.
     let properties = {
@@ -57,11 +58,9 @@ function Card (params, imageUrl) {
     let width = 360;
 
     let imageDim = {
-        w:0,
-        h:0
-    }
-
-    // Icon for label.
+        w: 0,
+        h: 0
+    };
     const labelIcon = new Image();
 
     // The static pano image.
@@ -73,49 +72,64 @@ function Card (params, imageUrl) {
      * @param {*} param Label properties.
      */
     function _init (param) {
-        for (let attrName in param) {
-            properties[attrName] = param[attrName];
+        for (const attrName in param) {
+            if (param.hasOwnProperty(attrName)) {
+                properties[attrName] = param[attrName];
+            }
         }
 
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.className = "label-icon";
-        let iconCoords = getIconCoords();
+        let iconCoords = getIconPercent();
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
 
-        let imageId = "label_id_" + properties.label_id;
+        // Create an element for the image in the card.
+        imageId = "label_id_" + properties.label_id;
         panoImage.id = imageId;
         panoImage.className = "static-gallery-image";
 
-        // Clean up ternary operators with constants?
-        let severityHeader = properties.severity ? properties.severity :
-                                                   getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
-        let tagHeader = properties.tags.length > 0 ? properties.tags.map(t => i18next.t('tag.' + t)).join(", ") : 
-                                                     getLabelType() === "Occlusion" ? i18next.t('gallery:not-applicable') : i18next.t('gallery:none');
-
-        const cardHtml = `
-            <p class="label-severity"><b>${i18next.t('severity')}</b> ${severityHeader}</p>
-            <p class="label-tags"><b>${i18next.t('tags')}</b> ${tagHeader}</p>
-        `;
-
+        // Create the container card.
         card = document.createElement('div');
         card.className = "gallery-card";
-        card.innerHTML = cardHtml;
+        let imageHolder = document.createElement('div');
+        card.appendChild(imageHolder);
+        // Create the div for the label type of the card and the icon.
+        let cardHeader = document.createElement('div');
+        cardHeader.className = 'card-header';
+        cardHeader.innerHTML = `<img class="label-icon" src=${iconImagePaths[getLabelType()]}> <div>${i18next.t('gallery.' + getLabelType())}</div>`;
+        card.appendChild(cardHeader);
 
-        card.prepend(panoImage);
-        card.appendChild(labelIcon);
+        // Create the div for the severity and tags information.
+        let cardInfo = document.createElement('div');
+        cardInfo.className = 'card-info';
+        // Create the div to store the severity of the label.
+        let cardSeverity = document.createElement('div');
+        cardSeverity.className = 'card-severity';
+        let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);
+        cardInfo.appendChild(cardSeverity);
+        // Create the div to store the tags related to a card. Tags won't be populated until card is added to the DOM.
+        let cardTags = document.createElement('div');
+        cardTags.className = 'card-tags';
+        cardTags.innerHTML = `<div class="label-tags-header"></div>`;
+        cardTags.id = properties.label_id;
+        cardInfo.appendChild(cardTags);
 
-        validationMenu = new ValidationMenu(card, properties);
+        // Append the overlays for label information on top of the image.
+        imageHolder.appendChild(cardInfo);
+        imageHolder.appendChild(labelIcon);
+        imageHolder.appendChild(panoImage);
+        validationMenu = new ValidationMenu(imageHolder, properties);
     }
 
     /**
      * Return object with label coords on static image.
      */
-    function getIconCoords () {
+    function getIconPercent () {
         return {
-            x: imageDim.w * properties.canvas_x / properties.canvas_width,
-            y: imageDim.h * properties.canvas_y / properties.canvas_height
+            x: 100 * properties.canvas_x / (properties.canvas_width),
+            y: 100 * properties.canvas_y / (properties.canvas_height)
         };
     }
 
@@ -126,14 +140,12 @@ function Card (params, imageUrl) {
      */
     function updateWidth(w) {
         width = w;
-        card.style.width = w + "px";
-
         imageDim.w = w - 10;
         imageDim.h = imageDim.w / widthHeightRatio;       
 
-        let iconCoords = getIconCoords();
-        labelIcon.style.left = iconCoords.x + "px";
-        labelIcon.style.top = iconCoords.y + "px";
+        let iconCoords = getIconPercent();
+        labelIcon.style.left = iconCoords.x + "%";
+        labelIcon.style.top = iconCoords.y + "%";
     }
 
     /**
@@ -155,9 +167,7 @@ function Card (params, imageUrl) {
     }
 
     /**
-     * Return the deep copy of the properties object,
-     * so the caller can only modify properties from
-     * setProperty().
+     * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
      * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
@@ -188,9 +198,7 @@ function Card (params, imageUrl) {
                 img.onload = () => {
                     status.imageFetched = true;
                     resolve(true);
-                    //cardContainer.append(card);
                 };
-    
                 img.src = imageUrl;
             } else {
                 resolve(true);
@@ -217,6 +225,15 @@ function Card (params, imageUrl) {
     function renderSize(cardContainer, width) {
         updateWidth(width);
         render(cardContainer);
+        renderTags();
+    }
+
+    /**
+     * Renders the tags on the card when the card is loaded onto on the DOM.
+     */
+    function renderTags() {
+        let selector = ".card-tags#" + properties.label_id;
+        let tagContent = new TagDisplay(selector, properties.tags);
     }
 
     /**
@@ -245,6 +262,14 @@ function Card (params, imageUrl) {
         }
     }
 
+    /**
+     * Returns the current ImageID being displayed in the image.
+     * @returns the image ID of the card that is being displayed
+     */
+    function getImageId() {
+        return imageId
+    }
+
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;
@@ -255,6 +280,7 @@ function Card (params, imageUrl) {
     self.renderSize = renderSize;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
+    self.getImageId = getImageId;
 
     _init(params);
     return this;

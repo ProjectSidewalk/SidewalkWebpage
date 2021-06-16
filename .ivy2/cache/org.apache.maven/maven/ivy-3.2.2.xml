@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.maven"
 		module="maven"
 		revision="3.2.2"
 		status="release"
 		publication="20140617135015"
 	>
+		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://maven.apache.org/ref/${project.version}">
 		Maven is a software build management and
     comprehension tool. Based on the concept of a project object model:
@@ -65,6 +66,7 @@
 		<m:dependency.management__org.codehaus.plexus__plexus-utils__version>3.0.17</m:dependency.management__org.codehaus.plexus__plexus-utils__version>
 		<m:dependency.management__commons-cli__commons-cli__exclusion_0>commons-lang__commons-lang</m:dependency.management__commons-cli__commons-cli__exclusion_0>
 		<m:dependency.management__org.apache.maven__maven-settings-builder__version>3.2.2</m:dependency.management__org.apache.maven__maven-settings-builder__version>
+		<e:sbtTransformHash>9f62091f18ac31ba006c4e29aec6061714db0749</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
 		<m:properties__maven.site.cache>${user.home}/maven-sites</m:properties__maven.site.cache>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-enforcer-plugin__null|org.codehaus.mojo__animal-sniffer-maven-plugin__1.10|null__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-doap-plugin__1.1|org.apache.rat__apache-rat-plugin__null</m:maven.plugins>
@@ -106,43 +108,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.apache.maven.plugin-tools" module="maven-plugin-annotations" matcher="exact" rev="3.2"/>
-		<override org="org.codehaus.plexus" module="plexus-component-annotations" matcher="exact" rev="1.5.5"/>
-		<override org="org.apache.maven" module="maven-model" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-settings" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-settings-builder" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-plugin-api" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-embedder" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-core" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-model-builder" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-compat" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-artifact" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-aether-provider" matcher="exact" rev="3.2.2"/>
-		<override org="org.apache.maven" module="maven-repository-metadata" matcher="exact" rev="3.2.2"/>
-		<override org="org.codehaus.plexus" module="plexus-utils" matcher="exact" rev="3.0.17"/>
-		<override org="com.google.guava" module="guava" matcher="exact" rev="14.0.1"/>
-		<override org="org.sonatype.sisu" module="sisu-guice" matcher="exact" rev="3.1.3"/>
-		<override org="org.sonatype.sisu" module="sisu-guice" matcher="exact" rev="3.1.3"/>
-		<override org="org.eclipse.sisu" module="org.eclipse.sisu.plexus" matcher="exact" rev="0.0.0.M5"/>
-		<override org="org.codehaus.plexus" module="plexus-component-annotations" matcher="exact" rev="1.5.5"/>
-		<override org="org.codehaus.plexus" module="plexus-classworlds" matcher="exact" rev="2.5.1"/>
-		<override org="org.codehaus.plexus" module="plexus-interpolation" matcher="exact" rev="1.19"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.7.5"/>
-		<override org="org.slf4j" module="slf4j-simple" matcher="exact" rev="1.7.5"/>
-		<override org="ch.qos.logback" module="logback-classic" matcher="exact" rev="1.0.7"/>
-		<override org="org.apache.maven.wagon" module="wagon-provider-api" matcher="exact" rev="2.6"/>
-		<override org="org.apache.maven.wagon" module="wagon-file" matcher="exact" rev="2.6"/>
-		<override org="org.apache.maven.wagon" module="wagon-http" matcher="exact" rev="2.6"/>
-		<override org="org.eclipse.aether" module="aether-api" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-spi" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-impl" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-util" matcher="exact" rev="0.9.0.M2"/>
-		<override org="org.eclipse.aether" module="aether-connector-wagon" matcher="exact" rev="0.9.0.M2"/>
-		<override org="commons-cli" module="commons-cli" matcher="exact" rev="1.2"/>
-		<override org="commons-jxpath" module="commons-jxpath" matcher="exact" rev="1.3"/>
-		<override org="org.sonatype.plexus" module="plexus-sec-dispatcher" matcher="exact" rev="1.3"/>
-		<override org="org.sonatype.plexus" module="plexus-cipher" matcher="exact" rev="1.7"/>
-		<override org="easymock" module="easymock" matcher="exact" rev="1.2_Java1.3"/>
+		<dependency org="junit" name="junit" rev="3.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

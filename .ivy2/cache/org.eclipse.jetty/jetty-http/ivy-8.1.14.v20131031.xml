@@ -1,36 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.eclipse.jetty"
 		module="jetty-http"
 		revision="8.1.14.v20131031"
 		status="release"
 		publication="20131031153713"
 	>
+		<license name="Apache Software License - Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
+		<license name="Eclipse Public License - Version 1.0" url="http://www.eclipse.org/org/documents/epl-v10.php" />
 		<description homepage="http://www.eclipse.org/jetty" />
 		<m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>2.5</m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>
 		<m:properties__jetty-test-policy-version>1.2</m:properties__jetty-test-policy-version>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.activation__version>1.1.0.v201105071233</m:dependency.management__org.eclipse.jetty.orbit__javax.activation__version>
+		<m:properties__build-support-version>1.1</m:properties__build-support-version>
+		<m:dependency.management__org.slf4j__log4j-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__log4j-over-slf4j__version>
+		<m:properties__jetty.url>http://www.eclipse.org/jetty</m:properties__jetty.url>
+		<e:sbtTransformHash>4ccbb1a948694a150b501cfb3b37e78235d144a9</e:sbtTransformHash>
+		<m:maven.plugins>org.apache.maven.plugins__maven-release-plugin__null|org.apache.maven.plugins__maven-release-plugin__null|null__maven-compiler-plugin__null|null__maven-release-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.eclipse.jetty.toolchain__jetty-version-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-pmd-plugin__null|com.mycila.maven-license-plugin__maven-license-plugin__1.10.b1|org.apache.maven.plugins__maven-release-plugin__null|org.apache.maven.plugins__maven-release-plugin__null|null__maven-compiler-plugin__null|null__maven-release-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.eclipse.jetty.toolchain__jetty-version-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-pmd-plugin__null|com.mycila.maven-license-plugin__maven-license-plugin__1.10.b1|org.apache.felix__maven-bundle-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.codehaus.mojo__findbugs-maven-plugin__null</m:maven.plugins>
+		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.1</m:dependency.management__org.slf4j__slf4j-api__version>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.security.auth.message__version>1.0.0.v201108011116</m:dependency.management__org.eclipse.jetty.orbit__javax.security.auth.message__version>
 		<m:properties__bundle-symbolic-name>${project.groupId}.http</m:properties__bundle-symbolic-name>
 		<m:properties__slf4j-version>1.6.1</m:properties__slf4j-version>
-		<m:dependency.management__org.eclipse.jetty.orbit__javax.activation__version>1.1.0.v201105071233</m:dependency.management__org.eclipse.jetty.orbit__javax.activation__version>
 		<m:dependency.management__org.hamcrest__hamcrest-library__version>1.3</m:dependency.management__org.hamcrest__hamcrest-library__version>
 		<m:dependency.management__org.eclipse.jetty.orbit__org.objectweb.asm__version>3.1.0.v200803061910</m:dependency.management__org.eclipse.jetty.orbit__org.objectweb.asm__version>
 		<m:dependency.management__org.mockito__mockito-core__version>1.9.5</m:dependency.management__org.mockito__mockito-core__version>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:dependency.management__org.hamcrest__hamcrest-core__version>1.3</m:dependency.management__org.hamcrest__hamcrest-core__version>
 		<m:dependency.management__org.slf4j__jcl104-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jcl104-over-slf4j__version>
-		<m:properties__build-support-version>1.1</m:properties__build-support-version>
-		<m:dependency.management__org.slf4j__log4j-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__log4j-over-slf4j__version>
 		<m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>2.0</m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>
-		<m:properties__jetty.url>http://www.eclipse.org/jetty</m:properties__jetty.url>
 		<m:dependency.management__org.eclipse.jetty.orbit__javax.transaction__version>1.1.1.v201105210645</m:dependency.management__org.eclipse.jetty.orbit__javax.transaction__version>
 		<m:dependency.management__org.eclipse.jetty.orbit__javax.servlet__version>3.0.0.v201112011016</m:dependency.management__org.eclipse.jetty.orbit__javax.servlet__version>
 		<m:dependency.management__org.eclipse.jetty.orbit__javax.annotation__version>1.1.0.v201108011116</m:dependency.management__org.eclipse.jetty.orbit__javax.annotation__version>
 		<m:properties__orbit-servlet-api-version>3.0.0.v201112011016</m:properties__orbit-servlet-api-version>
-		<m:maven.plugins>org.apache.maven.plugins__maven-release-plugin__null|org.apache.maven.plugins__maven-release-plugin__null|null__maven-compiler-plugin__null|null__maven-release-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.eclipse.jetty.toolchain__jetty-version-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-pmd-plugin__null|com.mycila.maven-license-plugin__maven-license-plugin__1.10.b1|org.apache.maven.plugins__maven-release-plugin__null|org.apache.maven.plugins__maven-release-plugin__null|null__maven-compiler-plugin__null|null__maven-release-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.eclipse.jetty.toolchain__jetty-version-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-pmd-plugin__null|com.mycila.maven-license-plugin__maven-license-plugin__1.10.b1|org.apache.felix__maven-bundle-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.codehaus.mojo__findbugs-maven-plugin__null</m:maven.plugins>
 		<m:dependency.management__org.eclipse.jetty.orbit__javax.mail.glassfish__version>1.4.1.v201005082020</m:dependency.management__org.eclipse.jetty.orbit__javax.mail.glassfish__version>
-		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.1</m:dependency.management__org.slf4j__slf4j-api__version>
-		<m:dependency.management__org.eclipse.jetty.orbit__javax.security.auth.message__version>1.0.0.v201108011116</m:dependency.management__org.eclipse.jetty.orbit__javax.security.auth.message__version>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -48,24 +51,8 @@
 		<artifact name="jetty-http" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.eclipse.jetty" name="jetty-io" rev="8.1.14.v20131031" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.eclipse.jetty.orbit" name="javax.servlet" rev="3.0.0.v201112011016" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.servlet" matcher="exact" rev="3.0.0.v201112011016"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.annotation" matcher="exact" rev="1.1.0.v201108011116"/>
-		<override org="org.hamcrest" module="hamcrest-core" matcher="exact" rev="1.3"/>
-		<override org="org.hamcrest" module="hamcrest-library" matcher="exact" rev="1.3"/>
-		<override org="org.apache.maven" module="maven-plugin-tools-api" matcher="exact" rev="2.0"/>
-		<override org="org.eclipse.jetty.toolchain" module="jetty-test-helper" matcher="exact" rev="2.5"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.transaction" matcher="exact" rev="1.1.1.v201105210645"/>
-		<override org="org.eclipse.jetty.orbit" module="org.objectweb.asm" matcher="exact" rev="3.1.0.v200803061910"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.11"/>
-		<override org="org.slf4j" module="jcl104-over-slf4j" matcher="exact" rev="1.6.1"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.security.auth.message" matcher="exact" rev="1.0.0.v201108011116"/>
-		<override org="org.slf4j" module="log4j-over-slf4j" matcher="exact" rev="1.6.1"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.activation" matcher="exact" rev="1.1.0.v201105071233"/>
-		<override org="org.eclipse.jetty.orbit" module="javax.mail.glassfish" matcher="exact" rev="1.4.1.v201005082020"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.6.1"/>
-		<override org="org.mockito" module="mockito-core" matcher="exact" rev="1.9.5"/>
+		<dependency org="org.eclipse.jetty" name="jetty-io" rev="8.1.14.v20131031" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.eclipse.jetty.orbit" name="javax.servlet" rev="3.0.0.v201112011016" force="true" conf="provided->compile(*),provided(*),runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

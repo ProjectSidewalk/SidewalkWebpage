@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache"
 		module="apache"
 		revision="3"
@@ -14,6 +14,7 @@
     We consider ourselves not simply a group of projects sharing a server, but rather a community of developers
     and users.
 		</description>
+		<e:sbtTransformHash>9ca6cccf1bc71af0e325120e7a531ceff8d459ab</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.commons"
 		module="commons-exec"
 		revision="1.1"
 		status="release"
 		publication="20101019211142"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://commons.apache.org/exec/">
 		A library to reliably execute external processes from within the JVM
 		</description>
@@ -15,6 +16,7 @@
 		<m:properties__commons.compiler.fork>false</m:properties__commons.compiler.fork>
 		<m:properties__commons.jira.pid>12310814</m:properties__commons.jira.pid>
 		<m:properties__commons.binary.suffix>-bin</m:properties__commons.binary.suffix>
+		<e:sbtTransformHash>89049f736cb3cc68d0033ee8e3dd69df8cb9fd69</e:sbtTransformHash>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-compiler-plugin__null|null__maven-surefire-plugin__null|null__maven-jar-plugin__null|org.apache.felix__maven-bundle-plugin__null|null__maven-idea-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-compiler-plugin__null|null__maven-surefire-plugin__null|null__maven-jar-plugin__null|org.apache.felix__maven-bundle-plugin__null|null__maven-idea-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|null__maven-assembly-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-release-plugin__2.0</m:maven.plugins>
 		<m:properties__commons.jira.id>EXEC</m:properties__commons.jira.id>
 		<m:properties__commons.encoding>iso-8859-1</m:properties__commons.encoding>
@@ -54,6 +56,6 @@
 		<artifact name="commons-exec" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="3.8.1" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="3.8.1" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

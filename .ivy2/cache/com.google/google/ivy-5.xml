@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.google"
 		module="google"
 		revision="5"
@@ -10,6 +10,7 @@
 		<description homepage="http://code.google.com/">
 		Internally developed code released as open source.
 		</description>
+		<e:sbtTransformHash>fb750102bb016c7253af9fb2a72bccd3c86e4612</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

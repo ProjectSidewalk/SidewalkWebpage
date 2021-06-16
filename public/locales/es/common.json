@@ -27,8 +27,10 @@
     "add-comment": "Agrega un comentario aquí...",
     "submit": "Enviar comentario"
   },
-  "severity": "Calificación: ",
-  "tags": "Etiquitas: ",
+  "severity": "Calificación ",
+  "tags": "Etiquitas ",
+  "temporary": "Temporal",
+  "description" : "Descripción",
   "tag": {
     "narrow": "muy angosta",
     "points into traffic": "orientada hacia el tráfico",
@@ -66,5 +68,14 @@
     "height difference": "desnivel",
     "missing crosswalk": "paso peatonal ausente (i)",
     "no bus stop access": "No hay acceso a la parada de autobús"
+  },
+  "gallery": {
+    "CurbRamp": "Rampa peatonal",
+    "NoCurbRamp": "Rampa peatonal ausente",
+    "Obstacle": "Obstáculo en la banqueta",
+    "SurfaceProblem": "Problema en superficie",
+    "Occlusion": "No puedo ver la banqueta",
+    "NoSidewalk" : "No hay banqueta",
+    "Other": "Otro"
   }
 }

@@ -64,7 +64,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
             validateLabel("NotSure");
         });
 
-        uiCardImage.appendChild(overlay[0]);
+        uiCardImage.append(overlay[0]);
     }
 
     /**

@@ -86,15 +86,15 @@
                                     for the returned dataset. Severity can be an integer value from 1-5 or
                                     "none" to represent data without a severity rating. You can pass a 
                                     filetype that can be a string "csv" to represent data returned in
-                                    CSV format or "geojson" for the GeoJSON format. The GeoJSON format
-                                    is returned by default.</dd>
+                                    CSV format, "geojson" for the GeoJSON format, or "shapefile" for the ShapeFile format.
+                                    The GeoJSON format is returned by default.</dd>
                             </dl>
                             <ul>
                                 <li>
                                     <code>severity=[int|string]</code><br />
                                 </li>
                                 <li>
-                                    <code>filetype=[string]</code><br />
+                                    <code>filetype=csv|shapefile|geojson</code><br />
                                 </li>
                             </ul>
                         </td>
@@ -128,6 +128,9 @@
                             </a><br>
                             <a id="attributes-link-CSV" target="_blank" href=''>
                                 <code id="attributes-code-CSV"></code>
+                            </a>
+                            <a id="attributes-link-shapefile" target="_blank" href=''>
+                                <code id="attributes-code-shapefile"></code>
                             </a>
                         </td>
                     </tr>
@@ -184,12 +187,12 @@
                             <dl>
                                 <dt>Optional:</dt>
                                 <dd>You can pass a filetype that can be a string "csv" to represent data
-                                    returned in CSV format or "geojson" for the GeoJSON format. The GeoJSON
-                                    format is returned by default.</dd>
+                                    returned in CSV format, "geojson" for the GeoJSON format, or "shapefile" for the
+                                    ShapeFile format. The GeoJSON format is returned by default.</dd>
                             </dl>
                             <ul>
                                 <li>
-                                    <code>filetype=csv|geojson</code><br />
+                                    <code>filetype=csv|shapefile|geojson</code><br />
                                 </li>
                             </ul>
                         </td>
@@ -215,6 +218,9 @@
                             </a><br>
                             <a id="streets-link-CSV" target="_blank">
                                 <code id="streets-code-CSV"></code>
+                            </a>
+                            <a id="streets-link-shapefile" target="_blank">
+                                <code id="streets-code-shapefile"></code>
                             </a>
                         </td>
                     </tr>
@@ -252,7 +258,8 @@
                             <dl>
                                 <dt>Required:</dt>
                                 <dd>You can pass a filetype that can be a string "csv" to represent data
-                                    returned in CSV format instead of the GeoJSON format returned by default.</dd>
+                                    returned in CSV format, or "shapefile" to represent data returned in the ShapeFile
+                                    format instead of the GeoJSON format returned by default.</dd>
                             </dl>
                             <ul>
                                 <li>
@@ -271,12 +278,12 @@
                             <dl>
                                 <dt>Optional:</dt>
                                 <dd>You can pass a filetype that can be a string "csv" to represent data
-                                    returned in CSV format or "geojson" for the GeoJSON format. The GeoJSON
-                                    format is returned by default.</dd>
+                                    returned in CSV format, "geojson" for the GeoJSON format, or "shapefile" for the ShapeFile
+                                    format. The GeoJSON format is returned by default.</dd>
                             </dl>
                             <ul>
                                 <li>
-                                    <code>filetype=csv|geojson</code><br />
+                                    <code>filetype=csv|shapefile|geojson</code><br />
                                 </li>
                             </ul>
                         </td>
@@ -302,6 +309,9 @@
                             </a><br>
                             <a id="regions-link-CSV" target="_blank">
                                 <code id="regions-code-CSV"></code>
+                            </a>
+                            <a id="regions-link-shapefile" target="_blank">
+                                <code id="regions-code-shapefile"></code>
                             </a>
                         </td>
                     </tr>

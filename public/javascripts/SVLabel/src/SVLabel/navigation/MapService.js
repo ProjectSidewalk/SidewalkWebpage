@@ -145,7 +145,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         streetViewControl:true,
         zoomControl:false,
         zoom: 18,
-        backgroundColor: "none"
+        backgroundColor: "none",
+        disableDefaultUI: true
     };
 
     var mapCanvas = document.getElementById("google-maps");

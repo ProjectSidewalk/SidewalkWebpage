@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="javax.transaction"
 		module="jta"
 		revision="1.1"
@@ -9,6 +9,7 @@
 		<description homepage="http://java.sun.com/products/jta">
 		The javax.transaction package. It is appropriate for inclusion in a classpath, and may be added to a Java 2 installation.
 		</description>
+		<e:sbtTransformHash>5b7452d763e320b047fffbbd2e23ac7d6950adfa</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

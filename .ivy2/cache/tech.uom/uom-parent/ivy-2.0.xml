@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="tech.uom"
+		module="uom-parent"
+		revision="2.0"
+		status="release"
+		publication="20190707204537"
+	>
+		<license name="BSD" url="http://opensource.org/licenses/BSD-3-Clause" />
+		<description homepage="http://unitsofmeasurement.github.io/">
+		Units of Measurement Project Parent POM
+		</description>
+		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
+		<m:properties__project.reporting.outputEncoding>${sourceEncoding}</m:properties__project.reporting.outputEncoding>
+		<m:properties__junit.jupiter.version>5.5.0</m:properties__junit.jupiter.version>
+		<m:properties__slf4j.version>1.7.26</m:properties__slf4j.version>
+		<m:properties__jsr.version>2.0</m:properties__jsr.version>
+		<m:properties__jacoco.plugin.version>0.8.3</m:properties__jacoco.plugin.version>
+		<m:properties__maven-site.version>3.6</m:properties__maven-site.version>
+		<m:properties__project.build.sourceEncoding>${sourceEncoding}</m:properties__project.build.sourceEncoding>
+		<m:properties__junit.version>4.12</m:properties__junit.version>
+		<m:dependency.management__javax.measure__unit-api__version>2.0</m:dependency.management__javax.measure__unit-api__version>
+		<m:properties__maven-compiler.version>3.8.1</m:properties__maven-compiler.version>
+		<e:sbtTransformHash>15b3a4de520691edcdf6b9346fbae5472a5ce75a</e:sbtTransformHash>
+		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2</m:maven.plugins>
+		<m:properties__sourceEncoding>UTF-8</m:properties__sourceEncoding>
+		<m:properties__proj.version>${project.version}</m:properties__proj.version>
+		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+	</publications>
+</ivy-module>

@@ -27,8 +27,10 @@
     "add-comment": "Add comment here...",
     "submit": "Submit comment"
   },
-  "severity": "Severity: ",
-  "tags": "Tags: ",
+  "severity": "Severity",
+  "tags": "Tags",
+  "temporary": "Temporary",
+  "description" : "Description",
   "tag": {
     "narrow": "narrow",
     "points into traffic": "points into traffic",
@@ -66,5 +68,14 @@
     "height difference": "height difference",
     "missing crosswalk": "missing crosswalk",
     "no bus stop access": "no bus stop access"
+  },
+  "gallery": {
+    "CurbRamp": "Curb Ramp",
+    "NoCurbRamp": "Missing Curb Ramp",
+    "Obstacle": "Obstacle in Path",
+    "SurfaceProblem": "Surface Problem",
+    "Occlusion": "Can't See Sidewalk",
+    "NoSidewalk" : "No Sidewalk",
+    "Other": "Other"
   }
 }
