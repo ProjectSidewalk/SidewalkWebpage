@@ -11,7 +11,7 @@ function CardBucket(inputCards) {
     /**
      * Add a Card to bucket.
      * 
-     * @param {*} card Card to add.
+     * @param {Card} card Card to add.
      */
     function push(card) {
         bucket.push(card);
@@ -56,11 +56,37 @@ function CardBucket(inputCards) {
     }
 
     /**
-     * Return a copy of this CardBucket. 
-     * This is not a deepcopy (the cards themselves are not copied).
+     * Return a copy of this CardBucket. This is not a deepcopy (the cards themselves are not copied).
      */
     function copy() {
         return new CardBucket([...bucket]);
+    }
+    
+    /**
+     * Gets the card that has the matching imageId.
+     * 
+     * @param {String} imageId the id to search for.
+     * @returns {Card} The card in the card bucket that contains the imageId.
+     */
+    function findCardByImageId(imageId) {
+        let index = findCardIndexByImageId(imageId);
+        if (index === -1) {
+            return undefined;
+        }
+        return bucket[index];
+    }
+
+    function getCardByIndex(index) {
+        return bucket[index];
+    }
+
+    function findCardIndexByImageId(imageId) {
+        for (let i = 0; i < bucket.length; i++) {
+            if (bucket[i].getImageId() === imageId) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     self.push = push;
@@ -69,6 +95,9 @@ function CardBucket(inputCards) {
     self.getCards = getCards;
     self.getSize = getSize;
     self.copy = copy;
+    self.findCardByImageId = findCardByImageId;
+    self.findCardIndexByImageId = findCardIndexByImageId;
+    self.getCardByIndex = getCardByIndex;
 
     return this;
 }

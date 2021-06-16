@@ -1,6 +1,5 @@
 /**
- * Card Container module. 
- * This is responsible for managing the Card objects that are to be rendered.
+ * Card Container module. This is responsible for managing the Card objects that are to be rendered.
  * 
  * @param {*} uiCardContainer UI element tied with this CardContainer.
  * @returns {CardContainer}
@@ -12,13 +11,8 @@ function CardContainer(uiCardContainer) {
     // The number of labels to grab from database on initial page load.
     const initialLoad = 30;
 
-    // The number of cards to be shown on a page.
     const cardsPerPage = 9;
-
-    // The number of cards per line.
     const cardsPerLine = 3;
-
-    // Pading between cards.
     const cardPadding = 25;
 
     // TODO: Possibly remove if any type of sorting is no longer wanted.
@@ -40,13 +34,10 @@ function CardContainer(uiCardContainer) {
 
     // Current label type of cards being shown.
     let currentLabelType = 'Assorted';
-
     let currentPage = 1;
-
     let pageNumberDisplay = null;
-
-    let pagewidth;
-
+    let pageWidth;
+    let modal;
     // Map Cards to a CardBucket containing Cards of their label type.
     let cardsByType = {
         Assorted: new CardBucket(),
@@ -66,22 +57,22 @@ function CardContainer(uiCardContainer) {
     let currentCards = new CardBucket();
 
     function _init() {
-        pagewidth = uiCardContainer.holder.width();
+        pageWidth = uiCardContainer.holder.width();
 
         // Bind click actions to the forward/backward paging buttons.
         if (uiCardContainer) {
             uiCardContainer.nextPage.bind({
                 click: handleNextPageClick
-            })
+            });
             uiCardContainer.prevPage.bind({
                 click: handlePrevPageClick
-            })
+            });
         }
 
         pageNumberDisplay = document.createElement('h2');
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
-        $("#page-control").hide();
+        $(".page-control").hide();
         sg.tagContainer.disable();
         $("#prev-page").prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
@@ -91,6 +82,47 @@ function CardContainer(uiCardContainer) {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
+        // Creates the Modal object in the DOM element currently present.
+        modal = new Modal($('.gallery-modal'));
+        // Add the click event for opening the Modal when a card is clicked.
+        $("#image-card-container").on('click', '.static-gallery-image',  (event) => {
+            $('.gallery-modal').attr('style', 'display: flex');
+            $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
+            const cardId = event.target.id;
+            modal.updateProperties(findCard(cardId).getProperties());
+            modal.updateCardIndex(findCardIndex(cardId));
+            modal.openModal();
+        });
+    }
+
+    /**
+     * Find the card which contains the image with the same imageID as supplied.
+     * 
+     * @param {String} id The id of the image Id to find
+     * @returns {Card} finds the matching card and returns it
+     */
+    function findCard(id) {
+        return currentCards.findCardByImageId(id);
+    }
+
+    /**
+     * Returns the index of a card in the current CardBucket in use. 
+     * 
+     * @param {String} id The id of the image Id to find
+     * @returns {Number} the index of the matching card in the current CardBucket
+     */
+    function findCardIndex(id) {
+        return currentCards.findCardIndexByImageId(id);
+    }
+
+    /**
+     * Gets a card from the current CardBucket given an index.
+     * 
+     * @param {Number} index the index of the card to find
+     * @returns {Card} the Card that has the matching index in the current CardBucket
+     */
+    function getCardByIndex(index) {
+        return currentCards.getCardByIndex(index);
     }
 
     function handleNextPageClick() {
@@ -134,10 +166,10 @@ function CardContainer(uiCardContainer) {
     function fetchLabelsByType(labelTypeId, n, loadedLabels, callback) {
         $.getJSON("/label/labelsByType", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels)}, function (data) {
             if ("labelsOfType" in data) {
-                let labels = data.labelsOfType,
-                    card,
-                    i = 0,
-                    len = labels.length;
+                let labels = data.labelsOfType
+                let card;
+                let i = 0;
+                let len = labels.length;
                 for (; i < len; i++) {
                     let labelProp = labels[i];
                     if ("label" in labelProp && "imageUrl" in labelProp) {
@@ -146,7 +178,6 @@ function CardContainer(uiCardContainer) {
                         loadedLabelIds.add(card.getLabelId());
                     }
                 }
-
                 if (callback) callback();
             }
         });
@@ -166,19 +197,18 @@ function CardContainer(uiCardContainer) {
     function fetchLabelsBySeverityAndTags(labelTypeId, n, loadedLabels, severities, tags, callback) {
         $.getJSON("/label/labelsBySeveritiesAndTags", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels), severities: JSON.stringify(severities), tags: JSON.stringify(tags) }, function (data) {
             if ("labelsOfType" in data) {
-                let labels = data.labelsOfType,
-                    card,
-                    i = 0,
-                    len = labels.length;
+                let labels = data.labelsOfType
+                let card;
+                let i = 0;
+                let len = labels.length;
                 for (; i < len; i++) {
                     let labelProp = labels[i];
                     if ("label" in labelProp && "imageUrl" in labelProp) {
                         card = new Card(labelProp.label, labelProp.imageUrl);
-                        self.push(card)
+                        self.push(card);
                         loadedLabelIds.add(card.getLabelId());
                     }
                 }
-
                 if (callback) callback();
             }
         });
@@ -218,7 +248,7 @@ function CardContainer(uiCardContainer) {
         if (currentLabelType !== filterLabelType) {
             // Reset back to the first page.
             setPage(1);
-            sg.tagContainer.unapplyTags(currentLabelType)
+            sg.tagContainer.unapplyTags(currentLabelType);
             currentLabelType = filterLabelType;
 
             fetchLabelsByType(labelTypeIds[filterLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
@@ -237,7 +267,6 @@ function CardContainer(uiCardContainer) {
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
-
         let appliedSeverities = sg.tagContainer.getAppliedSeverities();
 
         currentCards = cardsByType[currentLabelType].copy();
@@ -319,13 +348,12 @@ function CardContainer(uiCardContainer) {
      */
     function render() {
         $("#page-loading").show();
-        $("#page-control").hide();
+        $(".page-control").hide();
          
-        // TODO: should we try to just empty in the render method? Or assume it's 
-        // already been emptied in a method utilizing render?
+        // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
         clearCardContainer(uiCardContainer.holder);
-        pagewidth = uiCardContainer.holder.width();
-        const cardWidth = pagewidth/cardsPerLine - cardPadding;
+        pageWidth = uiCardContainer.holder.width();
+        const cardWidth = pageWidth/cardsPerLine - cardPadding;
 
         let idx = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
@@ -349,9 +377,9 @@ function CardContainer(uiCardContainer) {
 
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
-                imagesToLoad.forEach(card => card.renderSize(uiCardContainer.holder, cardWidth));
+                imagesToLoad.forEach((card) => {card.renderSize(uiCardContainer.holder, cardWidth)});
                 $("#page-loading").hide();
-                $("#page-control").show();
+                $(".page-control").show();
                 sg.tagContainer.enable();
                 $("#label-select").prop("disabled", false);
             });
@@ -372,7 +400,7 @@ function CardContainer(uiCardContainer) {
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
         $("#page-loading").show();
-        $("#page-control").hide();
+        $(".page-control").hide();
         clearCardContainer(uiCardContainer.holder);
     }
 
@@ -401,7 +429,7 @@ function CardContainer(uiCardContainer) {
      * Flush all Cards from cardsOfType.
      */
     function clearCards() {
-        for (let labelType in cardsByType) {
+        for (const labelType of cardsByType) {
             cardsByType[labelType] = null;
         }
     }
@@ -416,6 +444,10 @@ function CardContainer(uiCardContainer) {
         });
     }
 
+    function getCurrentPage() {
+        return currentPage;
+    }
+
     self.fetchLabelsByType = fetchLabelsByType;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
@@ -428,6 +460,8 @@ function CardContainer(uiCardContainer) {
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;
     self.clearCards = clearCards;
+    self.getCardByIndex = getCardByIndex;
+    self.getCurrentPage = getCurrentPage;
 
     _init();
     return this;
