@@ -2,9 +2,9 @@
     position: relative;
     display: inline-block;
     padding: 0px;
-    margin: 5px;
+    margin: 0.6vw;
     border-radius: 20px;
-    width: 25vw;
+    width: 24vw;
     height: auto;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
 }
