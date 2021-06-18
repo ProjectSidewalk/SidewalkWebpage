@@ -52,7 +52,7 @@ function Modal(uiModal) {
      * Performs the actions to close the Modal.
      */
     function closeModal() {
-        $('.grid-container').css("grid-template-columns", "1fr 3fr");
+        $('.grid-container').css("grid-template-columns", "0.5fr 3fr");
         uiModal.hide();
     }
 
