@@ -32,7 +32,6 @@
     padding-top: 40px;
     min-height: calc(100vh - 610px);
     width: 250px;
-    grid-area: 'sidebar';
     grid-row: 1/2;
 }
 
@@ -43,9 +42,7 @@
 }
 
 .page-control {
-    padding-top: 20px;
-    grid-column-start: 2;
-    grid-area: 'paging';
+    padding-bottom: 15px;
     display: flex;
     justify-content: center;
     margin: auto;

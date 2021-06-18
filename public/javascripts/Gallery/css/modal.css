@@ -7,7 +7,6 @@
 }
 
 .gallery-modal {
-    grid-area: 'gallery-modal';
     display: flex;
     height: 90vh;
     position: fixed;
