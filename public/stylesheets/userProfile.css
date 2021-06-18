@@ -33,11 +33,16 @@ svg {
     margin-top: 15px;
 }
 
+#username {
+    font-size: 40px;
+    font-family: raleway-bold, sans-serif;
+}
+
 #org-container {
     display: flex;
 }
 
-#org-name-container {
+#org-name {
     display: flex;
     font-size: 30px;
     font-family: raleway, sans-serif;
@@ -50,9 +55,31 @@ svg {
 }
 
 #edit-org-button {
+    border-radius: 10px;
+    border: 1px solid #2D2A3F;
+    color: #2D2A3F;
+    background-color: white;
+    font: normal normal normal 14px/1.4em 'Raleway', sans-serif;
     text-align: center;
     padding: 5px 25px;
     cursor: pointer;
+    display: inline-block;
+    position: relative;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+
+#edit-org-button:hover {
+    background-color: #FCECBE;
+    border: 1px solid #FCECBE;
+    color: #2D2A3F;
+    text-decoration: none;
+    text-shadow: none;
+}
+
+#edit-org-button:focus {
+    color: #2D2A3F;
+    text-decoration: none;
+    outline: none;
 }
 
 #edit-org-menu {
@@ -61,68 +88,15 @@ svg {
     top: 90%;
 }
 
-#edit-org-info {
-    bottom: 0px;
-    left: 105%;
+#org-container .popover {
+    margin-top: -35px;
 }
 
-.username {
-    font-size: 40px;
-    font-family: raleway-bold, sans-serif;
+#org-container .popover > .arrow{
+    margin-top: 24px;
 }
 
-.org-content {
-    border-radius: 10px;
-    border: 1px solid #2D2A3F;
-    color: #2D2A3F;
-    background-color: white;
-    font: normal normal normal 14px/1.4em 'Raleway', sans-serif;
-    text-decoration: none;
-    outline: none;
-}
-
-.org-hoverable {
-    display: inline-block;
-    position: relative;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-}
-
-.org-hoverable:hover {
-    background-color: #FCECBE;
-    border: 1px solid #FCECBE;
-    color: #2D2A3F;
-    text-decoration: none;
-    text-shadow: none;
-}
-
-.org-hoverable:focus {
-    color: #2D2A3F;
-    text-decoration: none;
-    outline: none;
-}
-
-.description-hoverable:hover .description-content {
-    visibility: visible;
-    opacity: 1;
-}
-
-.description-content {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    transition: visibility 0.4s ease 0s, opacity 0.4s ease 0s;
-}
-
-.info-content {
-    cursor: auto;
-    border: none;
-    left: 102%;
-    width: 200px;
-    padding: 5px 5px;
-    box-shadow: 0 6px 12px rgb(0 0 0 / 18%);
-}
-
-.menu-info-container {
+.menu-info {
     padding: 3px 20px;
 }
 

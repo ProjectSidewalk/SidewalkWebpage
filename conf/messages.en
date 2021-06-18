@@ -249,7 +249,7 @@ results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk
 
 dashboard.no.org = No Organization
 dashboard.edit.org = Edit
-dashboard.edit.info = If you don't see your organization, please email sidewalk@cs.uw.edu and include your organization name and description.
+dashboard.edit.info = If you don't see your organization, please email <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a> and include your organization name and description.
 dashboard.orgs.unavailable = There are no available organizations!
 dashboard.leave.org = Leave Organization
 dashboard.audited.street = Audited Street

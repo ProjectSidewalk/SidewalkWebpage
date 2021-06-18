@@ -14,22 +14,18 @@
 
         @if(user && user.get.role.getOrElse("") != "Anonymous") {
             <div class="row" id="profile-container">
-                <div class="username">@user.get.username</div>
+                <div id="username">@user.get.username</div>
                 <div id="org-container">
-                    <div id="org-name-container">
-                        @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-                            <div class="org-name">@OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</div>
-                        } else {
-                            <div class="org-name">@Messages("dashboard.no.org")</div>
-                        }
-                    </div>
-                    <div id="edit-org-dropdown" class="dropdown">
-                        <a id="edit-org-button" class="description-hoverable org-content org-hoverable" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b>
-                            <div id="edit-org-info" class="org-content description-content info-content">@Messages("dashboard.edit.info")</div>
-                        </a>
+                    @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                        <div id="org-name">@OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</div>
+                    } else {
+                        <div id="org-name">@Messages("dashboard.no.org")</div>
+                    }
+                    <div id="edit-org-dropdown" class="dropdown" data-toggle="popover" data-trigger="hover" data-placement="right" data-content="@Messages("dashboard.edit.info")">
+                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b></a>
                         <ul id="edit-org-menu" class="dropdown-menu" role="menu">
                             @if(OrganizationTable.getAllOrganizations.isEmpty) {
-                                <li class="menu-info-container">@Messages("dashboard.orgs.unavailable")</li>
+                                <li class="menu-info">@Messages("dashboard.orgs.unavailable")</li>
                             }
                             @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
                                 <li>
@@ -37,8 +33,7 @@
                                 </li>
                             }
                             @for(org <- OrganizationTable.getAllOrganizations) {
-                                <li class="description-hoverable">
-                                    <div class="org-content description-content info-content">@org.orgDescription</div>
+                                <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
                                     <a id="@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
                                 </li>
                             }
@@ -203,6 +198,27 @@
                 @LabelValidationTable.countValidations(user.get.userId),
             );
         });
+        
+        // Initialize popovers.
+        $('[id="edit-org-dropdown"]').popover({
+            trigger: "manual",
+            html: true,
+            animation: false
+        }).on("mouseenter", function() {
+            var _this = this;
+            $(this).popover("show");
+            $(".popover").on("mouseleave", function() {
+            $(_this).popover('hide');
+            });
+        }).on("mouseleave", function() {
+            var _this = this;
+            setTimeout(function() {
+            if (!$(".popover:hover").length) {
+                $(_this).popover("hide");
+            }
+            }, 300);
+        });
+        $('[class="put-org-container"]').popover();
     });
     </script>
 }
