@@ -96,10 +96,10 @@ function Card (params, imageUrl) {
         let imageHolder = document.createElement('div');
         card.appendChild(imageHolder);
         // Create the div for the label type of the card and the icon.
-        let cardHeader = document.createElement('div');
-        cardHeader.className = 'card-header';
-        cardHeader.innerHTML = `<img class="label-icon" src=${iconImagePaths[getLabelType()]}> <div>${i18next.t('gallery.' + getLabelType())}</div>`;
-        card.appendChild(cardHeader);
+        // let cardHeader = document.createElement('div');
+        // cardHeader.className = 'card-header';
+        // cardHeader.innerHTML = `<img class="label-icon" src=${iconImagePaths[getLabelType()]}> <div>${i18next.t('gallery.' + getLabelType())}</div>`;
+        // card.appendChild(cardHeader);
 
         // Create the div for the severity and tags information.
         let cardInfo = document.createElement('div');
