@@ -30,7 +30,7 @@ function TagDisplay(container, tags, isModal=false) {
             // Try to append as many tags as possible into the parent container.
             for (let i = 0; i < tags.length; i++) {
                 let tagTest = document.createElement('div');
-                tagTest.className = 'gallery-tag';
+                tagTest.className = 'gallery-tag thumbnail-tag';
                 tagTest.innerText = tagsText[i];
                 $(tagContainer).append(tagTest);
                 remainingWidth -= ($(tagTest).width() + 16); //TODO: figure out meaning of this constant.

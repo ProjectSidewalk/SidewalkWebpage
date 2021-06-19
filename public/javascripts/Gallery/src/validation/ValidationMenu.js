@@ -29,6 +29,11 @@ function ValidationMenu(uiCardImage, cardProperties) {
     let disagreeButton = overlay.find("#gallery-card-disagree-button");
     let notSureButton = overlay.find("#gallery-card-not-sure-button");
 
+    // This is a regular DOM element, not jquery.
+    let galleryCard = uiCardImage.parentElement;
+    console.log(cardProperties.label_id);
+    console.log(galleryCard);
+
     function _init() {
         // TODO: compress this code.
         agreeButton.click(function() {
@@ -38,6 +43,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
             currSelected = agreeButton;
             agreeButton.attr('class', 'validation-button-selected');
+            galleryCard.className = 'gallery-card validate-agree';
 
             validateLabel("Agree");
         });
@@ -49,6 +55,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
             currSelected = disagreeButton;
             disagreeButton.attr('class', 'validation-button-selected');
+            galleryCard.className = 'gallery-card validate-disagree';
 
             validateLabel("Disagree");
         });
@@ -60,6 +67,7 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
             currSelected = notSureButton;
             notSureButton.attr('class', 'validation-button-selected');
+            galleryCard.className = 'gallery-card validate-not-sure';
 
             validateLabel("NotSure");
         });

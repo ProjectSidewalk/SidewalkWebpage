@@ -9,6 +9,18 @@
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
 }
 
+.validate-agree {
+    background-color: #78c9ab;
+}
+
+.validate-disagree {
+    background-color: #eb734d;
+}
+
+.validate-not-sure {
+    background-color: #fbd78b;
+}
+
 /*
 We make sure that the image holder is positioned relatively so that the validation menu can be positioned absolutely
 with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay)
@@ -57,6 +69,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     bottom: 0;
     width: 100%;
     height: 11.5%;
+    z-index: 2;
 }
 
 #gallery-card-agree-button {
@@ -88,7 +101,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     color:white;
     font-size: 1.1vw;
     align-items: center; */
-    padding: 5px 5px 5px 20px;
+    padding: 5px 5px 5px 10px;
     font-family: 'raleway-regular', sans-serif;
     font-weight: bold;
     font-size: 1vw;
@@ -112,16 +125,16 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-data {
     display: flex;
     flex-direction: row;
-    font-size: .8vw;
+    font-size: .7vw;
 }
 
 .card-severity {
     display: flex;
-    width: 50%;
+    width: 40%;
     height: 100%;
     flex-direction: row;
     color: black;
-    padding-left: 20px;
+    padding-left: 10px;
 }
 
 .label-severity-header {
@@ -141,7 +154,6 @@ with respect to the image holder. This allows the validation menu to be placed o
     flex-direction: row;
     color:black;
     right: 0px;
-    padding-left: 0.5vw;
 }
 
 .label-tags-holder {
@@ -175,7 +187,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .gallery-card:hover .validation-button {
-    opacity: 0.5;
+    opacity: 0.75;
 }
 /* .validation-button {
     opacity: 1;
@@ -191,8 +203,8 @@ with respect to the image holder. This allows the validation menu to be placed o
 .severity-circle {
     color: white;
     border: 1px solid black;
-    width: 0.8vw;
-    height: 0.8vw;
+    width: 0.7vw;
+    height: 0.7vw;
     border-radius: 50%;
     text-align: center;
     margin: 2px;

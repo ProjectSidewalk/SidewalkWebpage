@@ -92,6 +92,7 @@ function Card (params, imageUrl) {
 
         // Create the container card.
         card = document.createElement('div');
+        card.id = "gallery_card_" + properties.label_id;
         card.className = "gallery-card";
         let imageHolder = document.createElement('div');
         imageHolder.className = "image-holder"; //TODO: come up with better name
