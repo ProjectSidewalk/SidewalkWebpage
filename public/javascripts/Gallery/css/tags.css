@@ -17,6 +17,15 @@
     cursor: default;
 }
 
+/*
+Consider not using -1.
+*/
+.additional-count {
+    margin: 3px -2px;
+    border-style: none;
+    font-weight: bold;
+}
+
 .gallery-tag:disabled {
     opacity: 50%;
 }
