@@ -31,8 +31,6 @@ function ValidationMenu(uiCardImage, cardProperties) {
 
     // This is a regular DOM element, not jquery.
     let galleryCard = uiCardImage.parentElement;
-    console.log(cardProperties.label_id);
-    console.log(galleryCard);
 
     function _init() {
         // TODO: compress this code.

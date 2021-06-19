@@ -38,8 +38,12 @@ function SeverityDisplay(container, severity, isModal=false) {
         // is 3, we will darken the left 3 circles.
         // TODO: rename these once confirmed. also, we can probably move this to the upper loop.
         if (severity) {
-            for (let i = 0; i < severity; i++) {
-                $(circles[i]).attr('id', selectedCircleID);
+            if(isModal) {
+                $(circles[severity - 1]).attr('id', selectedCircleID);
+            } else {
+                for (let i = 0; i < severity; i++) {
+                    $(circles[i]).attr('id', selectedCircleID);
+                }
             }
         }
 

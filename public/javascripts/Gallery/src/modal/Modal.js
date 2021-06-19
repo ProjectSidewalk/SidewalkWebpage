@@ -95,6 +95,11 @@ function Modal(uiModal) {
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t('gallery.' + properties.label_type));
+
+        // Centers the card thumbnail that was selected.
+        document.getElementById("gallery_card_" + properties.label_id).scrollIntoView({
+            block: 'center'
+        });
     }
 
     /**
