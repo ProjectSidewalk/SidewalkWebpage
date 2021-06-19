@@ -94,6 +94,7 @@ function Card (params, imageUrl) {
         card = document.createElement('div');
         card.className = "gallery-card";
         let imageHolder = document.createElement('div');
+        imageHolder.className = "image-holder"; //TODO: come up with better name
         card.appendChild(imageHolder);
         // Create the div for the label type of the card and the icon.
         // let cardHeader = document.createElement('div');
@@ -104,22 +105,34 @@ function Card (params, imageUrl) {
         // Create the div for the severity and tags information.
         let cardInfo = document.createElement('div');
         cardInfo.className = 'card-info';
+        // Create the div to store the label type.
+        let cardHeader = document.createElement('div');
+        cardHeader.className = 'card-header';
+        cardHeader.innerHTML = `<div>${i18next.t('gallery.' + getLabelType())}</div>`;
+        cardInfo.appendChild(cardHeader);
+
+        // Create the div that will hold the severity and tags.
+        let cardData = document.createElement('div');
+        cardData.className = 'card-data';
+        cardInfo.appendChild(cardData);
+
         // Create the div to store the severity of the label.
         let cardSeverity = document.createElement('div');
         cardSeverity.className = 'card-severity';
         let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);
-        cardInfo.appendChild(cardSeverity);
+        cardData.appendChild(cardSeverity);
+
         // Create the div to store the tags related to a card. Tags won't be populated until card is added to the DOM.
         let cardTags = document.createElement('div');
         cardTags.className = 'card-tags';
         cardTags.innerHTML = `<div class="label-tags-header"></div>`;
         cardTags.id = properties.label_id;
-        cardInfo.appendChild(cardTags);
+        cardData.appendChild(cardTags);
 
         // Append the overlays for label information on top of the image.
-        imageHolder.appendChild(cardInfo);
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
+        card.appendChild(cardInfo);
         validationMenu = new ValidationMenu(imageHolder, properties);
     }
 

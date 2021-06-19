@@ -22,20 +22,27 @@ function SeverityDisplay(container, severity, isModal=false) {
         holder.className = 'label-severity-content';
 
         let title = document.createElement('div');
-        title.innerHTML = `<b>${i18next.t("severity")}</b>`;
+        title.innerHTML = `<b>${i18next.t("severity")}:</b>`;
         container.append(title);
 
         // Creates all of the circles for the severities.
         for (let i = 1; i <= 5; i++) {
             let severityCircle = document.createElement('div');
             severityCircle.className = severityCircleClass;
-            severityCircle.innerText = i;
+            if (isModal) severityCircle.innerText = i;
             circles.push(severityCircle);
         }
+
         // Highlight the correct severity.
+        // We do so by darkening a number of circles from the left equal to the severity. For example, if the severity
+        // is 3, we will darken the left 3 circles.
+        // TODO: rename these once confirmed. also, we can probably move this to the upper loop.
         if (severity) {
-            $(circles[severity - 1]).attr('id', selectedCircleID);
+            for (let i = 0; i < severity; i++) {
+                $(circles[i]).attr('id', selectedCircleID);
+            }
         }
+
         // Add all of the severity circles to the DOM.
         for (let i = 0; i < circles.length; i++) {
             holder.appendChild(circles[i]);
