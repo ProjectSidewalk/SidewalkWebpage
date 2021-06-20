@@ -36,6 +36,7 @@ function Modal(uiModal) {
     function _init() {
         self.panoHolder = $('.actual-pano')
         self.tags = $('.gallery-modal-info-tags')
+        self.timestamps = $('.gallery-modal-info-timestamps');
         self.severity = $('.gallery-modal-info-severity')
         self.temporary = $('.gallery-modal-info-temporary')
         self.description = $('.gallery-modal-info-description')
@@ -74,12 +75,23 @@ function Modal(uiModal) {
         self.description.empty();
         self.temporary.empty();
         self.severity.empty();
+        self.timestamps.empty();
     }
 
     /**
      * Populates the information in the Modal.
      */
     function populateModalDescriptionFields() {
+        // Add timestamp data for when label was placed and when pano was created.
+        let labelTimestampData = document.createElement('div');
+        labelTimestampData.className = 'label-timestamp';
+        labelTimestampData.innerHTML = `<div><b>Labeled: </b></div>`;
+        let panoTimestampData = document.createElement('div');
+        panoTimestampData.className = 'pano-timestamp';
+        panoTimestampData.innerHTML = `<div><b>Pano Date: </b></div>`;
+        self.timestamps.append(labelTimestampData);
+        self.timestamps.append(panoTimestampData);
+
         // Add severity and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, true);
         new TagDisplay(self.tags, properties.tags, true);

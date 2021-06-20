@@ -22,6 +22,7 @@ function SeverityDisplay(container, severity, isModal=false) {
         holder.className = 'label-severity-content';
 
         let title = document.createElement('div');
+        title.className = 'label-severity-header';
         title.innerHTML = `<b>${i18next.t("severity")}:</b>`;
         container.append(title);
 

@@ -138,13 +138,13 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .label-severity-header {
-    color: white;
+    padding-right: .25vw;
 }
+
 .label-severity-content {
     color: white;
     display: flex;
     flex-direction: row;
-    padding-left: 0.5vw;
 }
 
 .card-tags {
@@ -156,12 +156,17 @@ with respect to the image holder. This allows the validation menu to be placed o
     right: 0px;
 }
 
+.label-tags-header {
+    padding-right: .25vw;
+}
+
 .label-tags-holder {
     display: flex;
     width: 100%;
     flex-direction: row;
     line-height: 100%;
 }
+
 .label-tags-content {
     text-overflow: ellipsis;
     width:fit-content;
