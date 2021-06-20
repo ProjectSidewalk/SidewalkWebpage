@@ -355,18 +355,20 @@ function CardContainer(uiCardContainer) {
         pageWidth = uiCardContainer.holder.width();
         const cardWidth = pageWidth/cardsPerLine - cardPadding;
 
-        let idx = (currentPage - 1) * cardsPerPage;
-        let cardBucket = currentCards.getCards();
+        // let idx = (currentPage - 1) * cardsPerPage;
+        // let cardBucket = currentCards.getCards();
 
-        let imagesToLoad = [];
-        let imagePromises = [];
+        // let imagesToLoad = [];
+        // let imagePromises = [];
 
-        while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
-            imagesToLoad.push(cardBucket[idx]);
-            imagePromises.push(cardBucket[idx].loadImage());
+        // while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
+        //     imagesToLoad.push(cardBucket[idx]);
+        //     imagePromises.push(cardBucket[idx].loadImage());
 
-            idx++;
-        }
+        //     idx++;
+        // }
+        let imagesToLoad = getCurrentPageCards();
+        let imagePromises = imagesToLoad.map(img => img.loadImage());
 
         if (imagesToLoad.length > 0) {
             if (imagesToLoad.length < cardsPerPage) {
@@ -448,6 +450,20 @@ function CardContainer(uiCardContainer) {
         return currentPage;
     }
 
+    function getCurrentPageCards() {
+        let idx = (currentPage - 1) * cardsPerPage;
+        let cardBucket = currentCards.getCards();
+
+        let currentPageCards = [];
+
+        while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
+            currentPageCards.push(cardBucket[idx]);
+            idx++;
+        }
+
+        return currentPageCards;
+    }
+
     self.fetchLabelsByType = fetchLabelsByType;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
@@ -462,6 +478,7 @@ function CardContainer(uiCardContainer) {
     self.clearCards = clearCards;
     self.getCardByIndex = getCardByIndex;
     self.getCurrentPage = getCurrentPage;
+    self.getCurrentPageCards = getCurrentPageCards;
 
     _init();
     return this;

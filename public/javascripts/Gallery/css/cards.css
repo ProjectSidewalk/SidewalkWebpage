@@ -200,6 +200,10 @@ with respect to the image holder. This allows the validation menu to be placed o
     /* outline: -webkit-focus-ring-color auto 1px; */
 }
 
+.modal-background-card {
+    opacity: 50%;
+}
+
 .severity-circle {
     color: white;
     border: 1px solid black;

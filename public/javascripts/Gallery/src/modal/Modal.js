@@ -9,6 +9,8 @@ function Modal(uiModal) {
     
     let self = this;
 
+    const unselectedCardClassName = "modal-background-card";
+
     // Properties of the label in the card.
     let properties = {
         label_id: undefined,
@@ -54,6 +56,15 @@ function Modal(uiModal) {
     function closeModal() {
         $('.grid-container').css("grid-template-columns", "0.5fr 3fr");
         uiModal.hide();
+
+        // Make sure to remove transparent effect from all cards since we are out of modal mode.
+        let currentPageCards = sg.cardContainer.getCurrentPageCards();
+        for (let card of currentPageCards) {
+            let cardDomEl = document.getElementById("gallery_card_" + card.getLabelId());
+            if (cardDomEl.classList.contains(unselectedCardClassName)) {
+                cardDomEl.classList.remove(unselectedCardClassName);
+            }
+        }
     }
 
     /**
@@ -96,10 +107,32 @@ function Modal(uiModal) {
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t('gallery.' + properties.label_type));
 
+        // Highlight selected card thumbnail.
+        highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
+    }
+
+    function highlightThumbnail(galleryCard) {
         // Centers the card thumbnail that was selected.
-        document.getElementById("gallery_card_" + properties.label_id).scrollIntoView({
+        galleryCard.scrollIntoView({
             block: 'center'
         });
+
+        // Make sure to remove transparent effect from selected card.
+        if (galleryCard.classList.contains(unselectedCardClassName)) {
+            galleryCard.classList.remove(unselectedCardClassName);
+        }
+        
+        // The rest of the cards should be semitransparent.
+        let currentPageCards = sg.cardContainer.getCurrentPageCards();
+        for (let card of currentPageCards) {
+            let cardLabelId = card.getLabelId();
+            if (cardLabelId != properties.label_id) {
+                let cardDomEl = document.getElementById("gallery_card_" + cardLabelId);
+                if (!cardDomEl.classList.contains(unselectedCardClassName)) {
+                    cardDomEl.classList.add(unselectedCardClassName);
+                }
+            }
+        }
     }
 
     /**
