@@ -27,8 +27,7 @@
     border-bottom: 1px solid gray;
 }
 
-/* Note that the side bar is out of the "flow" of the grid container because it is fixed
-   when we aren't loading anything. */
+/* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
     padding-top: 40px;

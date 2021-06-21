@@ -23,7 +23,7 @@ function SeverityDisplay(container, severity, isModal=false) {
 
         let title = document.createElement('div');
         title.className = 'label-severity-header';
-        title.innerHTML = `<b>${i18next.t("severity")}:</b>`;
+        title.innerHTML = `<b>${i18next.t("severity")}</b>`;
         container.append(title);
 
         // Creates all of the circles for the severities.

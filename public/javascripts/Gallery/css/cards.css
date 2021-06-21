@@ -23,7 +23,7 @@
 
 /*
 We make sure that the image holder is positioned relatively so that the validation menu can be positioned absolutely
-with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay)
+with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay).
 */
 .image-holder {
     position: relative;
@@ -55,14 +55,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 #gallery-validation-button-holder {
     display: flex;
-    /* position: relative;
-    left:0;
-    right:0;
-    height: 20%;
-    color: black;
-    font-size: 0.75vw;
-    font-weight: bold;
-    z-index: 2; */
     flex-flow: row wrap;
     justify-content: center;
     position: absolute;
@@ -74,7 +66,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 #gallery-card-agree-button {
     width: 33%;
-    /* border-bottom-left-radius: 20px; */
     border-right: 1px solid #dcdbdb;
     background-color: #78c9ab;
 }
@@ -88,31 +79,14 @@ with respect to the image holder. This allows the validation menu to be placed o
     border-left: 1px solid #dcdbdb;
     width: 33%;
     background-color: #fbd78b;
-    /* border-bottom-right-radius: 20px; */
 }
 
 .card-header {
-    /* display: flex;
-    position: absolute;
-    left: 1vw;
-    top: 1vh;
-    font-family: 'raleway-regular', sans-serif;
-    font-weight: bold;
-    color:white;
-    font-size: 1.1vw;
-    align-items: center; */
     padding: 5px 5px 5px 10px;
     font-family: 'raleway-regular', sans-serif;
     font-weight: bold;
     font-size: 1vw;
 }
-
-/* .card-header > img {
-    position: relative;
-    width: auto;
-    height: 20px;
-    margin-right: 3px;
-} */
 
 .card-info {
     padding-bottom: 0.5vw;
@@ -180,9 +154,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .validation-button, .validation-button-selected {
-    /* color: white; */
     opacity: 0;
-    /* transition: .2s ease; */
     font-size: 0.75vw;
     font-weight: bold;
     font-family: 'raleway-regular', sans-serif;
@@ -194,9 +166,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 .gallery-card:hover .validation-button {
     opacity: 0.75;
 }
-/* .validation-button {
-    opacity: 1;
-} */
 
 .gallery-card:hover .validation-button-selected {
     opacity: 1;

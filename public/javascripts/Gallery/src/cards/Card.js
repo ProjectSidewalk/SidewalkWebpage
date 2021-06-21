@@ -97,17 +97,13 @@ function Card (params, imageUrl) {
         card.id = "gallery_card_" + properties.label_id;
         card.className = "gallery-card";
         let imageHolder = document.createElement('div');
-        imageHolder.className = "image-holder"; //TODO: come up with better name
+        imageHolder.className = "image-holder";
         card.appendChild(imageHolder);
-        // Create the div for the label type of the card and the icon.
-        // let cardHeader = document.createElement('div');
-        // cardHeader.className = 'card-header';
-        // cardHeader.innerHTML = `<img class="label-icon" src=${iconImagePaths[getLabelType()]}> <div>${i18next.t('gallery.' + getLabelType())}</div>`;
-        // card.appendChild(cardHeader);
 
         // Create the div for the severity and tags information.
         let cardInfo = document.createElement('div');
         cardInfo.className = 'card-info';
+
         // Create the div to store the label type.
         let cardHeader = document.createElement('div');
         cardHeader.className = 'card-header';

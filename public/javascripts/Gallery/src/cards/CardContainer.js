@@ -347,9 +347,8 @@ function CardContainer(uiCardContainer) {
      * Renders current cards.
      */
     function render() {
-        // In order to help the loading icon actually show, we make the sidebar positioned relatively
-        // while we are loading on the gallery page. Otherwise, it will be fixed.
-        // This is very much a hacky fix and needs a better fix.
+        // To help the loading icon show, we make the sidebar positioned relatively while we are loading on the page.
+        // Otherwise, keep it fixed. This is hacky and needs a better fix.
         $("#page-loading").show();
         $('.sidebar').css('position', 'relative');
         $(".page-control").hide();
@@ -359,18 +358,6 @@ function CardContainer(uiCardContainer) {
         pageWidth = uiCardContainer.holder.width();
         const cardWidth = pageWidth/cardsPerLine - cardPadding;
 
-        // let idx = (currentPage - 1) * cardsPerPage;
-        // let cardBucket = currentCards.getCards();
-
-        // let imagesToLoad = [];
-        // let imagePromises = [];
-
-        // while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
-        //     imagesToLoad.push(cardBucket[idx]);
-        //     imagePromises.push(cardBucket[idx].loadImage());
-
-        //     idx++;
-        // }
         let imagesToLoad = getCurrentPageCards();
         let imagePromises = imagesToLoad.map(img => img.loadImage());
 

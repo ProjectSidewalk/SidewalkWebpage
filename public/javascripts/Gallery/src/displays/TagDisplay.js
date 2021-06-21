@@ -17,7 +17,7 @@ function TagDisplay(container, tags, isModal=false) {
             $(container).empty();
             let tagHeader = document.createElement('div');
             tagHeader.className = 'label-tags-header';
-            tagHeader.innerHTML = `<b>${i18next.t("tags")}:</b>`;
+            tagHeader.innerHTML = `<b>${i18next.t("tags")}</b>`;
             $(container).append(tagHeader);
 
             let tagContainer = document.createElement('div');

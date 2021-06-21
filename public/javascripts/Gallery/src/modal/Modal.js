@@ -57,12 +57,11 @@ function Modal(uiModal) {
      * Performs the actions to close the Modal.
      */
     function closeModal() {
-        // Since we have made the sidebar a "fixed" DOM element, it no longer exists
-        // as part of the grid flow. Therefore, when we aren't in expanded modal mode,
-        // the only thing that is part of the grid is the image-container. We therefore
-        // shouldn't need to divide the grid into columns.
+        // Since we have made the sidebar a "fixed" DOM element, it no longer exists as part of the grid flow. Thus,
+        // when we aren't in expanded modal mode, the only thing that is part of the grid is the image-container. We
+        // therefore shouldn't need to divide the grid into columns (changed "0.5fr 3fr" to "none").
         // Disclaimer: I could be totally wrong lol.
-        $('.grid-container').css("grid-template-columns", "none"/*"0.5fr 3fr"*/);
+        $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
 
         // Make sure to remove transparent effect from all cards since we are out of modal mode.

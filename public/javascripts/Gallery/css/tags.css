@@ -7,7 +7,6 @@
     border-radius: 5px;
     margin: 2px 2px;
     text-align: left;
-    /* background-color: white; */
     color: black;
     width: fit-content;
     white-space: nowrap;
@@ -17,9 +16,6 @@
     cursor: default;
 }
 
-/*
-Consider not using -1.
-*/
 .additional-count {
     margin: 3px -2px;
     border-style: none;

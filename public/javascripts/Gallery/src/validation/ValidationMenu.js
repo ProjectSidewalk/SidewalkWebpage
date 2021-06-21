@@ -7,14 +7,14 @@
  * @constructor
  */
 function ValidationMenu(uiCardImage, cardProperties) {
-    let resultOptions = {
+    const resultOptions = {
         "Agree": 1, 
         "Disagree": 2,
         "NotSure": 3
     };
 
     // A kind of wack way to do this, explore better options.
-    let classToResult = {
+    const classToResult = {
         "validate-agree": "Agree",
         "validate-disagree": "Disagree",
         "validate-not-sure": "NotSure"
@@ -38,19 +38,13 @@ function ValidationMenu(uiCardImage, cardProperties) {
         "validate-not-sure": overlay.find("#gallery-card-not-sure-button")
     };
 
-    // let agreeButton = overlay.find("#gallery-card-agree-button");
-    // let disagreeButton = overlay.find("#gallery-card-disagree-button");
-    // let notSureButton = overlay.find("#gallery-card-not-sure-button");
-
     // This is a regular DOM element, not jquery.
     let galleryCard = uiCardImage.parentElement;
 
+    // Adds onClick functions for the validation buttons.
     function _init() {
-        // TODO: compress this code.
         for (const [valKey, button] of Object.entries(validationButtons)) {
             button.click(function() {
-                console.log(valKey);
-                console.log(button);
                 if (currSelected) {
                     validationButtons[currSelected].attr('class', 'validation-button');
                     if (galleryCard.classList.contains(currSelected)) {
@@ -65,46 +59,6 @@ function ValidationMenu(uiCardImage, cardProperties) {
                 validateLabel(classToResult[valKey]);
             })
         }
-
-        // agreeButton.click(function() {
-        //     if (currSelected) {
-        //         currSelected.attr('class', 'validation-button');
-        //     }
-
-        //     currSelected = agreeButton;
-        //     agreeButton.attr('class', 'validation-button-selected');
-        //     if (el.classList.contains("red")) {
-        //         el.classList.remove("red");
-        //     }
-        //     galleryCard.className = 'gallery-card validate-agree';
-
-        //     validateLabel("Agree");
-        // });
-        
-        // disagreeButton.click(function() {
-        //     if (currSelected) {
-        //         currSelected.attr('class', 'validation-button');
-        //     }
-
-        //     currSelected = disagreeButton;
-        //     disagreeButton.attr('class', 'validation-button-selected');
-        //     galleryCard.className = 'gallery-card validate-disagree';
-
-        //     validateLabel("Disagree");
-        // });
-        
-        // notSureButton.click(function() {
-        //     if (currSelected) {
-        //         currSelected.attr('class', 'validation-button');
-        //     }
-
-        //     currSelected = notSureButton;
-        //     notSureButton.attr('class', 'validation-button-selected');
-        //     galleryCard.className = 'gallery-card validate-not-sure';
-
-        //     validateLabel("NotSure");
-        // });
-
         uiCardImage.append(overlay[0]);
     }
 
