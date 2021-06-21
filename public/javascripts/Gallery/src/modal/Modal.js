@@ -126,7 +126,8 @@ function Modal(uiModal) {
     function highlightThumbnail(galleryCard) {
         // Centers the card thumbnail that was selected.
         galleryCard.scrollIntoView({
-            block: 'center'
+            block: 'center',
+            behavior: 'smooth'
         });
 
         // Make sure to remove transparent effect from selected card.
