@@ -92,10 +92,10 @@ function Modal(uiModal) {
         // Add timestamp data for when label was placed and when pano was created.
         let labelTimestampData = document.createElement('div');
         labelTimestampData.className = 'label-timestamp';
-        labelTimestampData.innerHTML = `<div><b>Labeled: ${moment(new Date(properties.label_timestamp))}</b></div>`;
+        labelTimestampData.innerHTML = `<div><b>Labeled: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</b></div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div><b>Image Date: ${properties.image_date}</b></div>`;
+        panoTimestampData.innerHTML = `<div><b>Image Date: ${moment(properties.image_date).format('MMM YYYY')}</b></div>`;
         self.timestamps.append(labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
