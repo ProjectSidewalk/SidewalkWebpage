@@ -30,7 +30,9 @@
   "severity": "Calificación ",
   "tags": "Etiquitas ",
   "temporary": "Temporal",
-  "description" : "Descripción",
+  "description": "Descripción",
+  "image-date": "Fecha de la imagen",
+  "labeled": "Etiquetada",
   "tag": {
     "narrow": "muy angosta",
     "points into traffic": "orientada hacia el tráfico",
