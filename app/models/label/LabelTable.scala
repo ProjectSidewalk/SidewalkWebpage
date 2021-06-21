@@ -136,15 +136,17 @@ object LabelTable {
                                          validations: Map[String, Int], tags: List[String])
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
-  case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                     heading: Float, pitch: Float, zoom: Int, canvasX: Int,
-                                     canvasY: Int, canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
-                                     temporary: Boolean, description: Option[String], tags: List[String])
+  case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
+                                     timestamp: Option[java.sql.Timestamp], heading: Float, pitch: Float, zoom: Int,
+                                     canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
+                                     severity: Option[Int], temporary: Boolean, description: Option[String],
+                                     tags: List[String])
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                     heading: Float, pitch: Float, zoom: Int, canvasX: Int,
-                                     canvasY: Int, canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
-                                     temporary: Boolean, description: Option[String]); 
+                                                imageDate: String, timestamp: Option[java.sql.Timestamp],
+                                                heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
+                                                canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
+                                                temporary: Boolean, description: Option[String]);
 
   case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
@@ -172,13 +174,14 @@ object LabelTable {
   )
 
   implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
-    LabelValidationMetadataWithoutTags(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt,
-                                       r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption))
+    LabelValidationMetadataWithoutTags(
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestampOption, r.nextFloat, r.nextFloat, r.nextInt,
+      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption))
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
-      r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
-      r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption,
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestampOption, r.nextFloat, r.nextFloat, r.nextInt,
+      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
@@ -609,10 +612,10 @@ object LabelTable {
 
     while (selectedLabels.length < n) {
       val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
-        s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
-          |        label_point.zoom, label_point.canvas_x, label_point.canvas_y, label_point.canvas_width,
-          |        label_point.canvas_height, label_severity.severity, label_temporariness.temporary,
-          |        label_description.description, the_tags.tag_list
+        s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.image_date,
+          |        label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
+          |        label_point.canvas_y, label_point.canvas_width, label_point.canvas_height, label_severity.severity,
+          |        label_temporariness.temporary, label_description.description, the_tags.tag_list
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -758,15 +761,15 @@ object LabelTable {
     // Join with gsvData to add gsv data.
     val addGSVData = for {
       (l, e) <- addTemporariness.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
+    } yield (l._1, l._2, l._3, l._4, l._5, e.imageDate, e.expired)
 
     // Remove labels with expired panos.
-    val removeExpiredPanos = addGSVData.filter(_._6 === false)
+    val removeExpiredPanos = addGSVData.filter(_._7 === false)
 
     // Join with descriptions to add descriptions.
     val addDescriptions = for {
       (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
-    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
+    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._6, l._1.timeCreated, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
@@ -838,8 +841,7 @@ object LabelTable {
     
     // If severities are specified, filter by whether a label has a valid severity.
     val _labelsUnfilteredWithSeverity = severity match {
-      case Some(severity) => if (!severity.isEmpty) addSeverity.filter(_._4 inSet severity)
-                             else addSeverity
+      case Some(severity) => if (severity.nonEmpty) addSeverity.filter(_._4 inSet severity) else addSeverity
       case _ => addSeverity
     }
 
@@ -854,15 +856,15 @@ object LabelTable {
     // Join with gsvData to add gsv data.
     val addGSVData = for {
       (l, e) <- addTemporariness.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
+    } yield (l._1, l._2, l._3, l._4, l._5, e.imageDate, e.expired)
 
     // Remove labels with expired panos.
-    val removeExpiredPanos = addGSVData.filter(_._6 === false)
+    val removeExpiredPanos = addGSVData.filter(_._7 === false)
 
     // Join with descriptions to add descriptions.
     val addDescriptions = for {
       (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
-    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
+    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._6, l._1.timeCreated, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
@@ -942,15 +944,15 @@ object LabelTable {
     // Join with gsvData to add gsv data.
     val addGSVData = for {
       (l, e) <- addTemporariness.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
+    } yield (l._1, l._2, l._3, l._4, l._5, e.imageDate, e.expired)
 
     // Remove labels with expired panos.
-    val removeExpiredPanos = addGSVData.filter(_._6 === false)
+    val removeExpiredPanos = addGSVData.filter(_._7 === false)
 
      // Join with descriptions to add descriptions.
     val addDescriptions = for {
       (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
-    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
+    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._6, l._1.timeCreated, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
@@ -992,8 +994,11 @@ object LabelTable {
     * @return LabelValidationMetadata object
     */
   def labelAndTagsToLabelValidationMetadata(label: LabelValidationMetadataWithoutTags, tags: List[String]): LabelValidationMetadata = {
-      LabelValidationMetadata(label.labelId, label.labelType, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
-                    label.canvasWidth, label.canvasHeight, label.severity, label.temporary, label.description, tags)
+      LabelValidationMetadata(
+        label.labelId, label.labelType, label.gsvPanoramaId, label.imageDate, label.timestamp, label.heading,
+        label.pitch, label.zoom, label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.severity,
+        label.temporary, label.description, tags
+      )
   }
 
   /**
@@ -1044,6 +1049,8 @@ object LabelTable {
       "label_id" -> labelMetadata.labelId,
       "label_type" -> labelMetadata.labelType,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
+      "image_date" -> labelMetadata.imageDate,
+      "label_timestamp" -> labelMetadata.timestamp,
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
       "zoom" -> labelMetadata.zoom,
