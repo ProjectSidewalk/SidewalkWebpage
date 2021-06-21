@@ -314,9 +314,9 @@ function AdminGSVLabelView(admin) {
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
-        self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
+        self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
-        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);

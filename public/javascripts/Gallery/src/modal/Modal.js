@@ -105,12 +105,12 @@ function Modal(uiModal) {
 
         // Add the information about the temporary property to the Modal.
         let temporaryHeader = document.createElement('div');
-        let temporaryText = properties.temporary ? "Yes" : "No";
+        let temporaryText = properties.temporary ? i18next.t('yes') : i18next.t('no');
         temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${temporaryText}</div>`;
         self.temporary.append(temporaryHeader);
 
         // Add the information about the description of the label to the Modal.
-        let descriptionText = properties.description === null ? "" : properties.description;
+        let descriptionText = properties.description === null ? i18next.t('no-description') : properties.description;
         let descriptionObject = document.createElement('div');
         descriptionObject.innerHTML = `<div><b>${i18next.t("description")}</b></div><div>${descriptionText}</div>`;
         self.description.append(descriptionObject);
