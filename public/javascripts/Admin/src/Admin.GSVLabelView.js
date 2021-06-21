@@ -55,19 +55,19 @@ function AdminGSVLabelView(admin) {
                                     '<td id="label-type-value"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Severity</th>' +
+                                    '<th>' + i18next.t('common:severity') + '</th>' +
                                     '<td id="severity"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Temporary</th>' +
+                                    '<th>' + i18next.t('common:temporary') + '</th>' +
                                     '<td id="temporary"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Tags</th>' +
+                                    '<th>' + i18next.t('common:tags') + '</th>' +
                                     '<td colspan="3" id="tags"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Description</th>' +
+                                    '<th>' + i18next.t('common:description') + '</th>' +
                                     '<td colspan="3" id="label-description"></td>' +
                                 '</tr>' +
                                 '<tr>' +
@@ -75,10 +75,10 @@ function AdminGSVLabelView(admin) {
                                     '<td colspan="3" id="label-validations"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Time Submitted</th>' +
+                                    '<th>' + i18next.t('common:labeled') + '</th>' +
                                     '<td id="timestamp" colspan="3"></td>' +
                                 '</tr>' +
-                                    '<th>Image Date</th>' +
+                                    '<th>' + i18next.t('common:image-date') + '</th>' +
                                     '<td id="image-date" colspan="3"></td>' +
                                 '</tr>' +
                                 '<tr>' +
@@ -311,12 +311,12 @@ function AdminGSVLabelView(admin) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
         self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
-        self.modalTimestamp.html(labelDate.format('LL, LTS') + " (" + labelDate.fromNow() + ")");
+        self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
-        self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
+        self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
-        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);

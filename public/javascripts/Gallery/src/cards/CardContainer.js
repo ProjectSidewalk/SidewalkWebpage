@@ -347,7 +347,10 @@ function CardContainer(uiCardContainer) {
      * Renders current cards.
      */
     function render() {
+        // To help the loading icon show, we make the sidebar positioned relatively while we are loading on the page.
+        // Otherwise, keep it fixed. This is hacky and needs a better fix.
         $("#page-loading").show();
+        $('.sidebar').css('position', 'relative');
         $(".page-control").hide();
          
         // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
@@ -355,18 +358,8 @@ function CardContainer(uiCardContainer) {
         pageWidth = uiCardContainer.holder.width();
         const cardWidth = pageWidth/cardsPerLine - cardPadding;
 
-        let idx = (currentPage - 1) * cardsPerPage;
-        let cardBucket = currentCards.getCards();
-
-        let imagesToLoad = [];
-        let imagePromises = [];
-
-        while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
-            imagesToLoad.push(cardBucket[idx]);
-            imagePromises.push(cardBucket[idx].loadImage());
-
-            idx++;
-        }
+        let imagesToLoad = getCurrentPageCards();
+        let imagePromises = imagesToLoad.map(img => img.loadImage());
 
         if (imagesToLoad.length > 0) {
             if (imagesToLoad.length < cardsPerPage) {
@@ -378,8 +371,9 @@ function CardContainer(uiCardContainer) {
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
                 imagesToLoad.forEach((card) => {card.renderSize(uiCardContainer.holder, cardWidth)});
-                $("#page-loading").hide();
                 $(".page-control").show();
+                $("#page-loading").hide();
+                $('.sidebar').css('position', 'fixed');
                 sg.tagContainer.enable();
                 $("#label-select").prop("disabled", false);
             });
@@ -387,6 +381,7 @@ function CardContainer(uiCardContainer) {
             // TODO: figure out how to better do the toggling of this element.
             $("#labels-not-found").show();
             $("#page-loading").hide();
+            $('.sidebar').css('position', 'fixed');
             sg.tagContainer.enable();
             $("#label-select").prop("disabled", false);
         }
@@ -400,6 +395,7 @@ function CardContainer(uiCardContainer) {
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
         $("#page-loading").show();
+        $('.sidebar').css('position', 'relative');
         $(".page-control").hide();
         clearCardContainer(uiCardContainer.holder);
     }
@@ -448,6 +444,24 @@ function CardContainer(uiCardContainer) {
         return currentPage;
     }
 
+    /**
+     * Get the cards that form the current page.
+     * @returns Array of cards from the current page.
+     */
+    function getCurrentPageCards() {
+        let idx = (currentPage - 1) * cardsPerPage;
+        let cardBucket = currentCards.getCards();
+
+        let currentPageCards = [];
+
+        while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
+            currentPageCards.push(cardBucket[idx]);
+            idx++;
+        }
+
+        return currentPageCards;
+    }
+
     self.fetchLabelsByType = fetchLabelsByType;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
@@ -462,6 +476,7 @@ function CardContainer(uiCardContainer) {
     self.clearCards = clearCards;
     self.getCardByIndex = getCardByIndex;
     self.getCurrentPage = getCurrentPage;
+    self.getCurrentPageCards = getCurrentPageCards;
 
     _init();
     return this;

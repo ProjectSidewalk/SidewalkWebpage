@@ -2,12 +2,33 @@
     position: relative;
     display: inline-block;
     padding: 0px;
-    margin: 5px;
+    margin: 0.6vw;
     border-radius: 20px;
-    width: 25vw;
+    width: 24vw;
     height: auto;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
 }
+
+.validate-agree {
+    background-color: #78c9ab;
+}
+
+.validate-disagree {
+    background-color: #eb734d;
+}
+
+.validate-not-sure {
+    background-color: #fbd78b;
+}
+
+/*
+We make sure that the image holder is positioned relatively so that the validation menu can be positioned absolutely
+with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay).
+*/
+.image-holder {
+    position: relative;
+}
+
 .gallery-card:after {
     content: '';
     position: absolute;
@@ -34,77 +55,66 @@
 
 #gallery-validation-button-holder {
     display: flex;
+    flex-flow: row wrap;
     justify-content: center;
-    position: relative;
-    left:0;
-    right:0;
-    height: 20%;
-    color: black;
-    font-size: 0.75vw;
-    font-weight: bold;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 11.5%;
     z-index: 2;
 }
 
 #gallery-card-agree-button {
     width: 33%;
-    border-bottom-left-radius: 20px;
     border-right: 1px solid #dcdbdb;
+    background-color: #78c9ab;
 }
 
 #gallery-card-disagree-button {
     width: 34%;
-
+    background-color: #eb734d;
 }
 
 #gallery-card-not-sure-button {
     border-left: 1px solid #dcdbdb;
     width: 33%;
-    border-bottom-right-radius: 20px;
+    background-color: #fbd78b;
 }
 
 .card-header {
-    display: flex;
-    position: absolute;
-    left: 1vw;
-    top: 1vh;
+    padding: 5px 5px 5px 10px;
     font-family: 'raleway-regular', sans-serif;
     font-weight: bold;
-    color:white;
-    font-size: 1.1vw;
-    align-items: center;
-}
-
-.card-header > img {
-    position: relative;
-    width: auto;
-    height: 20px;
-    margin-right: 3px;
+    font-size: 1vw;
 }
 
 .card-info {
-    display: flex;
-    position: absolute;
-    bottom: 5%;
-    height: 20%;
-    width: 100%;
-    padding-bottom: 5%;
+    padding-bottom: 0.5vw;
     padding-left: 0.5vw;
     padding-right: 0.5vw;
     font-size: 0.9vw;
     font-family: 'raleway-regular', sans-serif;
 }
 
+.card-data {
+    display: flex;
+    flex-direction: row;
+    font-size: .7vw;
+}
+
 .card-severity {
     display: flex;
-    width: 50%;
+    width: 45%;
     height: 100%;
-    flex-direction: column;
-    color: white;
+    flex-direction: row;
+    color: black;
+    padding-left: 10px;
 }
 
 .label-severity-header {
-    color: white;
+    padding-right: .25vw;
 }
+
 .label-severity-content {
     color: white;
     display: flex;
@@ -115,16 +125,22 @@
     display: flex;
     width: 60%;
     height: 100%;
-    flex-direction: column;
-    color:white;
+    flex-direction: row;
+    color:black;
     right: 0px;
+}
+
+.label-tags-header {
+    padding-right: .25vw;
 }
 
 .label-tags-holder {
     display: flex;
     width: 100%;
     flex-direction: row;
+    line-height: 100%;
 }
+
 .label-tags-content {
     text-overflow: ellipsis;
     width:fit-content;
@@ -133,14 +149,12 @@
 
 .label-icon {
     position: absolute;
-    width: 12px;
+    width: 1.1vw;
     z-index: 1;
 }
 
 .validation-button, .validation-button-selected {
-    /* color: white; */
     opacity: 0;
-    transition: .2s ease;
     font-size: 0.75vw;
     font-weight: bold;
     font-family: 'raleway-regular', sans-serif;
@@ -149,22 +163,26 @@
     color: #2d2a3f;
 }
 
-.validation-button {
-    opacity: 1;
+.gallery-card:hover .validation-button {
+    opacity: 0.75;
 }
 
-.validation-button-selected {
+.gallery-card:hover .validation-button-selected {
     opacity: 1;
     background-color: gray;
     /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
     /* outline: -webkit-focus-ring-color auto 1px; */
 }
 
+.modal-background-card {
+    opacity: 50%;
+}
+
 .severity-circle {
     color: white;
-    border: 1px solid white;
-    width: 1.5vw;
-    height: 1.5vw;
+    border: 1px solid black;
+    width: 0.7vw;
+    height: 0.7vw;
     border-radius: 50%;
     text-align: center;
     margin: 2px;
@@ -172,6 +190,6 @@
 }
 #current-severity {
     border: 2px solid black;
-    background-color: white;
+    background-color: black;
     color: black;
 }

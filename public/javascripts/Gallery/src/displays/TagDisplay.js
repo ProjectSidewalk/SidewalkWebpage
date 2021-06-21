@@ -25,16 +25,29 @@ function TagDisplay(container, tags, isModal=false) {
             $(container).append(tagContainer);
             let remainingWidth = $(container).width();
 
+            let hiddenCount = 0;
+
             // Try to append as many tags as possible into the parent container.
             for (let i = 0; i < tags.length; i++) {
                 let tagTest = document.createElement('div');
-                tagTest.className = 'gallery-tag';
+                tagTest.className = 'gallery-tag thumbnail-tag';
                 tagTest.innerText = tagsText[i];
                 $(tagContainer).append(tagTest);
-                remainingWidth -= ($(tagTest).width() + 8);
+                remainingWidth -= ($(tagTest).width() + 24); //TODO: figure out meaning of this constant.
                 if (remainingWidth < 0) {
+                    // No room for this tag, this will be one of the hidden tags, so we increment counter.
                     tagTest.remove();
+                    hiddenCount += 1;
                 }
+            }
+
+            console.log("Hidden count: " + hiddenCount);
+            if (hiddenCount > 0) {
+                // We have hidden tags.
+                let additional = document.createElement('div');
+                additional.className = "gallery-tag additional-count";
+                additional.innerText = " + " + hiddenCount;
+                $(tagContainer).append(additional);
             }
         }
     }
