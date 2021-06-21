@@ -27,6 +27,8 @@
     border-bottom: 1px solid gray;
 }
 
+/* Note that the side bar is out of the "flow" of the grid container because it is fixed
+   when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
     padding-top: 40px;
@@ -58,7 +60,7 @@
     grid-template-areas: 
         'sidebar main gallery-modal'
         'sidebar paging gallery-modal';
-    grid-template-columns: 0.5fr 3fr;
+    /* grid-template-columns: 0.5fr 3fr; --- We may not need this as the sidebar is now a fixed DOM element (as in it is out of the grid)*/
     grid-gap: 2px;
     padding: 10px;
 }
@@ -66,5 +68,6 @@
 .cards {
     display: flex;
     flex-flow: row wrap;
+    margin-left: 250px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 

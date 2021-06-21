@@ -24,6 +24,8 @@ function Card (params, imageUrl) {
         label_id: undefined,
         label_type: undefined,
         gsv_panorama_id: undefined,
+        image_date: undefined,
+        label_timestamp: undefined,
         heading: undefined,
         pitch: undefined,
         zoom: undefined,

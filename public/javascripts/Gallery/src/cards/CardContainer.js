@@ -347,7 +347,11 @@ function CardContainer(uiCardContainer) {
      * Renders current cards.
      */
     function render() {
+        // In order to help the loading icon actually show, we make the sidebar positioned relatively
+        // while we are loading on the gallery page. Otherwise, it will be fixed.
+        // This is very much a hacky fix and needs a better fix.
         $("#page-loading").show();
+        $('.sidebar').css('position', 'relative');
         $(".page-control").hide();
          
         // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
@@ -380,8 +384,9 @@ function CardContainer(uiCardContainer) {
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
                 imagesToLoad.forEach((card) => {card.renderSize(uiCardContainer.holder, cardWidth)});
-                $("#page-loading").hide();
                 $(".page-control").show();
+                $("#page-loading").hide();
+                $('.sidebar').css('position', 'fixed');
                 sg.tagContainer.enable();
                 $("#label-select").prop("disabled", false);
             });
@@ -389,6 +394,7 @@ function CardContainer(uiCardContainer) {
             // TODO: figure out how to better do the toggling of this element.
             $("#labels-not-found").show();
             $("#page-loading").hide();
+            $('.sidebar').css('position', 'fixed');
             sg.tagContainer.enable();
             $("#label-select").prop("disabled", false);
         }
@@ -402,6 +408,7 @@ function CardContainer(uiCardContainer) {
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
         $("#page-loading").show();
+        $('.sidebar').css('position', 'relative');
         $(".page-control").hide();
         clearCardContainer(uiCardContainer.holder);
     }
@@ -450,6 +457,10 @@ function CardContainer(uiCardContainer) {
         return currentPage;
     }
 
+    /**
+     * Get the cards that form the current page.
+     * @returns Array of cards from the current page.
+     */
     function getCurrentPageCards() {
         let idx = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
