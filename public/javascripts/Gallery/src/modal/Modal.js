@@ -16,6 +16,8 @@ function Modal(uiModal) {
         label_id: undefined,
         label_type: undefined,
         gsv_panorama_id: undefined,
+        image_date: undefined,
+        label_timestamp: undefined,
         heading: undefined,
         pitch: undefined,
         zoom: undefined,
@@ -55,7 +57,12 @@ function Modal(uiModal) {
      * Performs the actions to close the Modal.
      */
     function closeModal() {
-        $('.grid-container').css("grid-template-columns", "0.5fr 3fr");
+        // Since we have made the sidebar a "fixed" DOM element, it no longer exists
+        // as part of the grid flow. Therefore, when we aren't in expanded modal mode,
+        // the only thing that is part of the grid is the image-container. We therefore
+        // shouldn't need to divide the grid into columns.
+        // Disclaimer: I could be totally wrong lol.
+        $('.grid-container').css("grid-template-columns", "none"/*"0.5fr 3fr"*/);
         uiModal.hide();
 
         // Make sure to remove transparent effect from all cards since we are out of modal mode.
@@ -85,10 +92,10 @@ function Modal(uiModal) {
         // Add timestamp data for when label was placed and when pano was created.
         let labelTimestampData = document.createElement('div');
         labelTimestampData.className = 'label-timestamp';
-        labelTimestampData.innerHTML = `<div><b>Labeled: </b></div>`;
+        labelTimestampData.innerHTML = `<div><b>Labeled: ${moment(new Date(properties.label_timestamp))}</b></div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div><b>Pano Date: </b></div>`;
+        panoTimestampData.innerHTML = `<div><b>Image Date: ${properties.image_date}</b></div>`;
         self.timestamps.append(labelTimestampData);
         self.timestamps.append(panoTimestampData);
 

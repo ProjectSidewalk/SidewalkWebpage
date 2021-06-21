@@ -80,26 +80,26 @@
 
 .gallery-modal-info-severity {
     width:40%;
-    height:50%;
+    height:40%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-tags {
     width: 60%;
-    height: 50%;
+    height: 40%;
 }
 
 .gallery-modal-info-temporary {
     width: 40%;
-    height: 50%;
+    height: 60%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-description {
     width: 60%;
-    height: 50%;
+    height: 60%;
 }
 
 .modal-top-holder {
