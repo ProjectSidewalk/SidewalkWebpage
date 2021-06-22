@@ -17,7 +17,12 @@ function TagDisplay(container, tags, isModal=false) {
             $(container).empty();
             let tagHeader = document.createElement('div');
             tagHeader.className = 'label-tags-header';
-            tagHeader.innerHTML = `<b>${i18next.t("tags")}</b>`;
+            if (isModal) {
+                // Add bold weight. Find better way to do this. 
+                tagHeader.classList.add('modal-tag-header');
+            }
+
+            tagHeader.innerText = `${i18next.t("tags")}`;
             $(container).append(tagHeader);
 
             let tagContainer = document.createElement('div');
@@ -30,6 +35,8 @@ function TagDisplay(container, tags, isModal=false) {
             // Try to append as many tags as possible into the parent container.
             for (let i = 0; i < tags.length; i++) {
                 let tagTest = document.createElement('div');
+                // We may want to rename the thumbnail-tag class if we every choose to make
+                // tags editable in modal mode.
                 tagTest.className = 'gallery-tag thumbnail-tag';
                 tagTest.innerText = tagsText[i];
                 $(tagContainer).append(tagTest);

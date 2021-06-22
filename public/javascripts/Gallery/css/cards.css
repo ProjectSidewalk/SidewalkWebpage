@@ -82,9 +82,8 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .card-header {
-    padding: 5px 5px 5px 10px;
-    font-family: 'raleway-regular', sans-serif;
-    font-weight: bold;
+    padding: 5px 5px 3px 10px;
+    font-family: 'raleway-bold', sans-serif;
     font-size: 1vw;
 }
 
@@ -98,13 +97,17 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .card-data {
     display: flex;
+    align-items: center;
+    justify-content: center;
     flex-direction: row;
     font-size: .7vw;
+    height: 2.5vh;
 }
 
 .card-severity {
     display: flex;
-    width: 45%;
+    align-items: center;
+    width: 40%; /* figure out a better way to set this severity/tag ratio */
     height: 100%;
     flex-direction: row;
     color: black;
@@ -123,6 +126,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .card-tags {
     display: flex;
+    align-items: center;
     width: 60%;
     height: 100%;
     flex-direction: row;
@@ -136,9 +140,9 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .label-tags-holder {
     display: flex;
+    align-items: center;
     width: 100%;
     flex-direction: row;
-    line-height: 100%;
 }
 
 .label-tags-content {

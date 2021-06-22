@@ -23,7 +23,12 @@ function SeverityDisplay(container, severity, isModal=false) {
 
         let title = document.createElement('div');
         title.className = 'label-severity-header';
-        title.innerHTML = `<b>${i18next.t("severity")}</b>`;
+        if (isModal) {
+            // Add bold weight. Find better way to do this.
+            title.classList.add('modal-severity-header');
+        }
+
+        title.innerText = `${i18next.t("severity")}`;
         container.append(title);
 
         // Creates all of the circles for the severities.
