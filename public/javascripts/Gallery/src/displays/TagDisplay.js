@@ -42,8 +42,7 @@ function TagDisplay(container, tags, isModal=false) {
             // Try to append as many tags as possible into the parent container.
             for (let i = 0; i < tagsText.length; i++) {
                 let tagTest = document.createElement('div');
-                // We may want to rename the thumbnail-tag class if we every choose to make
-                // tags editable in modal mode.
+                // We may want to rename the thumbnail-tag class if we every choose to make tags editable in modal mode.
                 tagTest.className = 'gallery-tag thumbnail-tag';
                 tagTest.innerText = tagsText[i];
                 $(tagContainer).append(tagTest);

@@ -20,8 +20,17 @@
     font-size: 18px;
 }
 
-.modal-severity-header, .modal-tag-header {
+.label-timestamp, .pano-timestamp {
+    color: #2d2a3f;
+}
+
+.modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
     font-weight: bold;
+    color: #2d2a3f;
+}
+
+.modal-temporary-body, .modal-description-body {
+    color: #888787;
 }
 
 .gallery-modal-header {
@@ -31,6 +40,7 @@
     margin-bottom: 5px;
     font-family: 'raleway-bold', sans-serif;
     font-size: 1.5vw;
+    color: #2d2a3f;
 }
 
 .gallery-modal-pano {

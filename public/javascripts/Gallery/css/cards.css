@@ -68,17 +68,20 @@ with respect to the image holder. This allows the validation menu to be placed o
     width: 33%;
     border-right: 1px solid #dcdbdb;
     background-color: #78c9ab;
+    color: #2d2a3f;
 }
 
 #gallery-card-disagree-button {
     width: 34%;
     background-color: #eb734d;
+    color: #2d2a3f;
 }
 
 #gallery-card-not-sure-button {
     border-left: 1px solid #dcdbdb;
     width: 33%;
     background-color: #fbd78b;
+    color: #2d2a3f;
 }
 
 .card-header {
@@ -93,6 +96,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     padding-right: 0.5vw;
     font-size: 0.9vw;
     font-family: 'raleway-regular', sans-serif;
+    color: #2d2a3f;
 }
 
 .card-data {
@@ -110,7 +114,6 @@ with respect to the image holder. This allows the validation menu to be placed o
     width: 40%; /* figure out a better way to set this severity/tag ratio */
     height: 100%;
     flex-direction: row;
-    color: black;
     padding-left: 10px;
 }
 
@@ -119,7 +122,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .label-severity-content {
-    color: white;
     display: flex;
     flex-direction: row;
 }
@@ -130,7 +132,6 @@ with respect to the image holder. This allows the validation menu to be placed o
     width: 60%;
     height: 100%;
     flex-direction: row;
-    color:black;
     right: 0px;
 }
 
