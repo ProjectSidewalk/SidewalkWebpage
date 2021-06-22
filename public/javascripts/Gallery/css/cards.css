@@ -7,6 +7,9 @@
     width: 24vw;
     height: auto;
 }
+.gallery-card:hover {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+}
 
 .validate-agree {
     background-color: #78c9ab;
@@ -88,6 +91,9 @@ with respect to the image holder. This allows the validation menu to be placed o
     border-style: solid;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
+}
+.card-info:hover {
+    border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */
 }
 
 .card-data {
