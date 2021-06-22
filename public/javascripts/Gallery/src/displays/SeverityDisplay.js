@@ -50,7 +50,7 @@ function SeverityDisplay(container, severity, isModal=false) {
         if (severity) {
             for (let i = 0; i < severity; i++) {
                 if (isModal) {
-                    $(circles[i]).attr('src', `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i + 1}.png`)
+                    $(circles[i]).attr('src', `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i + 1}_inverted.png`)
                 } else {
                     $(circles[i]).attr('id', selectedCircleID);
                 }
