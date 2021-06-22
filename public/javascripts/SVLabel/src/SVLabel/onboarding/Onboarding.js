@@ -629,6 +629,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         }
     }
 
+
+    var deleteLabelActive = false;
     function _incorrectLabelApplication(state, listener) {
 
         hideMessage();
@@ -697,15 +699,20 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 ribbon.enableMode("Walk");
                 ribbon.stopBlinking();
 
-                $(document).off('ModeSwitch_' + event, callback);
+                $(document).unbind('ModeSwitch_' + event, callback);
+                deleteLabelActive = !deleteLabelActive;
                 // Step 3: Re-label
+                console.log("in ModeSwitch_");
                 _visit(getCurrentLabelState());
             };
+            console.log(event);
+            $(document).unbind('ModeSwitch_' + event, callback);
             $(document).on('ModeSwitch_' + event, callback);
-
         };
-        $(document).on('RemoveLabel', deleteLabelCallback);
-
+        if(!deleteLabelActive) {
+            $(document).on('RemoveLabel', deleteLabelCallback);
+            deleteLabelActive = !deleteLabelActive;
+        }
     }
 
     /**
@@ -911,6 +918,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
             $target.off("tagIds-updated", callback);
             contextMenu.hide();
+            console.log("916");
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
         // We use a custom event here to ensure that this is triggered after the tagIds array has been updated
@@ -1130,7 +1138,21 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     this.pushOnboardingLabel = function (label) {
+        console.log(this._onboardingLabels);
+        if(this._onboardingLabels.includes(label)){
+            console.log("alreadyhere");
+        }
         this._onboardingLabels.push(label);
+    };
+
+    this.removeOnboardingLabel = function (label) {
+        if(this._onboardingLabels.includes(label)){
+            for(var i = 0; i < this._onboardingLabels.length; i++) {
+                if(this._onboardingLabels[i] == label){
+                    this._onboardingLabels.remove(i);
+                }
+            }
+        }
     };
 
     /**
