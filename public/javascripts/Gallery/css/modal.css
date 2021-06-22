@@ -50,7 +50,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    margin-bottom: 5%;
+    margin-bottom: 3.5%;
 }
 
 .gallery-modal-pano-display {
@@ -89,7 +89,7 @@
     justify-content: space-between;
     width: 100%;
     font-size: .8vw;
-    padding-bottom: 2%;
+    padding-bottom: 1%;
 }
 
 .gallery-modal-info-severity {
@@ -123,18 +123,21 @@
 }
 
 .modal-severity-circle {
-    color: black;
+    /* color: black;
     border: 1px solid black;
     padding: 1px 0px; /* Quite a hacky fix in order to center numbers correctly, reassess */
-    width: 1.5vw;
+    /* width: 1.5vw;
     height: 1.5vw;
     border-radius: 50%;
     text-align: center;
     line-height: 100%;
     margin: 2px;
     background-color: white;
-    font-size: 1vw;
+    font-size: 1vw; */
+    width: 1.75vw;
+    height: 1.75vw;
 }
+
 #modal-current-severity {
     border: 2px solid black;
     padding: 0px;

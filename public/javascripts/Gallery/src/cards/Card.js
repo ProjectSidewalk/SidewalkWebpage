@@ -63,6 +63,8 @@ function Card (params, imageUrl) {
         w: 0,
         h: 0
     };
+
+    // The label icon to be placed on the static pano image.
     const labelIcon = new Image();
 
     // The static pano image.
