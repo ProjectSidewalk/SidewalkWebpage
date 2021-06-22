@@ -130,7 +130,7 @@ function Modal(uiModal) {
     }
 
     function highlightThumbnail(galleryCard) {
-        // Centers the card thumbnail that was selected.
+        // Centers the card thumbnail that was selected. If it's the last card, we shouldn't center (use "end").
         galleryCard.scrollIntoView({
             block: 'center',
             behavior: 'smooth'

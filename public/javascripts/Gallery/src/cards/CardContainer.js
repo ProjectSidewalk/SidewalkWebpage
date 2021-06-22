@@ -381,7 +381,6 @@ function CardContainer(uiCardContainer) {
             // TODO: figure out how to better do the toggling of this element.
             $("#labels-not-found").show();
             $("#page-loading").hide();
-            $('.sidebar').css('position', 'fixed');
             sg.tagContainer.enable();
             $("#label-select").prop("disabled", false);
         }
