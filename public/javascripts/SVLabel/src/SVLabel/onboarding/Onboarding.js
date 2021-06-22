@@ -702,10 +702,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 $(document).unbind('ModeSwitch_' + event, callback);
                 deleteLabelActive = !deleteLabelActive;
                 // Step 3: Re-label
-                console.log("in ModeSwitch_");
                 _visit(getCurrentLabelState());
             };
-            console.log(event);
             $(document).unbind('ModeSwitch_' + event, callback);
             $(document).on('ModeSwitch_' + event, callback);
         };
@@ -918,7 +916,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
             $target.off("tagIds-updated", callback);
             contextMenu.hide();
-            console.log("916");
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
         // We use a custom event here to ensure that this is triggered after the tagIds array has been updated
@@ -1139,9 +1136,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     this.pushOnboardingLabel = function (label) {
         console.log(this._onboardingLabels);
-        if(this._onboardingLabels.includes(label)){
-            console.log("alreadyhere");
-        }
         this._onboardingLabels.push(label);
     };
 

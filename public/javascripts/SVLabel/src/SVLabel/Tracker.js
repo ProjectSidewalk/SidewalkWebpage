@@ -213,9 +213,6 @@ function Tracker () {
         }
 
         var item = self.create(action, notes, extraData);
-        if(action == "Onboarding_Transition"){
-            console.log(action + " == " + JSON.stringify(notes) + " == "+ extraData);
-        }
         actions.push(item);
         var contextMenuLabel = true;
 
