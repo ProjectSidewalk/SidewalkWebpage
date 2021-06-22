@@ -50,6 +50,7 @@ function SeverityDisplay(container, severity, isModal=false) {
         if (severity) {
             for (let i = 0; i < severity; i++) {
                 if (isModal) {
+                    // If we are dealing with the modal, we want to change the png to the inverted smiley.
                     $(circles[i]).attr('src', `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i + 1}_inverted.png`)
                 } else {
                     $(circles[i]).attr('id', selectedCircleID);
