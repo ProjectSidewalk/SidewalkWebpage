@@ -91,10 +91,10 @@ function Modal(uiModal) {
         // Add timestamp data for when label was placed and when pano was created.
         let labelTimestampData = document.createElement('div');
         labelTimestampData.className = 'label-timestamp';
-        labelTimestampData.innerHTML = `<div><b>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</b></div>`;
+        labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div><b>${i18next.t('image-date')}: ${moment(properties.image_date).format('MMM YYYY')}</b></div>`;
+        panoTimestampData.innerHTML = `<div>${i18next.t('image-date')}: ${moment(properties.image_date).format('MMM YYYY')}</div>`;
         self.timestamps.append(labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
@@ -104,15 +104,23 @@ function Modal(uiModal) {
 
         // Add the information about the temporary property to the Modal.
         let temporaryHeader = document.createElement('div');
-        let temporaryText = properties.temporary ? i18next.t('yes') : i18next.t('no');
-        temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${temporaryText}</div>`;
+        temporaryHeader.className = 'modal-temporary-header';
+        temporaryHeader.innerHTML = i18next.t("temporary");
+        let temporaryBody = document.createElement('div');
+        temporaryBody.className = 'modal-temporary-body';
+        temporaryBody.innerHTML = properties.temporary ? i18next.t('yes') : i18next.t('no');
         self.temporary.append(temporaryHeader);
+        self.temporary.append(temporaryBody);
 
         // Add the information about the description of the label to the Modal.
-        let descriptionText = properties.description === null ? i18next.t('no-description') : properties.description;
-        let descriptionObject = document.createElement('div');
-        descriptionObject.innerHTML = `<div><b>${i18next.t("description")}</b></div><div>${descriptionText}</div>`;
-        self.description.append(descriptionObject);
+        let descriptionHeader = document.createElement('div');
+        descriptionHeader.className = 'modal-description-header';
+        descriptionHeader.innerHTML = i18next.t("description");
+        let descriptionBody = document.createElement('div');
+        descriptionBody.className = 'modal-description-body';
+        descriptionBody.innerHTML = properties.description === null ? i18next.t('no-description') : properties.description;
+        self.description.append(descriptionHeader);
+        self.description.append(descriptionBody);
     }
 
     /**
@@ -130,7 +138,7 @@ function Modal(uiModal) {
     }
 
     function highlightThumbnail(galleryCard) {
-        // Centers the card thumbnail that was selected.
+        // Centers the card thumbnail that was selected. If it's the last card, we shouldn't center (use "end").
         galleryCard.scrollIntoView({
             block: 'center',
             behavior: 'smooth'
