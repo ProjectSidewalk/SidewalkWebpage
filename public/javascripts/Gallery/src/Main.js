@@ -67,11 +67,10 @@ function Main (params) {
         debug: false
     }, function(err, t) {
         if (err) return console.log('something went wrong loading', err);
-        i18next.t('key');
-    });
 
-    _initUI();
-    _init();
+        _initUI();
+        _init();
+    });
 
     return self;
 }

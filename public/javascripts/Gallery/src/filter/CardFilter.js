@@ -49,9 +49,9 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function getTags(callback) {
         $.getJSON("/label/tags", function (data) {
-            let tag,
-                i = 0,
-                len = data.length;
+            let tag;
+            let i = 0;
+            let len = data.length;
             for (; i < len; i++) {
                 tag = new Tag(data[i]);
                 tagsByType[tag.getLabelType()].push(tag);

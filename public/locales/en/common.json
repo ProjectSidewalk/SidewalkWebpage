@@ -30,7 +30,12 @@
   "severity": "Severity",
   "tags": "Tags",
   "temporary": "Temporary",
-  "description" : "Description",
+  "description": "Description",
+  "no-description": "No description",
+  "image-date": "Image Date",
+  "labeled": "Labeled",
+  "yes": "Yes",
+  "no": "No",
   "tag": {
     "narrow": "narrow",
     "points into traffic": "points into traffic",

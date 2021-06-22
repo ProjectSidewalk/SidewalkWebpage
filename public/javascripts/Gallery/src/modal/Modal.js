@@ -9,11 +9,15 @@ function Modal(uiModal) {
     
     let self = this;
 
+    const unselectedCardClassName = "modal-background-card";
+
     // Properties of the label in the card.
     let properties = {
         label_id: undefined,
         label_type: undefined,
         gsv_panorama_id: undefined,
+        image_date: undefined,
+        label_timestamp: undefined,
         heading: undefined,
         pitch: undefined,
         zoom: undefined,
@@ -34,6 +38,7 @@ function Modal(uiModal) {
     function _init() {
         self.panoHolder = $('.actual-pano')
         self.tags = $('.gallery-modal-info-tags')
+        self.timestamps = $('.gallery-modal-info-timestamps');
         self.severity = $('.gallery-modal-info-severity')
         self.temporary = $('.gallery-modal-info-temporary')
         self.description = $('.gallery-modal-info-description')
@@ -52,8 +57,21 @@ function Modal(uiModal) {
      * Performs the actions to close the Modal.
      */
     function closeModal() {
-        $('.grid-container').css("grid-template-columns", "1fr 3fr");
+        // Since we have made the sidebar a "fixed" DOM element, it no longer exists as part of the grid flow. Thus,
+        // when we aren't in expanded modal mode, the only thing that is part of the grid is the image-container. We
+        // therefore shouldn't need to divide the grid into columns (changed "0.5fr 3fr" to "none").
+        // Disclaimer: I could be totally wrong lol.
+        $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
+
+        // Make sure to remove transparent effect from all cards since we are out of modal mode.
+        let currentPageCards = sg.cardContainer.getCurrentPageCards();
+        for (let card of currentPageCards) {
+            let cardDomEl = document.getElementById("gallery_card_" + card.getLabelId());
+            if (cardDomEl.classList.contains(unselectedCardClassName)) {
+                cardDomEl.classList.remove(unselectedCardClassName);
+            }
+        }
     }
 
     /**
@@ -63,27 +81,46 @@ function Modal(uiModal) {
         self.description.empty();
         self.temporary.empty();
         self.severity.empty();
+        self.timestamps.empty();
     }
 
     /**
      * Populates the information in the Modal.
      */
     function populateModalDescriptionFields() {
+        // Add timestamp data for when label was placed and when pano was created.
+        let labelTimestampData = document.createElement('div');
+        labelTimestampData.className = 'label-timestamp';
+        labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
+        let panoTimestampData = document.createElement('div');
+        panoTimestampData.className = 'pano-timestamp';
+        panoTimestampData.innerHTML = `<div>${i18next.t('image-date')}: ${moment(properties.image_date).format('MMM YYYY')}</div>`;
+        self.timestamps.append(labelTimestampData);
+        self.timestamps.append(panoTimestampData);
+
         // Add severity and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, true);
         new TagDisplay(self.tags, properties.tags, true);
 
         // Add the information about the temporary property to the Modal.
         let temporaryHeader = document.createElement('div');
-        let temporaryText = properties.temporary ? "Yes" : "No";
-        temporaryHeader.innerHTML = `<div><b>${i18next.t("temporary")}</b></div><div>${temporaryText}</div>`;
+        temporaryHeader.className = 'modal-temporary-header';
+        temporaryHeader.innerHTML = i18next.t("temporary");
+        let temporaryBody = document.createElement('div');
+        temporaryBody.className = 'modal-temporary-body';
+        temporaryBody.innerHTML = properties.temporary ? i18next.t('yes') : i18next.t('no');
         self.temporary.append(temporaryHeader);
+        self.temporary.append(temporaryBody);
 
         // Add the information about the description of the label to the Modal.
-        let descriptionText = properties.description === null ? "" : properties.description;
-        let descriptionObject = document.createElement('div');
-        descriptionObject.innerHTML = `<div><b>${i18next.t("description")}</b></div><div>${descriptionText}</div>`;
-        self.description.append(descriptionObject);
+        let descriptionHeader = document.createElement('div');
+        descriptionHeader.className = 'modal-description-header';
+        descriptionHeader.innerHTML = i18next.t("description");
+        let descriptionBody = document.createElement('div');
+        descriptionBody.className = 'modal-description-body';
+        descriptionBody.innerHTML = properties.description === null ? i18next.t('no-description') : properties.description;
+        self.description.append(descriptionHeader);
+        self.description.append(descriptionBody);
     }
 
     /**
@@ -95,6 +132,34 @@ function Modal(uiModal) {
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t('gallery.' + properties.label_type));
+
+        // Highlight selected card thumbnail.
+        highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
+    }
+
+    function highlightThumbnail(galleryCard) {
+        // Centers the card thumbnail that was selected. If it's the last card, we shouldn't center (use "end").
+        galleryCard.scrollIntoView({
+            block: 'center',
+            behavior: 'smooth'
+        });
+
+        // Make sure to remove transparent effect from selected card.
+        if (galleryCard.classList.contains(unselectedCardClassName)) {
+            galleryCard.classList.remove(unselectedCardClassName);
+        }
+        
+        // The rest of the cards should be semitransparent.
+        let currentPageCards = sg.cardContainer.getCurrentPageCards();
+        for (let card of currentPageCards) {
+            let cardLabelId = card.getLabelId();
+            if (cardLabelId != properties.label_id) {
+                let cardDomEl = document.getElementById("gallery_card_" + cardLabelId);
+                if (!cardDomEl.classList.contains(unselectedCardClassName)) {
+                    cardDomEl.classList.add(unselectedCardClassName);
+                }
+            }
+        }
     }
 
     /**

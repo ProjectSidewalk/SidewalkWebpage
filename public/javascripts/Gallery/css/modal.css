@@ -7,7 +7,6 @@
 }
 
 .gallery-modal {
-    grid-area: 'gallery-modal';
     display: flex;
     height: 90vh;
     position: fixed;
@@ -18,14 +17,30 @@
     width: 50vw;
     right:2vw;
     font-family: 'raleway-regular', sans-serif;
-    font-size: 20px;
+    font-size: 18px;
+}
+
+.label-timestamp, .pano-timestamp {
+    color: #2d2a3f;
+}
+
+.modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
+    font-weight: bold;
+    color: #2d2a3f;
+}
+
+.modal-temporary-body, .modal-description-body {
+    color: #888787;
 }
 
 .gallery-modal-header {
     width: 100%;
-    height: 10%;
-    margin-top: 2%;
-    font-size: 24px;
+    height: 100%;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    font-family: 'raleway-bold', sans-serif;
+    font-size: 1.5vw;
+    color: #2d2a3f;
 }
 
 .gallery-modal-pano {
@@ -35,7 +50,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    margin-bottom: 5%;
+    margin-bottom: 3.5%;
 }
 
 .gallery-modal-pano-display {
@@ -64,52 +79,68 @@
 .gallery-modal-info {
     display: flex;
     height: 20%;
-    width: 85%;
+    width: calc(100% - 100px); /* Full width of modal minus 50px for prev arrow and 50px for next arrow. */
     flex-wrap: wrap;
+    font-size: 1vw;
 }
+
+.gallery-modal-info-timestamps {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: .8vw;
+    padding-bottom: 1%;
+}
+
 .gallery-modal-info-severity {
-    width:40%;
-    height:50%;
+    width: 40%;
+    height: 40%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-tags {
     width: 60%;
-    height: 50%;
+    height: 40%;
 }
 
 .gallery-modal-info-temporary {
     width: 40%;
-    height: 50%;
+    height: 60%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-description {
     width: 60%;
-    height: 50%;
+    height: 60%;
 }
 
 .modal-top-holder {
     display: flex;
     align-content: space-between;
-    width: 90%;
+    width: calc(100% - 100px); /* Full width of modal minus 50px for prev arrow and 50px for next arrow. */
 }
 
 .modal-severity-circle {
-    color: black;
+    /* color: black;
     border: 1px solid black;
-    width: 40px;
-    height: 40px;
+    padding: 1px 0px; /* Quite a hacky fix in order to center numbers correctly, reassess */
+    /* width: 1.5vw;
+    height: 1.5vw;
     border-radius: 50%;
     text-align: center;
+    line-height: 100%;
     margin: 2px;
     background-color: white;
-    font-size: 25px;
+    font-size: 1vw; */
+    width: 1.75vw;
+    height: 1.75vw;
 }
+
 #modal-current-severity {
     border: 2px solid black;
+    padding: 0px;
     background-color: black;
     color:white;
 }
