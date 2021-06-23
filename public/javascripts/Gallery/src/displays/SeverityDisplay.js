@@ -37,7 +37,7 @@ function SeverityDisplay(container, severity, isModal=false) {
             severityCircle.className = severityCircleClass;
             if (isModal) {
                 // Set the src of our smiley icon to default black-outlined, white-filled smileys.
-                severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_BW.png`;
+                severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
             }
 
             circles.push(severityCircle);
