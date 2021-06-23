@@ -16,6 +16,7 @@
     background-color: white;
     border-radius: 5px;
     border-width: 1px;
+    margin: 0px 2px;
 }
 
 .paging:disabled {
