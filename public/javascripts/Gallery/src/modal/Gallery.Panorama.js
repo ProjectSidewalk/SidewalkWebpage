@@ -81,12 +81,10 @@
             self.panoId = self.panorama.getPano();
             if (self.labelMarker !== undefined) {
                 if (self.labelMarker.panoId === self.panoId) {
-                    // We have moved to a pano with a panoId that matches the current label
-                    // to be shown, hence we render the label.
+                    // We've moved to a pano with an ID that matches the current label to show, so we render the label.
                     self.labelMarker.marker.setVisible(true);
                 } else {
-                    // Pano ID of label doesn't match the current pano's pano ID, so we don't
-                    // show the label marker.
+                    // Pano ID of label doesn't match the current pano's pano ID, so we don't show the label marker.
                     self.labelMarker.marker.setVisible(false);
                 }
             }
@@ -193,7 +191,7 @@
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
         if (!self.labelMarker) {
-            // No panomarker has been added to the modal.
+            // No panomarker has been added to the modal, so we create a new one.
             self.labelMarker = {
                 panoId: self.panoId,
                 marker: new PanoMarker({
