@@ -285,7 +285,7 @@ function CardContainer(uiCardContainer) {
                     currentCards = cardsByType[currentLabelType].copy();
                     currentCards.filterOnTags(appliedTags);
                     currentCards.filterOnSeverities(appliedSeverities);
-        
+
                     render();
                 });
             }
@@ -390,6 +390,7 @@ function CardContainer(uiCardContainer) {
      * Refreshes the UI after each query made by user.
      */
     function refreshUI() {
+        modal.closeModal();
         sg.tagContainer.disable();
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
@@ -452,12 +453,10 @@ function CardContainer(uiCardContainer) {
         let cardBucket = currentCards.getCards();
 
         let currentPageCards = [];
-
         while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
             currentPageCards.push(cardBucket[idx]);
             idx++;
         }
-
         return currentPageCards;
     }
 

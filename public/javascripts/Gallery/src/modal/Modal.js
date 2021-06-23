@@ -47,7 +47,7 @@ function Modal(uiModal) {
         self.closeButton = $('.gallery-modal-close')
         self.leftArrow = $('#prev-label')
         self.rightArrow = $('#next-label')
-        self.closeButton.click(closeModal)
+        self.closeButton.click(closeModalAndRemoveCardTransparency)
         self.rightArrow.click(nextLabel)
         self.leftArrow.click(previousLabel)
         self.cardIndex = -1;
@@ -55,6 +55,7 @@ function Modal(uiModal) {
 
     /**
      * Performs the actions to close the Modal.
+     * NOTE does not remove card transparency. For that, use closeModalAndRemoveCardTransparency().
      */
     function closeModal() {
         // Since we have made the sidebar a "fixed" DOM element, it no longer exists as part of the grid flow. Thus,
@@ -63,8 +64,12 @@ function Modal(uiModal) {
         // Disclaimer: I could be totally wrong lol.
         $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
+    }
 
-        // Make sure to remove transparent effect from all cards since we are out of modal mode.
+    /**
+     * Removes transparency from the current page of cards.
+     */
+    function removeCardTransparency() {
         let currentPageCards = sg.cardContainer.getCurrentPageCards();
         for (let card of currentPageCards) {
             let cardDomEl = document.getElementById("gallery_card_" + card.getLabelId());
@@ -72,6 +77,14 @@ function Modal(uiModal) {
                 cardDomEl.classList.remove(unselectedCardClassName);
             }
         }
+    }
+
+    /**
+     * Closes modal and removes transparency from cards on the current page. Not used when loading a new page of cards.
+     */
+    function closeModalAndRemoveCardTransparency() {
+        closeModal();
+        removeCardTransparency();
     }
 
     /**
@@ -234,6 +247,7 @@ function Modal(uiModal) {
 
     self.updateProperties = updateProperties;
     self.openModal = openModal;
+    self.closeModal = closeModal;
     self.updateCardIndex = updateCardIndex;
 
     return self;
