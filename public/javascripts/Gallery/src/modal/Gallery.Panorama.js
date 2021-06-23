@@ -184,6 +184,7 @@
      * @returns {renderLabel}
      */
     function renderLabel (label) {
+        console.log(label['labelId']);
         const url = icons[label['label_type']];
         const pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
