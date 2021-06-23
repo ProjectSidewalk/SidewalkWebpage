@@ -86,6 +86,7 @@ function CardBucket(inputCards) {
                 return i;
             }
         }
+
         return -1;
     }
 

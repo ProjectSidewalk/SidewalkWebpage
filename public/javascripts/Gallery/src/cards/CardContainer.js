@@ -89,9 +89,9 @@ function CardContainer(uiCardContainer) {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
             const cardId = event.target.id;
-            modal.updateProperties(findCard(cardId).getProperties());
+
+            // Sets/Updates the label being displayed in the expanded modal.
             modal.updateCardIndex(findCardIndex(cardId));
-            modal.openModal();
         });
     }
 

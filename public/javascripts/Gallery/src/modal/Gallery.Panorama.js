@@ -8,7 +8,7 @@
     let self = {
         className: "GalleryPanorama",
         label: undefined,
-        labelMarkers: undefined,
+        labelMarker: undefined,
         panoId: undefined,
         panorama: undefined,
     };
@@ -76,17 +76,20 @@
         };
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, panoOptions) : null;
         self.panorama.addListener('pano_changed', function() {
-            // Show the correct set of labels for the given pano.
-            const currentPano = self.panorama.getPano();
-            const marker = self.labelMarkers
-            if (marker !== undefined) {
-                if (marker.panoId === currentPano) {
-                    marker.marker.setVisible(true);
+            // We always want to update panoId when pano changes (as it is possible the pano changes
+            // NOT because a user clicks on a card - for example, using clickToGo on the pano).
+            self.panoId = self.panorama.getPano();
+            if (self.labelMarker !== undefined) {
+                if (self.labelMarker.panoId === self.panoId) {
+                    // We have moved to a pano with a panoId that matches the current label
+                    // to be shown, hence we render the label.
+                    self.labelMarker.marker.setVisible(true);
                 } else {
-                    marker.marker.setVisible(false);
+                    // Pano ID of label doesn't match the current pano's pano ID, so we don't
+                    // show the label marker.
+                    self.labelMarker.marker.setVisible(false);
                 }
             }
-
         });
 
         if (self.panorama) {
@@ -184,22 +187,38 @@
      * @returns {renderLabel}
      */
     function renderLabel (label) {
-        console.log(label['labelId']);
+        // Get the panomarker icon url.
         const url = icons[label['label_type']];
         const pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
-        self.labelMarkers = {
-            panoId: self.panorama.getPano(),
-            marker: new PanoMarker({
-                container: self.panoCanvas,
-                pano: self.panorama,
-                position: {heading: pos.heading, pitch: pos.pitch},
-                icon: url,
-                size: new google.maps.Size(20, 20),
-                anchor: new google.maps.Point(10, 10)
-            })
-        };
+        if (!self.labelMarker) {
+            // No panomarker has been added to the modal.
+            self.labelMarker = {
+                panoId: self.panoId,
+                marker: new PanoMarker({
+                    container: self.panoCanvas,
+                    pano: self.panorama,
+                    position: {heading: pos.heading, pitch: pos.pitch},
+                    icon: url,
+                    size: new google.maps.Size(20, 20),
+                    anchor: new google.maps.Point(10, 10)
+                })
+            };
+        } else {
+            // Adjust the existing panomarker.
+            self.labelMarker.panoId = self.panoId;
+            self.labelMarker.marker.setPano(self.panorama, self.panoCanvas);
+            self.labelMarker.marker.setPosition({
+                heading: pos.heading,
+                pitch: pos.pitch
+            });
+            self.labelMarker.marker.setIcon(url);
+        }
+        
+        // Make our newly set panomarker visible.
+        self.labelMarker.marker.setVisible(true);
+
         return this;
     }
 
