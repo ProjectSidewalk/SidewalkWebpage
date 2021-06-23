@@ -245,8 +245,6 @@ function Modal(uiModal) {
 
     _init();
 
-    self.updateProperties = updateProperties;
-    self.openModal = openModal;
     self.closeModal = closeModal;
     self.updateCardIndex = updateCardIndex;
 
