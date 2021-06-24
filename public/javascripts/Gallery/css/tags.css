@@ -4,10 +4,25 @@
     cursor: pointer;
     border-style: solid;
     border-width: 1px;
-    border-radius: 20px;
+    border-radius: 5px;
     margin: 2px 2px;
     text-align: left;
-    background-color: white;
+    color: black;
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.thumbnail-tag {
+    cursor: default;
+    font-weight: bold;
+    padding: 1px 5px;
+    color: #2d2a3f;
+}
+
+.additional-count {
+    margin: 3px -2px;
+    border-style: none;
+    font-weight: bold;
 }
 
 .gallery-tag:disabled {

@@ -37,7 +37,6 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function _init() {
         getTags(function () {
-            console.log("tags received");
             render();
         });
     }
@@ -49,9 +48,9 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function getTags(callback) {
         $.getJSON("/label/tags", function (data) {
-            let tag,
-                i = 0,
-                len = data.length;
+            let tag;
+            let i = 0;
+            let len = data.length;
             for (; i < len; i++) {
                 tag = new Tag(data[i]);
                 tagsByType[tag.getLabelType()].push(tag);
@@ -62,7 +61,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     }
 
     /**
-     * Update filter componenets when label type changes.
+     * Update filter components when label type changes.
      */
     function update() {
         let currentLabelType = ribbonMenu.getCurrentLabelType();
@@ -73,7 +72,6 @@ function CardFilter(uiCardFilter, ribbonMenu) {
             currentTags = tagsByType[currentLabelType];
             sg.cardContainer.updateCardsByType();
         }
-
         render();
     }
 
@@ -88,7 +86,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         } else {
             $("#tags-header").hide();
         }
-        if (status.currentLabelType == "Occlusion") {
+        if (status.currentLabelType === "Occlusion") {
             $("#filters").hide();
             $("#horizontal-line").hide();
         } else {
@@ -162,8 +160,6 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function unapplyTags(labelType) {
         if (labelType != null) {
-            console.log("tags unapplied");
-            console.log(labelType);
             tagsByType[labelType].unapplyTags();
         }
     }
