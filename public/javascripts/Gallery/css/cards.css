@@ -1,18 +1,45 @@
 .gallery-card {
     position: relative;
     display: inline-block;
-    border-style: solid;
-    border-width: 1px;
-    padding: 5px;
-    border-radius: 5px;
-    margin: 2px;
-    width: 360px;
+    padding: 0px;
+    margin: 0.6vw;
+    border-radius: 20px;
+    width: 24vw;
     height: auto;
+}
+.gallery-card:hover {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+}
+
+.validate-agree {
+    background-color: #78c9ab;
+}
+
+.validate-disagree {
+    background-color: #eb734d;
+}
+
+.validate-not-sure {
+    background-color: #fbd78b;
+}
+
+/*
+We make sure that the image holder is positioned relatively so that the validation menu can be positioned absolutely
+with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay).
+*/
+.image-holder {
+    position: relative;
+}
+
+.gallery-card:hover:after {
+    opacity: 1;
 }
 
 .static-gallery-image {
     width: 100%;
     height: auto;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
 }
 
 #gallery-validation-button-holder {
@@ -20,56 +47,151 @@
     flex-flow: row wrap;
     justify-content: center;
     position: absolute;
-    bottom: 50px;
-    left: 5px;
-    right: 5px;
+    bottom: 0;
+    width: 100%;
     height: 11.5%;
+    z-index: 2;
 }
 
 #gallery-card-agree-button {
-    background-color: green;
     width: 33%;
+    border-right: 1px solid #dcdbdb;
+    background-color: #78c9ab;
+    color: #2d2a3f;
 }
 
 #gallery-card-disagree-button {
-    background-color: red;
     width: 34%;
+    background-color: #eb734d;
+    color: #2d2a3f;
 }
 
 #gallery-card-not-sure-button {
-    background-color:orange;
+    border-left: 1px solid #dcdbdb;
     width: 33%;
+    background-color: #fbd78b;
+    color: #2d2a3f;
+}
+
+.card-header {
+    padding: 5px 5px 3px 10px;
+    font-family: 'raleway-bold', sans-serif;
+    font-size: 1vw;
+}
+
+.card-info {
+    padding-bottom: 0.5vw;
+    padding-left: 0.5vw;
+    padding-right: 0.5vw;
+    font-size: 0.9vw;
+    font-family: 'raleway-regular', sans-serif;
+    color: #2d2a3f;
+    border-width: 0 1px 1px 1px;
+    border-color: #dcdbdb;
+    border-style: solid;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+.card-info:hover {
+    border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */
+}
+
+.card-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    font-size: .7vw;
+    height: 2.5vh;
+}
+
+.card-severity {
+    display: flex;
+    align-items: center;
+    width: 40%; /* figure out a better way to set this severity/tag ratio */
+    height: 100%;
+    flex-direction: row;
+    padding-left: 10px;
+}
+
+.label-severity-header {
+    padding-right: .25vw;
+}
+
+.label-severity-content {
+    display: flex;
+    flex-direction: row;
+}
+
+.card-tags {
+    display: flex;
+    align-items: center;
+    width: 60%;
+    height: 100%;
+    flex-direction: row;
+    right: 0px;
+}
+
+.label-tags-header {
+    padding-right: .25vw;
+}
+
+.label-tags-holder {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    flex-direction: row;
+}
+
+.label-tags-content {
+    text-overflow: ellipsis;
+    width:fit-content;
+    color: black;
 }
 
 .label-icon {
     position: absolute;
-    width: 12px;
-    z-index: 2;
-}
-
-p.label-severity, p.label-tags {
-    margin: 2px 0;
-    width: 100%;
-    height: 20px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
+    width: 1.1vw;
+    z-index: 1;
 }
 
 .validation-button, .validation-button-selected {
-    color: white;
     opacity: 0;
-    transition: .2s ease;
     font-size: 0.75vw;
+    font-weight: bold;
+    font-family: 'raleway-regular', sans-serif;
+    background-color: white;
+    border-style: none;
+    color: #2d2a3f;
 }
 
 .gallery-card:hover .validation-button {
-    opacity: 0.5;
+    opacity: 0.75;
 }
 
 .gallery-card:hover .validation-button-selected {
     opacity: 1;
-
+    background-color: gray;
     /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
-    outline: -webkit-focus-ring-color auto 1px;
+    /* outline: -webkit-focus-ring-color auto 1px; */
+}
+
+.modal-background-card {
+    opacity: 50%;
+}
+
+.severity-circle {
+    color: white;
+    border: 1px solid #2d2a3f;
+    width: 0.7vw;
+    height: 0.7vw;
+    border-radius: 50%;
+    text-align: center;
+    margin: 2px;
+    font-size: 0.9vw;
+}
+#current-severity {
+    border: 2px solid #2d2a3f;
+    background-color: #2d2a3f;
+    color: #2d2a3f;
 }
