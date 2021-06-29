@@ -1135,7 +1135,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     this.pushOnboardingLabel = function (label) {
-        console.log(this._onboardingLabels);
         this._onboardingLabels.push(label);
     };
 

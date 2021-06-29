@@ -62,6 +62,10 @@ function Tracker () {
         return action === "ContextMenu_Close";
     };
 
+    this._isContextMenuTagAddedAction = function (action) {
+        return action.indexOf("ContextMenu_TagAdded") >= 0;
+    };
+
     this._isDeleteLabelAction = function (action) {
         return action.indexOf("RemoveLabel") >= 0;
     };
@@ -192,10 +196,12 @@ function Tracker () {
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
 
-            if(notes === null || typeof(notes) === 'undefined') {
-                notes = {'auditTaskId' : labelProperties.audit_task_id};
-            } else {
-                notes['auditTaskId'] = labelProperties.audit_task_id;
+            if(!self._isContextMenuTagAddedAction(action)) {
+                if (notes === null || typeof (notes) === 'undefined') {
+                    notes = {'auditTaskId': labelProperties.audit_task_id};
+                } else {
+                    notes['auditTaskId'] = labelProperties.audit_task_id;
+                }
             }
 
         } else if (self._isClickLabelDeleteAction(action)){
