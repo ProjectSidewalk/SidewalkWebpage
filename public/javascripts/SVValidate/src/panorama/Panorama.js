@@ -193,9 +193,7 @@ function Panorama (label) {
                             $("#view-control-layer").append($('.gm-style-cc').slice(1, 3));
                             bottomLinksClickable = true;
                         } 
-                    }
-                      
-                    else {
+                    } else {
                         console.error("Error retrieving Panoramas: " + status);
                         svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }

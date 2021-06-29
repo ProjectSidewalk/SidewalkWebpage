@@ -592,8 +592,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {*}
      */
     function getBottomLinkLayer () {
-        var links = $('.gm-style-cc').slice(0, 2);
-        return links;
+        return $('.gm-style-cc').slice(1, 3);
     }
 
     self.getStatus = function (key) {
@@ -1978,7 +1977,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
     self.getMoveDelay = getMoveDelay;
-    self.makeLinksClickable = makeLinksClickable;
+    // self.makeLinksClickable = makeLinksClickable;
     _init(params);
     return self;
 }
