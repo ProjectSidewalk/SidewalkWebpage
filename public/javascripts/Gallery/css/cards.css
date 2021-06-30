@@ -92,7 +92,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
 }
-.card-info:hover {
+.gallery-card:hover > .card-info {
     border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */
 }
 
