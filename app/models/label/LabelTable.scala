@@ -127,26 +127,24 @@ object LabelTable {
 
   case class LabelMetadataWithValidation(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String,
                                          heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
-                                         canvasWidth: Int, canvasHeight: Int,
-                                         auditTaskId: Int,
-                                         userId: String, username: String,
-                                         timestamp: Option[java.sql.Timestamp],
-                                         labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                                         temporary: Boolean, description: Option[String],
-                                         validations: Map[String, Int], tags: List[String])
+                                         canvasWidth: Int, canvasHeight: Int, auditTaskId: Int, userId: String,
+                                         username: String, timestamp: Option[java.sql.Timestamp], labelTypeKey: String,
+                                         labelTypeValue: String, severity: Option[Int], temporary: Boolean,
+                                         description: Option[String], validations: Map[String, Int], tags: List[String])
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
                                      timestamp: Option[java.sql.Timestamp], heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                                      severity: Option[Int], temporary: Boolean, description: Option[String],
-                                     tags: List[String])
+                                     userValidation: Option[Int], tags: List[String])
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageDate: String, timestamp: Option[java.sql.Timestamp],
                                                 heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
                                                 canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
-                                                temporary: Boolean, description: Option[String]);
+                                                temporary: Boolean, description: Option[String],
+                                                userValidation: Option[Int]);
 
   case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
@@ -176,13 +174,15 @@ object LabelTable {
   implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
     LabelValidationMetadataWithoutTags(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestampOption, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption))
+      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption
+    )
+  )
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestampOption, r.nextFloat, r.nextFloat, r.nextInt,
       r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption,
-      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+      r.nextIntOption, r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
 
@@ -605,7 +605,7 @@ object LabelTable {
     * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
     * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
     val userIdStr = userId.toString
@@ -615,7 +615,7 @@ object LabelTable {
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.image_date,
           |        label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
           |        label_point.canvas_y, label_point.canvas_width, label_point.canvas_height, label_severity.severity,
-          |        label_temporariness.temporary, label_description.description, the_tags.tag_list
+          |        label_temporariness.temporary, label_description.description, NULL AS user_val, the_tags.tag_list
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -718,7 +718,7 @@ object LabelTable {
    * @param tags Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def retrieveLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String]): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
+  def getLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // List to return.
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
 
@@ -772,8 +772,15 @@ object LabelTable {
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._6, l._1.timeCreated, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
+    // Join with the most recent validations that the user has given.
+    val userValidations = getMostRecentValidationsPerLabel(userId)
+    val addValidations = for {
+      (l, v) <- addDescriptions.leftJoin(userValidations).on(_._1 === _._1)
+    } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, l._11, l._12, l._13, l._14, l._15, v._2.?)
+    println(addValidations.size.run)
+
     // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+    val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
     var potentialStartIdx: Int = 0
 
@@ -806,7 +813,6 @@ object LabelTable {
     selectedLabels
   }
 
-
   /**
    * Retrieve n random labels of assorted types. 
    *
@@ -815,7 +821,7 @@ object LabelTable {
    * @param severity Optional set of severities the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def retrieveAssortedLabels(n: Int, loadedLabelIds: Set[Int], severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
+  def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // List to return.
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
 
@@ -867,8 +873,14 @@ object LabelTable {
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._6, l._1.timeCreated, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
+    // Join with the most recent validations that the user has given.
+    val userValidations = getMostRecentValidationsPerLabel(userId)
+    val addValidations = for {
+      (l, v) <- addDescriptions.leftJoin(userValidations).on(_._1 === _._1)
+    } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, l._11, l._12, l._13, l._14, l._15, v._2.?)
+
     // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+    val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
     val labelTypesAsStrings = LabelTypeTable.validLabelTypes
 
@@ -909,7 +921,7 @@ object LabelTable {
    * @param loadedLabelIds Label Ids of labels already grabbed.
    * @return Seq[LabelValidationMetadata]
    */
-  def retrieveLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def getLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // List to return.
     val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     
@@ -955,8 +967,15 @@ object LabelTable {
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._6, l._1.timeCreated, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
+    // Join with the most recent validations that the user has given.
+    val userValidations = getMostRecentValidationsPerLabel(userId)
+    val addValidations = for {
+      (l, v) <- addDescriptions.leftJoin(userValidations).on(_._1 === _._1)
+    } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, l._11, l._12, l._13, l._14, l._15, v._2.?)
+    println(addValidations.size.run)
+
     // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+    val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
     var potentialStartIdx: Int = 0
 
@@ -982,8 +1001,47 @@ object LabelTable {
       potentialStartIdx += labelsNeeded
       selectedLabels ++= newLabels
     }
-
     selectedLabels
+  }
+
+  /**
+   * For the given user, get the most recent validation result from each label they've validated, regardless of method.
+   *
+   * Ideally, we'd like to group by label_id, filter for most recent validation, and return the corresponding validation
+   * result. The methods to do that are a bit wonky in postgres, and even wonkier when we use Slick. In raw psql:
+   * SELECT DISTINCT ON (label_id) label_id, validation_result
+   * FROM label_validation
+   * WHERE user_id = '$userId'
+   * ORDER BY label_id, end_timestamp DESC;
+   *
+   * But in Slick, we can't use DISTINCT ON in this way (at least with Slick 2.1). So we instead group by label_id and
+   * get the newest validation timestamp (from the given user) for each label. Then we have to join that back with the
+   * label_validation table, joining on the label_id AND the timestamp. This _should_ be sufficient, but it is
+   * theoretically possible that a user could submitted multiple validations with identical timestamps, which would mean
+   * duplicates that we don't want. In the interest of performance (and because there was some issues converting it to
+   * Slick) we are skipping that grouping step. Below is the plain SQL that we converted to Slick syntax in the code.
+   * SELECT label_validation.label_id, validation_result
+   * FROM label_validation
+   * INNER JOIN (
+   *     SELECT label_id, MAX(end_timestamp) AS most_recent_timestamp
+   *     FROM label_validation
+   *     WHERE user_id = '$userId'
+   *     GROUP BY label_id
+   * ) most_recent_val
+   *     ON label_validation.label_id = most_recent_val.label_id
+   *     AND label_validation.end_timestamp = most_recent_val.most_recent_timestamp
+   * WHERE label_validation.user_id = '$userId';
+   *
+   * @param userId
+   * @return A query with the integer columns label_id and validation_result
+   */
+  def getMostRecentValidationsPerLabel(userId: UUID): Query[(Column[Int], Column[Int]), (Int, Int), Seq] = {
+    val userValidations = labelValidations.filter(_.userId === userId.toString)
+
+    userValidations.groupBy(_.labelId).map {
+      case (labId, group) => (labId, group.map(_.endTimestamp).max)
+    }.innerJoin(userValidations).on { case (x, y) => x._1 === y.labelId && x._2 === y.endTimestamp }
+      .map(x => (x._2.labelId, x._2.validationResult))
   }
 
   /**
@@ -997,7 +1055,7 @@ object LabelTable {
       LabelValidationMetadata(
         label.labelId, label.labelType, label.gsvPanoramaId, label.imageDate, label.timestamp, label.heading,
         label.pitch, label.zoom, label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.severity,
-        label.temporary, label.description, tags
+        label.temporary, label.description, label.userValidation, tags
       )
   }
 
@@ -1061,6 +1119,7 @@ object LabelTable {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
+      "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "tags" -> labelMetadata.tags
     )
   }
