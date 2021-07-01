@@ -592,7 +592,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {*}
      */
     function getBottomLinkLayer () {
-        var links = $('.gm-style-cc').slice(0, 2);
+        var links = $('.gm-style-cc').slice(1, 3);
         return links;
     }
 
