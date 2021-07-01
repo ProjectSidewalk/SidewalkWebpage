@@ -23,7 +23,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   // Set of valid labels.
-  val validLabelIds: Set[Int] = LabelTypeTable.validLabelTypeIds
+  val validLabTypes: Set[Int] = LabelTypeTable.validLabelTypeIds
 
   /**
    * Returns labels of a specified type.
@@ -36,10 +36,10 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
   def getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val loadedLabelIds: Set[Int] = Json.parse(loadedLabels).as[JsArray].value.map(_.as[Int]).toSet
+        val loadedLabIds: Set[Int] = Json.parse(loadedLabels).as[JsArray].value.map(_.as[Int]).toSet
         val labels: Seq[LabelValidationMetadata] =
-          if (validLabelIds.contains(labelTypeId)) LabelTable.retrieveLabelsByType(labelTypeId, n, loadedLabelIds) 
-          else LabelTable.retrieveAssortedLabels(n, loadedLabelIds)        
+          if (validLabTypes.contains(labelTypeId)) LabelTable.getLabelsByType(labelTypeId, n, loadedLabIds, user.userId)
+          else LabelTable.getAssortedLabels(n, loadedLabIds, user.userId)
         val labelsShuffled = scala.util.Random.shuffle(labels)
         val jsonList: Seq[JsObject] = labelsShuffled.map(l => Json.obj(
             "label" -> LabelTable.validationLabelMetadataToJson(l),
@@ -73,13 +73,13 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
         val severitiesToSelect: Set[Int] = Json.parse(severities).as[JsArray].value.map(_.as[Int]).toSet
         val tagsToSelect: Set[String] = Json.parse(tags).as[JsArray].value.map(_.as[String]).toSet
 
-        val labels: Seq[LabelValidationMetadata] = 
-          if (validLabelIds.contains(labelTypeId)) {
-            LabelTable.retrieveLabelsOfTypeBySeverityAndTags(
-              labelTypeId, n, loadedLabelIds, severitiesToSelect, tagsToSelect
+        val labels: Seq[LabelValidationMetadata] =
+          if (validLabTypes.contains(labelTypeId)) {
+            LabelTable.getLabelsOfTypeBySeverityAndTags(
+              labelTypeId, n, loadedLabelIds, severitiesToSelect, tagsToSelect, user.userId
             )
           } else {
-            LabelTable.retrieveAssortedLabels(n, loadedLabelIds, Some(severitiesToSelect))
+            LabelTable.getAssortedLabels(n, loadedLabelIds, user.userId, Some(severitiesToSelect))
           }
         val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
             "label" -> LabelTable.validationLabelMetadataToJson(l),
