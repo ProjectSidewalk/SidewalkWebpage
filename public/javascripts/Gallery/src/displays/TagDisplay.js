@@ -46,7 +46,6 @@ function TagDisplay(container, tags, isModal=false) {
                 tagTest.className = 'gallery-tag thumbnail-tag';
                 tagTest.innerText = tagsText[i];
                 $(tagContainer).append(tagTest);
-                console.log($(tagTest).width());
                 // 14 is from the 7px of padding/margin on all tags (both left and right) and the 5 is from the spacing beween tags (5px).
                 // Careful though, as .width() doesn't necessarily seem to return px width. Need to find better solution.
                 remainingWidth -= ($(tagTest).width() + 14 + 5); //TODO: Define these constants. Better way to do so?
@@ -57,7 +56,6 @@ function TagDisplay(container, tags, isModal=false) {
                 }
             }
 
-            console.log("Hidden count: " + hiddenCount);
             if (hiddenCount > 0) {
                 // We have hidden tags.
                 let additional = document.createElement('div');

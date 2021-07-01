@@ -89,9 +89,9 @@ function CardContainer(uiCardContainer) {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
             const cardId = event.target.id;
-            modal.updateProperties(findCard(cardId).getProperties());
+
+            // Sets/Updates the label being displayed in the expanded modal.
             modal.updateCardIndex(findCardIndex(cardId));
-            modal.openModal();
         });
     }
 
@@ -285,7 +285,7 @@ function CardContainer(uiCardContainer) {
                     currentCards = cardsByType[currentLabelType].copy();
                     currentCards.filterOnTags(appliedTags);
                     currentCards.filterOnSeverities(appliedSeverities);
-        
+
                     render();
                 });
             }
@@ -390,6 +390,7 @@ function CardContainer(uiCardContainer) {
      * Refreshes the UI after each query made by user.
      */
     function refreshUI() {
+        modal.closeModal();
         sg.tagContainer.disable();
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
@@ -452,12 +453,10 @@ function CardContainer(uiCardContainer) {
         let cardBucket = currentCards.getCards();
 
         let currentPageCards = [];
-
         while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
             currentPageCards.push(cardBucket[idx]);
             idx++;
         }
-
         return currentPageCards;
     }
 

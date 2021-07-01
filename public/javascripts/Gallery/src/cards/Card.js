@@ -36,6 +36,7 @@ function Card (params, imageUrl) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        user_validation: undefined,
         tags: []
     };
 
@@ -228,6 +229,8 @@ function Card (params, imageUrl) {
      */
     function render (cardContainer) {
         // TODO: should there be a safety check here to make sure pano is loaded?
+        // If the card had transparent background from the modal being open earlier, remove transparency on rerender.
+        if (card.classList.contains('modal-background-card')) card.classList.remove('modal-background-card');
         panoImage.width = imageDim.w;
         panoImage.height = imageDim.h;
         cardContainer.append(card);
