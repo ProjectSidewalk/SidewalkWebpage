@@ -1040,8 +1040,9 @@ object LabelTable {
 
     userValidations.groupBy(_.labelId).map {
       case (labId, group) => (labId, group.map(_.endTimestamp).max)
-    }.innerJoin(userValidations).on { case (x, y) => x._1 === y.labelId && x._2 === y.endTimestamp }
-      .map(x => (x._2.labelId, x._2.validationResult))
+    }.innerJoin(userValidations).on {
+      case (recentVal, userVal) => recentVal._1 === userVal.labelId && recentVal._2 === userVal.endTimestamp
+    }.map(x => (x._2.labelId, x._2.validationResult))
   }
 
   /**
