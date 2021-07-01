@@ -615,7 +615,8 @@ object LabelTable {
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.image_date,
           |        label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
           |        label_point.canvas_y, label_point.canvas_width, label_point.canvas_height, label_severity.severity,
-          |        label_temporariness.temporary, label_description.description, NULL AS user_val, the_tags.tag_list
+          |        label_temporariness.temporary, label_description.description, user_validation.validation_result,
+          |        the_tags.tag_list
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -653,6 +654,14 @@ object LabelTable {
           |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
           |    GROUP BY label_id
           |) the_tags ON label.label_id = the_tags.label_id
+          |LEFT JOIN (
+          |    -- Gets the most recent validation from this user for each label. Since we only want them to validate
+          |    -- labels that they've never validated, when we left join, we should only get nulls from this query.
+          |    SELECT DISTINCT ON (label_id) label_id, validation_result
+          |    FROM label_validation
+          |    WHERE user_id = '$userIdStr'
+          |    ORDER BY label_id, end_timestamp DESC
+          |) user_validation ON label.label_id = user_validation.label_id
           |WHERE label.label_type_id = $labelTypeId
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
