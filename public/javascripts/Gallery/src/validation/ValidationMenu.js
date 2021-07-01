@@ -14,10 +14,15 @@ function ValidationMenu(uiCardImage, cardProperties) {
     };
 
     // A kind of wack way to do this, explore better options.
-    const classToResult = {
+    const classToValidationOption = {
         "validate-agree": "Agree",
         "validate-disagree": "Disagree",
         "validate-not-sure": "NotSure"
+    };
+    const validationOptionToClass = {
+        "Agree": "validate-agree",
+        "Disagree": "validate-disagree",
+        "NotSure": "validate-not-sure"
     };
 
     let currSelected = null;
@@ -29,7 +34,6 @@ function ValidationMenu(uiCardImage, cardProperties) {
             <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('gallery:not-sure')}</button>
         </div>
     `;
-
     let overlay = $(overlayHTML);
 
     let validationButtons = {
@@ -45,21 +49,34 @@ function ValidationMenu(uiCardImage, cardProperties) {
     function _init() {
         for (const [valKey, button] of Object.entries(validationButtons)) {
             button.click(function() {
-                if (currSelected) {
-                    validationButtons[currSelected].attr('class', 'validation-button');
-                    if (galleryCard.classList.contains(currSelected)) {
-                        galleryCard.classList.remove(currSelected);
-                    }
-                }
-
-                currSelected = valKey;
-                button.attr('class', 'validation-button-selected');
-                galleryCard.classList.add(valKey);
-
-                validateLabel(classToResult[valKey]);
-            })
+                _showValidated(classToValidationOption[valKey]);
+                validateLabel(classToValidationOption[valKey]);
+            });
         }
+        // If the signed in user had already validated this label before loading the page, style the card to show that.
+        if (cardProperties.user_validation) {
+            _showValidated(cardProperties.user_validation);
+        }
+
         uiCardImage.append(overlay[0]);
+    }
+
+    // Sets the look of the card to show that the label has been validated.
+    function _showValidated(validationOption) {
+        const validationClass = validationOptionToClass[validationOption];
+
+        // If the label had already been validated differently, remove the visual effects from the older validation.
+        if (currSelected && currSelected !== validationClass) {
+            validationButtons[currSelected].attr('class', 'validation-button');
+            if (galleryCard.classList.contains(currSelected)) {
+                galleryCard.classList.remove(currSelected);
+            }
+        }
+
+        // Add the visual effects from the new validation.
+        currSelected = validationClass;
+        validationButtons[validationClass].attr('class', 'validation-button-selected');
+        galleryCard.classList.add(validationClass);
     }
 
     /**
