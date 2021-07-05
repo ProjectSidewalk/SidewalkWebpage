@@ -37,6 +37,9 @@ function Main (params) {
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
 
+        // Keep track of the mini-footer at the top of the footer.
+        sg.ui.miniFooter = $("#mini-footer-audit");
+
         $('.gallery-modal').hide();
     }
 
@@ -54,6 +57,21 @@ function Main (params) {
         sg.tracker = new Tracker();
 
         sg.util = {};
+
+        $(window).scroll(function () {
+            //console.log("offset of top of footer: " + sg.ui.miniFooter.offset().top);
+            let footerTopOffset = sg.ui.miniFooter.offset().top;
+            let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
+            if (footerTopOffset < visibleWindowBottomOffset) {
+                $('.sidebar').css('position', 'relative');
+                $('.cards').css('margin-left', '0px');
+            } else {
+                $('.sidebar').css('position', 'fixed');
+                $('.cards').css('margin-left', '250px');
+            }
+            // console.log("window scroll top: " + $(window).scrollTop());
+            // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
+        }); 
     }
 
     // Gets all the text on the gallery page for the correct language.
