@@ -48,7 +48,12 @@
     display: none;
 }
 
+#label-select {
+    cursor: pointer;
+}
+
 #label-select:disabled {
+    cursor: default;
     opacity: 50%;
     background-color: white;
 }
