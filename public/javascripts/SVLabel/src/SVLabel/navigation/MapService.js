@@ -1977,7 +1977,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
     self.getMoveDelay = getMoveDelay;
-    // self.makeLinksClickable = makeLinksClickable;
     _init(params);
     return self;
 }
