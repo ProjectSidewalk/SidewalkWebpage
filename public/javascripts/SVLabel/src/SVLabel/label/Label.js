@@ -193,26 +193,6 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This method turn the associated Path and Points into gray.
-     * @param mode
-     * @returns {fadeFillStyle}
-     */
-    function fadeFillStyle (mode) {
-        var path = getPath(),
-            points = path.getPoints(),
-            len = points.length, fillStyle;
-
-        if (!mode) { mode = 'default'; }
-
-        fillStyle = mode == 'gray' ? 'rgba(200,200,200,0.5)' : 'rgba(255,165,0,0.8)';
-        path.setFillStyle(fillStyle);
-        for (var i = 0; i < len; i++) {
-            points[i].setFillStyle(fillStyle);
-        }
-        return this;
-    }
-
-    /**
      * This method changes the fill color of the path and points that constitute the path.
      * @param fillColor
      * @returns {fill}
@@ -253,14 +233,6 @@ function Label (svl, pathIn, params) {
         if (path && path.points.length > 0) {
             return path.points[0].getGSVImageCoordinate();
         }
-    }
-
-    /**
-     * Get image coordinates of the child path
-     * @returns {*}
-     */
-    function getImageCoordinates () {
-        return path ? path.getImageCoordinates() : false;
     }
 
     /**
@@ -410,20 +382,6 @@ function Label (svl, pathIn, params) {
     function lockVisibility () {
         lock.visibility = true;
         return this;
-    }
-
-    /**
-     * This method calculates the area overlap between this label and another label passed as an argument.
-     * @param label
-     * @param mode
-     * @returns {*|number}
-     */
-    function overlap (label, mode) {
-        if (!mode) mode = "boundingbox";
-        if (mode !== "boundingbox") { throw self.className + ": " + mobede + " is not a valid option."; }
-        var path1 = getPath(),
-            path2 = label.getPath();
-        return path1.overlap(path2, mode);
     }
 
     /**
@@ -916,10 +874,8 @@ function Label (svl, pathIn, params) {
 
     self.resetFillStyle = resetFillStyle;
     self.blink = blink;
-    self.fadeFillStyle = fadeFillStyle;
     self.getBoundingBox = getBoundingBox;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
-    self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getPath = getPath;
@@ -937,7 +893,6 @@ function Label (svl, pathIn, params) {
     self.highlight = highlight;
     self.lockTagVisibility = lockTagVisibility;
     self.lockVisibility = lockVisibility;
-    self.overlap = overlap;
     self.removePath = removePath;
     self.render = render;
     self.remove = remove;

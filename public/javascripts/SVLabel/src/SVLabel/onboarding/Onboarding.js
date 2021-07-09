@@ -1055,6 +1055,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
                         (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
 
+                console.log(imageCoordinate);
+                console.log(distance);
                 currentLabelState = state;
 
                 if (distance < tolerance * tolerance) {

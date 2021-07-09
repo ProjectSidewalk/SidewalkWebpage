@@ -39,44 +39,6 @@ function Main (params) {
         5: 16
     };
 
-    svl.gsvImageCoordinate2CanvasCoordinate = function (xIn, yIn, pov) {
-        // This function takes the current pov of the Street View as a parameter
-        // and returns a canvas coordinate of a point (xIn, yIn).
-        var x, y, zoom = pov.zoom;
-        var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
-        var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
-
-        xIn = xIn * svl.zoomFactor[zoom];
-        yIn = yIn * svl.zoomFactor[zoom];
-
-        x = xIn - (svImageWidth * pov.heading) / 360;
-        x = x / svl.alpha_x + svl.canvasWidth / 2;
-
-        //
-        // When POV is near 0 or near 360, points near the two vertical edges of
-        // the SV image does not appear. Adjust accordingly.
-        var edgeOfSvImageThresh = 360 * svl.alpha_x * (svl.canvasWidth / 2) / (svImageWidth) + 10;
-
-        if (pov.heading < edgeOfSvImageThresh) {
-            // Update the canvas coordinate of the point if
-            // its svImageCoordinate.x is larger than svImageWidth - alpha_x * (svl.canvasWidth / 2).
-            if (svImageWidth - svl.alpha_x * (svl.canvasWidth / 2) < xIn) {
-                x = (xIn - svImageWidth) - (svImageWidth * pov.heading) / 360;
-                x = x / svl.alpha_x + svl.canvasWidth / 2;
-            }
-        } else if (pov.heading > 360 - edgeOfSvImageThresh) {
-            if (svl.alpha_x * (svl.canvasWidth / 2) > xIn) {
-                x = (xIn + svImageWidth) - (svImageWidth * pov.heading) / 360;
-                x = x / svl.alpha_x + svl.canvasWidth / 2;
-            }
-        }
-
-        y = yIn - (svImageHeight / 2) * (pov.pitch / 90);
-        y = y / svl.alpha_y + svl.canvasHeight / 2;
-
-        return {x : x, y : y};
-    };
-
     function _init (params) {
         params = params || {};
 

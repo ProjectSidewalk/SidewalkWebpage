@@ -1244,7 +1244,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-
     /**
      * Load the state of the map
      */
@@ -1292,7 +1291,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-
     /**
      *
      */
@@ -1318,7 +1316,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             makeLinksClickable();
         }
     }
-
 
     /**
      * Plot markers on the Google Maps pane

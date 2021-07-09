@@ -125,70 +125,7 @@ function Path (svl, points, params) {
             canvasCoord = points[i].calculateCanvasCoordinate(pov);
             canvasCoords.push(canvasCoord);
         }
-
         return canvasCoords;
-    }
-
-    /**
-     * OLD
-     * Mar 5, 2017: Due to updates to the POV based coordinate calculation
-     * This function needs to be updated
-     * gsvImageCoordinate2CanvasCoordinate() wouldn't be called
-     *
-     * Get canvas coordinates of points that constitute the path.
-     * @param pov
-     * @returns {Array}
-     */
-    // function getCanvasCoordinates (pov) {
-    //     var imCoords = getImageCoordinates();
-    //     var i;
-    //     var len = imCoords.length;
-    //     var canvasCoord;
-    //     var canvasCoords = [];
-    //     var min = 10000000;
-    //     var max = -1;
-    //
-    //     for (i = 0; i < len; i += 1) {
-    //         if (min > imCoords[i].x) {
-    //             min = imCoords[i].x;
-    //         }
-    //         if (max < imCoords[i].x) {
-    //             max = imCoords[i].x;
-    //         }
-    //     }
-    //     // Note canvasWidthInGSVImage is approximately equals to the image width of GSV image that fits in one canvas view
-    //     var canvasWidthInGSVImage = 3328;
-    //     for (i = 0; i < len; i += 1) {
-    //         if (pov.heading < 180) {
-    //             if (max > svl.svImageWidth - canvasWidthInGSVImage) {
-    //                 if (imCoords[i].x > canvasWidthInGSVImage) {
-    //                     imCoords[i].x -= svl.svImageWidth;
-    //                 }
-    //             }
-    //         } else {
-    //             if (min < canvasWidthInGSVImage) {
-    //                 if (imCoords[i].x < svl.svImageWidth - canvasWidthInGSVImage) {
-    //                     imCoords[i].x += svl.svImageWidth;
-    //                 }
-    //             }
-    //         }
-    //         canvasCoord = svl.gsvImageCoordinate2CanvasCoordinate(imCoords[i].x, imCoords[i].y, pov);
-    //         canvasCoords.push(canvasCoord);
-    //     }
-    //
-    //     return canvasCoords;
-    // }
-
-    /**
-     * This method returns an array of image coordinates of points
-     * @returns {Array}
-     */
-    function getImageCoordinates() {
-        var i, len = self.points.length, coords = [];
-        for (i = 0; i < len; i += 1) {
-            coords.push(self.points[i].getGSVImageCoordinate());
-        }
-        return coords;
     }
 
     /**
@@ -234,78 +171,6 @@ function Path (svl, points, params) {
     }
 
     /**
-     * this method returns a bounding box in terms of svImage coordinates.
-     * @returns {{x: number, y: number, width: number, height: number, boundary: boolean}}
-     */
-    function getSvImageBoundingBox() {
-        var i;
-        var coord;
-        var coordinates = getImageCoordinates();
-        var len = coordinates.length;
-        var xMax = -1;
-        var xMin = 1000000;
-        var yMax = -1000000;
-        var yMin = 1000000;
-        var boundary = false;
-
-        //
-        // Check if thie is an boundary case
-        for (i = 0; i < len; i++) {
-            coord = coordinates[i];
-            if (coord.x < xMin) {
-                xMin = coord.x;
-            }
-            if (coord.x > xMax) {
-                xMax = coord.x;
-            }
-            if (coord.y < yMin) {
-                yMin = coord.y;
-            }
-            if (coord.y > yMax) {
-                yMax = coord.y;
-            }
-        }
-
-        if (xMax - xMin > 5000) {
-            boundary = true;
-            xMax = -1;
-            xMin = 1000000;
-
-            for (i = 0; i < len; i++) {
-                coord = coordinates[i];
-                if (coord.x > 6000) {
-                    if (coord.x < xMin) {
-                        xMin = coord.x;
-                    }
-                } else {
-                    if (coord.x > xMax){
-                        xMax = coord.x;
-                    }
-                }
-            }
-        }
-
-        // If the path is on boundary, swap xMax and xMin.
-        if (boundary) {
-            return {
-                x: xMin,
-                y: yMin,
-                width: (svl.svImageWidth - xMin) + xMax,
-                height: yMax - yMin,
-                boundary: true
-            }
-        } else {
-            return {
-                x: xMin,
-                y: yMin,
-                width: xMax - xMin,
-                height: yMax - yMin,
-                boundary: false
-            }
-        }
-    }
-
-    /**
      * This function checks if a mouse cursor is on any of a points and return a point if the cursor is indeed on the
      * point. Otherwise, this function checks if the mouse cursor is on a bounding box of this path. If the cursor is
      * on the bounding box, then this function returns this path object.
@@ -336,94 +201,6 @@ function Path (svl, points, params) {
         } else {
             return false;
         }
-    }
-
-    /**
-     * This method calculates the area overlap between bouding boxes of this path and
-     * another path passed as an argument.
-     * @param path
-     * @param mode
-     * @returns {number}
-     */
-    function overlap (path, mode) {
-        if (!mode) {
-            mode = "boundingbox";
-        }
-
-        var overlap = 0;
-
-        if (mode === "boundingbox") {
-            var boundingbox1 = getSvImageBoundingBox();
-            var boundingbox2 = path.getSvImageBoundingBox();
-            var xOffset;
-            var yOffset;
-
-            //
-            // Check if a bounding box is on a boundary
-            if (!(boundingbox1.boundary && boundingbox2.boundary)) {
-                if (boundingbox1.boundary) {
-                    boundingbox1.x = boundingbox1.x - svl.svImageWidth;
-                    if (boundingbox2.x > 6000) {
-                        boundingbox2.x = boundingbox2.x - svl.svImageWidth;
-                    }
-                } else if (boundingbox2.boundary) {
-                    boundingbox2.x = boundingbox2.x - svl.svImageWidth;
-                    if (boundingbox1.x > 6000) {
-                        boundingbox1.x = boundingbox1.x - svl.svImageWidth;
-                    }
-                }
-            }
-
-
-            if (boundingbox1.x < boundingbox2.x) {
-                xOffset = boundingbox1.x;
-            } else {
-                xOffset = boundingbox2.x;
-            }
-            if (boundingbox1.y < boundingbox2.y) {
-                yOffset = boundingbox1.y;
-            } else {
-                yOffset = boundingbox2.y;
-            }
-
-            boundingbox1.x -= xOffset;
-            boundingbox2.x -= xOffset;
-            boundingbox1.y -= yOffset;
-            boundingbox2.y -= yOffset;
-
-            var b1x1 = boundingbox1.x;
-            var b1x2 = boundingbox1.x + boundingbox1.width;
-            var b1y1 = boundingbox1.y;
-            var b1y2 = boundingbox1.y + boundingbox1.height;
-            var b2x1 = boundingbox2.x;
-            var b2x2 = boundingbox2.x + boundingbox2.width;
-            var b2y1 = boundingbox2.y;
-            var b2y2 = boundingbox2.y + boundingbox2.height;
-            var row = 0;
-            var col = 0;
-            var rowMax = (b1x2 < b2x2) ? b2x2 : b1x2;
-            var colMax = (b1y2 < b2y2) ? b2y2 : b1y2;
-            var countUnion = 0;
-            var countIntersection = 0;
-            var isOnB1 = false;
-            var isOnB2 = false;
-
-            for (row = 0; row < rowMax; row++) {
-                for (col = 0; col < colMax; col++) {
-                    isOnB1 = (b1x1 < row && row < b1x2) && (b1y1 < col && col < b1y2);
-                    isOnB2 = (b2x1 < row && row < b2x2) && (b2y1 < col && col < b2y2);
-                    if (isOnB1 && isOnB2) {
-                        countIntersection += 1;
-                    }
-                    if (isOnB1 || isOnB2) {
-                        countUnion += 1;
-                    }
-                }
-            }
-            overlap = countIntersection / countUnion;
-        }
-
-        return overlap;
     }
 
     /**
@@ -615,13 +392,10 @@ function Path (svl, points, params) {
     self.getBoundingBox = getBoundingBox;
     self.getLineWidth = getLineWidth;
     self.getFill = getFill;
-    self.getSvImageBoundingBox = getSvImageBoundingBox;
-    self.getImageCoordinates = getImageCoordinates;
     self.getPoints = getPoints;
     self.getProperty = getProperty;
     self.getStatus = getStatus;
     self.isOn = isOn;
-    self.overlap = overlap;
     self.removePoints = removePoints;
     self.render2 = render2;
     self.render = render;
