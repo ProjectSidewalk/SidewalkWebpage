@@ -852,74 +852,39 @@ function Label (svl, pathIn, params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates();
-            var pc = null;
-            if (properties.panoId === "tutorial") {
-                pc = svl.onboarding.getTutorialPointCloud();
-            } else  {
-                pc = svl.pointCloud.getPointCloud(properties.panoId);
-            }
-            if (pc) {
-                var minDx = 1000, minDy = 1000, i, delta, latlng,
-                    p, idx, dx, dy, r, minR;
-                for (i = 0; i < imageCoordinates.length; i ++) {
-                    p = util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                    idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                    dx = pc.pointCloud[idx];
-                    dy = pc.pointCloud[idx + 1];
-                    r = dx * dx + dy * dy;
-                    minR = minDx * minDx + minDy + minDy;
+            // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
+            var panoLat = getProperty("panoramaLat");
+            var panoLng = getProperty("panoramaLng");
+            var panoHeading = getProperty("panoramaHeading");
+            var zoom = getProperty("panoramaZoom");
+            var canvasX = getPath().getPoints()[0].originalCanvasCoordinate.x;
+            var canvasY = getPath().getPoints()[0].originalCanvasCoordinate.y;
+            var svImageY = getPath().getPoints()[0].getGSVImageCoordinate().y;
 
-                    if (r < minR) {
-                        minDx = dx;
-                        minDy = dy;
-                    }
-                }
-                delta = util.math.latlngOffset(properties.panoramaLat, dx, dy);
-                latlng = {
-                    lat: properties.panoramaLat + delta.dlat,
-                    lng: properties.panoramaLng + delta.dlng,
-                    latLngComputationMethod: 'depth'
-                };
-                setProperty('labelLat', latlng.lat);
-                setProperty('labelLng', latlng.lng);
-                setProperty('latLngComputationMethod', 'depth');
-                return latlng;
-            } else {
-                // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
-                var panoLat = getProperty("panoramaLat");
-                var panoLng = getProperty("panoramaLng");
-                var panoHeading = getProperty("panoramaHeading");
-                var zoom = getProperty("panoramaZoom");
-                var canvasX = getPath().getPoints()[0].originalCanvasCoordinate.x;
-                var canvasY = getPath().getPoints()[0].originalCanvasCoordinate.y;
-                var svImageY = getPath().getPoints()[0].getGSVImageCoordinate().y;
+            // Estimate heading diff and distance from pano using output from a regression analysis.
+            // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+            var estHeadingDiff =
+                LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
+                LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
+            var estDistanceFromPanoKm = Math.max(0,
+                LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
+                LATLNG_ESTIMATION_PARAMS[zoom].distanceSvImageYSlope * svImageY +
+                LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
+            ) / 1000.0;
+            var estHeading = panoHeading + estHeadingDiff;
+            var startPoint = turf.point([panoLng, panoLat]);
 
-                // Estimate heading diff and distance from pano using output from a regression analysis.
-                // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-                var estHeadingDiff =
-                    LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
-                    LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
-                var estDistanceFromPanoKm = Math.max(0,
-                    LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
-                    LATLNG_ESTIMATION_PARAMS[zoom].distanceSvImageYSlope * svImageY +
-                    LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
-                ) / 1000.0;
-                var estHeading = panoHeading + estHeadingDiff;
-                var startPoint = turf.point([panoLng, panoLat]);
-
-                // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
-                var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, {units: 'kilometers'});
-                var latlng = {
-                    lat: destination.geometry.coordinates[1],
-                    lng: destination.geometry.coordinates[0],
-                    latLngComputationMethod: 'approximation2'
-                };
-                setProperty('labelLat', latlng.lat);
-                setProperty('labelLng', latlng.lng);
-                setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
-                return latlng;
-            }
+            // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
+            var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, { units: 'kilometers' });
+            var latlng = {
+                lat: destination.geometry.coordinates[1],
+                lng: destination.geometry.coordinates[0],
+                latLngComputationMethod: 'approximation2'
+            };
+            setProperty('labelLat', latlng.lat);
+            setProperty('labelLng', latlng.lng);
+            setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
+            return latlng;
         } else {
             // Return the cached value.
             return {

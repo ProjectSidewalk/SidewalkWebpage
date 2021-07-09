@@ -127,9 +127,6 @@ function Main (params) {
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
         svl.labelCounter = new LabelCounter(d3);
-
-
-        svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl, params.nextTemporaryLabelId);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 

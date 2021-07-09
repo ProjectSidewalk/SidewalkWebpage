@@ -797,17 +797,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
                             povChange["status"] = false;
 
-                            // Attach listeners to svl.pointCloud
-                            if ('pointCloud' in svl && svl.pointCloud) {
-                                var pointCloud = svl.pointCloud.getPointCloud(panoId);
-                                if (!pointCloud) {
-                                    svl.pointCloud.createPointCloud(panoId);
-                                    // svl.pointCloud.ready(panoId, function () {
-                                    // console.log(svl.pointCloud.getPointCloud(panoId));
-                                    //});
-                                }
-                            }
-
                             // Checks if pano_id is the same as the previous one.
                             // Google maps API triggers the pano_changed event twice: once moving
                             // between pano_ids  and once for setting the new pano_id.
@@ -1155,47 +1144,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
                     svl.tracker.push('ViewControl_ZoomIn');
                 }
-            } else {
-                // Double click to walk. First check whether Street View is available at the point where user has
-                // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (50 meters),
-                // then jump to the scene
-                if (!status.disableWalking) {
-                    var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
-                        latlng = getPosition(),
-                        newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
-                    if (newLatlng) {
-                        var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                        if (distance < STREETVIEW_MAX_DISTANCE) {
-                            svl.streetViewService.getPanorama({location: new google.maps.LatLng(newLatlng.lat, newLatlng.lng),
-                                radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
-                                if (status === google.maps.StreetViewStatus.OK) {
-                                    self.setPano(streetViewPanoramaData.location.pano);
-                                    //self.handlerPositionUpdate();
-                                }
-                                else {
-                                    var currentTask = svl.taskContainer.getCurrentTask();
-                                    if (currentTask) {
-                                        util.misc.reportNoStreetView(currentTask.getStreetEdgeId());
-                                        console.error("Error Type:" + JSON.stringify(status)  +
-                                            "\nNo street view found at this location: " + newLatlng +
-                                            " street " + currentTask.getStreetEdgeId() +
-                                            "\nNeed to move to a new location.");
-
-                                    }
-                                    svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(newLatlng)});
-
-                                    // Move to a new location
-                                    jumpImageryNotFound();
-
-                                }
-                            });
-                        }
-                    }
-                }
             }
         }
-
-
         setViewControlLayerCursor('OpenHand');
         mouseStatus.prevMouseUpTime = currTime;
     }
@@ -1271,8 +1221,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
 
     /**
-     * This method hides links to neighboring Street View images by changing the
-     * svg path elements.
+     * This method hides links to neighboring Street View images by changing the svg path elements.
      *
      * @returns {hideLinks} This object.
      */
@@ -1280,41 +1229,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var $paths = $("#view-control-layer").find('path');
         $paths.css('visibility', 'hidden');
         $paths.css('pointer-events', 'none');
-        // if (properties.browser === 'chrome') {
-        //     // Somehow chrome does not allow me to select path
-        //     // and fadeOut. Instead, I'm just manipulating path's style
-        //     // and making it hidden.
-        //
-        //     $paths.css('visibility', 'hidden');
-        // } else {
-        //     // $('path').fadeOut(1000);
-        //     $paths.css('visibility', 'hidden');
-        // }
         return this;
     }
-
-    /**
-     * This method takes an image coordinate and map it to the corresponding latlng position
-     * @param imageX image x coordinate
-     * @param imageY image y coordinate
-     * @param lat current latitude of where you are standing
-     * @param lng current longitude of where you are standing
-     * @returns {*}
-     */
-    function imageCoordinateToLatLng(imageX, imageY, lat, lng) {
-        var pc = svl.pointCloud.getPointCloud(getPanoId());
-        if (pc) {
-            var p = util.scaleImageCoordinate(imageX, imageY, 1 / 26),
-                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
-                dx = pc.pointCloud[idx],
-                dy = pc.pointCloud[idx + 1],
-                delta = util.math.latlngOffset(lat, dx, dy);
-            return { lat: lat + delta.dlat, lng: lng + delta.dlng };
-        } else {
-            return null;
-        }
-    }
-
 
     /**
      * Initailize Street View

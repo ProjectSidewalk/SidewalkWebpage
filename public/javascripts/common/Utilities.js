@@ -176,20 +176,6 @@ function getOperatingSystem () {
 }
 util.getOperatingSystem = getOperatingSystem;
 
-/**
- * Given an image coordinate (x, y), return a scaled coordinate. For example, to
- * get the corresponding coordinate in a smaller 512x256 image, use r = 1/26.
- * @param x
- * @param y
- * @param r
- */
-function scaleImageCoordinate(x, y, r) {
-    var x_ = x * r;
-    var y_ = (3328 - y) * r;
-    return {x: x_, y: y_};
-}
-util.scaleImageCoordinate = scaleImageCoordinate;
-
 function sleep(miliseconds) {
     var end = false;
 }
