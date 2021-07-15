@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.thoughtworks.paranamer"
 		module="paranamer-parent"
 		revision="2.6"
@@ -12,6 +12,7 @@
 		</description>
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>
 		<m:properties__codehausDistMgmtSnapshotsUrl>https://nexus.codehaus.org/content/repositories/snapshots/</m:properties__codehausDistMgmtSnapshotsUrl>
+		<e:sbtTransformHash>456f04b461e1c00026dd16f39f105fbd6c022df1</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null</m:maven.plugins>
 		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
@@ -31,7 +32,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="junit" module="junit" matcher="exact" rev="4.11"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

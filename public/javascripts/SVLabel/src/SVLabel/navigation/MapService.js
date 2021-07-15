@@ -145,7 +145,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         streetViewControl:true,
         zoomControl:false,
         zoom: 18,
-        backgroundColor: "none"
+        backgroundColor: "none",
+        disableDefaultUI: true
     };
 
     var mapCanvas = document.getElementById("google-maps");
@@ -584,6 +585,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function getLinkLayer () {
         return uiMap.pano.find('svg').parent();
+    }
+
+    /**
+     * Get link layer of bottom links.
+     * @returns {*}
+     */
+    function getBottomLinkLayer () {
+        return $('.gm-style-cc').slice(1, 3);
     }
 
     self.getStatus = function (key) {
@@ -1363,9 +1372,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * This method brings the links (<, >) to the view control layer so that a user can click them to walk around
      */
     function makeLinksClickable () {
-        // Bring the layer with arrows forward.
+        // Bring the layer with arrows and bottom links forward.
         var $links = getLinkLayer();
+        var $bottomlinks = getBottomLinkLayer();
         uiMap.viewControlLayer.append($links);
+        uiMap.viewControlLayer.append($bottomlinks);
 
         if (properties.browser === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.

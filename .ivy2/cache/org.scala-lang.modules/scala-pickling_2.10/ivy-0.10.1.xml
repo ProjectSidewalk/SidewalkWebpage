@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.scala-lang.modules"
 		module="scala-pickling_2.10"
 		revision="0.10.1"
@@ -10,6 +10,7 @@
 		<description homepage="https://github.com/scala/pickling">
 		scala-pickling
 		</description>
+		<e:sbtTransformHash>86585f31cfd5773b54c180980c73d2d89864476e</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,12 +28,12 @@
 		<artifact name="scala-pickling_2.10" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-lang" name="scala-compiler" rev="2.10.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.scala-lang.modules" name="testutil_2.10" rev="0.10.1" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scala-lang" name="scala-reflect" rev="2.10.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.scalatest" name="scalatest_2.10" rev="2.1.7" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.6" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scalamacros" name="quasiquotes_2.10" rev="2.0.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.scala-lang" name="scala-compiler" rev="2.10.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.scala-lang.modules" name="testutil_2.10" rev="0.10.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scala-lang" name="scala-reflect" rev="2.10.5" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.scalatest" name="scalatest_2.10" rev="2.1.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.6" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalamacros" name="quasiquotes_2.10" rev="2.0.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

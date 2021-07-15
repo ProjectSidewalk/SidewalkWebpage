@@ -2,7 +2,7 @@ import play.PlayScala
 
 name := """sidewalk-webpage"""
 
-version := "6.14.7"
+version := "6.15.4"
 
 scalaVersion := "2.10.7"
 
@@ -34,8 +34,14 @@ libraryDependencies ++= Seq(
   "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
   "com.github.tminglei" %% "slick-pg" % "0.8.6",
   "joda-time" % "joda-time" % "2.10.10",
-  "org.geotools" % "gt-epsg-hsql" % "25.0",
-  "org.geotools" % "gt-shapefile" % "25.0"
+  "org.geotools" % "gt-epsg-hsql" % "25.0" exclude("javax.media", "jai_core"),
+  "org.geotools" % "gt-shapefile" % "25.0" exclude("javax.media", "jai_core"),
+  // Below are transitive dependencies that were missing jars in default repositories.
+  // https://github.com/aileenzeng/sidewalk-docker/issues/5
+  // https://github.com/aileenzeng/sidewalk-docker/issues/26
+  // https://stackoverflow.com/questions/50058646/sbt-occurred-an-error-because-failed-to-install-a-dependency-at-first-time-thoug
+  // https://github.com/sbt/sbt/issues/1138#issuecomment-36169177
+  "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar"
 ).map(_.force())
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)

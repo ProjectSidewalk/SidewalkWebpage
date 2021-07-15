@@ -51,17 +51,17 @@
         "adjust-heading-angle-4": "Awesome! Let’s finish labeling the last curb ramp in the intersection. First, <span class=\"bold\">grab and drag the Street View image.</span>",
         "select-label-type-7": "Good! Now <span class=\"bold\">click the \"Curb Ramp\" button</span> on the menu to label it.",
         "label-attribute-7": "<span class=\"bold\">Click the curb ramp</span> beneath the flashing yellow arrow to label it.",
-        "adjust-heading-angle-5": "Great Job! We are almost done. Now let’s learn how to walk. <span class=\"bold\">Grab and drag the Street View image</span>.",
-        "walk-1": "Good! Now to figure out where to walk, you will follow the <span class=\"bold\" style=\"color: #ff0000;\">red</span> line on this mini map.",
+        "adjust-heading-angle-5": "Great Job! We are almost done. Now let’s learn how to move. <span class=\"bold\">Grab and drag the Street View image</span>.",
+        "walk-1": "Good! Now to figure out where to go next, you will follow the <span class=\"bold\" style=\"color: #ff0000;\">red</span> line on this mini map.",
         "walk-2": "We will also guide you via <span class=\"bold\">navigation messages</span> shown in this area.",
         "walk-3": "Now let's actually move forward! <span class=\"bold\">Click on the arrow</span> that points in the direction you want to move.",
-        "walk-4": "Great! You just moved one step down the street. Visited parts of a route are marked in <span class= \"bold\" style=\"color: #3c763d;\">green</span> in the mini map.",
+        "walk-4": "Great! You just moved down the street. Visited parts of a route are marked in <span class= \"bold\" style=\"color: #3c763d;\">green</span> in the mini map.",
         "walk-5-1": "Now you can look for more issues at this location. In this case, notice how there is a crosswalk with <span class=\"bold\">no curb ramps</span>.",
         "walk-5-2": "Yes! I see the missing curb ramps.",
         "walk-6-1": "Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ",
         "walk-6-2": "However, we want to get you started on actual missions, so let’s <span class=\"bold\">finish this tutorial!</span>",
         "instruction-1": "You can track your labels in the mini map!",
-        "instruction-2": "Finally, if you get stuck while walking, you can use the <span class=\"bold\">Stuck button</span> to move to a different location.",
+        "instruction-2": "Finally, if you get stuck while exploring, you can use the <span class=\"bold\">Stuck button</span> to move to a different location.",
         "common": {
             "label-too-far": "Oops! Your label is too far away. Let's remove the misplaced label. <span class=\"bold\">Hover over the label and click the delete icon</span>",
             "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> from above.",
@@ -105,7 +105,7 @@
     },
     "right-ui": {
         "current-mission": {
-            "message-first-mission": "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
+            "message-first-mission": "Explore for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
             "message": "Explore __PLACEHOLDER__ of this neighborhood"
         }
     },
@@ -164,7 +164,7 @@
         },
         "compass": {
             "unlabeled-problems": "Do you see any unlabeled problems? If not,",
-            "straight": "Walk straight",
+            "straight": "Go straight",
             "left": "Turn left",
             "right": "Turn right",
             "slight-left": "Turn slightly left",
@@ -177,12 +177,12 @@
     "popup": {
         "start-title": "Let's get started!",
         "start-body": "We have moved you to a street in {{neighborhood}}, {{city}}! You are currently standing at the intersection. Please find and label all the curb ramps and accessibility problems at this intersection.",
-        "step-title": "Let's take a step!",
-        "step-body": "It looks like you've looked around this entire intersection, so it's time to explore other areas. Walk in the direction of the red line highlighted on the map.",
+        "step-title": "Let's move forward!",
+        "step-body": "It looks like you've looked around this entire intersection, so it's time to explore other areas. Move in the direction of the red line highlighted on the map.",
         "both-sides-title": "Please check both sides of the street",
-        "both-sides-body": "As you walk, remember to check both sides of the street like this:",
+        "both-sides-body": "As you explore, remember to check both sides of the street like this:",
         "labels-disappear-title": "Labels on the image disappear",
-        "labels-disappear-body": "Wondering where your labels went? After taking a step, you won't see them in the Street View image anymore, but you can still see them on the highlighted mini map!",
+        "labels-disappear-body": "Wondering where your labels went? After you move, you won't see them in the Street View image anymore, but you can still see them on the highlighted mini map!",
         "jump": "You have been moved to a new location.",
         "jump-auto": "We have automatically moved you to a new location.",
         "signup-title": "You've been contributing a lot!",
