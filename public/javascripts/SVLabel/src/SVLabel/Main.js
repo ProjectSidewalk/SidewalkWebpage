@@ -44,7 +44,6 @@ function Main (params) {
 
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
-
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
@@ -394,7 +393,6 @@ function Main (params) {
             if(!svl.taskContainer.hasMaxPriorityTask()) {
                 svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
             }
-
             // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;

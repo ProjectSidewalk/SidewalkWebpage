@@ -1,7 +1,6 @@
 .gallery-tag {
     display: inline-block;
     padding: 0px 5px;
-    cursor: pointer;
     border-style: solid;
     border-width: 1px;
     border-radius: 5px;
@@ -48,7 +47,12 @@
     display: none;
 }
 
+#label-select {
+    cursor: pointer;
+}
+
 #label-select:disabled {
+    cursor: default;
     opacity: 50%;
     background-color: white;
 }
