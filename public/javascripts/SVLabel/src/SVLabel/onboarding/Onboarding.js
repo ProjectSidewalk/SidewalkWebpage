@@ -704,7 +704,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 // Step 3: Re-label
                 _visit(getCurrentLabelState());
             };
-            $(document).unbind('ModeSwitch_' + event, callback);
+            $(document).off('ModeSwitch_' + event, callback);
             $(document).on('ModeSwitch_' + event, callback);
         };
         if(!deleteLabelActive) {

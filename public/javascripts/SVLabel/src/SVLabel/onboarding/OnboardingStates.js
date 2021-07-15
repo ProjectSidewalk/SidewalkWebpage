@@ -348,6 +348,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                 var severity = parseInt(this.getAttribute("value"), 10);
+                console.log("pushing redo 2")
                 return severity === 2 ? "tag-attribute-2" : "redo-rate-attribute-2"
             }
         },
