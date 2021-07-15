@@ -20,16 +20,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
     };
 
-    var height = 50, width = 50, padding = { top: 5, right: 5, bottom: 5, left: 5 },
-        el = d3.select('#compass-holder'),
-        svg = el.append('svg'),
-        chart = svg.append('g'),
-        needle;
-
-    svg.attr('width', width + padding.left + padding.right)
-        .attr('height', height + padding.top + padding.bottom + 30)
-        .style({ position: 'absolute', left: 0, top: 0 });
-
     /**
      * Blink the compass message
      */
@@ -249,21 +239,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     /**
-     * Update the compass visualization
+     * Update the compass message.
      */
     function update () {
-        var compassAngle = self.getCompassAngle(),
-            cosine = Math.cos(compassAngle / 360 * 2 * Math.PI),
-            val = (cosine + 1) / 2,
-            r = 229 - 185 * val, g = 245 - 83 * val, b = 249 - 154 * val, rgb = 'rgb(' + r + ',' + g + ',' + b + ')';
-
-        if (needle && chart) {
-            needle.transition(100)
-                .attr('fill', rgb);
-            chart.transition(100)
-                .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
-        }
-
         if (!mapService.getLabelBeforeJumpListenerStatus()) {
             self.setTurnMessage();
 
