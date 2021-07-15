@@ -9,6 +9,8 @@ function Modal(uiModal) {
     
     let self = this;
 
+    const cardsPerPage = 9;
+
     const unselectedCardClassName = "modal-background-card";
 
     // Properties of the label in the card.
@@ -211,12 +213,12 @@ function Modal(uiModal) {
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
         openModal();
         let page = sg.cardContainer.getCurrentPage();
-        if (index > (page - 1) * 9) {
+        if (index > (page - 1) * cardsPerPage) {
             self.leftArrow.prop('disabled', false);
         } else {
             self.leftArrow.prop('disabled', true);
         }
-        if (index < page * 9 - 1) {
+        if (index < page * cardsPerPage - 1) {
             self.rightArrow.prop('disabled', false);
         } else {
             self.rightArrow.prop('disabled', true);
@@ -228,7 +230,7 @@ function Modal(uiModal) {
      */
     function nextLabel() {
         let page = sg.cardContainer.getCurrentPage();
-        if (self.cardIndex < page * 9 - 1) {
+        if (self.cardIndex < page * cardsPerPage - 1) {
             updateModalCardByIndex(self.cardIndex + 1);
         }
     }
@@ -238,7 +240,7 @@ function Modal(uiModal) {
      */
     function previousLabel() {
         let page = sg.cardContainer.getCurrentPage();
-        if (self.cardIndex > (page - 1) * 9) {
+        if (self.cardIndex > (page - 1) * cardsPerPage) {
             updateModalCardByIndex(self.cardIndex - 1);
         }
     }

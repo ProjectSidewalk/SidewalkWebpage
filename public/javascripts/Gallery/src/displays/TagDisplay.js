@@ -1,5 +1,5 @@
 /**
- * An object that can display the tags of a label in accordance to the Sidewalk gallery V1.1 Mock.
+ * An object that can display the tags of a label.
  * 
  * @param {HTMLElement} container The DOM element to contain the label information
  * @param {String[]} tags The tags to display
