@@ -348,7 +348,6 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                console.log("pushing redo 2")
                 return severity === 2 ? "tag-attribute-2" : "redo-rate-attribute-2"
             }
         },
@@ -396,6 +395,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
+                console.log("pushing redo 2");
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
                 var tags = this.getProperty('tagIds');
                 return tags.includes(23) && tags.length === 1 ? "select-label-type-3" : "redo-tag-attribute-2" // Where 23 is the tag_id of the "not enough landing space" tag

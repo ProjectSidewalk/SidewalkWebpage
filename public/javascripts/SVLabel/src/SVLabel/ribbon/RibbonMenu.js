@@ -93,7 +93,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
         if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
             // Used to trigger onboarding states
-            console.log("triggering " + 'ModeSwitch_' + labelType)
             $(document).trigger('ModeSwitch_' + labelType);
 
             var labelColors, ribbonConnectorPositions, borderColor;
