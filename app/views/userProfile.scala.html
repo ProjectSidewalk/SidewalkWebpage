@@ -29,12 +29,12 @@
                             }
                             @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
                                 <li>
-                                    <a id="0" role="menuitem" class="put-user-org">@Messages("dashboard.leave.org")</a>
+                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-0" role="menuitem" class="put-user-org">@Messages("dashboard.leave.org")</a>
                                 </li>
                             }
                             @for(org <- OrganizationTable.getAllOrganizations) {
                                 <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
-                                    <a id="@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
+                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
                                 </li>
                             }
                         </ul>
@@ -176,49 +176,66 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <script>
-    $(document).ready(function () {
-        // Gets all translations before loading the choropleth.
-        i18next.use(i18nextXHRBackend);
-        i18next.init({
-            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-            fallbackLng: 'en',
-            ns: ['dashboard', 'common'],
-            defaultNS: 'dashboard',
-            lng: "@lang.code",
-            debug: false
-        }, function(err, t) {
-            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            Progress(_, $, difficultRegionIds, '@user.get.role');
+        $(document).ready(function () {
+            // Gets all translations before loading the choropleth.
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['dashboard', 'common'],
+                defaultNS: 'dashboard',
+                lng: "@lang.code",
+                debug: false
+            }, function(err, t) {
+                var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
+                Progress(_, $, difficultRegionIds, '@user.get.role');
 
-            const achievementTracker = new AchievementTracker();
-            achievementTracker.updateBadgeAchievementGrid(
-                @MissionTable.countCompletedMissions(user.get.userId, includeOnboarding = true, includeSkipped = false),
-                @auditedDistance,
-                @LabelTable.countLabels(user.get.userId),
-                @LabelValidationTable.countValidations(user.get.userId),
-            );
-        });
-        
-        // Initialize popovers.
-        $('[id="edit-org-dropdown"]').popover({
-            trigger: "manual",
-            html: true,
-            animation: false
-        }).on("mouseenter", function() {
-            var _this = this;
-            $(this).popover("show");
-            $(".popover").on("mouseleave", function() {
-            $(_this).popover('hide');
+                const achievementTracker = new AchievementTracker();
+                achievementTracker.updateBadgeAchievementGrid(
+                    @MissionTable.countCompletedMissions(user.get.userId, includeOnboarding = true, includeSkipped = false),
+                    @auditedDistance,
+                    @LabelTable.countLabels(user.get.userId),
+                    @LabelValidationTable.countValidations(user.get.userId),
+                );
             });
-        }).on("mouseleave", function() {
-            var _this = this;
-            setTimeout(function() {
-            if (!$(".popover:hover").length) {
-                $(_this).popover("hide");
-            }
-            }, 300);
+            
+            // Initialize popovers.
+            $('[id="edit-org-dropdown"]').popover({
+                trigger: "manual",
+                html: true,
+                animation: false
+            }).on("mouseenter", function() {
+                var _this = this;
+                $(this).popover("show");
+                $(".popover").on("mouseleave", function() {
+                    $(_this).popover('hide');
+                });
+            }).on("mouseleave", function() {
+                var _this = this;
+                setTimeout(function() {
+                if (!$(".popover:hover").length) {
+                    $(_this).popover("hide");
+                }
+                }, 300);
+            });
+            $('[class="put-org-container"]').popover();
         });
-        $('[class="put-org-container"]').popover();
-    });
+
+        $("#edit-org-dropdown").popover().on('click', 'a', function(e){
+            var url = "/userapi/logWebpageActivity";
+            var async = false;
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: url,
+                type: 'post',
+                data: JSON.stringify("Click_module=dash_board=connect_platform=email_route"),
+                dataType: 'json',
+                success: function(result){},
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        });
     </script>
 }

@@ -167,12 +167,8 @@
     }
     @if(user && user.get.role.getOrElse("") != "Anonymous" && !UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
         <div class="item leaderboard-table">
-            @if(lang.code == "es") {
-                <h1 class="leaderboard-header">@Messages("leaderboard.org.title") @OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</h1>
-            } else {
-                <h1 class="leaderboard-header">@OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head) @Messages("leaderboard.org.title")</h1>
-            }
-            <h5>@Messages("leaderboard.org.detail") @OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</h5>
+            <h1 class="leaderboard-header">@Messages("leaderboard.org.title", OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head).getOrElse(""))</h1>
+            <h5>@Messages("leaderboard.org.detail", OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head).getOrElse(""))</h5>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboard-table-header">

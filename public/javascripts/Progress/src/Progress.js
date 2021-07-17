@@ -76,14 +76,23 @@ function Progress (_, $, difficultRegionIds, userRole) {
     }
 
     function putUserOrg(e) {
-        var orgId = $(this).attr('id');
+        var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
+        var startOrg = parsedId[1];
+        var endOrg = parsedId[3];
         $.ajax({
             async: true,
-            url: '/userapi/setUserOrg/' + orgId,
+            url: '/userapi/setUserOrg/' + endOrg,
             type: 'put',
             success: function (result) {
                 window.location.reload();
-                logWebpageActivity("Click_module=JoiningOrg=" + orgId);
+                if (endOrg != startOrg) {
+                    if (startOrg != 0) {
+                        logWebpageActivity("Click_module=leaving_org=" + startOrg);
+                    }
+                    if (endOrg != 0) {
+                        logWebpageActivity("Click_module=joining_org=" + endOrg);
+                    }
+                }
             },
             error: function (result) {
                 console.error(result);
