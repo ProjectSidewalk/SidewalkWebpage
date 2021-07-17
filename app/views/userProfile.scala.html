@@ -221,7 +221,7 @@
             $('[class="put-org-container"]').popover();
         });
 
-        $("#edit-org-dropdown").popover().on('click', 'a', function(e){
+        $("#edit-org-dropdown").on('click', 'a', function(e){
             var url = "/userapi/logWebpageActivity";
             var async = false;
             $.ajax({
