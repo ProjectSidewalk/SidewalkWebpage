@@ -61,6 +61,13 @@ function TagDisplay(container, tags, isModal=false) {
                 let additional = document.createElement('div');
                 additional.className = "gallery-tag additional-count";
                 additional.innerText = " + " + hiddenCount;
+                $(additional).tooltip("destroy").tooltip(({
+                    placement: 'top',
+                    html: false,
+                    delay: { "show": 300, "hide": 10 },
+                    height: '130',
+                    title: "hi"
+                })).tooltip("show").tooltip("hide");
                 $(tagContainer).append(additional);
             }
         }
