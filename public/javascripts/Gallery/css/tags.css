@@ -22,6 +22,7 @@
     margin: 3px -2px;
     border-style: none;
     font-weight: bold;
+    cursor: pointer;
 }
 
 .gallery-tag:disabled {
