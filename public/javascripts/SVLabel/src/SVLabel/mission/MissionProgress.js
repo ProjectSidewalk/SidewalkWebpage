@@ -23,7 +23,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         }
     });
 
-    _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
+    _neighborhoodModel.on("Neighborhood:completed", function () {
         // When the user has complete auditing all the streets in the neighborhood,
         // show the 100% coverage mission completion message.
 

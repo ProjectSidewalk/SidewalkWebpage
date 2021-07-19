@@ -100,13 +100,6 @@ function Path (svl, points, params) {
         return properties.fillStyle;
     }
 
-    /***
-     * Get canvas coordinates of points from the POV
-     */
-    function povToCanvasCoordinate() {
-        return svl.map.povToCanvasCoordinate();
-    }
-
     /**
      * Get canvas coordinates of points that constitute the path
      * using the new label rendering algorithm

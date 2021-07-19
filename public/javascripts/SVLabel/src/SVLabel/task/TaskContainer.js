@@ -25,7 +25,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (!newTask) {
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            svl.neighborhoodModel.neighborhoodCompleted();
             tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
         } else {
             svl.taskContainer.initNextTask(newTask);
