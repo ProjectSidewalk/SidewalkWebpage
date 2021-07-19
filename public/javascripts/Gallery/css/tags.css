@@ -18,6 +18,16 @@
     color: #2d2a3f;
 }
 
+.not-added {
+    background-color: white;
+    font-size: .6vw;
+    margin: 1px;
+}
+
+.tooltip-inner {
+    max-width: 300px;
+}
+
 .additional-count {
     margin: 3px -2px;
     border-style: none;

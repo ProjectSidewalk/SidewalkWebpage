@@ -38,6 +38,7 @@ function TagDisplay(container, tags, isModal=false) {
             // Order tags so that the tags that match the selected tags come first.
             let orderedTags = orderTags(tags);
             let tagsText = orderedTags.map(t => i18next.t('tag.' + t));
+            let unaddedTags = []
 
             // Try to append as many tags as possible into the parent container.
             for (let i = 0; i < tagsText.length; i++) {
@@ -52,22 +53,24 @@ function TagDisplay(container, tags, isModal=false) {
                 if (remainingWidth < 0 && !isModal) {
                     // No room for this tag, this will be one of the hidden tags, so we increment counter.
                     tagTest.remove();
+                    tagTest.classList.add("not-added");
+                    unaddedTags.push(tagTest);
                     hiddenCount += 1;
                 }
             }
 
             if (hiddenCount > 0) {
+                console.log(tagsText.join(", "))
                 // We have hidden tags.
                 let additional = document.createElement('div');
                 additional.className = "gallery-tag additional-count";
                 additional.innerText = " + " + hiddenCount;
-                $(additional).tooltip("destroy").tooltip(({
+                $(additional).tooltip("destroy").tooltip({
                     placement: 'top',
-                    html: false,
+                    html: true,
                     delay: { "show": 300, "hide": 10 },
-                    height: '130',
-                    title: "hi"
-                })).tooltip("show").tooltip("hide");
+                    title: unaddedTags.map(tag => tag.outerHTML).join("")
+                }).tooltip("show").tooltip("hide");
                 $(tagContainer).append(additional);
             }
         }
@@ -97,6 +100,6 @@ function TagDisplay(container, tags, isModal=false) {
         return orderedTags;
     }
 
-    _init()
+    _init();
     return self;
 }
