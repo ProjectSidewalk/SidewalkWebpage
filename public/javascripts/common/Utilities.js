@@ -1,21 +1,13 @@
 var util = util || {};
 
-// A cross-browser function to capture a mouse position
-function mouseposition (e, dom) {
+// A cross-browser function to capture a mouse position.
+function mouseposition(e, dom) {
     var mx, my;
-    //if(e.offsetX) {
-        // Chrome
-    //    mx = e.offsetX;
-    //    my = e.offsetY;
-    //} else {
-        // Firefox, Safari
-        mx = e.pageX - $(dom).offset().left;
-        my = e.pageY - $(dom).offset().top;
-    //}
+    mx = e.pageX - $(dom).offset().left;
+    my = e.pageY - $(dom).offset().top;
     return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
 }
 util.mouseposition = mouseposition;
-
 
 // Object prototype
 // http://www.smipple.net/snippet/insin/jQuery.fn.disableTextSelection
@@ -37,32 +29,12 @@ if(typeof(String.prototype.trim) === "undefined")
     };
 }
 
-// Default Text
-function focusCallback() {
-    if ($(this).val() === $(this).attr('title')) {
-        /* if the current attribute is the default one, delete it. */
-        $(this).val("");
-    }
-    $(this).removeClass('defaultTextActive');
-}
-
-function blurCallback() {
-    if(!$(this).val()) {
-        /* do following if the field is empty */
-        var msg = $(this).attr('title');
-        $(this).val( msg );
-
-        $(this).addClass('defaultTextActive');
-    }
-}
-
 // Based on a snipped posted by Eric Scheid ("ironclad") on November 17, 2000 at:
 // http://www.evolt.org/article/Javascript_to_Parse_URLs_in_the_Browser/17/14435/
 function getURLParameter(argName) {
-    // Get the value of one of the URL parameters.  For example, if this were called
-    // with the URL http://your.server.name/foo.html?bar=123 then getURLParameter("bar")
-    // would return the string "123".  If the parameter is not found, this will return
-    // an empty string, "".
+    // Get the value of one of the URL parameters. For example, if this were called with the URL
+    // http://your.server.name/foo.html?bar=123 then getURLParameter("bar") would return the string "123". If the
+    // parameter is not found, this will return an empty string, "".
 
     var argString = location.search.slice(1).split('&');
     var r = '';
@@ -175,30 +147,3 @@ function getOperatingSystem () {
     return OSName;
 }
 util.getOperatingSystem = getOperatingSystem;
-
-function sleep(miliseconds) {
-    var end = false;
-}
-
-function shuffle(array) {
-    // This function returns a shuffled array.
-    // Code from http://bost.ocks.org/mike/shuffle/
-    var copy = [], n = array.length, i;
-
-    // While there remain elements to shuffle…
-    while (n) {
-
-        // Pick a remaining element…
-        i = Math.floor(Math.random() * array.length);
-
-        // If not already shuffled, move it to the new array.
-        if (i in array) {
-            copy.push(array[i]);
-            delete array[i];
-            n--;
-        }
-    }
-
-    return copy;
-}
-util.shuffle = shuffle;

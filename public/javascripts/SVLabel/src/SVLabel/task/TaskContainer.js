@@ -7,10 +7,9 @@
  * @param neighborhoodModel
  * @param streetViewService
  * @param svl
- * @param taskModel
  * @param tracker
  */
-function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
+function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -75,7 +74,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    self.endTask = function (task, nextTask) {
+    function endTask(task, nextTask) {
         if (tracker) tracker.push("TaskEnd");
 
         task.complete();
@@ -643,7 +642,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
     }
 
-    // self.endTask = endTask;
+    self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;

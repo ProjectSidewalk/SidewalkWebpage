@@ -440,22 +440,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Get the max pitch.
-     * @returns {number}
-     */
-    function getMaxPitch() {
-        return properties.maxPitch;
-    }
-
-    /**
-     * Get the minimum pitch.
-     * @returns {number|*}
-     */
-    function getMinPitch() {
-        return properties.minPitch;
-    }
-
-    /**
      * Get the current panorama id.
      * @returns {string} Google Street View panorama id
      */
@@ -1417,8 +1401,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
     self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
     self.getMap = getMap;
-    self.getMaxPitch = getMaxPitch;
-    self.getMinPitch = getMinPitch;
     self.getPanoId = getPanoId;
     self.getProperty = getProperty;
     self.getPosition = getPosition;

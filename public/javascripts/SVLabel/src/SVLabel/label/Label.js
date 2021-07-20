@@ -308,9 +308,7 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * Return the deep copy of the properties object,
-     * so the caller can only modify properties from
-     * setProperties() (which I have not implemented.)
+     * Return deep copy of properties obj, so one can only modify props from setProperties() (not yet implemented).
      * JavaScript Deepcopy
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
@@ -404,14 +402,9 @@ function Label (svl, pathIn, params) {
      * This method renders this label on a canvas.
      * @param ctx
      * @param pov
-     * @param evaluationMode
      * @returns {self}
      */
-    function render (ctx, pov, evaluationMode) {
-        if (!evaluationMode) {
-            evaluationMode = false;
-        }
-
+    function render(ctx, pov) {
         if (!status.deleted && status.visibility === 'visible') {
             // Render a tag -- triggered by mouse hover event.
             // Get a text to render (e.g, attribute type), and canvas coordinate to render the tag.

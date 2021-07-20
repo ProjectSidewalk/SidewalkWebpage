@@ -46,37 +46,31 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
     /**
      * Callback for button click
      */
-    function toggleSound () {
+    function toggleSound() {
         if (storage.get("muted"))
             unmute();
         else
             mute();
     }
 
-    /**
-     * Mute
-     */
-    function mute () {
+    function mute() {
         uiSoundButton.soundIcon.addClass('hidden');
         uiSoundButton.muteIcon.removeClass('hidden');
         storage.set("muted", true);
     }
 
-    /**
-     * Unmute
-     */
-    function unmute () {
+    function unmute() {
         uiSoundButton.muteIcon.addClass('hidden');
         uiSoundButton.soundIcon.removeClass('hidden');
         storage.set("muted", false);
     }
 
     /**
-     * Load a sound effect
+     * Load a sound effect.
      * @param name Name of the sound effect
      * @returns {load}
      */
-    function load (name) {
+    function load(name) {
         if (name in audios && typeof audios[name].load == "function") {
             audios[name].load();
         }

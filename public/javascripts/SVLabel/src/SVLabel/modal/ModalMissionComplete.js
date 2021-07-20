@@ -4,31 +4,19 @@
  * @param missionContainer
  * @param missionModel
  * @param taskContainer
- * @param taskContainer
- * @param modalMissionProgressBar
- * @param taskContainer
- * @param modalMissionProgressBar
- * @param statusModel
- * @param onboardingModel
- * @param taskContainer
- * @param modalMissionProgressBar
- * @param statusModel
- * @param onboardingModel
  * @param modalMissionCompleteMap
  * @param modalMissionProgressBar
- * @param statusModel
- * @param onboardingModel
  * @param uiModalMissionComplete
  * @param modalModel
- * @param userModel
  * @param statusModel
  * @param onboardingModel
+ * @param userModel
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer,
-                               modalMissionCompleteMap, modalMissionProgressBar,
-                               uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
+function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer, modalMissionCompleteMap,
+                               modalMissionProgressBar, uiModalMissionComplete, modalModel, statusModel,
+                               onboardingModel, userModel) {
     var self = this;
     var _missionModel = missionModel;
     var _missionContainer = missionContainer;

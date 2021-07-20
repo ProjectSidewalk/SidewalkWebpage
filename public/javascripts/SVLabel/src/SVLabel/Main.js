@@ -106,19 +106,18 @@ function Main (params) {
 
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
+            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
         // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
-            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
-            svl.tracker);
+            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel, svl.neighborhoodModel,
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel,
             svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
@@ -154,7 +153,7 @@ function Main (params) {
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel, svl.userModel);
-        svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.streetViewService, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
+        svl.modalSkip = new ModalSkip(svl.form, svl.streetViewService, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         // Survey for select users
@@ -285,13 +284,10 @@ function Main (params) {
 
             // TODO It should pass UserModel instead of User (i.e., svl.user)
 
-            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form,
-                onboardingHandAnimation, svl.map,
-                svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
-                svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
-                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.canvas,
-                svl.ui.canvas, svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.ui.leftColumn,
-                svl.user, svl.zoomControl);
+            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
+                svl.map, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel, onboardingStates,
+                svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
+                svl.ui.leftColumn, svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
     }
@@ -301,9 +297,9 @@ function Main (params) {
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
             if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
-                var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                    svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
+                neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
+                    svl.taskContainer, svl.labelContainer, svl.tracker);
                 svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
                     svl.initialMissionInstruction.start(neighborhood);
                 });

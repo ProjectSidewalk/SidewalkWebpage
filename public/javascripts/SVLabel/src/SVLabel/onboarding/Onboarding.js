@@ -8,37 +8,26 @@
  * @param handAnimation
  * @param mapService
  * @param missionContainer
- * @param missionModel
  * @param modalComment
- * @param modalMission
  * @param modalSkip
- * @param neighborhoodContainer
- * @param neighborhoodModel
  * @param onboardingModel
  * @param onboardingStates
  * @param ribbon
  * @param statusField
- * @param statusModel
- * @param storage
- * @param taskContainer
  * @param tracker
  * @param canvas
  * @param uiCanvas
  * @param contextMenu
- * @param uiMap
  * @param uiOnboarding
- * @param uiRibbon
  * @param uiLeft
  * @param user
  * @param zoomControl
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, missionContainer,
-                    missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
-                    neighborhoodModel, onboardingModel, onboardingStates,
-                    ribbon, statusField, statusModel, storage, taskContainer,
-                    tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, uiLeft, user, zoomControl) {
+function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment,
+                    modalSkip, onboardingModel, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas,
+                    contextMenu, uiOnboarding, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
     var canvasWidth = 720;
