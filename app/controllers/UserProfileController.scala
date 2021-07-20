@@ -27,7 +27,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Loads the user dashboard page.
    */
-  def userProfile(username: String) = UserAwareAction.async { implicit request =>
+  def userProfile = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val username: String = user.username
@@ -38,8 +38,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
-        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user), auditedDistance)))
-      case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
+        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
+      case None => Future.successful(Redirect(s"/anonSignUp?url=/dashboard"))
     }
   }
 

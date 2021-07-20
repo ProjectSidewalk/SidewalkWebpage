@@ -29,7 +29,7 @@
                         }</th>
                         @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username) {
                             <td class="leaderboard-table-font">
-                                <a href='@routes.UserProfileController.userProfile(user.get.username)'>
+                                <a href='@routes.UserProfileController.userProfile'>
                                     <u>
                                         @{stat.asInstanceOf[LeaderboardStat].username} 
                                     </u>
@@ -108,7 +108,7 @@
                             }</th>
                             @if(user && user.get.role.getOrElse("") != "Anonymous" && stat.asInstanceOf[LeaderboardStat].username == user.get.username) {
                                 <td class="leaderboard-table-font">
-                                    <a href='@routes.UserProfileController.userProfile(user.get.username)'>
+                                    <a href='@routes.UserProfileController.userProfile'>
                                         <u>
                                             @{stat.asInstanceOf[LeaderboardStat].username} 
                                         </u>
