@@ -596,10 +596,13 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     var deleteLabelActive = false;
     function _incorrectLabelApplication(state, listener) {
-
         hideMessage();
 
-        // Step 1: Show message to delete
+        // TODO Get access to know which attribute needs to be deleted to log unique transitions.
+        // TODO Alternatively, there should probably be a dedicated state for re-labeling, which would make this easier.
+        tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-n"});
+
+        // Step 1: Show message to delete.
         var message = {
             "message": i18next.t('tutorial.common.label-too-far') +
                 ' <img src="' + svl.rootDirectory + "img/icons/Icon_Delete.png" +
@@ -619,7 +622,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Callback for deleted label
         var deleteLabelCallback = function () {
-
             if (listener) google.maps.event.removeListener(listener);
 
             // Remove flashing in the arrow
@@ -856,28 +858,23 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitRateSeverity(state, listener) {
-        svl.contextMenu.disableTagging();
-        if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();
+        contextMenu.disableTagging();
         var $target = contextMenu.getContextMenuUI().radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
-            tracker.push("ContextMenu_CloseOnboarding");
-            contextMenu.hide();
-            svl.contextMenu.enableTagging();
+            contextMenu.enableTagging();
             next.call(this, state.transition);
         };
         $target.on("click", callback);
     }
     function _visitAddTag(state, listener) {
-        contextMenu.unhide();
         var $target = contextMenu.getContextMenuUI().tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
             if (listener) {
                 google.maps.event.removeListener(listener);
             }
             $target.off("tagIds-updated", callback);
-            contextMenu.hide();
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
         // We use a custom event here to ensure that this is triggered after the tags have been updated.
@@ -914,7 +911,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 modalSkip.stopBlinking();
                 modalComment.stopBlinking();
             }
-            // $target.off("click", callback);
             next.call(this, state.transition);
         };
         $target.on("click", callback);
@@ -1067,18 +1063,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     next(transition[i]);
                     break;
                 } else {
-                    // Disable labeling mode
+                    // Label placed too far from where they are supposed to put it. Disable labeling, enable deleting.
                     ribbon.disableMode(labelType, subCategory);
                     ribbon.enableMode("Walk");
-
-                    // Incorrect label application:
-
-                    // 1. Enable deleting label
                     canvas.unlockDisableLabelDelete();
                     canvas.enableLabelDelete();
                     canvas.lockDisableLabelDelete();
 
-                    // 2. Ask user to delete label and reapply the label
+                    // 2. Ask user to delete label and reapply the label.
                     _incorrectLabelApplication(state, listener);
                 }
                 i = i + 1;

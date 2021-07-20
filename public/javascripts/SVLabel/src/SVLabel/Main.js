@@ -277,7 +277,7 @@ function Main (params) {
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
-            onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
+            onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.map, svl.statusModel, svl.tracker);
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
