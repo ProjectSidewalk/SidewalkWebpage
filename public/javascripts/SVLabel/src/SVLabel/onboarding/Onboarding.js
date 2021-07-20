@@ -869,26 +869,19 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         };
         $target.on("click", callback);
     }
-    var addedCallback = flase;
     function _visitAddTag(state, listener) {
-        console.trace();
         contextMenu.unhide();
-        var $target = contextMenu.getContextMenuUI().tags; // Grab tag elements
+        var $target = contextMenu.getContextMenuUI().tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
             if (listener) {
                 google.maps.event.removeListener(listener);
             }
             $target.off("tagIds-updated", callback);
             contextMenu.hide();
-            addedCallback = !addedCallback;
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
-        // We use a custom event here to ensure that this is triggered after the tagIds array has been updated
-        if(!addedCallback){
-            $target.on("tagIds-updated", callback);
-            console.log("adding callback");
-            addedCallback = !addedCallback;
-        }
+        // We use a custom event here to ensure that this is triggered after the tags have been updated.
+        $target.on("tagIds-updated", callback);
     }
 
     function _visitInstruction(state, listener) {
