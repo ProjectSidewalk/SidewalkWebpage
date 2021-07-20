@@ -6,33 +6,18 @@
  * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
  * @param JSON
- * @param params
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function TemporaryStorage(JSON, params) {
+function TemporaryStorage(JSON) {
     var self = {'className': 'Storage'};
+    self.storage = window.localStorage;
 
-    if (params && 'storage' in params && params.storage == 'session') {
-        self.storage = window.sessionStorage;
-    } else {
-        self.storage = window.localStorage;
-    }
-
-    function _init () {
+    function _init() {
         // Create an array to store staged submission data (if there hasn't been one)
         if (!get("staged")) {
             set("staged", []);
-        }
-
-        // Create an object to store current status.
-        if (!get("tracker")) {
-            set("tracker", []);
-        }
-
-        if (!get("labels")) {
-            set("labels", []);
         }
 
         if (!get("completedFirstMission")){
@@ -45,7 +30,7 @@ function TemporaryStorage(JSON, params) {
     }
 
     /**
-     * Returns the item specified by the key
+     * Returns the item specified by the key.
      * @param key
      */
     function get(key) {
@@ -53,19 +38,7 @@ function TemporaryStorage(JSON, params) {
     }
 
     /**
-     * Refresh
-     */
-    function clear () {
-        _init();
-        set("staged", []);
-        set("tracker", []);
-        set("labels", []);
-        set("completedFirstMission", null);
-        set("muted", false);
-    }
-
-    /**
-     * Stores a key value pair
+     * Stores a key value pair.
      * @param key
      * @param value
      */
@@ -74,8 +47,8 @@ function TemporaryStorage(JSON, params) {
     }
 
     self.get = get;
-    self.clear = clear;
     self.set = set;
+
     _init();
     return self;
 }

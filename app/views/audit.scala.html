@@ -825,8 +825,6 @@
         </div>
     </template>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/zpipe.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.base64.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
@@ -894,7 +892,7 @@
             if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
             svl.taskModel = new TaskModel();
             svl.taskFactory = new TaskFactory(svl.taskModel);
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.taskModel, svl.tracker);
+            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.tracker);
 
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
