@@ -39,50 +39,11 @@ function Main (params) {
         5: 16
     };
 
-    svl.gsvImageCoordinate2CanvasCoordinate = function (xIn, yIn, pov) {
-        // This function takes the current pov of the Street View as a parameter
-        // and returns a canvas coordinate of a point (xIn, yIn).
-        var x, y, zoom = pov.zoom;
-        var svImageWidth = svl.svImageWidth * svl.zoomFactor[zoom];
-        var svImageHeight = svl.svImageHeight * svl.zoomFactor[zoom];
-
-        xIn = xIn * svl.zoomFactor[zoom];
-        yIn = yIn * svl.zoomFactor[zoom];
-
-        x = xIn - (svImageWidth * pov.heading) / 360;
-        x = x / svl.alpha_x + svl.canvasWidth / 2;
-
-        //
-        // When POV is near 0 or near 360, points near the two vertical edges of
-        // the SV image does not appear. Adjust accordingly.
-        var edgeOfSvImageThresh = 360 * svl.alpha_x * (svl.canvasWidth / 2) / (svImageWidth) + 10;
-
-        if (pov.heading < edgeOfSvImageThresh) {
-            // Update the canvas coordinate of the point if
-            // its svImageCoordinate.x is larger than svImageWidth - alpha_x * (svl.canvasWidth / 2).
-            if (svImageWidth - svl.alpha_x * (svl.canvasWidth / 2) < xIn) {
-                x = (xIn - svImageWidth) - (svImageWidth * pov.heading) / 360;
-                x = x / svl.alpha_x + svl.canvasWidth / 2;
-            }
-        } else if (pov.heading > 360 - edgeOfSvImageThresh) {
-            if (svl.alpha_x * (svl.canvasWidth / 2) > xIn) {
-                x = (xIn + svImageWidth) - (svImageWidth * pov.heading) / 360;
-                x = x / svl.alpha_x + svl.canvasWidth / 2;
-            }
-        }
-
-        y = yIn - (svImageHeight / 2) * (pov.pitch / 90);
-        y = y / svl.alpha_y + svl.canvasHeight / 2;
-
-        return {x : x, y : y};
-    };
-
     function _init (params) {
         params = params || {};
 
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
-
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
@@ -109,7 +70,6 @@ function Main (params) {
         // Set map parameters and instantiate it.
         var mapParam = { lat: SVLat, lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 } };
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
-        svl.map.disableClickZoom();
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
         //svl.alert2 = new Alert();
@@ -127,9 +87,6 @@ function Main (params) {
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
         svl.labelCounter = new LabelCounter(d3);
-
-
-        svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl, params.nextTemporaryLabelId);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
@@ -149,19 +106,18 @@ function Main (params) {
 
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.taskModel, svl.tracker);
+            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
         // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
-            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
-            svl.tracker);
+            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel, svl.neighborhoodModel,
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel,
             svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
@@ -197,7 +153,7 @@ function Main (params) {
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel, svl.userModel);
-        svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.streetViewService, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
+        svl.modalSkip = new ModalSkip(svl.form, svl.streetViewService, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         // Survey for select users
@@ -328,13 +284,10 @@ function Main (params) {
 
             // TODO It should pass UserModel instead of User (i.e., svl.user)
 
-            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form,
-                onboardingHandAnimation, svl.map,
-                svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
-                svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
-                svl.statusField, svl.statusModel, svl.storage, svl.taskContainer, svl.tracker, svl.canvas,
-                svl.ui.canvas, svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.ui.leftColumn,
-                svl.user, svl.zoomControl);
+            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
+                svl.map, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel, onboardingStates,
+                svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
+                svl.ui.leftColumn, svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
     }
@@ -344,9 +297,9 @@ function Main (params) {
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
             if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
-                var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                    svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
+                neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
+                    svl.taskContainer, svl.labelContainer, svl.tracker);
                 svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
                     svl.initialMissionInstruction.start(neighborhood);
                 });
@@ -435,7 +388,6 @@ function Main (params) {
             if(!svl.taskContainer.hasMaxPriorityTask()) {
                 svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
             }
-
             // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;

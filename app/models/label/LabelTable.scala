@@ -3,7 +3,7 @@ package models.label
 import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
 import java.util.UUID
-import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskTable}
+import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable, MissionTypeTable}
@@ -126,11 +126,12 @@ object LabelTable {
                            temporary: Boolean, description: Option[String], tags: List[String])
 
   case class LabelMetadataWithValidation(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String,
-                                         heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
+                                         heading: Float, pitch: Float, zoom: Int, canvasXY: (Int, Int),
                                          canvasWidth: Int, canvasHeight: Int, auditTaskId: Int, userId: String,
                                          username: String, timestamp: Option[java.sql.Timestamp], labelTypeKey: String,
                                          labelTypeValue: String, severity: Option[Int], temporary: Boolean,
-                                         description: Option[String], validations: Map[String, Int], tags: List[String])
+                                         description: Option[String], userValidation: Option[Int],
+                                         validations: Map[String, Int], tags: List[String])
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
@@ -163,9 +164,9 @@ object LabelTable {
 
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadataWithValidation](r =>
     LabelMetadataWithValidation(
-      r.nextInt, r.nextString, r.nextBoolean, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt,
+      r.nextInt, r.nextString, r.nextBoolean, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, (r.nextInt, r.nextInt),
       r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestampOption, r.nextString, r.nextString,
-      r.nextIntOption, r.nextBoolean, r.nextStringOption,
+      r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
@@ -355,9 +356,9 @@ object LabelTable {
     labelsWithCVMetadata.list.map(label => LabelCVMetadata.tupled(label))
   }
 
-  def retrieveLabelMetadata(takeN: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int, LabelMetadataWithValidation](
-      """SELECT lb1.label_id,
+  def retrieveLabelMetadataWithValidation(takeN: Int, userId: String): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
+    val selectQuery = Q.queryNA[LabelMetadataWithValidation](
+      s"""SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
         |       gsv_data.image_date,
@@ -377,6 +378,7 @@ object LabelTable {
         |       lb_big.severity,
         |       lb_big.temp,
         |       lb_big.description,
+        |       lb_big.validation_result,
         |       val.val_counts,
         |       lb_big.tag_list
         |FROM label AS lb1,
@@ -392,12 +394,21 @@ object LabelTable {
         |                sev.severity,
         |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
         |                lab_desc.description,
+        |                user_validation.validation_result,
         |                the_tags.tag_list
         |         FROM label AS lb
         |         LEFT JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
         |         LEFT JOIN label_severity as sev ON lb.label_id = sev.label_id
         |         LEFT JOIN label_description as lab_desc ON lb.label_id = lab_desc.label_id
         |         LEFT JOIN label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
+        |         LEFT JOIN (
+        |             -- Gets the most recent validation from this user for each label.
+        |             SELECT DISTINCT ON (label_id) label_id, validation_result
+        |             FROM label_validation
+        |             WHERE user_id = '$userId'
+        |             ORDER BY label_id, end_timestamp DESC
+        |         ) AS user_validation
+        |             ON lb.label_id = user_validation.label_id
         |         LEFT JOIN (
         |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
         |             FROM label_tag
@@ -427,9 +438,9 @@ object LabelTable {
         |    AND lb1.label_id = lp.label_id
         |    AND lb1.label_id = val.label_id
         |ORDER BY lb1.label_id DESC
-        |LIMIT ?""".stripMargin
+        |LIMIT ${takeN * 3}""".stripMargin
     )
-    selectQuery(takeN * 3).list
+    selectQuery.list
   }
 
   def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
@@ -496,7 +507,7 @@ object LabelTable {
     selectQuery((userId, takeN)).list
   }
 
-  def retrieveSingleLabelMetadata(labelId: Int): LabelMetadataWithValidation = db.withSession { implicit session =>
+  def retrieveSingleLabelMetadata(labelId: Int, userId: String): LabelMetadataWithValidation = db.withSession { implicit session =>
     val selectQuery = Q.queryNA[LabelMetadataWithValidation](
       s"""SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
@@ -518,6 +529,7 @@ object LabelTable {
         |       lb_big.severity,
         |       lb_big.temp,
         |       lb_big.description,
+        |       lb_big.validation_result,
         |       lb_val.val_counts,
         |       lb_big.tag_list
         |FROM label AS lb1,
@@ -543,12 +555,23 @@ object LabelTable {
         |                sev.severity,
         |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
         |                lab_desc.description,
+        |                user_validation.validation_result,
         |                the_tags.tag_list
         |         FROM label AS lb
         |         LEFT JOIN label_type AS lbt ON lb.label_type_id = lbt.label_type_id
         |         LEFT JOIN label_severity AS sev ON lb.label_id = sev.label_id
         |         LEFT JOIN label_description AS lab_desc ON lb.label_id = lab_desc.label_id
         |         LEFT JOIN label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
+        |         LEFT JOIN (
+        |             -- Gets the most recent validation from this user for each label.
+        |             SELECT label_id, validation_result
+        |             FROM label_validation
+        |             WHERE user_id = '$userId'
+        |                 AND label_id = $labelId
+        |             ORDER BY end_timestamp DESC
+        |             LIMIT 1
+        |         ) AS user_validation
+        |             ON lb.label_id = user_validation.label_id
         |         LEFT JOIN (
         |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
         |             FROM label_tag
@@ -786,7 +809,6 @@ object LabelTable {
     val addValidations = for {
       (l, v) <- addDescriptions.leftJoin(userValidations).on(_._1 === _._1)
     } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, l._11, l._12, l._13, l._14, l._15, v._2.?)
-    println(addValidations.size.run)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
@@ -981,7 +1003,6 @@ object LabelTable {
     val addValidations = for {
       (l, v) <- addDescriptions.leftJoin(userValidations).on(_._1 === _._1)
     } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, l._11, l._12, l._13, l._14, l._15, v._2.?)
-    println(addValidations.size.run)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
@@ -1094,14 +1115,12 @@ object LabelTable {
     try {
       val now = new DateTime(DateTimeZone.UTC)
       val urlString : String = "http://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
-      // println("URL: " + urlString)
       val panoURL : URL = new java.net.URL(urlString)
       val connection : HttpURLConnection = panoURL.openConnection.asInstanceOf[HttpURLConnection]
       connection.setConnectTimeout(5000)
       connection.setReadTimeout(5000)
       connection.setRequestMethod("GET")
       val responseCode: Int = connection.getResponseCode
-      // println("Response Code: " + responseCode)
 
       // URL is only valid if the response code is between 200 and 399.
       200 <= responseCode && responseCode <= 399
@@ -1143,8 +1162,8 @@ object LabelTable {
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
       "zoom" -> labelMetadata.zoom,
-      "canvas_x" -> labelMetadata.canvasX,
-      "canvas_y" -> labelMetadata.canvasY,
+      "canvas_x" -> labelMetadata.canvasXY._1,
+      "canvas_y" -> labelMetadata.canvasXY._2,
       "canvas_width" -> labelMetadata.canvasWidth,
       "canvas_height" -> labelMetadata.canvasHeight,
       "audit_task_id" -> labelMetadata.auditTaskId,
@@ -1156,6 +1175,7 @@ object LabelTable {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
+      "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
       "num_unsure" -> labelMetadata.validations("unclear"),
@@ -1172,8 +1192,8 @@ object LabelTable {
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
       "zoom" -> labelMetadata.zoom,
-      "canvas_x" -> labelMetadata.canvasX,
-      "canvas_y" -> labelMetadata.canvasY,
+      "canvas_x" -> labelMetadata.canvasXY._1,
+      "canvas_y" -> labelMetadata.canvasXY._2,
       "canvas_width" -> labelMetadata.canvasWidth,
       "canvas_height" -> labelMetadata.canvasHeight,
       "timestamp" -> labelMetadata.timestamp,
@@ -1182,6 +1202,7 @@ object LabelTable {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
+      "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
       "num_unsure" -> labelMetadata.validations("unclear"),
@@ -1211,22 +1232,22 @@ object LabelTable {
   /*
    * Retrieve label metadata for a labelId.
    */
-  def getLabelMetadata(labelId: Int): LabelMetadataWithValidation = db.withSession { implicit session =>
-    retrieveSingleLabelMetadata(labelId)
+  def getLabelMetadata(labelId: Int, userId: String): LabelMetadataWithValidation = db.withSession { implicit session =>
+    retrieveSingleLabelMetadata(labelId, userId)
   }
 
   /*
    * Retrieves label and its metadata.
    */
-  def getRecentLabelMetadataWithValidations(n: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
-    retrieveLabelMetadata(n)
+  def getRecentLabelMetadataWithValidations(n: Int, userId: String): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
+    retrieveLabelMetadataWithValidation(n, userId)
   }
 
   /*
    * Retrieves label by user and its metadata.
    */
-  def getRecentLabelMetadata(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
-    retrieveLabelMetadata(n, userId.toString)
+  def getRecentLabelMetadata(n: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
+    retrieveLabelMetadata(n, userId)
   }
 
   /**

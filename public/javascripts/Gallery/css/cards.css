@@ -28,6 +28,7 @@ We make sure that the image holder is positioned relatively so that the validati
 with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay).
 */
 .image-holder {
+    cursor: pointer;
     position: relative;
 }
 
@@ -91,6 +92,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     border-style: solid;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
+    cursor: default;
 }
 .gallery-card:hover > .card-info {
     border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */

@@ -8,39 +8,28 @@
  * @param handAnimation
  * @param mapService
  * @param missionContainer
- * @param missionModel
  * @param modalComment
- * @param modalMission
  * @param modalSkip
- * @param neighborhoodContainer
- * @param neighborhoodModel
  * @param onboardingModel
  * @param onboardingStates
  * @param ribbon
  * @param statusField
- * @param statusModel
- * @param storage
- * @param taskContainer
  * @param tracker
  * @param canvas
  * @param uiCanvas
  * @param contextMenu
- * @param uiMap
  * @param uiOnboarding
- * @param uiRibbon
+ * @param uiLeft
  * @param user
  * @param zoomControl
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, missionContainer,
-                    missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
-                    neighborhoodModel, onboardingModel, onboardingStates,
-                    ribbon, statusField, statusModel, storage, taskContainer,
-                    tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, uiLeft, user, zoomControl) {
+function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment,
+                    modalSkip, onboardingModel, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas,
+                    contextMenu, uiOnboarding, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
-    var tutorialPC;
     var canvasWidth = 720;
     var canvasHeight = 480;
     var blink_timer = 0;
@@ -71,8 +60,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         this._removeOnboardingLabels();
 
         adjustMap();
-
-        fetchTutorialPointCloud();
 
         $("#navbar-retake-tutorial-btn").css("display", "none");
 
@@ -113,29 +100,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         onboardingModel.triggerStartOnboarding();
     };
-
-    /**
-     * Fetches the string data of the PointCloud object for the tutorial. If Google removes the tutorial's
-     * panos, the PointCloud data is stored in a .dat file.
-     */
-    function fetchTutorialPointCloud() {
-        var client = new XMLHttpRequest();
-        client.open('GET', svl.rootDirectory + "img/onboarding/TutorialPointCloud.dat");
-        client.onreadystatechange = function() {
-            tutorialPC = client.responseText;
-        };
-        client.send();
-    }
-
-    /**
-     * @returns {PointCloud} - returns the PointCloud object for the tutorial panorama
-     */
-    function getTutorialPointCloud() {
-        if (typeof tutorialPC === "string") {
-            tutorialPC = JSON.parse(tutorialPC);
-        }
-        return tutorialPC;
-    }
 
     /**
      * Sets the mini map to be transparent for everything except for yellow pin.
@@ -1173,5 +1137,4 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     self.showMessage = showMessage;
     self.setStatus = setStatus;
     self.hideMessage = hideMessage;
-    self.getTutorialPointCloud = getTutorialPointCloud;
 }
