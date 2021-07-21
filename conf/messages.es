@@ -248,7 +248,7 @@ results.legend.body = Los barrios grises carecen de datos suficientes para evalu
 
 dashboard.no.org = Sin Organización
 dashboard.edit.org = Editar
-dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a <a href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> con el nombre y la descripción de su organización.
+dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> con el nombre y la descripción de su organización.
 dashboard.orgs.unavailable = ¡No hay organizaciones disponibles!
 dashboard.leave.org = Salir la Organización
 dashboard.audited.street = Calle auditada
@@ -298,9 +298,9 @@ leaderboard.header.distance = Distancia
 leaderboard.header.accuracy = Precisión
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
-leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a href="/audit"><u>¡Empieza a explorar!</u></a>
-leaderboard.encouragement.no.user = ¡<a href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
-leaderboard.encouragement.no.org = <a href="/contribution/__USERNAME__"><u>Únete a una organización</u></a> para competir contra tus compañeros!
+leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/audit"><u>¡Empieza a explorar!</u></a>
+leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
+leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/contribution/__USERNAME__"><u>Únete a una organización</u></a> para competir contra tus compañeros!
 
 gallery = Galería
 gallery.show = Mostrar

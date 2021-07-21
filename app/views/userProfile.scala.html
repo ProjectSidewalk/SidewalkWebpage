@@ -221,7 +221,7 @@
             $('[class="put-org-container"]').popover();
         });
 
-        $("#edit-org-dropdown").on('click', 'a', function(e){
+        $("#email-link").on('click', 'a', function(e){
             var url = "/userapi/logWebpageActivity";
             var async = false;
             $.ajax({
@@ -229,7 +229,7 @@
                 contentType: 'application/json; charset=utf-8',
                 url: url,
                 type: 'post',
-                data: JSON.stringify("Click_module=dash_board=connect_platform=email_route"),
+                data: JSON.stringify("Click_module=email_link"),
                 dataType: 'json',
                 success: function(result){},
                 error: function (result) {

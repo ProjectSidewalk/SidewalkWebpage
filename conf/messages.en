@@ -249,7 +249,7 @@ results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk
 
 dashboard.no.org = No Organization
 dashboard.edit.org = Edit
-dashboard.edit.info = If you don't see your organization, please email <a href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
+dashboard.edit.info = If you don't see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
 dashboard.orgs.unavailable = There are no available organizations!
 dashboard.leave.org = Leave Organization
 dashboard.audited.street = Audited Street
@@ -300,9 +300,9 @@ leaderboard.header.distance = Distance
 leaderboard.header.accuracy = Accuracy
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
-leaderboard.encouragement = Want to make it into the Top 10? <a href="/audit"><u>Start exploring!</u></a>
-leaderboard.encouragement.no.user = <a href="/signUp"><u>Sign up</u></a> to track your progress!
-leaderboard.encouragement.no.org = <a href="/contribution/__USERNAME__"><u>Join an organization</u></a> to compete against your teammates!
+leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/audit"><u>Start exploring!</u></a>
+leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/contribution/__USERNAME__"><u>Join an organization</u></a> to compete against your teammates!
 
 gallery = Gallery
 gallery.show = Show
