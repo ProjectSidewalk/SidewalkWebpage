@@ -660,7 +660,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             };
             showMessage(message);
 
-            // Callback after user applied the label correctly
+            // Callback after user applied the label correctly.
             var callback = function () {
                 ribbon.enableMode("Walk");
                 ribbon.stopBlinking();
@@ -1069,6 +1069,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     canvas.unlockDisableLabelDelete();
                     canvas.enableLabelDelete();
                     canvas.lockDisableLabelDelete();
+                    $target.off("click", callback);
 
                     // 2. Ask user to delete label and reapply the label.
                     _incorrectLabelApplication(state, listener);
