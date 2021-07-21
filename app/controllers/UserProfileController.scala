@@ -39,7 +39,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
         Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
-      case None => Future.successful(Redirect(s"/anonSignUp?url=/dashboard"))
+      case None => Future.successful(Redirect(s"/signIn?url=/dashboard"))
     }
   }
 

@@ -143,7 +143,7 @@
                                 </li>
                             }
                             <li role="presentation">
-                                <a id="navbar-sign-out-btn" role="button" href='@routes.UserController.signOut(url.getOrElse("/"))'>@Messages("navbar.signout")</a>
+                                <a id="navbar-sign-out-btn" role="button" href='@routes.UserController.signOut("/")'>@Messages("navbar.signout")</a>
                             </li>
                         </ul>
                     } else {
@@ -526,10 +526,10 @@ $(document).ready(function () {
         </a>
         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
             <li role="presentation" id="dashboard-link">
-                <a href='/contribution/__USERNAME__' role="menuitem">@Messages("navbar.dashboard")</a>
+                <a href='/dashboard' role="menuitem">@Messages("navbar.dashboard")</a>
             </li>
             <li role="presentation">
-                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
+                <a href='@routes.UserController.signOut("/")' role="menuitem">@Messages("navbar.signout")</a>
             </li>
         </ul>
     </template>
