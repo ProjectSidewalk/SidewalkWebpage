@@ -734,28 +734,28 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 // Ideally we need a for loop that goes through every element of the property array
                 // and calls the corresponding action's handler.
                 // Not just the label accessibility attribute's handler
-                if (state.properties[0].action == "LabelAccessibilityAttribute") {
+                if (state.properties[0].action === "LabelAccessibilityAttribute") {
                     _visitLabelAccessibilityAttributeState(state, annotationListener);
                 }
             }
             else {
-                //Restrict panning
+                // Restrict panning.
                 mapService.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
-                if (state.properties.action == "Introduction") {
+                if (state.properties.action === "Introduction") {
                     _visitIntroduction(state, annotationListener);
-                } else if (state.properties.action == "SelectLabelType") {
+                } else if (state.properties.action === "SelectLabelType") {
                     _visitSelectLabelTypeState(state, annotationListener);
-                } else if (state.properties.action == "Zoom") {
+                } else if (state.properties.action === "Zoom") {
                     _visitZoomState(state, annotationListener);
-                } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
+                } else if (state.properties.action === "RateSeverity" || state.properties.action === "RedoRateSeverity") {
                     _visitRateSeverity(state, annotationListener);
-                } else if (state.properties.action == "AddTag" || state.properties.action == "RedoAddTag") {
+                } else if (state.properties.action === "AddTag" || state.properties.action === "RedoAddTag") {
                     _visitAddTag(state, annotationListener);
-                } else if (state.properties.action == "AdjustHeadingAngle") {
+                } else if (state.properties.action === "AdjustHeadingAngle") {
                     _visitAdjustHeadingAngle(state, annotationListener);
-                } else if (state.properties.action == "WalkTowards") {
+                } else if (state.properties.action === "WalkTowards") {
                     _visitWalkTowards(state, annotationListener);
-                } else if (state.properties.action == "Instruction") {
+                } else if (state.properties.action === "Instruction") {
                     _visitInstruction(state, annotationListener);
                 }
             }
@@ -1025,15 +1025,15 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var transition = state.transition;
 
         var callback = function (e) {
-
             var i = 0;
+            var labelAppliedCorrectly = false;
 
-            while (i < properties.length) {
+            while (i < properties.length && !labelAppliedCorrectly) {
                 var imageX = properties[i].imageX;
                 var imageY = properties[i].imageY;
                 var tolerance = properties[i].tolerance;
-                var labelType = state.properties[i].labelType;
-                var subCategory = state.properties[i].subcategory;
+                var labelType = properties[i].labelType;
+                var subCategory = properties[i].subcategory;
 
                 var clickCoordinate = mouseposition(e, this),
                     pov = mapService.getPov(),
@@ -1045,8 +1045,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
                 currentLabelState = state;
 
+                // Label applied at the correct location.
                 if (distance < tolerance * tolerance) {
-                    // Label applied at the correct location
+                    labelAppliedCorrectly = true;
 
                     // Disable deleting of label
                     canvas.unlockDisableLabelDelete();
@@ -1062,19 +1063,21 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     if (listener) google.maps.event.removeListener(listener);
                     next(transition[i]);
                     break;
-                } else {
-                    // Label placed too far from where they are supposed to put it. Disable labeling, enable deleting.
-                    ribbon.disableMode(labelType, subCategory);
-                    ribbon.enableMode("Walk");
-                    canvas.unlockDisableLabelDelete();
-                    canvas.enableLabelDelete();
-                    canvas.lockDisableLabelDelete();
-                    $target.off("click", callback);
-
-                    // 2. Ask user to delete label and reapply the label.
-                    _incorrectLabelApplication(state, listener);
                 }
                 i = i + 1;
+            }
+
+            // Label placed too far from desired location. Disable labeling, enable deleting, ask them to reapply label.
+            if (!labelAppliedCorrectly) {
+                ribbon.disableMode(labelType, subCategory);
+                ribbon.enableMode("Walk");
+                canvas.unlockDisableLabelDelete();
+                canvas.enableLabelDelete();
+                canvas.lockDisableLabelDelete();
+                $target.off("click", callback);
+
+                // Ask user to delete label and reapply the label.
+                _incorrectLabelApplication(state, listener);
             }
         };
         $target.on("click", callback);
