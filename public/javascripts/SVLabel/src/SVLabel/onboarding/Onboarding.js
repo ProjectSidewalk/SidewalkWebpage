@@ -35,29 +35,17 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var blink_timer = 0;
     var blink_function_identifier = [];
     var status = {
-        state: 0,
         isOnboarding: true
     };
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
-    var currentState;
     var currentLabelState;
     var map = svl.map.getMap();
-
-    this._onboardingLabels = [];
-
-    this._removeOnboardingLabels = function () {
-        for (var i = 0, len = this._onboardingLabels.length; i < len; i++) {
-            this._onboardingLabels[i].remove();
-        }
-    };
 
     this.start = function () {
         status.isOnboarding = true;
         tracker.push('Onboarding_Start');
-
-        this._removeOnboardingLabels();
 
         adjustMap();
 
@@ -94,8 +82,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         compass.hideMessage();
 
-        status.state = getState("initialize");
-        _visit(status.state);
+        _visit(getState("initialize"));
         handAnimation.initializeHandAnimation();
 
         onboardingModel.triggerStartOnboarding();
@@ -105,98 +92,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * Sets the mini map to be transparent for everything except for yellow pin.
      */
     function adjustMap() {
-        var mapStyleOptions = [
-            {
-                featureType: "all",
-                stylers: [
-                    { visibility: "off" }
-                ]
-            },
-            {
-                featureType: "road",
-                stylers: [
-                    { visibility: "off" }
-                ]
-            },
-            {
-                "elementType": "labels",
-                "stylers": [
-                    { "visibility": "off" }
-                ]
-            },
-            {
-                elementType: 'geometry.fill',
-                stylers: [
-                    { visibility: 'off' }
-                ]
-            },
-            {
-                featureType: 'landscape.natural.landcover',
-                elementType: 'geometry.fill',
-                stylers: [
-                    { visibility: 'on' },
-                ]
-            }
-        ];
-        map.setOptions({styles: mapStyleOptions});
+        map.setOptions({styles: [{ featureType: "all", stylers: [{ visibility: "off" }] }]});
         document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/TutorialMiniMap.jpg')";
     }
 
-    function renderRoutesOnGoogleMap(state) {
-
-        if (svl.isOnboarding() && 'map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
-            var paths = [];
-            //var currentPosition = svl.map.getPosition();
-
-            // If its the first state, then initialize with a red GMaps polyline
-            if (state.properties.name == "initialize") {
-                // Initial Position {lat: 38.9404971, lng: -77.0676199}
-                var coords = [
-                    // {lat: currentPosition.lat, lng: currentPosition.lng},
-                    {lat: 38.9404971, lng: -77.0676199},
-                    {lat: 38.9409018, lng: -77.067814},
-                    {lat: 38.9409807, lng: -77.0678717},
-                    {lat: 38.9410649, lng: -77.0680104}
-                ];
-                paths  = [
-                    new google.maps.Polyline({
-                        path: coords,
-                        geodesic: true,
-                        strokeColor: '#ff0000',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2
-                    })
-                ];
-            }
-            else if (state.properties.name == "walk-4") {
-                // Set the paths to a green polyline after the users walks to the next position
-
-                // Next walk position: {lat: 38.9406143, lng: -77.0676763}
-                var coords = [
-                    {lat: 38.9404971, lng: -77.0676199},
-                    {lat: 38.9406143, lng: -77.0676763}
-                    // {lat: currentPosition.lat, lng: currentPosition.lng},
-                ];
-                paths  = [
-                    new google.maps.Polyline({
-                        path: coords,
-                        geodesic: true,
-                        strokeColor: '#00ff00',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 3
-                    })
-                ];
-            }
-
-            // Render the paths
-            for (var i = 0, len = paths.length; i < len; i++) {
-                paths[i].setMap(svl.map.getMap());
-            }
-        }
-    }
-
     /**
-     * Clear the onboarding canvas
+     * Clear the onboarding canvas.
      * @returns {clear}
      */
     function clear() {
@@ -343,7 +244,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
             canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
 
-            if (state.annotations[i].type == "arrow") {
+            if (state.annotations[i].type === "arrow") {
                 lineLength = state.annotations[i].length;
                 lineAngle = state.annotations[i].angle;
                 x2 = canvasCoordinate.x;
@@ -360,7 +261,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     strokeStyle: 'rgba(96, 96, 96, 1)'
                 };
 
-                if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
+                if (state.annotations[i].fill == null || state.annotations[i].fill === "white") {
                     drawArrow(x1, y1, x2, y2, parameters);
                 }
                 else {
@@ -395,11 +296,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function next(nextState) {
         if (typeof nextState == "function") {
-            status.state = getState(nextState.call(this));
-            _visit(status.state);
+            _visit(getState(nextState.call(this)));
         } else if (nextState in states) {
-            status.state = getState(nextState);
-            _visit(status.state);
+            _visit(getState(nextState));
         } else {
             _visit(null);
         }
@@ -499,10 +398,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _onboardingStateMessageExists(state) {
         return "message" in state && state.message;
-    }
-
-    function getCurrentState() {
-        return currentState;
     }
 
     function getCurrentLabelState() {
@@ -626,8 +521,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function _visit(state) {
         var annotationListener;
-
-        currentState = state;
 
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
         if (blink_function_identifier.length != 0) {
@@ -821,8 +714,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitInstruction(state, listener) {
-
-        if (state == getState("outro")) {
+        if (state === getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
         }
         blinkInterface(state);
@@ -958,7 +850,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @private
      */
     function _visitLabelAccessibilityAttributeState(state, listener) {
-
         var $target = uiCanvas.drawingLayer;
         var properties = state.properties;
         var transition = state.transition;
@@ -1031,37 +922,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         return status.isOnboarding;
     }
 
-    this.pushOnboardingLabel = function (label) {
-        this._onboardingLabels.push(label);
-    };
-
-    this.removeOnboardingLabel = function (label) {
-        if(this._onboardingLabels.includes(label)){
-            for(var i = 0; i < this._onboardingLabels.length; i++) {
-                if(this._onboardingLabels[i] == label){
-                    this._onboardingLabels.remove(i);
-                }
-            }
-        }
-    };
-
-    /**
-     * Set status
-     * @param key Status field name
-     * @param value Status field value
-     * @returns {setStatus}
-     */
-    function setStatus(key, value) {
-        if (key in status) status[key] = value;
-        return this;
-    }
-
-    self._visit = _visit;
     self.clear = clear;
-    self.drawArrow = drawArrow;
     self.next = next;
     self.isOnboarding = isOnboarding;
-    self.showMessage = showMessage;
-    self.setStatus = setStatus;
-    self.hideMessage = hideMessage;
 }

@@ -30,7 +30,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "zoom": 1,
                 "lat": 38.9404982935884,
                 "lng": -77.06762207994893,
-                "name": "initialize",
                 "maxLabelCount": 0
             },
             "message": {
@@ -1631,7 +1630,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1],
                 "blinks": ["google-maps"],
-                "name": "walk-4",
                 "maxLabelCount": 7
             },
             "message": {
