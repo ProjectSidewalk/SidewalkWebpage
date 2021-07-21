@@ -215,11 +215,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function drawArrow(x1, y1, x2, y2, parameters) {
         if (ctx) {
-            // var lineWidth = 1,
-            //     fill = 'rgba(255,255,255,1)',
-            //     lineCap = 'round',
-            //     arrowWidth = 6,
-            //     strokeStyle = 'rgba(96, 96, 96, 1)',
             var lineWidth = parameters.lineWidth,
                 fill = parameters.fill,
                 lineCap = parameters.lineCap,
@@ -258,56 +253,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             ctx.stroke();
             ctx.closePath();
 
-            // Add text
-            if("text" in parameters && parameters.text){
-                console.log("Printing text" + parameters.text);
-                ctx.fillStyle = "black"; // font color to write the text with
-                ctx.textBaseline = "top";
-                ctx.fillText(parameters.text, x1, y1);
-            }
-
             ctx.restore();
         }
         return this;
-    }
-
-    /**
-     * Clear the arrow
-     */
-    function clearArrow(){
-        if (ctx) {
-            ctx.save();
-            ctx.clearRect(0,200,400,400);
-            ctx.restore();
-        }
-    }
-
-    /**
-     * Draw an animated arrow on the onboarding canvas
-     */
-    function drawArrowAnimate () {
-        if(!flag) {
-            // clear the arrow
-            clearArrow();
-            flag = !flag;
-        }
-        else {
-            // draw the arrow
-            var x1 = 70;
-            var y1 = 300;
-            var x2 = 30;
-            var y2 = 300;
-            var parameters = {
-                lineWidth: 1,
-                fill: 'rgba(255,255,0,1)',
-                lineCap: 'round',
-                arrowWidth: 8,
-                strokeStyle: 'rgba(0, 0, 0, 1)',
-                text: "Oops! Pan this way instead"
-            };
-            drawArrow(x1, y1, x2, y2, parameters);
-            flag = !flag;
-        }
     }
 
     function drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier) {
@@ -593,8 +541,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         }
     }
 
-
-    var deleteLabelActive = false;
     function _incorrectLabelApplication(state, listener) {
         hideMessage();
 
@@ -660,23 +606,18 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             };
             showMessage(message);
 
-            // Callback after user applied the label correctly.
+            // Callback after user deleted the label and was moved to "Walk" mode.
             var callback = function () {
                 ribbon.enableMode("Walk");
                 ribbon.stopBlinking();
 
-                $(document).unbind('ModeSwitch_' + event, callback);
-                deleteLabelActive = !deleteLabelActive;
+                $(document).off('ModeSwitch_' + event, callback);
                 // Step 3: Re-label
                 _visit(getCurrentLabelState());
             };
-            $(document).off('ModeSwitch_' + event, callback);
             $(document).on('ModeSwitch_' + event, callback);
         };
-        if(!deleteLabelActive) {
-            $(document).on('RemoveLabel', deleteLabelCallback);
-            deleteLabelActive = !deleteLabelActive;
-        }
+        $(document).on('RemoveLabel', deleteLabelCallback);
     }
 
     /**
@@ -836,8 +777,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
     }
-
-    var flag = false;
 
     function _visitAdjustHeadingAngle(state, listener) {
         var $target;
@@ -1120,7 +1059,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     self._visit = _visit;
     self.clear = clear;
     self.drawArrow = drawArrow;
-    self.drawArrowAnimate = drawArrowAnimate;
     self.next = next;
     self.isOnboarding = isOnboarding;
     self.showMessage = showMessage;
