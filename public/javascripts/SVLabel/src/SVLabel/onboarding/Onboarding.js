@@ -184,10 +184,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _removeFlashingFromArrow() {
-        if (blink_function_identifier.length !== 0) {
-            while (blink_function_identifier.length !== 0) {
-                window.cancelAnimationFrame(blink_function_identifier.pop());
-            }
+        while (blink_function_identifier.length !== 0) {
+            window.cancelAnimationFrame(blink_function_identifier.pop());
         }
     }
 
