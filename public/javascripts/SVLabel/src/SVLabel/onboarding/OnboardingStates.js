@@ -1,5 +1,5 @@
 function OnboardingStates (contextMenu, compass, mapService, statusModel, tracker) {
-    var numStates = 41;
+    var numSteps = 41;
     var panoId = "tutorial";
     var afterWalkPanoId = "afterWalkTutorial";
     var headingRanges = {
@@ -15,8 +15,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "stage-6": [281, 14]
     };
 
-    function _updateProgressBar(stateNumber) {
-        var completedRate = stateNumber / numStates;
+    function _updateProgressBar(stepNumber) {
+        var completedRate = stepNumber / numSteps;
         statusModel.setMissionCompletionRate(completedRate);
         statusModel.setProgressBar(completedRate);
     }
@@ -29,15 +29,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "pitch": -6,
                 "zoom": 1,
                 "lat": 38.9404982935884,
-                "lng": -77.06762207994893,
-                "maxLabelCount": 0
+                "lng": -77.06762207994893
             },
             "message": {
                 "message": function () {
                     var dom = document.getElementById("onboarding-initial-instruction");
                     return dom ? dom.innerHTML : "";
                 },
-                "position": "center",
                 "width": 1000,
                 "top": -50,
                 "left": -70,
@@ -69,12 +67,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1],
-                "maxLabelCount": 0
+                "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-1'),
-                "position": "top-right"
             },
             "panoId": panoId,
             "annotations": [
@@ -85,7 +81,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -350,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "originalPov": {}
                 }
             ],
@@ -103,12 +98,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -350,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1],
-                "maxLabelCount": 0
+                "maxHeading": headingRanges["stage-1"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.label-attribute-1'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -120,16 +113,76 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -350,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(3);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
-                return "rate-attribute-1";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(3);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
+                    return "rate-attribute-1";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-1"});
+                    return "delete-attribute-1";
+                }
             }]
+        },
+        "delete-attribute-1": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "name": "arrow-1a",
+                    "type": "arrow",
+                    "x": 9730,
+                    "y": -350,
+                    "length": 50,
+                    "angle": 0,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-1"});
+                return "redo-select-label-type-1";
+            }
+        },
+        "redo-select-label-type-1": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "name": "arrow-1a",
+                    "type": "arrow",
+                    "x": 9730,
+                    "y": -350,
+                    "length": 50,
+                    "angle": 0,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
+                return "label-attribute-1";
+            }
         },
         "rate-attribute-1": {
             "properties": {
@@ -137,14 +190,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1],
-                "maxLabelCount": 1
+                "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.rate-attribute-1') +
                     '<br><img src="' + svl.rootDirectory + 'img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" ' +
                     'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -168,15 +219,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 2,
                 "minHeading": headingRanges["stage-1"][0],
-                "maxHeading": headingRanges["stage-1"][1],
-                "maxLabelCount": 1
+                "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-1') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 2, somewhat passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -200,12 +249,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "heading": 210,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-2-adjust"][0],
-                "maxHeading": headingRanges["stage-2-adjust"][1],
-                "maxLabelCount": 1
+                "maxHeading": headingRanges["stage-2-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-1'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -221,12 +268,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Zoom",
                 "type": "in",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 1
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-in'),
-                "position": "top-right",
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
                 "top": 0,
@@ -245,12 +290,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 1
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-2'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -261,7 +304,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": null,
                     "originalPov": {}
                 }
@@ -280,12 +322,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -340,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 1
+                "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.common.label-curb-ramp'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -296,16 +336,76 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(8);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
-                return "rate-severity-2";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(8);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
+                    return "rate-severity-2";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-2"});
+                    return "delete-attribute-2";
+                }
             }]
+        },
+        "delete-attribute-2": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 8180,
+                    "y": -340,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-2"});
+                return "redo-select-label-type-2";
+            }
+        },
+        "redo-select-label-type-2": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 8180,
+                    "y": -340,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
+                return "label-attribute-2";
+            }
         },
         "rate-severity-2": {
             "properties": {
@@ -313,14 +413,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 2,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 2
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.rate-severity-2') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" + '" ' +
                 'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -343,15 +441,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 2,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 2
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-2') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
                 'somewhat passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -373,14 +469,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "AddTag",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 2
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-2') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -403,14 +497,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "RedoAddTag",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 1
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-2') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -433,12 +525,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 2
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-3'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -449,7 +539,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": null,
                     "originalPov": {}
                 }
@@ -468,12 +557,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -340,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 2
+                "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.label-attribute-3'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -484,16 +571,76 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(12);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
-                return "rate-severity-3";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(12);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
+                    return "rate-severity-3";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-3"});
+                    return "delete-attribute-3";
+                }
             }]
+        },
+        "delete-attribute-3": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7800,
+                    "y": -340,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-3"});
+                return "redo-select-label-type-3";
+            }
+        },
+        "redo-select-label-type-3": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('NoCurbRamp-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7800,
+                    "y": -340,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
+                return "label-attribute-3";
+            }
         },
         "rate-severity-3": {
             "properties": {
@@ -501,15 +648,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "NoCurbRamp",
                 "severity": 3,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.rate-severity-3') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
                     '3, a slightly severe problem">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -532,15 +677,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "NoCurbRamp",
                 "severity": 3,
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-3') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
                 'a slightly severe problem">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -562,14 +705,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "AddTag",
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-3') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -592,14 +733,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "RedoAddTag",
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-3') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -622,12 +761,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Zoom",
                 "type": "out",
                 "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-out'),
-                "position": "top-right",
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
                 "top": 0,
@@ -647,12 +784,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "heading": 177,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-3-adjust"][0],
-                "maxHeading": headingRanges["stage-3-adjust"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-3-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-2'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -669,12 +804,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "heading": 115,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-3-adjust"][0],
-                "maxHeading": headingRanges["stage-3-adjust"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-3-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-3'),
-                "position": "top-right",
                 "width": 190
             },
             "panoId": panoId,
@@ -690,12 +823,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-4'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -706,7 +837,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "white",
                     "originalPov": {}
                 },
@@ -716,11 +846,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "white",
                     "originalPov": {}
                 }
-
             ],
             "transition": function () {
                 _updateProgressBar(18);
@@ -736,8 +864,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 3
+                "maxHeading": headingRanges["stage-3"][1]
             },{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -747,7 +874,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             }],
             "message": {
                 "message": i18next.t('tutorial.label-both-curbs'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -758,7 +884,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 },
@@ -768,20 +893,103 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(19);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
-                return "rate-severity-4";
-            }, function () {
-                _updateProgressBar(19);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5-goto-4"});
-                return "rate-severity-5-goto-4";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(19);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
+                    return "rate-severity-4";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4"});
+                    return "delete-attribute-4";
+                }
+            }, function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(19);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5-goto-4"});
+                    return "rate-severity-5-goto-4";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4"});
+                    return "delete-attribute-4";
+                }
             }]
+        },
+        "delete-attribute-4": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 4920,
+                    "y": -720,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                },
+                {
+                    "type": "arrow",
+                    "x": 3900,
+                    "y": -840,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-4"});
+                return "redo-select-label-type-4";
+            }
+        },
+        "redo-select-label-type-4": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 4920,
+                    "y": -720,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": "white",
+                    "originalPov": {}
+                },
+                {
+                    "type": "arrow",
+                    "x": 3900,
+                    "y": -840,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": "white",
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs"});
+                return "label-both-curbs";
+            }
         },
         "rate-severity-4": {
             "properties": {
@@ -789,14 +997,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-4') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -820,14 +1026,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -850,12 +1054,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.select-label-type-second-curb-ramp'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -866,7 +1068,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "white",
                     "originalPov": {}
                 }
@@ -885,12 +1086,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -840,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.common.label-curb-ramp'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -901,16 +1100,76 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(22);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
-                return "rate-severity-5";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(22);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
+                    return "rate-severity-5";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-5"});
+                    return "delete-attribute-5";
+                }
             }]
+        },
+        "delete-attribute-5": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 3900,
+                    "y": -840,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-5"});
+                return "redo-select-label-type-5";
+            }
+        },
+        "redo-select-label-type-5": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 3900,
+                    "y": -840,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
+                return "label-attribute-5";
+            }
         },
         "rate-severity-5": {
             "properties": {
@@ -918,14 +1177,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 5
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -949,14 +1206,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 5
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -979,12 +1234,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.select-label-type-second-curb-ramp'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -995,7 +1248,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "white",
                     "originalPov": {}
                 }
@@ -1003,11 +1255,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(21);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
-                return "label-attribute-4";
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4-after-5"});
+                return "label-attribute-4-after-5";
             }
         },
-        "label-attribute-4": {
+        "label-attribute-4-after-5": {
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1015,12 +1267,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.common.label-curb-ramp'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1031,16 +1281,76 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(22);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4-after-5"});
-                return "rate-severity-4-after-5";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(22);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4-after-5"});
+                    return "rate-severity-4-after-5";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4-after-5"});
+                    return "delete-attribute-4-after-5";
+                }
             }]
+        },
+        "delete-attribute-4-after-5": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 4920,
+                    "y": -720,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-4-after-5"});
+                return "redo-select-label-type-4-after-5";
+            }
+        },
+        "redo-select-label-type-4-after-5": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 4920,
+                    "y": -720,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4-after-5"});
+                return "label-attribute-4-after-5";
+            }
         },
         "rate-severity-4-after-5": {
             "properties": {
@@ -1048,13 +1358,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 5
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-4') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1078,14 +1386,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 5
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1109,14 +1415,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1140,14 +1444,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 4
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1170,12 +1472,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 5
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-6'),
-                "position": "top-left",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1186,7 +1486,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -500,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "white",
                     "originalPov": {}
                 }
@@ -1205,12 +1504,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -500,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 5
+                "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.label-attribute-6'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1221,15 +1518,75 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -500,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow"
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(25);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6"});
-                return "rate-severity-6";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(25);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6"});
+                    return "rate-severity-6";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-6"});
+                    return "delete-attribute-6";
+                }
             }]
+        },
+        "delete-attribute-6": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "NoSidewalk",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 2776,
+                    "y": -500,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-6"});
+                return "redo-select-label-type-6";
+            }
+        },
+        "redo-select-label-type-6": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "NoSidewalk",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('NoSidewalk-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 2776,
+                    "y": -500,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
+                return "label-attribute-6";
+            }
         },
         "rate-severity-6": {
             "properties": {
@@ -1237,15 +1594,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "NoSidewalk",
                 "severity": 3,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 6
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.rate-severity-6') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
-                "position": "top-right",
                 "parameters": null,
                 "left": 410
             },
@@ -1269,15 +1624,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "NoSidewalk",
                 "severity": 3,
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 6
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-6') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
-                "position": "top-right",
                 "parameters": null,
                 "left": 410
             },
@@ -1300,14 +1653,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "AddTag",
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 6
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-6') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
-                "position": "top-right",
                 "parameters": null,
                 "left": 410
             },
@@ -1338,14 +1689,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "RedoAddTag",
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
-                "maxLabelCount": 6
+                "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-6') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
-                "position": "top-right",
                 "parameters": null,
                 "left": 410
             },
@@ -1377,12 +1726,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "heading": 0,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-4-adjust"][0],
-                "maxHeading": headingRanges["stage-4-adjust"][1],
-                "maxLabelCount": 6
+                "maxHeading": headingRanges["stage-4-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-4'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1398,12 +1745,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1],
-                "maxLabelCount": 6
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-7'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1414,7 +1759,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -670,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "white",
                     "originalPov": {}
                 }
@@ -1433,12 +1777,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageY": -670,
                 "tolerance": 250,
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1],
-                "maxLabelCount": 6
+                "maxHeading": headingRanges["stage-4"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.label-attribute-7'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1449,16 +1791,76 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -670,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
             ],
-            "transition": [function () {
-                _updateProgressBar(31);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
-                return "rate-severity-7";
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(31);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
+                    return "rate-severity-7";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-7"});
+                    return "delete-attribute-7";
+                }
             }]
+        },
+        "delete-attribute-7": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 750,
+                    "y": -670,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-7"});
+                return "redo-select-label-type-7";
+            }
+        },
+        "redo-select-label-type-7": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 750,
+                    "y": -670,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null,
+                    "originalPov": {}
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
+                return "label-attribute-7";
+            }
         },
         "rate-severity-7": {
             "properties": {
@@ -1466,15 +1868,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": null,
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1498,15 +1898,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
                 '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1530,12 +1928,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "heading": 346,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-5-adjust"][0],
-                "maxHeading": headingRanges["stage-5-adjust"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-5-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-5'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1551,12 +1947,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
-                "blinks": ["google-maps"],
-                "maxLabelCount": 7
+                "blinks": ["google-maps"]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-1'),
-                "position": "top-right",
                 "fade-direction": "fadeInLeft",
                 "arrow": "right",
                 "top": 270,
@@ -1582,12 +1976,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Instruction",
                 "blinks": ["compass"],
                 "minHeading": headingRanges["stage-5"][0],
-                "maxHeading": headingRanges["stage-5"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-2'),
-                "position": "top-right",
                 "fade-direction": "fadeInDown",
                 "arrow": "bottom",
                 "top": 263,
@@ -1607,12 +1999,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "panoId": afterWalkPanoId,
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
-                "fade-direction": "fadeIn",
-                "maxLabelCount": 7
+                "fade-direction": "fadeIn"
             },
             "message": {
                 "message": i18next.t('tutorial.walk-3'),
-                "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1629,12 +2019,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1],
-                "blinks": ["google-maps"],
-                "maxLabelCount": 7
+                "blinks": ["google-maps"]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-4'),
-                "position": "top-right",
                 "width": 350,
                 "arrow": "right",
                 "fade-direction": "fadeInLeft",
@@ -1654,12 +2042,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-5-1'),
-                "position": "top-right",
                 "width": 400,
                 "fade-direction": "fadeIn"
             },
@@ -1671,7 +2057,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -600,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 },
@@ -1681,7 +2066,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -470,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
@@ -1698,14 +2082,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-6-1') +
                 '<img src="' + svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
                     i18next.t('tutorial.walk-6-2'),
-                "position": "top-right",
                 "width": 400,
                 "fade-direction": "fadeIn"
             },
@@ -1717,7 +2099,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -600,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 },
@@ -1727,7 +2108,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -470,
                     "length": 50,
                     "angle": 0,
-                    "text": null,
                     "fill": "yellow",
                     "originalPov": {}
                 }
@@ -1744,12 +2124,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Instruction",
                 "blinks": ["google-maps"],
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-1'),
-                "position": "right",
                 "arrow": "right",
                 "fade-direction": "fadeInLeft",
                 "top": 270,
@@ -1768,12 +2146,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Instruction",
                 "blinks": ["stuck"],
                 "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1],
-                "maxLabelCount": 7
+                "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-2'),
-                "position": "top-right",
                 "fade-direction": "fadeInRight",
                 "arrow": "left",
                 "top": 235,
@@ -1794,14 +2170,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "pitch": -6,
                 "zoom": 1,
                 "minHeading": undefined,
-                "maxHeading": undefined,
-                "maxLabelCount": 7
+                "maxHeading": undefined
             },
             "message": {
                 "message": function () {
                     return document.getElementById("onboarding-outro").innerHTML;
                 },
-                "position": "center",
                 "width": 1000,
                 "top": -50,
                 "left": -70,
