@@ -80,8 +80,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "x": 9730,
                     "y": -350,
                     "length": 50,
-                    "angle": 0,
-                    "originalPov": {}
+                    "angle": 0
                 }
             ],
             "transition": function () {
@@ -113,8 +112,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -350,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
             ],
             "transition": [function (params) {
@@ -147,8 +145,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "x": 9730,
                     "y": -350,
                     "length": 50,
-                    "angle": 0,
-                    "originalPov": {}
+                    "angle": 0
                 }
             ],
             "transition": function () {
@@ -175,8 +172,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "x": 9730,
                     "y": -350,
                     "length": 50,
-                    "angle": 0,
-                    "originalPov": {}
+                    "angle": 0
                 }
             ],
             "transition": function () {
@@ -304,8 +300,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -336,8 +331,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
             ],
             "transition": [function (params) {
@@ -370,8 +364,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -398,8 +391,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -539,8 +531,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -571,8 +562,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
             ],
             "transition": [function (params) {
@@ -605,8 +595,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -633,8 +622,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -340,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -837,8 +825,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 },
                 {
                     "type": "arrow",
@@ -846,8 +833,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 }
             ],
             "transition": function () {
@@ -884,8 +870,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 },
                 {
                     "type": "arrow",
@@ -893,8 +878,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
             ],
             "transition": [function (params) {
@@ -936,8 +920,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 },
                 {
                     "type": "arrow",
@@ -945,8 +928,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -973,8 +955,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 },
                 {
                     "type": "arrow",
@@ -982,8 +963,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 }
             ],
             "transition": function () {
@@ -1068,8 +1048,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 }
             ],
             "transition": function () {
@@ -1100,8 +1079,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
             ],
             "transition": [function (params) {
@@ -1134,8 +1112,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -1162,8 +1139,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -840,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -1248,8 +1224,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 }
 
             ],
@@ -1281,8 +1256,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
             ],
             "transition": [function (params) {
@@ -1315,8 +1289,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -1343,8 +1316,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -720,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -1486,8 +1458,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -500,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 }
             ],
             "transition": function () {
@@ -1551,8 +1522,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -500,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -1579,8 +1549,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -500,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -1759,8 +1728,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -670,
                     "length": 50,
                     "angle": 0,
-                    "fill": "white",
-                    "originalPov": {}
+                    "fill": "white"
                 }
             ],
             "transition": function () {
@@ -1791,8 +1759,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -670,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
             ],
             "transition": [function (params) {
@@ -1825,8 +1792,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -670,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -1853,8 +1819,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -670,
                     "length": 50,
                     "angle": 0,
-                    "fill": null,
-                    "originalPov": {}
+                    "fill": null
                 }
             ],
             "transition": function () {
@@ -2057,8 +2022,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -600,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 },
                 {
                     "type": "arrow",
@@ -2066,8 +2030,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -470,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
 
             ],
@@ -2099,8 +2062,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -600,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 },
                 {
                     "type": "arrow",
@@ -2108,8 +2070,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": -470,
                     "length": 50,
                     "angle": 0,
-                    "fill": "yellow",
-                    "originalPov": {}
+                    "fill": "yellow"
                 }
 
             ],

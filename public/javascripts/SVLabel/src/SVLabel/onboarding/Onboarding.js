@@ -220,35 +220,27 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         for (var i = 0, len = state.annotations.length; i < len; i++) {
             imX = state.annotations[i].x;
             imY = state.annotations[i].y;
-            origPointPov = state.annotations[i].originalPov;
+            origPointPov = null;
 
             // For the first arrow to be applied, looking at the initial heading (initialize state) of the onboarding.
             // This avoids applying the first arrow if the heading is not set correctly.
             // This will avoid incorrect POV calculation.
             var initialHeading = getState("initialize").properties.heading;
-            if (state.annotations[i].name === "arrow-1a" && currentPov.heading !== initialHeading &&
-                jQuery.isEmptyObject(origPointPov)) {
+            if (state.annotations[i].name === "arrow-1a" && currentPov.heading !== initialHeading) {
                 povChange["status"] = false;
                 return this;
             }
-            // Setting the original Pov only once and
-            // mapping an image coordinate to a canvas coordinate
-            if (jQuery.isEmptyObject(origPointPov)) {
-
-                if (currentPov.heading < 180) {
-                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                        imX -= svl.svImageWidth;
-                    }
-                } else {
-                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                        imX += svl.svImageWidth;
-                    }
+            // Setting the original POV and mapping an image coordinate to a canvas coordinate.
+            if (currentPov.heading < 180) {
+                if (imX > svl.svImageWidth - 3328 && imX > 3328) {
+                    imX -= svl.svImageWidth;
                 }
-
-                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-                state.annotations[i].originalPov = origPointPov;
-
+            } else {
+                if (imX < 3328 && imX < svl.svImageWidth - 3328) {
+                    imX += svl.svImageWidth;
+                }
             }
+            origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
             canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
 
             if (state.annotations[i].type === "arrow") {
