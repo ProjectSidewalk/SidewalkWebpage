@@ -242,7 +242,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
         labelContainer.refresh();
 
-        console.log(data);
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',

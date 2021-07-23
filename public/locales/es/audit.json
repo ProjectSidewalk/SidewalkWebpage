@@ -22,7 +22,7 @@
         "mission-message": "¡Completar el tutorial introductorio!",
         "select-label-type-1": "En esta imagen de Google Street View, hemos dibujado una flecha hacia una rampa peatonal. Vamos a etiquetarla. Da clic en el <span class=\"bold\">botón parpadeante \"Rampa peatonal\"</span> ubicado en la parte superior.",
         "label-attribute-1": "¡Muy bien! Ahora haz <span class=\"bold\">clic en la rampa peatonal</span>, que está ubicada debajo de la flecha amarilla parpadeante, para etiquetarla.",
-        "rate-attribute-1": "Ahora podrás calificar la calidad de la rampa peatonal en donde 1 es transitable y 5 es no transitable para una persona usuaria de silla de ruedas. Debido es una rampa peatonal de alta calidad, <span class=\"bold\">califícalo como 1, transitable.</span>",
+        "rate-severity-1": "Ahora podrás calificar la calidad de la rampa peatonal en donde 1 es transitable y 5 es no transitable para una persona usuaria de silla de ruedas. Debido es una rampa peatonal de alta calidad, <span class=\"bold\">califícalo como 1, transitable.</span>",
         "redo-rate-attribute-1": "Oh-oh, deberías calificar esta rampa peatonal como 1, transitable. Es una rampa peatonal de alta calidad. <span class=\"bold\">Haz clic en \"1\" para establecer su calidad.</span>",
         "adjust-heading-angle-1": "¡Excelente! Ajustemos la vista para ver otra esquina de la intersección vial. <span class=\"bold\">Agarra y arrastra la imagen de Google Street View para mirar hacia la izquierda.</span>",
         "zoom-in": "Hmm, parece que la esquina de la intersección vial está demasiado lejos para verla con claridad. <span class=\"bold\">Haz clic en el botón \"Acercar\"</span> para verla más de cerca.",

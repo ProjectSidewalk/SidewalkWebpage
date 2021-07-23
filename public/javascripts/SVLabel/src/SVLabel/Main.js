@@ -277,7 +277,7 @@ function Main (params) {
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
-            onboardingStates = new OnboardingStates(svl.compass, svl.map, svl.statusModel, svl.tracker);
+            onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.map, svl.statusModel, svl.tracker);
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
@@ -497,6 +497,7 @@ function Main (params) {
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
         svl.ui.contextMenu.radioButtons = $("input[name='label-severity']");
         svl.ui.contextMenu.temporaryLabelCheckbox = $("#context-menu-temporary-problem-checkbox");
+        svl.ui.contextMenu.tagHolder = $("#context-menu-tag-holder");
         svl.ui.contextMenu.tags = $("button[name='tag']");
         svl.ui.contextMenu.textBox = $("#context-menu-problem-description-text-box");
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");

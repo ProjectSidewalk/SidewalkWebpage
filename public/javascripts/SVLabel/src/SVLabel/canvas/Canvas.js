@@ -156,12 +156,12 @@ function Canvas(ribbon) {
                 targetLabelColor: labelColor.fillStyle
             });
             if (labelType === "Other") {
-              //no tooltips for other
+              // No tooltips for other.
               $('#severity-one').tooltip('destroy');
               $('#severity-three').tooltip('destroy');
               $('#severity-five').tooltip('destroy');
             } else {
-              //update tooltips
+              // Update tooltips.
               $('#severity-one').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
                   title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
@@ -175,11 +175,6 @@ function Canvas(ribbon) {
                   title: i18next.t('center-ui.context-menu.severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
               });
             }
-          }
-
-        // Todo. Again, thrown an event (e.g., Canvas:closeLabelPath) instead of svl.onboarding.pushOnboardingLabel invocation.
-        if ('onboarding' in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
-            svl.onboarding.pushOnboardingLabel(status.currentLabel);
         }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
@@ -190,12 +185,12 @@ function Canvas(ribbon) {
             temporaryLabelId: status.currentLabel.getProperty('temporary_label_id')
         });
 
-        // Sound effect
+        // Sound effect.
         if ('audioEffect' in svl) {
             svl.audioEffect.play('drip');
         }
 
-        // Initialize the tempPath
+        // Initialize the tempPath.
         tempPath = [];
         ribbon.backToWalk();
 

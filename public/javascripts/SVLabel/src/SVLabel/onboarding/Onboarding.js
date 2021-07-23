@@ -35,29 +35,17 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var blink_timer = 0;
     var blink_function_identifier = [];
     var status = {
-        state: 0,
         isOnboarding: true
     };
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
-    var currentState;
     var currentLabelState;
     var map = svl.map.getMap();
-
-    this._onboardingLabels = [];
-
-    this._removeOnboardingLabels = function () {
-        for (var i = 0, len = this._onboardingLabels.length; i < len; i++) {
-            this._onboardingLabels[i].remove();
-        }
-    };
 
     this.start = function () {
         status.isOnboarding = true;
         tracker.push('Onboarding_Start');
-
-        this._removeOnboardingLabels();
 
         adjustMap();
 
@@ -94,8 +82,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         compass.hideMessage();
 
-        status.state = getState("initialize");
-        _visit(status.state);
+        _visit(getState("initialize"));
         handAnimation.initializeHandAnimation();
 
         onboardingModel.triggerStartOnboarding();
@@ -105,98 +92,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * Sets the mini map to be transparent for everything except for yellow pin.
      */
     function adjustMap() {
-        var mapStyleOptions = [
-            {
-                featureType: "all",
-                stylers: [
-                    { visibility: "off" }
-                ]
-            },
-            {
-                featureType: "road",
-                stylers: [
-                    { visibility: "off" }
-                ]
-            },
-            {
-                "elementType": "labels",
-                "stylers": [
-                    { "visibility": "off" }
-                ]
-            },
-            {
-                elementType: 'geometry.fill',
-                stylers: [
-                    { visibility: 'off' }
-                ]
-            },
-            {
-                featureType: 'landscape.natural.landcover',
-                elementType: 'geometry.fill',
-                stylers: [
-                    { visibility: 'on' },
-                ]
-            }
-        ];
-        map.setOptions({styles: mapStyleOptions});
+        map.setOptions({styles: [{ featureType: "all", stylers: [{ visibility: "off" }] }]});
         document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/TutorialMiniMap.jpg')";
     }
 
-    function renderRoutesOnGoogleMap(state) {
-
-        if (svl.isOnboarding() && 'map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
-            var paths = [];
-            //var currentPosition = svl.map.getPosition();
-
-            // If its the first state, then initialize with a red GMaps polyline
-            if (state.properties.name == "initialize") {
-                // Initial Position {lat: 38.9404971, lng: -77.0676199}
-                var coords = [
-                    // {lat: currentPosition.lat, lng: currentPosition.lng},
-                    {lat: 38.9404971, lng: -77.0676199},
-                    {lat: 38.9409018, lng: -77.067814},
-                    {lat: 38.9409807, lng: -77.0678717},
-                    {lat: 38.9410649, lng: -77.0680104}
-                ];
-                paths  = [
-                    new google.maps.Polyline({
-                        path: coords,
-                        geodesic: true,
-                        strokeColor: '#ff0000',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2
-                    })
-                ];
-            }
-            else if (state.properties.name == "walk-4") {
-                // Set the paths to a green polyline after the users walks to the next position
-
-                // Next walk position: {lat: 38.9406143, lng: -77.0676763}
-                var coords = [
-                    {lat: 38.9404971, lng: -77.0676199},
-                    {lat: 38.9406143, lng: -77.0676763}
-                    // {lat: currentPosition.lat, lng: currentPosition.lng},
-                ];
-                paths  = [
-                    new google.maps.Polyline({
-                        path: coords,
-                        geodesic: true,
-                        strokeColor: '#00ff00',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 3
-                    })
-                ];
-            }
-
-            // Render the paths
-            for (var i = 0, len = paths.length; i < len; i++) {
-                paths[i].setMap(svl.map.getMap());
-            }
-        }
-    }
-
     /**
-     * Clear the onboarding canvas
+     * Clear the onboarding canvas.
      * @returns {clear}
      */
     function clear() {
@@ -215,11 +116,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function drawArrow(x1, y1, x2, y2, parameters) {
         if (ctx) {
-            // var lineWidth = 1,
-            //     fill = 'rgba(255,255,255,1)',
-            //     lineCap = 'round',
-            //     arrowWidth = 6,
-            //     strokeStyle = 'rgba(96, 96, 96, 1)',
             var lineWidth = parameters.lineWidth,
                 fill = parameters.fill,
                 lineCap = parameters.lineCap,
@@ -258,56 +154,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             ctx.stroke();
             ctx.closePath();
 
-            // Add text
-            if("text" in parameters && parameters.text){
-                console.log("Printing text" + parameters.text);
-                ctx.fillStyle = "black"; // font color to write the text with
-                ctx.textBaseline = "top";
-                ctx.fillText(parameters.text, x1, y1);
-            }
-
             ctx.restore();
         }
         return this;
-    }
-
-    /**
-     * Clear the arrow
-     */
-    function clearArrow(){
-        if (ctx) {
-            ctx.save();
-            ctx.clearRect(0,200,400,400);
-            ctx.restore();
-        }
-    }
-
-    /**
-     * Draw an animated arrow on the onboarding canvas
-     */
-    function drawArrowAnimate () {
-        if(!flag) {
-            // clear the arrow
-            clearArrow();
-            flag = !flag;
-        }
-        else {
-            // draw the arrow
-            var x1 = 70;
-            var y1 = 300;
-            var x2 = 30;
-            var y2 = 300;
-            var parameters = {
-                lineWidth: 1,
-                fill: 'rgba(255,255,0,1)',
-                lineCap: 'round',
-                arrowWidth: 8,
-                strokeStyle: 'rgba(0, 0, 0, 1)',
-                text: "Oops! Pan this way instead"
-            };
-            drawArrow(x1, y1, x2, y2, parameters);
-            flag = !flag;
-        }
     }
 
     function drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier) {
@@ -331,8 +180,13 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             var function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
             blink_function_identifier.push(function_identifier);
         }
-
         helperBlinkingArrow();
+    }
+
+    function _removeFlashingFromArrow() {
+        while (blink_function_identifier.length !== 0) {
+            window.cancelAnimationFrame(blink_function_identifier.pop());
+        }
     }
 
     function _drawAnnotations(state) {
@@ -356,7 +210,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         var blink_frequency_modifier = 0;
         for (var i = 0, len = state.annotations.length; i < len; i++) {
-            if (state.annotations[i].type == "arrow") {
+            if (state.annotations[i].type === "arrow") {
                 blink_frequency_modifier = blink_frequency_modifier + 1;
             }
         }
@@ -364,38 +218,30 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         for (var i = 0, len = state.annotations.length; i < len; i++) {
             imX = state.annotations[i].x;
             imY = state.annotations[i].y;
-            origPointPov = state.annotations[i].originalPov;
+            origPointPov = null;
 
             // For the first arrow to be applied, looking at the initial heading (initialize state) of the onboarding.
-            // This avoids applying the first arrow if the heading is not set correctly
-            // This will avoid incorrection POV calculation
+            // This avoids applying the first arrow if the heading is not set correctly.
+            // This will avoid incorrect POV calculation.
             var initialHeading = getState("initialize").properties.heading;
-            if (state.annotations[i].name == "arrow-1a" && currentPov.heading != initialHeading &&
-                jQuery.isEmptyObject(origPointPov)) {
+            if (state.annotations[i].name === "arrow-1a" && currentPov.heading !== initialHeading) {
                 povChange["status"] = false;
                 return this;
             }
-            // Setting the original Pov only once and
-            // mapping an image coordinate to a canvas coordinate
-            if (jQuery.isEmptyObject(origPointPov)) {
-
-                if (currentPov.heading < 180) {
-                    if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                        imX -= svl.svImageWidth;
-                    }
-                } else {
-                    if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                        imX += svl.svImageWidth;
-                    }
+            // Setting the original POV and mapping an image coordinate to a canvas coordinate.
+            if (currentPov.heading < 180) {
+                if (imX > svl.svImageWidth - 3328 && imX > 3328) {
+                    imX -= svl.svImageWidth;
                 }
-
-                origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-                state.annotations[i].originalPov = origPointPov;
-
+            } else {
+                if (imX < 3328 && imX < svl.svImageWidth - 3328) {
+                    imX += svl.svImageWidth;
+                }
             }
+            origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
             canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
 
-            if (state.annotations[i].type == "arrow") {
+            if (state.annotations[i].type === "arrow") {
                 lineLength = state.annotations[i].length;
                 lineAngle = state.annotations[i].angle;
                 x2 = canvasCoordinate.x;
@@ -403,7 +249,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
                 y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
 
-                //The color of the arrow will by default alternate between white and the fill specified in annotation
+                // The color of the arrow will by default alternate between white and the fill specified in annotation.
                 var parameters = {
                     lineWidth: 1,
                     fill: state.annotations[i].fill,
@@ -412,24 +258,17 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     strokeStyle: 'rgba(96, 96, 96, 1)'
                 };
 
-                if (state.annotations[i].fill == null || state.annotations[i].fill == "white") {
+                if (state.annotations[i].fill == null || state.annotations[i].fill === "white") {
                     drawArrow(x1, y1, x2, y2, parameters);
                 }
                 else {
                     drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier);
                 }
-
             }
         }
         povChange["status"] = false;
     }
 
-
-    /**
-     * Get a state
-     * @param stateIndex
-     * @returns {*}
-     */
     function getState(stateIndex) {
         return states[stateIndex];
     }
@@ -442,23 +281,22 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     /**
-     * Transition to the next state
+     * Transition to the next state.
      * @param nextState
+     * @param params Optional parameters that might be used by transition function.
      */
-    function next(nextState) {
-        if (typeof nextState == "function") {
-            status.state = getState(nextState.call(this));
-            _visit(status.state);
+    function next(nextState, params) {
+        if (typeof nextState === "function") {
+            _visit(getState(nextState.call(this, params)));
         } else if (nextState in states) {
-            status.state = getState(nextState);
-            _visit(status.state);
+            _visit(getState(nextState));
         } else {
             _visit(null);
         }
     }
 
     /**
-     * Show a message box
+     * Show a message box.
      * @param parameters
      */
     function showMessage(parameters) {
@@ -507,7 +345,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
         }
 
-        uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
+        uiOnboarding.messageHolder.html((typeof message === "function" ? message() : message));
     }
 
     function _endTheOnboarding(skip) {
@@ -553,16 +391,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         return "message" in state && state.message;
     }
 
-    function getCurrentState() {
-        return currentState;
-    }
-
     function getCurrentLabelState() {
         return currentLabelState;
     }
 
     function blinkInterface(state) {
-        // Blink parts of the interface
+        // Blink parts of the interface.
         if ("blinks" in state.properties && state.properties.blinks) {
             var len = state.properties.blinks.length;
             for (var i = 0; i < len; i++) {
@@ -593,85 +427,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         }
     }
 
-    function _incorrectLabelApplication(state, listener) {
-
-        hideMessage();
-
-        // Step 1: Show message to delete
-        var message = {
-            "message": i18next.t('tutorial.common.label-too-far') +
-                ' <img src="' + svl.rootDirectory + "img/icons/Icon_Delete.png" +
-                '" style="width: 6%; height:auto" alt="Delete Icon">',
-            "position": "top-right",
-            "parameters": null
-        };
-        showMessage(message);
-
-        var labelTypeToLabelString = {
-            "CurbRamp": "Curb Ramp",
-            "NoCurbRamp": "Missing Curb Ramp",
-            "Obstacle": "Obstacle in Path",
-            "SurfaceProblem": "Surface Problem",
-            "NoSidewalk": "No Sidewalk"
-        };
-
-        // Callback for deleted label
-        var deleteLabelCallback = function () {
-
-            if (listener) google.maps.event.removeListener(listener);
-
-            // Remove flashing in the arrow
-            clear();
-            if (blink_function_identifier.length != 0) {
-                while (blink_function_identifier.length != 0) {
-                    window.cancelAnimationFrame(blink_function_identifier.pop());
-                }
-            }
-
-            $(document).off('RemoveLabel', deleteLabelCallback);
-
-            var stateProperties = state.properties;
-            if (state.properties.constructor == Array) {
-                stateProperties = state.properties[0];
-            }
-            var labelType = stateProperties.labelType;
-            var subcategory = "subcategory" in stateProperties ? stateProperties.subcategory : null;
-            var event;
-
-            if (subcategory) {
-                event = subcategory
-            } else {
-                event = labelType
-            }
-
-            // Start blinking and enable labeling
-            ribbon.startBlinking(labelType, subcategory);
-            ribbon.enableMode(labelType, subcategory);
-
-            // Step 2: Select the appropriate label Type
-            var message = {
-                "message": i18next.t('tutorial.common.re-label', {label_type: labelTypeToLabelString[labelType]}),
-                "position": "top-right",
-                "parameters": null
-            };
-            showMessage(message);
-
-            // Callback after user applied the label correctly
-            var callback = function () {
-                ribbon.enableMode("Walk");
-                ribbon.stopBlinking();
-
-                $(document).off('ModeSwitch_' + event, callback);
-                // Step 3: Re-label
-                _visit(getCurrentLabelState());
-            };
-            $(document).on('ModeSwitch_' + event, callback);
-
-        };
-        $(document).on('RemoveLabel', deleteLabelCallback);
-
-    }
-
     /**
      * Execute an instruction based on the current state.
      * @param state
@@ -679,14 +434,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function _visit(state) {
         var annotationListener;
 
-        currentState = state;
-
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
-        if (blink_function_identifier.length != 0) {
-            while (blink_function_identifier.length != 0) {
-                window.cancelAnimationFrame(blink_function_identifier.pop());
-            }
-        }
+        _removeFlashingFromArrow();
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
         if ("end-onboarding" in state) {
@@ -707,11 +456,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             if (typeof google != "undefined") {
                 annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", function () {
                     //Stop the animation for the blinking arrows
-                    if (blink_function_identifier.length != 0) {
-                        while (blink_function_identifier.length != 0) {
-                            window.cancelAnimationFrame(blink_function_identifier.pop());
-                        }
-                    }
+                    _removeFlashingFromArrow();
                     _drawAnnotations(state);
                 });
             }
@@ -719,36 +464,37 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Change behavior based on the current state.
         if ("properties" in state) {
-            if (state.properties.constructor == Array) {
+            if (state.properties.constructor === Array) {
 
-                //Restrict panning
+                // Restrict panning.
                 mapService.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
 
-                // Ideally we need a for loop that goes through every element of the property array
-                // and calls the corresponding action's handler.
-                // Not just the label accessibility attribute's handler
-                if (state.properties[0].action == "LabelAccessibilityAttribute") {
+                // Ideally we need a for loop that goes through every element of the property array and calls the
+                // corresponding action's handler. Not just the label accessibility attribute's handler.
+                if (state.properties[0].action === "LabelAccessibilityAttribute") {
                     _visitLabelAccessibilityAttributeState(state, annotationListener);
                 }
             }
             else {
-                //Restrict panning
+                // Restrict panning.
                 mapService.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
-                if (state.properties.action == "Introduction") {
+                if (state.properties.action === "Introduction") {
                     _visitIntroduction(state, annotationListener);
-                } else if (state.properties.action == "SelectLabelType") {
+                } else if (state.properties.action === "SelectLabelType" || state.properties.action === "RedoSelectLabelType") {
                     _visitSelectLabelTypeState(state, annotationListener);
-                } else if (state.properties.action == "Zoom") {
+                } else if (state.properties.action === "DeleteAccessibilityAttribute") {
+                    _visitDeleteAccessibilityAttributeState(state, annotationListener);
+                } else if (state.properties.action === "Zoom") {
                     _visitZoomState(state, annotationListener);
-                } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
+                } else if (state.properties.action === "RateSeverity" || state.properties.action === "RedoRateSeverity") {
                     _visitRateSeverity(state, annotationListener);
-                } else if (state.properties.action == "AddTag" || state.properties.action == "RedoAddTag") {
+                } else if (state.properties.action === "AddTag" || state.properties.action === "RedoAddTag") {
                     _visitAddTag(state, annotationListener);
-                } else if (state.properties.action == "AdjustHeadingAngle") {
+                } else if (state.properties.action === "AdjustHeadingAngle") {
                     _visitAdjustHeadingAngle(state, annotationListener);
-                } else if (state.properties.action == "WalkTowards") {
+                } else if (state.properties.action === "WalkTowards") {
                     _visitWalkTowards(state, annotationListener);
-                } else if (state.properties.action == "Instruction") {
+                } else if (state.properties.action === "Instruction") {
                     _visitInstruction(state, annotationListener);
                 }
             }
@@ -812,7 +558,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var $target;
         var callback = function () {
             var panoId = mapService.getPanoId();
-            if (state.properties.panoId == panoId) {
+            if (state.properties.panoId === panoId) {
                 window.setTimeout(function () {
                     mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
                 }, 1000);
@@ -829,8 +575,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
     }
-
-    var flag = false;
 
     function _visitAdjustHeadingAngle(state, listener) {
         var $target;
@@ -851,39 +595,31 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitRateSeverity(state, listener) {
-        svl.contextMenu.disableTagging();
-        if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();
+        contextMenu.disableTagging();
         var $target = contextMenu.getContextMenuUI().radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
-            tracker.push("ContextMenu_CloseOnboarding");
-            contextMenu.hide();
-            svl.contextMenu.enableTagging();
+            contextMenu.enableTagging();
             next.call(this, state.transition);
         };
         $target.on("click", callback);
     }
-
     function _visitAddTag(state, listener) {
-
-        contextMenu.unhide();
-        var $target = contextMenu.getContextMenuUI().tags; // Grab tag elements
+        var $target = contextMenu.getContextMenuUI().tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
             if (listener) {
                 google.maps.event.removeListener(listener);
             }
             $target.off("tagIds-updated", callback);
-            contextMenu.hide();
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
-        // We use a custom event here to ensure that this is triggered after the tagIds array has been updated
+        // We use a custom event here to ensure that this is triggered after the tags have been updated.
         $target.on("tagIds-updated", callback);
     }
 
     function _visitInstruction(state, listener) {
-
-        if (state == getState("outro")) {
+        if (state === getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
         }
         blinkInterface(state);
@@ -911,7 +647,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 modalSkip.stopBlinking();
                 modalComment.stopBlinking();
             }
-            // $target.off("click", callback);
             next.call(this, state.transition);
         };
         $target.on("click", callback);
@@ -935,7 +670,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             event = labelType
         }
 
-        if (state == getState("select-label-type-1")) {
+        if (state === getState("select-label-type-1")) {
             $("#mini-footer-audit").css("visibility", "visible");
         }
         ribbon.enableMode(labelType, subcategory);
@@ -971,7 +706,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var zoomType = state.properties.type;
         var event;
 
-        if (zoomType == "in") {
+        if (zoomType === "in") {
             event = 'ZoomIn';
             zoomControl.blinkZoomIn();
             zoomControl.unlockDisableZoomIn();
@@ -990,7 +725,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         var callback = function () {
             zoomControl.stopBlinking();
-            if (zoomType == "in") {
+            if (zoomType === "in") {
                 // Disable zoom-in
                 zoomControl.unlockDisableZoomIn();
                 zoomControl.disableZoomIn();
@@ -1010,7 +745,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         };
 
         $(document).on(event, callback);
-
     }
 
     /**
@@ -1020,101 +754,88 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @private
      */
     function _visitLabelAccessibilityAttributeState(state, listener) {
-
         var $target = uiCanvas.drawingLayer;
         var properties = state.properties;
         var transition = state.transition;
 
         var callback = function (e) {
-
             var i = 0;
+            var labelAppliedCorrectly = false;
+            var distance = []; // Keeps track of how far away the label is from each possible label.
 
-            while (i < properties.length) {
+            while (i < properties.length && !labelAppliedCorrectly) {
                 var imageX = properties[i].imageX;
                 var imageY = properties[i].imageY;
                 var tolerance = properties[i].tolerance;
-                var labelType = state.properties[i].labelType;
-                var subCategory = state.properties[i].subcategory;
 
-                var clickCoordinate = mouseposition(e, this),
-                    pov = mapService.getPov(),
-                    canvasX = clickCoordinate.x,
-                    canvasY = clickCoordinate.y,
-                    imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov),
-                    distance = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
-                        (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
+                var clickCoordinate = mouseposition(e, this);
+                var pov = mapService.getPov();
+                var canvasX = clickCoordinate.x;
+                var canvasY = clickCoordinate.y;
+                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
 
+                distance[i] = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
+                    (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
                 currentLabelState = state;
-
-                if (distance < tolerance * tolerance) {
-                    // Label applied at the correct location
-
-                    // Disable deleting of label
-                    canvas.unlockDisableLabelDelete();
-                    canvas.disableLabelDelete();
-                    canvas.lockDisableLabelDelete();
-
-                    // Disable labeling mode
-                    ribbon.disableMode(labelType, subCategory);
-                    ribbon.enableMode("Walk");
-                    uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
-
-                    $target.off("click", callback);
-                    if (listener) google.maps.event.removeListener(listener);
-                    next(transition[i]);
-                    break;
-                } else {
-                    // Disable labeling mode
-                    ribbon.disableMode(labelType, subCategory);
-                    ribbon.enableMode("Walk");
-
-                    // Incorrect label application:
-
-                    // 1. Enable deleting label
-                    canvas.unlockDisableLabelDelete();
-                    canvas.enableLabelDelete();
-                    canvas.lockDisableLabelDelete();
-
-                    // 2. Ask user to delete label and reapply the label
-                    _incorrectLabelApplication(state, listener);
-                }
                 i = i + 1;
             }
+
+            var indexOfClosest = distance.indexOf(Math.min(...distance));
+            if (distance[indexOfClosest] < tolerance * tolerance) {
+                // Disable deleting of label
+                canvas.unlockDisableLabelDelete();
+                canvas.disableLabelDelete();
+                canvas.lockDisableLabelDelete();
+
+                // Disable labeling mode
+                ribbon.disableMode(properties[indexOfClosest].labelType, properties[indexOfClosest].subcategory);
+                ribbon.enableMode("Walk");
+                uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
+
+                if (listener) google.maps.event.removeListener(listener);
+                next(transition[indexOfClosest], { accurate: true });
+            } else {
+                next(transition[indexOfClosest], { accurate: false });
+            }
+            $target.off("click", callback);
         };
         $target.on("click", callback);
     }
 
+    /**
+     * Tell the user to delete the label they placed that is far away from where they were supposed to place it.
+     *
+     * @param state
+     * @param listener
+     * @private
+     */
+    function _visitDeleteAccessibilityAttributeState(state, listener) {
+        ribbon.disableMode(state.properties.labelType, state.properties.subcategory);
+        ribbon.enableMode("Walk");
+        canvas.unlockDisableLabelDelete();
+        canvas.enableLabelDelete();
+        canvas.lockDisableLabelDelete();
+
+        // Callback for deleted label.
+        var deleteLabelCallback = function () {
+            if (listener) google.maps.event.removeListener(listener);
+            $(document).off('RemoveLabel', deleteLabelCallback);
+            clear();
+            _removeFlashingFromArrow(); // TODO remove this if it turns out that we don't need it.
+            next(state.transition);
+        };
+        $(document).on('RemoveLabel', deleteLabelCallback);
+    }
 
     /**
-     * Check if the user is working on the onboarding right now
+     * Check if the user is working on the onboarding right now.
      * @returns {boolean}
      */
     function isOnboarding() {
         return status.isOnboarding;
     }
 
-    this.pushOnboardingLabel = function (label) {
-        this._onboardingLabels.push(label);
-    };
-
-    /**
-     * Set status
-     * @param key Status field name
-     * @param value Status field value
-     * @returns {setStatus}
-     */
-    function setStatus(key, value) {
-        if (key in status) status[key] = value;
-        return this;
-    }
-
-    self._visit = _visit;
     self.clear = clear;
-    self.drawArrow = drawArrow;
-    self.drawArrowAnimate = drawArrowAnimate;
     self.next = next;
     self.isOnboarding = isOnboarding;
-    self.showMessage = showMessage;
-    self.setStatus = setStatus;
-    self.hideMessage = hideMessage;
 }
