@@ -45,12 +45,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                _updateProgressBar(1);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "initialize", step: 0});
                 var value = this.getAttribute("value");
                 // If "Let's get started!" button is clicked.
                 if (value === "OK") {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1"});
+                    _updateProgressBar(1);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1", step: 1});
                     return "select-label-type-1";
                 } else {
                     return "end-onboarding-skip";
@@ -85,7 +85,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(2);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1", step: 2});
                 return "label-attribute-1";
             }
         },
@@ -118,7 +118,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(3);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-1", step: 3});
                     return "rate-severity-1";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-1"});
@@ -201,7 +201,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(4);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1", step: 4});
                     return "adjust-heading-angle-1";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
@@ -231,7 +231,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(4);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1", step: 4});
                     return "adjust-heading-angle-1";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
@@ -255,7 +255,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(5);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-in"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-in", step: 5});
                 return "zoom-in";
             }
         },
@@ -277,7 +277,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(6);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2", step: 6});
                 return "select-label-type-2";
             }
         },
@@ -305,7 +305,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(7);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2", step: 7});
                 return "label-attribute-2";
             }
         },
@@ -337,7 +337,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(8);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2", step: 8});
                     return "rate-severity-2";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-2"});
@@ -419,7 +419,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
                     _updateProgressBar(9);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2", step: 9});
                     return "tag-attribute-2";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
@@ -448,7 +448,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
                     _updateProgressBar(9);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2", step: 9});
                     return "tag-attribute-2";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
@@ -476,7 +476,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
                     contextMenu.hide();
                     _updateProgressBar(10);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3", step: 10});
                     return "select-label-type-3";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
@@ -504,7 +504,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
                     contextMenu.hide();
                     _updateProgressBar(10);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3", step: 10});
                     return "select-label-type-3";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
@@ -536,7 +536,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(11);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3", step: 11});
                 return "label-attribute-3";
             }
         },
@@ -568,7 +568,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(12);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3", step: 12});
                     return "rate-severity-3";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-3"});
@@ -651,7 +651,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
                     _updateProgressBar(13);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3", step: 13});
                     return "tag-attribute-3";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
@@ -680,7 +680,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
                     _updateProgressBar(13);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3", step: 13});
                     return "tag-attribute-3";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
@@ -708,7 +708,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
                     contextMenu.hide();
                     _updateProgressBar(14);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out", step: 14});
                     return "zoom-out";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
@@ -736,7 +736,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
                     contextMenu.hide();
                     _updateProgressBar(14);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out", step: 14});
                     return "zoom-out";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
@@ -762,7 +762,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(15);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2", step: 15});
                 return "adjust-heading-angle-2";
             }
         },
@@ -782,7 +782,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(16);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3", step: 16});
                 return "adjust-heading-angle-3";
             }
         },
@@ -802,7 +802,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(17);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4", step: 17});
                 return "select-label-type-4";
             }
         },
@@ -838,7 +838,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(18);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs", step: 18});
                 return "label-both-curbs";
             }
         },
@@ -884,7 +884,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(19);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4", step: 19});
                     return "rate-severity-4";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4"});
@@ -893,7 +893,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             }, function (params) {
                 if (params.accurate) {
                     _updateProgressBar(19);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5-goto-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5-goto-4", step: 19});
                     return "rate-severity-5-goto-4";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4"});
@@ -992,7 +992,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5", step: 20});
                     return "select-label-type-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
@@ -1021,7 +1021,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5", step: 20});
                     return "select-label-type-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
@@ -1053,7 +1053,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(21);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5", step: 21});
                 return "label-attribute-5";
             }
         },
@@ -1085,7 +1085,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(22);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5", step: 22});
                     return "rate-severity-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-5"});
@@ -1168,7 +1168,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
@@ -1197,7 +1197,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
@@ -1230,7 +1230,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(21);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4-after-5"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4-after-5", step: 21});
                 return "label-attribute-4-after-5";
             }
         },
@@ -1262,7 +1262,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(22);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4-after-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4-after-5", step: 22});
                     return "rate-severity-4-after-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4-after-5"});
@@ -1344,7 +1344,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4-after-5"});
@@ -1373,7 +1373,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4-after-5"});
@@ -1402,7 +1402,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5", step: 20});
                     return "select-label-type-4-after-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5-goto-4"});
@@ -1431,7 +1431,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5", step: 20});
                     return "select-label-type-4-after-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5-goto-4"});
@@ -1463,7 +1463,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(24);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6", step: 24});
                 return "label-attribute-6";
             }
         },
@@ -1495,7 +1495,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(25);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6", step: 25});
                     return "rate-severity-6";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-6"});
@@ -1579,7 +1579,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
                     _updateProgressBar(26);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6", step: 26});
                     return "tag-attribute-6";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
@@ -1609,7 +1609,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
                     _updateProgressBar(26);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6", step: 26});
                     return "tag-attribute-6";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
@@ -1639,12 +1639,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     // We have both tags correct, so lets continue.
                     contextMenu.hide();
                     _updateProgressBar(28);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4", step: 28});
                     return "adjust-heading-angle-4";
                 } else if (tags.length === 1 && (tags.includes(20) || tags.includes(21))) {
                     // We have one of the two tags so far, so stay in this state.
                     _updateProgressBar(27);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6", step: 27});
                     return "tag-attribute-6";
                 } else {
                     // A mistake was made, move to the redo state.
@@ -1675,12 +1675,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     // We have both tags correct, so lets continue.
                     _updateProgressBar(28);
                     contextMenu.hide();
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4", step: 28});
                     return "adjust-heading-angle-4";
                 } else if (tags.includes(20) || tags.includes(21)) {
                     // We have at least one of the two tags so far, but not both. Move progress bar, stay in this state.
                     _updateProgressBar(27);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-6"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-6", step: 27});
                     return "redo-tag-attribute-6";
                 } else {
                     // We don't have any correct tags, don't move progress bar forward, stay in same state.
@@ -1705,7 +1705,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(29);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7", step: 29});
                 return "select-label-type-7";
             }
         },
@@ -1733,7 +1733,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(30);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7", step: 30});
                 return "label-attribute-7";
             }
         },
@@ -1765,7 +1765,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(31);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7", step: 31});
                     return "rate-severity-7";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-7"});
@@ -1849,7 +1849,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(32);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5", step: 32});
                     return "adjust-heading-angle-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
@@ -1879,7 +1879,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(32);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5"});
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5", step: 32});
                     return "adjust-heading-angle-5";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
@@ -1903,7 +1903,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(33);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1", step: 33});
                 return "walk-1";
             }
         },
@@ -1924,7 +1924,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "transition": function () {
                 _updateProgressBar(34);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2", step: 34});
 
                 // Set Compass Message
                 var uiCompassMessageHolder = compass.getCompassMessageHolder();
@@ -1954,7 +1954,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(35);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-3"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-3", step: 35});
                 return "walk-3";
             }
         },
@@ -1973,7 +1973,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "transition": function () {
                 _updateProgressBar(36);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-4"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-4", step: 36});
                 mapService.setPov({heading: 330, pitch: 0, zoom: 1});
                 document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/afterWalkTutorialMiniMap.jpg')";
                 return "walk-4";
@@ -1999,7 +1999,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             // okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
                 _updateProgressBar(37);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-5"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-5", step: 37});
                 return "walk-5";
             }
         },
@@ -2037,7 +2037,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             okButtonText: i18next.t('tutorial.walk-5-2'),
             "transition": function () {
                 _updateProgressBar(38);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-6"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-6", step: 38});
                 return "walk-6";
             }
          },
@@ -2076,7 +2076,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": function () {
                 _updateProgressBar(39);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1", step: 39});
                 return "instruction-1";
             }
         },
@@ -2098,7 +2098,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(40);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2", step: 40});
                 return "instruction-2";
             }
         },
@@ -2120,7 +2120,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 _updateProgressBar(41);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "outro", step: 41});
                 return "outro";
             }
         },
