@@ -286,7 +286,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @param params Optional parameters that might be used by transition function.
      */
     function next(nextState, params) {
-        if (typeof nextState == "function") {
+        if (typeof nextState === "function") {
             _visit(getState(nextState.call(this, params)));
         } else if (nextState in states) {
             _visit(getState(nextState));
@@ -345,7 +345,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
         }
 
-        uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
+        uiOnboarding.messageHolder.html((typeof message === "function" ? message() : message));
     }
 
     function _endTheOnboarding(skip) {
@@ -464,7 +464,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Change behavior based on the current state.
         if ("properties" in state) {
-            if (state.properties.constructor == Array) {
+            if (state.properties.constructor === Array) {
 
                 // Restrict panning.
                 mapService.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
@@ -558,7 +558,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var $target;
         var callback = function () {
             var panoId = mapService.getPanoId();
-            if (state.properties.panoId == panoId) {
+            if (state.properties.panoId === panoId) {
                 window.setTimeout(function () {
                     mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
                 }, 1000);
