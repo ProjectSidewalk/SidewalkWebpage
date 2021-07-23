@@ -118,8 +118,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": [function (params) {
                 if (params.accurate) {
                     _updateProgressBar(3);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
-                    return "rate-attribute-1";
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-1"});
+                    return "rate-severity-1";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-1"});
                     return "delete-attribute-1";
@@ -180,7 +180,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 return "label-attribute-1";
             }
         },
-        "rate-attribute-1": {
+        "rate-severity-1": {
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -189,7 +189,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.rate-attribute-1') +
+                "message": i18next.t('tutorial.rate-severity-1') +
                     '<br><img src="' + svl.rootDirectory + 'img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" ' +
                     'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
                 "parameters": null
