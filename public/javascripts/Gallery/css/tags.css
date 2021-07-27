@@ -24,10 +24,6 @@
     margin: 1px;
 }
 
-.tooltip-inner {
-    max-width: 300px;
-}
-
 .additional-count {
     margin: 3px -2px;
     border-style: none;
@@ -66,4 +62,13 @@
     cursor: default;
     opacity: 50%;
     background-color: white;
+}
+
+.additional-tag-popover {
+    width: fit-content;
+    max-width: 250px;
+}
+
+.additional-tag-popover-content {
+    padding: 5px 10px;
 }

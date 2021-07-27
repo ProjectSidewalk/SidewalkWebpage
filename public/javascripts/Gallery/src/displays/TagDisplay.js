@@ -8,6 +8,12 @@
  */
 function TagDisplay(container, tags, isModal=false) {
     let self = this;
+    const popoverTemplate = '<div class="popover additional-tag-popover" role="tooltip">' +
+                                '<div class="arrow"></div>' +
+                                '<h3 class="popover-title"></h3>' +
+                                '<div class="popover-content additional-tag-popover-content"></div>' +
+                            '</div>';
+
     function _init() {
         // Test to see if there are any tags left.
         if (tags.length > 0 || isModal) {
@@ -65,12 +71,14 @@ function TagDisplay(container, tags, isModal=false) {
                 let additional = document.createElement('div');
                 additional.className = "gallery-tag additional-count";
                 additional.innerText = " + " + hiddenCount;
-                $(additional).tooltip("destroy").tooltip({
+                $(additional).popover("destroy").popover({
                     placement: 'top',
                     html: true,
                     delay: { "show": 300, "hide": 10 },
-                    title: unaddedTags.map(tag => tag.outerHTML).join("")
-                }).tooltip("show").tooltip("hide");
+                    content: unaddedTags.map(tag => tag.outerHTML).join(""),
+                    trigger: 'hover',
+                    template: popoverTemplate
+                }).popover("show").popover("hide");
                 $(tagContainer).append(additional);
             }
         }
