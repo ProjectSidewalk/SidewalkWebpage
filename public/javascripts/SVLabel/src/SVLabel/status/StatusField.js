@@ -25,7 +25,7 @@ function StatusField (uiStatusField) {
         uiStatusField.holder.hide();
     };
 
-    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+    svl.neighborhoodModel.on("Neighborhood:completed", function() {
         svl.statusField.hide();
     });
 }

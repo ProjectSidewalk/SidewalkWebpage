@@ -64,10 +64,8 @@ NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function () 
     this.isNeighborhoodCompletedAcrossAllUsers = true;
 };
 
-NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {
+NeighborhoodModel.prototype.neighborhoodCompleted = function () {
     if (!this._neighborhoodContainer) return;
-    this.trigger("Neighborhood:completed", {
-        completedRegionId: currentNeighborhoodId
-    });
+    this.trigger("Neighborhood:completed");
     this.isNeighborhoodCompleted = true;
 };
