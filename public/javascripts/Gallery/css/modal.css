@@ -106,14 +106,32 @@
 
 .gallery-modal-info-temporary {
     width: 40%;
-    height: 60%;
+    height: 30%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-description {
     width: 60%;
-    height: 60%;
+    height: 30%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-validation {
+    height: 10%;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    margin-top: 2%;
+}
+
+.gallery-modal-validation-button {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 2px solid black;
 }
 
 .modal-top-holder {
