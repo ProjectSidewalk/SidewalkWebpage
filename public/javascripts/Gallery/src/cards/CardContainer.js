@@ -35,6 +35,7 @@ function CardContainer(uiCardContainer) {
     // Current label type of cards being shown.
     let currentLabelType = 'Assorted';
     let currentPage = 1;
+    let lastPage = false;
     let pageNumberDisplay = null;
     let pageWidth;
     let modal;
@@ -74,7 +75,7 @@ function CardContainer(uiCardContainer) {
         uiCardContainer.pageNumber.append(pageNumberDisplay);
         $(".page-control").hide();
         sg.tagContainer.disable();
-        $("#prev-page").prop("disabled", true);
+        sg.ui.cardContainer.prevPage.prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
@@ -131,7 +132,7 @@ function CardContainer(uiCardContainer) {
             to: currentPage + 1
         });
         setPage(currentPage + 1);
-        $("#prev-page").prop("disabled", false);
+        sg.ui.cardContainer.prevPage.prop("disabled", false);
         updateCardsNewPage();
     }
 
@@ -149,7 +150,7 @@ function CardContainer(uiCardContainer) {
 
     function setPage(pageNumber) {
         if (pageNumber <= 1) {
-            $("#prev-page").prop("disabled", true);
+            sg.ui.cardContainer.prevPage.prop("disabled", true);
         } 
         currentPage = pageNumber;
         pageNumberDisplay.innerText = pageNumber;
@@ -251,8 +252,12 @@ function CardContainer(uiCardContainer) {
             sg.tagContainer.unapplyTags(currentLabelType);
             currentLabelType = filterLabelType;
 
-            fetchLabelsByType(labelTypeIds[filterLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
+            fetchLabelsByType(labelTypeIds[filterLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), function () {
                 currentCards = cardsByType[currentLabelType].copy();
+
+                // We query double the amount of cards per page, "prepping" for the next page. If after querying we see
+                // that we still only have enough labels to fill up to the current page, the current page must be the last page.
+                lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                 render();
             });
         }
@@ -295,41 +300,11 @@ function CardContainer(uiCardContainer) {
     }
 
     /**
-     * When tag filter is updated, update Cards to be shown.
+     * When a tag or severity filter is updated, update Cards to be shown.
      */
-    function updateCardsByTag() {
+    function updateCardsByTagsAndSeverity() {
         setPage(1);
-        refreshUI();
-
-        let appliedTags = sg.tagContainer.getAppliedTagNames();
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-
-        fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-            currentCards = cardsByType[currentLabelType].copy();
-            currentCards.filterOnTags(appliedTags);
-            currentCards.filterOnSeverities(appliedSeverities);
-
-            render();
-        });
-    }
-
-    /**
-     * When severity filter is updated, update Cards to be shown.
-     */
-    function updateCardsBySeverity() {
-        setPage(1);
-        refreshUI();
-
-        let appliedTags = sg.tagContainer.getAppliedTagNames();
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-
-        fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-            currentCards = cardsByType[currentLabelType].copy();
-            currentCards.filterOnTags(appliedTags);
-            currentCards.filterOnSeverities(appliedSeverities);
-
-            render();
-        });
+        updateCardsNewPage();
     }
 
     function sortCards(order) {
@@ -363,9 +338,9 @@ function CardContainer(uiCardContainer) {
 
         if (imagesToLoad.length > 0) {
             if (imagesToLoad.length < cardsPerPage) {
-                $("#next-page").prop("disabled", true);
+                sg.ui.cardContainer.nextPage.prop("disabled", true);
             } else {
-                $("#next-page").prop("disabled", false);
+                sg.ui.cardContainer.nextPage.prop("disabled", false);
             }
 
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
@@ -457,6 +432,7 @@ function CardContainer(uiCardContainer) {
             currentPageCards.push(cardBucket[idx]);
             idx++;
         }
+
         return currentPageCards;
     }
 
@@ -465,8 +441,7 @@ function CardContainer(uiCardContainer) {
     self.getCurrentCards = getCurrentCards;
     self.push = push;
     self.updateCardsByType = updateCardsByType;
-    self.updateCardsByTag = updateCardsByTag;
-    self.updateCardsBySeverity = updateCardsBySeverity;
+    self.updateCardsByTagsAndSeverity = updateCardsByTagsAndSeverity;
     self.updateCardsNewPage = updateCardsNewPage;
     self.sortCards = sortCards;
     self.render = render;

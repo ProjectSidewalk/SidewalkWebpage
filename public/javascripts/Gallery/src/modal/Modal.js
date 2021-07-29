@@ -153,9 +153,12 @@ function Modal(uiModal) {
     }
 
     function highlightThumbnail(galleryCard) {
-        // Centers the card thumbnail that was selected. If it's the last card, we shouldn't center (use "end").
+        // Centers the card thumbnail that was selected. If it's the last card, we scroll such that the card is at the
+        // bottom of the visible window.
+        let index = self.cardIndex;
+        let page = sg.cardContainer.getCurrentPage();
         galleryCard.scrollIntoView({
-            block: 'center',
+            block: (index < page * cardsPerPage - 1) ? 'center' : 'end',
             behavior: 'smooth'
         });
 
@@ -210,19 +213,20 @@ function Modal(uiModal) {
      */
     function updateModalCardByIndex(index) {
         self.cardIndex = index;
+        console.log(self.cardIndex);
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
         openModal();
         let page = sg.cardContainer.getCurrentPage();
-        if (index > (page - 1) * cardsPerPage) {
-            self.leftArrow.prop('disabled', false);
-        } else {
-            self.leftArrow.prop('disabled', true);
-        }
-        if (index < page * cardsPerPage - 1) {
-            self.rightArrow.prop('disabled', false);
-        } else {
-            self.rightArrow.prop('disabled', true);
-        }
+        // if (index > (page - 1) * cardsPerPage) {
+        //     self.leftArrow.prop('disabled', false);
+        // } else {
+        //     self.leftArrow.prop('disabled', true);
+        // }
+        // if (index < page * cardsPerPage - 1) {
+        //     self.rightArrow.prop('disabled', false);
+        // } else {
+        //     self.rightArrow.prop('disabled', true);
+        // }
     }
 
     /**
@@ -231,7 +235,13 @@ function Modal(uiModal) {
     function nextLabel() {
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * cardsPerPage - 1) {
+            // Iterate to next card on the page, updating the label being shown in the modal to be
+            // that of the next card.
             updateModalCardByIndex(self.cardIndex + 1);
+        } else {
+            // TODO: We probably want to put a confirmation here whenever we switch pages.
+            // Move to the next page as the current card is the last on the page.
+            sg.ui.cardContainer.nextPage.click();
         }
     }
 
@@ -241,7 +251,12 @@ function Modal(uiModal) {
     function previousLabel() {
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex > (page - 1) * cardsPerPage) {
+            // Iterate to previous card on the page, updating the label being shown in the modal to be
+            // that of the previous card.
             updateModalCardByIndex(self.cardIndex - 1);
+        } else {
+            // Move to the previous page as the current card is the first on the page.
+            sg.ui.cardContainer.prevPage.click();
         }
     }
 
