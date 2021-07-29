@@ -6,7 +6,7 @@
  * @returns {ValidationMenu}
  * @constructor
  */
-function ValidationMenu(uiCardImage, cardProperties) {
+function ValidationMenu(uiCardImage, cardProperties, isCard) {
     const resultOptions = {
         "Agree": 1, 
         "Disagree": 2,
@@ -74,9 +74,12 @@ function ValidationMenu(uiCardImage, cardProperties) {
         }
 
         // Add the visual effects from the new validation.
-        currSelected = validationClass;
-        validationButtons[validationClass].attr('class', 'validation-button-selected');
-        galleryCard.classList.add(validationClass);
+        if (isCard) {
+            currSelected = validationClass;
+            validationButtons[validationClass].attr('class', 'validation-button-selected');
+            galleryCard.classList.add(validationClass);
+        }
+
     }
 
     /**

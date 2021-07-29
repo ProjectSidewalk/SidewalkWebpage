@@ -49,6 +49,7 @@ function Modal(uiModal) {
         self.closeButton = $('.gallery-modal-close')
         self.leftArrow = $('#prev-label')
         self.rightArrow = $('#next-label')
+        self.validation = $('.gallery-modal-validation')
         self.closeButton.click(closeModalAndRemoveCardTransparency)
         self.rightArrow.click(nextLabel)
         self.leftArrow.click(previousLabel)
@@ -136,6 +137,10 @@ function Modal(uiModal) {
         descriptionBody.innerHTML = properties.description === null ? i18next.t('no-description') : properties.description;
         self.description.append(descriptionHeader);
         self.description.append(descriptionBody);
+
+        // Add the validation buttons
+        validationMenu = new ValidationMenu(self.validation, properties, false)
+        console.log(properties)
     }
 
     /**
