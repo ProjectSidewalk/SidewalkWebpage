@@ -1,3 +1,201 @@
+.gallery-card {
+    position: relative;
+    display: inline-block;
+    padding: 0px;
+    margin: 0.6vw;
+    border-radius: 20px;
+    width: 24vw;
+    height: auto;
+}
+.gallery-card:hover {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+}
+
+.validate-agree {
+    background-color: #78c9ab;
+}
+
+.validate-disagree {
+    background-color: #eb734d;
+}
+
+.validate-not-sure {
+    background-color: #fbd78b;
+}
+
+/*
+We make sure that the image holder is positioned relatively so that the validation menu can be positioned absolutely
+with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay).
+*/
+.image-holder {
+    position: relative;
+}
+
+.gallery-card:hover:after {
+    opacity: 1;
+}
+
+.static-gallery-image {
+    width: 100%;
+    height: auto;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+#gallery-validation-button-holder {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 11.5%;
+    z-index: 2;
+}
+
+#gallery-card-agree-button {
+    width: 33%;
+    border-right: 1px solid #dcdbdb;
+    background-color: #78c9ab;
+    color: #2d2a3f;
+}
+
+#gallery-card-disagree-button {
+    width: 34%;
+    background-color: #eb734d;
+    color: #2d2a3f;
+}
+
+#gallery-card-not-sure-button {
+    border-left: 1px solid #dcdbdb;
+    width: 33%;
+    background-color: #fbd78b;
+    color: #2d2a3f;
+}
+
+.card-header {
+    padding: 5px 5px 3px 10px;
+    font-family: 'raleway-bold', sans-serif;
+    font-size: 1vw;
+}
+
+.card-info {
+    padding-bottom: 0.5vw;
+    padding-left: 0.5vw;
+    padding-right: 0.5vw;
+    font-size: 0.9vw;
+    font-family: 'raleway-regular', sans-serif;
+    color: #2d2a3f;
+    border-width: 0 1px 1px 1px;
+    border-color: #dcdbdb;
+    border-style: solid;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+.gallery-card:hover > .card-info {
+    border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */
+}
+
+.card-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    font-size: .7vw;
+    height: 2.5vh;
+}
+
+.card-severity {
+    display: flex;
+    align-items: center;
+    width: 40%; /* figure out a better way to set this severity/tag ratio */
+    height: 100%;
+    flex-direction: row;
+    padding-left: 10px;
+}
+
+.label-severity-header {
+    padding-right: .25vw;
+}
+
+.label-severity-content {
+    display: flex;
+    flex-direction: row;
+}
+
+.card-tags {
+    display: flex;
+    align-items: center;
+    width: 60%;
+    height: 100%;
+    flex-direction: row;
+    right: 0px;
+}
+
+.label-tags-header {
+    padding-right: .25vw;
+    padding-left: .9vw;
+}
+
+.label-tags-holder {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    flex-direction: row;
+}
+
+.label-tags-content {
+    text-overflow: ellipsis;
+    width:fit-content;
+    color: black;
+}
+
+.label-icon {
+    position: absolute;
+    width: 1.1vw;
+    z-index: 1;
+}
+
+.validation-button, .validation-button-selected {
+    opacity: 0;
+    font-size: 0.75vw;
+    font-weight: bold;
+    font-family: 'raleway-regular', sans-serif;
+    background-color: white;
+    border-style: none;
+    color: #2d2a3f;
+}
+
+.gallery-card:hover .validation-button {
+    opacity: 0.75;
+}
+
+.gallery-card:hover .validation-button-selected {
+    opacity: 1;
+    background-color: gray;
+    /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
+    /* outline: -webkit-focus-ring-color auto 1px; */
+}
+
+.modal-background-card {
+    opacity: 50%;
+}
+
+.severity-circle {
+    color: white;
+    border: 1px solid #2d2a3f;
+    width: 0.7vw;
+    height: 0.7vw;
+    border-radius: 50%;
+    text-align: center;
+    margin: 2px;
+    font-size: 0.9vw;
+}
+#current-severity {
+    border: 2px solid #2d2a3f;
+    background-color: #2d2a3f;
+    color: #2d2a3f;
+}
 #card-filter {
     padding: 5px;
 }
@@ -11,7 +209,7 @@
 }
 
 .paging {
-    display: inline-block; 
+    display: inline-block;
     font-size: 30px;
     background-color: white;
     border-radius: 5px;
@@ -38,8 +236,8 @@
 }
 
 #labels-not-found-text {
-    position: absolute; 
-    width: 100%; 
+    position: absolute;
+    width: 100%;
     text-align: center;
     padding-top: 20px;
 }
@@ -58,7 +256,7 @@
 
 .grid-container {
     display: grid;
-    grid-template-areas: 
+    grid-template-areas:
         'sidebar main gallery-modal'
         'sidebar paging gallery-modal';
     /* grid-template-columns: 0.5fr 3fr; --- We may not need this as the sidebar is now a fixed DOM element (as in it is out of the grid)*/
@@ -71,4 +269,239 @@
     flex-flow: row wrap;
     margin-left: 250px; /* Offset to compensate for the space taken up by the sidebar. */
 }
+.gallery-modal-close {
+    left: 0px;
+    top: 10%;
+    position: relative;
+    font-size: 30px;
+    cursor: pointer;
+}
 
+.gallery-modal {
+    display: flex;
+    height: 90vh;
+    position: fixed;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    flex-direction: column;
+    align-items: center;
+    width: 50vw;
+    right:2vw;
+    font-family: 'raleway-regular', sans-serif;
+    font-size: 18px;
+}
+
+.label-timestamp, .pano-timestamp {
+    color: #2d2a3f;
+}
+
+.modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
+    font-weight: bold;
+    color: #2d2a3f;
+}
+
+.modal-temporary-body, .modal-description-body {
+    color: #888787;
+}
+
+.gallery-modal-header {
+    width: 100%;
+    height: 100%;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    font-family: 'raleway-bold', sans-serif;
+    font-size: 1.5vw;
+    color: #2d2a3f;
+}
+
+.gallery-modal-pano {
+    width: 100%;
+    height: 63%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 3.5%;
+}
+
+.gallery-modal-pano-display {
+    position: relative;
+    z-index: 10;
+    width: 90%;
+    height: 100%;
+}
+
+.gallery-modal-pano-paging {
+    height: 30px;
+    width: 50px;
+    color: black;
+    text-align: center;
+    font-size: 50px;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background-color: transparent;
+}
+
+.gallery-modal-pano-paging:disabled {
+    color: lightgray;
+}
+
+.gallery-modal-info {
+    display: flex;
+    height: 20%;
+    width: calc(100% - 100px); /* Full width of modal minus 50px for prev arrow and 50px for next arrow. */
+    flex-wrap: wrap;
+    font-size: 1vw;
+}
+
+.gallery-modal-info-timestamps {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: .8vw;
+    padding-bottom: 1%;
+}
+
+.gallery-modal-info-severity {
+    width: 40%;
+    height: 40%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-info-tags {
+    width: 60%;
+    height: 40%;
+}
+
+.gallery-modal-info-temporary {
+    width: 40%;
+    height: 60%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-info-description {
+    width: 60%;
+    height: 60%;
+}
+
+.modal-top-holder {
+    display: flex;
+    align-content: space-between;
+    width: calc(100% - 100px); /* Full width of modal minus 50px for prev arrow and 50px for next arrow. */
+}
+
+.modal-severity-circle {
+    /* color: black;
+    border: 1px solid black;
+    padding: 1px 0px; /* Quite a hacky fix in order to center numbers correctly, reassess */
+    /* width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 100%;
+    margin: 2px;
+    background-color: white;
+    font-size: 1vw; */
+    width: 1.75vw;
+    height: 1.75vw;
+}
+
+#modal-current-severity {
+    border: 2px solid black;
+    padding: 0px;
+    background-color: black;
+    color:white;
+}
+
+.gallery-tag-modal {
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    margin: 2px 2px;
+    text-align: left;
+    color: black;
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.gallery-tag {
+    width: 85%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    margin: 2px 2px;
+    text-align: left;
+    color: black;
+    white-space: nowrap;
+}
+
+.gallery-tag:hover {
+    width: 85%;
+    background-color: #78c8aa;
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    margin: 2px 2px;
+    text-align: left;
+    color: black;
+    white-space: normal;
+}
+
+.thumbnail-tag {
+    cursor: default;
+    font-weight: bold;
+    padding: 1px 5px;
+    color: #2d2a3f;
+}
+
+.additional-count {
+    margin: 3px -2px;
+    border-style: none;
+    font-weight: bold;
+}
+
+.gallery-tag:disabled {
+    opacity: 50%;
+}
+
+.gallery-tag-modal:disabled {
+    opacity: 50%;
+}
+
+.gallery-severity {
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 3px;
+    margin: 2px 2px;
+    background-color: white;
+}
+
+.gallery-severity:disabled {
+    opacity: 50%;
+}
+
+#tags-header {
+    display: none;
+}
+
+#label-select:disabled {
+    opacity: 50%;
+    background-color: white;
+}
