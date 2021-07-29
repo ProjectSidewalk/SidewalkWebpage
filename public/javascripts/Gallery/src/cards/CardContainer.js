@@ -278,23 +278,25 @@ function CardContainer(uiCardContainer) {
         currentCards.filterOnTags(appliedTags);
         currentCards.filterOnSeverities(appliedSeverities);
 
-        if (currentCards.getSize() < cardsPerPage * currentPage) {
+        if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
             if (currentLabelType === "Occlusion") {
-                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
+                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), function () {
                     currentCards = cardsByType[currentLabelType].copy();
+                    lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });
             } else {
-                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
                     currentCards = cardsByType[currentLabelType].copy();
                     currentCards.filterOnTags(appliedTags);
                     currentCards.filterOnSeverities(appliedSeverities);
-
+                    lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });
             }
         } else {
+            lastPage = false;
             render();
         }
     }
@@ -337,7 +339,12 @@ function CardContainer(uiCardContainer) {
         let imagePromises = imagesToLoad.map(img => img.loadImage());
 
         if (imagesToLoad.length > 0) {
-            if (imagesToLoad.length < cardsPerPage) {
+            // if (imagesToLoad.length < cardsPerPage) {
+            //     sg.ui.cardContainer.nextPage.prop("disabled", true);
+            // } else {
+            //     sg.ui.cardContainer.nextPage.prop("disabled", false);
+            // }
+            if (lastPage) {
                 sg.ui.cardContainer.nextPage.prop("disabled", true);
             } else {
                 sg.ui.cardContainer.nextPage.prop("disabled", false);
@@ -436,9 +443,18 @@ function CardContainer(uiCardContainer) {
         return currentPageCards;
     }
 
+    /**
+     * Returns whether the current page is the last page of queried cards.
+     * @returns True if current page is last page of cards that satisfies applied query, false otherwise.
+     */
+    function isLastPage() {
+        return lastPage;
+    }
+
     self.fetchLabelsByType = fetchLabelsByType;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
+    self.isLastPage = isLastPage;
     self.push = push;
     self.updateCardsByType = updateCardsByType;
     self.updateCardsByTagsAndSeverity = updateCardsByTagsAndSeverity;

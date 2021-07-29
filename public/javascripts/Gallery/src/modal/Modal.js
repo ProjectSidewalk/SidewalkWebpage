@@ -212,11 +212,24 @@ function Modal(uiModal) {
      * @param {Number} index The index of the card to update to
      */
     function updateModalCardByIndex(index) {
+        self.leftArrow.prop('disabled', false);
+        self.rightArrow.prop('disabled', false);
         self.cardIndex = index;
         console.log(self.cardIndex);
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
         openModal();
-        let page = sg.cardContainer.getCurrentPage();
+        if (self.cardIndex == 0) {
+            self.leftArrow.prop('disabled', true);
+        }
+
+        if (sg.cardContainer.isLastPage()) {
+            let page = sg.cardContainer.getCurrentPage();
+            let lastCardIndex = (page - 1) * cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
+            if (self.cardIndex == lastCardIndex) {
+                // The current page is the last page and the current card being rendered is the last card on the page.
+                self.rightArrow.prop('disabled', true);
+            }
+        }
         // if (index > (page - 1) * cardsPerPage) {
         //     self.leftArrow.prop('disabled', false);
         // } else {
