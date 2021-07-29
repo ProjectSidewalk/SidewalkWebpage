@@ -93,9 +93,9 @@ function CardContainer(uiCardContainer) {
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
             // TODO(micdun): this is pretty janky, think of better way?
-            let cardId = event.target.id ? event.target.id :
-                                           "label_id_" + event.target.closest(".card-tags").id;
-            console.log(cardId);
+            let clickedImage = event.target.classList.contains("static-gallery-image")
+            let cardId = clickedImage ? event.target.id :
+                                        "label_id_" + event.target.closest(".card-tags").id;
             // Sets/Updates the label being displayed in the expanded modal.
             modal.updateCardIndex(findCardIndex(cardId));
         });
