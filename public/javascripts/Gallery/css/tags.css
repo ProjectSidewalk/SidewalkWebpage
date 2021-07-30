@@ -1,4 +1,4 @@
-.gallery-tag {
+.gallery-tag-modal {
     display: inline-block;
     padding: 0px 5px;
     cursor: pointer;
@@ -10,6 +10,37 @@
     color: black;
     width: fit-content;
     white-space: nowrap;
+}
+
+.gallery-tag {
+    width: 85%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    margin: 2px 2px;
+    text-align: left;
+    color: black;
+    white-space: nowrap;
+}
+
+.gallery-tag:hover {
+    width: 85%;
+    background-color: #78c8aa;
+    display: inline-block;
+    padding: 0px 5px;
+    cursor: pointer;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    margin: 2px 2px;
+    text-align: left;
+    color: black;
+    white-space: normal;
 }
 
 .thumbnail-tag {
@@ -26,6 +57,10 @@
 }
 
 .gallery-tag:disabled {
+    opacity: 50%;
+}
+
+.gallery-tag-modal:disabled {
     opacity: 50%;
 }
 

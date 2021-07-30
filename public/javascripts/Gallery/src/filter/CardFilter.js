@@ -179,6 +179,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     function disable() {
         severities.disable();
         $('.gallery-tag').prop("disabled", true);
+        $('.gallery-tag-modal').prop("disabled", true);
     }
 
     /**
@@ -187,6 +188,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     function enable() {
         severities.enable();
         $('.gallery-tag').prop("disabled", false);
+        $('.gallery-tag-modal').prop("disabled", false);
     }
 
     self.update = update;
