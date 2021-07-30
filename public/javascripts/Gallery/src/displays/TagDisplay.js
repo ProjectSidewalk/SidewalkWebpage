@@ -44,7 +44,7 @@ function TagDisplay(container, tags, isModal=false) {
             // Order tags so that the tags that match the selected tags come first.
             let orderedTags = orderTags(tags);
             let tagsText = orderedTags.map(t => i18next.t('tag.' + t));
-            let unaddedTags = []
+            let unaddedTags = [];
 
             // Try to append as many tags as possible into the parent container.
             for (let i = 0; i < tagsText.length; i++) {
@@ -66,7 +66,6 @@ function TagDisplay(container, tags, isModal=false) {
             }
 
             if (hiddenCount > 0) {
-                console.log(tagsText.join(", "))
                 // We have hidden tags.
                 let additional = document.createElement('div');
                 additional.className = "gallery-tag additional-count";
