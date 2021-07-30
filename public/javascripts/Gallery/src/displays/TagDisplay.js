@@ -8,6 +8,12 @@
  */
 function TagDisplay(container, tags, isModal=false) {
     let self = this;
+    const popoverTemplate = '<div class="popover additional-tag-popover" role="tooltip">' +
+                                '<div class="arrow"></div>' +
+                                '<h3 class="popover-title"></h3>' +
+                                '<div class="popover-content additional-tag-popover-content"></div>' +
+                            '</div>';
+
     function _init() {
         // Test to see if there are any tags left.
         if (tags.length > 0 || isModal) {
@@ -38,6 +44,7 @@ function TagDisplay(container, tags, isModal=false) {
             // Order tags so that the tags that match the selected tags come first.
             let orderedTags = orderTags(tags);
             let tagsText = orderedTags.map(t => i18next.t('tag.' + t));
+            let unaddedTags = [];
 
             // Try to append as many tags as possible into the parent container.
             for (let i = 0; i < tagsText.length; i++) {
@@ -52,6 +59,8 @@ function TagDisplay(container, tags, isModal=false) {
                 if (remainingWidth < 0 && !isModal) {
                     // No room for this tag, this will be one of the hidden tags, so we increment counter.
                     tagTest.remove();
+                    tagTest.classList.add("not-added");
+                    unaddedTags.push(tagTest);
                     hiddenCount += 1;
                 }
             }
@@ -61,6 +70,14 @@ function TagDisplay(container, tags, isModal=false) {
                 let additional = document.createElement('div');
                 additional.className = "gallery-tag additional-count";
                 additional.innerText = " + " + hiddenCount;
+                $(additional).popover("destroy").popover({
+                    placement: 'top',
+                    html: true,
+                    delay: { "show": 300, "hide": 10 },
+                    content: unaddedTags.map(tag => tag.outerHTML).join(""),
+                    trigger: 'hover',
+                    template: popoverTemplate
+                }).popover("show").popover("hide");
                 $(tagContainer).append(additional);
             }
         }
@@ -90,6 +107,6 @@ function TagDisplay(container, tags, isModal=false) {
         return orderedTags;
     }
 
-    _init()
+    _init();
     return self;
 }
