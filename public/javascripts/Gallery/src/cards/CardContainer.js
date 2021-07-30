@@ -86,7 +86,7 @@ function CardContainer(uiCardContainer) {
         // Creates the Modal object in the DOM element currently present.
         modal = new Modal($('.gallery-modal'));
         // Add the click event for opening the Modal when a card is clicked.
-        $("#image-card-container").on('click', '.static-gallery-image',  (event) => {
+        sg.ui.cardContainer.holder.on('click', '.static-gallery-image',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
             const cardId = event.target.id;
@@ -373,6 +373,7 @@ function CardContainer(uiCardContainer) {
      */
     function refreshUI() {
         modal.closeModal();
+        window.scrollTo(0, 0);
         sg.tagContainer.disable();
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();

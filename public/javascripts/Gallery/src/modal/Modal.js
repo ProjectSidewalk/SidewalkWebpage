@@ -13,6 +13,30 @@ function Modal(uiModal) {
 
     const unselectedCardClassName = "modal-background-card";
 
+    // Observes the card container so that once cards are rendered (added to DOM), we can reopen the modal.
+    // We need this because the prev/next page actions are asynchronous (they query the backend), so before reopening
+    // the modal on a new page, we need to make sure the cards have actually been rendered in gallery view.
+    const observer = new MutationObserver((mutationsList, observer) => {
+        for(let mutation of mutationsList) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // We check to make sure that the mutation effects the childList (adding/removing child nodes) of the
+                // card container and that cards (child nodes) were added in the mutation, indicating the cards have
+                // been rendered.
+                console.log('CHild node added: Cards have been rendered');
+                console.log("reopening modal");
+                $('.gallery-modal').attr('style', 'display: flex');
+                $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
+    
+                // Sets/Updates the label being displayed in the expanded modal.
+                updateModalCardByIndex(self.cardIndex);
+
+                // Stop observing.
+                observer.disconnect();
+                break; // No need to check all mutation events?
+            }
+        }
+    });
+
     // Properties of the label in the card.
     let properties = {
         label_id: undefined,
@@ -252,9 +276,24 @@ function Modal(uiModal) {
             // that of the next card.
             updateModalCardByIndex(self.cardIndex + 1);
         } else {
+            // Increment cardIndex now as the observer is ignorant of whether the prev or next arrow was clicked.
+            self.cardIndex += 1;
+
             // TODO: We probably want to put a confirmation here whenever we switch pages.
             // Move to the next page as the current card is the last on the page.
             sg.ui.cardContainer.nextPage.click();
+
+            // The target we will observe.
+            let cardHolder = sg.ui.cardContainer.holder[0];
+            console.log(cardHolder.id);
+                        
+            // Options for the observer.
+            let config = {childList: true};
+
+            console.log("observing");
+
+            // Start observing the target node for configured mutations
+            observer.observe(cardHolder, config);
         }
     }
 
@@ -268,8 +307,23 @@ function Modal(uiModal) {
             // that of the previous card.
             updateModalCardByIndex(self.cardIndex - 1);
         } else {
+            // Decrement cardIndex now as the observer is ignorant of whether the prev or next arrow was clicked.
+            self.cardIndex -= 1;
+
             // Move to the previous page as the current card is the first on the page.
             sg.ui.cardContainer.prevPage.click();
+
+            // The target we will observe.
+            let cardHolder = sg.ui.cardContainer.holder[0];
+            console.log(cardHolder.id);
+                        
+            // Options for the observer.
+            let config = {childList: true};
+
+            console.log("observing");
+
+            // Start observing the target node for configured mutations
+            observer.observe(cardHolder, config);
         }
     }
 
