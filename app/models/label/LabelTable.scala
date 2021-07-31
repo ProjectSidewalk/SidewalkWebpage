@@ -865,7 +865,7 @@ object LabelTable {
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
       _lb <- labelsWithoutDeletedOrOnboarding if !(_lb.labelId inSet deprioritized)
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId && (_lt.labelTypeId inSet LabelTypeTable.primaryLabelTypeIds)
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
       if _lb.streetEdgeId =!= tutorialStreetId
@@ -913,7 +913,7 @@ object LabelTable {
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
-    val labelTypesAsStrings = LabelTypeTable.validLabelTypes
+    val labelTypesAsStrings = LabelTypeTable.primaryLabelTypes
 
     for (labelType <- labelTypesAsStrings) {
       val labelsFilteredByType = newRandomLabelsList.filter(label => label.labelType == labelType)
