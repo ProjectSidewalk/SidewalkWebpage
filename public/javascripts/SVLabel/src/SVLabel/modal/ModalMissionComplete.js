@@ -4,31 +4,19 @@
  * @param missionContainer
  * @param missionModel
  * @param taskContainer
- * @param taskContainer
- * @param modalMissionProgressBar
- * @param taskContainer
- * @param modalMissionProgressBar
- * @param statusModel
- * @param onboardingModel
- * @param taskContainer
- * @param modalMissionProgressBar
- * @param statusModel
- * @param onboardingModel
  * @param modalMissionCompleteMap
  * @param modalMissionProgressBar
- * @param statusModel
- * @param onboardingModel
  * @param uiModalMissionComplete
  * @param modalModel
- * @param userModel
  * @param statusModel
  * @param onboardingModel
+ * @param userModel
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer,
-                               modalMissionCompleteMap, modalMissionProgressBar,
-                               uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
+function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer, modalMissionCompleteMap,
+                               modalMissionProgressBar, uiModalMissionComplete, modalModel, statusModel,
+                               onboardingModel, userModel) {
     var self = this;
     var _missionModel = missionModel;
     var _missionContainer = missionContainer;
@@ -66,7 +54,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self.hide();
     });
 
-    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+    svl.neighborhoodModel.on("Neighborhood:completed", function() {
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
@@ -271,8 +259,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     this.update = function (mission, neighborhood) {
         // Update the horizontal bar chart to show the distance the user has audited.
         var unit = {units: i18next.t('common:unit-distance')};
-        
-        var regionId = neighborhood.getProperty("regionId");
 
         var missionDistance = mission.getDistance(unit.units);
         var missionPay = mission.getProperty("pay");

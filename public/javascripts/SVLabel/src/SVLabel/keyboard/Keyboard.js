@@ -292,14 +292,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     };
 
     /**
-     * This method returns whether a shift key is currently pressed or not.
-     * @returns {boolean}
-     */
-    this.isShiftDown = function () {
-        return status.shiftDown;
-    };
-
-    /**
      * Set status
      * @param key Field name
      * @param value Field value

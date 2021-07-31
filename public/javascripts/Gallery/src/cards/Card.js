@@ -36,6 +36,7 @@ function Card (params, imageUrl) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        user_validation: undefined,
         tags: []
     };
 

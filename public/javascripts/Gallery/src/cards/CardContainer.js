@@ -29,7 +29,7 @@ function CardContainer(uiCardContainer) {
         Other: 5,
         Occlusion: 6,
         NoSidewalk: 7,
-        Assorted: 9
+        Assorted: -1
     };
 
     // Current label type of cards being shown.
@@ -85,11 +85,17 @@ function CardContainer(uiCardContainer) {
         // Creates the Modal object in the DOM element currently present.
         modal = new Modal($('.gallery-modal'));
         // Add the click event for opening the Modal when a card is clicked.
-        $("#image-card-container").on('click', '.static-gallery-image',  (event) => {
+        $("#image-card-container").on('click', '.static-gallery-image, .additional-count',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
-            const cardId = event.target.id;
-
+            // If the user clicks on the image body in the card, just use the provided id.
+            // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
+            // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
+            // the correct form).
+            // TODO(micdun): this is pretty janky, think of better way?
+            let clickedImage = event.target.classList.contains("static-gallery-image")
+            let cardId = clickedImage ? event.target.id :
+                                        "label_id_" + event.target.closest(".card-tags").id;
             // Sets/Updates the label being displayed in the expanded modal.
             modal.updateCardIndex(findCardIndex(cardId));
         });
