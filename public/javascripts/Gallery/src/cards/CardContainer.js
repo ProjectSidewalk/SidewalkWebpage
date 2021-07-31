@@ -29,7 +29,7 @@ function CardContainer(uiCardContainer) {
         Other: 5,
         Occlusion: 6,
         NoSidewalk: 7,
-        Assorted: 9
+        Assorted: -1
     };
 
     // Current label type of cards being shown.
