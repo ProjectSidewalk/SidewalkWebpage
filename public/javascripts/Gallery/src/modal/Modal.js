@@ -13,6 +13,8 @@ function Modal(uiModal) {
 
     const unselectedCardClassName = "modal-background-card";
 
+    let cardReference = null;
+
     // Properties of the label in the card.
     let properties = {
         label_id: undefined,
@@ -54,6 +56,7 @@ function Modal(uiModal) {
         self.rightArrow.click(nextLabel)
         self.leftArrow.click(previousLabel)
         self.cardIndex = -1;
+        self.validationMenu = new ValidationMenu(self.validation, null, false)
     }
 
     /**
@@ -139,8 +142,8 @@ function Modal(uiModal) {
         self.description.append(descriptionBody);
 
         // Add the validation buttons
-        validationMenu = new ValidationMenu(self.validation, properties, false)
-        console.log(properties)
+        self.validationMenu.updateCardProperties(properties);
+        self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));
     }
 
     /**

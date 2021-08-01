@@ -300,5 +300,8 @@ function Card (params, imageUrl) {
     self.getImageId = getImageId;
 
     _init(params);
+    
+    self.validationMenu = validationMenu;
+
     return this;
 }

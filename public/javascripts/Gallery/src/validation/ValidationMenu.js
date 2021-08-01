@@ -13,6 +13,12 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         "NotSure": 3
     };
 
+    let self = this;
+
+    let currentCardProperties = cardProperties;
+
+    let referenceCard = null;
+
     // A kind of wack way to do this, explore better options.
     const classToValidationOption = {
         "validate-agree": "Agree",
@@ -59,10 +65,10 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
             });
         }
         // If the signed in user had already validated this label before loading the page, style the card to show that.
-        if (cardProperties.user_validation) {
-            _showValidated(cardProperties.user_validation);
-        }
         if (isCard) {
+            if (currentCardProperties.user_validation) {
+                _showValidated(currentCardProperties.user_validation);
+            }
             uiCardImage.append(overlay[0]);
         }
     }
@@ -84,6 +90,8 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
             currSelected = validationClass;
             validationButtons[validationClass].attr('class', 'validation-button-selected');
             galleryCard.classList.add(validationClass);
+        } else {
+            referenceCard.validationMenu._showValidated(validationOption);
         }
 
     }
@@ -102,16 +110,16 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         let validationTimestamp = new Date().getTime();
 
         let data = {
-            label_id: cardProperties.label_id,
-            label_type: cardProperties.label_type,
+            label_id: currentCardProperties.label_id,
+            label_type: currentCardProperties.label_type,
             validation_result: resultOptions[action],
-            canvas_x: cardProperties.canvas_x,
-            canvas_y: cardProperties.canvas_y,
-            heading: cardProperties.heading,
-            pitch: cardProperties.pitch,
-            zoom: cardProperties.zoom,
-            canvas_height: cardProperties.canvas_height,
-            canvas_width: cardProperties.canvas_width,
+            canvas_x: currentCardProperties.canvas_x,
+            canvas_y: currentCardProperties.canvas_y,
+            heading: currentCardProperties.heading,
+            pitch: currentCardProperties.pitch,
+            zoom: currentCardProperties.zoom,
+            canvas_height: currentCardProperties.canvas_height,
+            canvas_width: currentCardProperties.canvas_width,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
             is_mobile: false
@@ -144,6 +152,27 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         console.log(action + ": validation submitted successfully :)");
     }
 
+    /**
+     * Updates the card properties neccesary for validation.
+     * @param {*} newProperties The properties to update to.
+     */
+    function updateCardProperties(newProperties) {
+        currentCardProperties = newProperties;
+    }
+
+    /**
+     * When using the ValidationMenu as a part of the Modal, the card the Modal is expanding is updated.
+     * 
+     * @param {Card} newCard The new card the Modal references.
+     */
+    function updateReferenceCard(newCard) {
+        referenceCard = newCard;
+        console.log(referenceCard)
+    }
+
+    self.updateCardProperties = updateCardProperties;
+    self.updateReferenceCard = updateReferenceCard;
+    self._showValidated = _showValidated;
     _init();
-    return this;
+    return self;
 }
