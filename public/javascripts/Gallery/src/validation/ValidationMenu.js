@@ -47,6 +47,11 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
 
     // Adds onClick functions for the validation buttons.
     function _init() {
+        if (!isCard) {
+            validationButtons["validate-agree"] = $(uiCardImage).find("#gallery-modal-agree");
+            validationButtons["validate-disagree"] = $(uiCardImage).find("#gallery-modal-disagree");
+            validationButtons["validate-not-sure"] = $(uiCardImage).find("#gallery-modal-not-sure");
+        }
         for (const [valKey, button] of Object.entries(validationButtons)) {
             button.click(function() {
                 _showValidated(classToValidationOption[valKey]);
@@ -57,8 +62,9 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         if (cardProperties.user_validation) {
             _showValidated(cardProperties.user_validation);
         }
-
-        uiCardImage.append(overlay[0]);
+        if (isCard) {
+            uiCardImage.append(overlay[0]);
+        }
     }
 
     // Sets the look of the card to show that the label has been validated.
