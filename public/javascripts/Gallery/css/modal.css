@@ -135,6 +135,14 @@
     cursor: pointer;
 }
 
+#gallery-modal-agree {
+    border-bottom-left-radius: 20px;
+}
+
+#gallery-modal-not-sure {
+    border-bottom-right-radius: 20px;
+}
+
 .modal-top-holder {
     display: flex;
     align-content: space-between;
