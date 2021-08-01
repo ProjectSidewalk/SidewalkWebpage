@@ -110,7 +110,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-severity {
     display: flex;
     align-items: center;
-    width: 40%; /* figure out a better way to set this severity/tag ratio */
+    width: 45%; /* figure out a better way to set this severity/tag ratio */
     height: 100%;
     flex-direction: row;
     padding-left: 10px;
@@ -128,7 +128,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-tags {
     display: flex;
     align-items: center;
-    width: 60%;
+    width: 55%;
     height: 100%;
     flex-direction: row;
     right: 0px;
