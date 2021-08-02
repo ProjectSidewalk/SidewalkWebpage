@@ -63,7 +63,7 @@ function Severity (params){
             apply();
         }
 
-        sg.cardContainer.updateCardsBySeverity();
+        sg.cardContainer.updateCardsByTagsAndSeverity();
     }
 
     /**
