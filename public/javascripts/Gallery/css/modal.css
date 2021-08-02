@@ -127,12 +127,12 @@
 }
 
 .gallery-modal-pano:hover .modal-validation-button {
-    opacity: 0.75;
+    opacity: 0.5;
 }
 
 .modal-validation-button, .modal-validation-button-selected {
     opacity: 0;
-    font-size: 0.75vw;
+    font-size: 1.25vw;
     font-weight: bold;
     font-family: 'raleway-regular', sans-serif;
     background-color: white;
