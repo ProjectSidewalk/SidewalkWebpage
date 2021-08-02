@@ -58,7 +58,6 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
     function _init() {
     
         if (!isCard) {
-            galleryCard = document.getElementsByClassName('gallery-modal').item(0);
             overlay = $(modalOverlayHTML)
         }
 
@@ -89,19 +88,20 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         if (currSelected && currSelected !== validationClass) {
             if (isCard) {
                 validationButtons[currSelected].attr('class', 'validation-button');
+                if (galleryCard.classList.contains(currSelected)) {
+                    galleryCard.classList.remove(currSelected);
+                }
             } else {
                 validationButtons[currSelected].attr('class', 'modal-validation-button');
             }
-            if (galleryCard.classList.contains(currSelected)) {
-                galleryCard.classList.remove(currSelected);
-            }
+           
         }
 
         // Add the visual effects from the new validation.
         currSelected = validationClass;
-        galleryCard.classList.add(validationClass);
         referenceCard.setProperty('user_validation', validationOption);
         if (isCard) {
+            galleryCard.classList.add(validationClass);
             validationButtons[validationClass].attr('class', 'validation-button-selected');
         } else {
             referenceCard.validationMenu._showValidated(validationOption);
@@ -180,7 +180,6 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
      */
     function updateReferenceCard(newCard) {
         referenceCard = newCard;
-        galleryCard.classList.remove(validationOptionToClass["Agree"], validationOptionToClass["Disagree"], validationOptionToClass["NotSure"])
         if (currentCardProperties !== null && currentCardProperties.user_validation) {
             _showValidated(currentCardProperties.user_validation);
         }
