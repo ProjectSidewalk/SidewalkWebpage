@@ -3,6 +3,8 @@
  * 
  * @param uiCardImage The html element to append the validation menu to.
  * @param cardProperties Properties of the label the validation menu is being appended to
+ * @param onExpandedView A boolean flag. If true, the ValidationMenu is a child of the expanded view.
+ *                       If false, the ValidationMenu is a child of a card.
  * @returns {ValidationMenu}
  * @constructor
  */
