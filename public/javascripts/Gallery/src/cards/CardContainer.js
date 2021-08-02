@@ -93,7 +93,6 @@ function CardContainer(uiCardContainer) {
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
-            // TODO(micdun): this is pretty janky, think of better way?
             let clickedImage = event.target.classList.contains("static-gallery-image")
             let cardId = clickedImage ? event.target.id :
                                         "label_id_" + event.target.closest(".card-tags").id;
@@ -273,8 +272,6 @@ function CardContainer(uiCardContainer) {
      * Updates Cards being shown when user moves to next/previous page.
      */
     function updateCardsNewPage() {
-        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity.
-        // Think about improving code design.
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
@@ -345,11 +342,6 @@ function CardContainer(uiCardContainer) {
         let imagePromises = imagesToLoad.map(img => img.loadImage());
 
         if (imagesToLoad.length > 0) {
-            // if (imagesToLoad.length < cardsPerPage) {
-            //     sg.ui.cardContainer.nextPage.prop("disabled", true);
-            // } else {
-            //     sg.ui.cardContainer.nextPage.prop("disabled", false);
-            // }
             if (lastPage) {
                 sg.ui.cardContainer.nextPage.prop("disabled", true);
             } else {

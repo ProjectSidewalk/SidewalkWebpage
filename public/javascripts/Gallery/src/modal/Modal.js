@@ -22,8 +22,6 @@ function Modal(uiModal) {
                 // We check to make sure that the mutation effects the childList (adding/removing child nodes) of the
                 // card container and that cards (child nodes) were added in the mutation, indicating the cards have
                 // been rendered.
-                console.log('CHild node added: Cards have been rendered');
-                console.log("reopening modal");
                 $('.gallery-modal').attr('style', 'display: flex');
                 $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
     
@@ -239,7 +237,6 @@ function Modal(uiModal) {
         self.leftArrow.prop('disabled', false);
         self.rightArrow.prop('disabled', false);
         self.cardIndex = index;
-        console.log(self.cardIndex);
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
         openModal();
         if (self.cardIndex == 0) {
@@ -254,16 +251,6 @@ function Modal(uiModal) {
                 self.rightArrow.prop('disabled', true);
             }
         }
-        // if (index > (page - 1) * cardsPerPage) {
-        //     self.leftArrow.prop('disabled', false);
-        // } else {
-        //     self.leftArrow.prop('disabled', true);
-        // }
-        // if (index < page * cardsPerPage - 1) {
-        //     self.rightArrow.prop('disabled', false);
-        // } else {
-        //     self.rightArrow.prop('disabled', true);
-        // }
     }
 
     /**
@@ -279,18 +266,14 @@ function Modal(uiModal) {
             // Increment cardIndex now as the observer is ignorant of whether the prev or next arrow was clicked.
             self.cardIndex += 1;
 
-            // TODO: We probably want to put a confirmation here whenever we switch pages.
             // Move to the next page as the current card is the last on the page.
             sg.ui.cardContainer.nextPage.click();
 
             // The target we will observe.
             let cardHolder = sg.ui.cardContainer.holder[0];
-            console.log(cardHolder.id);
                         
             // Options for the observer.
             let config = {childList: true};
-
-            console.log("observing");
 
             // Start observing the target node for configured mutations
             observer.observe(cardHolder, config);
@@ -315,12 +298,9 @@ function Modal(uiModal) {
 
             // The target we will observe.
             let cardHolder = sg.ui.cardContainer.holder[0];
-            console.log(cardHolder.id);
                         
             // Options for the observer.
             let config = {childList: true};
-
-            console.log("observing");
 
             // Start observing the target node for configured mutations
             observer.observe(cardHolder, config);
