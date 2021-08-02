@@ -17,7 +17,7 @@ function Modal(uiModal) {
     // We need this because the prev/next page actions are asynchronous (they query the backend), so before reopening
     // the modal on a new page, we need to make sure the cards have actually been rendered in gallery view.
     const observer = new MutationObserver((mutationsList, observer) => {
-        for(let mutation of mutationsList) {
+        for (let mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                 // We check to make sure that the mutation effects the childList (adding/removing child nodes) of the
                 // card container and that cards (child nodes) were added in the mutation, indicating the cards have
@@ -239,14 +239,14 @@ function Modal(uiModal) {
         self.cardIndex = index;
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
         openModal();
-        if (self.cardIndex == 0) {
+        if (self.cardIndex === 0) {
             self.leftArrow.prop('disabled', true);
         }
 
         if (sg.cardContainer.isLastPage()) {
             let page = sg.cardContainer.getCurrentPage();
             let lastCardIndex = (page - 1) * cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
-            if (self.cardIndex == lastCardIndex) {
+            if (self.cardIndex === lastCardIndex) {
                 // The current page is the last page and the current card being rendered is the last card on the page.
                 self.rightArrow.prop('disabled', true);
             }
@@ -257,9 +257,10 @@ function Modal(uiModal) {
      * Moves to the next label.
      */
     function nextLabel() {
+        console.log('next label');
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * cardsPerPage - 1) {
-            // Iterate to next card on the page, updating the label being shown in the modal to be
+            // Iterate to next card on the page, updating the label being shown in the expanded view to be
             // that of the next card.
             updateModalCardByIndex(self.cardIndex + 1);
         } else {
@@ -271,12 +272,9 @@ function Modal(uiModal) {
 
             // The target we will observe.
             let cardHolder = sg.ui.cardContainer.holder[0];
-                        
-            // Options for the observer.
-            let config = {childList: true};
 
-            // Start observing the target node for configured mutations
-            observer.observe(cardHolder, config);
+            // Start observing the target node for configured mutations.
+            observer.observe(cardHolder, { childList: true });
         }
     }
 
@@ -298,12 +296,9 @@ function Modal(uiModal) {
 
             // The target we will observe.
             let cardHolder = sg.ui.cardContainer.holder[0];
-                        
-            // Options for the observer.
-            let config = {childList: true};
 
-            // Start observing the target node for configured mutations
-            observer.observe(cardHolder, config);
+            // Start observing the target node for configured mutations.
+            observer.observe(cardHolder, { childList: true });
         }
     }
 
