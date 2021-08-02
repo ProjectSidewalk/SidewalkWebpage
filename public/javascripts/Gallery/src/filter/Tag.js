@@ -58,7 +58,7 @@ function Tag (params) {
             apply();
         }
 
-        sg.cardContainer.updateCardsByTag();
+        sg.cardContainer.updateCardsByTagsAndSeverity();
     }
 
     /**
