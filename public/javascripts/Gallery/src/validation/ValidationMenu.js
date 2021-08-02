@@ -57,6 +57,7 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
             validationButtons["validate-agree"] = $(uiCardImage).find("#gallery-modal-agree");
             validationButtons["validate-disagree"] = $(uiCardImage).find("#gallery-modal-disagree");
             validationButtons["validate-not-sure"] = $(uiCardImage).find("#gallery-modal-not-sure");
+            galleryCard = document.getElementsByClassName('gallery-modal').item(0);
         }
         for (const [valKey, button] of Object.entries(validationButtons)) {
             button.click(function() {
@@ -65,10 +66,10 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
             });
         }
         // If the signed in user had already validated this label before loading the page, style the card to show that.
+        if (currentCardProperties !== null && currentCardProperties.user_validation) {
+            _showValidated(currentCardProperties.user_validation);
+        }
         if (isCard) {
-            if (currentCardProperties.user_validation) {
-                _showValidated(currentCardProperties.user_validation);
-            }
             uiCardImage.append(overlay[0]);
         }
     }
@@ -79,21 +80,24 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
 
         // If the label had already been validated differently, remove the visual effects from the older validation.
         if (currSelected && currSelected !== validationClass) {
-            validationButtons[currSelected].attr('class', 'validation-button');
+            if (isCard) {
+                validationButtons[currSelected].attr('class', 'validation-button');
+            }
             if (galleryCard.classList.contains(currSelected)) {
                 galleryCard.classList.remove(currSelected);
             }
         }
 
         // Add the visual effects from the new validation.
+        currSelected = validationClass;
+        galleryCard.classList.add(validationClass);
         if (isCard) {
-            currSelected = validationClass;
             validationButtons[validationClass].attr('class', 'validation-button-selected');
-            galleryCard.classList.add(validationClass);
+            referenceCard.setProperty('user_validation', validationOption);
         } else {
             referenceCard.validationMenu._showValidated(validationOption);
+            referenceCard.updateValidationStatus(validationOption);
         }
-
     }
 
     /**
@@ -167,7 +171,8 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
      */
     function updateReferenceCard(newCard) {
         referenceCard = newCard;
-        console.log(referenceCard)
+        galleryCard.classList.remove(validationOptionToClass["Agree"], validationOptionToClass["Disagree"], validationOptionToClass["NotSure"])
+        _init();
     }
 
     self.updateCardProperties = updateCardProperties;

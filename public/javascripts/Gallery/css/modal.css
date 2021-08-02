@@ -131,7 +131,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-top: 2px solid black;
     cursor: pointer;
 }
 

@@ -32,6 +32,7 @@ function Modal(uiModal) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        user_validation: undefined,
         tags: []
     };
 
@@ -142,8 +143,7 @@ function Modal(uiModal) {
         self.description.append(descriptionBody);
 
         // Add the validation buttons
-        self.validationMenu.updateCardProperties(properties);
-        self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));
+        
     }
 
     /**
@@ -200,6 +200,9 @@ function Modal(uiModal) {
                                               properties.canvas_x, properties.canvas_y, 
                                               properties.canvas_width, properties.canvas_height, 
                                               properties.heading, properties.pitch, properties.zoom);
+
+        self.validationMenu.updateCardProperties(properties);
+        self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));
     }
 
     /**
