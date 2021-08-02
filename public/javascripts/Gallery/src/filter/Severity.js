@@ -8,8 +8,10 @@
 function Severity (params){
     let self = this;
 
-    // UI element of severity.
+    // UI element of the severity container, image, and checkbox.
     let severityElement = null;
+    let severityImage = null;
+    let checkbox = null;
 
     let properties = {
         severity: undefined
@@ -25,12 +27,24 @@ function Severity (params){
      */
     function _init(param) {
         properties.severity = param;
-        severityElement = document.createElement('button');
-        severityElement.className = 'gallery-severity';
-        severityElement.id = properties.severity;
-        severityElement.innerText = properties.severity;
-        severityElement.disabled = true;
-        severityElement.onclick = handleOnClickCallback;
+
+        severityElement = document.createElement('div');
+        severityElement.className = 'gallery-severity'
+
+        severityImage = document.createElement('img');
+        severityImage.className = 'gallery-severity-image';
+        severityImage.id = properties.severity;
+        severityImage.innerText = properties.severity;
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${param}-Gray.png`
+
+        checkbox = document.createElement('input')
+        checkbox.onclick = handleOnClickCallback;
+        checkbox.type = 'checkbox'
+        checkbox.className = 'gallery-severity-checkbox'
+        checkbox.disabled = true;
+
+        severityElement.appendChild(severityImage)
+        severityElement.appendChild(checkbox)
     }
 
     /**
@@ -57,7 +71,7 @@ function Severity (params){
      */
     function apply() {
         active = true;
-        severityElement.setAttribute("style", "background-color: #78c8aa");
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
     }
 
     /**
@@ -65,7 +79,7 @@ function Severity (params){
      */
     function unapply() {
         active = false;
-        severityElement.setAttribute("style", "background-color: none");
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
     }
 
     /**
@@ -95,14 +109,14 @@ function Severity (params){
      * Disables interaction with Severity.
      */
     function disable() {
-        severityElement.setAttribute("disabled", true);
+        checkbox.setAttribute("disabled", true);
     }
 
     /**
      * Enables interaction with Severity.
      */
     function enable() {
-        severityElement.setAttribute("disabled", false);
+        checkbox.setAttribute("disabled", false);
     }
 
     self.handleOnClickCallback = handleOnClickCallback;
