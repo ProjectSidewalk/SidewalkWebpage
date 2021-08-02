@@ -11,6 +11,10 @@ var sg = sg || {};
 function Main (params) {
     let self = this;
 
+    let status = {
+        sticky: true
+    };
+
     function _initUI() {
         sg.ui = {};
 
@@ -37,8 +41,8 @@ function Main (params) {
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
 
-        // Keep track of the mini-footer at the top of the footer.
-        sg.ui.miniFooter = $("#mini-footer-audit");
+        // Keep track of the next/prev arrow container.
+        sg.ui.pageControl = $(".page-control");
 
         $('.gallery-modal').hide();
     }
@@ -59,18 +63,31 @@ function Main (params) {
         sg.util = {};
 
         $(window).scroll(function () {
-            //console.log("offset of top of footer: " + sg.ui.miniFooter.offset().top);
-            let footerTopOffset = sg.ui.miniFooter.offset().top;
-            let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
-            if (footerTopOffset < visibleWindowBottomOffset) {
-                $('.sidebar').css('position', 'relative');
-                $('.cards').css('margin-left', '0px');
-            } else {
-                $('.sidebar').css('position', 'fixed');
-                $('.cards').css('margin-left', '250px');
+            if (!$("#page-loading").is(":visible")) {
+                // Make sure the page isn't loading.
+                let pageControlTopOffset = sg.ui.pageControl.offset().top;
+                let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
+                if (pageControlTopOffset < visibleWindowBottomOffset) {
+                    if (status.sticky) {
+                        console.log("footer scrolled to visible");
+                        $('.sidebar').css('position', 'relative');
+                        $('.sidebar').css('top', $(window).scrollTop());
+                        $('.cards').css('margin-left', '0px');
+                        status.sticky = false;
+                    }
+                } else {
+                    if (!status.sticky) {
+                        console.log("footer scrolled to not visible");
+                        $('.sidebar').css('position', 'fixed');
+                        $('.sidebar').css('top', '');
+                        $('.cards').css('margin-left', '250px');
+                        status.sticky = true;
+                    }
+
+                }
+                // console.log("window scroll top: " + $(window).scrollTop());
+                // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
             }
-            // console.log("window scroll top: " + $(window).scrollTop());
-            // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
         }); 
     }
 
