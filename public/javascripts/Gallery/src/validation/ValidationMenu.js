@@ -33,32 +33,41 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
 
     let currSelected = null;
 
-    const overlayHTML = `
+    const cardOverlayHTML = `
         <div id="gallery-validation-button-holder">
             <button id="gallery-card-agree-button" class="validation-button">${i18next.t('gallery:agree')}</button>
             <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('gallery:disagree')}</button>
             <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('gallery:not-sure')}</button>
         </div>
     `;
-    let overlay = $(overlayHTML);
 
-    let validationButtons = {
-        "validate-agree": overlay.find("#gallery-card-agree-button"),
-        "validate-disagree": overlay.find("#gallery-card-disagree-button"),
-        "validate-not-sure": overlay.find("#gallery-card-not-sure-button")
-    };
+    const modalOverlayHTML = `
+    <div id="gallery-validation-button-holder">
+        <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('gallery:agree')}</button>
+        <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('gallery:disagree')}</button>
+        <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('gallery:not-sure')}</button>
+    </div>`;
+    
+    let overlay = $(cardOverlayHTML);
 
+    let validationButtons = undefined;
     // This is a regular DOM element, not jquery.
     let galleryCard = uiCardImage.parentElement;
 
     // Adds onClick functions for the validation buttons.
     function _init() {
+    
         if (!isCard) {
-            validationButtons["validate-agree"] = $(uiCardImage).find("#gallery-modal-agree");
-            validationButtons["validate-disagree"] = $(uiCardImage).find("#gallery-modal-disagree");
-            validationButtons["validate-not-sure"] = $(uiCardImage).find("#gallery-modal-not-sure");
             galleryCard = document.getElementsByClassName('gallery-modal').item(0);
+            overlay = $(modalOverlayHTML)
         }
+
+        validationButtons = {
+            "validate-agree": overlay.find("#gallery-card-agree-button"),
+            "validate-disagree": overlay.find("#gallery-card-disagree-button"),
+            "validate-not-sure": overlay.find("#gallery-card-not-sure-button")
+        };
+
         for (const [valKey, button] of Object.entries(validationButtons)) {
             button.click(function() {
                 _showValidated(classToValidationOption[valKey]);
@@ -69,9 +78,7 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         if (currentCardProperties !== null && currentCardProperties.user_validation) {
             _showValidated(currentCardProperties.user_validation);
         }
-        if (isCard) {
-            uiCardImage.append(overlay[0]);
-        }
+        uiCardImage.append(overlay[0]);
     }
 
     // Sets the look of the card to show that the label has been validated.
@@ -82,6 +89,8 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         if (currSelected && currSelected !== validationClass) {
             if (isCard) {
                 validationButtons[currSelected].attr('class', 'validation-button');
+            } else {
+                validationButtons[currSelected].attr('class', 'modal-validation-button');
             }
             if (galleryCard.classList.contains(currSelected)) {
                 galleryCard.classList.remove(currSelected);
@@ -91,12 +100,12 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         // Add the visual effects from the new validation.
         currSelected = validationClass;
         galleryCard.classList.add(validationClass);
+        referenceCard.setProperty('user_validation', validationOption);
         if (isCard) {
             validationButtons[validationClass].attr('class', 'validation-button-selected');
-            referenceCard.setProperty('user_validation', validationOption);
         } else {
             referenceCard.validationMenu._showValidated(validationOption);
-            referenceCard.setProperty('user_validation', validationOption);
+            validationButtons[validationClass].attr('class', 'modal-validation-button-selected');
         }
     }
 

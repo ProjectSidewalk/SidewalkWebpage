@@ -126,6 +126,27 @@
     margin-top: 2%;
 }
 
+.gallery-modal-pano:hover .modal-validation-button {
+    opacity: 0.75;
+}
+
+.modal-validation-button, .modal-validation-button-selected {
+    opacity: 0;
+    font-size: 0.75vw;
+    font-weight: bold;
+    font-family: 'raleway-regular', sans-serif;
+    background-color: white;
+    border-style: none;
+    color: #2d2a3f;
+}
+
+.gallery-modal-pano:hover .modal-validation-button-selected {
+    opacity: 1;
+    background-color: gray;
+    /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
+    /* outline: -webkit-focus-ring-color auto 1px; */
+}
+
 .gallery-modal-validation-button {
     flex-grow: 1;
     display: flex;
