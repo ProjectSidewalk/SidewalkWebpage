@@ -35,6 +35,7 @@ function CardContainer(uiCardContainer) {
     // Current label type of cards being shown.
     let currentLabelType = 'Assorted';
     let currentPage = 1;
+    let lastPage = false;
     let pageNumberDisplay = null;
     let pageWidth;
     let modal;
@@ -74,7 +75,7 @@ function CardContainer(uiCardContainer) {
         uiCardContainer.pageNumber.append(pageNumberDisplay);
         $(".page-control").hide();
         sg.tagContainer.disable();
-        $("#prev-page").prop("disabled", true);
+        sg.ui.cardContainer.prevPage.prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
@@ -85,14 +86,13 @@ function CardContainer(uiCardContainer) {
         // Creates the Modal object in the DOM element currently present.
         modal = new Modal($('.gallery-modal'));
         // Add the click event for opening the Modal when a card is clicked.
-        $("#image-card-container").on('click', '.static-gallery-image, .additional-count',  (event) => {
+        sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
             // If the user clicks on the image body in the card, just use the provided id.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
-            // TODO(micdun): this is pretty janky, think of better way?
             let clickedImage = event.target.classList.contains("static-gallery-image")
             let cardId = clickedImage ? event.target.id :
                                         "label_id_" + event.target.closest(".card-tags").id;
@@ -137,7 +137,7 @@ function CardContainer(uiCardContainer) {
             to: currentPage + 1
         });
         setPage(currentPage + 1);
-        $("#prev-page").prop("disabled", false);
+        sg.ui.cardContainer.prevPage.prop("disabled", false);
         updateCardsNewPage();
     }
 
@@ -155,7 +155,7 @@ function CardContainer(uiCardContainer) {
 
     function setPage(pageNumber) {
         if (pageNumber <= 1) {
-            $("#prev-page").prop("disabled", true);
+            sg.ui.cardContainer.prevPage.prop("disabled", true);
         } 
         currentPage = pageNumber;
         pageNumberDisplay.innerText = pageNumber;
@@ -257,8 +257,12 @@ function CardContainer(uiCardContainer) {
             sg.tagContainer.unapplyTags(currentLabelType);
             currentLabelType = filterLabelType;
 
-            fetchLabelsByType(labelTypeIds[filterLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
+            fetchLabelsByType(labelTypeIds[filterLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), function () {
                 currentCards = cardsByType[currentLabelType].copy();
+
+                // We query double the amount of cards per page, "prepping" for the next page. If after querying we see
+                // that we still only have enough labels to fill up to the current page, the current page must be the last page.
+                lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                 render();
             });
         }
@@ -268,8 +272,6 @@ function CardContainer(uiCardContainer) {
      * Updates Cards being shown when user moves to next/previous page.
      */
     function updateCardsNewPage() {
-        // TODO: lots of repeated code among this method and updateCardsByTag and updateCardsBySeverity.
-        // Think about improving code design.
         refreshUI();
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
@@ -279,63 +281,35 @@ function CardContainer(uiCardContainer) {
         currentCards.filterOnTags(appliedTags);
         currentCards.filterOnSeverities(appliedSeverities);
 
-        if (currentCards.getSize() < cardsPerPage * currentPage) {
+        if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
             if (currentLabelType === "Occlusion") {
-                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), function () {
+                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), function () {
                     currentCards = cardsByType[currentLabelType].copy();
+                    lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });
             } else {
-                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
                     currentCards = cardsByType[currentLabelType].copy();
                     currentCards.filterOnTags(appliedTags);
                     currentCards.filterOnSeverities(appliedSeverities);
-
+                    lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });
             }
         } else {
+            lastPage = false;
             render();
         }
     }
 
     /**
-     * When tag filter is updated, update Cards to be shown.
+     * When a tag or severity filter is updated, update Cards to be shown.
      */
-    function updateCardsByTag() {
+    function updateCardsByTagsAndSeverity() {
         setPage(1);
-        refreshUI();
-
-        let appliedTags = sg.tagContainer.getAppliedTagNames();
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-
-        fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-            currentCards = cardsByType[currentLabelType].copy();
-            currentCards.filterOnTags(appliedTags);
-            currentCards.filterOnSeverities(appliedSeverities);
-
-            render();
-        });
-    }
-
-    /**
-     * When severity filter is updated, update Cards to be shown.
-     */
-    function updateCardsBySeverity() {
-        setPage(1);
-        refreshUI();
-
-        let appliedTags = sg.tagContainer.getAppliedTagNames();
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-
-        fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-            currentCards = cardsByType[currentLabelType].copy();
-            currentCards.filterOnTags(appliedTags);
-            currentCards.filterOnSeverities(appliedSeverities);
-
-            render();
-        });
+        updateCardsNewPage();
     }
 
     function sortCards(order) {
@@ -368,10 +342,10 @@ function CardContainer(uiCardContainer) {
         let imagePromises = imagesToLoad.map(img => img.loadImage());
 
         if (imagesToLoad.length > 0) {
-            if (imagesToLoad.length < cardsPerPage) {
-                $("#next-page").prop("disabled", true);
+            if (lastPage) {
+                sg.ui.cardContainer.nextPage.prop("disabled", true);
             } else {
-                $("#next-page").prop("disabled", false);
+                sg.ui.cardContainer.nextPage.prop("disabled", false);
             }
 
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
@@ -397,6 +371,7 @@ function CardContainer(uiCardContainer) {
      */
     function refreshUI() {
         modal.closeModal();
+        window.scrollTo(0, 0);
         sg.tagContainer.disable();
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
@@ -463,16 +438,25 @@ function CardContainer(uiCardContainer) {
             currentPageCards.push(cardBucket[idx]);
             idx++;
         }
+
         return currentPageCards;
+    }
+
+    /**
+     * Returns whether the current page is the last page of queried cards.
+     * @returns True if current page is last page of cards that satisfies applied query, false otherwise.
+     */
+    function isLastPage() {
+        return lastPage;
     }
 
     self.fetchLabelsByType = fetchLabelsByType;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
+    self.isLastPage = isLastPage;
     self.push = push;
     self.updateCardsByType = updateCardsByType;
-    self.updateCardsByTag = updateCardsByTag;
-    self.updateCardsBySeverity = updateCardsBySeverity;
+    self.updateCardsByTagsAndSeverity = updateCardsByTagsAndSeverity;
     self.updateCardsNewPage = updateCardsNewPage;
     self.sortCards = sortCards;
     self.render = render;
