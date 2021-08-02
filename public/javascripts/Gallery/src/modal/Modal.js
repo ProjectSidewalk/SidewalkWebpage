@@ -76,7 +76,7 @@ function Modal(uiModal) {
         self.rightArrow.click(nextLabel)
         self.leftArrow.click(previousLabel)
         self.cardIndex = -1;
-        self.validationMenu = new ValidationMenu(self.panoHolder, null, false)
+        self.validationMenu = new ValidationMenu(self.panoHolder, null, true)
     }
 
     /**

@@ -6,7 +6,7 @@
  * @returns {ValidationMenu}
  * @constructor
  */
-function ValidationMenu(uiCardImage, cardProperties, isCard) {
+function ValidationMenu(uiCardImage, cardProperties, onExpandedView) {
     const resultOptions = {
         "Agree": 1, 
         "Disagree": 2,
@@ -57,7 +57,7 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
     // Adds onClick functions for the validation buttons.
     function _init() {
     
-        if (!isCard) {
+        if (onExpandedView) {
             overlay = $(modalOverlayHTML)
         }
 
@@ -86,7 +86,7 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
 
         // If the label had already been validated differently, remove the visual effects from the older validation.
         if (currSelected && currSelected !== validationClass) {
-            if (isCard) {
+            if (!onExpandedView) {
                 validationButtons[currSelected].attr('class', 'validation-button');
                 if (galleryCard.classList.contains(currSelected)) {
                     galleryCard.classList.remove(currSelected);
@@ -102,7 +102,7 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
         if (referenceCard !== null) {
             referenceCard.setProperty('user_validation', validationOption);
         }
-        if (isCard) {
+        if (!onExpandedView) {
             galleryCard.classList.add(validationClass);
             validationButtons[validationClass].attr('class', 'validation-button-selected');
         } else {
