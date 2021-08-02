@@ -118,14 +118,6 @@
     flex-direction: column;
 }
 
-.gallery-modal-validation {
-    height: 10%;
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    margin-top: 2%;
-}
-
 .gallery-modal-pano:hover .modal-validation-button {
     opacity: 0.6;
 }
