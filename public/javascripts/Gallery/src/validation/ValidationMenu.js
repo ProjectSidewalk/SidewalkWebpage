@@ -96,7 +96,7 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
             referenceCard.setProperty('user_validation', validationOption);
         } else {
             referenceCard.validationMenu._showValidated(validationOption);
-            referenceCard.updateValidationStatus(validationOption);
+            referenceCard.setProperty('user_validation', validationOption);
         }
     }
 
@@ -172,7 +172,9 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
     function updateReferenceCard(newCard) {
         referenceCard = newCard;
         galleryCard.classList.remove(validationOptionToClass["Agree"], validationOptionToClass["Disagree"], validationOptionToClass["NotSure"])
-        _init();
+        if (currentCardProperties !== null && currentCardProperties.user_validation) {
+            _showValidated(currentCardProperties.user_validation);
+        }
     }
 
     self.updateCardProperties = updateCardProperties;
