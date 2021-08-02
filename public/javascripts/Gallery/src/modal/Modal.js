@@ -10,7 +10,6 @@ function Modal(uiModal) {
     let self = this;
 
     const cardsPerPage = 9;
-
     const unselectedCardClassName = "modal-background-card";
 
     let cardReference = null;
