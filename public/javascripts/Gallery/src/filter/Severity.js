@@ -35,6 +35,7 @@ function Severity (params){
         severityImage.className = 'gallery-severity-image';
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
+        severityImage.onclick = handleOnClickCallback;
         severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${param}-Gray.png`
 
         checkbox = document.createElement('input')
@@ -50,14 +51,14 @@ function Severity (params){
     /**
      * Handles when severity is selected/deselected.
      */
-    function handleOnClickCallback(){
-        if (active){
-            sg.tracker.push("SeverityApply", null, {
+    function handleOnClickCallback() {
+        if (active) {
+            sg.tracker.push("SeverityUnapply", null, {
                 Severity: properties.severity
             });
             unapply();
         } else {
-            sg.tracker.push("SeverityUnapply", null, {
+            sg.tracker.push("SeverityApply", null, {
                 Severity: properties.severity
             });
             apply();
@@ -71,6 +72,7 @@ function Severity (params){
      */
     function apply() {
         active = true;
+        checkbox.checked = true;
         severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
     }
 
@@ -79,6 +81,7 @@ function Severity (params){
      */
     function unapply() {
         active = false;
+        checkbox.checked = false;
         severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
     }
 

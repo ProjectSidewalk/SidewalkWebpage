@@ -42,6 +42,7 @@
 }
 
 .gallery-severity-image {
+    cursor: pointer;
     background-color: white;
     width: 40px;
 }
