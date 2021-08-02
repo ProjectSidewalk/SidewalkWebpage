@@ -99,7 +99,9 @@ function ValidationMenu(uiCardImage, cardProperties, isCard) {
 
         // Add the visual effects from the new validation.
         currSelected = validationClass;
-        referenceCard.setProperty('user_validation', validationOption);
+        if (referenceCard !== null) {
+            referenceCard.setProperty('user_validation', validationOption);
+        }
         if (isCard) {
             galleryCard.classList.add(validationClass);
             validationButtons[validationClass].attr('class', 'validation-button-selected');
