@@ -135,7 +135,8 @@ function Card (params, imageUrl) {
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(imageHolder, properties);
+        validationMenu = new ValidationMenu(imageHolder, properties, false);
+        validationMenu.updateReferenceCard(self);
     }
 
     /**
@@ -300,5 +301,8 @@ function Card (params, imageUrl) {
     self.getImageId = getImageId;
 
     _init(params);
+    
+    self.validationMenu = validationMenu;
+
     return this;
 }

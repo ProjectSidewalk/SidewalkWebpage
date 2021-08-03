@@ -174,8 +174,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 .gallery-card:hover .validation-button-selected {
     opacity: 1;
     background-color: gray;
-    /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
-    /* outline: -webkit-focus-ring-color auto 1px; */
 }
 
 .modal-background-card {

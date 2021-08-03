@@ -10,7 +10,6 @@ function Modal(uiModal) {
     let self = this;
 
     const cardsPerPage = 9;
-
     const unselectedCardClassName = "modal-background-card";
 
     // Observes the card container so that once cards are rendered (added to DOM), we can reopen the modal.
@@ -52,6 +51,7 @@ function Modal(uiModal) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        user_validation: undefined,
         tags: []
     };
 
@@ -71,10 +71,12 @@ function Modal(uiModal) {
         self.closeButton = $('.gallery-modal-close')
         self.leftArrow = $('#prev-label')
         self.rightArrow = $('#next-label')
+        self.validation = $('.gallery-modal-validation')
         self.closeButton.click(closeModalAndRemoveCardTransparency)
         self.rightArrow.click(nextLabel)
         self.leftArrow.click(previousLabel)
         self.cardIndex = -1;
+        self.validationMenu = new ValidationMenu(self.panoHolder, null, true)
     }
 
     /**
@@ -217,6 +219,9 @@ function Modal(uiModal) {
                                               properties.canvas_x, properties.canvas_y, 
                                               properties.canvas_width, properties.canvas_height, 
                                               properties.heading, properties.pitch, properties.zoom);
+
+        self.validationMenu.updateCardProperties(properties);
+        self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));
     }
 
     /**
@@ -257,7 +262,6 @@ function Modal(uiModal) {
      * Moves to the next label.
      */
     function nextLabel() {
-        console.log('next label');
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * cardsPerPage - 1) {
             // Iterate to next card on the page, updating the label being shown in the expanded view to be
