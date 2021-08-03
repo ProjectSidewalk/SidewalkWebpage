@@ -302,6 +302,3 @@ gallery.tags = Etiquitas
 gallery.all = Todos
 gallery.occlusion = No puedo ver la banqueta
 gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
-gallery.validation.agree = De acuerdo
-gallery.validation.disagree = No Estoy de acuerdo
-gallery.validation.not.sure = No Estoy de seguro

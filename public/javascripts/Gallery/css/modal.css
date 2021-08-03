@@ -106,14 +106,14 @@
 
 .gallery-modal-info-temporary {
     width: 40%;
-    height: 30%;
+    height: 60%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-description {
     width: 60%;
-    height: 30%;
+    height: 60%;
     display: flex;
     flex-direction: column;
 }
@@ -127,7 +127,7 @@
 }
 
 .gallery-modal-pano:hover .modal-validation-button {
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .modal-validation-button, .modal-validation-button-selected {
@@ -143,8 +143,6 @@
 .gallery-modal-pano:hover .modal-validation-button-selected {
     opacity: 1;
     background-color: gray;
-    /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
-    /* outline: -webkit-focus-ring-color auto 1px; */
 }
 
 .gallery-modal-validation-button {

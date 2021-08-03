@@ -304,6 +304,3 @@ gallery.tags = Tags
 gallery.all = All
 gallery.occlusion = Can't See Sidewalk
 gallery.labels.not.found = No matches. <a href="/audit">Start exploring</a> to contribute more data!
-gallery.validation.agree = Agree
-gallery.validation.disagree = Disagree
-gallery.validation.not.sure = Not sure

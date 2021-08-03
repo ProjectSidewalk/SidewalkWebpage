@@ -266,7 +266,6 @@ function Modal(uiModal) {
      * Moves to the next label.
      */
     function nextLabel() {
-        console.log('next label');
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * cardsPerPage - 1) {
             // Iterate to next card on the page, updating the label being shown in the expanded view to be
