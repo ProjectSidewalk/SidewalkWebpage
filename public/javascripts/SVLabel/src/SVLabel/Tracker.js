@@ -192,8 +192,8 @@ function Tracker () {
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
 
-            if(notes === null || typeof(notes) === 'undefined') {
-                notes = {'auditTaskId' : labelProperties.audit_task_id};
+            if (notes === null || typeof (notes) === 'undefined') {
+                notes = {'auditTaskId': labelProperties.audit_task_id};
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }

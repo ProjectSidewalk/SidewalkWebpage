@@ -5,13 +5,13 @@ util.panomarker = {};
 /**
  * 3D projection related functions
  *
- * These functions are for positioning the markers when the view is panned
- * The library used is adpated from: https://martinmatysiak.de/blog/view/panomarker/en
+ * These functions are for positioning the markers when the view is panned.
+ * The library used is adapted from: https://martinmatysiak.de/blog/view/panomarker/en
  * The math used is from:
  * http://stackoverflow.com/questions/21591462/get-heading-and-pitch-from-pixels-on-street-view/21753165?noredirect=1#comment72346716_21753165
  */
 
-function get3dFov (zoom) {
+function get3dFov(zoom) {
     return zoom <= 2 ?
     126.5 - zoom * 36.75 :  // linear descent
     195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
@@ -35,7 +35,7 @@ function sgn(x) {
  * @param pov
  * @returns {{heading: number, pitch: number, zoom: Number}}
  */
-function calculatePointPov (canvasX, canvasY, pov) {
+function calculatePointPov(canvasX, canvasY, pov) {
     var heading = parseInt(pov.heading, 10),
         pitch = parseInt(pov.pitch, 10),
         zoom = parseInt(pov.zoom, 10);
@@ -98,7 +98,7 @@ util.panomarker.calculatePointPov = calculatePointPov;
  * @param pov
  * @returns {{heading: Number, pitch: Number, zoom: Number}}
  */
-function calculatePointPovFromImageCoordinate (imageX, imageY, pov) {
+function calculatePointPovFromImageCoordinate(imageX, imageY, pov) {
     var heading, pitch,
         zoom = parseInt(pov.zoom, 10);
 
@@ -127,7 +127,7 @@ util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImag
  * @param pov
  * @returns {{x: (number|*), y: (number|*)}}
  */
-function calculateImageCoordinateFromPointPov (pov) {
+function calculateImageCoordinateFromPointPov(pov) {
     var heading = pov.heading,
         pitch = pov.pitch,
         zoom = pov.zoom;
@@ -155,7 +155,7 @@ util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateF
  * @param pov
  * @returns {{x: number, y: number}}
  */
-function canvasCoordinateToImageCoordinate (canvasX, canvasY, pov) {
+function canvasCoordinateToImageCoordinate(canvasX, canvasY, pov) {
 
     // Old calculation
     // var zoomFactor = svl.zoomFactor[pov.zoom];
@@ -290,7 +290,7 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
  * @param pov
  * @returns {{x, y}}
  */
-function getCanvasCoordinate (canvasCoord, origPov, pov) {
+function getCanvasCoordinate(canvasCoord, origPov, pov) {
 
     var povChange = svl.map.getPovChangeStatus(),
         povChangeStatus = povChange["status"];
@@ -325,4 +325,3 @@ function getCanvasCoordinate (canvasCoord, origPov, pov) {
     return canvasCoord;
 }
 util.panomarker.getCanvasCoordinate = getCanvasCoordinate;
-

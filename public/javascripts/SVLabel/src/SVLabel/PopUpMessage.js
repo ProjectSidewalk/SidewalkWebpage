@@ -132,8 +132,8 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                 "auditTaskId": task.getAuditTaskId(),
                 "auditStreetEdgeId": task.getStreetEdgeId()
             });
-            var data = form.compileSubmissionData(task),
-                staged = storage.get("staged");
+            var data = form.compileSubmissionData(task);
+            var staged = storage.get("staged");
             staged.push(data);
             storage.set("staged", staged);
             disableInteractions();
@@ -166,8 +166,8 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                 "auditTaskId": task.getAuditTaskId(),
                 "auditStreetEdgeId": task.getStreetEdgeId()
             });
-            var data = form.compileSubmissionData(task),
-                staged = storage.get("staged");
+            var data = form.compileSubmissionData(task);
+            var staged = storage.get("staged");
             staged.push(data);
             storage.set("staged", staged);
 

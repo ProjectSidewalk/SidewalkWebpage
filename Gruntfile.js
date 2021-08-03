@@ -12,7 +12,6 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/data/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/game/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/gsv/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/label/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/menu/*.js',

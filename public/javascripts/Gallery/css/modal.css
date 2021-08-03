@@ -114,6 +114,27 @@
 .gallery-modal-info-description {
     width: 60%;
     height: 60%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-pano:hover .modal-validation-button {
+    opacity: 0.6;
+}
+
+.modal-validation-button, .modal-validation-button-selected {
+    opacity: 0;
+    font-size: 1.25vw;
+    font-weight: bold;
+    font-family: 'raleway-regular', sans-serif;
+    background-color: white;
+    border-style: none;
+    color: #2d2a3f;
+}
+
+.gallery-modal-pano:hover .modal-validation-button-selected {
+    opacity: 1;
+    background-color: gray;
 }
 
 .modal-top-holder {

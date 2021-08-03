@@ -1,7 +1,6 @@
 .gallery-tag {
     display: inline-block;
     padding: 0px 5px;
-    cursor: pointer;
     border-style: solid;
     border-width: 1px;
     border-radius: 5px;
@@ -19,25 +18,44 @@
     color: #2d2a3f;
 }
 
+.not-added {
+    background-color: white;
+    font-size: .6vw;
+    margin: 1px;
+}
+
 .additional-count {
     margin: 3px -2px;
     border-style: none;
     font-weight: bold;
+    cursor: pointer;
 }
 
 .gallery-tag:disabled {
     opacity: 50%;
 }
 
-.gallery-severity {
-    display: inline-block;
-    padding: 0px 5px;
+#severity {
+    display: flex;
+    flex-direction: row;
+    margin-left: -10px;
+}
+
+.gallery-severity-image {
     cursor: pointer;
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 3px;
-    margin: 2px 2px;
     background-color: white;
+    width: 40px;
+}
+
+.gallery-severity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 50px;
+}
+
+.gallery-severity-checkbox {
+    cursor: pointer;
 }
 
 .gallery-severity:disabled {
@@ -48,7 +66,21 @@
     display: none;
 }
 
+#label-select {
+    cursor: pointer;
+}
+
 #label-select:disabled {
+    cursor: default;
     opacity: 50%;
     background-color: white;
+}
+
+.additional-tag-popover {
+    width: fit-content;
+    max-width: 250px;
+}
+
+.additional-tag-popover-content {
+    padding: 5px 10px;
 }
