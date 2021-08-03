@@ -145,22 +145,6 @@
     background-color: gray;
 }
 
-.gallery-modal-validation-button {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-#gallery-modal-agree {
-    border-bottom-left-radius: 20px;
-}
-
-#gallery-modal-not-sure {
-    border-bottom-right-radius: 20px;
-}
-
 .modal-top-holder {
     display: flex;
     align-content: space-between;

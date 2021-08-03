@@ -12,7 +12,6 @@ function Modal(uiModal) {
     const cardsPerPage = 9;
     const unselectedCardClassName = "modal-background-card";
 
-    let cardReference = null;
     // Observes the card container so that once cards are rendered (added to DOM), we can reopen the modal.
     // We need this because the prev/next page actions are asynchronous (they query the backend), so before reopening
     // the modal on a new page, we need to make sure the cards have actually been rendered in gallery view.
@@ -161,9 +160,6 @@ function Modal(uiModal) {
         descriptionBody.innerHTML = properties.description === null ? i18next.t('no-description') : properties.description;
         self.description.append(descriptionHeader);
         self.description.append(descriptionBody);
-
-        // Add the validation buttons
-        
     }
 
     /**
@@ -172,6 +168,7 @@ function Modal(uiModal) {
     function openModal() {
         resetModal();
         populateModalDescriptionFields();
+        console.log(properties.user_validation);
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t('gallery.' + properties.label_type));
