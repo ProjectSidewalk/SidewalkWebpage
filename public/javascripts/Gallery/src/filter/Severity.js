@@ -8,17 +8,17 @@
 function Severity (params){
     let self = this;
 
-    // UI element of the severity container, image, and checkbox.
+    // UI element of the severity container and image.
     let severityElement = null;
     let severityImage = null;
-    let checkbox = null;
+    let interactionEnabled = false;
 
     let properties = {
         severity: undefined
     };
 
     // A boolean to see if the current severity filter is active.
-    let active = false;
+    let filterActive = false;
 
     /**
      * Initialize Severity.
@@ -29,30 +29,23 @@ function Severity (params){
         properties.severity = param;
 
         severityElement = document.createElement('div');
-        severityElement.className = 'gallery-severity'
+        severityElement.className = 'gallery-severity';
+        severityElement.onclick = handleOnClickCallback;
 
         severityImage = document.createElement('img');
         severityImage.className = 'gallery-severity-image';
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
-        severityImage.onclick = handleOnClickCallback;
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${param}-Gray.png`
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${param}-Gray.png`;
 
-        checkbox = document.createElement('input')
-        checkbox.onclick = handleOnClickCallback;
-        checkbox.type = 'checkbox'
-        checkbox.className = 'gallery-severity-checkbox'
-        checkbox.disabled = true;
-
-        severityElement.appendChild(severityImage)
-        severityElement.appendChild(checkbox)
+        severityElement.appendChild(severityImage);
     }
 
     /**
      * Handles when severity is selected/deselected.
      */
     function handleOnClickCallback() {
-        if (active) {
+        if (filterActive) {
             sg.tracker.push("SeverityUnapply", null, {
                 Severity: properties.severity
             });
@@ -68,21 +61,23 @@ function Severity (params){
     }
 
     /**
-     * Applies a Severity.
+     * Applies a severity filter.
      */
     function apply() {
-        active = true;
-        checkbox.checked = true;
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
+        if (interactionEnabled) {
+            filterActive = true;
+            severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
+        }
     }
 
     /**
-     * Unapplies a Severity.
+     * Unapplies a severity filter.
      */
     function unapply() {
-        active = false;
-        checkbox.checked = false;
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
+        if (interactionEnabled) {
+            filterActive = false;
+            severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
+        }
     }
 
     /**
@@ -98,7 +93,7 @@ function Severity (params){
      * Returns whether Severity is applied or not.
      */
     function getActive(){
-        return active;
+        return filterActive;
     }
 
     /**
@@ -112,14 +107,14 @@ function Severity (params){
      * Disables interaction with Severity.
      */
     function disable() {
-        checkbox.setAttribute("disabled", true);
+        interactionEnabled = false;
     }
 
     /**
      * Enables interaction with Severity.
      */
     function enable() {
-        checkbox.setAttribute("disabled", false);
+        interactionEnabled = true;
     }
 
     self.handleOnClickCallback = handleOnClickCallback;
