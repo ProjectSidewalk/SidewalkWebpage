@@ -62,33 +62,33 @@ function Main (params) {
 
         sg.util = {};
 
-        $(window).scroll(function () {
-            if (!$("#page-loading").is(":visible")) {
-                // Make sure the page isn't loading.
-                let pageControlTopOffset = sg.ui.pageControl.offset().top;
-                let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
-                if (pageControlTopOffset < visibleWindowBottomOffset) {
-                    if (status.sticky) {
-                        console.log("footer scrolled to visible");
-                        $('.sidebar').css('position', 'relative');
-                        $('.sidebar').css('top', $(window).scrollTop());
-                        $('.cards').css('margin-left', '0px');
-                        status.sticky = false;
-                    }
-                } else {
-                    if (!status.sticky) {
-                        console.log("footer scrolled to not visible");
-                        $('.sidebar').css('position', 'fixed');
-                        $('.sidebar').css('top', '');
-                        $('.cards').css('margin-left', '250px');
-                        status.sticky = true;
-                    }
+        // $(window).scroll(function () {
+        //     if (!$("#page-loading").is(":visible")) {
+        //         // Make sure the page isn't loading.
+        //         let pageControlTopOffset = sg.ui.pageControl.offset().top;
+        //         let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
+        //         if (pageControlTopOffset < visibleWindowBottomOffset) {
+        //             if (status.sticky) {
+        //                 console.log("footer scrolled to visible");
+        //                 $('.sidebar').css('position', 'relative');
+        //                 $('.sidebar').css('top', $(window).scrollTop());
+        //                 $('.cards').css('margin-left', '0px');
+        //                 status.sticky = false;
+        //             }
+        //         } else {
+        //             if (!status.sticky) {
+        //                 console.log("footer scrolled to not visible");
+        //                 $('.sidebar').css('position', 'absolute');
+        //                 $('.sidebar').css('top', '');
+        //                 $('.cards').css('margin-left', '250px');
+        //                 status.sticky = true;
+        //             }
 
-                }
-                // console.log("window scroll top: " + $(window).scrollTop());
-                // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
-            }
-        }); 
+        //         }
+        //         // console.log("window scroll top: " + $(window).scrollTop());
+        //         // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
+        //     }
+        // }); 
     }
 
     // Gets all the text on the gallery page for the correct language.

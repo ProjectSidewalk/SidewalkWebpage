@@ -12,40 +12,41 @@
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
 
     @navbar(user, Some("/gallery"))
-    <div class="grid-container">
-        <div class="sidebar">
-            <div id="card-filter"> 
-                <div id="ribbon-menu-holder">
-                    <span id="label-type-holder">
-                        <h4><b>@Messages("gallery.show")</b></h4>
-                        <select id="label-select" disabled>
-                            <option value="Assorted">@Messages("gallery.all")</option>
-                            <option value="CurbRamp">@Messages("curb.ramp")</option>
-                            <option value="NoCurbRamp">@Messages("missing.ramp")</option>
-                            <option value="Obstacle">@Messages("obstacle")</option>
-                            <option value="SurfaceProblem">@Messages("surface.problem")</option>
-                            <option value="Occlusion">@Messages("gallery.occlusion")</option>
-                            <option value="NoSidewalk">@Messages("no.sidewalk")</option>
-                            <option value="Other">@Messages("other")</option>
-                        </select>
-                    </span>
-                    
-                </div>
-                <div id="horizontal-line"></div>
-                <div id="filters">
-                    <h4><b>@Messages("gallery.filter.by")</b></h4>
-                    <h5 id="severity-header">@Messages("gallery.severity")</h5>
-                    <span id="severity">
-                    </span>
-                    <h5 id="tags-header">@Messages("gallery.tags")</h5>
-                    <span id="tags">
-                    </span>
-                </div>  
+    <!-- <div class="grid-container"> -->
+    <div class="sidebar">
+        <div id="card-filter"> 
+            <div id="ribbon-menu-holder">
+                <span id="label-type-holder">
+                    <h4><b>@Messages("gallery.show")</b></h4>
+                    <select id="label-select" disabled>
+                        <option value="Assorted">@Messages("gallery.all")</option>
+                        <option value="CurbRamp">@Messages("curb.ramp")</option>
+                        <option value="NoCurbRamp">@Messages("missing.ramp")</option>
+                        <option value="Obstacle">@Messages("obstacle")</option>
+                        <option value="SurfaceProblem">@Messages("surface.problem")</option>
+                        <option value="Occlusion">@Messages("gallery.occlusion")</option>
+                        <option value="NoSidewalk">@Messages("no.sidewalk")</option>
+                        <option value="Other">@Messages("other")</option>
+                    </select>
+                </span>
+                
             </div>
+            <div id="horizontal-line"></div>
+            <div id="filters">
+                <h4><b>@Messages("gallery.filter.by")</b></h4>
+                <h5 id="severity-header">@Messages("gallery.severity")</h5>
+                <span id="severity">
+                </span>
+                <h5 id="tags-header">@Messages("gallery.tags")</h5>
+                <span id="tags">
+                </span>
+            </div>  
         </div>
-        <div id="labels-not-found-text">
-            <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
-        </div>
+    </div>
+    <div id="labels-not-found-text">
+        <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
+    </div>
+    <div id="gallery-content" class="grid-container">
         <div id="image-card-container" class="cards"></div>
         <div class="gallery-modal">
             <div class="modal-top-holder">
@@ -68,6 +69,7 @@
             </div>
         </div>
     </div>
+    <!-- </div> -->
     <div class="page-control">
         <button class="paging" id="prev-page">&lt</button>
         <div class="paging" id="page-number"></div>
