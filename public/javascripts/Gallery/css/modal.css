@@ -54,6 +54,7 @@
 
 .actual-pano {
     border: 6px solid transparent;
+    border-radius: 5px;
     background-color: transparent;
 }
 
@@ -84,7 +85,7 @@
     display: flex;
     height: 20%;
     /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
-    width: calc(100% - 104px);
+    width: calc(100% - 105px);
     flex-wrap: wrap;
     font-size: 1vw;
 }
@@ -147,21 +148,10 @@
     align-content: space-between;
     margin-bottom: 5px;
     /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
-    width: calc(100% - 104px);
+    width: calc(100% - 105px);
 }
 
 .modal-severity-circle {
-    /* color: black;
-    border: 1px solid black;
-    padding: 1px 0px; /* Quite a hacky fix in order to center numbers correctly, reassess */
-    /* width: 1.5vw;
-    height: 1.5vw;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 100%;
-    margin: 2px;
-    background-color: white;
-    font-size: 1vw; */
     width: 1.75vw;
     height: 1.75vw;
 }
