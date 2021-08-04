@@ -43,7 +43,7 @@ function TagDisplay(container, tags, isModal=false) {
             for (let i = 0; i < tagsText.length; i++) {
                 let tagTest = document.createElement('div');
                 // We may want to rename the thumbnail-tag class if we every choose to make tags editable in modal mode.
-                tagTest.className = 'gallery-tag-modal thumbnail-tag';
+                tagTest.className = 'gallery-tag thumbnail-tag gallery-tag-sidebar';
                 tagTest.innerText = tagsText[i];
                 $(tagContainer).append(tagTest);
                 // 14 is from the 7px of padding/margin on all tags (both left and right) and the 5 is from the spacing beween tags (5px).
@@ -59,7 +59,7 @@ function TagDisplay(container, tags, isModal=false) {
             if (hiddenCount > 0) {
                 // We have hidden tags.
                 let additional = document.createElement('div');
-                additional.className = "gallery-tag-modal additional-count";
+                additional.className = "gallery-tag additional-count";
                 additional.innerText = " + " + hiddenCount;
                 $(tagContainer).append(additional);
             }
