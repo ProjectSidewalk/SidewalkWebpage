@@ -12,7 +12,7 @@
 }
 
 .gallery-tag, gallery-tag-sidebar {
-    max-width: 85%;
+    max-width: 98%;
     overflow: hidden;
     text-overflow: ellipsis;
 }
