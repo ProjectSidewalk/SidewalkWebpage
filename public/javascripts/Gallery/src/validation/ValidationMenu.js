@@ -101,6 +101,11 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
         uiCardImage.append(overlay[0]);
     }
 
+    /**
+     * Adds the visual effects of validation to the small card (opaque button and fill color below image).
+     *
+     * @param validationOption
+     */
     function showValidationOnCard(validationOption) {
         const validationClass = validationOptionToClass[validationOption];
 
@@ -118,6 +123,12 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
         validationButtons[validationClass].attr('class', 'validation-button-selected');
     }
 
+
+    /**
+     * Adds the visual effects of validation to the expanded view (opaque button and border color around GSV).
+     *
+     * @param validationOption
+     */
     function showValidationOnExpandedView(validationOption) {
         const validationClass = validationOptionToClass[validationOption];
 
