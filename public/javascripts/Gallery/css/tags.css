@@ -11,6 +11,17 @@
     white-space: nowrap;
 }
 
+.gallery-tag, gallery-tag-sidebar {
+    max-width: 98%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-tag-sidebar:hover {
+    background-color: #78c8aa;
+    white-space: normal;
+}
+
 .thumbnail-tag {
     cursor: default;
     font-weight: bold;
