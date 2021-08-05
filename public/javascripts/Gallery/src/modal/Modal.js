@@ -76,7 +76,7 @@ function Modal(uiModal) {
         self.rightArrow.click(nextLabel)
         self.leftArrow.click(previousLabel)
         self.cardIndex = -1;
-        self.validationMenu = new ValidationMenu(self.panoHolder, null, true)
+        self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true)
     }
 
     /**
@@ -224,6 +224,10 @@ function Modal(uiModal) {
         self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));
     }
 
+    function getProperty(key) {
+        return properties[key];
+    }
+
     /**
      * Updates the index of the current label being displayed in the modal.
      * 
@@ -310,6 +314,7 @@ function Modal(uiModal) {
 
     self.closeModal = closeModal;
     self.updateCardIndex = updateCardIndex;
+    self.getProperty = getProperty;
 
     return self;
 }
