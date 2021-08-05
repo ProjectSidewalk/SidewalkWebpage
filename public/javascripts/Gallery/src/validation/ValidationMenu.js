@@ -1,26 +1,33 @@
 /**
  * A Validation Menu to be appended to a Card for validation purposes.
- * 
+ *
+ * There are two version of the validation menu that use this class. The first is the menu on the small cards and the
+ * second is the menu on the expanded view of a card. There is one ValidationMenu instance for each small card, but
+ * there is only one instance of the ValidationMenu for the expanded view (also called the "modal"). For the small
+ * cards, the `referenceCard` remains the static. But for the menu in the expanded view, the `referenceCard` changes
+ * whenever we switch to the expanded view for a new label.
+ *
+ * @param refCard Reference card. Stays the same for validation menus on small cards, changes for menu on expanded view.
  * @param uiCardImage The html element to append the validation menu to.
  * @param cardProperties Properties of the label the validation menu is being appended to
+ * @param modal The Modal object; used to update the expanded view when modifying a card.
  * @param onExpandedView A boolean flag. If true, the ValidationMenu is a child of the expanded view.
  *                       If false, the ValidationMenu is a child of a card.
  * @returns {ValidationMenu}
  * @constructor
  */
-function ValidationMenu(uiCardImage, cardProperties, onExpandedView) {
+function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedView) {
+    let self = this;
+    let currCardProperties = cardProperties;
+    let referenceCard = refCard;
+    let currSelected = null;
+
+    // A kind of wack way to do this, explore better options.
     const resultOptions = {
-        "Agree": 1, 
+        "Agree": 1,
         "Disagree": 2,
         "NotSure": 3
     };
-
-    let self = this;
-
-    let currentCardProperties = cardProperties;
-    let referenceCard = null;
-
-    // A kind of wack way to do this, explore better options.
     const classToValidationOption = {
         "validate-agree": "Agree",
         "validate-disagree": "Disagree",
@@ -31,29 +38,24 @@ function ValidationMenu(uiCardImage, cardProperties, onExpandedView) {
         "Disagree": "validate-disagree",
         "NotSure": "validate-not-sure"
     };
-    const validationOptionToColor = {
+    const validationOptionToColor = { // TODO put this somewhere more central at the very least.
         'Agree': '#78c9ab',
         'Disagree': '#eb734d',
         'NotSure': '#fbd78b'
     };
-
-    let currSelected = null;
 
     const cardOverlayHTML = `
         <div id="gallery-validation-button-holder">
             <button id="gallery-card-agree-button" class="validation-button">${i18next.t('gallery:agree')}</button>
             <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('gallery:disagree')}</button>
             <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('gallery:not-sure')}</button>
-        </div>
-    `;
-
+        </div>`;
     const modalOverlayHTML = `
-    <div id="gallery-validation-button-holder">
-        <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('gallery:agree')}</button>
-        <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('gallery:disagree')}</button>
-        <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('gallery:not-sure')}</button>
-    </div>`;
-    
+        <div id="gallery-validation-button-holder">
+            <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('gallery:agree')}</button>
+            <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('gallery:disagree')}</button>
+            <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('gallery:not-sure')}</button>
+        </div>`;
     let overlay = $(cardOverlayHTML);
 
     let validationButtons = undefined;
@@ -62,7 +64,6 @@ function ValidationMenu(uiCardImage, cardProperties, onExpandedView) {
 
     // Adds onClick functions for the validation buttons.
     function _init() {
-    
         if (onExpandedView) {
             overlay = $(modalOverlayHTML)
         }
@@ -73,49 +74,63 @@ function ValidationMenu(uiCardImage, cardProperties, onExpandedView) {
             "validate-not-sure": overlay.find("#gallery-card-not-sure-button")
         };
 
-        for (const [valKey, button] of Object.entries(validationButtons)) {
-            button.click(function() {
-                showValidated(classToValidationOption[valKey]);
-                validateLabel(classToValidationOption[valKey]);
-            });
-        }
         // If the signed in user had already validated this label before loading the page, style the card to show that.
-        if (currentCardProperties !== null && currentCardProperties.user_validation) {
-            showValidated(currentCardProperties.user_validation);
+        if (currCardProperties !== null && currCardProperties.user_validation) {
+            if (onExpandedView) showValidationOnExpandedView(currCardProperties.user_validation);
+            else showValidationOnCard(currCardProperties.user_validation);
+        }
+
+        // Add onClick functions for the validation buttons.
+        for (const [valKey, button] of Object.entries(validationButtons)) {
+            let validationOption = classToValidationOption[valKey];
+            button.click(function() {
+                // Change the look of the card/expanded view to match the new validation.
+                if (onExpandedView) {
+                    showValidationOnExpandedView(validationOption);
+                    referenceCard.validationMenu.showValidationOnCard(validationOption);
+                } else {
+                    showValidationOnCard(validationOption);
+                    if (currCardProperties.label_id === modal.getProperty('label_id')) {
+                        modal.validationMenu.showValidationOnExpandedView(validationOption);
+                    }
+                }
+                // Actually submit the new validation.
+                validateLabel(validationOption);
+            });
         }
         uiCardImage.append(overlay[0]);
     }
 
-    // Sets the look of the card to show that the label has been validated.
-    function showValidated(validationOption) {
+    function showValidationOnCard(validationOption) {
         const validationClass = validationOptionToClass[validationOption];
 
         // If the label had already been validated differently, remove the visual effects from the older validation.
         if (currSelected && currSelected !== validationClass) {
-            if (!onExpandedView) {
-                validationButtons[currSelected].attr('class', 'validation-button');
-                if (galleryCard.classList.contains(currSelected)) {
-                    galleryCard.classList.remove(currSelected);
-                }
-            } else {
-                validationButtons[currSelected].attr('class', 'modal-validation-button');
+            validationButtons[currSelected].attr('class', 'validation-button');
+            if (galleryCard.classList.contains(currSelected)) {
+                galleryCard.classList.remove(currSelected);
             }
         }
+        currSelected = validationClass;
 
         // Add the visual effects from the new validation.
+        galleryCard.classList.add(validationClass);
+        validationButtons[validationClass].attr('class', 'validation-button-selected');
+    }
+
+    function showValidationOnExpandedView(validationOption) {
+        const validationClass = validationOptionToClass[validationOption];
+
+        // If the label had already been validated differently, remove the visual effects from the older validation.
+        if (currSelected && currSelected !== validationClass) {
+            validationButtons[currSelected].attr('class', 'modal-validation-button');
+        }
         currSelected = validationClass;
-        if (referenceCard !== null) {
-            referenceCard.setProperty('user_validation', validationOption);
-        }
-        if (!onExpandedView) {
-            galleryCard.classList.add(validationClass);
-            validationButtons[validationClass].attr('class', 'validation-button-selected');
-        } else {
-            referenceCard.validationMenu.showValidated(validationOption);
-            validationButtons[validationClass].attr('class', 'modal-validation-button-selected');
-            uiCardImage.css('border-color', validationOptionToColor[validationOption]);
-            uiCardImage.css('background-color', validationOptionToColor[validationOption]);
-        }
+
+        // Add the visual effects from the new validation.
+        validationButtons[validationClass].attr('class', 'modal-validation-button-selected');
+        uiCardImage.css('border-color', validationOptionToColor[validationOption]);
+        uiCardImage.css('background-color', validationOptionToColor[validationOption]);
     }
 
     /**
@@ -135,21 +150,23 @@ function ValidationMenu(uiCardImage, cardProperties, onExpandedView) {
      * @private
      */
     function validateLabel(action) {
-        // TODO: do we need this log?
-        sg.tracker.push("Validate_MenuClick=" + action);
+        referenceCard.setProperty('user_validation', action);
+
+        let actionStr = onExpandedView ? 'Validate_ExpandedMenuClick' + action : 'Validate_MenuClick' + action;
+        sg.tracker.push(actionStr);
         let validationTimestamp = new Date().getTime();
 
         let data = {
-            label_id: currentCardProperties.label_id,
-            label_type: currentCardProperties.label_type,
+            label_id: currCardProperties.label_id,
+            label_type: currCardProperties.label_type,
             validation_result: resultOptions[action],
-            canvas_x: currentCardProperties.canvas_x,
-            canvas_y: currentCardProperties.canvas_y,
-            heading: currentCardProperties.heading,
-            pitch: currentCardProperties.pitch,
-            zoom: currentCardProperties.zoom,
-            canvas_height: currentCardProperties.canvas_height,
-            canvas_width: currentCardProperties.canvas_width,
+            canvas_x: currCardProperties.canvas_x,
+            canvas_y: currCardProperties.canvas_y,
+            heading: currCardProperties.heading,
+            pitch: currCardProperties.pitch,
+            zoom: currCardProperties.zoom,
+            canvas_height: currCardProperties.canvas_height,
+            canvas_width: currCardProperties.canvas_width,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
             is_mobile: false
@@ -176,26 +193,30 @@ function ValidationMenu(uiCardImage, cardProperties, onExpandedView) {
      * @param {*} newProperties The properties to update to.
      */
     function updateCardProperties(newProperties) {
-        currentCardProperties = newProperties;
+        currCardProperties = newProperties;
     }
 
     /**
-     * When using the ValidationMenu as a part of the Modal, the card the Modal is expanding is updated.
-     * 
+     * Updates the reference card. This is only used for the expanded view, whose reference card necessarily changes.
+     *
      * @param {Card} newCard The new card the Modal references.
      */
     function updateReferenceCard(newCard) {
         referenceCard = newCard;
-        if (currentCardProperties !== null && currentCardProperties.user_validation) {
-            showValidated(currentCardProperties.user_validation);
-        } else if (onExpandedView) {
-            _removeExpandedValidationVisuals();
+        if (onExpandedView) {
+            if (currCardProperties !== null && currCardProperties.user_validation) {
+                showValidationOnExpandedView(currCardProperties.user_validation);
+            } else {
+                _removeExpandedValidationVisuals();
+            }
         }
     }
 
     self.updateCardProperties = updateCardProperties;
     self.updateReferenceCard = updateReferenceCard;
-    self.showValidated = showValidated;
+    self.showValidationOnCard = showValidationOnCard;
+    self.showValidationOnExpandedView = showValidationOnExpandedView;
+
     _init();
     return self;
 }
