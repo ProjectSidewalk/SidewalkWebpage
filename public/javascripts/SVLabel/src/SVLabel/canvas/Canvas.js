@@ -1,6 +1,5 @@
 /**
  * Canvas Module.
- * Todo. Go through the SVL library and remove all the unused public methods that are no longer used.
  * @param ribbon
  * @returns {{className: string}}
  * @constructor
@@ -25,7 +24,6 @@ function Canvas(ribbon) {
     // Properties
     var properties = {
         drawingMode: "point",
-        evaluationMode: false,
         radiusThresh: 7,
         showDeleteMenuTimeOutToken: undefined,
         tempPointRadius: 5
@@ -67,10 +65,6 @@ function Canvas(ribbon) {
     var ctx;
 
     var tempPath = [];
-
-    // Path elements
-    var systemLabels = [];
-    var labels = [];
 
     // Initialization
     function _init() {
@@ -152,7 +146,6 @@ function Canvas(ribbon) {
         }
 
         status.currentLabel = svl.labelFactory.create(path, param);
-        labels.push(status.currentLabel);  // Todo. Delete this. I think this is not necessary.
         svl.labelContainer.push(status.currentLabel);
 
 
@@ -163,12 +156,12 @@ function Canvas(ribbon) {
                 targetLabelColor: labelColor.fillStyle
             });
             if (labelType === "Other") {
-              //no tooltips for other
+              // No tooltips for other.
               $('#severity-one').tooltip('destroy');
               $('#severity-three').tooltip('destroy');
               $('#severity-five').tooltip('destroy');
             } else {
-              //update tooltips
+              // Update tooltips.
               $('#severity-one').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
                   title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
@@ -182,11 +175,6 @@ function Canvas(ribbon) {
                   title: i18next.t('center-ui.context-menu.severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
               });
             }
-          }
-
-        // Todo. Again, thrown an event (e.g., Canvas:closeLabelPath) instead of svl.onboarding.pushOnboardingLabel invocation.
-        if ('onboarding' in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
-            svl.onboarding.pushOnboardingLabel(status.currentLabel);
         }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
@@ -197,12 +185,12 @@ function Canvas(ribbon) {
             temporaryLabelId: status.currentLabel.getProperty('temporary_label_id')
         });
 
-        // Sound effect
+        // Sound effect.
         if ('audioEffect' in svl) {
             svl.audioEffect.play('drip');
         }
 
-        // Initialize the tempPath
+        // Initialize the tempPath.
         tempPath = [];
         ribbon.backToWalk();
 
@@ -382,11 +370,6 @@ function Canvas(ribbon) {
      */
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
-
-            if ('onboarding' in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
-                svl.onboarding.removeOnboardingLabel(status.currentLabel);
-            }
-
             svl.tracker.push('Click_LabelDelete', {labelType: self.getCurrentLabel().getProperty('labelType')});
             var currLabel = self.getCurrentLabel();
             if (!currLabel) {
@@ -577,44 +560,12 @@ function Canvas(ribbon) {
     }
 
     /**
-     * Get labels stored in this canvas.
-     * @method
-     */
-    function getLabels(target) {
-        // This method returns a deepcopy of labels stored in this canvas.
-        if (!target) {
-            target = 'user';
-        }
-
-        if (target === 'system') {
-            return self.getSystemLabels(false);
-        } else {
-            return self.getUserLabels(false);
-        }
-    }
-
-    /**
      * Returns a lock that corresponds to the key.
+     * TODO replace the various locking methods with just this one.
      * @method
      */
     function getLock(key) {
         return lock[key];
-    }
-
-    /**
-     * Returns a number of labels in the current panorama.
-     * @method
-     */
-    function getNumLabels() {
-        var labels = svl.labelContainer.getCanvasLabels();
-        var len = labels.length;
-        var i, total = 0;
-        for (i = 0; i < len; i++) {
-            if (!labels[i].isDeleted() && labels[i].isVisible()) {
-                total++;
-            }
-        }
-        return total;
     }
 
     /**
@@ -626,43 +577,6 @@ function Canvas(ribbon) {
             console.warn("You have passed an invalid key for status.")
         }
         return status[key];
-    }
-
-    /**
-     * This method returns system labels; the labels stored in our database (e.g., other users' labels and the user's
-     * previous labels) that are not from this auditing session.
-     * If reference is true, then it returns reference to the labels.
-     * Otherwise it returns deepcopy of labels.
-     * @method
-     */
-    function getSystemLabels(reference) {
-        if (!reference) {
-            reference = false;
-        }
-        return reference ? systemLabels : $.extend(true, [], systemLabels);
-    }
-
-    /**
-     * @method
-     */
-    function getUserLabelCount() {
-        var labels = self.getUserLabels();
-        labels = labels.filter(function (label) {
-            return !label.isDeleted() && label.isVisible();
-        });
-        return labels.length;
-    }
-
-    /**
-     * Returns user labels (i.e., what the user labeled during this session.)
-     * If reference is true, then it returns reference to the labels. Otherwise it returns deepcopy of labels.
-     * @method
-     */
-    function getUserLabels(reference) {
-        if (!reference) {
-            reference = false;
-        }
-        return reference ? svl.labelContainer.getCanvasLabels() : $.extend(true, [], svl.labelContainer.getCanvasLabels());
     }
 
     /**
@@ -808,27 +722,6 @@ function Canvas(ribbon) {
                         }
                     }
                 }
-
-                // Adjust system labels
-                lenLabels = systemLabels.length;
-                for (i = 0; i < lenLabels; i += 1) {
-                    // Check if the label comes from current SV panorama
-                    label = systemLabels[i];
-                    points = label.getPoints(true);
-                    pointsLen = points.length;
-
-                    for (j = 0; j < pointsLen; j++) {
-                        pointData = points[j].getProperties();
-                        svImageCoordinate = points[j].getGSVImageCoordinate();
-                        if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
-                            deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
-                            x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
-                            y = svImageCoordinate.y + (deltaPitch / 180) * svl.svImageHeight;
-                            points[j].resetSVImageCoordinate({x: x, y: y})
-                        }
-                    }
-                }
                 status.svImageCoordinatesAdjusted = true;
             }
         }
@@ -841,18 +734,6 @@ function Canvas(ribbon) {
 
             if (label.isVisible() && !label.isDeleted()) {
                 status.totalLabelCount += 1;
-            }
-        }
-
-        // Render system labels. First check if the label comes from current SV panorama
-        lenLabels = systemLabels.length;
-        for (i = 0; i < lenLabels; i += 1) {
-            label = systemLabels[i];
-
-            if (properties.evaluationMode) {
-                label.render(ctx, pov, true);
-            } else {
-                label.render(ctx, pov);
             }
         }
         povChange["status"] = false;
@@ -1052,13 +933,8 @@ function Canvas(ribbon) {
     self.enableLabelEdit = enableLabelEdit;
     self.enableLabeling = enableLabeling;
     self.getCurrentLabel = getCurrentLabel;
-    self.getLabels = getLabels;
     self.getLock = getLock;
-    self.getNumLabels = getNumLabels;
     self.getStatus = getStatus;
-    self.getSystemLabels = getSystemLabels;
-    self.getUserLabelCount = getUserLabelCount;
-    self.getUserLabels = getUserLabels;
     self.isDrawing = isDrawing;
     self.isOn = isOn;
     self.lockCurrentLabel = lockCurrentLabel;

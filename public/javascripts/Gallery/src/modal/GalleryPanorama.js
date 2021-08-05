@@ -1,13 +1,12 @@
 /**
- * A holder class that inserts a GSV Pano into the supplied DOM element
+ * A holder class that inserts a GSV Pano into the supplied DOM element.
  * 
- * @param {HTMLElement} svHolder The DOM element that the GSV Pano will be placed in
- * @returns {GalleryPanorama} The gallery panorama that was generated
+ * @param {HTMLElement} svHolder The DOM element that the GSV Pano will be placed in.
+ * @returns {GalleryPanorama} The gallery panorama that was generated.
  */
  function GalleryPanorama(svHolder) {
     let self = {
         className: "GalleryPanorama",
-        label: undefined,
         labelMarker: undefined,
         panoId: undefined,
         panorama: undefined,
@@ -23,7 +22,7 @@
         NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png'
     };
 
-    // Determined experimentally; varies w/ GSV Panorama size
+    // Determined experimentally; varies w/ GSV Panorama size.
     const zoomLevel = {
         1: 1,
         2: 1.95,
@@ -31,19 +30,17 @@
     };
 
     /**
-     * This function initializes the Panorama
+     * This function initializes the Panorama.
      */
     function _init () {
-        console.log('loading')
         self.svHolder = $(svHolder);
         self.svHolder.addClass("admin-panorama");
 
-        // svHolder's children are absolutely aligned, svHolder's position has to be either absolute or relative
+        // svHolder's children are absolutely aligned, svHolder's position has to be either absolute or relative.
         if(self.svHolder.css('position') != "absolute" && self.svHolder.css('position') != "relative")
             self.svHolder.css('position', 'relative');
 
-        console.log(self.svHolder.height())
-        // GSV will be added to panoCanvas
+        // GSV will be added to panoCanvas.
         self.panoCanvas = $("<div id='pano'>").css({
             position: 'relative',
             top: '0px',
@@ -72,12 +69,19 @@
             mode: 'html4',
             showRoadLabels: false,
             motionTracking: false,
-            motionTrackingControl: false
+            motionTrackingControl: false,
+            addressControl: false,
+            disableDefaultUI: true,
+            linksControl: false,
+            navigationControl: false,
+            panControl: false,
+            zoomControl: false,
+            keyboardShortcuts: false
         };
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, panoOptions) : null;
         self.panorama.addListener('pano_changed', function() {
             // We always want to update panoId when pano changes (as it is possible the pano changes
-            // NOT because a user clicks on a card - for example, using clickToGo on the pano).
+            // for a reason OTHER THAN a user clicking on a card - for example, using clickToGo on the pano).
             self.panoId = self.panorama.getPano();
             if (self.labelMarker !== undefined) {
                 if (self.labelMarker.panoId === self.panoId) {
@@ -90,20 +94,6 @@
             }
         });
 
-        if (self.panorama) {
-            self.panorama.set('addressControl', false);
-            self.panorama.set('clickToGo', false);
-            self.panorama.set('disableDefaultUI', true);
-            self.panorama.set('linksControl', false);
-            self.panorama.set('navigationControl', false);
-            self.panorama.set('panControl', false);
-            self.panorama.set('zoomControl', false);
-            self.panorama.set('keyboardShortcuts', false);
-            self.panorama.set('motionTracking', false);
-            self.panorama.set('motionTrackingControl', false);
-            self.panorama.set('showRoadLabels', false);
-        }
-
         return this;
     }
 
@@ -113,7 +103,7 @@
     }
 
     /**
-     * Sets the panorama ID and POV from label metadata
+     * Sets the panorama ID and POV from label metadata.
      * @param panoId
      * @param heading
      * @param pitch
@@ -121,20 +111,11 @@
      */
     function setPano(panoId, heading, pitch, zoom) {
         if (typeof google != "undefined") {
-            self.panorama.registerPanoProvider(function(pano) {
-                if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
-                    return getCustomPanorama(pano);
-                }
-
-                return null;
-            });
-            
             self.svHolder.css('visibility', 'hidden');
             self.panoId = panoId;
 
             self.panorama.setPano(panoId);
-            self.panorama.set('pov', {heading: heading, pitch: pitch});
-            self.panorama.set('zoom', zoomLevel[zoom]);
+            self.setPov(heading, pitch, zoom);
 
             // Based off code from Onboarding.
             // We write another callback function because of a bug in the Google Maps API that
@@ -143,8 +124,7 @@
             // resize and reset the POV/Zoom.
             function callback (n) {
                 google.maps.event.trigger(self.panorama, 'resize');
-                self.panorama.set('pov', {heading: heading, pitch: pitch});
-                self.panorama.set('zoom', zoomLevel[zoom]);
+                self.setPov(heading, pitch, zoom);
                 self.svHolder.css('visibility', 'visible');
 
                 // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we
@@ -153,7 +133,6 @@
                     $(self.panoCanvas).css('display', 'block');
                     $(self.panoNotAvailable).css('display', 'none');
                     $(self.panoNotAvailableDetails).css('display', 'none');
-                    if (self.label) renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
                     $(self.svHolder).css('height', '');
                     $(self.panoNotAvailable).text('Oops, our fault but there is no longer imagery available for this label.');
@@ -173,10 +152,6 @@
             setTimeout(callback, 200, 10);
         }
         return this;
-    }
-
-    function setLabel (label) {
-        self.label = label;
     }
 
     /**
@@ -222,14 +197,14 @@
 
     /**
      * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
-     * From PanoMarker spec
-     * @param canvas_x          X coordinate (pixel) for label
-     * @param canvas_y          Y coordinate (pixel) for label
-     * @param canvas_width      Original canvas width
-     * @param canvas_height     Original canvas height
-     * @param zoom              Original zoom level of label
-     * @param heading           Original heading of label
-     * @param pitch             Original pitch of label
+     * From PanoMarker spec.
+     * @param canvas_x          X coordinate (pixel) for label.
+     * @param canvas_y          Y coordinate (pixel) for label.
+     * @param canvas_width      Original canvas width.
+     * @param canvas_height     Original canvas height.
+     * @param zoom              Original zoom level of label.
+     * @param heading           Original heading of label.
+     * @param pitch             Original pitch of label.
      * @returns {{heading: number, pitch: number}}
      */
     function getPosition(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch) {
@@ -276,6 +251,8 @@
     /**
      * This calculates the heading and position for placing this Label onto the panorama from the same POV as when the
      * user placed the label.
+     * TODO: Ask Mikey about whether this is needed for good design.
+     *       If so, need to change the self.label.
      * @returns {{heading: number, pitch: number}}
      */
     function getOriginalPosition () {
@@ -284,22 +261,20 @@
     }
 
     /**
-     * From panomarker spec
+     * From panomarker spec.
      * @param zoom
      * @returns {number}
      */
     function get3dFov (zoom) {
         return zoom <= 2 ?
-            126.5 - zoom * 36.75 :  // linear descent
-            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
+            126.5 - zoom * 36.75 :  // linear descent.
+            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally.
     }
 
-    //init
     _init();
 
     self.setPov = setPov;
     self.setPano = setPano;
-    self.setLabel = setLabel;
     self.renderLabel = renderLabel;
     self.getOriginalPosition = getOriginalPosition;
     return self;

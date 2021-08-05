@@ -2,10 +2,9 @@
  * ModalSkip module.
  * Todo. Too many dependencies. Break down the features.
  * Todo. handling uiLeftColumn (menu on the left side of the interface) should be LeftMenu's responsibility
- * Todo. Some of the responsibilities in `_handleClickOK` method should be delegated to ModalModel or other modules.
  * @constructor
  */
-function ModalSkip(form, modalModel, navigationModel, streetViewService, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
+function ModalSkip(form, streetViewService, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
     var self = this;
     var status = {
         disableClickOK: true

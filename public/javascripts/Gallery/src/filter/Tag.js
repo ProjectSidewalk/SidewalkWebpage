@@ -58,7 +58,7 @@ function Tag (params) {
             apply();
         }
 
-        sg.cardContainer.updateCardsByTag();
+        sg.cardContainer.updateCardsByTagsAndSeverity();
     }
 
     /**
@@ -66,7 +66,6 @@ function Tag (params) {
      */
     function apply() {
         setStatus("applied", true);
-        console.log("clicked and toggled on");
         tagElement.setAttribute("style", "background-color: #78c8aa");
     }
 
@@ -75,7 +74,6 @@ function Tag (params) {
      */
     function unapply() {
         setStatus("applied", false);
-        console.log("clicked and toggled off");
         tagElement.setAttribute("style", "background-color: none");
     }
 

@@ -28,6 +28,14 @@
     border-bottom: 1px solid gray;
 }
 
+#filter-header {
+    margin-bottom: 15px;
+}
+
+.filter-subheader {
+    margin-bottom: 6px;
+}
+
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
