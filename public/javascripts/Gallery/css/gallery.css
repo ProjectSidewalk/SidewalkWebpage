@@ -41,7 +41,7 @@
     padding-left: 10px;
     padding-top: 40px;
     min-height: calc(100vh - 610px);
-    width: 250px;
+    width: 235px;
     grid-row: 1/2;
 }
 
@@ -77,6 +77,6 @@
 .cards {
     display: flex;
     flex-flow: row wrap;
-    margin-left: 250px; /* Offset to compensate for the space taken up by the sidebar. */
+    margin-left: 235px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 

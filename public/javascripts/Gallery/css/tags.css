@@ -49,7 +49,7 @@
 #severity {
     display: flex;
     flex-direction: row;
-    margin-left: -10px;
+    margin-left: -3px;
 }
 
 .gallery-severity-image {
@@ -62,7 +62,7 @@
     flex-direction: column;
     align-items: center;
     cursor: pointer;
-    width: 40px;
+    width: 30px;
 }
 
 .gallery-severity:disabled {
