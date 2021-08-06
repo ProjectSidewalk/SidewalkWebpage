@@ -30,15 +30,21 @@ function Severity (params){
 
         severityElement = document.createElement('div');
         severityElement.className = 'gallery-severity';
-        severityElement.onclick = handleOnClickCallback;
 
         severityImage = document.createElement('img');
         severityImage.className = 'gallery-severity-image';
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${param}-Gray.png`;
+        _showDeselected();
 
         severityElement.appendChild(severityImage);
+
+        // Show inverted smiley face on click or hover.
+        severityElement.onclick = handleOnClickCallback;
+        $(severityElement).hover(
+            function() { _showSelected(); },
+            function() { if (!filterActive) _showDeselected(); }
+        );
     }
 
     /**
@@ -46,18 +52,22 @@ function Severity (params){
      */
     function handleOnClickCallback() {
         if (filterActive) {
-            sg.tracker.push("SeverityUnapply", null, {
-                Severity: properties.severity
-            });
+            sg.tracker.push("SeverityUnapply", null, { Severity: properties.severity });
             unapply();
         } else {
-            sg.tracker.push("SeverityApply", null, {
-                Severity: properties.severity
-            });
+            sg.tracker.push("SeverityApply", null, { Severity: properties.severity });
             apply();
         }
 
         sg.cardContainer.updateCardsByTagsAndSeverity();
+    }
+
+    function _showSelected() {
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
+    }
+
+    function _showDeselected() {
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
     }
 
     /**
@@ -66,7 +76,7 @@ function Severity (params){
     function apply() {
         if (interactionEnabled) {
             filterActive = true;
-            severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
+            _showSelected();
         }
     }
 
@@ -76,7 +86,7 @@ function Severity (params){
     function unapply() {
         if (interactionEnabled) {
             filterActive = false;
-            severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
+            _showDeselected();
         }
     }
 
