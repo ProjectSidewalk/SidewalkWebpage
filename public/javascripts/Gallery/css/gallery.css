@@ -28,12 +28,20 @@
     border-bottom: 1px solid gray;
 }
 
+#filter-header {
+    margin-bottom: 15px;
+}
+
+.filter-subheader {
+    margin-bottom: 6px;
+}
+
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
     padding-top: 40px;
     min-height: calc(100vh - 610px);
-    width: 250px;
+    width: 235px;
     grid-row: 1/2;
 }
 
@@ -69,6 +77,6 @@
 .cards {
     display: flex;
     flex-flow: row wrap;
-    margin-left: 250px; /* Offset to compensate for the space taken up by the sidebar. */
+    margin-left: 235px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 

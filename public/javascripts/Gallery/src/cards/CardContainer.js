@@ -179,7 +179,7 @@ function CardContainer(uiCardContainer) {
                 for (; i < len; i++) {
                     let labelProp = labels[i];
                     if ("label" in labelProp && "imageUrl" in labelProp) {
-                        card = new Card(labelProp.label, labelProp.imageUrl);
+                        card = new Card(labelProp.label, labelProp.imageUrl, modal);
                         self.push(card);
                         loadedLabelIds.add(card.getLabelId());
                     }
@@ -210,7 +210,7 @@ function CardContainer(uiCardContainer) {
                 for (; i < len; i++) {
                     let labelProp = labels[i];
                     if ("label" in labelProp && "imageUrl" in labelProp) {
-                        card = new Card(labelProp.label, labelProp.imageUrl);
+                        card = new Card(labelProp.label, labelProp.imageUrl, modal);
                         self.push(card);
                         loadedLabelIds.add(card.getLabelId());
                     }
