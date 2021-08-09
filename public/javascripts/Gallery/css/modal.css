@@ -9,15 +9,16 @@
 .gallery-modal {
     display: flex;
     height: 90vh;
-    position: fixed;
+    position: relative;
     border-radius: 20px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
     flex-direction: column;
     align-items: center;
     width: 50vw;
     right:2vw;
     font-family: 'raleway-regular', sans-serif;
     font-size: 18px;
+    justify-self: end;
 }
 
 .label-timestamp, .pano-timestamp {

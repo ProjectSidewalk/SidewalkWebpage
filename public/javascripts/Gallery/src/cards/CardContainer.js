@@ -88,7 +88,7 @@ function CardContainer(uiCardContainer) {
         // Add the click event for opening the Modal when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
-            $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
+            $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
@@ -326,13 +326,7 @@ function CardContainer(uiCardContainer) {
     /**
      * Renders current cards.
      */
-    function render() {
-        // To help the loading icon show, we make the sidebar positioned relatively while we are loading on the page.
-        // Otherwise, keep it fixed. This is hacky and needs a better fix.
-        $("#page-loading").show();
-        $('.sidebar').css('position', 'relative');
-        $(".page-control").hide();
-         
+    function render() {        
         // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
         clearCardContainer(uiCardContainer.holder);
         pageWidth = uiCardContainer.holder.width();
@@ -354,6 +348,8 @@ function CardContainer(uiCardContainer) {
                 $(".page-control").show();
                 $("#page-loading").hide();
                 $('.sidebar').css('position', 'fixed');
+                $('.sidebar').css('top', '');
+                uiCardContainer.holder.css('margin-left', '250px');
                 sg.tagContainer.enable();
                 $("#label-select").prop("disabled", false);
             });
@@ -370,15 +366,28 @@ function CardContainer(uiCardContainer) {
      * Refreshes the UI after each query made by user.
      */
     function refreshUI() {
+        // TODO: To help the loading icon show, we make the sidebar positioned relatively while we are loading on the page.
+        // Otherwise, keep it fixed. This is hacky and needs a better fix.
+
+        // Close modal (if open) and empty cards from current page.
         modal.closeModal();
+        clearCardContainer(uiCardContainer.holder);
+
+        // Place user back at top of page.
         window.scrollTo(0, 0);
+
+        // Indicate query is sent, loading appropriate cards.
+        $("#page-loading").show();
+
+        // Disable interactable UI elements while query loads.
         sg.tagContainer.disable();
         $("#label-select").prop("disabled", true);
         $("#labels-not-found").hide();
-        $("#page-loading").show();
-        $('.sidebar').css('position', 'relative');
         $(".page-control").hide();
-        clearCardContainer(uiCardContainer.holder);
+
+        // Since we have returned to top of page, 
+        $('.sidebar').css('position', 'relative');
+        uiCardContainer.holder.css('margin-left', '250px');
     }
 
     /**

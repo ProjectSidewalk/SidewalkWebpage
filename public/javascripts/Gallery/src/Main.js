@@ -62,33 +62,44 @@ function Main (params) {
 
         sg.util = {};
 
-        // $(window).scroll(function () {
-        //     if (!$("#page-loading").is(":visible")) {
-        //         // Make sure the page isn't loading.
-        //         let pageControlTopOffset = sg.ui.pageControl.offset().top;
-        //         let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
-        //         if (pageControlTopOffset < visibleWindowBottomOffset) {
-        //             if (status.sticky) {
-        //                 console.log("footer scrolled to visible");
-        //                 $('.sidebar').css('position', 'relative');
-        //                 $('.sidebar').css('top', $(window).scrollTop());
-        //                 $('.cards').css('margin-left', '0px');
-        //                 status.sticky = false;
-        //             }
-        //         } else {
-        //             if (!status.sticky) {
-        //                 console.log("footer scrolled to not visible");
-        //                 $('.sidebar').css('position', 'absolute');
-        //                 $('.sidebar').css('top', '');
-        //                 $('.cards').css('margin-left', '250px');
-        //                 status.sticky = true;
-        //             }
+        $(window).scroll(function () {
+            if (!$("#page-loading").is(":visible")) {
+                // Make sure the page isn't loading.
+                //let pageControlTopOffset = sg.ui.pageControl.offset().top;
+                let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top + sg.ui.cardContainer.holder.outerHeight(true) - 10;
+                let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
+                if (cardContainerBottomOffset < visibleWindowBottomOffset) {
+                    if (status.sticky) {
+                        console.log("footer scrolled to visible");
+                        // Adjust sidebar positioning.
+                        $('.sidebar').css('position', 'relative');
+                        $('.sidebar').css('top', $(window).scrollTop());
 
-        //         }
-        //         // console.log("window scroll top: " + $(window).scrollTop());
-        //         // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
-        //     }
-        // }); 
+                        $('.gallery-modal').css('top', cardContainerBottomOffset - $(window).height());
+
+                        // Adjust card container margin.
+                        $('.cards').css('margin-left', '0px');
+                        status.sticky = false;
+                    }
+                } else {
+                    if (!status.sticky) {
+                        console.log("footer scrolled to not visible");
+                        // Adjust sidebar positioning.
+                        $('.sidebar').css('position', 'fixed');
+                        $('.sidebar').css('top', '');
+
+                        // Adjust card container margin.
+                        $('.cards').css('margin-left', '250px');
+                        status.sticky = true;
+                    }
+                    
+                    // Emulate the modal being "fixed".
+                    $('.gallery-modal').css('top', $(window).scrollTop());
+                }
+                // console.log("window scroll top: " + $(window).scrollTop());
+                // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
+            }
+        }); 
     }
 
     // Gets all the text on the gallery page for the correct language.
