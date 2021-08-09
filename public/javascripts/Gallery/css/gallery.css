@@ -16,6 +16,7 @@
     background-color: white;
     border-radius: 5px;
     border-width: 1px;
+    margin: 0px 2px;
 }
 
 .paging:disabled {
@@ -27,24 +28,55 @@
     border-bottom: 1px solid gray;
 }
 
+#filter-header {
+    margin-bottom: 15px;
+}
+
+.filter-subheader {
+    margin-bottom: 6px;
+}
+
+/* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
-    padding-left: 10px; 
+    padding-left: 10px;
     padding-top: 40px;
-    min-height: calc(100vh - 686px);
+    min-height: calc(100vh - 610px);
+    width: 235px;
+    grid-row: 1/2;
 }
 
 #labels-not-found-text {
     position: absolute; 
     width: 100%; 
     text-align: center;
+    padding-top: 20px;
 }
 
-#page-control {
-    position: absolute; 
-    left: 50%; 
-    margin-right: -50%;
+.page-control {
+    padding-bottom: 15px;
+    display: flex;
+    justify-content: center;
+    margin: auto;
+    width: 25%;
 }
 
 #footer-spacing {
     padding-top: 100px;
 }
+
+.grid-container {
+    display: grid;
+    grid-template-areas: 
+        'sidebar main gallery-modal'
+        'sidebar paging gallery-modal';
+    /* grid-template-columns: 0.5fr 3fr; --- We may not need this as the sidebar is now a fixed DOM element (as in it is out of the grid)*/
+    grid-gap: 2px;
+    padding: 10px;
+}
+
+.cards {
+    display: flex;
+    flex-flow: row wrap;
+    margin-left: 235px; /* Offset to compensate for the space taken up by the sidebar. */
+}
+

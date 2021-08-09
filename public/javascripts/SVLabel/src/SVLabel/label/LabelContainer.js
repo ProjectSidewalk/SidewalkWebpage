@@ -118,11 +118,6 @@ function LabelContainer($) {
         }
     };
 
-    /** Load labels */
-    function load () {
-        currentCanvasLabels = svl.storage.get("labels");
-    }
-
     /**
      * Push a label into canvasLabels
      * @param label
@@ -201,8 +196,4 @@ function LabelContainer($) {
         svl.canvas.render();
         return this;
     };
-
-    function save () {
-        svl.storage.set("labels", currentCanvasLabels);
-    }
 }

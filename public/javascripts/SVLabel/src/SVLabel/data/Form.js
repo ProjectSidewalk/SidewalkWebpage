@@ -4,7 +4,6 @@
  * @param missionModel
  * @param missionContainer
  * @param navigationModel
- * @param neighborhoodModel
  * @param panoramaContainer
  * @param taskContainer
  * @param mapService
@@ -14,7 +13,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, missionContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
+function Form (labelContainer, missionModel, missionContainer, navigationModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
     let properties = {
         dataStoreUrl : undefined,

@@ -132,19 +132,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     /**
-     * Get lock
-     * @param name
-     * @returns {*}
-     */
-    function getLock (name) {
-        if (name in lock) {
-            return lock[name];
-        } else {
-            throw 'You cannot access a property "' + name + '".';
-        }
-    }
-
-    /**
      * Get status
      * @param name
      * @returns {*}
@@ -259,46 +246,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             canvas.render2();
             $(document).trigger('ZoomOut');
             return this;
-        } else {
-            return false;
-        }
-    }
-
-
-    /**
-     * This method takes a (x, y) canvas point and zoom in to that point.
-     * @param x canvas x coordinate
-     * @param y canvas y coordinate
-     * @returns {*}
-     */
-    function pointZoomIn (x, y) {
-        if (!status.disableZoomIn) {
-            // Cancel drawing when zooming in or out.
-            canvas.cancelDrawing();
-            var currentPov = mapService.getPov(),
-                currentZoomLevel = currentPov.zoom,
-                width = svl.canvasWidth, height = svl.canvasHeight,
-                minPitch, maxPitch,
-                zoomFactor, deltaHeading, deltaPitch, pov = {};
-
-            if (currentZoomLevel >= properties.maxZoomLevel) return;
-            zoomFactor = currentZoomLevel; // This needs to be fixed as it wouldn't work above level 3.
-            deltaHeading = (x - (width / 2)) / width * (90 / zoomFactor); // Ugh. Hard coding.
-            deltaPitch = - (y - (height / 2)) / height * (70 / zoomFactor); // Ugh. Hard coding.
-            pov.zoom = currentZoomLevel + 1;
-            pov.heading = currentPov.heading + deltaHeading;
-            pov.pitch = currentPov.pitch + deltaPitch;
-            // Adjust the pitch angle.
-            maxPitch = mapService.getMaxPitch();
-            minPitch = mapService.getMinPitch();
-            if (pov.pitch > maxPitch) {
-                pov.pitch = maxPitch;
-            } else if (pov.pitch < minPitch) {
-                pov.pitch = minPitch;
-            }
-            // Adjust the pitch so it won't exceed max/min pitch.
-            mapService.setPov(pov);
-            return currentZoomLevel;
         } else {
             return false;
         }
@@ -421,7 +368,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     self.disableZoomOut = disableZoomOut;
     self.enableZoomIn = enableZoomIn;
     self.enableZoomOut = enableZoomOut;
-    self.getLock = getLock;
     self.getStatus = getStatus;
     self.getProperties = getProperty; // Todo. Change getProperties to getProperty.
     self.getZoomInUI = getZoomInUI;
@@ -430,7 +376,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     self.lockDisableZoomOut = lockDisableZoomOut;
     self.stopBlinking = stopBlinking;
     self.updateOpacity = updateOpacity;
-    self.pointZoomIn = pointZoomIn;
     self.setMaxZoomLevel = setMaxZoomLevel;
     self.setMinZoomLevel = setMinZoomLevel;
     self.unlockDisableZoomIn = unlockDisableZoomIn;

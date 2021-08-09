@@ -1,5 +1,4 @@
-function InitialMissionInstruction(compass, mapService, neighborhoodContainer, popUpMessage, taskContainer,
-                                   labelContainer, tracker) {
+function InitialMissionInstruction(compass, mapService, popUpMessage, taskContainer, labelContainer, tracker) {
     var self = this;
     var initialHeading;
     var lookingAroundInterval;

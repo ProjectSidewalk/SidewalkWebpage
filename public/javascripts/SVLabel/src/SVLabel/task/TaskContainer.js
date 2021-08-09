@@ -7,10 +7,9 @@
  * @param neighborhoodModel
  * @param streetViewService
  * @param svl
- * @param taskModel
  * @param tracker
  */
-function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
+function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -26,7 +25,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (!newTask) {
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            svl.neighborhoodModel.neighborhoodCompleted();
             tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
         } else {
             svl.taskContainer.initNextTask(newTask);
@@ -77,7 +76,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    self.endTask = function (task, nextTask) {
+    function endTask(task, nextTask) {
         if (tracker) tracker.push("TaskEnd");
         task.complete();
         // Go through the tasks and mark the completed task as isComplete=true
@@ -667,7 +666,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
     }
 
-    // self.endTask = endTask;
+    self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;

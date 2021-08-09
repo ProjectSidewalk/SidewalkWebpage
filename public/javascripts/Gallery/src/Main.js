@@ -36,6 +36,8 @@ function Main (params) {
         sg.ui.cardContainer.prevPage = $("#prev-page");
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
+
+        $('.gallery-modal').hide();
     }
 
     function _init() {
@@ -65,11 +67,10 @@ function Main (params) {
         debug: false
     }, function(err, t) {
         if (err) return console.log('something went wrong loading', err);
-        i18next.t('key');
-    });
 
-    _initUI();
-    _init();
+        _initUI();
+        _init();
+    });
 
     return self;
 }
