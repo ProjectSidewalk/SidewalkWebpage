@@ -76,7 +76,7 @@ function SeverityBucket(inputSeverities) {
      * Enable interaction with Severities.
      */
     function enable() {
-        $(".gallery-severity-checkbox").prop("disabled", false);
+        bucket.forEach(severity => severity.enable());
     }
 
     self.push = push;

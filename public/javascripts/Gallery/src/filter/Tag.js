@@ -32,7 +32,7 @@ function Tag (params) {
         Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
 
         tagElement = document.createElement('button');
-        tagElement.className = "gallery-tag";
+        tagElement.className = "gallery-tag gallery-tag-sidebar";
         tagElement.id = properties.tag;
         tagElement.innerText = i18next.t('tag.' + properties.tag);
         tagElement.disabled = true;
