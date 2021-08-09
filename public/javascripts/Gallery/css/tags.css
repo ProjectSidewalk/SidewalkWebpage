@@ -11,7 +11,7 @@
     white-space: nowrap;
 }
 
-.gallery-tag, gallery-tag-sidebar {
+.gallery-tag, .gallery-tag-sidebar {
     max-width: 98%;
     overflow: hidden;
     text-overflow: ellipsis;

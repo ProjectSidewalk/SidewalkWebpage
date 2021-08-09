@@ -349,7 +349,7 @@ function CardContainer(uiCardContainer) {
                 $("#page-loading").hide();
                 $('.sidebar').css('position', 'fixed');
                 $('.sidebar').css('top', '');
-                uiCardContainer.holder.css('margin-left', '250px');
+                uiCardContainer.holder.css('margin-left', '235px');
                 sg.tagContainer.enable();
                 $("#label-select").prop("disabled", false);
             });
@@ -387,7 +387,6 @@ function CardContainer(uiCardContainer) {
 
         // Since we have returned to top of page, 
         $('.sidebar').css('position', 'relative');
-        uiCardContainer.holder.css('margin-left', '250px');
     }
 
     /**

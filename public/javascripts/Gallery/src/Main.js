@@ -89,7 +89,7 @@ function Main (params) {
                         $('.sidebar').css('top', '');
 
                         // Adjust card container margin.
-                        $('.cards').css('margin-left', '250px');
+                        $('.cards').css('margin-left', '235px');
                         status.sticky = true;
                     }
                     
