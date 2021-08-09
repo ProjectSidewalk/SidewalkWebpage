@@ -18,7 +18,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     let properties = {
         dataStoreUrl : undefined,
         beaconDataStoreUrl : undefined,
-        timeLastQuried : new Date().getTime() // Assuming that Form is created when TaskContainer is created
+        lastPriorityUpdateTime : new Date().getTime() // Assumes that Form is created when TaskContainer is created.
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
@@ -52,7 +52,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             current_lat: navigationModel.getPosition().lat,
             current_lng: navigationModel.getPosition().lng,
             start_point_reversed: task.getProperty("startPointReversed"),
-            time_data_last_queried: properties.timeLastQuried,
+            last_priority_update_time: properties.lastPriorityUpdateTime,
             task_percentage_completed: (task.getAuditedDistance()/task.lineDistance())
         };
 
@@ -267,9 +267,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
                     // Update the time the database performed the query to update our local task priorities with
                     // The database tasks priorities for streetEdge's.
-                    properties.timeLastQuried = result.timePerformedQuery;
-                    if (result.streetEdgeIdsAfterTime.length > 0) {
-                        taskContainer.updateTaskPriorities(result.streetEdgeIdsAfterTime, result.newStreetEdgePriorities);
+                    properties.lastPriorityUpdateTime = result.last_priority_update_time;
+                    if (result.updated_streets.length > 0) {
+                        taskContainer.updateTaskPriorities(result.updated_streets, result.updated_priorities);
                     }
                 }
             },

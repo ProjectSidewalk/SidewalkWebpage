@@ -220,14 +220,10 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns a list of streetEdgeId's that were completed after a certain time
+    * Returns a list of streetEdgeIds for streets that were completed after the specified time.
     */
-  def streetEdgeIdsUpdatedAfterTime(timestamp: Timestamp): List[Int] = db.withSession { implicit session =>
-
-    // StreetEdgeId's that occur after specified time and are completed
-    val streetEdgeIdsAfterTime = auditTasks.filter(_.taskEnd > timestamp).filter(_.completed).map(_.streetEdgeId)
-    
-    streetEdgeIdsAfterTime.list
+  def streetsUpdatedAfterTime(timestamp: Timestamp): List[Int] = db.withSession { implicit session =>
+    auditTasks.filter(_.taskEnd > timestamp).filter(_.completed).map(_.streetEdgeId).list
   }
 
   /**
