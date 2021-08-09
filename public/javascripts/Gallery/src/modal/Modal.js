@@ -22,7 +22,7 @@ function Modal(uiModal) {
                 // card container and that cards (child nodes) were added in the mutation, indicating the cards have
                 // been rendered.
                 $('.gallery-modal').attr('style', 'display: flex');
-                $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
+                $('.grid-container').css("grid-template-columns", "1fr 5fr");
     
                 // Sets/Updates the label being displayed in the expanded modal.
                 updateModalCardByIndex(self.cardIndex);
