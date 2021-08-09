@@ -17,7 +17,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var beforeJumpNewTask = null;
     var paths;
     var previousPaths = [];
-    var lastTimeDataSent = null;
 
     self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
     self.getFinishedAndInitNextTask = function (finished) {
@@ -64,7 +63,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     } else {
                         console.error("Error loading Street View imagery");
                         svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(latLng)});
-                        console.log("initNextTask");
                         nextTaskIn.complete();
                         // no street view available in this range.
                         self.getFinishedAndInitNextTask(nextTaskIn);
@@ -206,7 +204,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         // Loop through all updatedStreets and update them with self._tasks.
         for (let i = 0; i < updatedStreets.length; i++) {
-            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === updatedStreets[i];});
+            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === updatedStreets[i]; });
             self._tasks[index].setProperty('priority', updatedPriorities[i]);
         }
     }

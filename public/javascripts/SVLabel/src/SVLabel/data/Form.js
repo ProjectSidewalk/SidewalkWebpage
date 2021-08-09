@@ -18,7 +18,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     let properties = {
         dataStoreUrl : undefined,
         beaconDataStoreUrl : undefined,
-        lastPriorityUpdateTime : new Date().getTime() // Assumes that Form is created when TaskContainer is created.
+        lastPriorityUpdateTime : new Date().getTime() // Assumes that priorities are up-to-date when the page loads.
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
@@ -53,7 +53,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             current_lng: navigationModel.getPosition().lng,
             start_point_reversed: task.getProperty("startPointReversed"),
             last_priority_update_time: properties.lastPriorityUpdateTime,
-            task_percentage_completed: (task.getAuditedDistance()/task.lineDistance())
+            task_percentage_completed: (task.getAuditedDistance() / task.lineDistance())
         };
 
         data.environment = {
@@ -257,7 +257,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
-                    
+
                     // If the back-end says it is time to switch to validations, then do it immediately (mostly to
                     // prevent turkers from modifying JS variables to prevent switching to validation).
                     if (result.switch_to_validation) window.location.replace('/validate');
@@ -265,8 +265,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
 
-                    // Update the time the database performed the query to update our local task priorities with
-                    // The database tasks priorities for streetEdge's.
+                    // Record the last time that we checked the database for streets with updated priorities.
                     properties.lastPriorityUpdateTime = result.last_priority_update_time;
                     if (result.updated_streets.length > 0) {
                         taskContainer.updateTaskPriorities(result.updated_streets, result.updated_priorities);
@@ -281,7 +280,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
     properties.dataStoreUrl = params.dataStoreUrl;
     properties.beaconDataStoreUrl = params.beaconDataStoreUrl;
-
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");

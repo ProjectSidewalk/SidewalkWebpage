@@ -16,7 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
-import models.street.{StreetEdgePriorityTable, StreetEdgePriorityParameter}
+import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import play.api.Logger
 import play.api.libs.json._
@@ -376,26 +376,24 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
-      // Default values to use. We update these if the percentage of the task completed is greater than 0.60
+      // Default values to use. We update these if the percentage of the task completed is greater than 60%.
       var updatedStreets = List.empty[Int]
       var updatedPriorities = List.empty[Double]
       var newPriorityUpdateTime: Long = data.auditTask.lastPriorityUpdateTime
 
-      // If the percentage of the task completed is greater than sixty percent, we update.
       if (data.auditTask.taskPercentageCompleted > 0.60) {
         // Update the time we performed the query to be now.
         newPriorityUpdateTime = (Instant.now.toEpochMilli)
 
-        // Query AuditTaskTable for streetEdgeId's that have been updated after timeLastSent.
-        // Then query StreetEdgePriorityTable with the result from AuditTaskTable.
+        // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
         val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
         val updatedStreetIds: List[Int] = AuditTaskTable.streetsUpdatedAfterTime(lastPriorityUpdateTime)
-        val updatedStreetPriorities: List[StreetEdgePriorityParameter] = StreetEdgePriorityTable.streetEdgePrioritiesFromIds(updatedStreetIds)
+        val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
 
         // We set the updatedStreets and updatedPriorities parameters with updatedStreetPriorities parameter because it
         // keeps the tuples in order with each other.
         updatedStreets = updatedStreetPriorities.map(x => x.streetEdgeId)
-        updatedPriorities = updatedStreetPriorities.map(x => x.priorityParameter)
+        updatedPriorities = updatedStreetPriorities.map(x => x.priority)
       }
 
 

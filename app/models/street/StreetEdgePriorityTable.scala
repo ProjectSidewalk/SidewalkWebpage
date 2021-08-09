@@ -85,16 +85,13 @@ object StreetEdgePriorityTable {
   }
 
   /**
-    * Returns list of StreetEdgePriorityParameter from a list of streetEdgeIds.
-    * 
+    * Returns list of StreetEdgePriority from a list of streetEdgeIds.
+    *
     * @param streetEdgeIds List[Int] of street edge ids.
     * @return
     */
-  def streetEdgePrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriorityParameter] = db.withSession { implicit session => 
-    
-    val streetEdgePrioritiesFromIds = streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds).groupBy(x => (x.streetEdgeId, x.priority)).map(_._1)
-
-    streetEdgePrioritiesFromIds.list.map(x => StreetEdgePriorityParameter.tupled(x))
+  def streetPrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriority] = db.withSession { implicit session =>
+    streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds.toSet).list
   }
 
   /**
