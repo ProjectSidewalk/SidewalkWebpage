@@ -392,13 +392,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
           val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
           val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
-          val updatedStreetIds: List[Int] = AuditTaskTable.streetsUpdatedAfterTime(regionId, lastPriorityUpdateTime)
+          val updatedStreetIds: List[Int] = AuditTaskTable.streetsCompletedAfterTime(regionId, lastPriorityUpdateTime)
           val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
           Some(UpdatedStreets(newPriorityUpdateTime, updatedStreetPriorities))
         } else {
           None
         }
-
 
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
       val switchToValidation: Boolean = userOption.isDefined &&
