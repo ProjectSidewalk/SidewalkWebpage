@@ -9,7 +9,7 @@ import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
-case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double){
+case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double) {
   /**
     * Converts a StreetEdgePriority object into the JSON format.
     */
@@ -82,6 +82,16 @@ object StreetEdgePriorityTable {
     val weightVector: List[Double] = List(1)
     // val weightVector: List[Double] = List(0.1,0.9) -- how it would look with two priority param funcs
     updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
+  }
+
+  /**
+    * Returns list of StreetEdgePriority from a list of streetEdgeIds.
+    *
+    * @param streetEdgeIds List[Int] of street edge ids.
+    * @return
+    */
+  def streetPrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriority] = db.withSession { implicit session =>
+    streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds.toSet).list
   }
 
   /**

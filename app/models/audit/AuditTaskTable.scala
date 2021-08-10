@@ -220,6 +220,17 @@ object AuditTaskTable {
   }
 
   /**
+    * Returns a list of streetEdgeIds for streets that were completed after the specified time in the given region.
+    */
+  def streetsCompletedAfterTime(regionId: Int, timestamp: Timestamp): List[Int] = db.withSession { implicit session =>
+    (for {
+      at <- completedTasks if at.taskEnd > timestamp
+      ser <- nonDeletedStreetEdgeRegions if at.streetEdgeId === ser.streetEdgeId
+      if ser.regionId === regionId
+    } yield ser.streetEdgeId).list
+  }
+
+  /**
     * Check if there are tasks available for the user in the given region.
     */
   def isTaskAvailable(user: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
