@@ -5,6 +5,7 @@
 
 #card-filter {
     padding: 5px;
+    width: inherit;
 }
 
 #ribbon-menu-holder {
@@ -31,14 +32,6 @@
 
 #horizontal-line {
     border-bottom: 1px solid gray;
-    width: 215px; 
-    /* TODO: basically, when the sidebar becomes relatively positioned, we need to specify a width
-       for the bar in order for the sidebar to not "shrink-wrap" the content (you can observe this 
-       if you just remove the line "width: 215px;" and scroll down to the point whnere the sidebar becomes relative.
-       This is a very hacky fix (we make the width 215 because the horizontal line is the width of sidebar - 20px
-       (from the padding)), and a better solution is definitely needed in order to prevent an overabundance
-       of constants.
-    */
 }
 
 #filter-header {
@@ -82,7 +75,6 @@
     grid-template-areas: 
         'main gallery-modal'
         'paging gallery-modal';
-    /* grid-template-columns: 0.5fr 3fr; --- We may not need this as the sidebar is now a fixed DOM element (as in it is out of the grid)*/
     grid-gap: 2px;
     padding: 10px;
 }

@@ -12,7 +12,8 @@ function Main (params) {
     let self = this;
 
     let status = {
-        sticky: true
+        stickySidebar: true,
+        stickyModal: true
     };
 
     function _initUI() {
@@ -63,41 +64,48 @@ function Main (params) {
         sg.util = {};
 
         $(window).scroll(function () {
+            // Make sure the page isn't loading.
             if (!$("#page-loading").is(":visible")) {
-                // Make sure the page isn't loading.
-                //let pageControlTopOffset = sg.ui.pageControl.offset().top;
+                let footerBottomOffset = $("#footer-container").offset().top;
                 let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top + sg.ui.cardContainer.holder.outerHeight(true) - 10;
                 let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
-                if (cardContainerBottomOffset < visibleWindowBottomOffset) {
-                    if (status.sticky) {
-                        console.log("footer scrolled to visible");
+
+                // Handle sidebar stickiness.
+                if (footerBottomOffset < visibleWindowBottomOffset) {
+                    if (status.stickySidebar) {
                         // Adjust sidebar positioning.
                         $('.sidebar').css('position', 'relative');
                         $('.sidebar').css('top', $(window).scrollTop());
 
-                        $('.gallery-modal').css('top', cardContainerBottomOffset - $(window).height());
-
                         // Adjust card container margin.
                         $('.cards').css('margin-left', '0px');
-                        status.sticky = false;
+                        status.stickySidebar = false;
                     }
                 } else {
-                    if (!status.sticky) {
-                        console.log("footer scrolled to not visible");
+                    if (!status.stickySidebar) {
                         // Adjust sidebar positioning.
                         $('.sidebar').css('position', 'fixed');
                         $('.sidebar').css('top', '');
-
+ 
                         // Adjust card container margin.
                         $('.cards').css('margin-left', '235px');
-                        status.sticky = true;
+                        status.stickySidebar = true;
                     }
+                }
+
+                // Handle modal stickiness.
+                if (cardContainerBottomOffset < visibleWindowBottomOffset) {
+                    if (status.stickyModal) {
+                        // Prevent modal from going too low (i.e., when a user scrolls down fast).
+                        $('.gallery-modal').css('top', cardContainerBottomOffset - $(window).height());
+                        status.stickyModal = false;
+                    }
+                } else {
+                    if (!status.stickyModal) status.stickyModal = true;
                     
                     // Emulate the modal being "fixed".
                     $('.gallery-modal').css('top', $(window).scrollTop());
                 }
-                // console.log("window scroll top: " + $(window).scrollTop());
-                // console.log("window scroll bottom (offset from top): " + visibleWindowBottom);
             }
         }); 
     }
