@@ -385,7 +385,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
       // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
       val updatedStreets: Option[UpdatedStreets] =
-        if (data.auditTask.taskPercentageCompleted > 0.60) {
+        if (data.auditTask.requestUpdatedStreetPriority) {
           // Update the time we performed the query to be now.
           val newPriorityUpdateTime: Long = Instant.now.toEpochMilli
 
@@ -394,7 +394,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
           val updatedStreetIds: List[Int] = AuditTaskTable.streetsUpdatedAfterTime(regionId, lastPriorityUpdateTime)
           val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
-
           Some(UpdatedStreets(newPriorityUpdateTime, updatedStreetPriorities))
         } else {
           None
