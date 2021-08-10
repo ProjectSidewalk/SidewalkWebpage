@@ -265,10 +265,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
 
-                    // Record the last time that we checked the database for streets with updated priorities.
-                    properties.lastPriorityUpdateTime = result.last_priority_update_time;
-                    if (result.updated_streets.length > 0) {
-                        taskContainer.updateTaskPriorities(result.updated_streets, result.updated_priorities);
+                    // Update the priority of streets audited by other users that are auditing at the same time.
+                    if (result.updated_streets) {
+                        properties.lastPriorityUpdateTime = result.updated_streets.last_priority_update_time;
+                        taskContainer.updateTaskPriorities(result.updated_streets.updated_street_priorities);
                     }
                 }
             },

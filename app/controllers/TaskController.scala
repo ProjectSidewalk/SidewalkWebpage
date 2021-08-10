@@ -33,8 +33,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission],
-                                 switchToValidation: Boolean, updatedStreets: List[Int],
-                                 updatedPriorities: List[Double], lastPriorityUpdateTime: Long)
+                                 switchToValidation: Boolean, updatedStreets: Option[UpdatedStreets])
+
+  case class UpdatedStreets(lastPriorityUpdateTime: Long, updatedStreetPriorities: List[StreetEdgePriority]) {
+    def toJSON: JsObject = {
+      Json.obj(
+        "last_priority_update_time" -> lastPriorityUpdateTime,
+        "updated_street_priorities" -> updatedStreetPriorities.map(_.toJSON)
+      )
+    }
+  }
 
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
@@ -375,26 +383,22 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
-      // Default values to use. We update these if the percentage of the task completed is greater than 60%.
-      var updatedStreets = List.empty[Int]
-      var updatedPriorities = List.empty[Double]
-      var newPriorityUpdateTime: Long = data.auditTask.lastPriorityUpdateTime
+      // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
+      val updatedStreets: Option[UpdatedStreets] =
+        if (data.auditTask.taskPercentageCompleted > 0.60) {
+          // Update the time we performed the query to be now.
+          val newPriorityUpdateTime: Long = Instant.now.toEpochMilli
 
-      if (data.auditTask.taskPercentageCompleted > 0.60) {
-        // Update the time we performed the query to be now.
-        newPriorityUpdateTime = (Instant.now.toEpochMilli)
+          // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
+          val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
+          val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
+          val updatedStreetIds: List[Int] = AuditTaskTable.streetsUpdatedAfterTime(regionId, lastPriorityUpdateTime)
+          val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
 
-        // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
-        val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
-        val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
-        val updatedStreetIds: List[Int] = AuditTaskTable.streetsUpdatedAfterTime(regionId, lastPriorityUpdateTime)
-        val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
-
-        // We set the updatedStreets and updatedPriorities parameters with updatedStreetPriorities parameter because it
-        // keeps the tuples in order with each other.
-        updatedStreets = updatedStreetPriorities.map(x => x.streetEdgeId)
-        updatedPriorities = updatedStreetPriorities.map(x => x.priority)
-      }
+          Some(UpdatedStreets(newPriorityUpdateTime, updatedStreetPriorities))
+        } else {
+          None
+        }
 
 
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
@@ -402,7 +406,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         userOption.get.role.getOrElse("") == "Turker" &&
         MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
-      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets, updatedPriorities, newPriorityUpdateTime)
+      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets)
     }
 
     Future.successful(Ok(Json.obj(
@@ -410,9 +414,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       "street_edge_id" -> returnValues.head.streetEdgeId,
       "mission" -> returnValues.head.mission.map(_.toJSON),
       "switch_to_validation" -> returnValues.head.switchToValidation,
-      "updated_streets" -> returnValues.head.updatedStreets,
-      "updated_priorities" -> returnValues.head.updatedPriorities,
-      "last_priority_update_time" -> returnValues.head.lastPriorityUpdateTime
+      "updated_streets" -> returnValues.head.updatedStreets.map(_.toJSON)
     )))
   }
 }

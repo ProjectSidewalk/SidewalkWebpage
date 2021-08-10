@@ -9,7 +9,7 @@ import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
-case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double){
+case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double) {
   /**
     * Converts a StreetEdgePriority object into the JSON format.
     */

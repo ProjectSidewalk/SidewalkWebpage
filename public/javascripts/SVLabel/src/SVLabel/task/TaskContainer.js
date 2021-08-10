@@ -193,20 +193,18 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * Updates the task priorities for the given set of streets. These should be updates from other users' audits.
-     * @param updatedStreets
      * @param updatedPriorities
     */
-    function updateTaskPriorities(updatedStreets, updatedPriorities) {
+    function updateTaskPriorities(updatedPriorities) {
         if (!Array.isArray(self._tasks)) {
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             return null;
         }
-
-        // Loop through all updatedStreets and update them with self._tasks.
-        for (let i = 0; i < updatedStreets.length; i++) {
-            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === updatedStreets[i]; });
-            self._tasks[index].setProperty('priority', updatedPriorities[i]);
-        }
+        // Loop through all updatedPriorities and update self._tasks with the new priorities.
+        updatedPriorities.forEach(function (newPriority) {
+            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.streetEdgeId; });
+            self._tasks[index].setProperty('priority', newPriority.priority);
+        });
     }
 
     /**
