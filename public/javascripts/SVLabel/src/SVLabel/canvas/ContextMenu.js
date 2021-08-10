@@ -282,7 +282,7 @@ function ContextMenu (uiContextMenu) {
                 _toggleTagColor(labelTags, tag.tag_id, e.target);
                 label.setProperty('tagIds', labelTags);
                 e.target.blur();
-                getContextMenuUI().tags.trigger('tagIds-updated'); // For events that depend on tagIds to be up-to-date
+                getContextMenuUI().tagHolder.trigger('tagIds-updated'); // For events that depend on up-to-date tagIds.
             }
         });
     }

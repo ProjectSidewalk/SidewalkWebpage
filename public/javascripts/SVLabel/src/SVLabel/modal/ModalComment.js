@@ -6,7 +6,6 @@
  * @param taskContainer
  * @param uiLeftColumn
  * @param uiModalComment
- * @param modalModel
  * @param onboardingModel
  * @constructor
  */

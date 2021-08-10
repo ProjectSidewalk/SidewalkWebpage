@@ -16,7 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
-import models.street.StreetEdgePriorityTable
+import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import play.api.Logger
 import play.api.libs.json._
@@ -32,7 +32,17 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission], switchToValidation: Boolean)
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission],
+                                 switchToValidation: Boolean, updatedStreets: Option[UpdatedStreets])
+
+  case class UpdatedStreets(lastPriorityUpdateTime: Long, updatedStreetPriorities: List[StreetEdgePriority]) {
+    def toJSON: JsObject = {
+      Json.obj(
+        "last_priority_update_time" -> lastPriorityUpdateTime,
+        "updated_street_priorities" -> updatedStreetPriorities.map(_.toJSON)
+      )
+    }
+  }
 
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
@@ -245,7 +255,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       } else {
         None
       }
-      // val missionId: Int = updateMissionTable() -- same as updateAuditTaskTable()
 
       // Insert the skip information or update task street_edge_assignment_count.completion_count.
       if (data.incomplete.isDefined) {
@@ -279,11 +288,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 None
             }
 
-            var calculatedStreetEdgeId = streetEdgeId;
+            var calculatedStreetEdgeId: Int = streetEdgeId;
             for (point: LabelPointSubmission <- label.points) {
-              if(!point.lat.isEmpty && !point.lng.isEmpty){
-                val possibleStreetEdgeId = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get);
-                if(!possibleStreetEdgeId.isEmpty){
+              if(point.lat.isDefined && point.lng.isDefined){
+                val possibleStreetEdgeId: Option[Int] = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get)
+                if(possibleStreetEdgeId.isDefined){
                   calculatedStreetEdgeId = possibleStreetEdgeId.get
                 }
               }
@@ -321,7 +330,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         if (label.temporaryLabel.isDefined) {
-          val tempLabel = label.temporaryLabel.get.value
+          val tempLabel: Boolean = label.temporaryLabel.get.value
           LabelTemporarinessTable.find(labelId) match {
             case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
             case None => LabelTemporarinessTable.save(LabelTemporariness(0, labelId, tempLabel))
@@ -374,19 +383,36 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
+      // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
+      val updatedStreets: Option[UpdatedStreets] =
+        if (data.auditTask.requestUpdatedStreetPriority) {
+          // Update the time we performed the query to be now.
+          val newPriorityUpdateTime: Long = Instant.now.toEpochMilli
+
+          // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
+          val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
+          val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
+          val updatedStreetIds: List[Int] = AuditTaskTable.streetsCompletedAfterTime(regionId, lastPriorityUpdateTime)
+          val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
+          Some(UpdatedStreets(newPriorityUpdateTime, updatedStreetPriorities))
+        } else {
+          None
+        }
+
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
-      val switchToValidation = userOption.isDefined &&
+      val switchToValidation: Boolean = userOption.isDefined &&
         userOption.get.role.getOrElse("") == "Turker" &&
         MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
-      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation)
+      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets)
     }
 
     Future.successful(Ok(Json.obj(
       "audit_task_id" -> returnValues.head.auditTaskId,
       "street_edge_id" -> returnValues.head.streetEdgeId,
       "mission" -> returnValues.head.mission.map(_.toJSON),
-      "switch_to_validation" -> returnValues.head.switchToValidation
+      "switch_to_validation" -> returnValues.head.switchToValidation,
+      "updated_streets" -> returnValues.head.updatedStreets.map(_.toJSON)
     )))
   }
 }
