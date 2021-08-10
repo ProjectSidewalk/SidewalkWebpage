@@ -220,10 +220,14 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns a list of streetEdgeIds for streets that were completed after the specified time.
+    * Returns a list of streetEdgeIds for streets that were completed after the specified time in the given region.
     */
-  def streetsUpdatedAfterTime(timestamp: Timestamp): List[Int] = db.withSession { implicit session =>
-    auditTasks.filter(_.taskEnd > timestamp).filter(_.completed).map(_.streetEdgeId).list
+  def streetsUpdatedAfterTime(regionId: Int, timestamp: Timestamp): List[Int] = db.withSession { implicit session =>
+    (for {
+      at <- completedTasks if at.taskEnd > timestamp
+      ser <- nonDeletedStreetEdgeRegions if at.streetEdgeId === ser.streetEdgeId
+      if ser.regionId === regionId
+    } yield ser.streetEdgeId).list
   }
 
   /**

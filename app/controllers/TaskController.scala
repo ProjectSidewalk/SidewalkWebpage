@@ -247,7 +247,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       } else {
         None
       }
-      // val missionId: Int = updateMissionTable() -- same as updateAuditTaskTable()
 
       // Insert the skip information or update task street_edge_assignment_count.completion_count.
       if (data.incomplete.isDefined) {
@@ -281,11 +280,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 None
             }
 
-            var calculatedStreetEdgeId = streetEdgeId;
+            var calculatedStreetEdgeId: Int = streetEdgeId;
             for (point: LabelPointSubmission <- label.points) {
-              if(!point.lat.isEmpty && !point.lng.isEmpty){
-                val possibleStreetEdgeId = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get);
-                if(!possibleStreetEdgeId.isEmpty){
+              if(point.lat.isDefined && point.lng.isDefined){
+                val possibleStreetEdgeId: Option[Int] = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get)
+                if(possibleStreetEdgeId.isDefined){
                   calculatedStreetEdgeId = possibleStreetEdgeId.get
                 }
               }
@@ -323,7 +322,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         if (label.temporaryLabel.isDefined) {
-          val tempLabel = label.temporaryLabel.get.value
+          val tempLabel: Boolean = label.temporaryLabel.get.value
           LabelTemporarinessTable.find(labelId) match {
             case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
             case None => LabelTemporarinessTable.save(LabelTemporariness(0, labelId, tempLabel))
@@ -387,7 +386,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
         // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
         val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
-        val updatedStreetIds: List[Int] = AuditTaskTable.streetsUpdatedAfterTime(lastPriorityUpdateTime)
+        val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
+        val updatedStreetIds: List[Int] = AuditTaskTable.streetsUpdatedAfterTime(regionId, lastPriorityUpdateTime)
         val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
 
         // We set the updatedStreets and updatedPriorities parameters with updatedStreetPriorities parameter because it
