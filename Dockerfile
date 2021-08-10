@@ -1,6 +1,6 @@
 FROM openjdk:8-jdk-stretch
 
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
   apt-get install -y nodejs
 
 RUN apt-get update && apt-get upgrade -y
