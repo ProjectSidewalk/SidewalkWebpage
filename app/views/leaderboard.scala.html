@@ -260,15 +260,15 @@
 </h4>
 
 <script>
-    $("#encouragement-link").on('click', 'a', function(e){
-        var url = "/userapi/logWebpageActivity";
+    $('#encouragement-link').on('click', function(e){
+        var url = '/userapi/logWebpageActivity';
         var async = false;
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: url,
             type: 'post',
-            data: JSON.stringify("Click_module=encouragement_link"),
+            data: JSON.stringify('Click_module=encouragement_link'),
             dataType: 'json',
             success: function(result){},
             error: function (result) {
