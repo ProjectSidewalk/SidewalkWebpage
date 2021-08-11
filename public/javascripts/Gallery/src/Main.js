@@ -16,6 +16,8 @@ function Main (params) {
         stickyModal: true
     };
 
+    let headerSidebarOffset = undefined;
+
     function _initUI() {
         sg.ui = {};
 
@@ -45,7 +47,12 @@ function Main (params) {
         // Keep track of the next/prev arrow container.
         sg.ui.pageControl = $(".page-control");
 
+        sg.ui.navbar = $("#header")
+
         $('.gallery-modal').hide();
+
+        // Calculate offset between bottom of navbar and sidebar.
+        headerSidebarOffset = sg.ui.cardFilter.holder.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
     }
 
     function _init() {
@@ -66,13 +73,13 @@ function Main (params) {
         $(window).scroll(function () {
             // Make sure the page isn't loading.
             if (!$("#page-loading").is(":visible")) {
-                let footerBottomOffset = $("#footer-container").offset().top;
+                let sidebarBottomOffset = sg.ui.cardFilter.holder.offset().top + sg.ui.cardFilter.holder.outerHeight(true);
                 let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top + sg.ui.cardContainer.holder.outerHeight(true) - 10;
                 let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
 
                 // Handle sidebar stickiness.
-                if (footerBottomOffset < visibleWindowBottomOffset) {
-                    if (status.stickySidebar) {
+                if (status.stickySidebar) {
+                    if (cardContainerBottomOffset < sidebarBottomOffset) {
                         // Adjust sidebar positioning.
                         $('.sidebar').css('position', 'relative');
                         $('.sidebar').css('top', $(window).scrollTop());
@@ -82,16 +89,40 @@ function Main (params) {
                         status.stickySidebar = false;
                     }
                 } else {
-                    if (!status.stickySidebar) {
-                        // Adjust sidebar positioning.
-                        $('.sidebar').css('position', 'fixed');
-                        $('.sidebar').css('top', '');
- 
-                        // Adjust card container margin.
-                        $('.cards').css('margin-left', '235px');
-                        status.stickySidebar = true;
+                    currHeaderSidebarOffset = sg.ui.cardFilter.holder.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
+                    if (currHeaderSidebarOffset > headerSidebarOffset) {
+                        if (!status.stickySidebar) {
+                            // Adjust sidebar positioning.
+                            $('.sidebar').css('position', 'fixed');
+                            $('.sidebar').css('top', '');
+        
+                            // Adjust card container margin.
+                            $('.cards').css('margin-left', '235px');
+                            status.stickySidebar = true;
+                        }
                     }
                 }
+                // if (footerBottomOffset < visibleWindowBottomOffset) {
+                //     if (status.stickySidebar) {
+                //         // Adjust sidebar positioning.
+                //         $('.sidebar').css('position', 'relative');
+                //         $('.sidebar').css('top', $(window).scrollTop());
+
+                //         // Adjust card container margin.
+                //         $('.cards').css('margin-left', '0px');
+                //         status.stickySidebar = false;
+                //     }
+                // } else {
+                //     if (!status.stickySidebar) {
+                //         // Adjust sidebar positioning.
+                //         $('.sidebar').css('position', 'fixed');
+                //         $('.sidebar').css('top', '');
+ 
+                //         // Adjust card container margin.
+                //         $('.cards').css('margin-left', '235px');
+                //         status.stickySidebar = true;
+                //     }
+                // }
 
                 // Handle modal stickiness.
                 if (cardContainerBottomOffset < visibleWindowBottomOffset) {
