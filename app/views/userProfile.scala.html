@@ -201,41 +201,41 @@
             
             // Initialize popovers.
             $('[id="edit-org-dropdown"]').popover({
-                trigger: "manual",
+                trigger: 'manual',
                 html: true,
                 animation: false
-            }).on("mouseenter", function() {
+            }).on('mouseenter', function() {
                 var _this = this;
-                $(this).popover("show");
-                $(".popover").on("mouseleave", function() {
+                $(this).popover('show');
+                // Add listener to log clicks on the email address link.
+                $('#email-link').on('click', function(e) {
+                    var url = '/userapi/logWebpageActivity';
+                    var async = false;
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify('Click_module=email_link'),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                });
+                $('.popover').on('mouseleave', function() {
                     $(_this).popover('hide');
                 });
-            }).on("mouseleave", function() {
+            }).on('mouseleave', function() {
                 var _this = this;
                 setTimeout(function() {
-                if (!$(".popover:hover").length) {
-                    $(_this).popover("hide");
-                }
+                    if (!$('.popover:hover').length) {
+                        $(_this).popover('hide');
+                    }
                 }, 300);
             });
             $('[class="put-org-container"]').popover();
-        });
-
-        $("#email-link").on('click', 'a', function(e){
-            var url = "/userapi/logWebpageActivity";
-            var async = false;
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: url,
-                type: 'post',
-                data: JSON.stringify("Click_module=email_link"),
-                dataType: 'json',
-                success: function(result){},
-                error: function (result) {
-                    console.error(result);
-                }
-            });
         });
     </script>
 }
