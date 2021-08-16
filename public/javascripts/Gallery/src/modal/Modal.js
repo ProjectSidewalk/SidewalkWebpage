@@ -177,6 +177,15 @@ function Modal(uiModal) {
     }
 
     function highlightThumbnail(galleryCard) {
+        // Reset the sidebar as sticky as the sidebar should never be under the card container upon opening the modal.
+        // Adjust sidebar positioning.
+        sg.ui.cardFilter.wrapper.css('position', 'fixed');
+        sg.ui.cardFilter.wrapper.css('top', '');
+
+        // Adjust card container margin.
+        sg.ui.cardContainer.holder.css('margin-left', '235px');  // constant
+        sg.scrollStatus.stickySidebar = true;
+
         // Centers the card thumbnail that was selected. If it's the last card, we scroll such that the card is at the
         // bottom of the visible window.
         let index = self.cardIndex;

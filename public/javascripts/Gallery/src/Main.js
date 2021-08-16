@@ -11,7 +11,7 @@ var sg = sg || {};
 function Main (params) {
     let self = this;
 
-    let status = {
+    sg.scrollStatus = {
         stickySidebar: true,
         stickyModal: true
     };
@@ -23,6 +23,7 @@ function Main (params) {
 
         // Initializes filter components in side bar.
         sg.ui.cardFilter = {};
+        sg.ui.cardFilter.wrapper = $(".sidebar");
         sg.ui.cardFilter.holder = $("#card-filter");
         sg.ui.cardFilter.tags = $("#tags");
         sg.ui.cardFilter.severity = $("#severity");
@@ -47,12 +48,13 @@ function Main (params) {
         // Keep track of the next/prev arrow container.
         sg.ui.pageControl = $(".page-control");
 
+        // Keep track of navbar.
         sg.ui.navbar = $("#header")
 
         $('.gallery-modal').hide();
 
         // Calculate offset between bottom of navbar and sidebar.
-        headerSidebarOffset = sg.ui.cardFilter.holder.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
+        headerSidebarOffset = sg.ui.cardFilter.wrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
     }
 
     function _init() {
@@ -70,69 +72,70 @@ function Main (params) {
 
         sg.util = {};
 
+        // // Set initial sidebar stickiness
+        // let initSidebarBottomOffset = sg.ui.cardFilter.wrapper.offset().top +
+        //                               sg.ui.cardFilter.wrapper.outerHeight(true);
+        // let initCardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
+        //                                     sg.ui.cardContainer.holder.outerHeight(true) - 10;
+        // status.stickySidebar = initCardContainerBottomOffset < initSidebarBottomOffset;
+
         $(window).scroll(function () {
             // Make sure the page isn't loading.
             if (!$("#page-loading").is(":visible")) {
-                let sidebarBottomOffset = sg.ui.cardFilter.holder.offset().top + sg.ui.cardFilter.holder.outerHeight(true);
-                let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top + sg.ui.cardContainer.holder.outerHeight(true) - 10;
-                let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height(); 
+                let sidebarBottomOffset = sg.ui.cardFilter.wrapper.offset().top +
+                                          sg.ui.cardFilter.wrapper.outerHeight(true);
+                let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
+                                                sg.ui.cardContainer.holder.outerHeight(true) - 10;
+                let pageControlTopOffset = sg.ui.pageControl.offset().top;
+                let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
 
                 // Handle sidebar stickiness.
-                if (status.stickySidebar) {
-                    if (cardContainerBottomOffset < sidebarBottomOffset) {
+                if (sg.scrollStatus.stickySidebar) {
+                    console.log("are we in here");
+                    if (pageControlTopOffset < sidebarBottomOffset) {
+                        console.log("triggered");
+                        sidebarHeightBeforeRelative = sg.ui.cardFilter.wrapper.outerHeight(true);
+
                         // Adjust sidebar positioning.
-                        $('.sidebar').css('position', 'relative');
-                        $('.sidebar').css('top', $(window).scrollTop());
+                        sg.ui.cardFilter.wrapper.css('position', 'relative');
+
+                        // The sg.ui.navbar.outerHeight(false) is necessary in order for the placement of the sidebar
+                        // to be correct once it goes to being relatively positioned.
+                        // TODO: investigate more closely as to why.
+                        let navbarHeight = sg.ui.navbar.outerHeight(false);
+                        let newTop = pageControlTopOffset - sidebarHeightBeforeRelative - navbarHeight;
+                        console.log(newTop);
+                        sg.ui.cardFilter.wrapper.css('top', newTop);
 
                         // Adjust card container margin.
-                        $('.cards').css('margin-left', '0px');
-                        status.stickySidebar = false;
+                        sg.ui.cardContainer.holder.css('margin-left', '0px');
+                        sg.scrollStatus.stickySidebar = false;
                     }
                 } else {
-                    currHeaderSidebarOffset = sg.ui.cardFilter.holder.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
-                    if (currHeaderSidebarOffset > headerSidebarOffset) {
-                        if (!status.stickySidebar) {
+                    if (!sg.scrollStatus.stickySidebar) {
+                        currHeaderSidebarOffset = sg.ui.cardFilter.wrapper.offset().top -
+                                                 (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight(false));
+                        if (currHeaderSidebarOffset > headerSidebarOffset) {
                             // Adjust sidebar positioning.
-                            $('.sidebar').css('position', 'fixed');
-                            $('.sidebar').css('top', '');
+                            sg.ui.cardFilter.wrapper.css('position', 'fixed');
+                            sg.ui.cardFilter.wrapper.css('top', '');
         
                             // Adjust card container margin.
-                            $('.cards').css('margin-left', '235px');
-                            status.stickySidebar = true;
+                            sg.ui.cardContainer.holder.css('margin-left', '235px'); // constant
+                            sg.scrollStatus.stickySidebar = true;
                         }
                     }
                 }
-                // if (footerBottomOffset < visibleWindowBottomOffset) {
-                //     if (status.stickySidebar) {
-                //         // Adjust sidebar positioning.
-                //         $('.sidebar').css('position', 'relative');
-                //         $('.sidebar').css('top', $(window).scrollTop());
-
-                //         // Adjust card container margin.
-                //         $('.cards').css('margin-left', '0px');
-                //         status.stickySidebar = false;
-                //     }
-                // } else {
-                //     if (!status.stickySidebar) {
-                //         // Adjust sidebar positioning.
-                //         $('.sidebar').css('position', 'fixed');
-                //         $('.sidebar').css('top', '');
- 
-                //         // Adjust card container margin.
-                //         $('.cards').css('margin-left', '235px');
-                //         status.stickySidebar = true;
-                //     }
-                // }
 
                 // Handle modal stickiness.
                 if (cardContainerBottomOffset < visibleWindowBottomOffset) {
-                    if (status.stickyModal) {
+                    if (sg.scrollStatus.stickyModal) {
                         // Prevent modal from going too low (i.e., when a user scrolls down fast).
                         $('.gallery-modal').css('top', cardContainerBottomOffset - $(window).height());
-                        status.stickyModal = false;
+                        sg.scrollStatus.stickyModal = false;
                     }
                 } else {
-                    if (!status.stickyModal) status.stickyModal = true;
+                    if (!sg.scrollStatus.stickyModal) sg.scrollStatus.stickyModal = true;
                     
                     // Emulate the modal being "fixed".
                     $('.gallery-modal').css('top', $(window).scrollTop());
