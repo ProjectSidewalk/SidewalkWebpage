@@ -31,18 +31,19 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * Loads the user dashboard page.
    */
   def userProfile = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val username: String = user.username
-        // Get distance audited by the user. If using metric units, convert from miles to kilometers.
-        val auditedDistance: Float =
-          if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
-          else MissionTable.getDistanceAudited(user.userId)
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
-        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
-      case None => Future.successful(Redirect(s"/signIn?url=/dashboard"))
+    // If they are an anonymous user, send them to the sign in page.
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Redirect(s"/signIn?url=/"))
+    } else {
+      val user: User = request.identity.get
+      // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+      val auditedDistance: Float =
+        if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
+        else MissionTable.getDistanceAudited(user.userId)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+      val ipAddress: String = request.remoteAddress
+      WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
+      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
     }
   }
 

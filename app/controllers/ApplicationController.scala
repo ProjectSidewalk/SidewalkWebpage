@@ -38,11 +38,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
-    var referrer: Option[String] = qString.get("referrer") match{
-      case Some(r) =>
-        Some(r)
-      case None =>
-        qString.get("r")
+    val referrer: Option[String] = qString.get("referrer") match {
+      case Some(r) => Some(r)
+      case None    => qString.get("r")
     }
 
     referrer match {
@@ -78,7 +76,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
                     Future.successful(Redirect("/audit"))
                   case _ =>
-                    Future.successful(Redirect(routes.UserController.signOut("/")))
+                    Future.successful(Redirect(routes.UserController.signOut(request.uri)))
                     // Need to be able to login as a different user here, but the signout redirect isn't working.
                 }
               case None =>

@@ -9,7 +9,7 @@
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user, user.map(u=> "/contribution/" + u.username))
+    @navbar(user, user.map(u=> "/dashboard"))
     <div class="container">
 
         @if(user && user.get.role.getOrElse("") != "Anonymous") {
