@@ -4,7 +4,6 @@
  * @param missionModel
  * @param missionContainer
  * @param navigationModel
- * @param neighborhoodModel
  * @param panoramaContainer
  * @param taskContainer
  * @param mapService
@@ -14,11 +13,12 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, missionContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
+function Form (labelContainer, missionModel, missionContainer, navigationModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
-    var properties = {
+    let properties = {
         dataStoreUrl : undefined,
-        beaconDataStoreUrl : undefined
+        beaconDataStoreUrl : undefined,
+        lastPriorityUpdateTime : new Date().getTime() // Assumes that priorities are up-to-date when the page loads.
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
@@ -51,7 +51,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             completed: task.isComplete(),
             current_lat: navigationModel.getPosition().lat,
             current_lng: navigationModel.getPosition().lng,
-            start_point_reversed: task.getProperty("startPointReversed")
+            start_point_reversed: task.getProperty("startPointReversed"),
+            last_priority_update_time: properties.lastPriorityUpdateTime,
+            // Request updated street priorities if we are at least 60% of the way through the current street.
+            request_updated_street_priority: (task.getAuditedDistance() / task.lineDistance()) > 0.6
         };
 
         data.environment = {
@@ -262,6 +265,12 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
                     // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
                     if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
+
+                    // Update the priority of streets audited by other users that are auditing at the same time.
+                    if (result.updated_streets) {
+                        properties.lastPriorityUpdateTime = result.updated_streets.last_priority_update_time;
+                        taskContainer.updateTaskPriorities(result.updated_streets.updated_street_priorities);
+                    }
                 }
             },
             error: function (result) {

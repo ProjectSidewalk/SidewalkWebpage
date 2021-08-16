@@ -4,35 +4,6 @@ util.misc = util.misc || {};
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 
-    function getHeadingEstimate(SourceLat, SourceLng, TargetLat, TargetLng) {
-        // This function takes a pair of lat/lng coordinates.
-        //
-        if (typeof SourceLat !== 'number') {
-            SourceLat = parseFloat(SourceLat);
-        }
-        if (typeof SourceLng !== 'number') {
-            SourceLng = parseFloat(SourceLng);
-        }
-        if (typeof TargetLng !== 'number') {
-            TargetLng = parseFloat(TargetLng);
-        }
-        if (typeof TargetLat !== 'number') {
-            TargetLat = parseFloat(TargetLat);
-        }
-
-        var dLng = TargetLng - SourceLng;
-        var dLat = TargetLat - SourceLat;
-
-        if (dLat === 0 || dLng === 0) {
-            return 0;
-        }
-
-        var angle = toDegrees(Math.atan(dLng / dLat));
-        //var angle = toDegrees(Math.atan(dLat / dLng));
-
-        return 90 - angle;
-    }
-
     function getLabelCursorImagePath() {
         return {
             'Walk' : {
@@ -112,17 +83,13 @@ function UtilitiesMisc (JSON) {
                 id: 'NoSidewalk',
                 iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoSidewalk.png',
                 googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoSidewalk.png'
-            },
-            Void: {
-                id: 'Void',
-                iconImagePath : null
             }
         };
 
         return category ? imagePaths[category] : imagePaths;
     }
 
-    function getLabelInstructions () {
+    function getLabelInstructions() {
         return {
             'Walk' : {
                 'id' : 'Walk',
@@ -171,7 +138,7 @@ function UtilitiesMisc (JSON) {
      * Todo. This should be moved to RibbonMenu.js
      * @returns {{Walk: {id: string, text: string, labelRibbonConnection: string}, CurbRamp: {id: string, labelRibbonConnection: string}, NoCurbRamp: {id: string, labelRibbonConnection: string}, Obstacle: {id: string, labelRibbonConnection: string}, SurfaceProblem: {id: string, labelRibbonConnection: string}, Other: {id: string, labelRibbonConnection: string}, Occlusion: {id: string, labelRibbonConnection: string}, NoSidewalk: {id: string, labelRibbonConnection: string}}}
      */
-    function getRibbonConnectionPositions () {
+    function getRibbonConnectionPositions() {
         return {
             'Walk' : {
                 'id' : 'Walk',
@@ -477,21 +444,13 @@ function UtilitiesMisc (JSON) {
                     keyNumber: 66,
                     keyChar: 'B'
                 }
-            },
-            Void: {
-                id: 'Void',
-                text: 'Void'
-            },
-            Unclear: {
-                id: 'Unclear',
-                text: 'Unclear'
             }
         };
         return category ? descriptions[category] : descriptions;
     }
 
     /**
-     * Gets the severity message and severity image location that is displayed on a label tag
+     * Gets the severity message and severity image location that is displayed on a label tag.
      * @returns {{1: {message: string, severityImage: string}, 2: {message: string, severityImage: string},
      *              3: {message: string, severityImage: string}, 4: {message: string, severityImage: string},
      *              5: {message: string, severityImage: string}}}
@@ -531,185 +490,77 @@ function UtilitiesMisc (JSON) {
      * http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
      * @param streetEdgeId
      */
-    function reportNoStreetView (streetEdgeId) {
+    function reportNoStreetView(streetEdgeId) {
         var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
         x.open('POST', url, async);
         x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
     }
 
-    self.getHeadingEstimate = getHeadingEstimate;
+    const colors = {
+        Walk : {
+            id : 'Walk',
+            fillStyle : 'rgba(0, 0, 0, 1)',
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(0, 0, 0, .8)',
+        },
+        CurbRamp: {
+            id: 'CurbRamp',
+            fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(0, 222, 38, .8)',
+        },
+        NoCurbRamp: {
+            id: 'NoCurbRamp',
+            fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(233, 39, 113, .8)',
+        },
+        Obstacle: {
+            id: 'Obstacle',
+            fillStyle: 'rgba(0, 161, 203, 1)',
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(0, 161, 203, .8)'
+        },
+        Other: {
+            id: 'Other',
+            fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
+            strokeStyle: '#0000ff',
+            missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
+        },
+        Occlusion: {
+            id: 'Occlusion',
+            fillStyle: 'rgba(179, 179, 179, 1)',
+            strokeStyle: '#009902',
+            missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
+        },
+        NoSidewalk: {
+            id: 'NoSidewalk',
+            fillStyle: 'rgba(153, 131, 239, 1)',
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(153, 131, 239, .8)'
+        },
+        SurfaceProblem: {
+            id: 'SurfaceProblem',
+            fillStyle: 'rgba(241, 141, 5, 1)',
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
+        }
+    };
+    function getLabelColors(category) {
+        return category ? colors[category].fillStyle : colors;
+    }
+
     self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
     self.getLabelInstructions = getLabelInstructions;
     self.getRibbonConnectionPositions = getRibbonConnectionPositions;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
-    self.getLabelColors = ColorScheme.SidewalkColorScheme2;
+    self.getLabelColors = getLabelColors;
     self.reportNoStreetView = reportNoStreetView;
 
     return self;
 }
-
-var ColorScheme = (function () {
-    function SidewalkColorScheme () {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                fillStyle: 'rgba(0, 244, 38, 0.9)'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                fillStyle: 'rgba(255, 39, 113, 0.9)'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                fillStyle: 'rgba(0, 161, 203, 0.9)'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                fillStyle: 'rgba(153, 131, 239, 0.9)'
-            },
-            Other: {
-                id: 'Other',
-                fillStyle: 'rgba(204, 204, 204, 0.9)',
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                fillStyle: 'rgba(215, 0, 96, 0.9)'
-            },
-            Void: {
-                id: 'Void',
-                fillStyle: 'rgba(255, 255, 255, 0)'
-            },
-            Unclear: {
-                id: 'Unclear',
-                fillStyle: 'rgba(128, 128, 128, 0.5)'
-            }
-        }
-    }
-
-    function SidewalkColorScheme2 (category) {
-        var colors = {
-            Walk : {
-                id : 'Walk',
-                fillStyle : 'rgba(0, 0, 0, 1)',
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(0, 0, 0, .8)',
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(0, 222, 38, .8)',
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(233, 39, 113, .8)',
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                fillStyle: 'rgba(0, 161, 203, 1)',
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(0, 161, 203, .8)'
-            },
-            Other: {
-                id: 'Other',
-                fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
-                strokeStyle: '#0000ff',
-                missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                fillStyle: 'rgba(179, 179, 179, 1)',
-                strokeStyle: '#009902',
-                missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                fillStyle: 'rgba(153, 131, 239, 1)',
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(153, 131, 239, .8)'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                fillStyle: 'rgba(241, 141, 5, 1)',
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
-            },
-            Void: {
-                id: 'Void',
-                fillStyle: 'rgba(255, 255, 255, 1)',
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(255, 255, 255, .8)',
-            },
-            Unclear: {
-                id: 'Unclear',
-                fillStyle: 'rgba(128, 128, 128, 0.5)',
-                strokeStyle: '#ffffff',
-                missingPanoStrokeStyle: 'rgba(128, 128, 128, 0.8)'
-            }
-        };
-        return category ? colors[category].fillStyle : colors;
-    }
-
-    function SidewalkColorScheme3 (category) {
-        var colors = {
-            Walk : {
-                id : 'Walk',
-                fillStyle : 'rgba(0, 0, 0, 1)'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                fillStyle: 'rgba(79, 180, 105, 1)'  // 'rgba(0, 244, 38, 1)'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                fillStyle: 'rgba(210, 48, 30, 1)'  // 'rgba(255, 39, 113, 1)'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                fillStyle: 'rgba(29, 150 , 240, 1)'
-            },
-            Other: {
-                id: 'Other',
-                fillStyle: 'rgba(180, 150, 200, 1)' //'rgba(204, 204, 204, 1)'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                fillStyle: 'rgba(179, 179, 179, 1)'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                fillStyle: 'rgba(153, 131, 239, 1)'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                fillStyle: 'rgba(240, 200, 30, 1)'
-            },
-            Void: {
-                id: 'Void',
-                fillStyle: 'rgba(255, 255, 255, 1)'
-            },
-            Unclear: {
-                id: 'Unclear',
-                fillStyle: 'rgba(128, 128, 128, 0.5)'
-            }
-        };
-        return category ? colors[category].fillStyle : colors;
-    }
-
-    return {
-        className: 'ColorScheme',
-        SidewalkColorScheme: SidewalkColorScheme,
-        SidewalkColorScheme2: SidewalkColorScheme2
-    };
-}());
 
 util.misc = UtilitiesMisc(JSON);

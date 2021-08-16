@@ -90,7 +90,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    @LabelTable.getRecentLabelMetadata(1000, UUID.fromString(user.get.userId)).map { userLabel =>
+                    @LabelTable.getRecentLabelMetadata(1000, user.get.userId).map { userLabel =>
                         <tr>
                             <td class = 'timestamp'>@userLabel.timestamp</td>
                             <td>@userLabel.labelTypeKey</td>

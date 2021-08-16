@@ -3,12 +3,15 @@ package controllers
 import javax.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
+import models.user.OrganizationTable
+import models.user.UserOrgTable
 import models.label.{LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivityTable, WebpageActivity}
 import play.api.libs.json.{JsObject, Json}
@@ -149,5 +152,33 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       "date" -> x.date, "count" -> x.count
     )))
     Future.successful(Ok(json))
+  }
+
+  /**
+   * Sets the org of the given user. 
+   *
+   * @param orgId The id of the org the user is to be added to.
+   *              If the id is not a valid org (e.g. 0), then the user is removed from their current org without
+   *              being added to a new one.
+   */
+  def setUserOrg(orgId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val userId: UUID = user.userId
+        if (user.role.getOrElse("") != "Anonymous") {
+          val allUserOrgs: List[Int] = UserOrgTable.getAllOrgs(userId);
+          if (allUserOrgs.headOption.isEmpty) {
+            UserOrgTable.save(userId, orgId)
+          } else if (allUserOrgs.head != orgId) {
+            UserOrgTable.remove(userId, allUserOrgs.head)
+            UserOrgTable.save(userId, orgId)
+          }
+        }
+        Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))
+      case None =>  Future.successful(Ok(Json.obj(
+        "error" -> "0",
+        "message" -> "Your user id could not be found."
+      )))
+    }
   }
 }

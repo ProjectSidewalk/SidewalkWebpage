@@ -12,7 +12,6 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/data/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/game/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/gsv/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/label/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/menu/*.js',
@@ -80,7 +79,10 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/data/*.js',
                     'public/javascripts/Gallery/src/filter/*.js',
                     'public/javascripts/Gallery/src/validation/*.js',
-                    'public/javascripts/Gallery/src/*.js'
+                    'public/javascripts/Gallery/src/displays/*.js',
+                    'public/javascripts/Gallery/src/modal/*.js',
+                    'public/javascripts/Gallery/src/*.js',
+                    'public/javascripts/common/Panomarker.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
             }

@@ -1,5 +1,4 @@
 function OnboardingModel () {
-
 }
 
 OnboardingModel.prototype.triggerStartOnboarding = function (parameters) {

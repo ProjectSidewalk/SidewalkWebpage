@@ -20,16 +20,22 @@ object LabelTypeTable {
   val db = play.api.db.slick.DB
   val labelTypes = TableQuery[LabelTypeTable]
 
-  /**
-    * Set of valid label types to display
-    */
+  // Set of valid/primary label types.
   def validLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other", "Occlusion", "NoSidewalk")
+  def primaryLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk")
 
   /**
-    * Set of valid label type ids for the above valid label types
-    */
-  def validLabelTypeIds: Set[Int] = db.withTransaction { implicit session => 
+   * Set of valid label type ids for the above valid label types.
+   */
+  def validLabelTypeIds: Set[Int] = db.withTransaction { implicit session =>
     labelTypes.filter(_.labelType inSet validLabelTypes).map(_.labelTypeId).list.toSet
+  }
+
+  /**
+   * Set of primary label type ids for the above valid label types.
+   */
+  def primaryLabelTypeIds: Set[Int] = db.withTransaction { implicit session =>
+    labelTypes.filter(_.labelType inSet primaryLabelTypes).map(_.labelTypeId).list.toSet
   }
 
   /**

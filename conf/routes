@@ -142,6 +142,8 @@ GET     /userapi/validationCounts/all                        @controllers.UserPr
 
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
+PUT    /userapi/setUserOrg/:orgId                            @controllers.UserProfileController.setUserOrg(orgId: Int)
+
 # Geometry API
 
 # Access Feature and Access Score APIs

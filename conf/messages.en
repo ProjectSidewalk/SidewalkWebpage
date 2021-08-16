@@ -247,6 +247,11 @@ results.legend.high = High
 results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
 
+dashboard.no.org = No Organization
+dashboard.edit.org = Edit
+dashboard.edit.info = If you don't see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
+dashboard.orgs.unavailable = There are no available organizations!
+dashboard.leave.org = Leave Organization
 dashboard.audited.street = Audited Street
 dashboard.total.distance.explored = Total Distance Explored
 dashboard.number.completed.missions = Number of Completed Missions
@@ -285,16 +290,19 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
+leaderboard.org.title = {0} Leaderboard
 leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
 leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
+leaderboard.org.detail = Top 10 overall contributers to {0}
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
 leaderboard.header.accuracy = Accuracy
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
-leaderboard.encouragement = Want to make it into the Top 10? <a href="/audit"><u>Start exploring!</u></a>
-leaderboard.encouragement.no.user = <a href="/signUp"><u>Sign up</u></a> to track your progress!
+leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/audit"><u>Start exploring!</u></a>
+leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/contribution/__USERNAME__"><u>Join an organization</u></a> to compete against your teammates!
 
 gallery = Gallery
 gallery.show = Show

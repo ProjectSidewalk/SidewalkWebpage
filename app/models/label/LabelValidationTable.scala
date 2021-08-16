@@ -76,6 +76,7 @@ object LabelValidationTable {
   val labels = TableQuery[LabelTable]
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
+  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "NotSure")
 
   /**
     * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
