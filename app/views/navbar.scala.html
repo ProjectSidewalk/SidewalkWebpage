@@ -131,7 +131,7 @@
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-label="User options for @user.get.username">
                             <li role="presentation">
-                                <a id="navbar-dashboard-btn" role="menuitem" href='@routes.UserProfileController.userProfile(user.get.username)'>
+                                <a id="navbar-dashboard-btn" role="menuitem" href='@routes.UserProfileController.userProfile'>
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
@@ -380,7 +380,7 @@ $(document).ready(function () {
                 svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
                 svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
                 var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                var href = "/contribution/" + data.username + "?regionId=" + neighborhood.getProperty("regionId");
+                var href = "/dashboard" + "?regionId=" + neighborhood.getProperty("regionId");
                 svl.statusFieldNeighborhood.setHref(href);
 
                 // init: noInit is a flag that prevents the init functions in main from running
@@ -526,7 +526,7 @@ $(document).ready(function () {
         </a>
         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
             <li role="presentation" id="dashboard-link">
-                <a href='/contribution/__USERNAME__' role="menuitem">@Messages("navbar.dashboard")</a>
+                <a href='/dashboard' role="menuitem">@Messages("navbar.dashboard")</a>
             </li>
             <li role="presentation">
                 <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
