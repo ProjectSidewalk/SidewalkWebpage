@@ -355,7 +355,7 @@ function CardContainer(uiCardContainer) {
             });
         } else {
             // TODO: figure out how to better do the toggling of this element.
-            $("#labels-not-found").show();
+            sg.labelsNotFound.show();
             sg.pageLoading.hide();
             sg.tagContainer.enable();
             sg.ui.ribbonMenu.select.prop("disabled", false);
@@ -382,7 +382,7 @@ function CardContainer(uiCardContainer) {
         // Disable interactable UI elements while query loads.
         sg.tagContainer.disable();
         sg.ui.ribbonMenu.select.prop("disabled", true);
-        $("#labels-not-found").hide();
+        sg.labelsNotFound.hide();
         sg.ui.pageControl.hide();
 
         // Since we have returned to top of page, 

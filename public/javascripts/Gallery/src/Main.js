@@ -45,14 +45,11 @@ function Main (params) {
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
 
-        // Keep track of the next/prev arrow container.
+        // Keep track of some other elements whose status or dimensions are useful.
         sg.ui.pageControl = $(".page-control");
-
-        // Keep track of navbar.
-        sg.ui.navbar = $("#header")
-
-        // Keep track of loading GIF.
+        sg.ui.navbar = $("#header");
         sg.pageLoading = $('#page-loading');
+        sg.labelsNotFound = $('#labels-not-found');
 
         $('.gallery-modal').hide();
 
@@ -86,7 +83,7 @@ function Main (params) {
 
         $(window).scroll(function () {
             // Make sure the page isn't loading.
-            if (!sg.pageLoading.is(":visible")) {
+            if (!sg.pageLoading.is(":visible") && !sg.labelsNotFound.is(':visible')) {
                 let sidebarBottomOffset = sg.ui.cardFilter.wrapper.offset().top +
                                           sg.ui.cardFilter.wrapper.outerHeight(true);
                 let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
