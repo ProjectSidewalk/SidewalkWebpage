@@ -51,6 +51,9 @@ function Main (params) {
         // Keep track of navbar.
         sg.ui.navbar = $("#header")
 
+        // Keep track of loading GIF.
+        sg.pageLoading = $('#page-loading');
+
         $('.gallery-modal').hide();
 
         // Calculate offset between bottom of navbar and sidebar.
@@ -72,6 +75,8 @@ function Main (params) {
 
         sg.util = {};
 
+        let sidebarWidth = sg.ui.cardFilter.wrapper.css('width');
+
         // // Set initial sidebar stickiness
         // let initSidebarBottomOffset = sg.ui.cardFilter.wrapper.offset().top +
         //                               sg.ui.cardFilter.wrapper.outerHeight(true);
@@ -81,7 +86,7 @@ function Main (params) {
 
         $(window).scroll(function () {
             // Make sure the page isn't loading.
-            if (!$("#page-loading").is(":visible")) {
+            if (!sg.pageLoading.is(":visible")) {
                 let sidebarBottomOffset = sg.ui.cardFilter.wrapper.offset().top +
                                           sg.ui.cardFilter.wrapper.outerHeight(true);
                 let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
@@ -99,9 +104,7 @@ function Main (params) {
                         // Adjust sidebar positioning.
                         sg.ui.cardFilter.wrapper.css('position', 'relative');
 
-                        // The sg.ui.navbar.outerHeight(false) is necessary in order for the placement of the sidebar
-                        // to be correct once it goes to being relatively positioned.
-                        // TODO: investigate more closely as to why.
+                        // Compute the new location for the top of the sidebar, just above the paging arrows.
                         let navbarHeight = sg.ui.navbar.outerHeight(false);
                         let newTop = pageControlTopOffset - sidebarHeightBeforeRelative - navbarHeight;
                         console.log(newTop);
@@ -121,7 +124,7 @@ function Main (params) {
                             sg.ui.cardFilter.wrapper.css('top', '');
         
                             // Adjust card container margin.
-                            sg.ui.cardContainer.holder.css('margin-left', '235px'); // constant
+                            sg.ui.cardContainer.holder.css('margin-left', sidebarWidth);
                             sg.scrollStatus.stickySidebar = true;
                         }
                     }
