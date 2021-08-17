@@ -349,7 +349,8 @@ function CardContainer(uiCardContainer) {
                 sg.pageLoading.hide();
                 sg.ui.cardFilter.wrapper.css('position', 'fixed');
                 sg.ui.cardFilter.wrapper.css('top', '');
-                uiCardContainer.holder.css('margin-left', '235px');
+                uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
+                sg.scrollStatus.stickySidebar = true;
                 sg.tagContainer.enable();
                 sg.ui.ribbonMenu.select.prop("disabled", false);
             });
