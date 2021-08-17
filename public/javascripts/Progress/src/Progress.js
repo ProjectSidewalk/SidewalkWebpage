@@ -57,4 +57,48 @@ function Progress (_, $, difficultRegionIds, userRole) {
         InitializeSubmittedLabels(map, streetParams, 'null', InitializeMapLayerContainer(), data2[0])
         setRegionFocus(map, layers);
     });
+
+    function logWebpageActivity(activity){
+        var url = "/userapi/logWebpageActivity";
+        var async = false;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activity),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    function putUserOrg(e) {
+        var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
+        var startOrg = parsedId[1];
+        var endOrg = parsedId[3];
+        $.ajax({
+            async: true,
+            url: '/userapi/setUserOrg/' + endOrg,
+            type: 'put',
+            success: function (result) {
+                window.location.reload();
+                if (endOrg != startOrg) {
+                    if (startOrg != 0) {
+                        logWebpageActivity("Click_module=leaving_org=" + startOrg);
+                    }
+                    if (endOrg != 0) {
+                        logWebpageActivity("Click_module=joining_org=" + endOrg);
+                    }
+                }
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    $('.put-user-org').on('click', putUserOrg);
 }

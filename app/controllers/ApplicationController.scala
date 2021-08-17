@@ -38,11 +38,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
-    var referrer: Option[String] = qString.get("referrer") match{
-      case Some(r) =>
-        Some(r)
-      case None =>
-        qString.get("r")
+    val referrer: Option[String] = qString.get("referrer") match {
+      case Some(r) => Some(r)
+      case None    => qString.get("r")
     }
 
     referrer match {

@@ -14,7 +14,7 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
 
         var user = self._userModel.getUser();
         if (user && user.getProperty("role") != "Anonymous") {
-            var href = "/contribution/" + encodeURI(user.getProperty("username")) + "?regionId=" + newNeighborhood.getProperty("regionId");
+            var href = "/dashboard/" + "?regionId=" + newNeighborhood.getProperty("regionId");
             self.setHref(href);
         }
     });

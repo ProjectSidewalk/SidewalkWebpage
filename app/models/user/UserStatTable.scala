@@ -11,6 +11,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{StaticQuery => Q}
+import play.Logger
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean])
@@ -204,12 +205,21 @@ object UserStatTable {
    * does not count).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
+   * @param orgId The id of the org over which to compute stats
    * @return
    */
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall"): List[LeaderboardStat] = db.withSession { implicit session =>
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall", orgId: Option[Int] = None): List[LeaderboardStat] = db.withSession { implicit session =>
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
+    }
+    val joinUserOrgTable: String = orgId match {
+      case Some(id) => "INNER JOIN user_org ON sidewalk_user.user_id = user_org.user_id"
+      case None => ""
+    }
+    val orgFilter: String = orgId match {
+      case Some(id) => "AND user_org.org_id = " + id
+      case None => ""
     }
     val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float])](
       s"""SELECT usernames.username,
@@ -225,11 +235,13 @@ object UserStatTable {
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
         |    INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
         |    INNER JOIN label ON mission.mission_id = label.mission_id
+        |    $joinUserOrgTable
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
         |        AND (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+        |        $orgFilter
         |    GROUP BY sidewalk_user.user_id
         |    ORDER BY label_count DESC
         |    LIMIT $n
