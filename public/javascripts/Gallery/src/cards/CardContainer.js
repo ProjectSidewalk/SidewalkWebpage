@@ -73,7 +73,7 @@ function CardContainer(uiCardContainer) {
         pageNumberDisplay = document.createElement('h2');
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
-        $(".page-control").hide();
+        sg.ui.pageControl.hide();
         sg.tagContainer.disable();
         sg.ui.cardContainer.prevPage.prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
@@ -345,20 +345,20 @@ function CardContainer(uiCardContainer) {
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
                 imagesToLoad.forEach((card) => {card.renderSize(uiCardContainer.holder, cardWidth)});
-                $(".page-control").show();
-                $("#page-loading").hide();
-                $('.sidebar').css('position', 'fixed');
-                $('.sidebar').css('top', '');
+                sg.ui.pageControl.show();
+                sg.pageLoading.hide();
+                sg.ui.cardFilter.wrapper.css('position', 'fixed');
+                sg.ui.cardFilter.wrapper.css('top', '');
                 uiCardContainer.holder.css('margin-left', '235px');
                 sg.tagContainer.enable();
-                $("#label-select").prop("disabled", false);
+                sg.ui.ribbonMenu.select.prop("disabled", false);
             });
         } else {
             // TODO: figure out how to better do the toggling of this element.
             $("#labels-not-found").show();
-            $("#page-loading").hide();
+            sg.pageLoading.hide();
             sg.tagContainer.enable();
-            $("#label-select").prop("disabled", false);
+            sg.ui.ribbonMenu.select.prop("disabled", false);
         }
     }
 
@@ -377,16 +377,16 @@ function CardContainer(uiCardContainer) {
         window.scrollTo(0, 0);
 
         // Indicate query is sent, loading appropriate cards.
-        $("#page-loading").show();
+        sg.pageLoading.show();
 
         // Disable interactable UI elements while query loads.
         sg.tagContainer.disable();
-        $("#label-select").prop("disabled", true);
+        sg.ui.ribbonMenu.select.prop("disabled", true);
         $("#labels-not-found").hide();
-        $(".page-control").hide();
+        sg.ui.pageControl.hide();
 
         // Since we have returned to top of page, 
-        $('.sidebar').css('position', 'relative');
+        sg.ui.cardFilter.wrapper.css('position', 'relative');
     }
 
     /**
