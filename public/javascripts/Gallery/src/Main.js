@@ -88,7 +88,6 @@ function Main (params) {
                                           sg.ui.cardFilter.wrapper.outerHeight(true);
                 let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
                                                 sg.ui.cardContainer.holder.outerHeight(true) - 5;
-                let pageControlTopOffset = sg.ui.pageControl.offset().top;
                 let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
 
                 // Handle sidebar stickiness.
