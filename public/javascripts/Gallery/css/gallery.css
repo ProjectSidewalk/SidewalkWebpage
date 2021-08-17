@@ -45,7 +45,7 @@
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
-    padding-top: 40px;
+    padding-top: 20px;
     min-height: calc(100vh - 610px);
     width: 235px;
     grid-row: 1/2;
