@@ -87,15 +87,15 @@ function Main (params) {
                 let sidebarBottomOffset = sg.ui.cardFilter.wrapper.offset().top +
                                           sg.ui.cardFilter.wrapper.outerHeight(true);
                 let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
-                                                sg.ui.cardContainer.holder.outerHeight(true) - 10;
+                                                sg.ui.cardContainer.holder.outerHeight(true) - 5;
                 let pageControlTopOffset = sg.ui.pageControl.offset().top;
                 let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
 
                 // Handle sidebar stickiness.
                 if (sg.scrollStatus.stickySidebar) {
-                    console.log("are we in here");
+                    console.log("we sticky");
                     if (cardContainerBottomOffset < sidebarBottomOffset) {
-                        console.log("triggered");
+                        console.log("MAKE NOT STICKY");
                         sidebarHeightBeforeRelative = sg.ui.cardFilter.wrapper.outerHeight(true);
 
                         // Adjust sidebar positioning.
@@ -112,9 +112,11 @@ function Main (params) {
                         sg.scrollStatus.stickySidebar = false;
                     }
                 } else {
+                    console.log("we not sticky");
                     currHeaderSidebarOffset = sg.ui.cardFilter.wrapper.offset().top -
                                              (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight(false));
                     if (currHeaderSidebarOffset > headerSidebarOffset) {
+                        console.log('MAKE STICKY');
                         // Adjust sidebar positioning.
                         sg.ui.cardFilter.wrapper.css('position', 'fixed');
                         sg.ui.cardFilter.wrapper.css('top', '');
