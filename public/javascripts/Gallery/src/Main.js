@@ -94,7 +94,7 @@ function Main (params) {
                 // Handle sidebar stickiness.
                 if (sg.scrollStatus.stickySidebar) {
                     console.log("are we in here");
-                    if (pageControlTopOffset < sidebarBottomOffset) {
+                    if (cardContainerBottomOffset < sidebarBottomOffset) {
                         console.log("triggered");
                         sidebarHeightBeforeRelative = sg.ui.cardFilter.wrapper.outerHeight(true);
 
@@ -103,7 +103,7 @@ function Main (params) {
 
                         // Compute the new location for the top of the sidebar, just above the paging arrows.
                         let navbarHeight = sg.ui.navbar.outerHeight(false);
-                        let newTop = pageControlTopOffset - sidebarHeightBeforeRelative - navbarHeight;
+                        let newTop = cardContainerBottomOffset - sidebarHeightBeforeRelative - navbarHeight;
                         console.log(newTop);
                         sg.ui.cardFilter.wrapper.css('top', newTop);
 
@@ -112,18 +112,16 @@ function Main (params) {
                         sg.scrollStatus.stickySidebar = false;
                     }
                 } else {
-                    if (!sg.scrollStatus.stickySidebar) {
-                        currHeaderSidebarOffset = sg.ui.cardFilter.wrapper.offset().top -
-                                                 (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight(false));
-                        if (currHeaderSidebarOffset > headerSidebarOffset) {
-                            // Adjust sidebar positioning.
-                            sg.ui.cardFilter.wrapper.css('position', 'fixed');
-                            sg.ui.cardFilter.wrapper.css('top', '');
-        
-                            // Adjust card container margin.
-                            sg.ui.cardContainer.holder.css('margin-left', sidebarWidth);
-                            sg.scrollStatus.stickySidebar = true;
-                        }
+                    currHeaderSidebarOffset = sg.ui.cardFilter.wrapper.offset().top -
+                                             (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight(false));
+                    if (currHeaderSidebarOffset > headerSidebarOffset) {
+                        // Adjust sidebar positioning.
+                        sg.ui.cardFilter.wrapper.css('position', 'fixed');
+                        sg.ui.cardFilter.wrapper.css('top', '');
+
+                        // Adjust card container margin.
+                        sg.ui.cardContainer.holder.css('margin-left', sidebarWidth);
+                        sg.scrollStatus.stickySidebar = true;
                     }
                 }
 
