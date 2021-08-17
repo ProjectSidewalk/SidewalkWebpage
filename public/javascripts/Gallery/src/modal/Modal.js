@@ -183,15 +183,16 @@ function Modal(uiModal) {
         sg.ui.cardFilter.wrapper.css('top', '');
 
         // Adjust card container margin.
-        sg.ui.cardContainer.holder.css('margin-left', '235px');  // constant
+        sg.ui.cardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
         sg.scrollStatus.stickySidebar = true;
 
         // Centers the card thumbnail that was selected. If it's the last card, we scroll such that the card is at the
         // bottom of the visible window.
         let index = self.cardIndex;
         let page = sg.cardContainer.getCurrentPage();
+        let totalCards = sg.cardContainer.getCurrentCards().getSize();
         galleryCard.scrollIntoView({
-            block: (index < page * cardsPerPage - 1) ? 'center' : 'end',
+            block: (index < page * cardsPerPage - 1 && index < totalCards - 1) ? 'center' : 'end',
             behavior: 'smooth'
         });
 
@@ -204,7 +205,7 @@ function Modal(uiModal) {
         let currentPageCards = sg.cardContainer.getCurrentPageCards();
         for (let card of currentPageCards) {
             let cardLabelId = card.getLabelId();
-            if (cardLabelId != properties.label_id) {
+            if (cardLabelId !== properties.label_id) {
                 let cardDomEl = document.getElementById("gallery_card_" + cardLabelId);
                 if (!cardDomEl.classList.contains(unselectedCardClassName)) {
                     cardDomEl.classList.add(unselectedCardClassName);
