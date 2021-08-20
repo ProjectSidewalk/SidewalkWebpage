@@ -37,17 +37,25 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     request.identity match {
       case Some(user) =>
         val features: List[JsObject] = RegionTable.getNeighborhoodsWithUserCompletionStatus(user.userId).map { region =>
-          val coordinates: Array[Coordinate] = region.geom.getCoordinates
-          val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
-          val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))
-          val properties = Json.obj(
+          // Put polygon in geojson format, an array[array[latlng]], where the first array contains the latlngs for the
+          // outer boundary of the polygon, and the remaining arrays have the latlngs for any holes in the polygon.
+          val nHoles: Int = region.geom.getNumInteriorRing
+          val outerRing: Seq[Array[Coordinate]] = Seq(region.geom.getExteriorRing.getCoordinates)
+          val holes: Seq[Array[Coordinate]] = (0 until nHoles).map(i => region.geom.getInteriorRingN(i).getCoordinates)
+          val coordinates: Seq[Array[Coordinate]] = outerRing ++ holes
+          val latlngs: Seq[Seq[geojson.LatLng]] = coordinates.map { ring =>
+            ring.map(coord => geojson.LatLng(coord.y, coord.x)).toList
+          }
+          val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(latlngs)
+
+          val properties: JsObject = Json.obj(
             "region_id" -> region.regionId,
             "region_name" -> region.name,
             "user_completed" -> region.userCompleted
           )
           Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
         }
-        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Future.successful(Ok(featureCollection))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/neighborhoods"))
