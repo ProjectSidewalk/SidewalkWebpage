@@ -10,7 +10,7 @@ import java.time.Instant
 
 import javax.inject.Inject
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
-import org.locationtech.jts.geom.{Coordinate => JTSCoordinate, GeometryFactory => JTSGeometryFactory, Point => JTSPoint}
+import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 
 import math._
 import models.region._
@@ -405,10 +405,17 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val neighborhoodJson = for (neighborhood <- neighborhoods) yield {
-        // prepare a geometry
-        val coordinates: Array[Coordinate] = neighborhood.geom.getCoordinates
-        val latlngs: Seq[JsonLatLng] = coordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
-        val polygon: JsonPolygon[JsonLatLng] = JsonPolygon(Seq(latlngs))
+        // Put polygon in geojson format, an array[array[latlng]], where the first array contains the latlngs for the
+        // outer boundary of the polygon, and the remaining arrays have the latlngs for any holes in the polygon.
+        val nHoles: Int = neighborhood.geom.getNumInteriorRing
+        val outerRing: Seq[Array[Coordinate]] = Seq(neighborhood.geom.getExteriorRing.getCoordinates)
+        val holes: Seq[Array[Coordinate]] =
+          (0 until nHoles).map(i => neighborhood.geom.getInteriorRingN(i).getCoordinates)
+        val coordinates: Seq[Array[Coordinate]] = outerRing ++ holes
+        val latlngs: Seq[Seq[JsonLatLng]] = coordinates.map { ring =>
+          ring.map(coord => JsonLatLng(coord.y, coord.x)).toList
+        }
+        val polygon: JsonPolygon[JsonLatLng] = JsonPolygon(latlngs)
 
         // Get access score
         // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
