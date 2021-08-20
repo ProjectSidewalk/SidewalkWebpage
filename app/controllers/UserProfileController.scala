@@ -10,7 +10,6 @@ import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
-import models.user.OrganizationTable
 import models.user.UserOrgTable
 import models.label.{LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivityTable, WebpageActivity}

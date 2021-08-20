@@ -1,14 +1,7 @@
 package models.gallery
 
-import java.util.UUID
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
-import play.extras.geojson
-
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
-
 
 case class GalleryTaskInteraction(galleryTaskInteractionId: Int,
                                      action: String,
