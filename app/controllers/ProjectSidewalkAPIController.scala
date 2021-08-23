@@ -7,11 +7,9 @@ import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import java.time.Instant
-
 import javax.inject.Inject
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
-
 import math._
 import models.region._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -21,12 +19,12 @@ import models.user.{User, WebpageActivity, WebpageActivityTable}
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
-import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
+import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, MultiPolygon => JsonMultiPolygon, Point => JsonPoint}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{ArrayBuffer, Buffer}
-import collection.immutable.Seq
 import scala.concurrent.Future
 import helper.ShapefilesCreatorHelper
+import models.region.RegionTable.MultiPolygonUtils
 
 
 case class NeighborhoodAttributeSignificance (val name: String,
@@ -404,18 +402,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
-      val neighborhoodJson = for (neighborhood <- neighborhoods) yield {
-        // Put polygon in geojson format, an array[array[latlng]], where the first array contains the latlngs for the
-        // outer boundary of the polygon, and the remaining arrays have the latlngs for any holes in the polygon.
-        val nHoles: Int = neighborhood.geom.getNumInteriorRing
-        val outerRing: Seq[Array[Coordinate]] = Seq(neighborhood.geom.getExteriorRing.getCoordinates)
-        val holes: Seq[Array[Coordinate]] =
-          (0 until nHoles).map(i => neighborhood.geom.getInteriorRingN(i).getCoordinates)
-        val coordinates: Seq[Array[Coordinate]] = outerRing ++ holes
-        val latlngs: Seq[Seq[JsonLatLng]] = coordinates.map { ring =>
-          ring.map(coord => JsonLatLng(coord.y, coord.x)).toList
-        }
-        val polygon: JsonPolygon[JsonLatLng] = JsonPolygon(latlngs)
+      val neighborhoodsJson = for (neighborhood <- neighborhoods) yield {
+        val neighborhoodJson: JsonMultiPolygon[JsonLatLng] = neighborhood.geom.toJSON
 
         // Get access score
         // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
@@ -449,7 +437,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
               "SurfaceProblem" -> averagedStreetFeatures(3)
             )
           )
-          Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)       
+          Json.obj("type" -> "Feature", "geometry" -> neighborhoodJson, "properties" -> properties)
         } else {
           val properties = Json.obj(
             "coverage" -> 0.0,
@@ -464,10 +452,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
             ),
             "feature" -> None.asInstanceOf[Option[Array[Double]]]
           )
-          Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+          Json.obj("type" -> "Feature", "geometry" -> neighborhoodJson, "properties" -> properties)
         }
       }
-      Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
+      Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodsJson)
     }
     featureCollection
   }
