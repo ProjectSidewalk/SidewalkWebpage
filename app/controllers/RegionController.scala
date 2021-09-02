@@ -12,11 +12,10 @@ import models.region._
 import play.api.libs.json.Json
 import play.api.libs.json.Json._
 import play.extras.geojson
-import com.vividsolutions.jts.geom.Coordinate
-import collection.immutable.Seq
+import models.region.RegionTable.MultiPolygonUtils
 
 /**
- * Holds the HTTP requests associated with managing neighorhoods.
+ * Holds the HTTP requests associated with managing neighborhoods.
  *
  * @param env The Silhouette environment.
  */
@@ -37,17 +36,14 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     request.identity match {
       case Some(user) =>
         val features: List[JsObject] = RegionTable.getNeighborhoodsWithUserCompletionStatus(user.userId).map { region =>
-          val coordinates: Array[Coordinate] = region.geom.getCoordinates
-          val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
-          val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))
-          val properties = Json.obj(
+          val properties: JsObject = Json.obj(
             "region_id" -> region.regionId,
             "region_name" -> region.name,
             "user_completed" -> region.userCompleted
           )
-          Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+          Json.obj("type" -> "Feature", "geometry" -> region.geom.toJSON, "properties" -> properties)
         }
-        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Future.successful(Ok(featureCollection))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/neighborhoods"))
