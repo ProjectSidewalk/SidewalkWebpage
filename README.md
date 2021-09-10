@@ -24,6 +24,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 </details>
 
 <details><summary>Windows</summary>
+    
 <details><summary>Recommended: Using the Windows Subsystem for Linux (WSL2)</summary>
 
 WSL2 is recommended for much faster compile times (especially for Windows Home users). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel.
@@ -47,7 +48,10 @@ One issue you may encounter when setting up your dev environment within the Linu
 
 <details><summary>Without WSL2</summary>
 
-Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
+
+1. Importantly, you must first enable Containers and Hyper-V. To do this, search for "Turn Windows features on and off" in Win10 start bar and then enable Containers and Hyper-V as in the following screenshot:
+
+    ![image](https://user-images.githubusercontent.com/1621749/132915199-97118d5a-4e91-4047-9400-0e1662a512d6.png)
 
 1. [Install  Docker Desktop](https://www.docker.com/get-started). Importantly, uncheck the "Install required Windows components for WSL 2" box on the first installation screen.
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
