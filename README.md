@@ -27,7 +27,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
     
 <details><summary>Recommended: Using the Windows Subsystem for Linux (WSL2)</summary>
 
-WSL2 is recommended for much faster compile times (especially for Windows Home users). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel.
+WSL2 is recommended for much faster compile times and is required if you use Win10 Home (vs. Enterprise or Pro). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/).
 
 1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/).
 1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
