@@ -48,7 +48,7 @@ One issue you may encounter when setting up your dev environment within the Linu
 
 <details><summary>Without WSL2</summary>
 
-1. Importantly, you must first enable Containers and Hyper-V. To do this, search for "Turn Windows features on and off" in Win10 start bar and then enable Containers and Hyper-V as in the following screenshot:
+1. Importantly, you must first enable Containers and Hyper-V. To do this, search for "Turn Windows features on and off" in Win10 start bar and then enable Containers and Hyper-V as in the following screenshot (see also [Enable use of Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)):
 
     ![image](https://user-images.githubusercontent.com/1621749/132915199-97118d5a-4e91-4047-9400-0e1662a512d6.png)
 
@@ -57,7 +57,6 @@ One issue you may encounter when setting up your dev environment within the Linu
     ![image](https://user-images.githubusercontent.com/1621749/132916766-855cb9e9-01ff-45f5-bed1-9462efe32543.png)
 
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
-1. [Enable use of Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v).
 1. Open the docker dashboard and click the settings gear icon on the top right (if the settings gear icon is disabled, make sure to sign in to Docker).
 1. Go to **Resources &rarr; Advanced**.
 1. Slide the CPU bar all the way to the right. This will increase the speed of compile times. Docker will use all cores only during compilation, so there is no need to worry about the performance of other programs.
