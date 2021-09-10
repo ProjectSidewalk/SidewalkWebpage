@@ -19,7 +19,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 
 <details><summary>Mac</summary>
 
-1. [Install  Docker](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started).
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 </details>
 
@@ -28,7 +28,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 
 WSL2 is recommended for much faster compile times (especially for Windows Home users). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel.
 
-1. [Install  Docker](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started).
 1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
 1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
 1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
@@ -49,7 +49,7 @@ One issue you may encounter when setting up your dev environment within the Linu
 
 Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
 
-1. [Install  Docker](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started).
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 1. [Enable use of Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v).
 1. Open the docker dashboard and click the settings gear icon on the top right (if the settings gear icon is disabled, make sure to sign in to Docker).
