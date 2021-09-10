@@ -49,7 +49,7 @@ One issue you may encounter when setting up your dev environment within the Linu
 
 Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
 
-1. [Install  Docker Desktop](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Importantly, uncheck the "Install required Windows components for WSL 2" box on the first installation screen.
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 1. [Enable use of Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v).
 1. Open the docker dashboard and click the settings gear icon on the top right (if the settings gear icon is disabled, make sure to sign in to Docker).
