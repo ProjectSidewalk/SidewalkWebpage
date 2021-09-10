@@ -29,7 +29,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 
 WSL2 is recommended for much faster compile times (especially for Windows Home users). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel.
 
-1. [Install  Docker Desktop](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/).
 1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
 1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
 1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
@@ -48,12 +48,11 @@ One issue you may encounter when setting up your dev environment within the Linu
 
 <details><summary>Without WSL2</summary>
 
-
 1. Importantly, you must first enable Containers and Hyper-V. To do this, search for "Turn Windows features on and off" in Win10 start bar and then enable Containers and Hyper-V as in the following screenshot:
 
     ![image](https://user-images.githubusercontent.com/1621749/132915199-97118d5a-4e91-4047-9400-0e1662a512d6.png)
 
-1. [Install  Docker Desktop](https://www.docker.com/get-started). Importantly, uncheck the "Install required Windows components for WSL 2" box on the first installation screen and check the "Enable Hyper-V Windows Features" box. If the Hyper V option isn't shown, then this installation path will **not** work for you.
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/). Uncheck the "Install required Windows components for WSL 2" box on the first installation screen and check the "Enable Hyper-V Windows Features" box. If the Hyper V option isn't shown, then this installation path will **not** work for you.
 
     ![image](https://user-images.githubusercontent.com/1621749/132916766-855cb9e9-01ff-45f5-bed1-9462efe32543.png)
 
