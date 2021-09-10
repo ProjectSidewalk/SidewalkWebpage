@@ -81,7 +81,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of `dc`, `seattle`, `newberg`, `columbus`, `cdmx`, `spgg`, or `pittsburgh`, depending on which city your database dump is for.
+1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of `dc`, `seattle`, `newberg`, `columbus`, `cdmx`, `spgg`, `chicago`, or `pittsburgh`, depending on which city your database dump is for.
 
     ```
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
