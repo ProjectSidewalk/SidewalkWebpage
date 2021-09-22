@@ -90,6 +90,11 @@ function CardContainer(uiCardContainer) {
             $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
             const cardId = event.target.id;
 
+            // Set share preview image to image of modal that is currently active
+            var newImageUrl = $('.static-gallery-image').prop('src')
+            document.querySelector('meta[property="og:image"]').setAttribute("content", newImageUrl);
+            document.querySelector('meta[name="twitter:image"]').setAttribute("content", newImageUrl);
+
             // Sets/Updates the label being displayed in the expanded modal.
             modal.updateCardIndex(findCardIndex(cardId));
         });

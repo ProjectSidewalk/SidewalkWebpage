@@ -100,7 +100,7 @@
 }
 
 .gallery-modal-info-tags {
-    width: 60%;
+    width: 40%;
     height: 40%;
 }
 
@@ -112,8 +112,83 @@
 }
 
 .gallery-modal-info-description {
-    width: 60%;
+    width: 40%;
     height: 60%;
+}
+
+.modal-share-button {
+    flex-direction: column;
+    cursor: pointer;
+    position: absolute;
+    bottom: 8%;
+    right: 6%;
+}
+
+.modal-share-text {
+    text-align: center;
+}
+
+.popup-header {
+    font-weight: bold;
+    font-family: 'raleway-bold';
+    font-size: 1.3vw;
+}
+
+.divider {
+  border-top: 1px solid #bbb;
+  margin-top: 0px;
+  margin-bottom: 5px;
+  width: 95%;
+}
+
+.modal-share-button .share-popup {
+    visibility: hidden;
+    width: 300px;
+    -webkit-box-shadow: 1px 1px 10px black;
+    -moz-box-shadow: 1px 1px 10px black;
+    box-shadow: 1px 1px 10px black;
+    background-color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 0;
+    position: absolute;
+    z-index: 10;
+    bottom: 125%;
+    left: 10%;
+    margin-left: -220px;
+}
+
+.twitter-share-button {
+    visibility: hidden !important;
+    margin-left: 5px;
+}
+
+.fb-share-button {
+    display: none;
+    margin-left: 5px;
+}
+
+.share-button-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    vertical-align: center;
+}
+
+.modal-share-button .share-popup::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 80%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #fff transparent transparent transparent;
+    filter: drop-shadow(1px, 1px, 10px, black);
+}
+
+.modal-share-button .show {
+    visibility: visible !important;
 }
 
 .modal-top-holder {
