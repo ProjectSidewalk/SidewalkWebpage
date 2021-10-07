@@ -1,9 +1,9 @@
 FROM openjdk:8-jdk-stretch
 
+RUN apt-get update && apt-get upgrade -y
+
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
   apt-get install -y nodejs
-
-RUN apt-get update && apt-get upgrade -y
 
 RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list && \
   echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | tee /etc/apt/sources.list.d/sbt_old.list && \
