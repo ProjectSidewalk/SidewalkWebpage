@@ -102,6 +102,12 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
       case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link"))
     }
   }
+
+  def logPageVisit(user: Option[User], ipAddress: String, logStr: String): Unit = {
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val userId: String = user.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId.toString)
+    WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, logStr, timestamp))
+  }
   
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
   def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
