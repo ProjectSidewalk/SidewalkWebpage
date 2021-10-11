@@ -38,6 +38,16 @@ function Panorama (label) {
             sizePano();
         }
         _addListeners();
+
+        // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
+        // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
+        // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
+        $(window).on('resize', function() {
+            let pov = panorama.getPov();
+            pov.heading -= .01;
+            pov.pitch -= .01;
+            panorama.setPov(pov);
+        });
         setLabel(currentLabel);
     }
 
