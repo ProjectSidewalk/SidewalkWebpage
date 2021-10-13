@@ -23,11 +23,11 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 </details>
 
-<details><summary>Windows</summary>
+<details><summary>Windows (WSL2)</summary>
     
-<details><summary>Recommended: Using the Windows Subsystem for Linux (WSL2)</summary>
-
-WSL2 is recommended for much faster compile times and is required if you use Win10 Home (vs. Enterprise or Pro). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/).
+There are two methods to setup your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
+    
+WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/). WSL2 offers faster compile times and is better supported by Docker.
 
 1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/).
 1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
@@ -44,23 +44,6 @@ One issue you may encounter when setting up your dev environment within the Linu
 1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
 1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage directory where you can drag and drop files.
 
-</details>
-
-<details><summary>Without WSL2</summary>
-
-1. Importantly, you must first enable Containers and Hyper-V. To do this, search for "Turn Windows features on and off" in Win10 start bar and then enable Containers and Hyper-V as in the following screenshot (see also [Enable use of Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)):
-
-    ![image](https://user-images.githubusercontent.com/1621749/132915199-97118d5a-4e91-4047-9400-0e1662a512d6.png)
-
-1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/). Uncheck the "Install required Windows components for WSL 2" box on the first installation screen and check the "Enable Hyper-V Windows Features" box. If the Hyper V option isn't shown, then this installation path will **not** work for you.
-
-    ![image](https://user-images.githubusercontent.com/1621749/132916766-855cb9e9-01ff-45f5-bed1-9462efe32543.png)
-
-1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
-1. Open the docker dashboard and click the settings gear icon on the top right (if the settings gear icon is disabled, make sure to sign in to Docker).
-1. Go to **Resources &rarr; Advanced**.
-1. Slide the CPU bar all the way to the right. This will increase the speed of compile times. Docker will use all cores only during compilation, so there is no need to worry about the performance of other programs.
-</details>
 </details>
 
 ### Running the application locally
