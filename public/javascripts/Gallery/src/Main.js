@@ -11,11 +11,19 @@ var sg = sg || {};
 function Main (params) {
     let self = this;
 
+    sg.scrollStatus = {
+        stickySidebar: true,
+        stickyModal: true
+    };
+
+    let headerSidebarOffset = undefined;
+
     function _initUI() {
         sg.ui = {};
 
         // Initializes filter components in side bar.
         sg.ui.cardFilter = {};
+        sg.ui.cardFilter.wrapper = $(".sidebar");
         sg.ui.cardFilter.holder = $("#card-filter");
         sg.ui.cardFilter.tags = $("#tags");
         sg.ui.cardFilter.severity = $("#severity");
@@ -37,7 +45,17 @@ function Main (params) {
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
 
+        // Keep track of some other elements whose status or dimensions are useful.
+        sg.ui.pageControl = $(".page-control");
+        sg.ui.navbar = $("#header");
+        sg.pageLoading = $('#page-loading');
+        sg.labelsNotFound = $('#labels-not-found');
+
         $('.gallery-modal').hide();
+
+        // Calculate offset between bottom of navbar and sidebar.
+        headerSidebarOffset =
+            sg.ui.cardFilter.wrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
     }
 
     function _init() {
@@ -54,6 +72,65 @@ function Main (params) {
         sg.tracker = new Tracker();
 
         sg.util = {};
+
+        let sidebarWrapper = sg.ui.cardFilter.wrapper;
+        let sidebarWidth = sidebarWrapper.css('width');
+
+        // Handle sidebar and expanded view stickiness while scrolling.
+        $(window).scroll(function () {
+            // Make sure the page isn't loading.
+            if (!sg.pageLoading.is(":visible") && !sg.labelsNotFound.is(':visible')) {
+                let sidebarBottomOffset = sidebarWrapper.offset().top + sidebarWrapper.outerHeight(true);
+                let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
+                                                sg.ui.cardContainer.holder.outerHeight(true) - 5;
+                let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
+
+                // Handle sidebar stickiness.
+                if (sg.scrollStatus.stickySidebar) {
+                    if (cardContainerBottomOffset < sidebarBottomOffset) {
+                        let sidebarHeightBeforeRelative = sidebarWrapper.outerHeight(true);
+
+                        // Adjust sidebar positioning.
+                        sidebarWrapper.css('position', 'relative');
+
+                        // Compute the new location for the top of the sidebar, just above the paging arrows.
+                        let navbarHeight = sg.ui.navbar.outerHeight(false);
+                        let newTop = cardContainerBottomOffset - sidebarHeightBeforeRelative - navbarHeight;
+                        sidebarWrapper.css('top', newTop);
+
+                        // Adjust card container margin.
+                        sg.ui.cardContainer.holder.css('margin-left', '0px');
+                        sg.scrollStatus.stickySidebar = false;
+                    }
+                } else {
+                    let currHeaderSidebarOffset =
+                        sidebarWrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight(false));
+                    if (currHeaderSidebarOffset > headerSidebarOffset) {
+                        // Adjust sidebar positioning.
+                        sidebarWrapper.css('position', 'fixed');
+                        sidebarWrapper.css('top', '');
+
+                        // Adjust card container margin.
+                        sg.ui.cardContainer.holder.css('margin-left', sidebarWidth);
+                        sg.scrollStatus.stickySidebar = true;
+                    }
+                }
+
+                // Handle modal stickiness.
+                if (cardContainerBottomOffset < visibleWindowBottomOffset) {
+                    if (sg.scrollStatus.stickyModal) {
+                        // Prevent modal from going too low (i.e., when a user scrolls down fast).
+                        $('.gallery-modal').css('top', cardContainerBottomOffset - $(window).height());
+                        sg.scrollStatus.stickyModal = false;
+                    }
+                } else {
+                    if (!sg.scrollStatus.stickyModal) sg.scrollStatus.stickyModal = true;
+
+                    // Emulate the modal being "fixed".
+                    $('.gallery-modal').css('top', $(window).scrollTop());
+                }
+            }
+        }); 
     }
 
     // Gets all the text on the gallery page for the correct language.

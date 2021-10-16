@@ -4,8 +4,8 @@
     padding: 0px;
     margin: 0.6vw;
     border-radius: 20px;
-    width: 24vw;
-    height: auto;
+    width: 25vw;
+    height: fit-content;
 }
 .gallery-card:hover {
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
@@ -28,6 +28,7 @@ We make sure that the image holder is positioned relatively so that the validati
 with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay).
 */
 .image-holder {
+    cursor: pointer;
     position: relative;
 }
 
@@ -91,6 +92,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     border-style: solid;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
+    cursor: default;
 }
 .gallery-card:hover > .card-info {
     border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */
@@ -108,7 +110,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-severity {
     display: flex;
     align-items: center;
-    width: 40%; /* figure out a better way to set this severity/tag ratio */
+    width: 45%; /* figure out a better way to set this severity/tag ratio */
     height: 100%;
     flex-direction: row;
     padding-left: 10px;
@@ -126,7 +128,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-tags {
     display: flex;
     align-items: center;
-    width: 60%;
+    width: 55%;
     height: 100%;
     flex-direction: row;
     right: 0px;
@@ -172,8 +174,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 .gallery-card:hover .validation-button-selected {
     opacity: 1;
     background-color: gray;
-    /* This is a super hacky fix to match the default auto focus css. Discuss further about styling */
-    /* outline: -webkit-focus-ring-color auto 1px; */
 }
 
 .modal-background-card {
@@ -190,6 +190,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     margin: 2px;
     font-size: 0.9vw;
 }
+
 #current-severity {
     border: 2px solid #2d2a3f;
     background-color: #2d2a3f;

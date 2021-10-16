@@ -2,21 +2,18 @@
  * A Card module.
  * @param params properties of the associated label.
  * @param imageUrl google maps static image url for label.
+ * @param modal Modal object; used to update the expanded view when modifying a card.
  * @returns {Card}
  * @constructor
  */
-function Card (params, imageUrl) {
+function Card (params, imageUrl, modal) {
     let self = this;
 
     // UI card element.
     let card = null;
 
-    // Validation menu tied to label.
     let validationMenu = null;
-
-    // The width-height ratio for the card
     let widthHeightRatio = (4/3);
-
     let imageId = null;
 
     // Properties of the label in the card.
@@ -135,7 +132,7 @@ function Card (params, imageUrl) {
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(imageHolder, properties);
+        validationMenu = new ValidationMenu(self, imageHolder, properties, modal, false);
     }
 
     /**
@@ -300,5 +297,8 @@ function Card (params, imageUrl) {
     self.getImageId = getImageId;
 
     _init(params);
+    
+    self.validationMenu = validationMenu;
+
     return this;
 }

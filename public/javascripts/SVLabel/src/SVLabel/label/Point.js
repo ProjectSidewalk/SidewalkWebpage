@@ -43,9 +43,7 @@ function Point (svl, x, y, pov, params) {
     };
 
     function _init (x, y, pov, params) {
-
-        // Keep the original canvas coordinate and
-        // canvas pov just in case.
+        // Keep the original canvas coordinate and canvas pov just in case.
         self.canvasCoordinate = {
             x : x,
             y : y
@@ -320,48 +318,17 @@ function Point (svl, x, y, pov, params) {
         return this;
     }
 
-    /**
-     * This function resets all the properties specified in params.
-     * @param params
-     * @returns {self}
-     */
-    function setProperties (params) {
-        for (var key in params) {
-            if (key in properties) {
-                properties[key] = params[key];
-            }
-        }
-
-        if ('originalCanvasCoordinate' in params) {
-            self.originalCanvasCoordinate = params.originalCanvasCoordinate;
-        }
-
-        //
-        // Set pov parameters
-        self.pov = self.pov || {};
-        if ('pov' in params) { self.pov = params.pov; }
-        if ('heading' in params) { self.pov.heading = params.heading; }
-        if ('pitch' in params) { self.pov.pitch = params.pitch; }
-        if ('zoom' in params) { self.pov.zoom = params.zoom; }
-
-        // Set original pov parameters
-        self.originalPov = self.originalPov || {};
-        if ('originalHeading' in params) { self.originalPov.heading = params.originalHeading; }
-        if ('originalPitch' in params) { self.originalPov.pitch = params.originalPitch; }
-        if ('originalZoom' in params) { self.originalPov.zoom = params.originalZoom; }
-
-        if (!properties.originalFillStyleInnerCircle) {
-            properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
-        }
-        if (!properties.originalStrokeStyleOuterCircle) {
-            properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
-        }
-        return this;
-    }
-
     function setStrokeStyle (val) {
         // This method sets the strokeStyle of an outer circle to val
         properties.strokeStyleOuterCircle = val;
+        return this;
+    }
+
+    function setVisibility(visibility) {
+        // This method sets the visibility of a path (and points that cons
+        if (visibility === 'visible' || visibility === 'hidden') {
+            status.visibility = visibility;
+        }
         return this;
     }
 
@@ -385,22 +352,9 @@ function Point (svl, x, y, pov, params) {
     self.setFillStyle = setFillStyle;
     self.setIconPath = setIconPath;
     self.setPhotographerPov = setPhotographerPov;
-    self.setProperties = setProperties;
     self.setStrokeStyle = setStrokeStyle;
     self.setVisibility = setVisibility;
 
-    function setVisibility (visibility) {
-        // This method sets the visibility of a path (and points that cons
-        if (visibility === 'visible' || visibility === 'hidden') {
-            status.visibility = visibility;
-        }
-        return this;
-    }
-
-    // Todo. Deprecated method. Get rid of this later.
-    self.resetProperties = self.setProperties;
-
     _init(x, y, pov, params);
-
     return self;
 }

@@ -1,6 +1,7 @@
 /**
  * LabelFactory module.
  * @param svl Todo. Try to get rid of svl dependency
+ * @param nextTemporaryLabelId
  * @constructor
  */
 function LabelFactory (svl, nextTemporaryLabelId) {

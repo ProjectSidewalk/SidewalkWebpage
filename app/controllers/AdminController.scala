@@ -191,10 +191,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
     val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
     val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
+      val completionRate: Double =
+        if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
+        else 1.0D
       Json.obj("region_id" -> neighborhood.regionId,
         "total_distance_m" -> neighborhood.totalDistance,
         "completed_distance_m" -> neighborhood.auditedDistance,
-        "rate" -> (neighborhood.auditedDistance / neighborhood.totalDistance),
+        "rate" -> completionRate,
         "name" -> neighborhood.name
       )
     }
@@ -361,7 +364,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
-          val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+          val userId: String = request.identity.get.userId.toString
+          val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId, userId)
           val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
@@ -377,7 +381,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     LabelPointTable.find(labelId) match {
       case Some(labelPointObj) =>
-        val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+        val userId: String = request.identity.map(_.userId.toString).getOrElse("")
+        val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId, userId)
         val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))

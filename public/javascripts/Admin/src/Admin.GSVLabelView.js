@@ -326,6 +326,8 @@ function AdminGSVLabelView(admin) {
                 labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
                 labelMetadata['username'] + "</a>");
         }
+        // If the signed in user has already validated this label, make the button look like it has been clicked.
+        if (labelMetadata['user_validation']) _resetButtonColors(labelMetadata['user_validation']);
     }
 
     _init();

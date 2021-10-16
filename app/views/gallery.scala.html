@@ -22,9 +22,9 @@
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
 
     @navbar(user, Some("/gallery"))
-    <div class="grid-container">
+    <div id="gallery">
         <div class="sidebar">
-            <div id="card-filter"> 
+            <div id="card-filter">
                 <div id="ribbon-menu-holder">
                     <span id="label-type-holder">
                         <h4><b>@Messages("gallery.show")</b></h4>
@@ -39,52 +39,51 @@
                             <option value="Other">@Messages("other")</option>
                         </select>
                     </span>
-                    
                 </div>
                 <div id="horizontal-line"></div>
                 <div id="filters">
-                    <h4><b>@Messages("gallery.filter.by")</b></h4>
-                    <h5 id="severity-header">@Messages("gallery.severity")</h5>
-                    <span id="severity">
-                    </span>
-                    <h5 id="tags-header">@Messages("gallery.tags")</h5>
-                    <span id="tags">
-                    </span>
-                </div>  
+                    <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
+                    <h5 id="severity-header" class="filter-subheader">@Messages("gallery.severity")</h5>
+                    <span id="severity"></span>
+                    <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
+                    <span id="tags"></span>
+                </div>
             </div>
         </div>
         <div id="labels-not-found-text">
             <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
         </div>
-        <div id="image-card-container" class="cards"></div>
-        <div class="gallery-modal">
-            <div class="modal-top-holder">
-                <div class="gallery-modal-header"></div>
-                <div class="gallery-modal-close">×</div>
-            </div>
-            <div class="gallery-modal-pano">
-                <button class="gallery-modal-pano-paging" id="prev-label">&lt</button>
-                <div class="gallery-modal-pano-display">
-                    <div class="actual-pano"></div>
+        <div id="gallery-content" class="grid-container">
+            <div id="image-card-container" class="cards"></div>
+            <div class="gallery-modal">
+                <div class="modal-top-holder">
+                    <div class="gallery-modal-header"></div>
+                    <div class="gallery-modal-close">×</div>
                 </div>
-                <button class="gallery-modal-pano-paging" id="next-label">&gt</button>
-            </div>
-            <div class="gallery-modal-info">
-                <div class="gallery-modal-info-timestamps"></div>
-                <div class="gallery-modal-info-severity"></div>
-                <div class="gallery-modal-info-tags"></div>
-                <div class="gallery-modal-info-temporary"></div>
-                <div class="gallery-modal-info-description"></div>
-                <div class="modal-share-button">
-                    <img onclick="openPopup()" src="/assets/javascripts/SVLabel/img/icons/share_icon.svg">
-                    <div class="modal-share-text">Share</div>
-                    <div class="share-popup" id="share-popup">
-                        <span class="popup-header">Share</span>
-                        <hr class="divider">
-                        <div class="share-button-container">
-                            <a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-show-count="false">Tweet</a>
-                            <div class="fb-share-button" data-href="https://sidewalk-sea.cs.washington.edu/gallery" data-layout="button" data-size="small">
-                                <a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fsidewalk-sea.cs.washington.edu%2Fgallery&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Share</a>
+                <div class="gallery-modal-pano">
+                    <button class="gallery-modal-pano-paging" id="prev-label">&lt</button>
+                    <div class="gallery-modal-pano-display">
+                        <div class="actual-pano"></div>
+                    </div>
+                    <button class="gallery-modal-pano-paging" id="next-label">&gt</button>
+                </div>
+                <div class="gallery-modal-info">
+                    <div class="gallery-modal-info-timestamps"></div>
+                    <div class="gallery-modal-info-severity"></div>
+                    <div class="gallery-modal-info-tags"></div>
+                    <div class="gallery-modal-info-temporary"></div>
+                    <div class="gallery-modal-info-description"></div>
+                    <div class="modal-share-button">
+                        <img onclick="openPopup()" src="/assets/javascripts/SVLabel/img/icons/share_icon.svg">
+                        <div class="modal-share-text">Share</div>
+                        <div class="share-popup" id="share-popup">
+                            <span class="popup-header">Share</span>
+                            <hr class="divider">
+                            <div class="share-button-container">
+                                <a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-show-count="false">Tweet</a>
+                                <div class="fb-share-button" data-href="https://sidewalk-sea.cs.washington.edu/gallery" data-layout="button" data-size="small">
+                                    <a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fsidewalk-sea.cs.washington.edu%2Fgallery&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Share</a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -97,7 +96,6 @@
         <div class="paging" id="page-number"></div>
         <button class="paging" id="next-page">&gt</button>
     </div>
-
     @footer()
 
     <script type="text/javascript">

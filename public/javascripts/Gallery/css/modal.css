@@ -9,15 +9,16 @@
 .gallery-modal {
     display: flex;
     height: 90vh;
-    position: fixed;
+    position: relative;
     border-radius: 20px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
     flex-direction: column;
     align-items: center;
-    width: 50vw;
-    right:2vw;
+    width: 52vw;
+    right: 3vw;
     font-family: 'raleway-regular', sans-serif;
     font-size: 18px;
+    justify-self: end;
 }
 
 .label-timestamp, .pano-timestamp {
@@ -37,7 +38,6 @@
     width: 100%;
     height: 100%;
     margin-top: 15px;
-    margin-bottom: 15px;
     font-family: 'raleway-bold', sans-serif;
     font-size: 1.5vw;
     color: #2d2a3f;
@@ -50,7 +50,13 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    margin-bottom: 3.5%;
+    margin-bottom: 4.75%;
+}
+
+.actual-pano {
+    border: 6px solid transparent;
+    border-radius: 5px;
+    background-color: transparent;
 }
 
 .gallery-modal-pano-display {
@@ -79,7 +85,8 @@
 .gallery-modal-info {
     display: flex;
     height: 20%;
-    width: calc(100% - 100px); /* Full width of modal minus 50px for prev arrow and 50px for next arrow. */
+    /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
+    width: calc(100% - 105px);
     flex-wrap: wrap;
     font-size: 1vw;
 }
@@ -114,6 +121,27 @@
 .gallery-modal-info-description {
     width: 40%;
     height: 60%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-pano:hover .modal-validation-button {
+    opacity: 0.6;
+}
+
+.modal-validation-button, .modal-validation-button-selected {
+    opacity: 0;
+    font-size: 1.25vw;
+    font-weight: bold;
+    font-family: 'raleway-regular', sans-serif;
+    background-color: white;
+    border-style: none;
+    color: #2d2a3f;
+}
+
+.gallery-modal-pano:hover .modal-validation-button-selected {
+    opacity: 1;
+    background-color: gray;
 }
 
 .modal-share-button {
@@ -194,21 +222,12 @@
 .modal-top-holder {
     display: flex;
     align-content: space-between;
-    width: calc(100% - 100px); /* Full width of modal minus 50px for prev arrow and 50px for next arrow. */
+    margin-bottom: 5px;
+    /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
+    width: calc(100% - 105px);
 }
 
 .modal-severity-circle {
-    /* color: black;
-    border: 1px solid black;
-    padding: 1px 0px; /* Quite a hacky fix in order to center numbers correctly, reassess */
-    /* width: 1.5vw;
-    height: 1.5vw;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 100%;
-    margin: 2px;
-    background-color: white;
-    font-size: 1vw; */
     width: 1.75vw;
     height: 1.75vw;
 }

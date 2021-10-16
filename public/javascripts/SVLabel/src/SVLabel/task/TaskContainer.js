@@ -7,10 +7,9 @@
  * @param neighborhoodModel
  * @param streetViewService
  * @param svl
- * @param taskModel
  * @param tracker
  */
-function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
+function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -25,7 +24,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (!newTask) {
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            svl.neighborhoodModel.neighborhoodCompleted();
             tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
         } else {
             svl.taskContainer.initNextTask(newTask);
@@ -75,14 +74,17 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    self.endTask = function (task, nextTask) {
+    function endTask(task, nextTask) {
         if (tracker) tracker.push("TaskEnd");
-
         task.complete();
         // Go through the tasks and mark the completed task as isComplete=true
         for (var i = 0, len = self._tasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() === self._tasks[i].getStreetEdgeId()) {
-                self._tasks[i].complete();
+                // Check if the reference passed in from the method parameter and the array are the same.
+                // This is needed because otherwise we could update a reference to the same task twice.
+                if (task !== self._tasks[i]) {
+                    self._tasks[i].complete();
+                }
             }
         }
 
@@ -188,6 +190,22 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             }
         });
     };
+
+    /**
+     * Updates the task priorities for the given set of streets. These should be updates from other users' audits.
+     * @param updatedPriorities
+    */
+    function updateTaskPriorities(updatedPriorities) {
+        if (!Array.isArray(self._tasks)) {
+            console.error("_tasks is not an array. Probably the data is not loaded yet.");
+            return null;
+        }
+        // Loop through all updatedPriorities and update self._tasks with the new priorities.
+        updatedPriorities.forEach(function (newPriority) {
+            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.streetEdgeId; });
+            self._tasks[index].setProperty('priority', newPriority.priority);
+        });
+    }
 
     /**
      * Find incomplete tasks (i.e., street edges) that are connected to the given task.
@@ -643,7 +661,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
     }
 
-    // self.endTask = endTask;
+    self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;
@@ -663,4 +681,5 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
+    self.updateTaskPriorities = updateTaskPriorities;
 }

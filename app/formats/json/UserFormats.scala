@@ -25,25 +25,4 @@ object UserFormats {
       (__ \ "role").writeNullable[String]
     )(unlift(User.unapply _))
 
-//  val restFormat = {
-//
-//    implicit val reader = (
-//      (__ \ "userId").read[UUID] ~
-//        (__ \ "loginInfo").read[LoginInfo] ~
-//        (__ \ "username").read[String] ~
-//        (__ \ "email").read[String] ~
-//        (__ \ "roles").readNullable(Reads.seq[String])
-//      )(User.apply _)
-//
-//
-//    implicit val writer = (
-//      (__ \ "userId").write[UUID] ~
-//        (__ \ "loginInfo").write[LoginInfo] ~
-//        (__ \ "username").write[String] ~
-//        (__ \ "email").write[String] ~
-//        (__ \ "roles").writeNullable(Writes.seq[String])
-//      )(unlift(User.unapply _))
-//
-//    Format(reader, writer)
-//  }
 }

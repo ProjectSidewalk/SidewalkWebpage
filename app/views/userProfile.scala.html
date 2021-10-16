@@ -1,4 +1,6 @@
 @import models.user.User
+@import models.user.OrganizationTable
+@import models.user.UserOrgTable
 @import models.region.RegionTable
 @import models.mission.MissionTable
 @import models.label.LabelTable
@@ -7,9 +9,41 @@
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user, user.map(u=> "/contribution/" + u.username))
+    @navbar(user, user.map(u=> "/dashboard"))
     <div class="container">
-        <div class="row" id="maprow">
+
+        @if(user && user.get.role.getOrElse("") != "Anonymous") {
+            <div class="row" id="profile-container">
+                <div id="username">@user.get.username</div>
+                <div id="org-container">
+                    @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                        <div id="org-name">@OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</div>
+                    } else {
+                        <div id="org-name">@Messages("dashboard.no.org")</div>
+                    }
+                    <div id="edit-org-dropdown" class="dropdown" data-toggle="popover" data-trigger="hover" data-placement="right" data-content="@Messages("dashboard.edit.info")">
+                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b></a>
+                        <ul id="edit-org-menu" class="dropdown-menu" role="menu">
+                            @if(OrganizationTable.getAllOrganizations.isEmpty) {
+                                <li class="menu-info">@Messages("dashboard.orgs.unavailable")</li>
+                            }
+                            @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                                <li>
+                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-0" role="menuitem" class="put-user-org">@Messages("dashboard.leave.org")</a>
+                                </li>
+                            }
+                            @for(org <- OrganizationTable.getAllOrganizations) {
+                                <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
+                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
+        
+        <div class="row" id="map-row">
             <div class="col-lg-12" id="mapcolumn">
                 <div id="map-holder">
                     <div id="map"></div>
@@ -142,28 +176,66 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <script>
-    $(document).ready(function () {
-        // Gets all translations before loading the choropleth.
-        i18next.use(i18nextXHRBackend);
-        i18next.init({
-            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-            fallbackLng: 'en',
-            ns: ['dashboard', 'common'],
-            defaultNS: 'dashboard',
-            lng: "@lang.code",
-            debug: false
-        }, function(err, t) {
-            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            Progress(_, $, difficultRegionIds, '@user.get.role');
+        $(document).ready(function () {
+            // Gets all translations before loading the choropleth.
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['dashboard', 'common'],
+                defaultNS: 'dashboard',
+                lng: "@lang.code",
+                debug: false
+            }, function(err, t) {
+                var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
+                Progress(_, $, difficultRegionIds, '@user.get.role');
 
-            const achievementTracker = new AchievementTracker();
-            achievementTracker.updateBadgeAchievementGrid(
-                @MissionTable.countCompletedMissions(user.get.userId, includeOnboarding = true, includeSkipped = false),
-                @auditedDistance,
-                @LabelTable.countLabels(user.get.userId),
-                @LabelValidationTable.countValidations(user.get.userId),
-            );
+                const achievementTracker = new AchievementTracker();
+                achievementTracker.updateBadgeAchievementGrid(
+                    @MissionTable.countCompletedMissions(user.get.userId, includeOnboarding = true, includeSkipped = false),
+                    @auditedDistance,
+                    @LabelTable.countLabels(user.get.userId),
+                    @LabelValidationTable.countValidations(user.get.userId),
+                );
+            });
+            
+            // Initialize popovers.
+            $('[id="edit-org-dropdown"]').popover({
+                trigger: 'manual',
+                html: true,
+                animation: false
+            }).on('mouseenter', function() {
+                var _this = this;
+                $(this).popover('show');
+                // Add listener to log clicks on the email address link.
+                $('#email-link').on('click', function(e) {
+                    var url = '/userapi/logWebpageActivity';
+                    var async = false;
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify('Click_module=email_link'),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                });
+                $('.popover').on('mouseleave', function() {
+                    $(_this).popover('hide');
+                });
+            }).on('mouseleave', function() {
+                var _this = this;
+                setTimeout(function() {
+                    if (!$('.popover:hover').length) {
+                        $(_this).popover('hide');
+                    }
+                }, 300);
+            });
+            $('[class="put-org-container"]').popover();
         });
-    });
     </script>
 }
