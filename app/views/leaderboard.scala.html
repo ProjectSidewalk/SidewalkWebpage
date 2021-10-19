@@ -4,7 +4,9 @@
 
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
-@leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", UserOrgTable.getAllOrgs(user.get.userId).headOption)}
+@leaderboardStatsByOrg = @{UserStatTable.getLeaderboardStats(10, "overall", true)}
+@leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, UserOrgTable.getAllOrgs(user.get.userId).headOption)}
+
 
 <div class="leaderboard-container">
     <div class="item leaderboard-table">
@@ -85,6 +87,76 @@
             </table>
         </div>
     </div>
+    @if(leaderboardStatsByOrg.asInstanceOf[List[LeaderboardStat]].length >= 0) {
+        <div class="item leaderboard-table">
+            <h1 class="leaderboard-header">@Messages("leaderboard.inter.org.title")</h1>
+            <h5>@Messages("leaderboard.overall.detail")</h5>
+            <div class="panel panel-default">
+                <table class="table table-bordered leaderboard-table-striped">
+                    <thead class="leaderboard-table-header">
+                        <tr>
+                            <th class="leaderboard-table-font" scope="col">#</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.team")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.labels")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.missions")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.distance")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.accuracy")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @for((stat, i) <- leaderboardStatsByOrg.view.zipWithIndex) {
+                        <tr>
+                            <th class="leaderboard-table-font" scope="row">@{
+                                i + 1
+                            }</th>
+                            <td class="leaderboard-table-font">@{
+                                stat.asInstanceOf[LeaderboardStat].username
+                            }</td>
+                            <td class="leaderboard-table-font">@{
+                                stat.asInstanceOf[LeaderboardStat].labelCount
+                            }</td>
+                            <td class="leaderboard-table-font">@{
+                                stat.asInstanceOf[LeaderboardStat].missionCount
+                            }</td>
+                            @if(Messages("measurement.system") == "metric") {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] > 2000) {
+                                    <td class="leaderboard-table-font">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float]/ 1000)
+                                    } km</td>
+                                } else {
+                                    <td class="leaderboard-table-font">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
+                                    } m</td>
+                                }
+                            } else {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                    <td class="leaderboard-table-font">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
+                                    } miles</td>
+                                } else {
+                                    <td class="leaderboard-table-font">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28)
+                                    } ft</td>
+                                }
+                            }
+                            @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
+                                <td class="leaderboard-table-font accuracy-cell">N/A
+                                    <span class="accuracy-tooltip">
+                                    @Messages("leaderboard.tooltip.accuracy")
+                                    </span>
+                                </td>
+                            } else {
+                                <td class="leaderboard-table-font">@{
+                                    "%.1f".format(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100)
+                                }%</td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
     @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
             <h1 class="leaderboard-header">@Messages("leaderboard.weekly.title")</h1>

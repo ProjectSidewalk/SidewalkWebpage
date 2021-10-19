@@ -22,7 +22,7 @@ function Modal(uiModal) {
                 // card container and that cards (child nodes) were added in the mutation, indicating the cards have
                 // been rendered.
                 $('.gallery-modal').attr('style', 'display: flex');
-                $('.grid-container').css("grid-template-columns", "1fr 2fr 3fr");
+                $('.grid-container').css("grid-template-columns", "1fr 5fr");
     
                 // Sets/Updates the label being displayed in the expanded modal.
                 updateModalCardByIndex(self.cardIndex);
@@ -177,12 +177,22 @@ function Modal(uiModal) {
     }
 
     function highlightThumbnail(galleryCard) {
+        // Reset the sidebar as sticky as the sidebar should never be under the card container upon opening the modal.
+        // Adjust sidebar positioning.
+        sg.ui.cardFilter.wrapper.css('position', 'fixed');
+        sg.ui.cardFilter.wrapper.css('top', '');
+
+        // Adjust card container margin.
+        sg.ui.cardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
+        sg.scrollStatus.stickySidebar = true;
+
         // Centers the card thumbnail that was selected. If it's the last card, we scroll such that the card is at the
         // bottom of the visible window.
         let index = self.cardIndex;
         let page = sg.cardContainer.getCurrentPage();
+        let totalCards = sg.cardContainer.getCurrentCards().getSize();
         galleryCard.scrollIntoView({
-            block: (index < page * cardsPerPage - 1) ? 'center' : 'end',
+            block: (index < page * cardsPerPage - 1 && index < totalCards - 1) ? 'center' : 'end',
             behavior: 'smooth'
         });
 
@@ -195,7 +205,7 @@ function Modal(uiModal) {
         let currentPageCards = sg.cardContainer.getCurrentPageCards();
         for (let card of currentPageCards) {
             let cardLabelId = card.getLabelId();
-            if (cardLabelId != properties.label_id) {
+            if (cardLabelId !== properties.label_id) {
                 let cardDomEl = document.getElementById("gallery_card_" + cardLabelId);
                 if (!cardDomEl.classList.contains(unselectedCardClassName)) {
                     cardDomEl.classList.add(unselectedCardClassName);

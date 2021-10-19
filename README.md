@@ -19,16 +19,17 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 
 <details><summary>Mac</summary>
 
-1. [Install  Docker](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started).
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 </details>
 
-<details><summary>Windows</summary>
-<details><summary>Recommended: Using the Windows Subsystem for Linux (WSL2)</summary>
+<details><summary>Windows (WSL2)</summary>
+    
+There are two methods to setup your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
+    
+WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/). WSL2 offers faster compile times and is better supported by Docker.
 
-WSL2 is recommended for much faster compile times (especially for Windows Home users). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel.
-
-1. [Install  Docker](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/).
 1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
 1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
 1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
@@ -43,19 +44,6 @@ One issue you may encounter when setting up your dev environment within the Linu
 1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
 1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage directory where you can drag and drop files.
 
-</details>
-
-<details><summary>Without WSL2</summary>
-
-Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
-
-1. [Install  Docker](https://www.docker.com/get-started).
-1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
-1. [Enable use of Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v).
-1. Open the docker dashboard and click the settings gear icon on the top right (if the settings gear icon is disabled, make sure to sign in to Docker).
-1. Go to **Resources &rarr; Advanced**.
-1. Slide the CPU bar all the way to the right. This will increase the speed of compile times. Docker will use all cores only during compilation, so there is no need to worry about the performance of other programs.
-</details>
 </details>
 
 ### Running the application locally
@@ -76,7 +64,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of `dc`, `seattle`, `newberg`, `columbus`, `cdmx`, `spgg`, or `pittsburgh`, depending on which city your database dump is for.
+1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of `dc`, `seattle`, `newberg`, `columbus`, `cdmx`, `spgg`, `chicago`, or `pittsburgh`, depending on which city your database dump is for.
 
     ```
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
