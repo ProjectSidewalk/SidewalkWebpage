@@ -290,10 +290,12 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
+leaderboard.inter.org.title = Teams Leaderboard
 leaderboard.org.title = {0} Leaderboard
 leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
 leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
-leaderboard.org.detail = Top 10 overall contributers to {0}
+leaderboard.org.detail = Top 10 overall contributors to {0}
+leaderboard.header.team = Team
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance

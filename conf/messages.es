@@ -288,10 +288,12 @@ admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general
 leaderboard.weekly.title = Tabla de clasificación semanal
+leaderboard.inter.org.title = Tabla de clasificación de equipos
 leaderboard.org.title = Tabla de {0}
 leaderboard.overall.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
 leaderboard.weekly.detail = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.org.detail = Los 10 contribuyentes mayor a {0}
+leaderboard.header.team = Equipo
 leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
