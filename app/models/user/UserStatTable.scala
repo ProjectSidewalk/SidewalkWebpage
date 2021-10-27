@@ -5,6 +5,7 @@ import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.MissionTable
+import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.sql.Timestamp
@@ -16,7 +17,7 @@ import play.Logger
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean])
 
-case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float])
+case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
 class UserStatTable(tag: Tag) extends Table[UserStat](tag, Some("sidewalk"), "user_stat") {
   def userStatId = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
@@ -199,10 +200,10 @@ object UserStatTable {
   /**
    * Gets leaderboard stats for the top `n` users in the given time period.
    *
-   * The top users are currently calculated solely on label count, then we also get stats on their mission count,
-   * distance, and accuracy. Only overall and weekly time periods have been implemented. We only include accuracy if the
-   * user has at least 10 validated labels (must have either agree or disagree based off majority vote; an unsure or tie
-   * does not count).
+   * Top users are calculated using: score = sqrt(# labels) * (0.5 * distance_audited / city_distance + 0.5 * accuracy).
+   * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
+   * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
+   * majority vote; an unsure or tie does not count).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
    * @param byOrg True if grouping by organization/team instead of by user.
@@ -210,6 +211,8 @@ object UserStatTable {
    * @return
    */
   def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): List[LeaderboardStat] = db.withSession { implicit session =>
+    val streetDistance: Float = totalStreetDistance() * 1609.34F // Convert miles to meters.
+
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
@@ -234,12 +237,16 @@ object UserStatTable {
         "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float])](
+    val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float], Float)](
       s"""SELECT usernames.username,
         |        label_counts.label_count,
         |        mission_count,
         |        distance_meters,
-        |        CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
+        |        CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
+        |        CASE WHEN accuracy_temp IS NOT NULL
+        |            THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / $streetDistance + 0.5 * accuracy_temp)
+        |            ELSE SQRT(label_counts.label_count) * (distance_meters / $streetDistance)
+        |            END AS score
         |FROM (
         |    SELECT $groupingCol, COUNT(label_id) AS label_count
         |    FROM sidewalk_user
@@ -270,7 +277,7 @@ object UserStatTable {
         |) "missions_and_distance" ON label_counts.$groupingColName = missions_and_distance.$groupingColName
         |LEFT JOIN (
         |    SELECT $groupingColName,
-        |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy,
+        |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy_temp,
         |           COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
         |    FROM (
         |        SELECT mission.user_id, label.label_id,
@@ -285,11 +292,11 @@ object UserStatTable {
         |    $joinUserOrgForAcc
         |    GROUP BY $groupingColName
         |) "accuracy" ON label_counts.$groupingColName = accuracy.$groupingColName
-        |ORDER BY label_counts.label_count DESC;""".stripMargin
+        |ORDER BY score DESC;""".stripMargin
     )
     // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are valid email addresses.
     statsQuery.list.map(stat =>
-      if (!byOrg && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5)
+      if (!byOrg && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
       else LeaderboardStat.tupled(stat)
     )
   }
