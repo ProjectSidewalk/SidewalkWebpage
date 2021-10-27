@@ -258,7 +258,7 @@ object UserStatTable {
         |    $joinUserOrgTable
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
-        |        AND role.role IN ('Registered', 'Administrator', 'Researcher', 'Owner')
+        |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
         |        AND (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |        $orgFilter
