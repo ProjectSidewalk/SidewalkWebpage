@@ -17,7 +17,7 @@ error = Error!
 thanks = Thanks!
 username = Username
 loading = Loading...
-loading.encouragement = Let's do this!
+loading.encouragement = Let''s do this!
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -249,7 +249,7 @@ results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk
 
 dashboard.no.org = No Organization
 dashboard.edit.org = Edit
-dashboard.edit.info = If you don't see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
+dashboard.edit.info = If you don''t see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
 dashboard.orgs.unavailable = There are no available organizations!
 dashboard.leave.org = Leave Organization
 dashboard.audited.street = Audited Street
@@ -312,5 +312,5 @@ gallery.filter.by = Filter By
 gallery.severity = Severity
 gallery.tags = Tags
 gallery.all = All
-gallery.occlusion = Can't See Sidewalk
+gallery.occlusion = Can''t See Sidewalk
 gallery.labels.not.found = No matches. <a href="/audit">Start exploring</a> to contribute more data!
