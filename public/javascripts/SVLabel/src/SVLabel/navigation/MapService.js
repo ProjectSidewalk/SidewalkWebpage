@@ -213,6 +213,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         uiMap.viewControlLayer[0].onselectstart = function () { return false; };
 
+        // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
+        // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
+        // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
+        $(window).on('resize', function() {
+            updatePov(.01,.01);
+        });
+
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
         if (typeof google != "undefined") {
