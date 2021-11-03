@@ -236,7 +236,7 @@ object UserStatTable {
       if _user.username =!= "anonymous"
       if _userStat.metersAudited > 0F
       if _mission.missionEnd > cutoffTime
-    } yield _user.userId).list
+    } yield _user.userId).groupBy(x => x).map(_._1).list
   }
 
   /**
