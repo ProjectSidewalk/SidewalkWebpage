@@ -116,10 +116,12 @@ function Card (params, imageUrl, modal) {
         cardInfo.appendChild(cardData);
 
         // Create the div to store the severity of the label.
-        let cardSeverity = document.createElement('div');
-        cardSeverity.className = 'card-severity';
-        let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);
-        cardData.appendChild(cardSeverity);
+        if (getLabelType() !== "Occlusion") {
+            let cardSeverity = document.createElement('div');
+            cardSeverity.className = 'card-severity';
+            let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);
+            cardData.appendChild(cardSeverity);
+        }
 
         // Create the div to store the tags related to a card. Tags won't be populated until card is added to the DOM.
         let cardTags = document.createElement('div');
