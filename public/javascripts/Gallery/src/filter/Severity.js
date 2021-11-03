@@ -63,7 +63,7 @@ function Severity (params){
     }
 
     function _showSelected() {
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted_green.png`;
     }
 
     function _showDeselected() {
