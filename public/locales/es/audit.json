@@ -116,7 +116,7 @@
             "severity-shortcuts": "Presiona las teclas 1-5 para gravedad",
             "label-popup-shortcuts": "Presiona <tag-underline>{{c}}</tag-underline> para agregar la etiqueta",
             "tag": {
-                "narrow": "muy <tag-underline>a</tag-underline>ngosta",
+                "narrow": "muy angosta (<tag-underline>w</tag-underline>)",
                 "points-into-traffic": "orientada hacia el tráfico (<tag-underline>p</tag-underline>)",
                 "missing-friction-strip": "pavimento de advertencia táctil ausente (<tag-underline>f</tag-underline>)",
                 "steep": "empinada (mucha pendien<tag-underline>t</tag-underline>e)",
