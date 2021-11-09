@@ -7,6 +7,8 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object LabelFormats {
+  case class LoadedLabels(loaded_labels: String)
+
 //  implicit val labelReads: Reads[Label] = (
 //    (JsPath \ "label_id").read[Int] and
 //      (JsPath \ "audit_task_id").readNullable[Int] and
@@ -37,4 +39,7 @@ object LabelFormats {
       (__ \ "street_edge_id").write[Int]
     )(unlift(Label.unapply _))
 
+  implicit val loadedLabelReads: Reads[LoadedLabels] = 
+    (JsPath \ "loaded_labels").read[String].map(v => LoadedLabels(v))
+  (LoadedLabels.apply _)
 }

@@ -3,14 +3,17 @@ package controllers
 import javax.inject.Inject
 import controllers.headers.ProvidesHeader
 import controllers.helper.GoogleMapsHelper
+import formats.json.LabelFormats._
 import models.user._
+import models.validation._
 import models.label.{LabelTable, LabelTypeTable}
 import models.label.LabelTable._
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.Play
 import play.api.Play.current
-import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.mvc._
+import play.api.libs.json.{JsArray, JsObject, Json, JsError}
 import scala.concurrent.Future
 
 
@@ -33,27 +36,39 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
    * @param loadedLabels String representing set of labelIds already grabbed as to not grab them again.
    * @return
    */
-  def getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val loadedLabIds: Set[Int] = Json.parse(loadedLabels).as[JsArray].value.map(_.as[Int]).toSet
-        val labels: Seq[LabelValidationMetadata] =
-          if (validLabTypes.contains(labelTypeId)) LabelTable.getLabelsByType(labelTypeId, n, loadedLabIds, user.userId)
-          else LabelTable.getAssortedLabels(n, loadedLabIds, user.userId)
-        val labelsShuffled = scala.util.Random.shuffle(labels)
-        val jsonList: Seq[JsObject] = labelsShuffled.map(l => Json.obj(
-            "label" -> LabelTable.validationLabelMetadataToJson(l),
-            "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
-          )
-        )
-        val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
-        Future.successful(Ok(labelList))
+  def getLabelsByType(labelTypeId: Int, n: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[LoadedLabels]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        request.identity match {
+          case Some(user) =>
+            val loadedLabIds: Set[Int] = Json.parse(submission.loaded_labels).as[JsArray].value.map(_.as[Int]).toSet
+            val labels: Seq[LabelValidationMetadata] =
+              if (validLabTypes.contains(labelTypeId)) LabelTable.getLabelsByType(labelTypeId, n, loadedLabIds, user.userId)
+              else LabelTable.getAssortedLabels(n, loadedLabIds, user.userId)
+            val labelsShuffled = scala.util.Random.shuffle(labels)
+            val jsonList: Seq[JsObject] = labelsShuffled.map(l => Json.obj(
+                "label" -> LabelTable.validationLabelMetadataToJson(l),
+                "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
+              )
+            )
+            val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
+            Future.successful(Ok(labelList))
 
-      // If the user doesn't already have an anonymous ID, sign them up and rerun.
-      case _ => Future.successful(
-        Redirect(s"/anonSignUp?url=/label/labelsByType?labelTypeId=" + labelTypeId + "&n=" + n + "&loadedLabels=" + loadedLabels)
-      )
-    }
+          // If the user doesn't already have an anonymous ID, sign them up.
+          case _ => Future.successful(
+            Redirect("/anonSignUp?url=/label/labelsByType")
+          )
+        }
+      }
+    )
+  }
+
+  def getLabelsByTypePass() = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(Json.obj()));
   }
 
   /**

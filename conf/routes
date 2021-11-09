@@ -121,7 +121,8 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
-GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String)
+POST     /label/labelsByType                                 @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int)
+GET     /label/labelsByType                             @controllers.GalleryController.getLabelsByTypePass()
 GET     /label/labelsBySeveritiesAndTags                     @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String)
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
