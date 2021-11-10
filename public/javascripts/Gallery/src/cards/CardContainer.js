@@ -183,24 +183,22 @@ function CardContainer(uiCardContainer) {
                 data: JSON.stringify(data),
                 dataType: "json",
                 success: function (data) {
-                    if (!data.labelsOfType) {
-                        callAgain();
-                    } else {
-                        if ("labelsOfType" in data) {
-                            let labels = data.labelsOfType
-                            let card;
-                            let i = 0;
-                            let len = labels.length;
-                            for (; i < len; i++) {
-                                let labelProp = labels[i];
-                                if ("label" in labelProp && "imageUrl" in labelProp) {
-                                    card = new Card(labelProp.label, labelProp.imageUrl, modal);
-                                    self.push(card);
-                                    loadedLabelIds.add(card.getLabelId());
-                                }
+                    if ("labelsOfType" in data) {
+                        let labels = data.labelsOfType
+                        let card;
+                        let i = 0;
+                        let len = labels.length;
+                        for (; i < len; i++) {
+                            let labelProp = labels[i];
+                            if ("label" in labelProp && "imageUrl" in labelProp) {
+                                card = new Card(labelProp.label, labelProp.imageUrl, modal);
+                                self.push(card);
+                                loadedLabelIds.add(card.getLabelId());
                             }
-                            if (callback) callback();
                         }
+                        if (callback) callback();
+                    } else {
+                        callAgain();
                     }
                 }
             });
@@ -235,24 +233,22 @@ function CardContainer(uiCardContainer) {
                 data: JSON.stringify(data),
                 dataType: "json",
                 success: function (data) {
-                    if (!data.labelsOfType) {
-                        callAgain();
-                    } else {
-                        if ("labelsOfType" in data) {
-                            let labels = data.labelsOfType
-                            let card;
-                            let i = 0;
-                            let len = labels.length;
-                            for (; i < len; i++) {
-                                let labelProp = labels[i];
-                                if ("label" in labelProp && "imageUrl" in labelProp) {
-                                    card = new Card(labelProp.label, labelProp.imageUrl, modal);
-                                    self.push(card);
-                                    loadedLabelIds.add(card.getLabelId());
-                                }
+                    if ("labelsOfType" in data) {
+                        let labels = data.labelsOfType
+                        let card;
+                        let i = 0;
+                        let len = labels.length;
+                        for (; i < len; i++) {
+                            let labelProp = labels[i];
+                            if ("label" in labelProp && "imageUrl" in labelProp) {
+                                card = new Card(labelProp.label, labelProp.imageUrl, modal);
+                                self.push(card);
+                                loadedLabelIds.add(card.getLabelId());
                             }
-                            if (callback) callback();
                         }
+                        if (callback) callback();
+                    } else {
+                        callAgain();
                     }
                 }
             });
