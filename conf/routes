@@ -122,8 +122,9 @@ GET     /label/currentMission                                @controllers.LabelC
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
 POST     /label/labelsByType                                 @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int)
-GET     /label/labelsByType                             @controllers.GalleryController.getLabelsByTypePass()
-GET     /label/labelsBySeveritiesAndTags                     @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String)
+GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByTypePass()
+POST     /label/labelsBySeveritiesAndTags                    @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, severities: String, tags: String)
+GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsBySeveritiesAndTagsPass()
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods

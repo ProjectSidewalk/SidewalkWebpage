@@ -219,24 +219,45 @@ function CardContainer(uiCardContainer) {
      * @param {*} callback Function to be called when labels arrive.
      */
     function fetchLabelsBySeverityAndTags(labelTypeId, n, loadedLabels, severities, tags, callback) {
-        $.getJSON("/label/labelsBySeveritiesAndTags", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels), severities: JSON.stringify(severities), tags: JSON.stringify(tags) }, function (data) {
-            if ("labelsOfType" in data) {
-                let labels = data.labelsOfType
-                let card;
-                let i = 0;
-                let len = labels.length;
-                for (; i < len; i++) {
-                    let labelProp = labels[i];
-                    if ("label" in labelProp && "imageUrl" in labelProp) {
-                        card = new Card(labelProp.label, labelProp.imageUrl, modal);
-                        self.push(card);
-                        loadedLabelIds.add(card.getLabelId());
+        var url = "/label/labelsBySeveritiesAndTags?labelTypeId=" + labelTypeId + 
+                "&n=" + n +
+                "&severities=" + JSON.stringify(severities) +
+                "&tags=" + JSON.stringify(tags);
+        let data = {
+            loaded_labels: JSON.stringify(loadedLabels)
+        }
+        var callAgain = function () {
+            $.ajax({
+                async: true,
+                contentType: "application/json; charset=utf-8",
+                url: url,
+                type: "post",
+                data: JSON.stringify(data),
+                dataType: "json",
+                success: function (data) {
+                    if (!data.labelsOfType) {
+                        callAgain();
+                    } else {
+                        if ("labelsOfType" in data) {
+                            let labels = data.labelsOfType
+                            let card;
+                            let i = 0;
+                            let len = labels.length;
+                            for (; i < len; i++) {
+                                let labelProp = labels[i];
+                                if ("label" in labelProp && "imageUrl" in labelProp) {
+                                    card = new Card(labelProp.label, labelProp.imageUrl, modal);
+                                    self.push(card);
+                                    loadedLabelIds.add(card.getLabelId());
+                                }
+                            }
+                            if (callback) callback();
+                        }
                     }
                 }
-                if (callback) callback();
-            }
-        });
-
+            });
+        }
+        callAgain();
     }
 
     /**
