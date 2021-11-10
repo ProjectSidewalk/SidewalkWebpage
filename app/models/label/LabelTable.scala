@@ -8,7 +8,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.RegionTable
-import models.user.{RoleTable, UserRoleTable}
+import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
@@ -768,7 +768,9 @@ object LabelTable {
       _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
       _tags <- tagTable if _labeltags.tagId === _tags.tagId && ((_tags.tag inSet tags) || tags.isEmpty)
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
+      if _us.highQuality
     } yield (_lb, _lp, _lt.labelType)
 
     // Join with severity to add severity.
@@ -868,7 +870,9 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId && (_lt.labelTypeId inSet LabelTypeTable.primaryLabelTypeIds)
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.streetEdgeId =!= tutorialStreetId
+      if _us.highQuality
     } yield (_lb, _lp, _lt.labelType)
 
     // Join with severity to add severity.
@@ -968,7 +972,9 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId && _lb.streetEdgeId =!= tutorialStreetId
+      if _us.highQuality
     } yield (_lb, _lp, _lt.labelType)
 
     // Filter out labels already grabbed before.
