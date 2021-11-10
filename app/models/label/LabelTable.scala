@@ -605,6 +605,9 @@ object LabelTable {
       _lb <- labels if _lb.deleted === false && _lb.tutorial === false
       _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
       _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
+      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _us <- UserStatTable.userStats if _ms.userId === _us.userId
+      if _us.highQuality
     } yield (_lb.labelId, _lb.labelTypeId)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -645,6 +648,8 @@ object LabelTable {
           |INNER JOIN label_point ON label.label_id = label_point.label_id
           |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
           |INNER JOIN mission ON label.mission_id = mission.mission_id
+          |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+          |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
           |INNER JOIN (
           |    -- This subquery gets the number of times each label has been validated.
           |    SELECT label.label_id, COUNT(label_validation_id) AS validation_count
@@ -689,8 +694,10 @@ object LabelTable {
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
           |    AND label.street_edge_id <> $tutorialStreetId
+          |    AND audit_task.street_edge_id <> $tutorialStreetId
           |    AND gsv_data.expired = FALSE
           |    AND mission.user_id <> '$userIdStr'
+          |    AND user_stat.high_quality = TRUE
           |    AND label.label_id NOT IN (
           |        SELECT label_id
           |        FROM label_validation
