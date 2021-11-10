@@ -193,9 +193,10 @@ object UserStatTable {
    */
   def updateHighQuality(cutoffTime: Timestamp): Int = db.withSession { implicit session =>
 
-    // Get users manually marked as low quality first.
+    // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualityUsers: List[(String, Boolean)] =
-      userStats.filterNot(_.highQualityManual).map(x => (x.userId, x.highQualityManual.get)).list
+      (userStats.filterNot(_.highQualityManual) union userStats.filter(_.excludeManual))
+        .map(x => (x.userId, x.highQualityManual.get)).list
 
     // Decide if each user is high quality. First check if user was manually marked as high quality, then if they have
     // an audited distance of 0 (meaning an infinite labeling frequency), then if labeling frequency is over threshold.
