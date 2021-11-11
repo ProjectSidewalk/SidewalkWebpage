@@ -218,12 +218,12 @@ object UserStatTable {
     val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
 
     // Make separate lists for low vs high quality users, then bulk update each.
-    val updateToLowQuaity: List[String] =
+    val updateToLowQuality: List[String] =
       (lowQualityUsers ++ userQuality.filterNot(_._2)).map(_._1).filter(x => usersStatsToUpdate.contains(x))
     val updateToHighQuality: List[String] =
       userQuality.filter(_._2).map(_._1).filter(x => usersStatsToUpdate.contains(x))
 
-    val lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQuaity } yield _u.highQuality
+    val lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQuality } yield _u.highQuality
     val highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQuality } yield _u.highQuality
 
     // Do both bulk updates, and return total number of updated rows.
