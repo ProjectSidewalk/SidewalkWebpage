@@ -1,9 +1,5 @@
 # --- !Ups
-ALTER TABLE user_stat
-    ADD COLUMN accuracy DOUBLE PRECISION,
-    ADD COLUMN exclude_manual BOOLEAN;
+INSERT INTO version VALUES ('6.19.2', now(), 'Removes some low quality data from Gallery and Validate.');
 
 # --- !Downs
-ALTER TABLE user_stat
-    DROP COLUMN exclude_manual,
-    DROP COLUMN accuracy;
+DELETE FROM version WHERE version_id = '6.19.2';

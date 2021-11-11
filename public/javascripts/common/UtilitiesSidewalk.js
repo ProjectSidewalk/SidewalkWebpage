@@ -195,8 +195,8 @@ function UtilitiesMisc (JSON) {
                 },
                 tagInfo: {
                     'narrow': {
-                        keyNumber: 65,
-                        keyChar: 'A',
+                        keyNumber: 87,
+                        keyChar: 'W',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
                     'points into traffic': {
