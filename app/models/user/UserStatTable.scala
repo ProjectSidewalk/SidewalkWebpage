@@ -17,8 +17,8 @@ import scala.slick.jdbc.{StaticQuery => Q}
 import play.Logger
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
-                    highQuality: Boolean, highQualityManual: Option[Boolean], accuracy: Option[Float],
-                    excludeManual: Option[Boolean])
+                    highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
+                    accuracy: Option[Float], excludeManual: Option[Boolean])
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
@@ -29,10 +29,11 @@ class UserStatTable(tag: Tag) extends Table[UserStat](tag, Some("sidewalk"), "us
   def labelsPerMeter = column[Option[Float]]("labels_per_meter")
   def highQuality = column[Boolean]("high_quality", O.NotNull)
   def highQualityManual = column[Option[Boolean]]("high_quality_manual")
+  def ownLabelsValidated = column[Int]("own_labels_validated", O.NotNull)
   def accuracy = column[Option[Float]]("accuracy")
   def excludeManual = column[Option[Boolean]]("exclude_manual")
 
-  def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, accuracy, excludeManual) <> ((UserStat.apply _).tupled, UserStat.unapply)
+  def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excludeManual) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
   def user: ForeignKeyQuery[UserTable, DBUser] =
     foreignKey("user_stat_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
@@ -154,14 +155,15 @@ object UserStatTable {
     * Update the accuracy column in the user_stat table for every user.
     */
   def updateAccuracy() = db.withSession { implicit session =>
-    val newAccuraciesQuery = Q.queryNA[(String, Option[Float])](
+    val newAccuraciesQuery = Q.queryNA[(String, Int, Option[Float])](
       s"""SELECT user_stat.user_id,
-         |       CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END
+         |       new_validated_count,
+         |       new_accuracy
          |FROM user_stat
          |INNER JOIN (
          |    SELECT user_id,
-         |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy_temp,
-         |           COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
+         |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS new_accuracy,
+         |           COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS new_validated_count
          |    FROM (
          |        SELECT mission.user_id, label.label_id,
          |               COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
@@ -175,14 +177,16 @@ object UserStatTable {
          |    ) agree_count
          |    GROUP BY user_id
          |) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
-         |-- Filter out users if their accuracy is unchanged from what's already in the database.
-         |WHERE COALESCE(accuracy <> (CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END), TRUE)
-         |      AND (accuracy IS NOT NULL OR (CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END) IS NOT NULL);""".stripMargin
+         |-- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
+         |WHERE own_labels_validated <> new_validated_count
+         |    OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
+         |    OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
+         |    OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));""".stripMargin
     )
-    val usersToUpdate: List[(String, Option[Float])] = newAccuraciesQuery.list
-    for ((userId, accuracy) <- usersToUpdate) {
-      val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.accuracy
-      updateQuery.update(accuracy)
+    val usersToUpdate: List[(String, Int, Option[Float])] = newAccuraciesQuery.list
+    for ((userId, validatedCount, accuracy) <- usersToUpdate) {
+      val updateQuery = for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
+      updateQuery.update((validatedCount, accuracy))
     }
   }
 
@@ -365,7 +369,7 @@ object UserStatTable {
     */
   def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
     if (userStats.filter(_.userId === userId.toString).length.run == 0)
-      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, None, None))
+      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, None))
     else
       0
   }
