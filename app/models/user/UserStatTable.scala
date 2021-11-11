@@ -48,8 +48,8 @@ object UserStatTable {
   /**
     * Return query with user_id and high_quality columns.
     */
-  def getQualityOfUsers: Query[(Column[String], Column[Boolean]), (String, Boolean), Seq] = db.withSession { implicit session =>
-    userStats.map(x => (x.userId, x.highQuality))
+  def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Option[Boolean]]), (String, Boolean, Option[Boolean]), Seq] = db.withSession { implicit session =>
+    userStats.map(x => (x.userId, x.highQuality, x.excludeManual))
   }
 
 
