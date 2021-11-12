@@ -127,11 +127,12 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               // Get names and URLs for other cities so we can link to them on landing page.
               val otherCities: List[String] =
                 Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == cityStr)
-              val otherCityUrls: List[(String, String)] = otherCities.map { otherCity =>
+              val otherCityUrls: List[(String, String, String)] = otherCities.map { otherCity =>
                 val otherName: String = Play.configuration.getString("city-params.city-name." + otherCity).get
                 val otherState: String = Play.configuration.getString("city-params.state-abbreviation." + otherCity).get
                 val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + otherCity).get
-                (otherName + ", " + otherState, otherURL)
+                val visible: String = Play.configuration.getString("city-params.status." + otherCity).get
+                (otherName + ", " + otherState, otherURL, visible)
               }
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
