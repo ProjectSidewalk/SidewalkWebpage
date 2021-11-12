@@ -191,40 +191,47 @@ object UserStatTable {
   }
 
   /**
-   * Update high_quality column in the user_stat table, run after `updateAuditedDistance` and `updateLabelsPerMeter`.
+   * Update high_quality col in user_stat table, run after updateAuditedDistance, updateLabelsPerMeter, updateAccuracy.
+   *
+   * Users are considered low quality if they either:
+   * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
+   * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
+   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated.
    *
    * @return Number of user's whose records were updated.
    */
   def updateHighQuality(cutoffTime: Timestamp): Int = db.withSession { implicit session =>
 
     // First get users manually marked as low quality or marked to be excluded for other reasons.
-    val lowQualityUsers: List[(String, Boolean)] =
-      (userStats.filterNot(_.highQualityManual) union userStats.filter(_.excludeManual))
+    val lowQualUsers: List[(String, Boolean)] =
+      userStats.filter(u => u.excludeManual.getOrElse(false) || !u.highQualityManual.getOrElse(true))
         .map(x => (x.userId, x.highQualityManual.get)).list
 
-    // Decide if each user is high quality. First check if user was manually marked as high quality, then if they have
-    // an audited distance of 0 (meaning an infinite labeling frequency), then if labeling frequency is over threshold.
-    val userQuality: List[(String, Boolean)] =
+    // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
+    // low quality are filtered out later (using results from the previous query).
+    val userQual: List[(String, Boolean)] = {
       userStats.filter(x => x.highQualityManual.isEmpty || x.highQualityManual).map { x =>
         (
           x.userId,
-          x.highQualityManual.getOrElse(false)
-          || x.metersAudited === 0F
-          || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD
+          x.highQualityManual.getOrElse(false) || (
+            (x.metersAudited === 0F || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD)
+            && (x.accuracy.getOrElse(1.0F) > 0.6F.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
+            )
         )
       }.list
+    }
 
     // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
-    val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
+    val usersToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
 
     // Make separate lists for low vs high quality users, then bulk update each.
-    val updateToLowQuality: List[String] =
-      (lowQualityUsers ++ userQuality.filterNot(_._2)).map(_._1).filter(x => usersStatsToUpdate.contains(x))
-    val updateToHighQuality: List[String] =
-      userQuality.filter(_._2).map(_._1).filter(x => usersStatsToUpdate.contains(x))
+    val updateToHighQual: List[String] =
+      userQual.filter(x => x._2 && !lowQualUsers.map(_._1).contains(x._1) && usersToUpdate.contains(x._1)).map(_._1)
+    val updateToLowQual: List[String] =
+      (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
 
-    val lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQuality } yield _u.highQuality
-    val highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQuality } yield _u.highQuality
+    val lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQual } yield _u.highQuality
+    val highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQual } yield _u.highQuality
 
     // Do both bulk updates, and return total number of updated rows.
     lowQualityUpdateQuery.update(false) + highQualityUpdateQuery.update(true)
