@@ -152,6 +152,7 @@ object StreetEdgePriorityTable {
     val completions = AuditTaskTable.completedTasks
       .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
       .innerJoin(UserStatTable.getQualityOfUsers).on(_._2 === _._1)  // join on user_id
+      .filterNot(_._2._3.getOrElse(false)) // filter out users marked with exclude_manual = TRUE
       .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
 
     /********** Compute Audit Counts **********/

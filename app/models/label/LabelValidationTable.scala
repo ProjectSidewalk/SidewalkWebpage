@@ -109,6 +109,20 @@ object LabelValidationTable {
 
   case class ValidationCountPerDay(date: String, count: Int)
 
+  /**
+    * Get the user_ids of the users who placed the given labels.
+    *
+    * @param labelIds
+    * @return
+    */
+  def usersValidated(labelIds: List[Int]): List[String] = db.withSession { implicit session =>
+    (for {
+      l <- labels
+      m <- MissionTable.missions if l.missionId === m.missionId
+      if l.labelId inSet labelIds
+    } yield m.userId).groupBy(x => x).map(_._1).list
+  }
+
   def save(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val labelValidationId: Int =
       (validationLabels returning validationLabels.map(_.labelValidationId)) += label
