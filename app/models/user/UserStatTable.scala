@@ -91,7 +91,7 @@ object UserStatTable {
   def updateUserStatTable(cutoffTime: Timestamp) = db.withSession { implicit session =>
     updateAuditedDistance(cutoffTime)
     updateLabelsPerMeter(cutoffTime)
-    updateAccuracy()
+    updateAccuracy(List())
     updateHighQuality(cutoffTime)
   }
 
@@ -153,8 +153,14 @@ object UserStatTable {
 
   /**
     * Update the accuracy column in the user_stat table for every user.
+    *
+    * @param users A list of user_ids to update, update all users if list is empty.
     */
-  def updateAccuracy() = db.withSession { implicit session =>
+  def updateAccuracy(users: List[String]) = db.withSession { implicit session =>
+    val filterStatement: String =
+      if (users.isEmpty) ""
+      else s"""AND mission.user_id IN ('${users.mkString("','")}')"""
+
     val newAccuraciesQuery = Q.queryNA[(String, Int, Option[Float])](
       s"""SELECT user_stat.user_id,
          |       new_validated_count,
@@ -173,6 +179,7 @@ object UserStatTable {
          |        INNER JOIN label_validation ON label.label_id = label_validation.label_id
          |        WHERE label.deleted = FALSE
          |            AND label.tutorial = FALSE
+         |            $filterStatement
          |        GROUP BY mission.user_id, label.label_id
          |    ) agree_count
          |    GROUP BY user_id
