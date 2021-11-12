@@ -4,7 +4,7 @@ import models.attribute.UserClusteringSessionTable
 
 import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.LabelTable
+import models.label.{LabelTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
@@ -229,7 +229,8 @@ object UserStatTable {
     }
 
     // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
-    val usersToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
+    val usersToUpdate: List[String] =
+      (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct
 
     // Make separate lists for low vs high quality users, then bulk update each.
     val updateToHighQual: List[String] =
@@ -255,6 +256,20 @@ object UserStatTable {
       if _user.username =!= "anonymous"
       if _userStat.metersAudited > 0F
       if _mission.missionEnd > cutoffTime
+    } yield _user.userId).groupBy(x => x).map(_._1).list
+  }
+
+  /**
+    * Helper function to get list of users who have had any of their labels validated since the cutoff time.
+    */
+  def usersValidatedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
+    (for {
+      _labelVal <- LabelValidationTable.validationLabels
+      _label <- LabelTable.labels if _labelVal.labelId === _label.labelId
+      _mission <- MissionTable.missions if _label.missionId === _mission.missionId
+      _user <- userTable if _mission.userId === _user.userId
+      if _user.username =!= "anonymous"
+      if _labelVal.endTimestamp > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1).list
   }
 
