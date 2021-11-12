@@ -38,11 +38,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
-    var referrer: Option[String] = qString.get("referrer") match{
-      case Some(r) =>
-        Some(r)
-      case None =>
-        qString.get("r")
+    val referrer: Option[String] = qString.get("referrer") match {
+      case Some(r) => Some(r)
+      case None    => qString.get("r")
     }
 
     referrer match {
@@ -318,6 +316,18 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/terms"))
     }
+  }
+
+  /**
+    * Returns the maintenance page.
+    */
+  def maintenance = UserAwareAction.async { implicit request =>
+    val user: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+
+    WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, "Visit_Maintenance", timestamp))
+    Future.successful(Ok(views.html.maintenance("Project Sidewalk - Maintenance")))
   }
 
   /**

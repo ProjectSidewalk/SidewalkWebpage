@@ -1,4 +1,4 @@
-version: '3.5'
+version: '3.8'
 
 services:
 
@@ -14,6 +14,7 @@ services:
       - "/opt/node_modules"
     ports:
       - "9000:9000"
+    platform: linux/x86_64
     environment:
       - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
       - SIDEWALK_CITY_ID=DUMMY_CITY_ID

@@ -28,6 +28,78 @@ svg {
     border-top: 0;
 }
 
+#profile-container {
+    margin: 0px;
+    margin-top: 15px;
+}
+
+#username {
+    font-size: 40px;
+    font-family: raleway-bold, sans-serif;
+}
+
+#org-container {
+    display: flex;
+}
+
+#org-name {
+    display: flex;
+    font-size: 30px;
+    font-family: raleway, sans-serif;
+    margin-right: 15px;
+}
+
+#edit-org-dropdown {
+    display: flex;
+    align-items: center;
+}
+
+#edit-org-button {
+    border-radius: 10px;
+    border: 1px solid #2D2A3F;
+    color: #2D2A3F;
+    background-color: white;
+    font: normal normal normal 14px/1.4em 'Raleway', sans-serif;
+    text-align: center;
+    padding: 5px 25px;
+    cursor: pointer;
+    display: inline-block;
+    position: relative;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+
+#edit-org-button:hover {
+    background-color: #FCECBE;
+    border: 1px solid #FCECBE;
+    color: #2D2A3F;
+    text-decoration: none;
+    text-shadow: none;
+}
+
+#edit-org-button:focus {
+    color: #2D2A3F;
+    text-decoration: none;
+    outline: none;
+}
+
+#edit-org-menu {
+    cursor: pointer;
+    z-index: 2000;
+    top: 90%;
+}
+
+#org-container .popover {
+    margin-top: -35px;
+}
+
+#org-container .popover > .arrow{
+    margin-top: 24px;
+}
+
+.menu-info {
+    padding: 3px 20px;
+}
+
 .table-fixed thead {
     width: 98.5%;
 }

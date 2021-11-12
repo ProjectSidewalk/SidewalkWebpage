@@ -50,8 +50,6 @@ b { font-weight: bold; }
 .normal { font-weight: normal; }
 .underline { text-decoration: underline; }
 
-.defaultTextActive { color:#888; font-style: italic; }
-
 .inline {
     float: left;
 }

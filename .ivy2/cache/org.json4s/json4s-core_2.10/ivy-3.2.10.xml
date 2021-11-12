@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.json4s"
 		module="json4s-core_2.10"
 		revision="3.2.10"
@@ -10,6 +10,7 @@
 		<description homepage="https://github.com/json4s/json4s">
 		json4s-core
 		</description>
+		<e:sbtTransformHash>16c9ad53277486b28b3cb2755c1da60f588b5735</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,9 +28,9 @@
 		<artifact name="json4s-core_2.10" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.json4s" name="json4s-ast_2.10" rev="3.2.10" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.thoughtworks.paranamer" name="paranamer" rev="2.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.scala-lang" name="scalap" rev="2.10.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.json4s" name="json4s-ast_2.10" rev="3.2.10" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.thoughtworks.paranamer" name="paranamer" rev="2.6" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.scala-lang" name="scalap" rev="2.10.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

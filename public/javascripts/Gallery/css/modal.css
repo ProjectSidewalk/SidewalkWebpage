@@ -1,0 +1,165 @@
+.gallery-modal-close {
+    left: 0px;
+    top: 10%;
+    position: relative;
+    font-size: 30px;
+    cursor: pointer;
+}
+
+.gallery-modal {
+    display: flex;
+    height: 90vh;
+    position: relative;
+    border-radius: 20px;
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+    flex-direction: column;
+    align-items: center;
+    width: 52vw;
+    right: 3vw;
+    font-family: 'raleway-regular', sans-serif;
+    font-size: 18px;
+    justify-self: end;
+}
+
+.label-timestamp, .pano-timestamp {
+    color: #2d2a3f;
+}
+
+.modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
+    font-weight: bold;
+    color: #2d2a3f;
+}
+
+.modal-temporary-body, .modal-description-body {
+    color: #888787;
+}
+
+.gallery-modal-header {
+    width: 100%;
+    height: 100%;
+    margin-top: 15px;
+    font-family: 'raleway-bold', sans-serif;
+    font-size: 1.5vw;
+    color: #2d2a3f;
+}
+
+.gallery-modal-pano {
+    width: 100%;
+    height: 63%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4.75%;
+}
+
+.actual-pano {
+    border: 6px solid transparent;
+    border-radius: 5px;
+    background-color: transparent;
+}
+
+.gallery-modal-pano-display {
+    position: relative;
+    z-index: 10;
+    width: 90%;
+    height: 100%;
+}
+
+.gallery-modal-pano-paging {
+    height: 30px;
+    width: 50px;
+    color: black;
+    text-align: center;
+    font-size: 50px;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background-color: transparent;
+}
+
+.gallery-modal-pano-paging:disabled {
+    color: lightgray;
+}
+
+.gallery-modal-info {
+    display: flex;
+    height: 20%;
+    /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
+    width: calc(100% - 105px);
+    flex-wrap: wrap;
+    font-size: 1vw;
+}
+
+.gallery-modal-info-timestamps {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: .8vw;
+    padding-bottom: 1%;
+}
+
+.gallery-modal-info-severity {
+    width: 40%;
+    height: 40%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-info-tags {
+    width: 60%;
+    height: 40%;
+}
+
+.gallery-modal-info-temporary {
+    width: 40%;
+    height: 60%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-info-description {
+    width: 60%;
+    height: 60%;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-modal-pano:hover .modal-validation-button {
+    opacity: 0.6;
+}
+
+.modal-validation-button, .modal-validation-button-selected {
+    opacity: 0;
+    font-size: 1.25vw;
+    font-weight: bold;
+    font-family: 'raleway-regular', sans-serif;
+    background-color: white;
+    border-style: none;
+    color: #2d2a3f;
+}
+
+.gallery-modal-pano:hover .modal-validation-button-selected {
+    opacity: 1;
+    background-color: gray;
+}
+
+.modal-top-holder {
+    display: flex;
+    align-content: space-between;
+    margin-bottom: 5px;
+    /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
+    width: calc(100% - 105px);
+}
+
+.modal-severity-circle {
+    width: 1.75vw;
+    height: 1.75vw;
+}
+
+#modal-current-severity {
+    border: 2px solid black;
+    padding: 0px;
+    background-color: black;
+    color:white;
+}

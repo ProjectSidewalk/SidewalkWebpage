@@ -30,6 +30,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signIn(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      logPageVisit(request.identity, request.remoteAddress, "Visit_SignIn")
       Future.successful(Ok(views.html.signIn(SignInForm.form, url)))
     } else {
       Future.successful(Redirect(url))
@@ -41,6 +42,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signInMobile(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignIn")
       Future.successful(Ok(views.html.signInMobile(SignInForm.form, url)))
     } else {
       Future.successful(Redirect(url))
@@ -52,6 +54,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signUp(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      logPageVisit(request.identity, request.remoteAddress, "Visit_SignUp")
       Future.successful(Ok(views.html.signUp(SignUpForm.form)))
     } else {
       Future.successful(Redirect(url))
@@ -63,6 +66,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signUpMobile(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignUp")
       Future.successful(Ok(views.html.signUpMobile(SignUpForm.form)))
     } else {
       Future.successful(Redirect(url))
@@ -87,6 +91,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def forgotPassword(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      logPageVisit(request.identity, request.remoteAddress, "Visit_ForgotPassword")
       Future.successful(Ok(views.html.forgotPassword(ForgotPasswordForm.form)))
     } else {
       Future.successful(Redirect(url))
@@ -98,9 +103,17 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
     authTokenService.validate(token).map {
-      case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token))
+      case Some(_) =>
+        logPageVisit(request.identity, request.remoteAddress, "Visit_ResetPassword")
+        Ok(views.html.resetPassword(ResetPasswordForm.form, token))
       case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link"))
     }
+  }
+
+  def logPageVisit(user: Option[User], ipAddress: String, logStr: String): Unit = {
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val userId: String = user.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId.toString)
+    WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, logStr, timestamp))
   }
   
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.

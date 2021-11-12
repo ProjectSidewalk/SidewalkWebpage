@@ -11,6 +11,10 @@ coverage/
 *.js.html
 .mailmap
 #.ivy2
+.ivy2/cache/*/*/srcs
+.ivy2/exclude_classifiers
+.ivy2/exclude_classifiers.lock
+.ivy2/.sbt.cache.lock
 bower.json
 component.json
 db/*-dump

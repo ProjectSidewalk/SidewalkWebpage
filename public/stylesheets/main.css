@@ -599,9 +599,9 @@ p#conditional-text {
     padding: 0 0 60px;
 }
 
-#maprow {
+#map-row {
     height: 500px;
-    margin-top: 25px;
+    margin-top: 10px;
 }
 #map-holder {
     height: 100%;

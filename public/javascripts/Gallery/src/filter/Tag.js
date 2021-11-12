@@ -32,7 +32,7 @@ function Tag (params) {
         Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
 
         tagElement = document.createElement('button');
-        tagElement.className = "gallery-tag";
+        tagElement.className = "gallery-tag gallery-tag-sidebar";
         tagElement.id = properties.tag;
         tagElement.innerText = i18next.t('tag.' + properties.tag);
         tagElement.disabled = true;
@@ -58,7 +58,7 @@ function Tag (params) {
             apply();
         }
 
-        sg.cardContainer.updateCardsByTag();
+        sg.cardContainer.updateCardsByTagsAndSeverity();
     }
 
     /**
@@ -66,7 +66,6 @@ function Tag (params) {
      */
     function apply() {
         setStatus("applied", true);
-        console.log("clicked and toggled on");
         tagElement.setAttribute("style", "background-color: #78c8aa");
     }
 
@@ -75,7 +74,6 @@ function Tag (params) {
      */
     function unapply() {
         setStatus("applied", false);
-        console.log("clicked and toggled off");
         tagElement.setAttribute("style", "background-color: none");
     }
 

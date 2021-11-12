@@ -18,6 +18,7 @@ function Panorama (label) {
     let panoCanvas = document.getElementById(properties.canvasId);
     let self = this;
     let streetViewService = new google.maps.StreetViewService();
+    let bottomLinksClickable = false;
 
     // Determined manually by matching appearance of labels on the audit page and appearance of
     // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
@@ -37,6 +38,16 @@ function Panorama (label) {
             sizePano();
         }
         _addListeners();
+
+        // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
+        // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
+        // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
+        $(window).on('resize', function() {
+            let pov = panorama.getPov();
+            pov.heading -= .01;
+            pov.pitch -= .01;
+            panorama.setPov(pov);
+        });
         setLabel(currentLabel);
     }
 
@@ -186,8 +197,13 @@ function Panorama (label) {
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
-                    }
-                    else {
+                        // Make Terms of Use & Report a problem links on GSV clickable. Should only be done once.
+                        // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
+                        if (!bottomLinksClickable) {
+                            $("#view-control-layer").append($('.gm-style-cc').slice(1, 3));
+                            bottomLinksClickable = true;
+                        } 
+                    } else {
                         console.error("Error retrieving Panoramas: " + status);
                         svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }
