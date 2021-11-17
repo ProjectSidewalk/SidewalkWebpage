@@ -33,7 +33,11 @@ case class Label(labelId: Int,
                  temporaryLabelId: Option[Int],
                  timeCreated: Option[Timestamp],
                  tutorial: Boolean,
-                 streetEdgeId: Int)
+                 streetEdgeId: Int,
+                 agreeCount: Int,
+                 disagreeCount: Int,
+                 notsureCount: Int,
+                 correct: Option[Boolean])
 
 case class LabelLocation(labelId: Int,
                          auditTaskId: Int,
@@ -66,9 +70,14 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
   def tutorial = column[Boolean]("tutorial", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
+  def agreeCount = column[Int]("agree_count", O.NotNull)
+  def disagreeCount = column[Int]("disagree_count", O.NotNull)
+  def notsureCount = column[Int]("notsure_count", O.NotNull)
+  def correct = column[Option[Boolean]]("correct", O.Nullable)
 
   def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
-    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated, tutorial, streetEdgeId) <> ((Label.apply _).tupled, Label.unapply)
+    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount,
+    notsureCount, correct) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
