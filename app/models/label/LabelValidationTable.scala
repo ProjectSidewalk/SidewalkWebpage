@@ -10,9 +10,9 @@ import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class LabelValidation(validationId: Int,
+case class LabelValidation(labelValidationId: Int,
                            labelId: Int,
-                           labelValidationId: Int,
+                           validationResult: Int,
                            userId: String,
                            missionId: Int,
                            // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
@@ -123,27 +123,27 @@ object LabelValidationTable {
     } yield m.userId).groupBy(x => x).map(_._1).list
   }
 
-  def save(label: LabelValidation): Int = db.withTransaction { implicit session =>
-    val labelValidationId: Int =
-      (validationLabels returning validationLabels.map(_.labelValidationId)) += label
-    labelValidationId
-  }
-
   /**
-   * Updates validation if one already exists for this mission. Inserts a new one o/w.
+   * Updates validation if one already exists for this mission. Inserts a new one if not.
    */
   def insertOrUpdate(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val oldValidation: Option[LabelValidation] =
-      validationLabels.filter(x => x.labelId === label.labelId && x.missionId === label.missionId).firstOption
+      validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
     oldValidation match {
       case Some(oldLabel) =>
-        val q = for {
-          validation <- validationLabels if validation.labelId === label.labelId && validation.missionId === label.missionId
-        } yield (validation.validationResult, validation. startTimestamp, validation. endTimestamp)
-        q.update((label.labelValidationId, label.startTimestamp, label.endTimestamp))
+        val updateQuery = for {
+          v <- validationLabels if v.labelId === label.labelId &&v.userId === label.userId
+        } yield (
+          v.validationResult, v.missionId, v.canvasX, v.canvasY, v.heading, v.pitch, v.zoom,
+          v.startTimestamp, v.endTimestamp, v.isMobile
+        )
+        updateQuery.update((
+          label.validationResult, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
+          label.startTimestamp, label.endTimestamp, label.isMobile
+        ))
       case None =>
-        save(label)
+        (validationLabels returning validationLabels.map(_.labelValidationId)) += label
     }
   }
 
