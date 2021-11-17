@@ -1,4 +1,13 @@
 # --- !Ups
+-- For users who validated the same label multiple times, remove all but the newest validation.
+DELETE
+FROM label_validation val_a
+    USING label_validation val_b
+WHERE val_a.label_id = val_b.label_id
+  AND val_a.user_id = val_b.user_id
+  AND val_a.end_timestamp < val_b.end_timestamp;
+
+-- Add validation count columns to the label table.
 ALTER TABLE label
     ADD COLUMN agree_count INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN disagree_count INTEGER NOT NULL DEFAULT 0,
