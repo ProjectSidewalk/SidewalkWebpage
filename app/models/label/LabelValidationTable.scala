@@ -124,14 +124,19 @@ object LabelValidationTable {
   }
 
   /**
-   * Updates validation if one already exists for this mission. Inserts a new one if not.
+   * Updates or inserts a validation in the label_validation table. Also updates validation counts in the label table.
    */
   def insertOrUpdate(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val oldValidation: Option[LabelValidation] =
       validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
+    // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
     oldValidation match {
       case Some(oldLabel) =>
+        // Update validation counts in the label table.
+        updateValidationCounts(label.labelId, label.validationResult, Some(oldLabel.validationResult))
+
+        // Update relevant columns in the label_validation table.
         val updateQuery = for {
           v <- validationLabels if v.labelId === label.labelId &&v.userId === label.userId
         } yield (
@@ -143,8 +148,56 @@ object LabelValidationTable {
           label.startTimestamp, label.endTimestamp, label.isMobile
         ))
       case None =>
+        // Update validation counts in the label table.
+        updateValidationCounts(label.labelId, label.validationResult, None)
+
+        // Insert a new validation into the label_validation table.
         (validationLabels returning validationLabels.map(_.labelValidationId)) += label
     }
+  }
+
+  /**
+   * Updates the validation counts and correctness columns in the label table given a new incoming validation.
+   *
+   * @param labelId label_id of the label with a new validation
+   * @param newValidationResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning not sure
+   * @param oldValidationResult the old validation if the user had validated this label in the past
+   */
+  def updateValidationCounts(labelId: Int, newValidationResult: Int, oldValidationResult: Option[Int]): Int = db.withSession { implicit session =>
+    // Get the validation counts that are in the database right now.
+    val oldCounts: (Int, Int, Int) =
+      labels.filter(_.labelId === labelId)
+        .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount)).first
+
+    // Add 1 to the correct count for the new validation.
+    val countsWithNewVal: (Int, Int, Int) = newValidationResult match {
+      case 1 => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
+      case 2 => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
+      case 3 => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
+    }
+
+    // If there was a previous validation from this user, subtract 1 for that old validation. O/w use previous result.
+    val countsWithoutOldVal: (Int, Int, Int) = oldValidationResult match {
+      case Some(oldVal) => oldVal match {
+        case 1 => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
+        case 2 => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
+        case 3 => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
+      }
+      case None => countsWithNewVal
+    }
+
+    // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
+    val labelCorrect: Option[Boolean] = {
+      if (countsWithoutOldVal._1 > countsWithoutOldVal._2) Some(true)
+      else if (countsWithoutOldVal._2 > countsWithoutOldVal._1) Some(false)
+      else None
+    }
+
+    // Update the agree_count, disagree_count, notsure_count, and correct columns in the label table.
+    labels
+      .filter(_.labelId === labelId)
+      .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount, l.correct))
+      .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
   }
 
   /**
