@@ -668,9 +668,9 @@ object LabelTable {
           |LEFT JOIN label_description ON label.label_id = label_description.label_id
           |LEFT JOIN (
           |    -- This subquery counts how many of each users' labels have been validated for the given label type. If
-          |    -- it is less than 10, then we need more validations from them in order to use them for inferring worker
+          |    -- it is less than 50, then we need more validations from them in order to use them for inferring worker
           |    -- quality, and they therefore get priority.
-          |    SELECT mission.user_id, COUNT(DISTINCT(label.label_id)) < 10 AS needs_validations
+          |    SELECT mission.user_id, COUNT(DISTINCT(label.label_id)) < 50 AS needs_validations
           |    FROM mission
           |    INNER JOIN label ON label.mission_id = mission.mission_id
           |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
@@ -706,7 +706,7 @@ object LabelTable {
           |        FROM label_validation
           |        WHERE user_id = '$userIdStr'
           |    )
-          |-- Prioritize labels that have been validated fewer times and from users who have had less than 10
+          |-- Prioritize labels that have been validated fewer times and from users who have had less than 50
           |-- validations of this label type, then randomize it.
           |ORDER BY counts.validation_count, COALESCE(needs_validations, TRUE) DESC, RANDOM()
           |LIMIT ${n * 5}""".stripMargin
