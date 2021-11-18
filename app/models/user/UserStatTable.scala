@@ -168,20 +168,13 @@ object UserStatTable {
          |FROM user_stat
          |INNER JOIN (
          |    SELECT user_id,
-         |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS new_accuracy,
-         |           COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS new_validated_count
-         |    FROM (
-         |        SELECT mission.user_id, label.label_id,
-         |               COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
-         |               COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
-         |        FROM mission
-         |        INNER JOIN label ON mission.mission_id = label.mission_id
-         |        INNER JOIN label_validation ON label.label_id = label_validation.label_id
-         |        WHERE label.deleted = FALSE
-         |            AND label.tutorial = FALSE
-         |            $filterStatement
-         |        GROUP BY mission.user_id, label.label_id
-         |    ) agree_count
+         |           CAST(SUM(CASE WHEN correct THEN 1 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 END) + SUM(CASE WHEN NOT correct THEN 1 END), 0) AS new_accuracy,
+         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
+         |    FROM mission
+         |    INNER JOIN label ON mission.mission_id = label.mission_id
+         |    WHERE label.deleted = FALSE
+         |        AND label.tutorial = FALSE
+         |        $filterStatement
          |    GROUP BY user_id
          |) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
          |-- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
