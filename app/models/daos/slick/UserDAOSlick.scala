@@ -187,11 +187,11 @@ object UserDAOSlick {
     // Defaults to *not* specifying a time (which is the same thing as "all time").
     val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
       case "today" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
+        "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
       )
       case "week" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
+        "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       )
       case _ => ("TRUE", "TRUE")
@@ -204,7 +204,7 @@ object UserDAOSlick {
 
     // Add in the task completion logic.
     val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "labels_progress > 0" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
 
     val countQuery = s"""SELECT COUNT(DISTINCT(users.user_id))
                    |FROM (
@@ -212,7 +212,7 @@ object UserDAOSlick {
                    |    FROM mission
                    |    INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
                    |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-                   |    WHERE mission_type.mission_type = 'validation'
+                   |    WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
                    |        AND $lblValidationTimeIntervalSql
                    |        AND $validationCompletedSql
                    |    UNION
