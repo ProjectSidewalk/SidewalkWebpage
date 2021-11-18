@@ -298,7 +298,7 @@ object UserStatTable {
     // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.
     val groupingCol: String = if (byOrg) "org_id" else "sidewalk_user.user_id"
     val groupingColName: String = if (byOrg) "org_id" else "user_id"
-    val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON agree_count.user_id = user_org.user_id" else ""
+    val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON mission.user_id = user_org.user_id" else ""
     val usernamesJoin: String = {
       if (byOrg) {
         "INNER JOIN (SELECT org_id, org_name AS username FROM organization) \"usernames\" ON label_counts.org_id = usernames.org_id"
@@ -346,19 +346,12 @@ object UserStatTable {
         |) "missions_and_distance" ON label_counts.$groupingColName = missions_and_distance.$groupingColName
         |LEFT JOIN (
         |    SELECT $groupingColName,
-        |           CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy_temp,
-        |           COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
-        |    FROM (
-        |        SELECT mission.user_id, label.label_id,
-        |               COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
-        |               COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
-        |        FROM mission
-        |        INNER JOIN label ON mission.mission_id = label.mission_id
-        |        INNER JOIN label_validation ON label.label_id = label_validation.label_id
-        |        WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |        GROUP BY mission.user_id, label.label_id
-        |    ) agree_count
+        |           CAST(SUM(CASE WHEN correct THEN 1 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 END) + SUM(CASE WHEN NOT correct THEN 1 END), 0) AS accuracy_temp,
+        |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
+        |    FROM label
+        |    INNER JOIN mission ON label.mission_id = mission.mission_id
         |    $joinUserOrgForAcc
+        |    WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingColName
         |) "accuracy" ON label_counts.$groupingColName = accuracy.$groupingColName
         |ORDER BY score DESC;""".stripMargin
