@@ -425,17 +425,12 @@ object LabelTable {
         |             ON lb.label_id = the_tags.label_id
         |     ) AS lb_big,
         |     (
-        |         SELECT label_id, array_to_string(array_agg(concat_ws(':', text, count)), ',') AS val_counts
-        |         FROM (
-        |             SELECT label.label_id, text, COUNT(label_validation_id) AS count
-        |             FROM label
-        |             FULL JOIN validation_options ON TRUE
-        |             LEFT JOIN label_validation ON label.label_id = label_validation.label_id
-        |                 AND label_validation.validation_result = validation_options.validation_option_id
-        |             WHERE label.deleted = FALSE
-        |             GROUP BY label.label_id, validation_option_id
-        |         ) AS validation_counts
-        |         GROUP BY label_id
+        |         SELECT label_id,
+        |                CONCAT('agree:', CAST(agree_count AS TEXT),
+        |                       ',disagree:', CAST(disagree_count AS TEXT),
+        |                       ',unclear:', CAST(notsure_count AS TEXT)) AS val_counts
+        |         FROM label
+        |         WHERE label.deleted = FALSE
         |     ) AS val
         |WHERE lb1.deleted = FALSE
         |    AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
@@ -545,14 +540,11 @@ object LabelTable {
         |     sidewalk_user AS u,
         |     label_point AS lp,
         |     (
-        |         SELECT array_to_string(array_agg(concat_ws(':', validation_options.text, COALESCE(count, 0))), ',') AS val_counts
-        |         FROM (
-        |             SELECT validation_result, COUNT(label_validation_id) AS count
-        |             FROM label_validation
-        |             WHERE label_id = $labelId
-        |             GROUP BY validation_result
-        |         ) vals
-        |         RIGHT JOIN validation_options ON vals.validation_result = validation_options.validation_option_id
+        |         SELECT CONCAT('agree:', CAST(agree_count AS TEXT),
+        |                       ',disagree:', CAST(disagree_count AS TEXT),
+        |                       ',unclear:', CAST(notsure_count AS TEXT)) AS val_counts
+        |         FROM label
+        |         WHERE label_id = $labelId
         |     ) AS lb_val,
         |     (
         |         SELECT lb.label_id,
@@ -654,29 +646,18 @@ object LabelTable {
           |INNER JOIN mission ON label.mission_id = mission.mission_id
           |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
           |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-          |INNER JOIN (
-          |    -- This subquery gets the number of times each label has been validated.
-          |    SELECT label.label_id, COUNT(label_validation_id) AS validation_count
-          |    FROM label
-          |    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
-          |    WHERE label.deleted = FALSE
-          |        AND (label_validation.user_id <> '$userIdStr' OR label_validation.user_id IS NULL)
-          |    GROUP BY label.label_id
-          |) counts ON label.label_id = counts.label_id
           |LEFT JOIN label_severity ON label.label_id = label_severity.label_id
           |LEFT JOIN label_temporariness ON label.label_id = label_temporariness.label_id
           |LEFT JOIN label_description ON label.label_id = label_description.label_id
           |LEFT JOIN (
-          |    -- This subquery counts how many of each users' labels have been validated for the given label type. If
-          |    -- it is less than 50, then we need more validations from them in order to use them for inferring worker
-          |    -- quality, and they therefore get priority.
-          |    SELECT mission.user_id, COUNT(DISTINCT(label.label_id)) < 50 AS needs_validations
+          |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
+          |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
+          |    SELECT mission.user_id,
+          |           COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
           |    FROM mission
           |    INNER JOIN label ON label.mission_id = mission.mission_id
-          |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
-          |    WHERE mission.mission_type_id = 2
-          |        AND label.deleted = FALSE
-          |        AND label.label_type_id = $labelTypeId
+          |    WHERE label.deleted = FALSE
+          |        AND label.tutorial = FALSE
           |    GROUP BY mission.user_id
           |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
           |LEFT JOIN (
@@ -708,7 +689,7 @@ object LabelTable {
           |    )
           |-- Prioritize labels that have been validated fewer times and from users who have had less than 50
           |-- validations of this label type, then randomize it.
-          |ORDER BY counts.validation_count, COALESCE(needs_validations, TRUE) DESC, RANDOM()
+          |ORDER BY label.agree_count + label.disagree_count + label.notsure_count, COALESCE(needs_validations, TRUE) DESC, RANDOM()
           |LIMIT ${n * 5}""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery.list

@@ -429,7 +429,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val validationCounts = LabelValidationTable.getValidationCountsPerUser
       val json: JsArray = Json.arr(validationCounts.map(x => Json.obj(
-        "user_id" -> x._1, "role" -> x._2, "count" -> x._4, "agreed" -> x._5
+        "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
       )))
       Future.successful(Ok(json))
     } else {
