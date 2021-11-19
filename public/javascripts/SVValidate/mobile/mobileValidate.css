@@ -289,7 +289,7 @@ html {
 
 .gray-button-mobile {
     position: relative;
-    background-color: rgba(251, 215, 139, 1);
+    background-color: #fbd78b;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
     border-radius:10px;
@@ -305,8 +305,8 @@ html {
     text-align: center;
     font-weight: bolder;
     font-size:40px;
-    width: 250px;
-    height: 75px;
+    /* width: 250px;
+    height: 75px; */
     padding:5px 25px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
