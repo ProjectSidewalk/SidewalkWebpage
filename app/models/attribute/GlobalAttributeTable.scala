@@ -24,6 +24,9 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val lat: Float, val lng: Float,
                                  val severity: Option[Int],
                                  val temporary: Boolean,
+                                 val agreeCount: Int,
+                                 val disagreeCount: Int,
+                                 val notsureCount: Int,
                                  val neighborhoodName: String) {
   def toJSON: JsObject = {
     Json.obj(
@@ -34,7 +37,10 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "label_type" -> labelType,
         "neighborhood" -> neighborhoodName,
         "severity" -> severity,
-        "is_temporary" -> temporary
+        "is_temporary" -> temporary,
+        "agree_count" -> agreeCount,
+        "disagree_count" -> disagreeCount,
+        "notsure_count" -> notsureCount
       )
     )
   }
@@ -145,15 +151,28 @@ object GlobalAttributeTable {
     * Gets global attributes within a bounding box for the public API.
     */
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+    val validationCounts = (for {
+      _ga <- globalAttributes
+      _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId
+      _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
+      _l <- LabelTable.labels if _ual.labelId === _l.labelId
+    } yield (_ga.globalAttributeId, _l.agree_count, _l.disagree_count, _l.notsure_count))
+      .groupBy(_._1)
+      .map( case (attributeId, group) => (attributeId, group.map(_._1).sum), group.map(_._2).sum), group.map(_._3).sum))
+
     val attributes = for {
       _ga <- globalAttributes if _ga.lat > minLat && _ga.lat < maxLat && _ga.lng > minLng && _ga.lng < maxLng &&
         (_ga.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _ga.severity === toInt(severity))
       // The line above gets attributes with null severity if severity = "none", all attributes if severity is unspecified,
       // and attributes with the specified severity (e.g. severity = 3) otherwise.
+      _vc <- validationCounts if _ga.globalAttributeId === _vc._1
       _lt <- LabelTypeTable.labelTypes if _ga.labelTypeId === _lt.labelTypeId
       _r <- RegionTable.regions if _ga.regionId === _r.regionId
       if _lt.labelType =!= "Problem"
-    } yield (_ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary, _r.description)
+    } yield (
+      _ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary,
+      _vc._1, _vc._2, _vc._3, _r.description
+    )
     attributes.list.map(GlobalAttributeForAPI.tupled)
   }
 

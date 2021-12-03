@@ -99,6 +99,9 @@ public class ShapefilesCreatorHelper {
                         + "labelType:String," // Label type
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
+                        + "nNotSure:Integer," // NotSure validations
                         + "temporary:Boolean" // Temporary flag
                 );
 
@@ -126,6 +129,9 @@ public class ShapefilesCreatorHelper {
                     return null;
                 }
             }));
+            featureBuilder.add(a.agreeCount());
+            featureBuilder.add(a.disagreeCount());
+            featureBuilder.add(a.notsureCount());
             featureBuilder.add(a.temporary());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
