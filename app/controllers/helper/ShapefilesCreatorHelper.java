@@ -101,7 +101,7 @@ public class ShapefilesCreatorHelper {
                         + "severity:Integer," // Severity
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
-                        + "nNotSure:Integer," // NotSure validations
+                        + "nNotsure:Integer," // Notsure validations
                         + "temporary:Boolean" // Temporary flag
                 );
 
@@ -165,6 +165,9 @@ public class ShapefilesCreatorHelper {
                         + "canvasY:Integer," // canvasY position of panorama
                         + "canvasWdth:Integer," // width of source viewfinder
                         + "canvasHght:Integer" // height of source viewfinder
+                        + "nAgree:Integer" // Agree validations
+                        + "nDisagree:Integer" // Disagree validations
+                        + "nNotsure:Integer" // Notsure validations
                 );
 
 
@@ -199,10 +202,13 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.heading());
             featureBuilder.add(l.pitch());
             featureBuilder.add(l.zoom());
-            featureBuilder.add(l.canvasX());
-            featureBuilder.add(l.canvasY());
+            featureBuilder.add(l.canvasXY()(1));
+            featureBuilder.add(l.canvasXY()(2));
             featureBuilder.add(l.canvasWidth());
             featureBuilder.add(l.canvasHeight());
+            featureBuilder.add(l.agreeCount());
+            featureBuilder.add(l.disagreeCount());
+            featureBuilder.add(l.notsureCount());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
