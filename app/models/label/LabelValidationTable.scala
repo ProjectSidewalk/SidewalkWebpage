@@ -130,11 +130,18 @@ object LabelValidationTable {
     val oldValidation: Option[LabelValidation] =
       validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
+    userThatAppliedLabel: String =
+    labels.filter(_.labelId === label.labelId)
+      .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
+      .map(_._2.userId)
+      .list.head
+
     // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
     oldValidation match {
       case Some(oldLabel) =>
-        // Update validation counts in the label table.
-        updateValidationCounts(label.labelId, label.validationResult, Some(oldLabel.validationResult))
+        // Update validation counts in the label table if this is not someone validating their own label.
+        if (userThatAppliedLabel !== label.userId)
+          updateValidationCounts(label.labelId, label.validationResult, Some(oldLabel.validationResult))
 
         // Update relevant columns in the label_validation table.
         val updateQuery = for {
@@ -148,8 +155,9 @@ object LabelValidationTable {
           label.startTimestamp, label.endTimestamp, label.isMobile
         ))
       case None =>
-        // Update validation counts in the label table.
-        updateValidationCounts(label.labelId, label.validationResult, None)
+        // Update validation counts in the label table if this is not someone validating their own label.
+        if (userThatAppliedLabel !== label.userId)
+          updateValidationCounts(label.labelId, label.validationResult, None)
 
         // Insert a new validation into the label_validation table.
         (validationLabels returning validationLabels.map(_.labelValidationId)) += label

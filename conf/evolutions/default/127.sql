@@ -27,7 +27,10 @@ FROM (
                 WHEN COUNT(CASE WHEN validation_result = 2 THEN 1 END) > COUNT(CASE WHEN validation_result = 1 THEN 1 END) THEN FALSE
                 ELSE NULL
             END AS is_correct
-     FROM label_validation
+     FROM mission
+     INNER JOIN label ON mission.mission_id = label.mission_id
+     INNER JOIN label_validation
+        ON label.label_id = label_validation.label_id AND mission.user_id <> label_validation.user_id
      GROUP BY label_id
  ) AS validation_count
 WHERE label.label_id = validation_count.label_id;
