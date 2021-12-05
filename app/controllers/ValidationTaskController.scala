@@ -11,14 +11,16 @@ import models.amt.AMTAssignmentTable
 import models.label._
 import models.label.LabelTable.LabelValidationMetadata
 import models.mission.{Mission, MissionTable}
-import models.user.User
+import models.user.{User, UserStatTable}
 import models.validation._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
+
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 import formats.json.CommentSubmissionFormats._
+
 import java.time.Instant
 
 /**
@@ -61,6 +63,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           case None =>
             Logger.warn("User without user_id validated a label, but every user should have a user_id.")
         }
+      }
+      // For any users whose labels have been validated, update their accuracy in the user_stat table.
+      if (data.labels.nonEmpty) {
+        val usersValidated: List[String] = LabelValidationTable.usersValidated(data.labels.map(_.labelId).toList)
+        UserStatTable.updateAccuracy(usersValidated)
       }
 
       // We aren't always submitting mission progress, so check if data.missionProgress exists.
@@ -159,6 +166,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           request.identity.get.userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
           submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
           new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.isMobile))
+
+        // For the user whose labels has been validated, update their accuracy in the user_stat table.
+        val usersValidated: List[String] = LabelValidationTable.usersValidated(List(submission.labelId))
+        UserStatTable.updateAccuracy(usersValidated)
         Future.successful(Ok(Json.obj("status" -> "Success")))
       }
     )
