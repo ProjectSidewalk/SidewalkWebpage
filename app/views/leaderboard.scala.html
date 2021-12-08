@@ -1,6 +1,6 @@
 @import models.user._
 
-@(min: Int, user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
+@(min: Int = 1, user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
@@ -87,7 +87,7 @@
             </table>
         </div>
     </div>
-    @if(leaderboardStatsByOrg.asInstanceOf[List[LeaderboardStat]].length >= 0) {
+    @if(leaderboardStatsByOrg.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
             <h1 class="leaderboard-header">@Messages("leaderboard.inter.org.title")</h1>
             <h5>@Messages("leaderboard.overall.detail")</h5>
