@@ -202,8 +202,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.heading());
             featureBuilder.add(l.pitch());
             featureBuilder.add(l.zoom());
-            featureBuilder.add(l.canvasXY()(1));
-            featureBuilder.add(l.canvasXY()(2));
+            featureBuilder.add(l.canvasXY()._1);
+            featureBuilder.add(l.canvasXY()._2);
             featureBuilder.add(l.canvasWidth());
             featureBuilder.add(l.canvasHeight());
             featureBuilder.add(l.agreeCount());

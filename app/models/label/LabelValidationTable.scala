@@ -130,7 +130,7 @@ object LabelValidationTable {
     val oldValidation: Option[LabelValidation] =
       validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
-    userThatAppliedLabel: String =
+    val userThatAppliedLabel: String =
     labels.filter(_.labelId === label.labelId)
       .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
       .map(_._2.userId)
@@ -140,7 +140,7 @@ object LabelValidationTable {
     oldValidation match {
       case Some(oldLabel) =>
         // Update validation counts in the label table if this is not someone validating their own label.
-        if (userThatAppliedLabel !== label.userId)
+        if (userThatAppliedLabel != label.userId)
           updateValidationCounts(label.labelId, label.validationResult, Some(oldLabel.validationResult))
 
         // Update relevant columns in the label_validation table.
@@ -156,7 +156,7 @@ object LabelValidationTable {
         ))
       case None =>
         // Update validation counts in the label table if this is not someone validating their own label.
-        if (userThatAppliedLabel !== label.userId)
+        if (userThatAppliedLabel != label.userId)
           updateValidationCounts(label.labelId, label.validationResult, None)
 
         // Insert a new validation into the label_validation table.

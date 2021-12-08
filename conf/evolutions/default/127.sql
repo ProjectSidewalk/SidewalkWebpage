@@ -18,7 +18,7 @@ ALTER TABLE label
 UPDATE label
 SET (agree_count, disagree_count, notsure_count, correct) = (n_agree, n_disagree, n_notsure, is_correct)
 FROM (
-     SELECT label_id,
+     SELECT label.label_id,
             COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
             COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree,
             COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS n_notsure,
@@ -31,7 +31,7 @@ FROM (
      INNER JOIN label ON mission.mission_id = label.mission_id
      INNER JOIN label_validation
         ON label.label_id = label_validation.label_id AND mission.user_id <> label_validation.user_id
-     GROUP BY label_id
+     GROUP BY label.label_id
  ) AS validation_count
 WHERE label.label_id = validation_count.label_id;
 

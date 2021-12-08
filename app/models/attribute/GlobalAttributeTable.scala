@@ -98,8 +98,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
   val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
                                 attributeTemporary.toString, neighborhoodName, labelId.toString, gsvPanoramaId,
                                 attributeLat.toString, attributeLng.toString, labelLat.toString, labelLng.toString,
-                                heading.toString, pitch.toString, zoom.toString, canvasX.toString, canvasY.toString,
-                                canvasWidth.toString, canvasHeight.toString,
+                                heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
+                                canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString,
                                 attributeSeverity.getOrElse("NA").toString, labelTemporary.toString)
 }
 
@@ -162,9 +162,9 @@ object GlobalAttributeTable {
       _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId
       _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
       _l <- LabelTable.labels if _ual.labelId === _l.labelId
-    } yield (_ga.globalAttributeId, _l.agree_count, _l.disagree_count, _l.notsure_count))
+    } yield (_ga.globalAttributeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount))
       .groupBy(_._1)
-      .map( case (attributeId, group) => (attributeId, group.map(_._1).sum), group.map(_._2).sum), group.map(_._3).sum))
+      .map { case (attrId, group) => (attrId, group.map(_._2).sum, group.map(_._3).sum, group.map(_._4).sum) }
 
     val attributes = for {
       _ga <- globalAttributes if _ga.lat > minLat && _ga.lat < maxLat && _ga.lng > minLng && _ga.lng < maxLng &&
@@ -177,7 +177,7 @@ object GlobalAttributeTable {
       if _lt.labelType =!= "Problem"
     } yield (
       _ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary,
-      _vc._1, _vc._2, _vc._3, _r.description
+      _vc._2.getOrElse(0), _vc._3.getOrElse(0), _vc._4.getOrElse(0), _r.description
     )
     attributes.list.map(GlobalAttributeForAPI.tupled)
   }
@@ -204,14 +204,14 @@ object GlobalAttributeTable {
 
     val withSeverity = for {
       (_l, _s) <- attributesWithLabels.leftJoin(LabelSeverityTable.labelSeverities).on(_._8 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l.19, _l.20, _s.severity.?)
+    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l._20, _s.severity.?)
 
     val withTemporary = for {
       (_l, _t) <- withSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._8 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l.20, _l.21, _t.temporary.?)
+    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l._20, _l._21, _t.temporary.?)
 
     withTemporary.list.map(a =>
-      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7, a._8, a._9.get, a._10.get, a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20, a._21, _a.22.getOrElse(false))
+      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7, a._8, a._9.get, a._10.get, a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20, a._21, a._22.getOrElse(false))
     )
   }
 
