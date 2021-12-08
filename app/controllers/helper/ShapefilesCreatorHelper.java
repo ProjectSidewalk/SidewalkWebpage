@@ -99,10 +99,10 @@ public class ShapefilesCreatorHelper {
                         + "labelType:String," // Label type
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
+                        + "temporary:Boolean," // Temporary flag
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
-                        + "nNotsure:Integer," // Notsure validations
-                        + "temporary:Boolean" // Temporary flag
+                        + "nNotsure:Integer" // Notsure validations
                 );
 
         /*
@@ -129,10 +129,10 @@ public class ShapefilesCreatorHelper {
                     return null;
                 }
             }));
+            featureBuilder.add(a.temporary());
             featureBuilder.add(a.agreeCount());
             featureBuilder.add(a.disagreeCount());
             featureBuilder.add(a.notsureCount());
-            featureBuilder.add(a.temporary());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
@@ -164,9 +164,9 @@ public class ShapefilesCreatorHelper {
                         + "canvasX:Integer," // canvasX position of panorama
                         + "canvasY:Integer," // canvasY position of panorama
                         + "canvasWdth:Integer," // width of source viewfinder
-                        + "canvasHght:Integer" // height of source viewfinder
-                        + "nAgree:Integer" // Agree validations
-                        + "nDisagree:Integer" // Disagree validations
+                        + "canvasHght:Integer," // height of source viewfinder
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer" // Notsure validations
                 );
 

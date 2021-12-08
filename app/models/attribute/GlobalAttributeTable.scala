@@ -44,8 +44,9 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
       )
     )
   }
-  val attributesToArray = Array(globalAttributeId, labelType, neighborhoodName,
-                                lat.toString, lng.toString, severity.getOrElse("NA").toString, temporary.toString)
+  val attributesToArray = Array(globalAttributeId, labelType, neighborhoodName, lat.toString, lng.toString,
+                                severity.getOrElse("NA").toString, temporary.toString, agreeCount.toString,
+                                disagreeCount.toString, notsureCount.toString)
 }
 
 case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
@@ -87,11 +88,11 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "canvas_y" -> canvasXY._2,
         "canvas_width" -> canvasWidth,
         "canvas_height" -> canvasHeight,
+        "label_severity" -> labelSeverity,
+        "label_is_temporary" -> labelTemporary,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
-        "notsure_count" -> notsureCount,
-        "label_severity" -> labelSeverity,
-        "label_is_temporary" -> labelTemporary
+        "notsure_count" -> notsureCount
       )
     )
   }
@@ -100,7 +101,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 attributeLat.toString, attributeLng.toString, labelLat.toString, labelLng.toString,
                                 heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
                                 canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString,
-                                attributeSeverity.getOrElse("NA").toString, labelTemporary.toString)
+                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString,
+                                agreeCount.toString, disagreeCount.toString, notsureCount.toString)
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
