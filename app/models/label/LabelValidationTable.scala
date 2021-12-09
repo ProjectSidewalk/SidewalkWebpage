@@ -406,7 +406,6 @@ object LabelValidationTable {
         |(
         |    SELECT label_validation_id, end_timestamp::date AS calendar_date
         |    FROM label_validation
-        |    WHERE label_validation IS NOT NULL
         |) AS calendar
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
