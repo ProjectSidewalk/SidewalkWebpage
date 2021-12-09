@@ -14,7 +14,7 @@ import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.LabelMetadataWithValidation
+import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -365,7 +365,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
           val userId: String = request.identity.get.userId.toString
-          val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId, userId)
+          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId, userId)
           val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
@@ -382,7 +382,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     LabelPointTable.find(labelId) match {
       case Some(labelPointObj) =>
         val userId: String = request.identity.map(_.userId.toString).getOrElse("")
-        val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId, userId)
+        val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId, userId)
         val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
