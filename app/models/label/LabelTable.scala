@@ -1377,8 +1377,10 @@ object LabelTable {
     */
   def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): Option[Int] = db.withSession { implicit session =>
     val selectStreetEdgeIdQuery = Q.query[(Float, Float), Int](
-      """SELECT s.street_edge_id FROM street_edge AS s
-         |    ORDER BY ST_Distance(s.geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
+      """SELECT street_edge_id
+         |FROM street_edge
+         |WHERE deleted = FALSE
+         |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
          |LIMIT 1""".stripMargin
     )
     //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.

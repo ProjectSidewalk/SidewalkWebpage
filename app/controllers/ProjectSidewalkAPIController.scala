@@ -119,10 +119,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     if (filetype.isDefined && filetype.get == "csv") {
       val file = new java.io.File("access_attributes_with_labels.csv")
       val writer = new java.io.PrintStream(file)
-      val header: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Neighborhood Name," +
-        "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch," +
-        "Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity,Label Temporary," +
-        "Agree Count,Disagree Count,Not Sure Count"
+      val header: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID," +
+        "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude," +
+        "Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity," +
+        "Label Temporary,Agree Count,Disagree Count,Not Sure Count"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
@@ -175,7 +175,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val accessAttributesfile = new java.io.File("access_attributes.csv")
       val writer = new java.io.PrintStream(accessAttributesfile)
       // Write column headers.
-      writer.println("Attribute ID,Label Type,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count")
+      writer.println("Attribute ID,Label Type,Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count")
       // Write each rown in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         writer.println(current.attributesToArray.mkString(","))

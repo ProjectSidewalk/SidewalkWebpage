@@ -97,6 +97,7 @@ public class ShapefilesCreatorHelper {
                         "the_geom:Point:srid=4326," // the geometry attribute: Point type
                         + "id:Integer," // a attribute ID
                         + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -122,6 +123,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng(), a.lat())));
             featureBuilder.add(a.globalAttributeId());
             featureBuilder.add(a.labelType());
+            featureBuilder.add(a.streetEdgeId());
             featureBuilder.add(a.neighborhoodName());
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -154,6 +156,7 @@ public class ShapefilesCreatorHelper {
                         + "labelId:Integer," // label ID
                         + "attribId:Integer," // attribute ID
                         + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -186,10 +189,11 @@ public class ShapefilesCreatorHelper {
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
         for(GlobalAttributeWithLabelForAPI l : labels){
-            featureBuilder.add(geometryFactory.createPoint(new Coordinate((double) l.labelLng(), (double) l.labelLat())));
+            featureBuilder.add(geometryFactory.createPoint(new Coordinate(Double.parseDouble(l.labelLatLng()._2.toString()), Double.parseDouble(l.labelLatLng()._1.toString()))));
             featureBuilder.add(l.labelId());
             featureBuilder.add(l.globalAttributeId());
             featureBuilder.add(l.labelType());
+            featureBuilder.add(l.streetEdgeId());
             featureBuilder.add(l.neighborhoodName());
             featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override

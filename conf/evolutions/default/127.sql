@@ -35,7 +35,15 @@ FROM (
  ) AS validation_count
 WHERE label.label_id = validation_count.label_id;
 
+TRUNCATE TABLE global_clustering_session CASCADE;
+TRUNCATE TABLE user_clustering_session CASCADE;
+
+ALTER TABLE global_attribute
+    ADD COLUMN street_edge_id INTEGER NOT NULL DEFAULT -1;
+
 # --- !Downs
+ALTER TABLE global_attribute DROP COLUMN street_edge_id;
+
 ALTER TABLE label
     DROP COLUMN correct,
     DROP COLUMN notsure_count,
