@@ -1,4 +1,8 @@
 # --- !Ups
+UPDATE validation_options
+SET text = 'notsure'
+WHERE text = 'unclear';
+
 -- For users who validated the same label multiple times, remove all but the newest validation.
 DELETE
 FROM label_validation val_a
@@ -49,3 +53,7 @@ ALTER TABLE label
     DROP COLUMN notsure_count,
     DROP COLUMN disagree_count,
     DROP COLUMN agree_count;
+
+UPDATE validation_options
+SET text = 'unclear'
+WHERE text = 'notsure';

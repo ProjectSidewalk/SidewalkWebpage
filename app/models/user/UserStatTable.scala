@@ -272,7 +272,7 @@ object UserStatTable {
    * Top users are calculated using: score = sqrt(# labels) * (0.5 * distance_audited / city_distance + 0.5 * accuracy).
    * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
    * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
-   * majority vote; an unsure or tie does not count).
+   * majority vote; a notsure or tie does not count).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
    * @param byOrg True if grouping by organization/team instead of by user.

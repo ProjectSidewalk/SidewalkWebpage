@@ -435,7 +435,7 @@ object LabelTable {
         |         SELECT label_id,
         |                CONCAT('agree:', CAST(agree_count AS TEXT),
         |                       ',disagree:', CAST(disagree_count AS TEXT),
-        |                       ',unclear:', CAST(notsure_count AS TEXT)) AS val_counts
+        |                       ',notsure:', CAST(notsure_count AS TEXT)) AS val_counts
         |         FROM label
         |     ) AS val
         |WHERE lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
@@ -1019,7 +1019,7 @@ object LabelTable {
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
-      "num_unsure" -> labelMetadata.validations("unclear"),
+      "num_notsure" -> labelMetadata.validations("notsure"),
       "tags" -> labelMetadata.tags
     )
   }
@@ -1046,7 +1046,7 @@ object LabelTable {
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
-      "num_unsure" -> labelMetadata.validations("unclear"),
+      "num_notsure" -> labelMetadata.validations("notsure"),
       "tags" -> labelMetadata.tags
     )
   }

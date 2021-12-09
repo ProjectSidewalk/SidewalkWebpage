@@ -21,7 +21,7 @@ import scala.slick.jdbc.{StaticQuery => Q}
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
                                  completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
-                                 ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedUnsurePct: Double,
+                                 ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedNotsurePct: Double,
                                  othersValidated: Int, othersValidatedAgreedPct: Double)
 
 class UserDAOSlick extends UserDAO {
@@ -499,7 +499,7 @@ object UserDAOSlick {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
         .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
-    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
+    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
       (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
     }.toMap
@@ -515,7 +515,7 @@ object UserDAOSlick {
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
       val ownValidatedDisagreed = ownValidatedCounts._4
-      val ownValidatedUnsure = ownValidatedCounts._5
+      val ownValidatedNotsure = ownValidatedCounts._5
 
       val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
       val otherValidatedTotal = otherValidatedCounts._1
@@ -529,9 +529,9 @@ object UserDAOSlick {
         if (ownValidatedTotal == 0) 0f
         else ownValidatedDisagreed * 1.0 / ownValidatedTotal
 
-      val ownValidatedUnsurePct =
+      val ownValidatedNotsurePct =
         if (ownValidatedTotal == 0) 0f
-        else ownValidatedUnsure * 1.0 / ownValidatedTotal
+        else ownValidatedNotsure * 1.0 / ownValidatedTotal
 
       val otherValidatedAgreedPct =
         if (otherValidatedTotal == 0) 0f
@@ -548,7 +548,7 @@ object UserDAOSlick {
         ownValidatedTotal,
         ownValidatedAgreedPct,
         ownValidatedDisagreedPct,
-        ownValidatedUnsurePct,
+        ownValidatedNotsurePct,
         otherValidatedTotal,
         otherValidatedAgreedPct
       )

@@ -620,7 +620,7 @@
                                         <th>Total</th>
                                         <th>Agreed</th>
                                         <th>Disagreed</th>
-                                        <th>Unsure</th>
+                                        <th>Notsure</th>
                                     </tr>
                                     <tr>
                                         <th>Overall</th>
@@ -686,7 +686,7 @@
                                     <th class="col-md-2">Description</th>
                                     <th class="col-md-1">Agree</th>
                                     <th class="col-md-1">Disagree</th>
-                                    <th class="col-md-1">Unsure</th>
+                                    <th class="col-md-1">Notsure</th>
                                     <th class="col-md-1">GSV</th>
                                 </tr>
                                 </thead>
@@ -704,7 +704,7 @@
                                             <td>@label.description</td>
                                             <td>@label.validations("agree")</td>
                                             <td>@label.validations("disagree")</td>
-                                            <td>@label.validations("unclear")</td>
+                                            <td>@label.validations("notsure")</td>
                                             <td>
                                                 <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
                                             </td>
@@ -732,7 +732,7 @@
                                         <th class="col-md-1">Own Labels Validated</th>
                                         <th class="col-md-1">%Own Labels Agree</th>
                                         <th class="col-md-1">%Own Labels Disagree</th>
-                                        <th class="col-md-1">%Own Labels Unsure</th>
+                                        <th class="col-md-1">%Own Labels Notsure</th>
                                         <th class="col-md-1">Others' Labels Validated</th>
                                         <th class="col-md-1">%Others' Labels Agreed</th>
                                         <th class="col-md-2">Date Registered</th>
@@ -770,7 +770,7 @@
                                     <td>@u.ownValidated</td>
                                     <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
                                     <td>@("%.0f".format(u.ownValidatedDisagreedPct * 100))%</td>
-                                    <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
+                                    <td>@("%.0f".format(u.ownValidatedNotsurePct * 100))%</td>
                                     <td>@u.othersValidated</td>
                                     <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
                                     <td class = 'timestamp'>@u.signUpTime</td>

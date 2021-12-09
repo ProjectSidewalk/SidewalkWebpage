@@ -36,7 +36,7 @@ case class LabelValidation(labelValidationId: Int,
 class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, Some("sidewalk"), "label_validation") {
   def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
-  def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Unsure
+  def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Notsure
   def userId = column[String]("user_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
   def canvasX = column[Option[Int]]("canvas_x", O.Nullable)
@@ -79,10 +79,10 @@ object LabelValidationTable {
   val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "NotSure")
 
   /**
-    * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
+    * Returns how many agree, disagree, or notsure validations a user entered for a given mission.
     *
     * @param missionId  Mission ID of mission
-    * @param result     Validation result (1 - agree, 2 - disagree, 3 - unsure)
+    * @param result     Validation result (1 - agree, 2 - disagree, 3 - notsure)
     * @return           Number of labels that were
     */
   def countResultsFromValidationMission(missionId: Int, result: Int): Int = db.withSession { implicit session =>
