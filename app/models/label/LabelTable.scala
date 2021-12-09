@@ -346,16 +346,17 @@ object LabelTable {
     )
     labelsWithCVMetadata.list.map(label => LabelCVMetadata.tupled(label))
   }
-// TODO rename the data type
+
   /**
    * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
    *
    * @param takeN Number of labels to retrieve
    * @param labelerId user_id of the person who placed the labels; an optional filter
    * @param validatorId optionally include this user's validation info for each label in the userValidation field
+   * @param labelId optionally include this if you only want the metadata for the single given label
    * @return
    */
-  def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String], validatorId: Option[String]): List[LabelMetadata] = db.withSession { implicit session =>
+  def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String] = None, validatorId: Option[String] = None, labelId: Option[Int] = None): List[LabelMetadata] = db.withSession { implicit session =>
     // Optional filter to only get labels placed by the given user.
     val labelerFilter: String = if (labelerId.isDefined) s"""AND u.user_id = '${labelerId.get}'""" else ""
 
@@ -369,6 +370,13 @@ object LabelTable {
       } else {
         "LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL"
       }
+
+    // Either filter for the given labelId or filter out deleted and tutorial labels.
+    val labelFilter: String = if (labelId.isDefined) {
+      s"""AND lb1.label_id = ${labelId.get}"""
+    } else {
+      "AND lb1.deleted = FALSE AND lb1.tutorial = FALSE"
+    }
 
     val selectQuery = Q.queryNA[LabelMetadata](
       s"""SELECT lb1.label_id,
@@ -430,97 +438,28 @@ object LabelTable {
         |                       ',unclear:', CAST(notsure_count AS TEXT)) AS val_counts
         |         FROM label
         |     ) AS val
-        |WHERE lb1.deleted = FALSE
-        |    AND lb1.tutorial = FALSE
-        |    $labelerFilter
-        |    AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+        |WHERE lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
         |    AND lb1.audit_task_id = at.audit_task_id
         |    AND lb1.label_id = lb_big.label_id
         |    AND at.user_id = u.user_id
         |    AND lb1.label_id = lp.label_id
         |    AND lb1.label_id = val.label_id
+        |    $labelFilter
+        |    $labelerFilter
         |ORDER BY lb1.label_id DESC
         |LIMIT $takeN""".stripMargin
     )
     selectQuery.list
   }
 
-  def retrieveSingleLabelMetadata(labelId: Int, userId: String): LabelMetadata = db.withSession { implicit session =>
-    val selectQuery = Q.queryNA[LabelMetadata](
-      s"""SELECT lb1.label_id,
-        |       lb1.gsv_panorama_id,
-        |       lb1.tutorial,
-        |       gsv_data.image_date,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height,
-        |       lb1.audit_task_id,
-        |       u.user_id,
-        |       u.username,
-        |       lb1.time_created,
-        |       lb_big.label_type,
-        |       lb_big.label_type_desc,
-        |       lb_big.severity,
-        |       lb_big.temp,
-        |       lb_big.description,
-        |       lb_big.validation_result,
-        |       lb_val.val_counts,
-        |       lb_big.tag_list
-        |FROM label AS lb1,
-        |     gsv_data,
-        |     audit_task AS at,
-        |     sidewalk_user AS u,
-        |     label_point AS lp,
-        |     (
-        |         SELECT CONCAT('agree:', CAST(agree_count AS TEXT),
-        |                       ',disagree:', CAST(disagree_count AS TEXT),
-        |                       ',unclear:', CAST(notsure_count AS TEXT)) AS val_counts
-        |         FROM label
-        |         WHERE label_id = $labelId
-        |     ) AS lb_val,
-        |     (
-        |         SELECT lb.label_id,
-        |                lb.gsv_panorama_id,
-        |                lbt.label_type,
-        |                lbt.description AS label_type_desc,
-        |                sev.severity,
-        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
-        |                lab_desc.description,
-        |                user_validation.validation_result,
-        |                the_tags.tag_list
-        |         FROM label AS lb
-        |         LEFT JOIN label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |         LEFT JOIN label_severity AS sev ON lb.label_id = sev.label_id
-        |         LEFT JOIN label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |         LEFT JOIN label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
-        |         LEFT JOIN (
-        |             SELECT label_id, validation_result
-        |             FROM label_validation
-        |             WHERE user_id = '$userId'
-        |                 AND label_id = $labelId
-        |         ) AS user_validation
-        |             ON lb.label_id = user_validation.label_id
-        |         LEFT JOIN (
-        |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-        |             FROM label_tag
-        |             INNER JOIN tag ON label_tag.tag_id = tag.tag_id
-        |             GROUP BY label_id
-        |         ) AS the_tags
-        |             ON lb.label_id = the_tags.label_id
-        |     ) AS lb_big
-        |WHERE lb1.label_id = $labelId
-        |    AND lb1.audit_task_id = at.audit_task_id
-        |    AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |    AND lb1.label_id = lb_big.label_id
-        |    AND at.user_id = u.user_id
-        |    AND lb1.label_id = lp.label_id
-        |ORDER BY lb1.label_id DESC""".stripMargin
-    )
-    selectQuery.first
+  /**
+   * Gets the metadata for the label with the given `labelId`.
+   * @param labelId
+   * @param userId
+   * @return
+   */
+  def getSingleLabelMetadata(labelId: Int, userId: String): LabelMetadata = {
+    getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).head
   }
 
   /**
@@ -1129,13 +1068,6 @@ object LabelTable {
           |)""".stripMargin
       )
       getTagsQuery(labelId).list
-  }
-
-  /*
-   * Retrieve label metadata for a labelId.
-   */
-  def getLabelMetadata(labelId: Int, userId: String): LabelMetadata = db.withSession { implicit session =>
-    retrieveSingleLabelMetadata(labelId, userId)
   }
 
   /**

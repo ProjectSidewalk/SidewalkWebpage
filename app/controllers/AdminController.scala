@@ -365,7 +365,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
           val userId: String = request.identity.get.userId.toString
-          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId, userId)
+          val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
           val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
@@ -382,7 +382,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     LabelPointTable.find(labelId) match {
       case Some(labelPointObj) =>
         val userId: String = request.identity.map(_.userId.toString).getOrElse("")
-        val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId, userId)
+        val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
         val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
