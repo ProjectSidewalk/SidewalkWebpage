@@ -1413,12 +1413,9 @@ object LabelTable {
     // Get set of deprioritized labels (to not show) by filtering out those that have been validated as "disagree" 3 or
     // more times and have twice as many disagrees as agrees.
     Q.queryNA[(Int)](
-      """SELECT label.label_id
+      """SELECT label_id
         |FROM label
-        |INNER JOIN label_validation ON label.label_id = label_validation.label_id
-        |GROUP BY label.label_id
-        |HAVING COUNT(CASE WHEN validation_result = 2 THEN 1 END) > 2 
-        |   AND COUNT(CASE WHEN validation_result = 2 THEN 1 END) >= (2 * COUNT(CASE WHEN validation_result = 1 THEN 1 END))""".stripMargin
+        |WHERE disagree_count > 2 AND disagree_count >= 2 * agree_count""".stripMargin
     ).list.toSet
   }
 }
