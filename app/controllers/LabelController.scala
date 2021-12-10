@@ -4,7 +4,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.LabelFormats._
+import formats.json.LabelFormat._
 import models.label._
 import models.user.User
 import play.api.libs.json._
@@ -56,7 +56,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         val featureCollection: JsObject = Json.obj("labels" -> jsonList)
         Future.successful(Ok(featureCollection))
       case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
+        Future.successful(Redirect(s"/anonSignUp?url=/label/miniMapResume?regionId=$regionId"))
     }
   }
 
