@@ -166,6 +166,7 @@ object GlobalAttributeTable {
     * Gets global attributes within a bounding box for the public API.
     */
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+    // Sums the validations counts of the labels that make up each global attribute.
     val validationCounts = (for {
       _ga <- globalAttributes
       _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId

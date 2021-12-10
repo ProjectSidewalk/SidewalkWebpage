@@ -1,6 +1,5 @@
 package models.attribute
 
-import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTemporarinessTable, LabelTypeTable}
 import models.mission.MissionTable
