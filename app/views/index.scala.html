@@ -30,7 +30,7 @@
                     <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA" && c._1 != "Chicago, IL")) {
+                    @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA" && c._1 != "Chicago, IL" && c._1 != "Amsterdam, NL")) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
                         <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
                         <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
