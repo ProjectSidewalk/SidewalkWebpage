@@ -143,6 +143,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     align-items: center;
     width: 100%;
     flex-direction: row;
+    flex-wrap: wrap;
 }
 
 .label-tags-content {

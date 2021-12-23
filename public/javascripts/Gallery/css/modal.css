@@ -108,7 +108,8 @@
 
 .gallery-modal-info-tags {
     width: 60%;
-    height: 40%;
+    height: 5.5vw;
+    overflow-y: auto;
 }
 
 .gallery-modal-info-temporary {
