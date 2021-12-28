@@ -12,13 +12,8 @@
             <div class="navbar-logo">
                 <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
             </div>
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
-                <span class="sr-only">Toggle navigation</span>
-                <i class="fa fa-bars fa-2x" aria-hidden="true"></i>
-            </button>
-        </div>
-        <div id="navbar" class="collapse navbar-collapse">
-            <ul class="nav navbar-nav navbar-right" id="topbuttons">
+            <div class="navbar-right pull-left" style="padding-left: 10px;">
+                <ul class="nav pull-left" style="display: flex;">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
                     <li>
                         <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:20px;padding-right:5px;">
@@ -69,6 +64,15 @@
                         }, 1000);
                     </script>
                 }
+                </ul>
+            </div>
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <i class="fa fa-bars fa-2x" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(url.isDefined && url.get == "/audit") {
                     <li class="active navbar-lnk">
                         <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
