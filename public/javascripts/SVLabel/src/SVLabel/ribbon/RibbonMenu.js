@@ -175,8 +175,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             tracker.push('Click_ModeSwitch_' + labelType);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);
             modeSwitch(labelType);
-
-            }
+        }
     }
 
     function handleModeSwitchMouseEnter() {
