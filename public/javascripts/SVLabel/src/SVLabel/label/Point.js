@@ -67,6 +67,9 @@ function Point (svl, x, y, pov, params) {
             pointPOV = pov;
         }
 
+        console.log("point pov: ")
+        console.log(pointPOV)
+
         self.pov = {
             heading : pointPOV.heading,
             pitch : pointPOV.pitch,

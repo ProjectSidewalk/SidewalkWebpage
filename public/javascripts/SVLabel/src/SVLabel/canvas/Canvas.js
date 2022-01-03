@@ -113,10 +113,26 @@ function Canvas(ribbon) {
         pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
 
         var points = [], pov = svl.map.getPov();
+        console.log("camera pov: ")
+        console.log(pov)
+
+        console.log("camera pov panorama: ")
+        console.log(svl.panorama.getPov())
+
+        console.log("photographer pov panorama: ")
+        console.log(svl.panorama.getPhotographerPov())
 
         for (var i = 0, pathLen = tempPath.length; i < pathLen; i++) {
             points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov, pointParameters));
         }
+
+        console.log(points.length)
+        console.log("Point POV from label")
+        console.log(points[0].getPOV())
+
+        svl.map.setPov(points[0].getPOV())
+
+        console.log("pov reset")
 
         var path = new Path(svl, points, {});
         var latlng = svl.map.getPosition();

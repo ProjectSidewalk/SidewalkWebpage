@@ -47,20 +47,6 @@ CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
 
 
---
--- Name: pgrouting; Type: EXTENSION; Schema: -; Owner:
---
-
-CREATE EXTENSION IF NOT EXISTS pgrouting WITH SCHEMA public;
-
-
---
--- Name: EXTENSION pgrouting; Type: COMMENT; Schema: -; Owner:
---
-
-COMMENT ON EXTENSION pgrouting IS 'pgRouting Extension';
-
-
 SET default_tablespace = '';
 
 SET default_with_oids = false;
