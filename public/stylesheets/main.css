@@ -640,6 +640,7 @@ p#conditional-text {
 .collaborator-images-container {
     display: flex;
     justify-content: space-around;
+    align-items: center;
 }
 
 .collaborator-image {
@@ -648,6 +649,14 @@ p#conditional-text {
 
 .collaborator-image img {
     height: 220px;
+}
+
+#cityofamsterdam-img-link img {
+    height: 100px;
+}
+
+#amsterdamintelligence-img-link img {
+    height: 100px;
 }
 
 #collaborators-row {
