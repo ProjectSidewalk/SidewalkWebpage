@@ -638,8 +638,9 @@ p#conditional-text {
 }
 
 .collaborator-images-container {
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-auto-flow: column;
+    grid-gap: 20px 50px;
     align-items: center;
 }
 
@@ -648,15 +649,7 @@ p#conditional-text {
 }
 
 .collaborator-image img {
-    height: 220px;
-}
-
-#cityofamsterdam-img-link img {
-    height: 100px;
-}
-
-#amsterdamintelligence-img-link img {
-    height: 100px;
+    width: 100%;
 }
 
 #collaborators-row {
