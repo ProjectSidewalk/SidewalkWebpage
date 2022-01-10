@@ -2,7 +2,7 @@
   "curb-ramp-caps": "Trottoir Oprit",
   "missing-curb-ramp-caps": "Ontbrekende Trottoir Oprit",
   "obstacle-caps": "Obstakel",
-  "surface-problem-caps": "Grondoppervlakte probleem",
+  "surface-problem-caps": "Oppervlakte probleem",
   "no-sidewalk-caps": "Geen Trottoir",
   "user-description": "Beschrijving van gebruiker: ",
   "temporary": "Tijdelijk",
@@ -11,7 +11,7 @@
       "CurbRamp": "Is dit een <b>Trottoir Oprit</b>?",
       "NoCurbRamp": "Is dit een <b>Ontbrekende Trottoir Oprit</b>?",
       "Obstacle": "Is dit een <b>Obstakel</b>?",
-      "SurfaceProblem": "Is dit een <b>Grondoppervlakte probleem</b>?",
+      "SurfaceProblem": "Is dit een <b>Oppervlakte probleem</b>?",
       "NoSidewalk": "Zou er een <b>Geen Trottoir</b> label moeten zijn hier?"
     }
   },
@@ -37,7 +37,7 @@
         "example-4": "Deze brandkraan blokkeert het trottoir"
       },
       "SurfaceProblem": {
-        "title": "<strong>Correcte</strong> Grondoppervlakte Probleem",
+        "title": "<strong>Correcte</strong> Oppervlakte Probleem",
         "example-1": "Dit trottoir is erg oneven",
         "example-2": "De trottoir tegels zijn hobbelig en kunnen moeilijk begeaanbaar zijn",
         "example-3": "Dit trottoir is gescheurd",
@@ -70,11 +70,11 @@
         "example-4": "Er is niet voldoende ruimte om comfortabel om deze container heen te manoeuvreren"
       },
       "SurfaceProblem": {
-        "title": "<strong>Incorrecte</strong> Grondoppervlakte Probleem",
-        "example-1": "Grondoppervlakte problemen op trottoir opritten zouden moeten worden gemarkeerd met een Trottoir Oprit label met een hogere ernst",
+        "title": "<strong>Incorrecte</strong> Oppervlakte Probleem",
+        "example-1": "Oppervlakte problemen op trottoir opritten zouden moeten worden gemarkeerd met een Trottoir Oprit label met een hogere ernst",
         "example-2": "Deze gravel is niet op het pad van de voetganger",
         "example-3": "Dit gras is niet op het pad van de voetganger",
-        "example-4": "Normale trottoir tegels zijn geen grondoppervlakte probleem"
+        "example-4": "Normale trottoir tegels zijn geen oppervlakte probleem"
       },
       "NoSidewalk": {
         "title": "<strong>Incorrecte</strong> Geen Trottoir",
@@ -97,20 +97,20 @@
     "body-1": "Je hebt net {{n}} Trottoir Oprit labels gelabeld.",
     "body-2": "Je hebt net {{n}} Ontbrekende Trottoir Oprit labels gelabeld.",
     "body-3": "Je hebt net {{n}} Obstakel labels gelabeld.",
-    "body-4": "Je hebt net {{n}} Grondoppervlakte Probleem labels gelabeld.",
+    "body-4": "Je hebt net {{n}} Oppervlakte Probleem labels gelabeld.",
     "body-7": "Je hebt net {{n}} Geen Trottoir labels gelabeld.",
     "validate-more": "Valideer meer labels",
     "continue": "Ga door met valideren",
     "explore": "Start een ondtekkingsmissie",
     "no-new-mission-title": "Geen valideermissies meer te gaan",
-    "no-new-mission-body": "Klik op de knop om te starten met ontdekken",
-    "no-new-mission-button": "Start met ontdekken"
+    "no-new-mission-body": "Klik op de knop om te starten met verkennen",
+    "no-new-mission-button": "Start met verkennen"
   },
   "mobile": {
     "info-title-CurbRamp": "Wat is een Trottoir Oprit?",
     "info-title-NoCurbRamp": "Wat is een Missende Trottoir Oprit?",
     "info-title-Obstacle": "Wat is een Obstakel?",
-    "info-title-SurfaceProblem": "Wat is een Grondoppervlakte Probleem?",
+    "info-title-SurfaceProblem": "Wat is een Oppervlakte Probleem?",
     "info-title-NoSidewalk": "Wat is \"Geen Trottoir\"?"
   }
 }
