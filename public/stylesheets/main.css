@@ -105,6 +105,14 @@ footer {
     margin-left: 10px;
 }
 
+.navbar-turker-timer-container {
+    padding-left: 10px;
+}
+
+.navbar-turker-timer-list-container {
+    display: flex;
+}
+
 .navbar-brand.fixed-theme {
     font-size: 18px;
 }

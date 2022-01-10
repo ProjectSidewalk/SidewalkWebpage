@@ -185,7 +185,7 @@
                     </div>
                     <div id="left-column-stuck-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
-                        @Messages("audit.left.ui.stuck")
+                        @Html(Messages("audit.left.ui.stuck"))
                     </div>
                     <div id="left-column-feedback-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
@@ -413,7 +413,7 @@
                             <div>
                                 <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                             </div>
-                            <div class="add-tags-label">@Messages("audit.center.ui.add.tags")</div>
+                            <div class="add-tags-label">@Html(Messages("audit.center.ui.add.tags"))</div>
                             <div id="context-menu-tag-holder">
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
