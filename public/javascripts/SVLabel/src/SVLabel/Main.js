@@ -205,7 +205,7 @@ function Main (params) {
         $(svl.ui.ribbonMenu.buttons).each(function() {
             var val = $(this).attr('val');
 
-            if(val != 'Walk' && val != 'Other') {
+            if(val !== 'Walk' && val !== 'Other') {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'top',
@@ -485,7 +485,7 @@ function Main (params) {
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
-        svl.ui.ribbonMenu.buttons = $('span.mode-switch');
+        svl.ui.ribbonMenu.buttons = $('.label-type-button-holder');
         svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");

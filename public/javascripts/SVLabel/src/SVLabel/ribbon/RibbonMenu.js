@@ -59,7 +59,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 $(v).css('background', color);
             });
 
-            setModeSwitchBorderColors(status.mode);
+            setLabelTypeButtonBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
 
             uiRibbonMenu.buttons.bind({
@@ -134,11 +134,19 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             }
 
             if (uiRibbonMenu) {
-                setModeSwitchBorderColors(labelType);
+                setLabelTypeButtonBorderColors(labelType);
                 setModeSwitchBackgroundColors(labelType);
 
 
-                uiRibbonMenu.connector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
+                var currLabelType
+                $.each(uiRibbonMenu.buttons, function (i, v) {
+                    currLabelType = $(v).attr("val");
+                    if (currLabelType === mode) {
+                        console.log($(this).position());
+                        uiRibbonMenu.connector.css("left", $(this).position().left + $('#ribbon-menu-left-column-holder').width() + $(this).width() / 2);
+                    }
+                });
+                // uiRibbonMenu.connector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
                 uiRibbonMenu.connector.css("border-left-color", borderColor);
                 uiRibbonMenu.streetViewHolder.css("border-color", borderColor);
             }
@@ -189,14 +197,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         }
 
         if (status.disableModeSwitch === false || !modeDisabled) {
-            // Change the background color and border color of menu buttons
+            // Change the background color and border color of menu buttons.
 
-            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
+            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk').
             if (status.allowedMode && status.allowedMode !== labelType) {
                 return false;
             }
             setModeSwitchBackgroundColors(labelType);
-            setModeSwitchBorderColors(labelType);
+            setLabelTypeButtonBorderColors(labelType);
 
             if (labelType === "Other") {
                 showSubcategories();
@@ -208,7 +216,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         // Always activate during onboarding as everything is disabled
         // So will only be useful for 'Other' dropdown
         if (status.disableModeSwitch === false || svl.isOnboarding()) {
-            setModeSwitchBorderColors(status.mode);
+            setLabelTypeButtonBorderColors(status.mode);
             setModeSwitchBackgroundColors(status.mode);
             hideSubcategories();
         }
@@ -221,34 +229,53 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     function setModeSwitchBackgroundColors(mode) {
         // background: -moz-linear-gradient(center top , #fff, #eee);
         // background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
-        if (uiRibbonMenu) {
-            var labelType;
-            var labelColors;
-            var borderColor;
-            var backgroundColor;
+        // if (uiRibbonMenu) {
+        //     var labelType;
+        //     var labelColors;
+        //     var borderColor;
+        //     var backgroundColor;
+        //
+        //     labelColors = util.misc.getLabelColors();
+        //     borderColor = labelColors[mode].fillStyle;
+        //
+        //     $.each(uiRibbonMenu.buttons, function (i, v) {
+        //         labelType = $(v).attr("val");
+        //         if (labelType === mode) {
+        //             if (labelType === 'Walk') {
+        //                 backgroundColor = "#ccc";
+        //             } else {
+        //                 backgroundColor = borderColor;
+        //             }
+        //             $(this).css({
+        //                 "background": backgroundColor
+        //             });
+        //         } else {
+        //             backgroundColor = properties.originalBackgroundColor;
+        //             if (labelType !== status.mode) {
+        //                 // Change background color if the labelType is not the currently selected mode.
+        //                 $(this).css({
+        //                     "background": "-webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee))"
+        //                 });
+        //             }
+        //         }
+        //     });
+        // }
+        return this;
+    }
 
-            labelColors = util.misc.getLabelColors();
-            borderColor = labelColors[mode].fillStyle;
-
+    function setLabelTypeButtonBorderColors(selectedLabelType) {
+        if (uiRibbonMenu) { // TODO is this check necessary?
+            var labelColors = util.misc.getLabelColors();
+            var selectedBorderColor = labelColors[selectedLabelType].fillStyle;
+            var currLabelType;
             $.each(uiRibbonMenu.buttons, function (i, v) {
-                labelType = $(v).attr("val");
-                if (labelType === mode) {
-                    if (labelType === 'Walk') {
-                        backgroundColor = "#ccc";
-                    } else {
-                        backgroundColor = borderColor;
-                    }
-                    $(this).css({
-                        "background": backgroundColor
-                    });
+                currLabelType = $(v).attr("val");
+                if (currLabelType === selectedLabelType) {
+                    console.log($(this).position());
+                    $(this).find('.label-type-icon').css({ 'border-color': selectedBorderColor });
                 } else {
-                    backgroundColor = properties.originalBackgroundColor;
-                    if (labelType !== status.mode) {
-                        // Change background color if the labelType is not the currently selected mode.
-                        $(this).css({
-                            "background": "-webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee))"
-                        });
-                    }
+                    // Change background color if the label type is not the currently selected type.
+                    $(this).find('.label-type-icon').css({ 'border-color': properties.modeSwitchDefaultBorderColor });
                 }
             });
         }
