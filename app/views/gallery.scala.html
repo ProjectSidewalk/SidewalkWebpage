@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)])(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -15,6 +15,25 @@
     <div id="gallery">
         <div class="sidebar">
             <div id="card-filter">
+                <div id="ribbon-menu-holder">
+                    <span id="city-type-holder">
+                        <h4><b>@Messages("gallery.city")</b></h4>
+                        <select id="city-select" disabled>
+                            @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
+                                @if(cityId == id) {
+                                    <option value="@cityURL" selected="selected">
+                                        @cityName.replace(" ", " ")
+                                    </option>
+                                } else {
+                                    <option value="@cityURL">
+                                        @cityName.replace(" ", " ")
+                                    </option>
+                                }
+                            }
+                        </select>
+                    </span>
+                </div>
+                <div id="horizontal-line"></div>
                 <div id="ribbon-menu-holder">
                     <span id="label-type-holder">
                         <h4><b>@Messages("gallery.show")</b></h4>

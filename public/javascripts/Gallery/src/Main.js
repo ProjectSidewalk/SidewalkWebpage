@@ -28,6 +28,11 @@ function Main (params) {
         sg.ui.cardFilter.tags = $("#tags");
         sg.ui.cardFilter.severity = $("#severity");
 
+        // Initializes city select component in side bar.
+        sg.ui.cityMenu = {};
+        sg.ui.cityMenu.holder = $("#ribbon-menu-holder");
+        sg.ui.cityMenu.select = $('#city-select');
+
         // Initializes label select component in side bar.
         sg.ui.ribbonMenu = {};
         sg.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
@@ -62,9 +67,10 @@ function Main (params) {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.
+        sg.cityMenu = new CityMenu(sg.ui.cityMenu);
         sg.ribbonMenu = new RibbonMenu(sg.ui.ribbonMenu);
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
-        sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu);
+        sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu, sg.cityMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
 
         // Initialize data collection.

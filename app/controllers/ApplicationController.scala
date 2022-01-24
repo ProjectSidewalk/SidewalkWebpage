@@ -374,7 +374,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
         // Log visit to Gallery
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user))))
+        // Get city configs.
+        val envType: String = Play.configuration.getString("environment-type").get
+        val cityStr: String = Play.configuration.getString("city-id").get
+        // Get names and URLs for other cities so we can link to them on landing page.
+        val cities: List[String] =
+          Play.configuration.getStringList("city-params.city-ids").get.asScala.toList
+        val cityUrls: List[(String, String, String, String)] = cities.map { city =>
+          val name: String = Play.configuration.getString("city-params.city-name." + city).get
+          val state: String = Play.configuration.getString("city-params.state-abbreviation." + city).get
+          val cityURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + city).get
+          val visible: String = Play.configuration.getString("city-params.status." + city).get
+          (city, name + ", " + state, cityURL, visible)
+        }
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls)))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
         Future.successful(Redirect("/anonSignUp?url=/gallery"))

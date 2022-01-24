@@ -83,6 +83,16 @@
     background-color: white;
 }
 
+#city-select {
+    cursor: pointer;
+}
+
+#city-select:disabled {
+    cursor: default;
+    opacity: 50%;
+    background-color: white;
+}
+
 .additional-tag-popover {
     width: fit-content;
     max-width: 250px;

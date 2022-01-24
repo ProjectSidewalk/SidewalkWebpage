@@ -4,13 +4,15 @@
  *
  * @param uiCardFilter UI element representing filter components of sidebar.
  * @param ribbonMenu UI element representing dropdown to select label type in sidebar.
+ * @param cityMenu UI element representing dropdown to select city type in sidebar.
  * @returns {CardFilter}
  * @constructor
  */
-function CardFilter(uiCardFilter, ribbonMenu) {
+function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
     let self = this;
 
     let status = {
+        currentCityType: cityMenu.getCurrentCityType(),
         currentLabelType: 'Assorted'
     };
 
@@ -64,15 +66,21 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      * Update filter components when label type changes.
      */
     function update() {
-        let currentLabelType = ribbonMenu.getCurrentLabelType();
-        if (status.currentLabelType !== currentLabelType) {
-            clearCurrentTags();
-            severities.unapplySeverities();
-            setStatus('currentLabelType', currentLabelType);
-            currentTags = tagsByType[currentLabelType];
-            sg.cardContainer.updateCardsByType();
+        let currentCityType = cityMenu.getCurrentCityType();
+        if (status.currentCityType !== currentCityType) {
+            // Future: add URI parameters to link
+            window.location.href = currentCityType + '/gallery';
+        } else {
+            let currentLabelType = ribbonMenu.getCurrentLabelType();
+            if (status.currentLabelType !== currentLabelType) {
+                clearCurrentTags();
+                severities.unapplySeverities();
+                setStatus('currentLabelType', currentLabelType);
+                currentTags = tagsByType[currentLabelType];
+                sg.cardContainer.updateCardsByType();
+            }
+            render();
         }
-        render();
     }
 
     /**

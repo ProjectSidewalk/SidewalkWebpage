@@ -308,6 +308,7 @@ leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard">
 
 gallery = Gallery
 gallery.show = Show
+gallery.city = City
 gallery.filter.by = Filter By
 gallery.severity = Severity
 gallery.tags = Tags
