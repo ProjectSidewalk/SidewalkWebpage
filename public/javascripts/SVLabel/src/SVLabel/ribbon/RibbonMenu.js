@@ -11,7 +11,6 @@
 function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     var self = {className: 'RibbonMenu'},
         properties = {
-            borderWidth: "3px",
             modeSwitchDefaultBorderColor: "rgba(200,200,200,0.75)",
             originalBackgroundColor: "white"
         },
@@ -36,8 +35,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         blinkInterval;
 
     function _init() {
-        var browser = getBrowser(),
-            labelColors = util.misc.getLabelColors();
+        var browser = getBrowser();
         if (browser === 'mozilla') {
             properties.originalBackgroundColor = "-moz-linear-gradient(center top , #fff, #eee)";
         } else if (browser === 'msie') {
@@ -48,19 +46,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
         // Initialize the jQuery DOM elements
         if (uiRibbonMenu) {
-            // Initialize the color of the lines at the bottom of ribbon menu icons
-            $.each(uiRibbonMenu.bottonBottomBorders, function (i, v) {
-                var labelType = $(v).attr("val"), color = labelColors[labelType].fillStyle;
-                if (labelType === 'Walk') {
-                    $(v).css('width', '56px');
-                }
-
-                $(v).css('border-top-color', color);
-                $(v).css('background', color);
-            });
-
             setLabelTypeButtonBorderColors(status.mode);
-            setModeSwitchBackgroundColors(status.mode);
 
             uiRibbonMenu.buttons.bind({
                 click: handleModeSwitchClickCallback,
@@ -72,8 +58,9 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             });
         }
 
-        // Disable mode switch when sign in modal is open
-        if ($("#sign-in-modal-container").length != 0) {
+        // Disable mode switch when sign in modal is opened.
+        // TODO this doesn't seem to be necessary for some reason?
+        if ($("#sign-in-modal-container").length !== 0) {
             var $signInModalTextBoxes = $("#sign-in-modal-container input[type='text']"),
                 $signInModalPassword = $("#sign-in-modal-container input[type='password']");
             $signInModalTextBoxes.on('focus', disableModeSwitch);
@@ -95,7 +82,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             // Used to trigger onboarding states
             $(document).trigger('ModeSwitch_' + labelType);
 
-            var labelColors, ribbonConnectorPositions, borderColor;
+            var labelColors, borderColor;
 
             // Whenever the ribbon menu is clicked, cancel drawing.
             if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) {
@@ -103,7 +90,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             }
 
             labelColors = util.misc.getLabelColors();
-            ribbonConnectorPositions = util.misc.getRibbonConnectionPositions();
             borderColor = labelColors[labelType].fillStyle;
 
             if (labelType === 'Walk') {
@@ -135,8 +121,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
             if (uiRibbonMenu) {
                 setLabelTypeButtonBorderColors(labelType);
-                setModeSwitchBackgroundColors(labelType);
-
 
                 var currLabelType
                 $.each(uiRibbonMenu.buttons, function (i, v) {
@@ -146,12 +130,9 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                         uiRibbonMenu.connector.css("left", $(this).position().left + $('#ribbon-menu-left-column-holder').width() + $(this).width() / 2);
                     }
                 });
-                // uiRibbonMenu.connector.css("left", ribbonConnectorPositions[labelType].labelRibbonConnection);
                 uiRibbonMenu.connector.css("border-left-color", borderColor);
                 uiRibbonMenu.streetViewHolder.css("border-color", borderColor);
             }
-
-
 
             // Set the instructional message
             overlayMessageBox.setMessage(labelType);
@@ -159,6 +140,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         }
     }
 
+    // TODO
     function handleSubcategoryClick(e) {
         e.stopPropagation();
         var subcategory = $(this).attr("val");
@@ -197,13 +179,12 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         }
 
         if (status.disableModeSwitch === false || !modeDisabled) {
-            // Change the background color and border color of menu buttons.
+            // Change the border color of menu buttons.
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk').
             if (status.allowedMode && status.allowedMode !== labelType) {
                 return false;
             }
-            setModeSwitchBackgroundColors(labelType);
             setLabelTypeButtonBorderColors(labelType);
 
             if (labelType === "Other") {
@@ -217,50 +198,12 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         // So will only be useful for 'Other' dropdown
         if (status.disableModeSwitch === false || svl.isOnboarding()) {
             setLabelTypeButtonBorderColors(status.mode);
-            setModeSwitchBackgroundColors(status.mode);
             hideSubcategories();
         }
     }
 
     function hideSubcategories() {
         uiRibbonMenu.subcategoryHolder.css('visibility', 'hidden');
-    }
-
-    function setModeSwitchBackgroundColors(mode) {
-        // background: -moz-linear-gradient(center top , #fff, #eee);
-        // background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
-        // if (uiRibbonMenu) {
-        //     var labelType;
-        //     var labelColors;
-        //     var borderColor;
-        //     var backgroundColor;
-        //
-        //     labelColors = util.misc.getLabelColors();
-        //     borderColor = labelColors[mode].fillStyle;
-        //
-        //     $.each(uiRibbonMenu.buttons, function (i, v) {
-        //         labelType = $(v).attr("val");
-        //         if (labelType === mode) {
-        //             if (labelType === 'Walk') {
-        //                 backgroundColor = "#ccc";
-        //             } else {
-        //                 backgroundColor = borderColor;
-        //             }
-        //             $(this).css({
-        //                 "background": backgroundColor
-        //             });
-        //         } else {
-        //             backgroundColor = properties.originalBackgroundColor;
-        //             if (labelType !== status.mode) {
-        //                 // Change background color if the labelType is not the currently selected mode.
-        //                 $(this).css({
-        //                     "background": "-webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee))"
-        //                 });
-        //             }
-        //         }
-        //     });
-        // }
-        return this;
     }
 
     function setLabelTypeButtonBorderColors(selectedLabelType) {
@@ -271,42 +214,10 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             $.each(uiRibbonMenu.buttons, function (i, v) {
                 currLabelType = $(v).attr("val");
                 if (currLabelType === selectedLabelType) {
-                    console.log($(this).position());
                     $(this).find('.label-type-icon').css({ 'border-color': selectedBorderColor });
                 } else {
                     // Change background color if the label type is not the currently selected type.
                     $(this).find('.label-type-icon').css({ 'border-color': properties.modeSwitchDefaultBorderColor });
-                }
-            });
-        }
-        return this;
-    }
-
-    function setModeSwitchBorderColors(mode) {
-        // This method sets the border color of the ribbon menu buttons
-        if (uiRibbonMenu) {
-            var labelType, labelColors, borderColor;
-            labelColors = util.misc.getLabelColors();
-            borderColor = labelColors[mode].fillStyle;
-
-            $.each(uiRibbonMenu.buttons, function (i, v) {
-                labelType = $(v).attr("val");
-                if (labelType === mode) {
-                    $(this).css({
-                        "border-color": borderColor,
-                        "border-style": "solid",
-                        "border-width": properties.borderWidth
-                    });
-                } else {
-                    if (labelType !== status.mode) {
-                        // Change background color if the labelType is not the currently selected mode.
-                        $(this).css({
-                            "border-color": properties.modeSwitchDefaultBorderColor,
-                            "border-style": "solid",
-                            "border-width": properties.borderWidth
-                        });
-
-                    }
                 }
             });
         }

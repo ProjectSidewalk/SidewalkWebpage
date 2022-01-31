@@ -56,8 +56,8 @@
 
 .label-type-icon {
     position: absolute;
-    left: 8px;
-    height: 50px;
+    left: 10px;
+    height: 51px;
     border-color: rgba(200,200,200,0.75);
     border-style: solid;
     border-width: 5px;
@@ -98,19 +98,6 @@
     width: 56px;
     border: 3px solid rgba(0, 0, 0, 1);
     background: rgb(204, 204, 204);
-}
-
-.ribbon-menu-mode-switch-horizontal-line {
-    background: black;
-    position: absolute;
-    left: -3px;
-    bottom: -4px;
-    height: 3px;
-    width: 71px;
-}
-
-#ribbon-mode-switch-horizontal-line-walk {
-    left: -3px;
 }
 
 #ribbon-menu-left-column-holder {

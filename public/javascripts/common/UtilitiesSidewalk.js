@@ -134,48 +134,6 @@ function UtilitiesMisc (JSON) {
         }
     }
 
-    /**
-     * Todo. This should be moved to RibbonMenu.js
-     * @returns {{Walk: {id: string, text: string, labelRibbonConnection: string}, CurbRamp: {id: string, labelRibbonConnection: string}, NoCurbRamp: {id: string, labelRibbonConnection: string}, Obstacle: {id: string, labelRibbonConnection: string}, SurfaceProblem: {id: string, labelRibbonConnection: string}, Other: {id: string, labelRibbonConnection: string}, Occlusion: {id: string, labelRibbonConnection: string}, NoSidewalk: {id: string, labelRibbonConnection: string}}}
-     */
-    function getRibbonConnectionPositions() {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'text' : 'Walk',
-                'labelRibbonConnection' : '25px'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                labelRibbonConnection: '100px'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                labelRibbonConnection: '174px'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                labelRibbonConnection: '248px'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                labelRibbonConnection: '322px'
-            },
-            Other: {
-                id: 'Other',
-                labelRibbonConnection: '396px'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                labelRibbonConnection: '396px'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                labelRibbonConnection: '396px'
-            }
-        }
-    }
-
     function getLabelDescriptions(category) {
         var descriptions = {
             'Walk': {
@@ -554,7 +512,6 @@ function UtilitiesMisc (JSON) {
     self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
     self.getLabelInstructions = getLabelInstructions;
-    self.getRibbonConnectionPositions = getRibbonConnectionPositions;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
     self.getLabelColors = getLabelColors;
