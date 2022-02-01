@@ -177,35 +177,21 @@
 
 #ribbon-menu-other-subcategory-holder {
     position: absolute;
-    top: 66px;
-    left: -3px;
+    top: 54px;
+    left: -10px;
     width: 260px;
-    background: white;
-    border-width: 3px;
-    border-style: solid;
-    border-color: rgba(179, 179, 179, 1);
     padding: 10px;
-    border-radius: 3px 3px 3px 3px;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
     z-index: 4;
     visibility: hidden;
 }
 
-.ribbon-menu-other-subcategories {
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    margin: 0 5px 0 5px;
+.ribbon-menu-other-subcategory {
+    padding: 10px 5px;
+    margin: 5px 5px 0 5px;
+    background: white;
+    border-radius: 28px;
 }
 
-.ribbon-menu-other-subcategories:hover {
+.ribbon-menu-other-subcategory:hover {
     background-color: #eee;
-}
-
-#ribbon-menu-other-subcategory-holder hr {
-    margin-top: 0;
-    margin-bottom: 0;
-    border-top: 1px dashed #eee;
 }

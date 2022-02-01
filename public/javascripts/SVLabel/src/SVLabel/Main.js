@@ -488,7 +488,7 @@ function Main (params) {
         svl.ui.ribbonMenu.buttons = $('.label-type-button-holder');
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
-        svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
+        svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategory");
 
         // Context menu
         svl.ui.contextMenu = {};

@@ -163,8 +163,8 @@
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
                     <div id="left-column-zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
-                            <br>@Html(Messages("audit.ribbon.zoom.in"))
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
+                        <br>@Html(Messages("audit.ribbon.zoom.in"))
                     </div>
                     <div id="left-column-zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
@@ -228,37 +228,29 @@
                             </span>
                             <span class="mode-switch-name">@Html(Messages("audit.ribbon.obstacle"))</span>
                         </span>
-                        <span id="ModeSwitchButton_SurfaceProblem" class="mode-switch" val="SurfaceProblem">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
-                        </span>
                         <span id="ModeSwitchButton_NoSidewalk" class="mode-switch" val="NoSidewalk">
                             <span class="mode-switch-icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
                             <span class="mode-switch-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                         </span>
-                        <span id="ModeSwitchButton_Other" class="mode-switch" val="Other">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other2.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Messages("audit.ribbon.other")</span>
+                        <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/sidewalkNeeded.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
+                        </span>
+                        <span id="mode-switch-button-other" class="label-type-button-holder" val="Other">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/other.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.other"))</span>
                             <div id="ribbon-menu-other-subcategory-holder">
-                                <div class="ribbon-menu-other-subcategories" val="Occlusion">
+                                <div class="ribbon-menu-other-subcategory" val="Occlusion">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
                                     @Html(Messages("audit.ribbon.occlusion"))
                                 </div>
-                                <div class="ribbon-menu-other-subcategories" val="Other">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
+                                <div class="ribbon-menu-other-subcategory" val="Other">
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
                                     @Messages("audit.ribbon.other")
                                 </div>
                             </div>
-                        </span>
-                        <span id="mode-switch-button-crosswalk" class="label-type-button-holder" val="NoSidewalk">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/sidewalkNeeded.png")' class="label-type-icon">
-                            <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                         </span>
                     </div>
                 </span>

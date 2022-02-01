@@ -323,10 +323,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
                 uiRibbonMenu.subcategories.css('opacity', 1);
                 uiRibbonMenu.subcategories.css('cursor', 'pointer');
-                uiRibbonMenu.subcategories.hover(function (e) {
-                    $(this).css('background-color', e.type === 'mouseenter' ? '#eee' : 'transparent')
-                });
-
             }
         }
         return this;
