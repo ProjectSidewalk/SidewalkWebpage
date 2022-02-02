@@ -97,14 +97,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 setStatus('mode', 'Walk');
                 setStatus('selectedLabelType', undefined);
                 if (svl.map) {
-                    svl.map.modeSwitchWalkClick();
+                    svl.map.switchToExploreMode();
                 }
             } else {
                 // Switch to labeling mode.
                 setStatus('mode', labelType);
                 setStatus('selectedLabelType', labelType);
                 if (svl.map) {
-                    svl.map.modeSwitchLabelClick();
+                    svl.map.switchToLabelingMode();
                 }
 
                 // Change cursor before mouse is moved.
