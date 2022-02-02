@@ -203,6 +203,22 @@
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/explore.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
                         </span>
+                        <span id="mode-switch-button-curb-ramp" class="label-type-button-holder" val="CurbRamp">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/curbRamp.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.curb.ramp"))</span>
+                        </span>
+                        <span id="mode-switch-button-curb-ramp-needed" class="label-type-button-holder" val="NoCurbRamp">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/curbRampNeeded.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
+                        </span>
+                        <span id="mode-switch-button-obstacle" class="label-type-button-holder" val="Obstacle">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/obstacleInPath.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.obstacle"))</span>
+                        </span>
+                        <span id="mode-switch-button-surface-problem" class="label-type-button-holder" val="SurfaceProblem">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/surfaceProblem.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
+                        </span>
                         <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/sidewalkNeeded.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
