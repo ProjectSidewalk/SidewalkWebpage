@@ -127,7 +127,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                     currLabelType = $(v).attr("val");
                     if (currLabelType === mode) {
                         console.log($(this).position());
-                        uiRibbonMenu.connector.css("left", $(this).position().left + $('#ribbon-menu-left-column-holder').width() + $(this).width() / 2);
+                        uiRibbonMenu.connector.css("left", $(this).position().left + $(this).width() / 2);
                     }
                 });
                 uiRibbonMenu.connector.css("border-left-color", borderColor);

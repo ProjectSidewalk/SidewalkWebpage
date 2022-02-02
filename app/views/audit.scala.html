@@ -194,22 +194,15 @@
                 </div>
             </div>
             <div id="ribbon-menu-holder">
-                <span id="ribbon-menu-left-column-holder">
-                    <div id="ribbon-menu-left-column-title"></div>
-                    <div id="ribbon-menu-left-column-button-holder">
-                        <span class="mode-switch" val="Walk" id="mode-switch-walk" style="">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="icon-explore" class="icon-ribbon-menu-large" alt="Mode switch: Walk" align="">
-                            </span>
-                            <span class="mode-switch-name" style="position:absolute; left: 0px;">@Html(Messages("audit.ribbon.explore"))</span>
-                        </span>
-                    </div>
-                </span>
                 <span id="label-type-holder">
                     <div id="ribbon-menu-label-type-title">
                         @Messages("audit.ribbon.find.and.label")
                     </div>
                     <div id="ribbon-menu-label-type-button-holder">
+                        <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="Walk">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/explore.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
+                        </span>
                         <span id="ModeSwitchButton_CurbRamp" class="mode-switch" val="CurbRamp">
                             <span class="mode-switch-icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
@@ -221,18 +214,6 @@
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
                             <span class="mode-switch-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
-                        </span>
-                        <span id="ModeSwitchButton_Obstacle" class="mode-switch" val="Obstacle">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Html(Messages("audit.ribbon.obstacle"))</span>
-                        </span>
-                        <span id="ModeSwitchButton_NoSidewalk" class="mode-switch" val="NoSidewalk">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                         </span>
                         <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/sidewalkNeeded.png")' class="label-type-icon">

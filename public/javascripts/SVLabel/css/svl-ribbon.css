@@ -100,41 +100,9 @@
     background: rgb(204, 204, 204);
 }
 
-#ribbon-menu-left-column-holder {
-    background: none;
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100px;
-    width: 65px;
-}
-
-#ribbon-menu-left-column-title {
-    margin-left: 5px;
-    margin-right: 5px;
-    text-align: center;
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 20px;
-    width: 55px
-}
-
-#ribbon-menu-left-column-button-holder {
-    margin-left: 5px;
-    margin-right: 5px;
-    position: absolute;
-    left: 0;
-    top: 25px;
-    height: 75px;
-    width: 100%;
-}
-
 #label-type-holder {
     background: transparent;
-    position: absolute;
-    left: 64px;
-    top: 0;
+    /*position: absolute;*/
     height: 100px;
     width: 575px;
 }
@@ -156,11 +124,9 @@
 
 #ribbon-menu-label-type-button-holder {
     background: transparent;
-    margin-left: 10px;
-    margin-right: 10px;
-
+    /*margin-left: 10px;*/
+    /*margin-right: 10px;*/
     position: absolute;
-    left: 0;
     top: 25px;
     height: 75px;
     width: 570px;
