@@ -522,27 +522,18 @@ function ContextMenu (uiContextMenu) {
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType(),
                 acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'NoSidewalk', 'Other', 'CurbRamp'];
-            if (acceptedLabelTypes.indexOf(labelType) != -1) {
+            if (acceptedLabelTypes.indexOf(labelType) !== -1) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
                 if (getStatus('disableTagging')) { disableTagging(); }
                 windowHeight = $('#context-menu-holder').outerHeight();
 
-                $("#test-rectangle").css({
-                    position: 'absolute',
-                    visibility: 'visible',
-                    top: y,
-                    left: x,
-                    width: '2px',
-                    height: '2px',
-                });
-
-                // Determines coordinates for context menu when displayed below the label.
+                // Determine coordinates for context menu when displayed below the label.
                 var topCoordinate = y + 20;
-                var connectorCoordinate = -10;
+                var connectorCoordinate = -5;
 
-                // Determines coordinates for context menu when displayed above the label.
+                // Determine coordinates for context menu when displayed above the label.
                 if(y + windowHeight + 22 > 480) {
                     topCoordinate = y - windowHeight - 22;
                     connectorCoordinate = windowHeight;

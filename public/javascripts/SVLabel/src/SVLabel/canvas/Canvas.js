@@ -31,12 +31,9 @@ function Canvas(ribbon) {
 
     var pointParameters = {
         'fillStyleInnerCircle': 'rgba(0,0,0,1)', // labelColor.fillStyle,
-        'lineWidthOuterCircle': 2,
         'iconImagePath': undefined, // iconImagePath,
         'radiusInnerCircle': 5, //13,
-        'radiusOuterCircle': 6, //14,
-        'strokeStyleOuterCircle': 'rgba(255,255,255,1)',
-        'storedInDatabase': false
+        'radiusOuterCircle': 6, //14
     };
 
     var status = {
@@ -92,7 +89,7 @@ function Canvas(ribbon) {
             properties.pointInnerCircleRadius = 5;
             properties.pointOuterCircleRadius = 6;
         } else {
-            properties.pointInnerCircleRadius = 13;
+            properties.pointInnerCircleRadius = 17;
             properties.pointOuterCircleRadius = 14;
         }
     }
