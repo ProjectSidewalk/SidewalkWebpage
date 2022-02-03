@@ -12,31 +12,31 @@ function UtilitiesMisc (JSON) {
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
+                cursorImagePath : svl.rootDirectory + 'img/cursors/curbRamp_small.png'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
+                cursorImagePath : svl.rootDirectory + 'img/cursors/curbRampNeeded_small.png'
             },
             Obstacle: {
                 id: 'Obstacle',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
+                cursorImagePath : svl.rootDirectory + 'img/cursors/obstacleInPath_small.png'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
+                cursorImagePath : svl.rootDirectory + 'img/cursors/surfaceProblem_small.png'
             },
             Other: {
                 id: 'Other',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+                cursorImagePath: svl.rootDirectory + 'img/cursors/other_small.png'
             },
             Occlusion: {
                 id: 'Occlusion',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+                cursorImagePath: svl.rootDirectory + 'img/cursors/cantSeeSidewalk_small.png'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_NoSidewalk.png'
+                cursorImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.png'
             }
         }
     }

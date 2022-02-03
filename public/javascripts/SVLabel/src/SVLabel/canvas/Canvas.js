@@ -324,7 +324,7 @@ function Canvas(ribbon) {
             labelType = ribbon.getStatus('mode');
         if (labelType) {
             var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
-            var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
+            var cursorUrl = "url(" + cursorImagePath + ") 19 19, auto";
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }
