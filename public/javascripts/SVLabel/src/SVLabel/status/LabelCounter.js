@@ -15,8 +15,8 @@ function LabelCounter (d3) {
     var width = 200 - margin.left - margin.right;
     var height = 40 - margin.top - margin.bottom;
     var colorScheme = util.misc.getLabelColors();
-    var imageWidth = 22;
-    var imageHeight = 22;
+    var imageWidth = 21;
+    var imageHeight = 21;
     var rightColumn = 1.8;
 
     // Prepare a group to store svg elements, and declare a text
@@ -28,7 +28,7 @@ function LabelCounter (d3) {
             left: margin.left,
             top: margin.top,
             fillColor: colorScheme["CurbRamp"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_CurbRamp.png",
+            imagePath: svl.rootDirectory + "/img/cursors/curbRamp_small.png",
             count: 0,
             data: []
         },
@@ -40,7 +40,7 @@ function LabelCounter (d3) {
             top: (2 * margin.top) + margin.bottom + height,
             // top: 2 * margin.top + margin.bottom + height,
             fillColor: colorScheme["NoCurbRamp"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
+            imagePath: svl.rootDirectory + "/img/cursors/curbRampNeeded_small.png",
             count: 0,
             data: []
         },
@@ -52,7 +52,7 @@ function LabelCounter (d3) {
             // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Obstacle"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
+            imagePath: svl.rootDirectory + "/img/cursors/obstacleInPath_small.png",
             count: 0,
             data: []
         },
@@ -64,7 +64,7 @@ function LabelCounter (d3) {
             //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
             top: margin.top,
             fillColor: colorScheme["SurfaceProblem"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
+            imagePath: svl.rootDirectory + "/img/cursors/surfaceProblem_small.png",
             count: 0,
             data: []
         },
@@ -75,7 +75,7 @@ function LabelCounter (d3) {
             left: margin.left + (width/rightColumn),
             top: (2 * margin.top) + margin.bottom + height,
             fillColor: colorScheme["NoSidewalk"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoSidewalk.png",
+            imagePath: svl.rootDirectory + "/img/cursors/sidewalkNeeded_small.png",
             count: 0,
             data: []
         },
@@ -86,7 +86,7 @@ function LabelCounter (d3) {
             left: margin.left + (width/rightColumn),
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Other.png",
+            imagePath: svl.rootDirectory + "/img/cursors/other_small.png",
             count: 0,
             data: []
         }
@@ -133,16 +133,16 @@ function LabelCounter (d3) {
             })
             .style("font-size", "8px")
             .attr("class", "visible")
-            .attr('transform', 'translate(0,' + imageHeight + ')');
+            .attr('transform', 'translate(0,' + (imageHeight + 3) + ')');
 
         dotPlots[key].plot = dotPlots[key].g.append("g")
-            .attr('transform', 'translate(' + (padding.left + imageWidth) + ',' + 0 + ')');
+            .attr('transform', 'translate(' + (padding.left + imageWidth) + ',' + 7 + ')');
 
         dotPlots[key].g.append("image")
             .attr("xlink:href", dotPlots[key].imagePath)
             .attr("width", imageWidth)
             .attr("height", imageHeight)
-            .attr('transform', 'translate(0,-15)');
+            .attr('transform', 'translate(0,-8)');
     }
 
 
