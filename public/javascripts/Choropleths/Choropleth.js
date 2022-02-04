@@ -309,10 +309,10 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                '<td>' + i18next.t('missing-ramps') + '<br/></td>'+
                '<td>' + i18next.t('surface-problems') + '<br/>'+
                '<td>' + i18next.t('sidewalk-obstacles') + '<br/></td></td></tr>' +
-               '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoSidewalk.png"></td>'+
-               '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoCurbRamp.png"></td>'+
-               '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_SurfaceProblem.png"></td>'+
-               '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Obstacle.png"></td>'+
+               '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/sidewalkNeeded_small.png"></td>'+
+               '<td><img src="/assets/javascripts/SVLabel/img/cursors/curbRampNeeded_small.png"></td>'+
+               '<td><img src="/assets/javascripts/SVLabel/img/cursors/surfaceProblem_small.png"></td>'+
+               '<td><img src="/assets/javascripts/SVLabel/img/cursors/obstacleInPath_small.png"></td>'+
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
     }
 

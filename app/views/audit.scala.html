@@ -200,39 +200,39 @@
                     </div>
                     <div id="ribbon-menu-label-type-button-holder">
                         <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/explore.png")' class="label-type-icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/explore.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
                         </span>
                         <span id="mode-switch-button-curb-ramp" class="label-type-button-holder" val="CurbRamp">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/curbRamp.png")' class="label-type-icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/curbRamp.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.curb.ramp"))</span>
                         </span>
                         <span id="mode-switch-button-curb-ramp-needed" class="label-type-button-holder" val="NoCurbRamp">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/curbRampNeeded.png")' class="label-type-icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/curbRampNeeded.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
                         </span>
                         <span id="mode-switch-button-obstacle" class="label-type-button-holder" val="Obstacle">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/obstacleInPath.png")' class="label-type-icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/obstacleInPath.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.obstacle"))</span>
                         </span>
                         <span id="mode-switch-button-surface-problem" class="label-type-button-holder" val="SurfaceProblem">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/surfaceProblem.png")' class="label-type-icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/surfaceProblem.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
                         </span>
                         <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/sidewalkNeeded.png")' class="label-type-icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sidewalkNeeded.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                         </span>
                         <span id="mode-switch-button-other" class="label-type-button-holder" val="Other">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/other.png")' class="label-type-icon">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/other.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.other"))</span>
                             <div id="ribbon-menu-other-subcategory-holder">
                                 <div class="ribbon-menu-other-subcategory" val="Occlusion">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/cantSeeSidewalk.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
                                     @Html(Messages("audit.ribbon.occlusion"))
                                 </div>
                                 <div class="ribbon-menu-other-subcategory" val="Other">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
                                     @Messages("audit.ribbon.other")
                                 </div>
                             </div>
@@ -247,11 +247,11 @@
                     <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
                     <div class="status-row" id="neighborhood-status-row">
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet.png")' class="status-icon" alt="Map icon" align="">
                             <span><span class="bold" id="status-audited-distance">0.00</span> <small>@Messages("audit.right.ui.distance")</small></span>
                         </span>
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/other.png")' class="status-icon" alt="Total label count" align="">
                             <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>
@@ -327,7 +327,7 @@
                         <div id="severity-menu">
                             <div id="severity-radio-holder">
                                 <div class="radio-inline" id="column-passable">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible-2.png")'
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
                                     <div class="label-severity-axis-label">@Messages("audit.center.ui.passable")</div>
                                 </div>
@@ -377,7 +377,7 @@
                                     </label>
                                 </div>
                                 <div class="radio-inline" id="column-not-passable">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible-2.png")'
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
                                     <div class="label-severity-axis-label">@Html(Messages("audit.center.ui.not.passable"))</div>
                                 </div>
