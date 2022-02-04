@@ -174,6 +174,21 @@ object StreetEdgeTable {
     }
   }
 
+  /**
+    * Finds the OSM IDs of all streets.
+    * 
+    * @return The OSM IDs of all streets.
+    */
+  def OsmStreetIds(streetEdgeId: Int): Int = db.withSession { implicit session =>
+    case class OSM(osm_way_street_edge_id:Int, osm_way_id:Int, street_edge_id:Int)
+    implicit val getUserResult = GetResult(r => OSM(r.<<, r.<<, r.<<))
+    val getDistanceQuery = Q.queryNA[OSM](
+      s"""SELECT * FROM osm_way_street_edge
+         WHERE street_edge_id='$streetEdgeId'
+      """);
+    getDistanceQuery.first.osm_way_id;
+  }
+
 
   /**
     * Calculates the distance audited today by all users.
