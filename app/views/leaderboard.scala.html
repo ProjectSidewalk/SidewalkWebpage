@@ -60,7 +60,7 @@
                                 } m</td>
                             }
                         } else {
-                            @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                            @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                 <td class="leaderboard-table-font">@{
                                     "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                 } miles</td>
@@ -129,7 +129,7 @@
                                     } m</td>
                                 }
                             } else {
-                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                     <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                     } miles</td>
@@ -209,7 +209,7 @@
                                     } m</td>
                                 }
                             } else {
-                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                     <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                     } miles</td>
@@ -289,7 +289,7 @@
                                     } m</td>
                                 }
                             } else {
-                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                     <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                     } miles</td>
