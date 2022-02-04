@@ -52,37 +52,37 @@ function UtilitiesMisc (JSON) {
             CurbRamp: {
                 id: 'CurbRamp',
                 iconImagePath : svl.rootDirectory + 'img/cursors/curbRamp_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/curbRamp_small.resized.png'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
                 iconImagePath : svl.rootDirectory + 'img/cursors/curbRampNeeded_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/curbRampNeeded_small.resized.png'
             },
             Obstacle: {
                 id: 'Obstacle',
                 iconImagePath: svl.rootDirectory + 'img/cursors/obstacleInPath_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/obstacleInPath_small.resized.png'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
                 iconImagePath: svl.rootDirectory + 'img/cursors/surfaceProblem_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/surfaceProblem_small.resized.png'
             },
             Other: {
                 id: 'Other',
                 iconImagePath: svl.rootDirectory + 'img/cursors/other_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/other_small.resized.png'
             },
             Occlusion: {
                 id: 'Occlusion',
                 iconImagePath: svl.rootDirectory + 'img/cursors/cantSeeSidewalk_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/cantSeeSidewalk_small.resized.png'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
                 iconImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoSidewalk.png'
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.resized.png'
             }
         };
 
