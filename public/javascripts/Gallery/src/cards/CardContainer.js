@@ -29,6 +29,8 @@ function CardContainer(uiCardContainer) {
         Other: 5,
         Occlusion: 6,
         NoSidewalk: 7,
+        Crosswalk: 9,
+        Signal: 10,
         Assorted: -1
     };
 
@@ -48,7 +50,9 @@ function CardContainer(uiCardContainer) {
         SurfaceProblem: new CardBucket(),
         Other: new CardBucket(),
         Occlusion: new CardBucket(),
-        NoSidewalk: new CardBucket()
+        NoSidewalk: new CardBucket(),
+        Crosswalk: new CardBucket(),
+        Signal: new CardBucket()
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend.

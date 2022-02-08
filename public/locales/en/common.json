@@ -71,6 +71,10 @@
     "gravel/dirt road": "gravel/dirt road",
     "shared pedestrian/car space": "shared pedestrian/car space",
     "height difference": "height difference",
+    "paint fading": "paint fading",
+    "paint not fading": "paint not fading",
+    "has button": "has button",
+    "button waist height": "button waist height",
     "missing crosswalk": "missing crosswalk",
     "no bus stop access": "no bus stop access"
   },
@@ -81,6 +85,8 @@
     "SurfaceProblem": "Surface Problem",
     "Occlusion": "Can't See Sidewalk",
     "NoSidewalk" : "No Sidewalk",
+    "Crosswalk" : "Crosswalk",
+    "Signal" : "Pedestrian Signal",
     "Other": "Other"
   }
 }
