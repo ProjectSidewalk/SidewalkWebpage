@@ -37,6 +37,14 @@ function UtilitiesMisc (JSON) {
             NoSidewalk: {
                 id: 'NoSidewalk',
                 cursorImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.png'
+            },
+            Crosswalk: {
+                id: 'Crosswalk',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/crosswalk_small.png'
+            },
+            Signal: {
+                id: 'Signal',
+                cursorImagePath: svl.rootDirectory + 'img/cursors/pedestrianSignal_small.png'
             }
         }
     }
@@ -83,6 +91,16 @@ function UtilitiesMisc (JSON) {
                 id: 'NoSidewalk',
                 iconImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.png',
                 googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.resized.png'
+            },
+            Crosswalk: {
+                id: 'Crosswalk',
+                iconImagePath: svl.rootDirectory + 'img/cursors/crosswalk_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/crosswalk_small.resized.png'
+            },
+            Signal: {
+                id: 'Signal',
+                iconImagePath: svl.rootDirectory + 'img/cursors/pedestrianSignal_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/pedestrianSignal_small.resized.png'
             }
         };
 
@@ -129,6 +147,16 @@ function UtilitiesMisc (JSON) {
             NoSidewalk: {
                 id: 'NoSidewalk',
                 instructionalText: i18next.t('top-ui.instruction.no-sidewalk'),
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Crosswalk: {
+                id: 'Crosswalk',
+                instructionalText: i18next.t('top-ui.instruction.crosswalk'),
+                textColor: 'rgba(255,255,255,1)'
+            },
+            Signal: {
+                id: 'Signal',
+                instructionalText: i18next.t('top-ui.instruction.signal'),
                 textColor: 'rgba(255,255,255,1)'
             }
         }
@@ -379,6 +407,46 @@ function UtilitiesMisc (JSON) {
                     }
                 }
             },
+            Crosswalk: {
+                id: 'Crosswalk',
+                text: 'Crosswalk',
+                shortcut: {
+                    keyNumber: 87,
+                    keyChar: 'W'
+                },
+                tagInfo: {
+                    'paint fading': {
+                        keyNumber: 70,
+                        keyChar: 'F',
+                        text: i18next.t('center-ui.context-menu.tag.paint-fading')
+                    },
+                    'paint not fading': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: i18next.t('center-ui.context-menu.tag.paint-not-fading')
+                    }
+                }
+            },
+            Signal: {
+                id: 'Signal',
+                text: 'Pedestrian Signal',
+                shortcut: {
+                    keyNumber: 80,
+                    keyChar: 'P'
+                },
+                tagInfo: {
+                    'has button': {
+                        keyNumber: 72,
+                        keyChar: 'H',
+                        text: i18next.t('center-ui.context-menu.tag.has-button')
+                    },
+                    'button waist height': {
+                        keyNumber: 87,
+                        keyChar: 'W',
+                        text: i18next.t('center-ui.context-menu.tag.button-waist-height')
+                    }
+                }
+            },
             Other: {
                 id: 'Other',
                 text: 'Other',
@@ -500,6 +568,18 @@ function UtilitiesMisc (JSON) {
         },
         SurfaceProblem: {
             id: 'SurfaceProblem',
+            fillStyle: 'rgba(241, 141, 5, 1)',
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
+        },
+        Crosswalk: {
+            id: 'Crosswalk',
+            fillStyle: 'rgba(241, 141, 5, 1)',
+            strokeStyle: '#ffffff',
+            missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
+        },
+        Signal: {
+            id: 'Signal',
             fillStyle: 'rgba(241, 141, 5, 1)',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'

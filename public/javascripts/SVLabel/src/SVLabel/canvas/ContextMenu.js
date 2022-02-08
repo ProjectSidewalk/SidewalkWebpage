@@ -242,22 +242,34 @@ function ContextMenu (uiContextMenu) {
 
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
+                    // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
                     var alternateRoutePresentId = self.labelTags.filter(tag => tag.tag === 'alternate route present')[0].tag_id;
                     var noAlternateRouteId = self.labelTags.filter(tag => tag.tag === 'no alternate route')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected
+                    // Automatically deselect one of the tags above if the other one is selected.
                     if (currTagId === alternateRoutePresentId) {
                         labelTags = autoRemoveAlternateLabelAndUpdateUI(noAlternateRouteId, labelTags);
                     } else if (currTagId === noAlternateRouteId) {
                         labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentId, labelTags);
                     }
 
+                    // Deals with 'street has a sidewalk' and 'street has no sidewalks' being mutually exclusive.
                     var streetHasOneSidewalkId = self.labelTags.filter(tag => tag.tag === 'street has a sidewalk')[0].tag_id;
                     var streetHasNoSidewalksId = self.labelTags.filter(tag => tag.tag === 'street has no sidewalks')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected
+                    // Automatically deselect one of the tags above if the other one is selected.
                     if (currTagId === streetHasOneSidewalkId) {
                         labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasNoSidewalksId, labelTags);
                     } else if (currTagId === streetHasNoSidewalksId) {
                         labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalkId, labelTags);
+                    }
+
+                    // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
+                    var paintFadingId = self.labelTags.filter(tag => tag.tag === 'paint fading')[0].tag_id;
+                    var paintNotFadingId = self.labelTags.filter(tag => tag.tag === 'paint not fading')[0].tag_id;
+                    // Automatically deselect one of the tags above if the other one is selected.
+                    if (currTagId === paintFadingId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintNotFadingId, labelTags);
+                    } else if (currTagId === paintNotFadingId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintFadingId, labelTags);
                     }
 
                     labelTags.push(tag.tag_id);
@@ -520,8 +532,8 @@ function ContextMenu (uiContextMenu) {
         $temporaryLabelCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
-            var labelType = param.targetLabel.getLabelType(),
-                acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'NoSidewalk', 'Other', 'CurbRamp'];
+            var labelType = param.targetLabel.getLabelType();
+            var acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'NoSidewalk', 'Other', 'CurbRamp', 'Crosswalk', 'Signal'];
             if (acceptedLabelTypes.indexOf(labelType) !== -1) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);

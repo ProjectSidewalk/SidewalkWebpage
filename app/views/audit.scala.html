@@ -223,6 +223,14 @@
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sidewalkNeeded.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                         </span>
+                        <span id="mode-switch-button-crosswalk" class="label-type-button-holder" val="Crosswalk">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/crosswalk.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.crosswalk"))</span>
+                        </span>
+                        <span id="mode-switch-button-signal" class="label-type-button-holder" val="Signal">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/pedestrianSignal.png")' class="label-type-icon">
+                            <span class="label-type-name">@Html(Messages("audit.ribbon.signal"))</span>
+                        </span>
                         <span id="mode-switch-button-other" class="label-type-button-holder" val="Other">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/other.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.other"))</span>

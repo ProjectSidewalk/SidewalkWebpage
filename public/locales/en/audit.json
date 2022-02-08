@@ -18,6 +18,8 @@
     "Other-description": "Other",
     "Occlusion-description": "Can't see the sidewalk",
     "NoSidewalk-description": "No Sidewalk",
+    "Crosswalk-description": "Crosswalk",
+    "Signal-description": "Pedestrian Signal",
     "tutorial": {
         "mission-message": "Complete the onboarding tutorial!",
         "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",
@@ -99,6 +101,8 @@
             "other": "Label mode",
             "occlusion": "Label a <span class=\"underline\">part of sidewalk that cannot be observed</span>",
             "no-sidewalk": "Label <span class=\"underline\">missing sidewalk</span>",
+            "crosswalk": "Locate and label a <span class=\"underline\">crosswalk</span>",
+            "signal": "Locate and label a <span class=\"underline\">pedestrian signal</span>",
             "explain": "Explain this!"
         }
     },
@@ -149,6 +153,10 @@
                 "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no sidewalks",
                 "gravel-dirt-road": "gravel/<tag-underline>d</tag-underline>irt road",
                 "shared-pedestrian-car-space": "shared <tag-underline>p</tag-underline>edestrian/car space",
+                "paint-fading": "paint <tag-underline>f</tag-underline>ading",
+                "paint-not-fading": "<tag-underline>p</tag-underline>aint not fading",
+                "has-button": "<tag-underline>h</tag-underline>as button",
+                "button-waist-height": "button <tag-underline>w</tag-underline>aist height",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
                 "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess",
                 "height-difference": "height <tag-underline>d</tag-underline>ifference"
