@@ -13,12 +13,12 @@ INSERT INTO tag (label_type_id, tag) SELECT label_type_id, 'button waist height'
 DELETE FROM label_tag
 USING tag, label_type
 WHERE label_tag.tag_id = tag.tag_id
-    AND label_tag.label_type_id = label_type.label_type_id
+    AND tag.label_type_id = label_type.label_type_id
     AND label_type.label_type IN ('Crosswalk', 'Signal');
 
 DELETE FROM tag
 USING label_type
-WHERE label_tag.label_type_id = label_type.label_type_id
+WHERE tag.label_type_id = label_type.label_type_id
     AND label_type.label_type IN ('Crosswalk', 'Signal');
 
 -- Delete everything else that can be associated with the labels created with the label types we remove here.
