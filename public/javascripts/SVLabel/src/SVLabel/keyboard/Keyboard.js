@@ -169,20 +169,17 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     };
 
     /**
-     * This is a callback for a key up event.
+     * This is a callback for a key up event when focus is not on ContextMenu's textbox.
      * @param {object} e An event object
      * @private
      */
     this._documentKeyUp = function (e) {
         if (!status.disableKeyboard) {
-            /*
-             This is a callback method that is triggered when a keyUp
-             event occurs and focus is not on ContextMenu's textbox.
-             */
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
-                // e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk, o: Occlusion
-                for (const mode of ['Walk', 'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Occlusion']) {
+                // e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk, w: Crosswalk,
+                // p: Signal, b: Occlusion
+                for (const mode of ['Walk', 'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal', 'Occlusion']) {
                     if (e.keyCode === util.misc.getLabelDescriptions(mode)['shortcut']['keyNumber']) {
                         if (mode !== 'Walk') _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch(mode);

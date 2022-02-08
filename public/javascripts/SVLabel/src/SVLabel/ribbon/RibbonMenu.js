@@ -26,6 +26,8 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 OuterOther: false,
                 Occlusion: false,
                 NoSidewalk: false,
+                Crosswalk: false,
+                Signal: false,
                 Other: false,
             },
             lockDisableMode: false,
@@ -253,6 +255,8 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 OuterOther: true,
                 Occlusion: true,
                 NoSidewalk: true,
+                Crosswalk: true,
+                Signal: true,
                 Other: true
             };
             if (uiRibbonMenu) {
@@ -315,6 +319,8 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 OuterOther: false,
                 Occlusion: false,
                 NoSidewalk: false,
+                Crosswalk: false,
+                Signal: false,
                 Other: false
             };
             if (uiRibbonMenu) {
