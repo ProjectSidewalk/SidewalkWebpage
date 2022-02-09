@@ -195,14 +195,21 @@
             </div>
             <div id="ribbon-menu-holder">
                 <span id="label-type-holder">
-                    <div id="ribbon-menu-label-type-title">
-                        @Messages("audit.ribbon.find.and.label")
-                    </div>
                     <div id="ribbon-menu-label-type-button-holder">
+                        <div id="ribbon-menu-title-holder-ramp" class="ribbon-menu-title-holder">
+                            <span id="ribbon-menu-title">CURB RAMP LABELS</span>
+                        </div>
+                        <div id="ribbon-menu-title-holder-sidewalk" class="ribbon-menu-title-holder">
+                            <span id="ribbon-menu-title">SIDEWALK LABELS</span>
+                        </div>
+                        <div id="ribbon-menu-title-holder-other" class="ribbon-menu-title-holder">
+                            <span id="ribbon-menu-title">OTHER ACCESSIBILITY LABELS</span>
+                        </div>
                         <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/explore.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
                         </span>
+                        <span id="label-type-divider"></span>
                         <span id="mode-switch-button-curb-ramp" class="label-type-button-holder" val="CurbRamp">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/curbRamp.png")' class="label-type-icon">
                             <span class="label-type-name">@Html(Messages("audit.ribbon.curb.ramp"))</span>

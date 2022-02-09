@@ -1,6 +1,6 @@
 #ribbon-menu-holder {
     position: absolute;
-    left: 0;
+    left: 3px;
     top: 0;
     height: 100px;
 }
@@ -23,8 +23,17 @@
     cursor: pointer;
     display: inline-block;
     position: relative;
-    height: 71px;
-    width:71px;
+    height: 75px;
+    width: 75px;
+}
+
+#label-type-divider {
+    border-left: 2px solid lightgray;
+    height: 20px;
+    position: relative;
+    width: 2px;
+    bottom: 20px;
+    margin: 0 5px;
 }
 
 .label-type-icon {
@@ -54,34 +63,65 @@
 
 #label-type-holder {
     background: transparent;
-    /*position: absolute;*/
     height: 100px;
     width: 575px;
 }
 
-#ribbon-menu-label-type-title {
-    background: transparent;
-    border-bottom: 1px solid #ccc;
-    font-size: 9pt;
-    margin-left: 5px;
-    margin-right: 5px;
+.ribbon-menu-title-holder {
+    overflow: hidden;
+    top: -3px;
     text-align: center;
+}
 
+#ribbon-menu-title-holder-ramp {
+    width: 148px;
+    float: left;
+    left: 103px;
+    position: relative;
+}
+#ribbon-menu-title-holder-sidewalk {
+    overflow: hidden;
+    margin-left: 261px;
+    width: 227px;
     position: absolute;
-    left: 0;
-    top: 5px;
-    height: 16px;
-    width: 452px;
+}
+#ribbon-menu-title-holder-other {
+    overflow: hidden;
+    margin-left: 498px;
+    width: 227px;
+    position: relative;
+}
+
+#ribbon-menu-title {
+    font-size: 8px;
+    font-weight: 600;
+    position: relative;
+}
+
+/* Add lines to the left and right of the titles. Similar to this https://silvawebdesigns.com/line-on-sides-headers/ */
+#ribbon-menu-title:before, #ribbon-menu-title:after {
+    position: absolute;
+    top: 51%;
+    width: 1000px; /* Set to a very large value, cut off from outer div with overflow: hidden. */
+    height: 1px;
+    content: '';
+    background-color: lightgray;
+}
+#ribbon-menu-title:before {
+    right: 100%;
+    margin-right: 5px;
+}
+#ribbon-menu-title:after {
+    left: 100%;
+    margin-left: 5px;
 }
 
 #ribbon-menu-label-type-button-holder {
     background: transparent;
-    /*margin-left: 10px;*/
-    /*margin-right: 10px;*/
     position: absolute;
-    top: 25px;
-    height: 75px;
-    width: 669px;
+    top: 5px;
+    height: 108px;
+    width: 730px;
 }
 
 #ribbon-street-view-connector {
