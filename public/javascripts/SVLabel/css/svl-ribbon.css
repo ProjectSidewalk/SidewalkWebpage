@@ -23,35 +23,37 @@
     cursor: pointer;
     display: inline-block;
     position: relative;
-    height: 75px;
+    height: 78px;
     width: 75px;
 }
 
-#label-type-divider {
+#label-type-divider-major {
     border-left: 2px solid lightgray;
-    height: 20px;
     position: relative;
-    width: 2px;
-    bottom: 20px;
-    margin: 0 5px;
+    bottom: 19px;
+    margin-right: 5px;
+    margin-left: 2px;
+}
+
+#label-type-divider-minor {
+    margin: 0 3px;
 }
 
 .label-type-icon {
-    position: absolute;
-    left: 10px;
-    height: 51px;
-    border-color: rgba(200,200,200,0.75);
+    display: block;
+    margin: auto;
+    height: 66px;
+    border-color: transparent;
     border-style: solid;
     border-width: 5px;
     border-radius: 50%;
 }
 
 .label-type-name {
-    font-size: 10px;
-    line-height: 12px;
+    font-size: 8px;
     text-align: center;
     position: absolute;
-    top: 55px;
+    top: 65px;
     width: 100%;
 }
 
@@ -74,21 +76,21 @@
 }
 
 #ribbon-menu-title-holder-ramp {
-    width: 148px;
+    width: 150px;
     float: left;
-    left: 103px;
+    left: 90px;
     position: relative;
 }
 #ribbon-menu-title-holder-sidewalk {
     overflow: hidden;
-    margin-left: 261px;
-    width: 227px;
+    margin-left: 254px;
+    width: 228px;
     position: absolute;
 }
 #ribbon-menu-title-holder-other {
     overflow: hidden;
-    margin-left: 498px;
-    width: 227px;
+    margin-left: 496px;
+    width: 228px;
     position: relative;
 }
 

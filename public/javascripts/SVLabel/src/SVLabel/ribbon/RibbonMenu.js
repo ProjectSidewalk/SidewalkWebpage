@@ -11,7 +11,7 @@
 function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     var self = {className: 'RibbonMenu'},
         properties = {
-            modeSwitchDefaultBorderColor: "rgba(200,200,200,0.75)",
+            buttonDefaultBorderColor: "transparent",
             originalBackgroundColor: "white"
         },
         status = {
@@ -133,7 +133,10 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                     }
                 });
                 uiRibbonMenu.connector.css("border-left-color", borderColor);
-                uiRibbonMenu.streetViewHolder.css("border-color", borderColor);
+                uiRibbonMenu.streetViewHolder.css({
+                    "border-color": borderColor,
+                    "background-color": borderColor
+                });
             }
 
             // Set the instructional message
@@ -216,10 +219,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             $.each(uiRibbonMenu.buttons, function (i, v) {
                 currLabelType = $(v).attr("val");
                 if (currLabelType === selectedLabelType) {
-                    $(this).find('.label-type-icon').css({ 'border-color': selectedBorderColor });
+                    $(this).find('.label-type-icon').css({
+                        'border-color': selectedBorderColor,
+                        'background-color': selectedBorderColor
+                    });
                 } else {
-                    // Change background color if the label type is not the currently selected type.
-                    $(this).find('.label-type-icon').css({ 'border-color': properties.modeSwitchDefaultBorderColor });
+                    // Change border/background color if the label type is not the currently selected type.
+                    $(this).find('.label-type-icon').css({ 'border-color': properties.buttonDefaultBorderColor });
+                    $(this).find('.label-type-icon').css({ 'background-color': properties.buttonDefaultBorderColor });
                 }
             });
         }
