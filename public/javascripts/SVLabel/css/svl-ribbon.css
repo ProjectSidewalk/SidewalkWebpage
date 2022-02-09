@@ -63,12 +63,6 @@
     background: rgb(204, 204, 204);
 }
 
-#label-type-holder {
-    background: transparent;
-    height: 100px;
-    width: 575px;
-}
-
 .ribbon-menu-title-holder {
     overflow: hidden;
     top: -3px;
@@ -127,11 +121,11 @@
 }
 
 #ribbon-street-view-connector {
-    border-left: 5px solid black;
+    border-left: 12px solid black;
     position: absolute;
     left: 25px;
-    top: -24px;
-    height: 20px;
+    top: -14px;
+    height: 10px;
     width: 0;
 }
 

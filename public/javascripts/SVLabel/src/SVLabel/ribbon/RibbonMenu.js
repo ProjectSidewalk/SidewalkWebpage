@@ -124,12 +124,16 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             if (uiRibbonMenu) {
                 setLabelTypeButtonBorderColors(labelType);
 
+                var connectorWidth = parseInt(uiRibbonMenu.connector.css('border-left-width'));
+                var panoBorderWidth = parseInt(uiRibbonMenu.streetViewHolder.css('border-left-width'));
                 var currLabelType
                 $.each(uiRibbonMenu.buttons, function (i, v) {
                     currLabelType = $(v).attr("val");
                     if (currLabelType === mode) {
-                        console.log($(this).position());
-                        uiRibbonMenu.connector.css("left", $(this).position().left + $(this).width() / 2);
+                        var buttonLeft = $(this).position().left;
+                        var buttonWidth = $(this).width();
+                        var connectorLeft = buttonLeft + buttonWidth / 2 - panoBorderWidth - connectorWidth / 2;
+                        uiRibbonMenu.connector.css("left", connectorLeft);
                     }
                 });
                 uiRibbonMenu.connector.css("border-left-color", borderColor);
