@@ -33,23 +33,15 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
     /**
      * Set the message in the overlay box
      * @param mode
-     * @param message
      * @returns {*}
      */
-    this.setMessage =function (mode, message) {
-        var instructions = util.misc.getLabelInstructions();
-
-        // Set the instructional message.
-        if (message) {
-            uiOverlayMessage.message.html(message);
-        } else {
-            var instruction = i18next.t('top-ui.instruction.' + util.camelToKebab(mode));
-            uiOverlayMessage.message.html('<strong>' + instruction + '</strong>');
-            uiOverlayMessage.message.find(".overlay-message-label-type").on('click', function () {
-                var labelType = $(this).attr("val");
-                modalModel.showModalExample(labelType);
-            });
-        }
+    this.setMessage =function (mode) {
+        var instruction = i18next.t('top-ui.instruction.' + util.camelToKebab(mode));
+        uiOverlayMessage.message.html(`<strong>${instruction}</strong>`);
+        uiOverlayMessage.message.find(".overlay-message-label-type").on('click', function () {
+            var labelType = $(this).attr("val");
+            modalModel.showModalExample(labelType);
+        });
     };
 
     this.setMessage('Walk');
