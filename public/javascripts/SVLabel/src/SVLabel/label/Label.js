@@ -506,7 +506,7 @@ function Label (svl, pathIn, params) {
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
-        ctx.fillStyle = util.color.changeAlphaRGBA(util.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.fillStyle = util.misc.getLabelColors(getProperty('labelType'));
         ctx.strokeStyle = 'rgba(255,255,255,1)';
 
 

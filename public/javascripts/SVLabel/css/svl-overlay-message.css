@@ -1,5 +1,5 @@
 #overlay-message-box {
-    background: rgba(0,0,0,0.75);
+    background: rgba(89, 89, 89, 0.85);
     position: absolute;
     top: 0;
     left: 0;
@@ -9,7 +9,7 @@
 }
 
 #overlay-message {
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255);
     font-size: 12px;
     position: absolute;
     top: 2px;
@@ -17,7 +17,7 @@
 }
 
 #overlay-message-help-link {
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255);
     font-size: 12px;
     position: absolute;
     top: 2px;

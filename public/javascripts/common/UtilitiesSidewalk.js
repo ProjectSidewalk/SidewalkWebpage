@@ -532,55 +532,55 @@ function UtilitiesMisc (JSON) {
         },
         CurbRamp: {
             id: 'CurbRamp',
-            fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
+            fillStyle: '#90C31F',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(0, 222, 38, .8)',
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
+            fillStyle: '#E679B6',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(233, 39, 113, .8)',
         },
         Obstacle: {
             id: 'Obstacle',
-            fillStyle: 'rgba(0, 161, 203, 1)',
+            fillStyle: '#78B0EA',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(0, 161, 203, .8)'
         },
         Other: {
             id: 'Other',
-            fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
+            fillStyle: '#B3B3B3',
             strokeStyle: '#0000ff',
             missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
         },
         Occlusion: {
             id: 'Occlusion',
-            fillStyle: 'rgba(179, 179, 179, 1)',
+            fillStyle: '#B3B3B3',
             strokeStyle: '#009902',
             missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
         },
         NoSidewalk: {
             id: 'NoSidewalk',
-            fillStyle: 'rgba(153, 131, 239, 1)',
+            fillStyle: '#BE87D8',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(153, 131, 239, .8)'
         },
         SurfaceProblem: {
             id: 'SurfaceProblem',
-            fillStyle: 'rgba(241, 141, 5, 1)',
+            fillStyle: '#F68D3E',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
         },
         Crosswalk: {
             id: 'Crosswalk',
-            fillStyle: 'rgba(241, 141, 5, 1)',
+            fillStyle: '#FABF1C',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
         },
         Signal: {
             id: 'Signal',
-            fillStyle: 'rgba(241, 141, 5, 1)',
+            fillStyle: '#63C0AB',
             strokeStyle: '#ffffff',
             missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
         }

@@ -38,19 +38,6 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
      */
     this.setMessage =function (mode, message) {
         var instructions = util.misc.getLabelInstructions();
-        var labelColors = util.misc.getLabelColors();
-
-        // Set the box color.
-        var modeColor = labelColors[mode];
-        var backgroundColor = util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
-        backgroundColor = util.color.changeDarknessRGBA(backgroundColor, 0.35);
-
-        uiOverlayMessage.box.css({
-            'background' : backgroundColor
-        });
-        uiOverlayMessage.message.css({
-            'color' : instructions[mode].textColor
-        });
 
         // Set the instructional message.
         if (message) {
