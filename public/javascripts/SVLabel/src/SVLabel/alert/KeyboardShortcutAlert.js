@@ -17,7 +17,9 @@ function KeyboardShortcutAlert(alertHandler) {
             (svl.onboarding == null || svl.onboarding.isOnboarding() === false)) {
             var labelDescription = util.misc.getLabelDescriptions(labelType);
             if ('text' in labelDescription && 'shortcut' in labelDescription) {
-                alertHandler.showAlert(i18next.t('popup.label-shortcuts-' + labelType, {key: util.misc.getLabelDescriptions(labelType)['shortcut']['keyChar']}), labelType, true);
+                var shortcut = util.misc.getLabelDescriptions(labelType)['shortcut']['keyChar'];
+                var translationKey = `popup.label-shortcuts-${util.camelToKebab(labelType)}`;
+                alertHandler.showAlert(i18next.t(translationKey, { key: shortcut }), labelType, true);
                 self['clickCount'][labelType] = 0;
             }
         }

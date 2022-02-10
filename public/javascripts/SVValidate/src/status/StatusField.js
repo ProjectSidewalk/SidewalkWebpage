@@ -44,7 +44,7 @@ function StatusField(param) {
      */
     function updateLabelText(labelType) {
         // Centers and updates title top of the validation interface.
-        svv.ui.status.upperMenuTitle.html(i18next.t('top-ui.title.' + labelType));
+        svv.ui.status.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
         let offset = svv.ui.status.zoomInButton.outerWidth()
             + svv.ui.status.zoomOutButton.outerWidth()
             + svv.ui.status.labelVisibilityControlButton.outerWidth();

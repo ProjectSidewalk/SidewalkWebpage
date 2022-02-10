@@ -75,12 +75,12 @@
     "no bus stop access": "No hay acceso a la parada de autobús"
   },
   "gallery": {
-    "CurbRamp": "Rampa peatonal",
-    "NoCurbRamp": "Rampa peatonal ausente",
-    "Obstacle": "Obstáculo en la banqueta",
-    "SurfaceProblem": "Problema en superficie",
-    "Occlusion": "No puedo ver la banqueta",
-    "NoSidewalk" : "No hay banqueta",
-    "Other": "Otro"
+    "curb-ramp": "Rampa peatonal",
+    "no-curb-ramp": "Rampa peatonal ausente",
+    "obstacle": "Obstáculo en la banqueta",
+    "surface-problem": "Problema en superficie",
+    "occlusion": "No puedo ver la banqueta",
+    "noSidewalk" : "No hay banqueta",
+    "other": "Otro"
   }
 }

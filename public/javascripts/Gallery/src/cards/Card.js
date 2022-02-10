@@ -109,7 +109,7 @@ function Card (params, imageUrl, modal) {
         // Create the div to store the label type.
         let cardHeader = document.createElement('div');
         cardHeader.className = 'card-header';
-        cardHeader.innerHTML = `<div>${i18next.t('gallery.' + getLabelType())}</div>`;
+        cardHeader.innerHTML = `<div>${i18next.t(`gallery.${util.camelToKebab(getLabelType())}`)}</div>`;
         cardInfo.appendChild(cardHeader);
 
         // Create the div that will hold the severity and tags.

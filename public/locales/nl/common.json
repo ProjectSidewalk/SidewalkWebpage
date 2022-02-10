@@ -75,12 +75,12 @@
     "no bus stop access": "geen bushalte toegang"
   },
   "gallery": {
-    "CurbRamp": "Trottoir Oprit",
-    "NoCurbRamp": "Ontbrekende Trottoir Oprit",
-    "Obstacle": "Obstakel op het pad",
-    "SurfaceProblem": "Oppervlakte Probleem",
-    "Occlusion": "Trottoir niet zichtbaar",
-    "NoSidewalk" : "Geen Trottoir",
-    "Other": "Anders"
+    "curb-ramp": "Trottoir Oprit",
+    "no-curb-ramp": "Ontbrekende Trottoir Oprit",
+    "obstacle": "Obstakel op het pad",
+    "surface-problem": "Oppervlakte Probleem",
+    "occlusion": "Trottoir niet zichtbaar",
+    "no-sidewalk" : "Geen Trottoir",
+    "other": "Anders"
   }
 }

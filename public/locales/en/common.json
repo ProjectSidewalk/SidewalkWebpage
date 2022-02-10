@@ -79,14 +79,14 @@
     "no bus stop access": "no bus stop access"
   },
   "gallery": {
-    "CurbRamp": "Curb Ramp",
-    "NoCurbRamp": "Missing Curb Ramp",
-    "Obstacle": "Obstacle in Path",
-    "SurfaceProblem": "Surface Problem",
-    "Occlusion": "Can't See Sidewalk",
-    "NoSidewalk" : "No Sidewalk",
-    "Crosswalk" : "Crosswalk",
-    "Signal" : "Pedestrian Signal",
-    "Other": "Other"
+    "curb-ramp": "Curb Ramp",
+    "no-curb-ramp": "Missing Curb Ramp",
+    "obstacle": "Obstacle in Path",
+    "surface-problem": "Surface Problem",
+    "occlusion": "Can't See Sidewalk",
+    "no-sidewalk" : "No Sidewalk",
+    "crosswalk" : "Crosswalk",
+    "signal" : "Pedestrian Signal",
+    "other": "Other"
   }
 }
