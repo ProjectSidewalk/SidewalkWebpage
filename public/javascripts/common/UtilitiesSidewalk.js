@@ -107,51 +107,6 @@ function UtilitiesMisc (JSON) {
         return category ? imagePaths[category] : imagePaths;
     }
 
-    function getLabelInstructions() {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'textColor' : 'rgba(255,255,255,1)'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Other: {
-                id: 'Other',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Crosswalk: {
-                id: 'Crosswalk',
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Signal: {
-                id: 'Signal',
-                textColor: 'rgba(255,255,255,1)'
-            }
-        }
-    }
-
     function getLabelDescriptions(category) {
         var descriptions = {
             'Walk': {
@@ -571,7 +526,6 @@ function UtilitiesMisc (JSON) {
 
     self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
-    self.getLabelInstructions = getLabelInstructions;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
     self.getLabelColors = getLabelColors;
