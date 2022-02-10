@@ -93,9 +93,9 @@
     "top-ui": {
         "press-key": "Press the \"{{key}}\" key",
         "instruction": {
-            "explore": "Explore the streets and find all the accessibility attributes",
+            "walk": "Explore the streets and find all the accessibility attributes",
             "curb-ramp": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">curb ramp</span>",
-            "missing-curb-ramp": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">missing curb ramp</span>",
+            "no-curb-ramp": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">missing curb ramp</span>",
             "obstacle": "Locate and label an <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstacle in path</span>",
             "surface-problem": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">surface problem</span>",
             "other": "Label mode",

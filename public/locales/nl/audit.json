@@ -93,9 +93,9 @@
     "top-ui": {
         "press-key": "Druk op de \"{{key}}\" knop",
         "instruction": {
-            "explore": "Verken de straten en vind alle toegankelijkheids kenmereken",
+            "walk": "Verken de straten en vind alle toegankelijkheids kenmereken",
             "curb-ramp": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">stoep oprit</span>",
-            "missing-curb-ramp": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">ontbrekende stoep oprit</span>",
+            "no-curb-ramp": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">ontbrekende stoep oprit</span>",
             "obstacle": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstakel op het pad</span>",
             "surface-problem": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">oppervlakte probleem</span>",
             "other": "Label mode",

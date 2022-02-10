@@ -91,9 +91,9 @@
     "top-ui": {
         "press-key": "Presiona la tecla \"{{key}}\"",
         "instruction": {
-            "explore": "Explora las calles y encuentra todos los atributos de accesibilidad",
+            "walk": "Explora las calles y encuentra todos los atributos de accesibilidad",
             "curb-ramp": "Localizar y etiquetar una <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">rampa peatonal</span>",
-            "missing-curb-ramp": "Localizar y etiquetar una <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">rampa peatonal ausente</span>",
+            "no-curb-ramp": "Localizar y etiquetar una <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">rampa peatonal ausente</span>",
             "obstacle": "Localizar y etiquetar un <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstáculo</span>",
             "surface-problem": "Localizar y etiquetar un <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">problema en superficie</span>",
             "other": "Modo de etiqueta",

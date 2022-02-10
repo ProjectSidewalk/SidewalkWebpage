@@ -43,7 +43,8 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
         if (message) {
             uiOverlayMessage.message.html(message);
         } else {
-            uiOverlayMessage.message.html('<strong>' + instructions[mode].instructionalText + '</strong>');
+            var instruction = i18next.t('top-ui.instruction.' + util.camelToKebab(mode));
+            uiOverlayMessage.message.html('<strong>' + instruction + '</strong>');
             uiOverlayMessage.message.find(".overlay-message-label-type").on('click', function () {
                 var labelType = $(this).attr("val");
                 modalModel.showModalExample(labelType);

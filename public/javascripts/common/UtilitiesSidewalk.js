@@ -111,52 +111,42 @@ function UtilitiesMisc (JSON) {
         return {
             'Walk' : {
                 'id' : 'Walk',
-                'instructionalText' : i18next.t('top-ui.instruction.explore'),
                 'textColor' : 'rgba(255,255,255,1)'
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                instructionalText: i18next.t('top-ui.instruction.curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                instructionalText: i18next.t('top-ui.instruction.missing-curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Obstacle: {
                 id: 'Obstacle',
-                instructionalText: i18next.t('top-ui.instruction.obstacle'),
                 textColor: 'rgba(255,255,255,1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                instructionalText: i18next.t('top-ui.instruction.surface-problem'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Other: {
                 id: 'Other',
-                instructionalText: i18next.t('top-ui.instruction.other'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Occlusion: {
                 id: 'Occlusion',
-                instructionalText: i18next.t('top-ui.instruction.occlusion'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                instructionalText: i18next.t('top-ui.instruction.no-sidewalk'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Crosswalk: {
                 id: 'Crosswalk',
-                instructionalText: i18next.t('top-ui.instruction.crosswalk'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Signal: {
                 id: 'Signal',
-                instructionalText: i18next.t('top-ui.instruction.signal'),
                 textColor: 'rgba(255,255,255,1)'
             }
         }
