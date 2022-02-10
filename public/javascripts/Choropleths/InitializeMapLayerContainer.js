@@ -10,6 +10,8 @@ function InitializeMapLayerContainer() {
     mapData.surfaceProblemLayers = [];
     mapData.cantSeeSidewalkLayers = [];
     mapData.noSidewalkLayers = [];
+    mapData.crosswalkLayers = [];
+    mapData.signalLayers = [];
     mapData.otherLayers = [];
     // Make arrays to hold labels split by severity (null and 1 through 5).
     for (var i = 0; i < 6; i++) {
@@ -19,6 +21,8 @@ function InitializeMapLayerContainer() {
         mapData.surfaceProblemLayers[i] = [];
         mapData.cantSeeSidewalkLayers[i] = [];
         mapData.noSidewalkLayers[i] = [];
+        mapData.crosswalkLayers[i] = [];
+        mapData.signalLayers[i] = [];
         mapData.otherLayers[i] = [];
     }
     mapData.allLayers = {
@@ -28,6 +32,8 @@ function InitializeMapLayerContainer() {
         'SurfaceProblem': mapData.surfaceProblemLayers,
         'Occlusion': mapData.cantSeeSidewalkLayers,
         'NoSidewalk': mapData.noSidewalkLayers,
+        'Crosswalk': mapData.crosswalkLayers,
+        'Signal': mapData.signalLayers,
         'Other': mapData.otherLayers
     };
     return mapData;
