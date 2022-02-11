@@ -112,46 +112,34 @@ function UtilitiesMisc (JSON) {
             'Walk': {
                 'id': 'Walk',
                 'text': 'Walk',
-                shortcut: {
-                    keyNumber: 69,
-                    keyChar: 'E'
-                }
+                keyChar: 'E'
             },
             CurbRamp: {
                 id: 'CurbRamp',
                 text: 'Curb Ramp',
-                shortcut: {
-                    keyNumber: 67,
-                    keyChar: 'C'
-                },
+                keyChar: 'C',
                 tagInfo: {
                     'narrow': {
-                        keyNumber: 87,
                         keyChar: 'W',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
                     'points into traffic': {
-                        keyNumber: 80,
                         keyChar: 'P',
                         text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
                     'missing friction strip': {
-                        keyNumber: 70,
                         keyChar: 'F',
                         text: i18next.t('center-ui.context-menu.tag.missing-friction-strip')
                     },
                     'steep': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.steep')
                     },
                     'not enough landing space': {
-                        keyNumber: 76,
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.not-enough-landing-space')
                     },
                     'not level with street': {
-                        keyNumber: 86,
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.not-level-with-street')
                     }
@@ -160,23 +148,17 @@ function UtilitiesMisc (JSON) {
             NoCurbRamp: {
                 id: 'NoCurbRamp',
                 text: 'Missing Curb Ramp',
-                shortcut: {
-                    keyNumber: 77,
-                    keyChar: 'M'
-                },
+                keyChar: 'M',
                 tagInfo: {
                     'alternate route present': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.alternate-route-present')
                     },
                     'no alternate route': {
-                        keyNumber: 76,
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.no-alternate-route')
                     },
                     'unclear if needed': {
-                        keyNumber: 85,
                         keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.unclear-if-needed')
                     }
@@ -185,78 +167,61 @@ function UtilitiesMisc (JSON) {
             Obstacle: {
                 id: 'Obstacle',
                 text: 'Obstacle in Path',
-                shortcut: {
-                    keyNumber: 79,
-                    keyChar: 'O'
-                },
+                keyChar: 'O',
                 tagInfo: {
                     'trash/recycling can': {
-                        keyNumber: 72,
                         keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.trash-recycling-can')
                     },
                     'fire hydrant': {
-                        keyNumber: 70,
                         keyChar: 'F',
                         text: i18next.t('center-ui.context-menu.tag.fire-hydrant')
                     },
                     'pole': {
-                        keyNumber: 80,
                         keyChar: 'P',
                         text: i18next.t('center-ui.context-menu.tag.pole')
                     },
                     'tree': {
-                        keyNumber: 69,
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.tree')
                     },
                     'vegetation': {
-                        keyNumber: 86,
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.vegetation')
                     },
                     'parked car': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
-                        keyNumber: 75,
                         keyChar: 'K',
                         text: i18next.t('center-ui.context-menu.tag.parked-bike')
                     },
                     'construction': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.construction')
                     },
                     'sign': {
-                        keyNumber: 73,
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.sign')
                     },
                     'garage entrance': {
-                        keyNumber: 71,
                         keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.garage-entrance')
                     },
                     'stairs': {
-                        keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.stairs')
                     },
                     'street vendor': {
-                        keyNumber: 85,
                         keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.street-vendor')
                     },
                     'height difference': {
-                        keyNumber: 68,
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
                     },
                     'narrow': {
-                        keyNumber: 87,
                         keyChar: 'W',
                         text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     }
@@ -265,53 +230,41 @@ function UtilitiesMisc (JSON) {
             SurfaceProblem: {
                 id: 'SurfaceProblem',
                 text: 'Surface Problem',
-                shortcut: {
-                    keyNumber: 83,
-                    keyChar: 'S'
-                },
+                keyChar: 'S',
                 tagInfo: {
                     'bumpy': {
-                        keyNumber: 80,
                         keyChar: 'P',
                         text: i18next.t('center-ui.context-menu.tag.bumpy')
                     },
                     'uneven/slanted': {
-                        keyNumber: 85,
                         keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.uneven-slanted')
                     },
                     'cracks': {
-                        keyNumber: 75,
                         keyChar: 'K',
                         text: i18next.t('center-ui.context-menu.tag.cracks')
                     },
                     'grass': {
-                        keyNumber: 71,
                         keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.grass')
                     },
                     'narrow sidewalk': {
-                        keyNumber: 87,
                         keyChar: 'W',
                         text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     },
                     'brick': {
-                        keyNumber: 73,
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.brick')
                     },
                     'construction': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.construction')
                     },
                     'very broken': {
-                        keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.very-broken')
                     },
                     'height difference': {
-                        keyNumber: 68,
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
                     }
@@ -320,33 +273,25 @@ function UtilitiesMisc (JSON) {
             NoSidewalk: {
                 id: 'NoSidewalk',
                 text: 'No Sidewalk',
-                shortcut: {
-                    keyNumber: 78,
-                    keyChar: 'N'
-                },
+                keyChar: 'N',
                 tagInfo: {
                     'ends abruptly': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.ends-abruptly')
                     },
                     'street has a sidewalk': {
-                        keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk')
                     },
                     'street has no sidewalks': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks')
                     },
                     'gravel/dirt road': {
-                        keyNumber: 68,
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.gravel-dirt-road')
                     },
                     'shared pedestrian/car space': {
-                        keyNumber: 80,
                         keyChar: 'P',
                         text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space')
                     }
@@ -355,18 +300,13 @@ function UtilitiesMisc (JSON) {
             Crosswalk: {
                 id: 'Crosswalk',
                 text: 'Crosswalk',
-                shortcut: {
-                    keyNumber: 87,
-                    keyChar: 'W'
-                },
+                keyChar: 'W',
                 tagInfo: {
                     'paint fading': {
-                        keyNumber: 70,
                         keyChar: 'F',
                         text: i18next.t('center-ui.context-menu.tag.paint-fading')
                     },
                     'paint not fading': {
-                        keyNumber: 80,
                         keyChar: 'P',
                         text: i18next.t('center-ui.context-menu.tag.paint-not-fading')
                     }
@@ -375,18 +315,13 @@ function UtilitiesMisc (JSON) {
             Signal: {
                 id: 'Signal',
                 text: 'Pedestrian Signal',
-                shortcut: {
-                    keyNumber: 80,
-                    keyChar: 'P'
-                },
+                keyChar: 'P',
                 tagInfo: {
                     'has button': {
-                        keyNumber: 72,
                         keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.has-button')
                     },
                     'button waist height': {
-                        keyNumber: 87,
                         keyChar: 'W',
                         text: i18next.t('center-ui.context-menu.tag.button-waist-height')
                     }
@@ -397,12 +332,10 @@ function UtilitiesMisc (JSON) {
                 text: 'Other',
                 tagInfo: {
                     'missing crosswalk': {
-                        keyNumber: 73,
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.missing-crosswalk')
                     },
                     'no bus stop access': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.no-bus-stop-access')
                     }
@@ -411,10 +344,7 @@ function UtilitiesMisc (JSON) {
             Occlusion: {
                 id: 'Occlusion',
                 text: "Can't see the sidewalk",
-                shortcut: {
-                    keyNumber: 66,
-                    keyChar: 'B'
-                }
+                keyChar: 'B'
             }
         };
         return category ? descriptions[category] : descriptions;

@@ -180,7 +180,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 // e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk, w: Crosswalk,
                 // p: Signal, b: Occlusion
                 for (const mode of ['Walk', 'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal', 'Occlusion']) {
-                    if (e.keyCode === util.misc.getLabelDescriptions(mode)['shortcut']['keyNumber']) {
+                    if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)['keyChar']) {
                         if (mode !== 'Walk') _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch(mode);
                         svl.tracker.push("KeyboardShortcut_ModeSwitch_" + mode, {
@@ -222,7 +222,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     var labelType = contextMenu.getTargetLabel().getProperty('labelType');
                     var tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
                     for (const tag of tags) {
-                        if (e.keyCode == util.misc.getLabelDescriptions(labelType)['tagInfo'][tag.tag]['keyNumber']) {
+                        if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType)['tagInfo'][tag.tag]['keyChar']) {
                             $('.tag-id-' + tag.tag_id).first().trigger("click", {lowLevelLogging: false});
                         }
                     }

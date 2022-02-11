@@ -209,7 +209,7 @@ function Main (params) {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'top',
-                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['keyChar']})
                 });
             }
         });
@@ -221,7 +221,7 @@ function Main (params) {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'left',
-                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['keyChar']})
                 });
             }
         });
