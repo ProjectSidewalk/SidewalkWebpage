@@ -24,7 +24,6 @@ WHERE tag.label_type_id = label_type.label_type_id
 -- Delete everything else that can be associated with the labels created with the label types we remove here.
 TRUNCATE TABLE global_clustering_session CASCADE;
 TRUNCATE TABLE user_clustering_session CASCADE;
-TRUNCATE TABLE user_stat;
 
 DELETE FROM validation_task_comment
 USING mission, label_type
