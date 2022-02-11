@@ -126,10 +126,11 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
                 var connectorWidth = parseInt(uiRibbonMenu.connector.css('border-left-width'));
                 var panoBorderWidth = parseInt(uiRibbonMenu.streetViewHolder.css('border-left-width'));
-                var currLabelType
+                var selectedType = mode === 'Occlusion' ? 'Other' : mode;
+                var currLabelType;
                 $.each(uiRibbonMenu.buttons, function (i, v) {
-                    currLabelType = $(v).attr("val");
-                    if (currLabelType === mode) {
+                    currLabelType = $(v).attr('val');
+                    if (currLabelType === selectedType) {
                         var buttonLeft = $(this).position().left;
                         var buttonWidth = $(this).width();
                         var connectorLeft = buttonLeft + buttonWidth / 2 - panoBorderWidth - connectorWidth / 2;
