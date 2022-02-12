@@ -203,6 +203,8 @@
         "label-shortcuts-obstacle": "You can also press the <kbd>{{key}}</kbd> key for selecting the Obstacle label.",
         "label-shortcuts-surface-problem": "You can also press the <kbd>{{key}}</kbd> key for selecting the Surface Problem label.",
         "label-shortcuts-no-sidewalk": "You can also press the <kbd>{{key}}</kbd> key for selecting the No Sidewalk label.",
+        "label-shortcuts-crosswalk": "You can also press the <kbd>{{key}}</kbd> key for selecting the Crosswalk label.",
+        "label-shortcuts-signal": "You can also press the <kbd>{{key}}</kbd> key for selecting the Pedestrian Signal label.",
         "label-shortcuts-occlusion": "You can also press the <kbd>{{key}}</kbd> key for selecting the Can't See the Sidewalk label.",
         "still-stuck": "If you're still stuck, click the Stuck button again.",
         "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street."
