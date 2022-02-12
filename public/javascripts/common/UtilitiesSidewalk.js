@@ -120,11 +120,11 @@ function UtilitiesMisc (JSON) {
                 keyChar: 'C',
                 tagInfo: {
                     'narrow': {
-                        keyChar: 'W',
+                        keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
                     'points into traffic': {
-                        keyChar: 'P',
+                        keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
                     'missing friction strip': {
@@ -178,7 +178,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.fire-hydrant')
                     },
                     'pole': {
-                        keyChar: 'P',
+                        keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.pole')
                     },
                     'tree': {
@@ -190,7 +190,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.vegetation')
                     },
                     'parked car': {
-                        keyChar: 'A',
+                        keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
@@ -222,8 +222,8 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
                     },
                     'narrow': {
-                        keyChar: 'W',
-                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.narrow')
                     }
                 }
             },
@@ -233,7 +233,7 @@ function UtilitiesMisc (JSON) {
                 keyChar: 'S',
                 tagInfo: {
                     'bumpy': {
-                        keyChar: 'P',
+                        keyChar: 'Y',
                         text: i18next.t('center-ui.context-menu.tag.bumpy')
                     },
                     'uneven/slanted': {
@@ -249,8 +249,8 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.grass')
                     },
                     'narrow sidewalk': {
-                        keyChar: 'W',
-                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
                     'brick': {
                         keyChar: 'I',
@@ -292,7 +292,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.gravel-dirt-road')
                     },
                     'shared pedestrian/car space': {
-                        keyChar: 'P',
+                        keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space')
                     }
                 }
@@ -307,7 +307,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.paint-fading')
                     },
                     'paint not fading': {
-                        keyChar: 'P',
+                        keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.paint-not-fading')
                     }
                 }
@@ -318,11 +318,11 @@ function UtilitiesMisc (JSON) {
                 keyChar: 'P',
                 tagInfo: {
                     'has button': {
-                        keyChar: 'H',
+                        keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.has-button')
                     },
                     'button waist height': {
-                        keyChar: 'W',
+                        keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.button-waist-height')
                     }
                 }
