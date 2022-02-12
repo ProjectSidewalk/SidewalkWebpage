@@ -12,7 +12,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     var self = {className: 'RibbonMenu'},
         properties = {
             buttonDefaultBorderColor: "transparent",
-            originalBackgroundColor: "white"
+            originalBorderColor: "transparent"
         },
         status = {
             disableModeSwitch: false,
@@ -37,15 +37,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         blinkInterval;
 
     function _init() {
-        var browser = getBrowser();
-        if (browser === 'mozilla') {
-            properties.originalBackgroundColor = "-moz-linear-gradient(center top , #fff, #eee)";
-        } else if (browser === 'msie') {
-            properties.originalBackgroundColor = "#ffffff";
-        } else {
-            properties.originalBackgroundColor = "-webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee))";
-        }
-
         // Initialize the jQuery DOM elements
         if (uiRibbonMenu) {
             setLabelTypeButtonBorderColors(status.mode);
@@ -272,10 +263,10 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                 Other: true
             };
             if (uiRibbonMenu) {
-                uiRibbonMenu.buttons.css('opacity', 0.5);
+                uiRibbonMenu.buttons.css('opacity', 0.4);
                 uiRibbonMenu.buttons.css('cursor', 'default');
 
-                uiRibbonMenu.subcategories.css('opacity', 0.5);
+                uiRibbonMenu.subcategories.css('opacity', 0.4);
                 uiRibbonMenu.subcategories.css('cursor', 'default');
             }
         }
@@ -305,10 +296,10 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             }
 
             if (button) {
-                $(button).css('opacity', 0.5);
+                $(button).css('opacity', 0.4);
                 $(button).css('cursor', 'default');
                 if (dropdown) {
-                    $(dropdown).css('opacity', 0.5);
+                    $(dropdown).css('opacity', 0.4);
                     $(dropdown).css('cursor', 'default');
                 }
             }
@@ -448,9 +439,9 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     }
 
     function startBlinking(labelType, subLabelType) {
-        var highlighted = false,
-            button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
-            dropdown;
+        var highlighted = false;
+        var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0).children[0];
+        var dropdown;
 
         if (subLabelType) {
             dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
@@ -461,17 +452,13 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             blinkInterval = window.setInterval(function () {
                 if (highlighted) {
                     highlighted = !highlighted;
-                    $(button).css("background", "rgba(255, 255, 0, 1)");
+                    $(button).css("border-color", "rgba(255, 255, 0, 1)");
                     if (dropdown) {
                         $(dropdown).css("background", "rgba(255, 255, 0, 1)");
                     }
-                    // $(button).css("background", "rgba(255, 255, 166, 1)");
-                    // if (dropdown) {
-                    //     $(dropdown).css("background", "rgba(255, 255, 166, 1)");
-                    // }
                 } else {
                     highlighted = !highlighted;
-                    $(button).css("background", getProperty("originalBackgroundColor"));
+                    $(button).css("border-color", getProperty("originalBorderColor"));
                     if (dropdown) {
                         $(dropdown).css("background", "white");
                     }
@@ -480,10 +467,11 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         }
     }
 
-
     function stopBlinking() {
         clearInterval(blinkInterval);
-        uiRibbonMenu.buttons.css("background", getProperty("originalBackgroundColor"));
+        $.each(uiRibbonMenu.buttons, function (i, v) {
+            $(v.children[0]).css("border-color", getProperty("originalBorderColor"));
+        });
         uiRibbonMenu.subcategories.css("background", "white");
     }
 
