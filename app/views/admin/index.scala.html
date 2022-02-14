@@ -597,16 +597,13 @@
                             <div id="validation-count-chart"></div>
                         </div>
 
-                        <h2>Validations per User</h2>
+                        <h2># Own Labels Validated per User</h2>
                         <div class="col-lg-12">
                             <p>
                                 <span>Standard Deviation (all users): </span><span id="all-validation-std"></span><br>
                                 <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>
                                 <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>
                                 <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>
-                                <span>
-                                    Note: We only consider anonymous users who have completed at least one validation task.
-                                </span>
                             </p>
                         </div>
                         <div class="col-lg-12">
@@ -623,7 +620,7 @@
                                         <th>Total</th>
                                         <th>Agreed</th>
                                         <th>Disagreed</th>
-                                        <th>Unsure</th>
+                                        <th>Notsure</th>
                                     </tr>
                                     <tr>
                                         <th>Overall</th>
@@ -689,13 +686,13 @@
                                     <th class="col-md-2">Description</th>
                                     <th class="col-md-1">Agree</th>
                                     <th class="col-md-1">Disagree</th>
-                                    <th class="col-md-1">Unsure</th>
+                                    <th class="col-md-1">Notsure</th>
                                     <th class="col-md-1">GSV</th>
                                 </tr>
                                 </thead>
                                 <!-- using this id to locate the labelTags so we can insert the tags-->
                                 <tbody id = 'labelRows'>
-                                    @LabelTable.getRecentLabelMetadataWithValidations(5000, user.get.userId.toString).map { label =>
+                                    @LabelTable.getRecentLabelsMetadata(5000).map { label =>
                                         <tr>
                                             <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                             </td>
@@ -707,7 +704,7 @@
                                             <td>@label.description</td>
                                             <td>@label.validations("agree")</td>
                                             <td>@label.validations("disagree")</td>
-                                            <td>@label.validations("unclear")</td>
+                                            <td>@label.validations("notsure")</td>
                                             <td>
                                                 <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
                                             </td>
@@ -735,7 +732,7 @@
                                         <th class="col-md-1">Own Labels Validated</th>
                                         <th class="col-md-1">%Own Labels Agree</th>
                                         <th class="col-md-1">%Own Labels Disagree</th>
-                                        <th class="col-md-1">%Own Labels Unsure</th>
+                                        <th class="col-md-1">%Own Labels Notsure</th>
                                         <th class="col-md-1">Others' Labels Validated</th>
                                         <th class="col-md-1">%Others' Labels Agreed</th>
                                         <th class="col-md-2">Date Registered</th>
@@ -773,7 +770,7 @@
                                     <td>@u.ownValidated</td>
                                     <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
                                     <td>@("%.0f".format(u.ownValidatedDisagreedPct * 100))%</td>
-                                    <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
+                                    <td>@("%.0f".format(u.ownValidatedNotsurePct * 100))%</td>
                                     <td>@u.othersValidated</td>
                                     <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
                                     <td class = 'timestamp'>@u.signUpTime</td>

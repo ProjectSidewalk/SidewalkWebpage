@@ -206,18 +206,13 @@ object RegionTable {
     * Gets the region id of the neighborhood wherein the lat-lng point is located, the closest neighborhood otherwise.
     */
   def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Int = db.withSession { implicit session =>
-    val closestNeighborhoodQuery = Q.query[(Float, Float, Float, Float), Int](
+    val closestNeighborhoodQuery = Q.query[(Float, Float), Int](
       """SELECT region_id
-        |FROM region,
-        |     (
-        |         SELECT MIN(st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326))) AS min_dist
-        |         FROM region
-        |         WHERE region.deleted = FALSE
-        |     ) region_dists
-        |WHERE st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326)) = min_dist
-        |    AND deleted = FALSE;
-      """.stripMargin
+        |FROM region
+        |WHERE deleted = FALSE
+        |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
+        |LIMIT 1;""".stripMargin
     )
-    closestNeighborhoodQuery((lng, lat, lng, lat)).first
+    closestNeighborhoodQuery((lng, lat)).first
   }
 }

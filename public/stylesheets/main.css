@@ -105,6 +105,14 @@ footer {
     margin-left: 10px;
 }
 
+.navbar-turker-timer-container {
+    padding-left: 10px;
+}
+
+.navbar-turker-timer-list-container {
+    display: flex;
+}
+
 .navbar-brand.fixed-theme {
     font-size: 18px;
 }
@@ -638,16 +646,18 @@ p#conditional-text {
 }
 
 .collaborator-images-container {
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-auto-flow: column;
+    grid-gap: 20px 50px;
+    align-items: center;
 }
 
 .collaborator-image {
-    padding: 15px;
+    padding: 15px 3% 15px 3%;
 }
 
 .collaborator-image img {
-    height: 220px;
+    width: 100%;
 }
 
 #collaborators-row {

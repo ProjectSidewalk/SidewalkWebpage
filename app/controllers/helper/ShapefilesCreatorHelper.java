@@ -97,9 +97,13 @@ public class ShapefilesCreatorHelper {
                         "the_geom:Point:srid=4326," // the geometry attribute: Point type
                         + "id:Integer," // a attribute ID
                         + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
-                        + "temporary:Boolean" // Temporary flag
+                        + "temporary:Boolean," // Temporary flag
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
+                        + "nNotsure:Integer" // Notsure validations
                 );
 
         /*
@@ -119,6 +123,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng(), a.lat())));
             featureBuilder.add(a.globalAttributeId());
             featureBuilder.add(a.labelType());
+            featureBuilder.add(a.streetEdgeId());
             featureBuilder.add(a.neighborhoodName());
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -127,6 +132,9 @@ public class ShapefilesCreatorHelper {
                 }
             }));
             featureBuilder.add(a.temporary());
+            featureBuilder.add(a.agreeCount());
+            featureBuilder.add(a.disagreeCount());
+            featureBuilder.add(a.notsureCount());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
@@ -148,6 +156,7 @@ public class ShapefilesCreatorHelper {
                         + "labelId:Integer," // label ID
                         + "attribId:Integer," // attribute ID
                         + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -158,7 +167,10 @@ public class ShapefilesCreatorHelper {
                         + "canvasX:Integer," // canvasX position of panorama
                         + "canvasY:Integer," // canvasY position of panorama
                         + "canvasWdth:Integer," // width of source viewfinder
-                        + "canvasHght:Integer" // height of source viewfinder
+                        + "canvasHght:Integer," // height of source viewfinder
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
+                        + "nNotsure:Integer" // Notsure validations
                 );
 
 
@@ -177,10 +189,11 @@ public class ShapefilesCreatorHelper {
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
         for(GlobalAttributeWithLabelForAPI l : labels){
-            featureBuilder.add(geometryFactory.createPoint(new Coordinate((double) l.labelLng(), (double) l.labelLat())));
+            featureBuilder.add(geometryFactory.createPoint(new Coordinate(Double.parseDouble(l.labelLatLng()._2.toString()), Double.parseDouble(l.labelLatLng()._1.toString()))));
             featureBuilder.add(l.labelId());
             featureBuilder.add(l.globalAttributeId());
             featureBuilder.add(l.labelType());
+            featureBuilder.add(l.streetEdgeId());
             featureBuilder.add(l.neighborhoodName());
             featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -193,10 +206,13 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.heading());
             featureBuilder.add(l.pitch());
             featureBuilder.add(l.zoom());
-            featureBuilder.add(l.canvasX());
-            featureBuilder.add(l.canvasY());
+            featureBuilder.add(l.canvasXY()._1);
+            featureBuilder.add(l.canvasXY()._2);
             featureBuilder.add(l.canvasWidth());
             featureBuilder.add(l.canvasHeight());
+            featureBuilder.add(l.agreeCount());
+            featureBuilder.add(l.disagreeCount());
+            featureBuilder.add(l.notsureCount());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }

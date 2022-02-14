@@ -75,9 +75,11 @@ function TagDisplay(container, tags, isModal=false) {
                     tagEl.title = tagsText[i];
                 } else {
                     // If the tag does not fit at all, add it to the list of hidden tags to show in the popover.
-                    tagEl.remove();
-                    tagEl.classList.add("not-added");
-                    hiddenTags.push(tagEl);
+                    if (!isModal) {
+                        tagEl.remove();
+                        tagEl.classList.add("not-added");
+                        hiddenTags.push(tagEl);
+                    }
                 }
             }
 
