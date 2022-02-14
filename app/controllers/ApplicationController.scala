@@ -366,7 +366,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery = UserAwareAction.async { implicit request =>
+  def gallery(label: Option[String], severity: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -387,7 +387,22 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           val visible: String = Play.configuration.getString("city-params.status." + city).get
           (city, name + ", " + state, cityURL, visible)
         }
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls)))
+        val labels: List[(String, String)] = List(
+          ("Assorted", Messages("gallery.all")),
+          ("CurbRamp", Messages("curb.ramp")),
+          ("NoCurbRamp", Messages("missing.ramp")),
+          ("Obstacle", Messages("obstacle")),
+          ("SurfaceProblem", Messages("surface.problem")),
+          ("Occlusion", Messages("gallery.occlusion")),
+          ("NoSidewalk", Messages("no.sidewalk")),
+          ("Other", Messages("other"))
+        )
+        val realLabel = if (labels.exists(x => {x._1 == label.getOrElse("Assorted")})) {
+          label.getOrElse("Assorted")
+        } else {
+          "Assorted"
+        }
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, realLabel, labels, List())))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
         Future.successful(Redirect("/anonSignUp?url=/gallery"))

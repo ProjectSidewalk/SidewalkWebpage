@@ -13,7 +13,7 @@ function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
 
     let status = {
         currentCityType: cityMenu.getCurrentCityType(),
-        currentLabelType: 'Assorted'
+        currentLabelType: "Assorted"
     };
 
     // Map label type to their collection of tags.
@@ -69,7 +69,7 @@ function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
         let currentCityType = cityMenu.getCurrentCityType();
         if (status.currentCityType !== currentCityType) {
             // Future: add URI parameters to link
-            window.location.href = currentCityType + '/gallery';
+            window.location.href = currentCityType + '/gallery?label=' + status.currentLabelType;
         } else {
             let currentLabelType = ribbonMenu.getCurrentLabelType();
             if (status.currentLabelType !== currentLabelType) {

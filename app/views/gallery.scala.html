@@ -1,9 +1,8 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], label: String, labels: List[(String, String)], severity: List[Int])(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("/javascripts/common/Utilities.js")'></script>
@@ -20,15 +19,9 @@
                         <h4><b>@Messages("gallery.city")</b></h4>
                         <select id="city-select" disabled>
                             @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
-                                @if(cityId == id) {
-                                    <option value="@cityURL" selected="selected">
-                                        @cityName.replace(" ", " ")
-                                    </option>
-                                } else {
-                                    <option value="@cityURL">
-                                        @cityName.replace(" ", " ")
-                                    </option>
-                                }
+                                <option value="@cityURL" selected="@(cityId==id)">
+                                    @cityName
+                                </option>
                             }
                         </select>
                     </span>
@@ -37,15 +30,18 @@
                 <div id="ribbon-menu-holder">
                     <span id="label-type-holder">
                         <h4><b>@Messages("gallery.show")</b></h4>
-                        <select id="label-select" autocomplete="off" disabled>
-                            <option value="Assorted">@Messages("gallery.all")</option>
-                            <option value="CurbRamp">@Messages("curb.ramp")</option>
-                            <option value="NoCurbRamp">@Messages("missing.ramp")</option>
-                            <option value="Obstacle">@Messages("obstacle")</option>
-                            <option value="SurfaceProblem">@Messages("surface.problem")</option>
-                            <option value="Occlusion">@Messages("gallery.occlusion")</option>
-                            <option value="NoSidewalk">@Messages("no.sidewalk")</option>
-                            <option value="Other">@Messages("other")</option>
+                        <select id="label-select" disabled>
+                            @for((value, message) <- labels) {
+                                @if(value == label) {
+                                    <option value="@value" selected>
+                                        @message
+                                    </option>
+                                } else {
+                                    <option value="@value">
+                                        @message
+                                    </option>
+                                }
+                            }
                         </select>
                     </span>
                 </div>

@@ -5,7 +5,7 @@
  * @returns {Severity}
  * @constructor
  */
-function Severity (params){
+function Severity (params, active){
     let self = this;
 
     // UI element of the severity container and image.
@@ -18,7 +18,7 @@ function Severity (params){
     };
 
     // A boolean to see if the current severity filter is active.
-    let filterActive = false;
+    let filterActive = active;
 
     /**
      * Initialize Severity.
@@ -35,8 +35,12 @@ function Severity (params){
         severityImage.className = 'gallery-severity-image';
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
-        _showDeselected();
-
+        if (filterActive) {
+            _showSelected();
+        } else {
+            _showDeselected();
+        }
+        
         severityElement.appendChild(severityImage);
 
         // Show inverted smiley face on click or hover.

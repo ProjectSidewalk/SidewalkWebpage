@@ -16,7 +16,7 @@ function SeverityBucket(inputSeverities) {
      */
     function _init() {
         for(let i = 1; i <= 5; i++ ){
-            push(new Severity(i));
+            push(new Severity(i, false));
         }
     }
 

@@ -69,10 +69,10 @@ function Main (params) {
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
         sg.ribbonMenu = new RibbonMenu(sg.ui.ribbonMenu);
+        
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu, sg.cityMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
-
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
         sg.tracker = new Tracker();
@@ -81,6 +81,8 @@ function Main (params) {
 
         let sidebarWrapper = sg.ui.cardFilter.wrapper;
         let sidebarWidth = sidebarWrapper.css('width');
+
+        sg.ui.ribbonMenu.select.change();
 
         // Handle sidebar and expanded view stickiness while scrolling.
         $(window).scroll(function () {
@@ -136,7 +138,7 @@ function Main (params) {
                     $('.gallery-modal').css('top', $(window).scrollTop());
                 }
             }
-        }); 
+        });
     }
 
     // Gets all the text on the gallery page for the correct language.
@@ -154,6 +156,6 @@ function Main (params) {
         _initUI();
         _init();
     });
-
+    
     return self;
 }
