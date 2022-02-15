@@ -17,6 +17,16 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
+case class OsmStreet(osmWayStreetEdgeId: Int, osmWayId: Int, streetEdgeId: Int)
+
+class OsmStreetTable(tag: slick.lifted.Tag) extends Table[OsmStreet](tag, Some("sidewalk"), "osm_way_street_edge") {
+  def osmWayStreetEdgeId = column[Int]("osm_way_street_edge_id", O.NotNull)
+  def osmWayId = column[Int]("osm_way_id", O.NotNull)
+  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
+
+  def * = (osmWayStreetEdgeId, osmWayId, streetEdgeId) <> ((OsmStreet.apply _).tupled, OsmStreet.unapply)
+}
+
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
@@ -59,6 +69,7 @@ object StreetEdgeTable {
   val userRoles = TableQuery[UserRoleTable]
   val userTable = TableQuery[UserTable]
   val roleTable = TableQuery[RoleTable]
+  val osmStreetTable = TableQuery[OsmStreetTable]
   val completedAuditTasks = auditTasks.filter(_.completed === true)
 
   val turkerCompletedAuditTasks = for {
@@ -175,20 +186,18 @@ object StreetEdgeTable {
   }
 
   /**
-    * Finds the OSM IDs of all streets.
+    * Finds the OSM ID of the street with the street edge ID streetEdgeId.
     * 
-    * @return The OSM IDs of all streets.
+    * @return the OSM ID of the street with the street edge ID streetEdgeId.
     */
-  def OsmStreetIds(streetEdgeId: Int): Int = db.withSession { implicit session =>
-    case class OSM(osm_way_street_edge_id:Int, osm_way_id:Int, street_edge_id:Int)
-    implicit val getUserResult = GetResult(r => OSM(r.<<, r.<<, r.<<))
-    val getDistanceQuery = Q.queryNA[OSM](
-      s"""SELECT * FROM osm_way_street_edge
-         WHERE street_edge_id='$streetEdgeId'
-      """);
-    getDistanceQuery.first.osm_way_id;
+  def osmStreetIds(streetEdgeId: Int): Int = db.withSession { implicit session =>
+    val getOsmQuery = Q.queryNA[Int](
+      s"""SELECT osm_way_street_edge.osm_way_id
+          |FROM osm_way_street_edge
+          |WHERE street_edge_id='$streetEdgeId'""".stripMargin
+    )
+    getOsmQuery.first;
   }
-
 
   /**
     * Calculates the distance audited today by all users.

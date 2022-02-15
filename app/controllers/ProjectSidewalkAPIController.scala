@@ -122,9 +122,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val file = new java.io.File("access_attributes_with_labels.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID," +
-        "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude," +
-        "Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity," +
-        "Label Temporary,Agree Count,Disagree Count,Not Sure Count"
+        "OSM Street ID,Neighborhood Name,Label ID,Panorama ID,Attribute Latitude," + 
+        "Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y," +
+        "Canvas Width,Canvas Height,Label Severity,Label Temporary,Agree Count,Disagree Count,Not Sure Count"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
@@ -177,7 +177,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val accessAttributesfile = new java.io.File("access_attributes.csv")
       val writer = new java.io.PrintStream(accessAttributesfile)
       // Write column headers.
-      writer.println("Attribute ID,Label Type,Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count")
+      writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count")
       // Write each rown in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         writer.println(current.attributesToArray.mkString(","))
@@ -635,7 +635,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val attributes = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
       val significance = Array(0.75, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(attributes, significance)
-      val osmId = StreetEdgeTable.OsmStreetIds(edge.streetEdgeId);
+      val osmId = StreetEdgeTable.osmStreetIds(edge.streetEdgeId);
       AccessScoreStreet(edge, osmId, accessScore, attributes, significance)
     }
     streetAccessScores
