@@ -101,6 +101,8 @@
             "other": "Label mode",
             "occlusion": "Label een <span class=\"underline\"> deel van het trottoir dat niet kan worden gezien</span>",
             "no-sidewalk": "Label een <span class=\"underline\">ontbrekend trottoir</span>",
+            "crosswalk": "Localiseer en label een <span class=\"underline\">oversteekplaats</span>",
+            "signal": "Localiseer en label een <span class=\"underline\">verkeerslicht</span>",
             "explain": "Leg dit uit!"
         }
     },
@@ -129,7 +131,7 @@
                 "unclear-if-needed": "ond<tag-underline>u</tag-underline>idelijk of het nodig is",
                 "trash-recycling-can": "vuilnisbak (<tag-underline>h</tag-underline>)",
                 "fire-hydrant": "brandkraan (<tag-underline>f</tag-underline>)",
-                "pole": "<tag-underline>p</tag-underline>aal",
+                "pole": "paa<tag-underline>l</tag-underline>",
                 "tree": "boom (<tag-underline>e</tag-underline>)",
                 "vegetation": "<tag-underline>v</tag-underline>egetatie",
                 "parked-car": "gepa<tag-underline>r</tag-underline>keerde auto",
@@ -150,6 +152,10 @@
                 "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>raat heeft geen trottoir",
                 "gravel-dirt-road": "gravel/zand weg (<tag-underline>d</tag-underline>)",
                 "shared-pedestrian-car-space": "g<tag-underline>e</tag-underline>deeld voetganger/auto gebied",
+                "paint-fading": "ver<tag-underline>f</tag-underline> vervaagd",
+                "paint-not-fading": "verf nie<tag-underline>t</tag-underline> vervaagd",
+                "has-button": "heeft een knop (<tag-underline>u</tag-underline>)",
+                "button-waist-height": "knop op <tag-underline>h</tag-underline>euphoogte",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
                 "no-bus-stop-access": "geen bush<tag-underline>a</tag-underline>lte toegang",
                 "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)"

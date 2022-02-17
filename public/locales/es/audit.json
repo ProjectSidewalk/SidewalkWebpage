@@ -99,6 +99,8 @@
             "other": "Modo de etiqueta",
             "occlusion": "Etiqueta una <span class=\"underline\">parte de una banqueta que no se puede observar</span>",
             "no-sidewalk": "Etiqueta una <span class=\"underline\">banqueta ausente</span>",
+            "crosswalk": "Localizar y etiquetar un <span class=\"underline\">cruce peatonal</span>",
+            "signal": "Localizar y etiquetar un <span class=\"underline\">señalamiento peatonal</span>",
             "explain": "¡Explica esto!"
         }
     },
@@ -148,6 +150,10 @@
                 "street-has-no-sidewalks": "la calle no <tag-underline>t</tag-underline>iene banquetas",
                 "gravel-dirt-road": "camino <tag-underline>d</tag-underline>e tierra",
                 "shared-pedestrian-car-space": "plataforma única (<tag-underline>e</tag-underline>)",
+                "paint-fading": "cruce despintado (<tag-underline>f</tag-underline>)",
+                "paint-not-fading": "cruce bien pin<tag-underline>t</tag-underline>ado",
+                "has-button": "tiene botón (<tag-underline>u</tag-underline>)",
+                "button-waist-height": "botón a la altura de la cintura (<tag-underline>h</tag-underline>)",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús",
                 "height-difference": "<tag-underline>d</tag-underline>esnivel"

@@ -71,6 +71,10 @@
     "gravel/dirt road": "gavel/zand weg",
     "shared pedestrian/car space": "gedeeld voetganger/auto gebied",
     "height difference": "hoogte verschil",
+    "paint fading": "verf vervaagd",
+    "paint not fading": "verf niet vervaagd",
+    "has button": "heeft een knop",
+    "button waist height": "knop op heuphoogte",
     "missing crosswalk": "missend zebrapad",
     "no bus stop access": "geen bushalte toegang"
   },
