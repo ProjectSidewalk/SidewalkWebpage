@@ -71,8 +71,6 @@ function Main (params) {
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
         sg.tracker = new Tracker();
 
-        sg.util = {};
-
         let sidebarWrapper = sg.ui.cardFilter.wrapper;
         let sidebarWidth = sidebarWrapper.css('width');
 

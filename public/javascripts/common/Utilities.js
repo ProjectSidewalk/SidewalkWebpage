@@ -147,3 +147,9 @@ function getOperatingSystem () {
     return OSName;
 }
 util.getOperatingSystem = getOperatingSystem;
+
+// Changes a string in camelCase to kebab-case.
+function camelToKebab (theString) {
+    return theString.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+}
+util.camelToKebab = camelToKebab;

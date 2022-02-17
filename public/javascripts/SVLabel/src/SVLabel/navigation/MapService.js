@@ -226,7 +226,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
             google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
             google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
-            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
+            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", switchToExploreMode);
         }
 
         // Connect the map view and panorama view.
@@ -1065,7 +1065,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-    function modeSwitchLabelClick() {
+    // Moves label drawing layer to the top and hides navigation arrows.
+    function switchToLabelingMode() {
         uiMap.drawingLayer.css('z-index','1');
         uiMap.viewControlLayer.css('z-index', '0');
 
@@ -1075,10 +1076,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         hideLinks();
     }
 
-    /**
-     * This function brings a div element for drawing labels to the front.
-     */
-    function modeSwitchWalkClick() {
+    // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
+    function switchToExploreMode() {
         uiMap.viewControlLayer.css('z-index', '1');
         uiMap.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {
@@ -1182,7 +1181,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function showNavigationArrows() {
         // A bit redundant, but as long as the link arrows have not been moved to user control layer, keep calling the
-        // modeSwitchWalkClick() to bring arrows to the top layer. Once loaded, set svLinkArrowsLoaded to true.
+        // makeArrowsAndLinksClickable() to bring arrows to the top layer. Once loaded, set svLinkArrowsLoaded to true.
         if (!status.svLinkArrowsLoaded) {
             var numPath = uiMap.viewControlLayer.find("path").length;
             if (numPath === 0) {
@@ -1416,8 +1415,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.hideLinks = hideLinks;
     self.lockDisablePanning = lockDisablePanning;
     self.lockDisableWalking = lockDisableWalking;
-    self.modeSwitchLabelClick = modeSwitchLabelClick;
-    self.modeSwitchWalkClick = modeSwitchWalkClick;
+    self.switchToLabelingMode = switchToLabelingMode;
+    self.switchToExploreMode = switchToExploreMode;
     self.moveToTheTaskLocation = moveToTheTaskLocation;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
     self.restrictViewPort = restrictViewPort;

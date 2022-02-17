@@ -31,12 +31,9 @@ function Canvas(ribbon) {
 
     var pointParameters = {
         'fillStyleInnerCircle': 'rgba(0,0,0,1)', // labelColor.fillStyle,
-        'lineWidthOuterCircle': 2,
         'iconImagePath': undefined, // iconImagePath,
         'radiusInnerCircle': 5, //13,
-        'radiusOuterCircle': 6, //14,
-        'strokeStyleOuterCircle': 'rgba(255,255,255,1)',
-        'storedInDatabase': false
+        'radiusOuterCircle': 6, //14
     };
 
     var status = {
@@ -92,7 +89,7 @@ function Canvas(ribbon) {
             properties.pointInnerCircleRadius = 5;
             properties.pointOuterCircleRadius = 6;
         } else {
-            properties.pointInnerCircleRadius = 13;
+            properties.pointInnerCircleRadius = 17;
             properties.pointOuterCircleRadius = 14;
         }
     }
@@ -320,11 +317,11 @@ function Canvas(ribbon) {
         mouseStatus.currY = mousePosition.y;
 
         // Change a cursor according to the label type.
-        var cursorImagePaths = util.misc.getLabelCursorImagePath(),
-            labelType = ribbon.getStatus('mode');
+        var iconImagePaths = util.misc.getIconImagePaths();
+        var labelType = ribbon.getStatus('mode');
         if (labelType) {
-            var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
-            var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
+            var iconImagePath = iconImagePaths[labelType].iconImagePath;
+            var cursorUrl = "url(" + iconImagePath + ") 19 19, auto";
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }

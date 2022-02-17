@@ -460,7 +460,7 @@ function Label (svl, pathIn, params) {
             severityImage = new Image(),
             severityImagePath = undefined,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
-            msg = i18next.t(properties.labelType + '-description'),
+            msg = i18next.t(util.camelToKebab(properties.labelType) + '-description'),
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
 
@@ -506,7 +506,7 @@ function Label (svl, pathIn, params) {
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
-        ctx.fillStyle = util.color.changeAlphaRGBA(util.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.fillStyle = util.misc.getLabelColors(getProperty('labelType'));
         ctx.strokeStyle = 'rgba(255,255,255,1)';
 
 

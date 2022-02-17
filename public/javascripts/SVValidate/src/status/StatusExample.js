@@ -94,9 +94,9 @@ function StatusExample (statusUI) {
      */
     function _setPopupTitle (id) {
         if (id.includes("counterexample")) {
-            statusUI.popupTitle.html(i18next.t('right-ui.incorrect.' + labelType + ".title"));
+            statusUI.popupTitle.html(i18next.t(`right-ui.incorrect.${util.camelToKebab(labelType)}.title`));
         } else {
-            statusUI.popupTitle.html(i18next.t('right-ui.correct.' + labelType + ".title"));
+            statusUI.popupTitle.html(i18next.t(`right-ui.correct.${util.camelToKebab(labelType)}.title`));
         }
     }
 
