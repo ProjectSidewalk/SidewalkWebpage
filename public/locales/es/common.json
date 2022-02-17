@@ -9,7 +9,7 @@
   "surface-problems": "Problemas en superficie",
   "sidewalk-obstacles": "Obstáculos en la banqueta",
   "complete": "completado",
-  "left-ui-turk-submit-code": "Envía este código para la verificación HIT en Amazon Mechanical Turk",
+  "mturk-code": "Código de Mturk: {{code}}",
   "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
   "right-ui-turk-total-reward": "Recompensa total ganada: ",
   "mission-complete-confirmation-code": "Código de confirmación: ",

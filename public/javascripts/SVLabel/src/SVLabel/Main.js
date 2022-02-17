@@ -576,7 +576,6 @@ function Main (params) {
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
-        svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 
         // Navigation compass
         svl.ui.compass = {};

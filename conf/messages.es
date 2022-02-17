@@ -196,8 +196,7 @@ mobile.validate.leave.feedback = Retroalimentación
 turk.expired.navbar = SE ACABÓ EL TIEMPO
 turk.expired.title = ¡Se acabó el tiempo!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Por favor enviar su código de confirmación en el sitio web de mturk. Si la asignación ya ha vencido, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
-turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
-turk.mturk.code = Código de Mturk
+turk.mturk.code = Código de Mturk:
 turk.reward.earned = Recompensa actual de la misión
 
 authenticate.email = Correo electrónico

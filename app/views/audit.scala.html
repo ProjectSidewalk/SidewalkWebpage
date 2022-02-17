@@ -170,10 +170,6 @@
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
                         <br>@Messages("audit.ribbon.zoom.out")
                     </div>
-@*                    <div id="left-column-confirmation-code-button" class="button">*@
-@*                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon">*@
-@*                        @Messages("turk.mturk.code")*@
-@*                    </div>*@
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon">
@@ -498,7 +494,7 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
-                    @if(user) {
+                    @if(user.isDefined) {
                         @if(user.get.role.getOrElse("") == "Turker") {
                             <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
                         }
@@ -554,7 +550,7 @@
                             <h3>@Messages("audit.mission.complete.progress.title")</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
-                                @if(user) {
+                                @if(user.isDefined) {
                                     @if(user.get.role.getOrElse("") == "Turker") {
                                         <tr>
                                             <th>Earned in this mission</th>
@@ -579,7 +575,7 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            @if(user) {
+                            @if(user.isDefined) {
                                 @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
@@ -975,9 +971,9 @@
         }
 
         function init() {
-            var mainParam = mainParam || {},
-                    formParam = {},
-                    initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
+            var mainParam = mainParam || {};
+            var formParam = {};
+            var initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
@@ -992,42 +988,13 @@
             mainParam.initLat = initialLocation.lat;
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
-            @if(user) {
-                @if(user.get.role.getOrElse("") == "Turker") {
-                    svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
-                    svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
-                        $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                    } else {
-                        $("#left-column-confirmation-code-button").css('visibility', "");
-                        $("#left-column-confirmation-code-button").attr('data-toggle','popover');
-                        $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")k');
-                        $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
-                        $("#left-column-confirmation-code-button").popover();
 
-                        //Hide the confirmation popover on clicking the background
-                        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
-
-                        $(document).on('click', function (e) {
-                            $("#left-column-confirmation-code-button").each(function () {
-                                //the 'is' for buttons that trigger popups
-                                //the 'has' for icons within a button that triggers a popup
-                                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
-                                }
-
-                            });
-                        });
-                    }
-                    $("#current-mission-reward").show();
-                    $("#total-mission-reward").show();
-                    $("#modal-mission-reward-text").show();
-                } else {
-                    $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                }
-            } else {
-                $("#left-column-confirmation-code-button").css('visibility', "hidden");
+            @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
+                svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                $("#current-mission-reward").show();
+                $("#total-mission-reward").show();
+                $("#modal-mission-reward-text").show();
             }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
@@ -1036,9 +1003,9 @@
             mainParam.regionId = @region.regionId;
             mainParam.regionName = '@region.name';
             mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
-            if(@RegionTable.difficultRegionIds.contains(region.regionId)) {
-                   $('#advanced-overlay').show();
-                   mainParam.advancedOverlay = true
+            @if(RegionTable.difficultRegionIds.contains(region.regionId)) {
+                $('#advanced-overlay').show();
+                mainParam.advancedOverlay = true
             }
 
             mainParam.nextTemporaryLabelId = @nextTempLabelId;

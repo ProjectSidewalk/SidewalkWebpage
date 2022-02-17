@@ -196,8 +196,7 @@ mobile.validate.leave.feedback = Geef feedback
 turk.expired.navbar = TIJD IS OP
 turk.expired.title = Tijd is op!
 turk.expired.body = Je zou je bonusbedrag in de komende twee dagen moeten ontvangen. Voer je bevestigingscode in op de mturk-website. Als de opdracht al is verlopen, stuur ons dan een e-mail op <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> met je bevestigingscode
-turk.submit.code = Dien deze code in voor HIT-verificatie op Amazon Mechanical Turk
-turk.mturk.code = Mturk Code
+turk.mturk.code = Mturk Code:
 turk.reward.earned = Totaal verdiende beloning
 
 authenticate.email = Email-adres
