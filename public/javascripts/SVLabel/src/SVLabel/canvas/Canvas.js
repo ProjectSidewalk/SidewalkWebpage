@@ -317,11 +317,11 @@ function Canvas(ribbon) {
         mouseStatus.currY = mousePosition.y;
 
         // Change a cursor according to the label type.
-        var cursorImagePaths = util.misc.getLabelCursorImagePath(),
-            labelType = ribbon.getStatus('mode');
+        var iconImagePaths = util.misc.getIconImagePaths();
+        var labelType = ribbon.getStatus('mode');
         if (labelType) {
-            var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
-            var cursorUrl = "url(" + cursorImagePath + ") 19 19, auto";
+            var iconImagePath = iconImagePaths[labelType].iconImagePath;
+            var cursorUrl = "url(" + iconImagePath + ") 19 19, auto";
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }

@@ -4,51 +4,6 @@ util.misc = util.misc || {};
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 
-    function getLabelCursorImagePath() {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'cursorImagePath' : undefined
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/icons/CurbRamp_small.png'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/icons/NoCurbRamp_small.png'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                cursorImagePath : svl.rootDirectory + 'img/icons/Obstacle_small.png'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                cursorImagePath : svl.rootDirectory + 'img/icons/SurfaceProblem_small.png'
-            },
-            Other: {
-                id: 'Other',
-                cursorImagePath: svl.rootDirectory + 'img/icons/Other_small.png'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                cursorImagePath: svl.rootDirectory + 'img/icons/Occlusion_small.png'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                cursorImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_small.png'
-            },
-            Crosswalk: {
-                id: 'Crosswalk',
-                cursorImagePath: svl.rootDirectory + 'img/icons/Crosswalk_small.png'
-            },
-            Signal: {
-                id: 'Signal',
-                cursorImagePath: svl.rootDirectory + 'img/icons/Signal_small.png'
-            }
-        }
-    }
-
     // Returns image paths corresponding to each label type.
     function getIconImagePaths(category) {
         var imagePaths = {
@@ -454,7 +409,6 @@ function UtilitiesMisc (JSON) {
         return category ? colors[category].fillStyle : colors;
     }
 
-    self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
