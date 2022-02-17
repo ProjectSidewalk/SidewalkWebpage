@@ -12,39 +12,39 @@ function UtilitiesMisc (JSON) {
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/curbRamp_small.png'
+                cursorImagePath : svl.rootDirectory + 'img/icons/CurbRamp_small.png'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/curbRampNeeded_small.png'
+                cursorImagePath : svl.rootDirectory + 'img/icons/NoCurbRamp_small.png'
             },
             Obstacle: {
                 id: 'Obstacle',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/obstacleInPath_small.png'
+                cursorImagePath : svl.rootDirectory + 'img/icons/Obstacle_small.png'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/surfaceProblem_small.png'
+                cursorImagePath : svl.rootDirectory + 'img/icons/SurfaceProblem_small.png'
             },
             Other: {
                 id: 'Other',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/other_small.png'
+                cursorImagePath: svl.rootDirectory + 'img/icons/Other_small.png'
             },
             Occlusion: {
                 id: 'Occlusion',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/cantSeeSidewalk_small.png'
+                cursorImagePath: svl.rootDirectory + 'img/icons/Occlusion_small.png'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.png'
+                cursorImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_small.png'
             },
             Crosswalk: {
                 id: 'Crosswalk',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/crosswalk_small.png'
+                cursorImagePath: svl.rootDirectory + 'img/icons/Crosswalk_small.png'
             },
             Signal: {
                 id: 'Signal',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/pedestrianSignal_small.png'
+                cursorImagePath: svl.rootDirectory + 'img/icons/Signal_small.png'
             }
         }
     }
@@ -59,48 +59,48 @@ function UtilitiesMisc (JSON) {
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                iconImagePath : svl.rootDirectory + 'img/cursors/curbRamp_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/curbRamp_small.resized.png'
+                iconImagePath : svl.rootDirectory + 'img/icons/CurbRamp_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/CurbRamp_tiny.png'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                iconImagePath : svl.rootDirectory + 'img/cursors/curbRampNeeded_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/curbRampNeeded_small.resized.png'
+                iconImagePath : svl.rootDirectory + 'img/icons/NoCurbRamp_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/NoCurbRamp_tiny.png'
             },
             Obstacle: {
                 id: 'Obstacle',
-                iconImagePath: svl.rootDirectory + 'img/cursors/obstacleInPath_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/obstacleInPath_small.resized.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Obstacle_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Obstacle_tiny.png'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                iconImagePath: svl.rootDirectory + 'img/cursors/surfaceProblem_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/surfaceProblem_small.resized.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_tiny.png'
             },
             Other: {
                 id: 'Other',
-                iconImagePath: svl.rootDirectory + 'img/cursors/other_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/other_small.resized.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Other_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Other_tiny.png'
             },
             Occlusion: {
                 id: 'Occlusion',
-                iconImagePath: svl.rootDirectory + 'img/cursors/cantSeeSidewalk_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/cantSeeSidewalk_small.resized.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Occlusion_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Occlusion_tiny.png'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                iconImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/sidewalkNeeded_small.resized.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_tiny.png'
             },
             Crosswalk: {
                 id: 'Crosswalk',
-                iconImagePath: svl.rootDirectory + 'img/cursors/crosswalk_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/crosswalk_small.resized.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_tiny.png'
             },
             Signal: {
                 id: 'Signal',
-                iconImagePath: svl.rootDirectory + 'img/cursors/pedestrianSignal_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/cursors/pedestrianSignal_small.resized.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Signal_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Signal_tiny.png'
             }
         };
 

@@ -2047,7 +2047,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.walk-6-1') +
-                '<img src="' + svl.rootDirectory + 'img/cursors/curbRampNeeded_small.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
+                '<img src="' + svl.rootDirectory + 'img/icons/NoCurbRamp_small.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
                     i18next.t('tutorial.walk-6-2'),
                 "width": 400,
                 "fade-direction": "fadeIn"
