@@ -201,8 +201,8 @@
         "label-shortcuts-obstacle": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta del Obstáculo.",
         "label-shortcuts-surface-problem": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta del Problema en Superficie.",
         "label-shortcuts-no-sidewalk": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Hay Banqueta.",
-        "label-shortcuts-crosswalk": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de Crosswalk.",
-        "label-shortcuts-signal": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de Pedestrian Signal.",
+        "label-shortcuts-crosswalk": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de Cruce peatonal.",
+        "label-shortcuts-signal": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de Señalamiento peatonal.",
         "label-shortcuts-occlusion": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Puedo Ver la Banqueta.",
         "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
         "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle."

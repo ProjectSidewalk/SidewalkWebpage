@@ -203,8 +203,8 @@
         "label-shortcuts-obstacle": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Obstakel label.",
         "label-shortcuts-surface-problem": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Grond Oppervlakte Probleem label.",
         "label-shortcuts-no-sidewalk": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Geen Trottoir label.",
-        "label-shortcuts-crosswalk": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van Crosswalk label.",
-        "label-shortcuts-signal": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van Pedestrian Signal label.",
+        "label-shortcuts-crosswalk": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van Oversteekplaats label.",
+        "label-shortcuts-signal": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van Verkeerslicht label.",
         "label-shortcuts-occlusion": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van 'Het trottoir is niet zichtbaar' label.",
         "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
         "stuck-skipped-street": "We konden geen geschikte plek vinden in deze straat, dus we hebben je naar een nieuwe straat verplaatst."
