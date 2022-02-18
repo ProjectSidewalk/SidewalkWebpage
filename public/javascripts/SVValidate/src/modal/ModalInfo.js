@@ -25,8 +25,9 @@ function ModalInfo (uiModal, modalText) {
     }
 
     function setMissionInfo(mission) {
-        infoHeaderHTML = i18next.t('mobile.info-title-' + svv.labelTypes[mission.getProperty("labelTypeId")]);
-        descriptionHTML = modalText[mission.getProperty("labelTypeId")];
+        let labelTypeId = mission.getProperty("labelTypeId");
+        infoHeaderHTML = i18next.t(`mobile.info-title-${util.camelToKebab(svv.labelTypes[labelTypeId])}`);
+        descriptionHTML = modalText[labelTypeId];
     }
 
     function show () {

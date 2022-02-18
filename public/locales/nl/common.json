@@ -9,7 +9,7 @@
   "surface-problems": "Oppervlakte Problemen",
   "sidewalk-obstacles": "Trottoir Obstakels",
   "complete": "voltooid",
-  "left-ui-turk-submit-code": "Dien deze code in voor HIT verificatie op Amazon Mechanical Turk",
+  "mturk-code": "Mturk Code: {{code}}",
   "right-ui-turk-current-reward": "Huidige missie beloning: ",
   "right-ui-turk-total-reward": "Totaal verdiende beloning: ",
   "mission-complete-confirmation-code": "Bevestigingscode: ",
@@ -71,16 +71,20 @@
     "gravel/dirt road": "gavel/zand weg",
     "shared pedestrian/car space": "gedeeld voetganger/auto gebied",
     "height difference": "hoogte verschil",
+    "paint fading": "verf vervaagd",
+    "paint not fading": "verf niet vervaagd",
+    "has button": "heeft een knop",
+    "button waist height": "knop op heuphoogte",
     "missing crosswalk": "missend zebrapad",
     "no bus stop access": "geen bushalte toegang"
   },
   "gallery": {
-    "CurbRamp": "Trottoir Oprit",
-    "NoCurbRamp": "Ontbrekende Trottoir Oprit",
-    "Obstacle": "Obstakel op het pad",
-    "SurfaceProblem": "Oppervlakte Probleem",
-    "Occlusion": "Trottoir niet zichtbaar",
-    "NoSidewalk" : "Geen Trottoir",
-    "Other": "Anders"
+    "curb-ramp": "Trottoir Oprit",
+    "no-curb-ramp": "Ontbrekende Trottoir Oprit",
+    "obstacle": "Obstakel op het pad",
+    "surface-problem": "Oppervlakte Probleem",
+    "occlusion": "Trottoir niet zichtbaar",
+    "no-sidewalk" : "Geen Trottoir",
+    "other": "Anders"
   }
 }

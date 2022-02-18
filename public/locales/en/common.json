@@ -9,7 +9,7 @@
   "surface-problems": "Surface Problems",
   "sidewalk-obstacles": "Sidewalk Obstacles",
   "complete": "complete",
-  "left-ui-turk-submit-code": "Submit this code for HIT verification on Amazon Mechanical Turk",
+  "mturk-code": "Mturk Code: {{code}}",
   "right-ui-turk-current-reward": "Current mission reward: ",
   "right-ui-turk-total-reward": "Total earned reward: ",
   "mission-complete-confirmation-code": "Confirmation Code: ",
@@ -71,16 +71,22 @@
     "gravel/dirt road": "gravel/dirt road",
     "shared pedestrian/car space": "shared pedestrian/car space",
     "height difference": "height difference",
+    "paint fading": "paint fading",
+    "paint not fading": "paint not fading",
+    "has button": "has button",
+    "button waist height": "button waist height",
     "missing crosswalk": "missing crosswalk",
     "no bus stop access": "no bus stop access"
   },
   "gallery": {
-    "CurbRamp": "Curb Ramp",
-    "NoCurbRamp": "Missing Curb Ramp",
-    "Obstacle": "Obstacle in Path",
-    "SurfaceProblem": "Surface Problem",
-    "Occlusion": "Can't See Sidewalk",
-    "NoSidewalk" : "No Sidewalk",
-    "Other": "Other"
+    "curb-ramp": "Curb Ramp",
+    "no-curb-ramp": "Missing Curb Ramp",
+    "obstacle": "Obstacle in Path",
+    "surface-problem": "Surface Problem",
+    "occlusion": "Can't See Sidewalk",
+    "no-sidewalk" : "No Sidewalk",
+    "crosswalk" : "Crosswalk",
+    "signal" : "Pedestrian Signal",
+    "other": "Other"
   }
 }

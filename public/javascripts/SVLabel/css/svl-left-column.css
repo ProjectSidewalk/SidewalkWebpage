@@ -1,7 +1,7 @@
 #left-column-control-pane {
     position: relative;
     left: -55px;
-    top: 105px;
+    top: 128px;
 }
 
 #left-column-button-holder .button {
@@ -11,18 +11,23 @@
     font-size: 8pt;
     border: 2px #ccc solid;
     padding: 12px 0 0 0;
+    color: rgba(0,0,0,1);
+}
+
+#left-column-button-holder .zoom-control-button {
+    font-size: 7pt;
+    height: 36px;
+    padding: 0;
+}
+
+#left-column-zoom-out-button {
+    margin: 3px 0 10px 0;
 }
 
 #left-column-button-holder img {
     width: 36px;
 }
-
-#left-column-button-holder .popover-title{
-    text-align: center;
-}
-
-#left-column-button-holder .popover-content{
-    font-size: 18px;
-    font-weight: bold;
-    text-align: center;
+.zoom-button-icon {
+    height: 18px;
+    margin-top: 2px;
 }

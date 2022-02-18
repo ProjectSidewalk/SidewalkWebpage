@@ -8,6 +8,8 @@ obstacles = Obstakelels in het pad
 surface.problem = Oppervlakte Probleem
 surface.problems = Oppervlakte Problemen
 no.sidewalk = Geen Trottoir
+crosswalk = Oversteekplaats
+signal = Verkeerslicht
 other = Anders
 labels = labels
 dist.metric.abbr = km
@@ -98,11 +100,13 @@ audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit
 audit.ribbon.obstacle = <u>O</u>bstakel in het Pad
 audit.ribbon.surface.problem = Oppervlakte Probleem (<u>S</u>)
 audit.ribbon.no.sidewalk = Gee<u>n</u> Trottoir
+audit.ribbon.crosswalk = Oversteekplaats (<u>W</u>)
+audit.ribbon.signal = Verkeerslicht (<u>P</u>)
 audit.ribbon.other = Anders
 audit.ribbon.occlusion = Het Trottoir is niet Zicht<u>b</u>aar
-audit.ribbon.zoom.in = <u>Z</u>oom In
-audit.ribbon.zoom.out = Zoom Uit
 
+audit.left.ui.zoom.in = <u>Z</u>oom In
+audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
 audit.left.ui.feedback = Feedback
 audit.left.ui.stuck = Vastge<br>lopen
@@ -196,8 +200,7 @@ mobile.validate.leave.feedback = Geef feedback
 turk.expired.navbar = TIJD IS OP
 turk.expired.title = Tijd is op!
 turk.expired.body = Je zou je bonusbedrag in de komende twee dagen moeten ontvangen. Voer je bevestigingscode in op de mturk-website. Als de opdracht al is verlopen, stuur ons dan een e-mail op <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> met je bevestigingscode
-turk.submit.code = Dien deze code in voor HIT-verificatie op Amazon Mechanical Turk
-turk.mturk.code = Mturk Code
+turk.mturk.code = Mturk Code:
 turk.reward.earned = Totaal verdiende beloning
 
 authenticate.email = Email-adres
