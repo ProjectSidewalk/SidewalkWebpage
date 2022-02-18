@@ -25,7 +25,9 @@ function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
         SurfaceProblem: new TagBucket(),
         Other: new TagBucket(),
         Occlusion: new TagBucket(),
-        NoSidewalk: new TagBucket()
+        NoSidewalk: new TagBucket(),
+        Crosswalk: new TagBucket(),
+        Signal: new TagBucket()
     };
 
     // Tags of the current label type.

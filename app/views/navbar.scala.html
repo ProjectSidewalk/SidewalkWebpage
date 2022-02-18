@@ -1,6 +1,8 @@
 @import models.user.User
 @import play.api.Play
 @import play.api.Play.current
+@import models.mission.MissionTable
+@import models.amt.AMTAssignmentTable
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @import views.html.bootstrap._
@@ -15,16 +17,22 @@
             <div class="navbar-right pull-left navbar-turker-timer-container">
                 <ul class="nav pull-left navbar-turker-timer-list-container">
                     @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
-                        <li>
-                            <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:20px;padding-right:5px;">
+                        @if(MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
+                            <li id="mturk-confirmation-code">
+                                <img id="mturk-checkmark" src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
+                                <p id="mturk-confirmation-code-text">@Messages("turk.mturk.code"): @AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))</p>
+                            </li>
+                        }
+                        <li id="navbar-timer">
+                            <img id="clock-icon" src="@routes.Assets.at("assets/clock.png")" alt="clock icon">
+                            <p id="navbar-timer-text">Loading...</p>
                         </li>
-                        <li><p id="navbarTimer" style="width:75px;margin-top:19px;">Loading...</p></li>
                         <script>
                             // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
                             var expired = true;
                             var msRemaining = @{models.amt.AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username)};
     
-                            // Update the count down every 1 second
+                            // Update the count-down every 1 second
                             var timerInterval = setInterval(function() {
                                 var now = new Date().getTime();
                                 msRemaining -= 1000;
@@ -34,32 +42,32 @@
                                 var minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
                                 var seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
     
-                                // Output the result in an element with id="navbarTimer"
+                                // Output the result in an element with id="navbar-timer-text"
                                 if (msRemaining < 0) {
                                     clearInterval(timerInterval);
-                                    document.getElementById("navbarTimer").innerHTML = "@Messages("turk.expired.navbar")";
+                                    document.getElementById("navbar-timer-text").innerHTML = "@Messages("turk.expired.navbar")";
     
-                                    // If on the audit or validation page and the timer has just expired, refresh page to
-                                    // show HIT expiration overlay so they are unable to audit.
+                                    // If on the audit or validation page and the timer has just expired, refresh page
+                                    // to show HIT expiration overlay so that they are unable to audit.
                                     if("@url.get" === "/audit" && !expired) {
                                         window.location.href = window.location.origin + "/audit";
                                     } else if ("@url.get" === "/validate" && !expired) {
                                         window.location.href = window.location.origin + "/validate"
                                     }
                                 } else if (hours > 0) {
-                                    document.getElementById("navbarTimer").innerHTML = hours + "h " + minutes + "m ";
+                                    document.getElementById("navbar-timer-text").innerHTML = hours + "h " + minutes + "m ";
                                     expired = false;
                                 } else if (minutes > 0) {
-                                    document.getElementById("navbarTimer").innerHTML = minutes + "m " + seconds + "s ";
+                                    document.getElementById("navbar-timer-text").innerHTML = minutes + "m " + seconds + "s ";
                                     expired = false;
                                 } else {
-                                    document.getElementById("navbarTimer").innerHTML = seconds + "s ";
+                                    document.getElementById("navbar-timer-text").innerHTML = seconds + "s ";
                                     expired = false;
                                 }
                                 // If there are less than 15 minutes remaining, color the text red.
                                 var fifteenMinutes = 1000 * 60 * 15;
                                 if (msRemaining < fifteenMinutes) {
-                                    document.getElementById('navbarTimer').style.color = 'red'
+                                    document.getElementById('navbar-timer-text').style.color = 'red'
                                 }
                             }, 1000);
                         </script>
@@ -84,9 +92,11 @@
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {
-                    <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
-                    </li>
+                    @if(user.isEmpty || user.get.role.getOrElse("") != "Turker") {
+                        <li class="active navbar-lnk">
+                            <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                        </li>
+                    }
                 }
                 <li class="active navbar-lnk">
                     <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
