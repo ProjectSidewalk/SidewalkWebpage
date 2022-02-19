@@ -19,9 +19,15 @@
                         <h4><b>@Messages("gallery.city")</b></h4>
                         <select id="city-select" disabled>
                             @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
-                                <option value="@cityURL" selected="@(cityId==id)">
-                                    @cityName
-                                </option>
+                                @if(cityId == id) {
+                                    <option value="@cityURL" selected>
+                                        @cityName
+                                    </option>
+                                } else {
+                                    <option value="@cityURL">
+                                        @cityName
+                                    </option>
+                                }
                             }
                         </select>
                     </span>

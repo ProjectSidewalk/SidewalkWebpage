@@ -71,6 +71,7 @@ function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
         let currentCityType = cityMenu.getCurrentCityType();
         if (status.currentCityType !== currentCityType) {
             // Future: add URI parameters to link
+            console.log("Redirect to: " + currentCityType + '/gallery?label=' + status.currentLabelType)
             window.location.href = currentCityType + '/gallery?label=' + status.currentLabelType;
         } else {
             let currentLabelType = ribbonMenu.getCurrentLabelType();
