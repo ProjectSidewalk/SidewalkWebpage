@@ -98,7 +98,7 @@ public class ShapefilesCreatorHelper {
                         + "id:Integer," // a attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmStId:Integer," // Street OSM ID of the nearest street
+                        + "osmWayId:Integer," // Street OSM ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -158,7 +158,7 @@ public class ShapefilesCreatorHelper {
                         + "attribId:Integer," // attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmStId:Integer," // Street OSM ID of the nearest street (10 char max)
+                        + "osmWayId:Integer," // Street OSM ID of the nearest street (10 char max)
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -234,7 +234,7 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:LineString:srid=4326," // the geometry attribute: Line type
                         + "streetId:Integer," // StreetId
-                        + "osmStId:Integer," // osmStId
+                        + "osmWayId:Integer," // osmWayId
                         + "score:Double," // street score
                         + "sigRamp:Double," // curb ramp significance score
                         + "sigNoRamp:Double," // no Curb ramp significance score

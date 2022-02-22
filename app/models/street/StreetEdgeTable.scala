@@ -17,16 +17,6 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
-case class OsmStreet(osmWayStreetEdgeId: Int, osmWayId: Int, streetEdgeId: Int)
-
-class OsmStreetTable(tag: slick.lifted.Tag) extends Table[OsmStreet](tag, Some("sidewalk"), "osm_way_street_edge") {
-  def osmWayStreetEdgeId = column[Int]("osm_way_street_edge_id", O.NotNull)
-  def osmWayId = column[Int]("osm_way_id", O.NotNull)
-  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
-
-  def * = (osmWayStreetEdgeId, osmWayId, streetEdgeId) <> ((OsmStreet.apply _).tupled, OsmStreet.unapply)
-}
-
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
@@ -69,7 +59,6 @@ object StreetEdgeTable {
   val userRoles = TableQuery[UserRoleTable]
   val userTable = TableQuery[UserTable]
   val roleTable = TableQuery[RoleTable]
-  val osmStreetTable = TableQuery[OsmStreetTable]
   val completedAuditTasks = auditTasks.filter(_.completed === true)
 
   val turkerCompletedAuditTasks = for {
@@ -183,20 +172,6 @@ object StreetEdgeTable {
       // Get length of each street segment, sum the lengths, and convert from meters to miles.
       edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
     }
-  }
-
-  /**
-    * Finds the OSM ID of the street with the street edge ID streetEdgeId.
-    * 
-    * @return the OSM ID of the street with the street edge ID streetEdgeId.
-    */
-  def osmStreetIds(streetEdgeId: Int): Int = db.withSession { implicit session =>
-    val getOsmQuery = Q.queryNA[Int](
-      s"""SELECT osm_way_street_edge.osm_way_id
-          |FROM osm_way_street_edge
-          |WHERE street_edge_id='$streetEdgeId'""".stripMargin
-    )
-    getOsmQuery.first;
   }
 
   /**

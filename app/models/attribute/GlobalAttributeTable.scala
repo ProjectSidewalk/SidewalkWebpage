@@ -2,6 +2,7 @@ package models.attribute
 
 import models.label._
 import models.region.{Region, RegionTable}
+import models.street.{OsmWayStreetEdgeTable}
 import models.street.{StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -190,7 +191,7 @@ object GlobalAttributeTable {
       _vc <- validationCounts if _ga.globalAttributeId === _vc._1
       _lt <- LabelTypeTable.labelTypes if _ga.labelTypeId === _lt.labelTypeId
       _r <- RegionTable.regions if _ga.regionId === _r.regionId
-      _osm <- StreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
+      _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
       if _lt.labelType =!= "Problem"
     } yield (
       _ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary,
@@ -212,7 +213,7 @@ object GlobalAttributeTable {
       _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
       _l <- LabelTable.labels if _ual.labelId === _l.labelId
       _lp <- LabelTable.labelPoints if _l.labelId === _lp.labelId
-      _osm <- StreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
+      _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
       if _lt.labelType =!= "Problem"
     } yield (
       _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId, _osm.osmWayId,

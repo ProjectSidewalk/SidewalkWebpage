@@ -14,6 +14,7 @@ import math._
 import models.region._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
+import models.street.{OsmWayStreetEdge, OsmWayStreetEdgeTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
 import play.api.Play.current
@@ -613,7 +614,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val srid = 4326
     val factory: GeometryFactory = new GeometryFactory(pm, srid)
 
-    val streetAccessScores = streets.map { edge =>
+    val streetsWithOsmWayIds: List[(StreetEdge, OsmWayStreetEdge)] = OsmWayStreetEdgeTable.selectOsmWayIdsForStreets(streets)
+
+    val streetAccessScores = streetsWithOsmWayIds.map { item =>
+      val (edge: StreetEdge, osmStreetId: OsmWayStreetEdge) = item;
       // Expand each edge a little bit and count the number of accessibility attributes.
       val buffer: Geometry = edge.geom.buffer(radius)
 
@@ -635,8 +639,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val attributes = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
       val significance = Array(0.75, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(attributes, significance)
-      val osmId = StreetEdgeTable.osmStreetIds(edge.streetEdgeId);
-      AccessScoreStreet(edge, osmId, accessScore, attributes, significance)
+      AccessScoreStreet(edge, osmStreetId.osmWayId, accessScore, attributes, significance)
     }
     streetAccessScores
   }
