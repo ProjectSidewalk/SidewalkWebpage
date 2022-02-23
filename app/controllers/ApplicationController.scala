@@ -146,11 +146,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Returns list of all cities -- (city, name + ", " + state, cityURL, visiblity) -- excluding the city specified
+   * Returns list of all cities -- (city, name + ", " + state, cityURL, visibility) -- excluding the city specified.
    */
   def getAllCityInfo(excludeCity: String = ""): List[(String, String, String, String)] = {
     val envType: String = Play.configuration.getString("environment-type").get
-    // Get names and URLs for cities to display in Gallery dropdown
+    // Get names and URLs for cities to display in Gallery dropdown.
     val cities: List[String] =
       Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == excludeCity)
     val cityUrls: List[(String, String, String, String)] = cities.map { city =>
@@ -381,11 +381,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        // Log visit to Gallery
+        // Log visit to Gallery.
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
-        // Get current city
+        // Get current city.
         val cityStr: String = Play.configuration.getString("city-id").get
-        // Get names and URLs for cities to display in Gallery dropdown
+        // Get names and URLs for cities to display in Gallery dropdown.
         val cityUrls: List[(String, String, String, String)] = getAllCityInfo()
         val labels: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
@@ -406,7 +406,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         }
         Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, realLabel, labels, List())))
       case None =>
-        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
+        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         Future.successful(Redirect("/anonSignUp?url=/gallery"))
     }
   }
