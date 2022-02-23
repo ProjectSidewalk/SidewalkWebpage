@@ -174,7 +174,6 @@ object StreetEdgeTable {
     }
   }
 
-
   /**
     * Calculates the distance audited today by all users.
     * 
