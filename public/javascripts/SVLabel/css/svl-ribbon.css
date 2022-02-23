@@ -149,3 +149,12 @@
 .ribbon-menu-other-subcategory:hover {
     background-color: #eee;
 }
+
+#city-type-holder {
+    background: transparent;
+    position: absolute;
+    left: 64px;
+    top: 0;
+    height: 100px;
+    width: 470px;
+}

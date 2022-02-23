@@ -356,14 +356,16 @@ function CardContainer(uiCardContainer) {
                 uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
                 sg.scrollStatus.stickySidebar = true;
                 sg.tagContainer.enable();
-                sg.ui.ribbonMenu.select.prop("disabled", false);
+                sg.ui.labelTypeMenu.select.prop("disabled", false);
+                sg.ui.cityMenu.select.prop("disabled", false);
             });
         } else {
             // TODO: figure out how to better do the toggling of this element.
             sg.labelsNotFound.show();
             sg.pageLoading.hide();
             sg.tagContainer.enable();
-            sg.ui.ribbonMenu.select.prop("disabled", false);
+            sg.ui.labelTypeMenu.select.prop("disabled", false);
+            sg.ui.cityMenu.select.prop("disabled", false);
         }
     }
 
@@ -386,7 +388,8 @@ function CardContainer(uiCardContainer) {
 
         // Disable interactable UI elements while query loads.
         sg.tagContainer.disable();
-        sg.ui.ribbonMenu.select.prop("disabled", true);
+        sg.ui.labelTypeMenu.select.prop("disabled", true);
+        sg.ui.cityMenu.select.prop("disabled", true);
         sg.labelsNotFound.hide();
         sg.ui.pageControl.hide();
 

@@ -309,6 +309,7 @@ leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard
 
 gallery = Galería
 gallery.show = Mostrar
+gallery.city = Ciudad
 gallery.filter.by = Filtrar por
 gallery.severity = Calificación
 gallery.tags = Etiquitas

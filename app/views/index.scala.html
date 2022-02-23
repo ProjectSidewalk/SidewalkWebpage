@@ -3,7 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String)], auditedDistance: Float)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user, Some("/"))
@@ -30,7 +30,7 @@
                     <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA" && c._1 != "Chicago, IL" && c._1 != "Amsterdam, NL")) {
+                    @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public")) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
                         <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
                         <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
