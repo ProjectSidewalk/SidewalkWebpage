@@ -21,21 +21,21 @@ function Main (params) {
     function _initUI() {
         sg.ui = {};
 
-        // Initializes filter components in side bar.
+        // Initializes filter components in sidebar.
         sg.ui.cardFilter = {};
         sg.ui.cardFilter.wrapper = $(".sidebar");
         sg.ui.cardFilter.holder = $("#card-filter");
         sg.ui.cardFilter.tags = $("#tags");
         sg.ui.cardFilter.severity = $("#severity");
 
-        // Initializes city select component in side bar.
+        // Initializes city select component in sidebar.
         sg.ui.cityMenu = {};
-        sg.ui.cityMenu.holder = $("#ribbon-menu-holder");
+        sg.ui.cityMenu.holder = $("#city-filter-holder");
         sg.ui.cityMenu.select = $('#city-select');
 
-        // Initializes label select component in side bar.
+        // Initializes label select component in sidebar.
         sg.ui.ribbonMenu = {};
-        sg.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
+        sg.ui.ribbonMenu.holder = $("#label-type-filter-holder");
         sg.ui.ribbonMenu.select = $('#label-select');
 
         // TODO: potentially remove if we decide sorting is not desired for later versions.
