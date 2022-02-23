@@ -118,22 +118,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               // Get city configs.
-              val envType: String = Play.configuration.getString("environment-type").get
               val cityStr: String = Play.configuration.getString("city-id").get
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
               val mapathonLink: Option[String] = Play.configuration.getString("city-params.mapathon-event-link." + cityStr)
               // Get names and URLs for other cities so we can link to them on landing page.
-              val otherCities: List[String] =
-                Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == cityStr)
-              val otherCityUrls: List[(String, String, String)] = otherCities.map { otherCity =>
-                val otherName: String = Play.configuration.getString("city-params.city-name." + otherCity).get
-                val otherState: String = Play.configuration.getString("city-params.state-abbreviation." + otherCity).get
-                val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + otherCity).get
-                val visible: String = Play.configuration.getString("city-params.status." + otherCity).get
-                (otherName + ", " + otherState, otherURL, visible)
-              }
+              val otherCityUrls: List[(String, String, String, String)] = getAllCityInfo(excludeCity=cityStr)
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgeTable.auditedStreetDistance(1) * 1.60934.toFloat
@@ -152,6 +143,24 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             }
         }
     }
+  }
+
+  /**
+   * Returns list of all cities -- (city, name + ", " + state, cityURL, visiblity) -- excluding the city specified
+   */
+  def getAllCityInfo(excludeCity: String = ""): List[(String, String, String, String)] = {
+    val envType: String = Play.configuration.getString("environment-type").get
+    // Get names and URLs for cities to display in Gallery dropdown
+    val cities: List[String] =
+      Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == excludeCity)
+    val cityUrls: List[(String, String, String, String)] = cities.map { city =>
+      val name: String = Play.configuration.getString("city-params.city-name." + city).get
+      val state: String = Play.configuration.getString("city-params.state-abbreviation." + city).get
+      val cityURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + city).get
+      val visiblity: String = Play.configuration.getString("city-params.status." + city).get
+      (city, name + ", " + state, cityURL, visiblity)
+    }
+    cityUrls
   }
 
   /**
@@ -374,19 +383,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
         // Log visit to Gallery
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
-        // Get city configs.
-        val envType: String = Play.configuration.getString("environment-type").get
+        // Get current city
         val cityStr: String = Play.configuration.getString("city-id").get
-        // Get names and URLs for other cities so we can link to them on landing page.
-        val cities: List[String] =
-          Play.configuration.getStringList("city-params.city-ids").get.asScala.toList
-        val cityUrls: List[(String, String, String, String)] = cities.map { city =>
-          val name: String = Play.configuration.getString("city-params.city-name." + city).get
-          val state: String = Play.configuration.getString("city-params.state-abbreviation." + city).get
-          val cityURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + city).get
-          val visible: String = Play.configuration.getString("city-params.status." + city).get
-          (city, name + ", " + state, cityURL, visible)
-        }
+        // Get names and URLs for cities to display in Gallery dropdown
+        val cityUrls: List[(String, String, String, String)] = getAllCityInfo()
         val labels: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
           ("CurbRamp", Messages("curb.ramp")),
@@ -395,9 +395,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("SurfaceProblem", Messages("surface.problem")),
           ("Occlusion", Messages("gallery.occlusion")),
           ("NoSidewalk", Messages("no.sidewalk")),
+          ("Crosswalk", Messages("crosswalk")),
+          ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
-        val realLabel = if (labels.exists(x => {x._1 == label.getOrElse("Assorted")})) {
+        val realLabel: String = if (labels.exists(x => {x._1 == label.getOrElse("Assorted")})) {
           label.getOrElse("Assorted")
         } else {
           "Assorted"

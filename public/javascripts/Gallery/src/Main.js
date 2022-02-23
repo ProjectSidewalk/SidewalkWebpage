@@ -154,6 +154,5 @@ function Main (params) {
         _initUI();
         _init();
     });
-    
     return self;
 }

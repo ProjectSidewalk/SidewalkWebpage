@@ -19,7 +19,7 @@ function RibbonMenu(uiRibbonMenu) {
     function _init() {
         if (uiRibbonMenu) {
             uiRibbonMenu.select.bind({
-                change: handleLabelSelectSwitchChangeCallback
+                change: labelSelectCallback
             })
         }
     }
@@ -27,7 +27,7 @@ function RibbonMenu(uiRibbonMenu) {
     /**
      * Handles what happens when a label type is selected.
      */
-    function handleLabelSelectSwitchChangeCallback() {
+    function labelSelectCallback() {
         let labelType = $(this).val();
         setStatus("currentLabelType", labelType);
         sg.tracker.push("Filter_LabelType=" + labelType);

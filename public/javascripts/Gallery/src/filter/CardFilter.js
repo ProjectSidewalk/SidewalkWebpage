@@ -12,7 +12,7 @@ function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
     let self = this;
 
     let status = {
-        currentCityType: cityMenu.getCurrentCityType(),
+        currentCity: cityMenu.getCurrentCity(),
         currentLabelType: "Assorted"
     };
 
@@ -65,14 +65,14 @@ function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
     }
 
     /**
-     * Update filter components when label type changes.
+     * Update filter components when city or label type changes.
      */
     function update() {
-        let currentCityType = cityMenu.getCurrentCityType();
-        if (status.currentCityType !== currentCityType) {
+        let currentCity = cityMenu.getCurrentCity();
+        if (status.currentCity !== currentCity) {
             // Future: add URI parameters to link
-            console.log("Redirect to: " + currentCityType + '/gallery?label=' + status.currentLabelType)
-            window.location.href = currentCityType + '/gallery?label=' + status.currentLabelType;
+            console.log("Redirect to: " + currentCity + '/gallery?label=' + status.currentLabelType)
+            window.location.href = currentCity + '/gallery?label=' + status.currentLabelType;
         } else {
             let currentLabelType = ribbonMenu.getCurrentLabelType();
             if (status.currentLabelType !== currentLabelType) {

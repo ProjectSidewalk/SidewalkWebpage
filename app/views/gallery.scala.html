@@ -20,13 +20,9 @@
                         <select id="city-select" disabled>
                             @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
                                 @if(cityId == id) {
-                                    <option value="@cityURL" selected>
-                                        @cityName
-                                    </option>
+                                    <option value="@cityURL" selected>@cityName</option>
                                 } else {
-                                    <option value="@cityURL">
-                                        @cityName
-                                    </option>
+                                    <option value="@cityURL">@cityName</option>
                                 }
                             }
                         </select>
@@ -39,13 +35,9 @@
                         <select id="label-select" disabled>
                             @for((value, message) <- labels) {
                                 @if(value == label) {
-                                    <option value="@value" selected>
-                                        @message
-                                    </option>
+                                    <option value="@value" selected>@message</option>
                                 } else {
-                                    <option value="@value">
-                                        @message
-                                    </option>
+                                    <option value="@value">@message</option>
                                 }
                             }
                         </select>

@@ -1,6 +1,6 @@
 /**
  * City Menu module.
- * This is responsible for holding the buttons allowing users to filter citys by city type.
+ * This is responsible for holding the buttons allowing users to filter cities by city.
  *
  * @param uiCityMenu UI element corresponding to CityMenu.
  * @returns {CityMenu}
@@ -10,7 +10,7 @@ function CityMenu(uiCityMenu) {
     let self = this;
 
     let status = {
-        currentCityType: null
+        currentCity: null
     };
 
     /**
@@ -19,26 +19,26 @@ function CityMenu(uiCityMenu) {
     function _init() {
         if (uiCityMenu) {
             uiCityMenu.select.bind({
-                change: handleCitySelectSwitchChangeCallback
+                change: citySelectCallback
             })
         }
     }
 
     /**
-     * Handles what happens when a city type is selected.
+     * Handles what happens when a city is selected.
      */
-    function handleCitySelectSwitchChangeCallback() {
-        let cityType = $(this).val();
-        setStatus("currentCityType", cityType);
-        sg.tracker.push("Filter_CityType=" + cityType);
+    function citySelectCallback() {
+        let city = $(this).val();
+        setStatus("currentCity", city);
+        sg.tracker.push("Filter_CityType=" + city);
         sg.tagContainer.update();
     }
 
     /**
-     * Returns current selected city type.
+     * Returns current selected city.
      */
-    function getCurrentCityType() {
-        return status.currentCityType;
+    function getCurrentCity() {
+        return status.currentCity;
     }
 
     /**
@@ -62,7 +62,7 @@ function CityMenu(uiCityMenu) {
         }
     }
 
-    self.getCurrentCityType = getCurrentCityType;
+    self.getCurrentCity = getCurrentCity;
     self.getStatus = getStatus;
     self.setStatus = setStatus;
 
