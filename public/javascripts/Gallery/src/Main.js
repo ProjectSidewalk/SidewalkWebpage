@@ -26,7 +26,7 @@ function Main (params) {
         sg.ui.cardFilter.wrapper = $(".sidebar");
         sg.ui.cardFilter.holder = $("#card-filter");
         sg.ui.cardFilter.tags = $("#tags");
-        sg.ui.cardFilter.severity = $("#severity");
+        sg.ui.cardFilter.severity = $("#severity-select");
 
         // Initializes city select component in sidebar.
         sg.ui.cityMenu = {};

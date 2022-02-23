@@ -17,7 +17,7 @@
                 <div id="city-filter-holder" class="filter-section-holder">
                     <span id="city-type-holder">
                         <h4><b>@Messages("gallery.city")</b></h4>
-                        <select id="city-select" disabled>
+                        <select id="city-select" class="gallery-filter" disabled>
                             @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
                                 @if(cityId == id) {
                                     <option value="@cityURL" selected>@cityName</option>
@@ -32,7 +32,7 @@
                 <div id="label-type-filter-holder" class="filter-section-holder">
                     <span id="label-type-holder">
                         <h4><b>@Messages("gallery.show")</b></h4>
-                        <select id="label-select" disabled>
+                        <select id="label-select" class="gallery-filter" disabled>
                             @for((value, message) <- labels) {
                                 @if(value == label) {
                                     <option value="@value" selected>@message</option>
@@ -47,7 +47,7 @@
                 <div id="filters">
                     <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
                     <h5 id="severity-header" class="filter-subheader">@Messages("gallery.severity")</h5>
-                    <span id="severity"></span>
+                    <span id="severity-select"></span>
                     <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
                     <span id="tags"></span>
                 </div>

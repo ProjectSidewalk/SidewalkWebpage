@@ -1,7 +1,8 @@
 /**
  * A Severity module.
- * 
+ *
  * @param {*} params Properties of severity.
+ * @param active A boolean to see if the current severity filter is active.
  * @returns {Severity}
  * @constructor
  */
@@ -29,10 +30,10 @@ function Severity (params, active){
         properties.severity = param;
 
         severityElement = document.createElement('div');
-        severityElement.className = 'gallery-severity';
+        severityElement.className = 'severity-filter gallery-filter';
 
         severityImage = document.createElement('img');
-        severityImage.className = 'gallery-severity-image';
+        severityImage.className = 'severity-filter-image';
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
         if (filterActive) {
