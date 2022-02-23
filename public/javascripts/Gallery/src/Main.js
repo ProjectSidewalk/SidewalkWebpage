@@ -34,9 +34,9 @@ function Main (params) {
         sg.ui.cityMenu.select = $('#city-select');
 
         // Initializes label select component in sidebar.
-        sg.ui.ribbonMenu = {};
-        sg.ui.ribbonMenu.holder = $("#label-type-filter-holder");
-        sg.ui.ribbonMenu.select = $('#label-select');
+        sg.ui.labelTypeMenu = {};
+        sg.ui.labelTypeMenu.holder = $("#label-type-filter-holder");
+        sg.ui.labelTypeMenu.select = $('#label-select');
 
         // TODO: potentially remove if we decide sorting is not desired for later versions.
         sg.ui.cardSortMenu = {};
@@ -68,10 +68,10 @@ function Main (params) {
 
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
-        sg.ribbonMenu = new RibbonMenu(sg.ui.ribbonMenu);
+        sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu);
         
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
-        sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu, sg.cityMenu);
+        sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
@@ -80,7 +80,7 @@ function Main (params) {
         let sidebarWrapper = sg.ui.cardFilter.wrapper;
         let sidebarWidth = sidebarWrapper.css('width');
 
-        sg.ui.ribbonMenu.select.change();
+        sg.ui.labelTypeMenu.select.change();
 
         // Handle sidebar and expanded view stickiness while scrolling.
         $(window).scroll(function () {

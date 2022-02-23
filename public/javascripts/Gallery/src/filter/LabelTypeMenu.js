@@ -1,12 +1,12 @@
 /**
- * Ribbon Menu module.
+ * Label Type Menu module.
  * This is responsible for holding the buttons allowing users to filter labels by label type.
  *
- * @param uiRibbonMenu UI element corresponding to RibbonMenu.
- * @returns {RibbonMenu}
+ * @param labelTypeMenu UI element corresponding to LabelTypeMenu.
+ * @returns {LabelTypeMenu}
  * @constructor
  */
-function RibbonMenu(uiRibbonMenu) {
+function LabelTypeMenu(labelTypeMenu) {
     let self = this;
 
     let status = {
@@ -14,11 +14,11 @@ function RibbonMenu(uiRibbonMenu) {
     };
 
     /**
-     * Initialize RibbonMenu.
+     * Initialize LabelTypeMenu.
      */
     function _init() {
-        if (uiRibbonMenu) {
-            uiRibbonMenu.select.bind({
+        if (labelTypeMenu) {
+            labelTypeMenu.select.bind({
                 change: labelSelectCallback
             })
         }
@@ -42,7 +42,7 @@ function RibbonMenu(uiRibbonMenu) {
     }
 
     /**
-     * Return status of RibbonMenu.
+     * Return status of LabelTypeMenu.
      */
     function getStatus() {
         return status;

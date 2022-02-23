@@ -3,12 +3,12 @@
  * This is responsible for allowing users to apply filters to specify what types of cards to render in the gallery.
  *
  * @param uiCardFilter UI element representing filter components of sidebar.
- * @param ribbonMenu UI element representing dropdown to select label type in sidebar.
+ * @param labelTypeMenu UI element representing dropdown to select label type in sidebar.
  * @param cityMenu UI element representing dropdown to select city in sidebar.
  * @returns {CardFilter}
  * @constructor
  */
-function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
+function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     let self = this;
 
     let status = {
@@ -74,7 +74,7 @@ function CardFilter(uiCardFilter, ribbonMenu, cityMenu) {
             console.log("Redirect to: " + currentCity + '/gallery?label=' + status.currentLabelType)
             window.location.href = currentCity + '/gallery?label=' + status.currentLabelType;
         } else {
-            let currentLabelType = ribbonMenu.getCurrentLabelType();
+            let currentLabelType = labelTypeMenu.getCurrentLabelType();
             if (status.currentLabelType !== currentLabelType) {
                 clearCurrentTags();
                 severities.unapplySeverities();
