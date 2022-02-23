@@ -30,7 +30,7 @@ function CityMenu(uiCityMenu) {
     function citySelectCallback() {
         let city = $(this).val();
         setStatus("currentCity", city);
-        sg.tracker.push("Filter_CityType=" + city);
+        sg.tracker.push("Filter_City=" + city);
         sg.tagContainer.update();
     }
 

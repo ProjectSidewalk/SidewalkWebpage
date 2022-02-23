@@ -4,7 +4,7 @@
  *
  * @param uiCardFilter UI element representing filter components of sidebar.
  * @param ribbonMenu UI element representing dropdown to select label type in sidebar.
- * @param cityMenu UI element representing dropdown to select city type in sidebar.
+ * @param cityMenu UI element representing dropdown to select city in sidebar.
  * @returns {CardFilter}
  * @constructor
  */
