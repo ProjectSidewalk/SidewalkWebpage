@@ -3,7 +3,11 @@
 @import play.api.Play.current
 @import models.mission.MissionTable
 @import models.amt.AMTAssignmentTable
+@import models.utils.Configs
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
+
+@currentCity =@{Play.configuration.getString("city-id").get}
+@cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._4 == "public")}
 
 @import views.html.bootstrap._
 
@@ -134,6 +138,28 @@
                         <li>
                             <a id="navbar-api-btn" role="menuitem" href='@routes.ApplicationController.developer' aria-label="Developer A.P.I.">@Messages("footer.api")</a>
                         </li>
+                    </ul>
+                </li>
+
+                <li class="active dropdown navbar-lnk" id="navbar-city-dropdown">
+                    <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
+                        @Messages("navbar.city")
+                    <b class="caret"></b>
+                    </a>
+                    <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
+                        @for(cityInfo <- cities.sortBy(_._2)) {
+                            <li>
+                                @if(cityInfo._1 == currentCity) {
+                                    <a id="navbar-dashboard-btn" role="menuitem" href='@cityInfo._3'>
+                                            <b>@cityInfo._2</b>
+                                    </a>
+                                } else {
+                                    <a id="navbar-dashboard-btn" role="menuitem" href='@cityInfo._3'>
+                                        @cityInfo._2
+                                    </a>
+                                }
+                            </li>
+                        }
                     </ul>
                 </li>
 

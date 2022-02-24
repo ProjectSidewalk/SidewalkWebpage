@@ -16,7 +16,7 @@
             <div id="card-filter">
                 <div id="city-filter-holder" class="filter-section-holder">
                     <span id="city-type-holder">
-                        <h4><b>@Messages("gallery.city")</b></h4>
+                        <h4><b>@Messages("navbar.city")</b></h4>
                         <select id="city-select" class="gallery-filter" disabled>
                             @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
                                 @if(cityId == id) {
