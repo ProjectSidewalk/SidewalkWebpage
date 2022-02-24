@@ -91,7 +91,7 @@ footer {
 .navbar-lnk {
     display: inline;
     margin-top: 4px;
-    margin-left: 9px;
+    margin-left: 8px;
 }
 
 .navbar-turker-timer-container {
@@ -1279,7 +1279,7 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 1175px) {
+@media only screen and (max-width: 1275px) {
     .navbar-header {
         float: none;
     }
