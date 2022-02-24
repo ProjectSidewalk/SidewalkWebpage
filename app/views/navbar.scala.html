@@ -138,7 +138,7 @@
                     </ul>
                 </li>
 
-                <li class="active dropdown navbar-lnk" id="navbar-city-dropdown">
+                <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
                     <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
                         @Messages("navbar.city")
                     <b class="caret"></b>
@@ -276,6 +276,15 @@ $(document).ready(function () {
     $("#navbar-api-btn").on('click', function() {
         logWebpageActivity("Click_module=SidewalkAPI");
     });
+
+    // The buttons in the City drop down menu. Log clicks to any of them but the current city.
+    for (cityLink of $('#nav-city-menu').children().children()) {
+        $(cityLink).on('click', function(e) {
+            if (!e.currentTarget.className.includes('current-city')) {
+                logWebpageActivity(`Click_module=NavbarCityDropdown_city=${e.currentTarget.id}`);
+            }
+        });
+    }
     
     // The following buttons are in the User drop down menu.
     $("#navbar-sign-out-btn").on('click', function() {
