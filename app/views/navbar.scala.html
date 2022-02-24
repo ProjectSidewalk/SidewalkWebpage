@@ -127,13 +127,10 @@
                             </li>
                         }
                         <li>
-                            <!-- TODO: Internationalization for sidewalk gallery name -->
                             <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery(None, None)">@Messages("gallery")</a>
                         </li>
                         <li>
-                            <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>
-                            @Messages("navbar.leaderboard")
-                            </a>
+                            <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                         </li>
                         <li>
                             <a id="navbar-api-btn" role="menuitem" href='@routes.ApplicationController.developer' aria-label="Developer A.P.I.">@Messages("footer.api")</a>
