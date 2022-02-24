@@ -150,11 +150,11 @@
                         @for(cityInfo <- cities.sortBy(_._2)) {
                             <li>
                                 @if(cityInfo._1 == currentCity) {
-                                    <a id="navbar-dashboard-btn" role="menuitem" href='@cityInfo._3'>
+                                    <a id="@cityInfo._1" role="menuitem" class="current-city" href='javascript:void(0);'>
                                             <b>@cityInfo._2</b>
                                     </a>
                                 } else {
-                                    <a id="navbar-dashboard-btn" role="menuitem" href='@cityInfo._3'>
+                                    <a id="@cityInfo._1" role="menuitem" href='@cityInfo._3'>
                                         @cityInfo._2
                                     </a>
                                 }
