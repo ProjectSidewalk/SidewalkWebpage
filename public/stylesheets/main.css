@@ -84,7 +84,6 @@ footer {
 }
 
 .navbar-logo {
-    width: 150px;
     float: left;
     margin-top: 7px;
 }
@@ -92,7 +91,7 @@ footer {
 .navbar-lnk {
     display: inline;
     margin-top: 4px;
-    margin-left: 10px;
+    margin-left: 9px;
 }
 
 .navbar-turker-timer-container {
@@ -120,7 +119,7 @@ footer {
 
 #mturk-confirmation-code {
     padding-top: 18px;
-    font: normal normal normal 14px/1.4em raleway, sans-serif;
+    font: normal normal normal 13px/1.4em raleway, sans-serif;
 }
 
 #mturk-checkmark {
@@ -135,7 +134,7 @@ footer {
 #navbar-timer {
     padding-left: 8px;
     padding-top: 18px;
-    font: normal normal normal 14px/1.4em raleway, sans-serif;
+    font: normal normal normal 13px/1.4em raleway, sans-serif;
 }
 
 #clock-icon {
@@ -166,9 +165,9 @@ footer {
     top: 8px;
     cursor: pointer;
     color: #2D2A3F;
-    font: normal normal normal 14px/1.4em raleway, sans-serif;
+    font: normal normal normal 13px/1.4em raleway, sans-serif;
     font-family: 'Raleway', sans-serif;
-    padding: 5px 25px;
+    padding: 5px 17px;
     text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     outline: none;
@@ -207,11 +206,11 @@ footer {
     top:8px;
     cursor:pointer;
     color:#2D2A3F;
-    font: normal normal normal 14px/1.4em raleway,sans-serif;
+    font: normal normal normal 13px/1.4em raleway,sans-serif;
     font-family: 'Raleway', sans-serif;
     text-align: start;
     font-weight: bolder;
-    padding: 5px 25px;
+    padding: 5px 17px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
@@ -1001,7 +1000,7 @@ kbd {
     padding: 5px 0;
     margin: 2px 0 0;
     margin-top: 0;
-    font-size: 14px;
+    font-size: 13px;
     list-style: none;
     background-color: #fff;
     -webkit-background-clip: padding-box;
