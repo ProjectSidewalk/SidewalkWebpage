@@ -38,6 +38,7 @@ navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
+navbar.city = Ciudad
 navbar.lang.aria = Opciones de idioma
 navbar.lang.icon.alt = icono de idiomas
 
@@ -309,7 +310,6 @@ leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard
 
 gallery = Galería
 gallery.show = Mostrar
-gallery.city = Ciudad
 gallery.filter.by = Filtrar por
 gallery.severity = Calificación
 gallery.tags = Etiquitas
