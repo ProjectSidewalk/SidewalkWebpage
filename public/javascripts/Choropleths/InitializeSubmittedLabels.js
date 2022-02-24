@@ -108,7 +108,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
                 if (params.includeLabelColor) {
                     if (feature.properties.expired) {
                         style.fillColor = 'lightgrey';
-                        style.color = colorMapping[feature.properties.label_type].missingPanoStrokeStyle;
+                        style.color = colorMapping[feature.properties.label_type].fillStyle;
                     } else {
                         style.color = colorMapping[feature.properties.label_type].strokeStyle;
                     }

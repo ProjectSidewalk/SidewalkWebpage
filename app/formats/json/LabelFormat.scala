@@ -6,22 +6,8 @@ import models.label._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-object LabelFormats {
+object LabelFormat {
   case class LoadedLabels(loaded_labels: String)
-
-//  implicit val labelReads: Reads[Label] = (
-//    (JsPath \ "label_id").read[Int] and
-//      (JsPath \ "audit_task_id").readNullable[Int] and
-//      (JsPath \ "gsv_panorama_id").read[String] and
-//      (JsPath \ "label_type_id").read[Int] and
-//      (JsPath \ "photographer_heading").read[Float] and
-//      (JsPath \ "photographer_pitch").read[Float] and
-//      (JsPath \ "panorama_lat").read[Float] and
-//      (JsPath \ "panorama_lng").read[Float] and
-//      (JsPath \ "deleted").read[Boolean] and
-//      (JsPath \ "temporary_label_id").readNullable[Int]
-//    )(Label.apply _)
-
   implicit val labelWrites: Writes[Label] = (
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
@@ -36,7 +22,11 @@ object LabelFormats {
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "time_created").writeNullable[Timestamp] and
       (__ \ "tutorial").write[Boolean] and
-      (__ \ "street_edge_id").write[Int]
+      (__ \ "street_edge_id").write[Int] and
+      (__ \ "agree_count").write[Int] and
+      (__ \ "disagree_count").write[Int] and
+      (__ \ "notsure_count").write[Int] and
+      (__ \ "correct").writeNullable[Boolean]
     )(unlift(Label.unapply _))
 
   implicit val loadedLabelReads: Reads[LoadedLabels] = 

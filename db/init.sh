@@ -26,5 +26,3 @@ EOSQL
 psql -U sidewalk -d sidewalk -a -f /opt/schema.sql
 psql -U sidewalk -d sidewalk -a -f /opt/fix-auto-inc.sql
 
-# DOESN'T WORK
-# sudo su -l postgres -c "psql sidewalk -c 'CREATE EXTENSION pgrouting'"

@@ -3,7 +3,7 @@ package controllers
 import javax.inject.Inject
 import controllers.headers.ProvidesHeader
 import controllers.helper.GoogleMapsHelper
-import formats.json.LabelFormats._
+import formats.json.LabelFormat._
 import models.user._
 import models.validation._
 import models.label.{LabelTable, LabelTypeTable}

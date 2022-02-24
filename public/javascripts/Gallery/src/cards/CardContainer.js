@@ -29,6 +29,8 @@ function CardContainer(uiCardContainer) {
         Other: 5,
         Occlusion: 6,
         NoSidewalk: 7,
+        Crosswalk: 9,
+        Signal: 10,
         Assorted: -1
     };
 
@@ -48,7 +50,9 @@ function CardContainer(uiCardContainer) {
         SurfaceProblem: new CardBucket(),
         Other: new CardBucket(),
         Occlusion: new CardBucket(),
-        NoSidewalk: new CardBucket()
+        NoSidewalk: new CardBucket(),
+        Crosswalk: new CardBucket(),
+        Signal: new CardBucket()
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend.
@@ -383,14 +387,16 @@ function CardContainer(uiCardContainer) {
                 uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
                 sg.scrollStatus.stickySidebar = true;
                 sg.tagContainer.enable();
-                sg.ui.ribbonMenu.select.prop("disabled", false);
+                sg.ui.labelTypeMenu.select.prop("disabled", false);
+                sg.ui.cityMenu.select.prop("disabled", false);
             });
         } else {
             // TODO: figure out how to better do the toggling of this element.
             sg.labelsNotFound.show();
             sg.pageLoading.hide();
             sg.tagContainer.enable();
-            sg.ui.ribbonMenu.select.prop("disabled", false);
+            sg.ui.labelTypeMenu.select.prop("disabled", false);
+            sg.ui.cityMenu.select.prop("disabled", false);
         }
     }
 
@@ -413,7 +419,8 @@ function CardContainer(uiCardContainer) {
 
         // Disable interactable UI elements while query loads.
         sg.tagContainer.disable();
-        sg.ui.ribbonMenu.select.prop("disabled", true);
+        sg.ui.labelTypeMenu.select.prop("disabled", true);
+        sg.ui.cityMenu.select.prop("disabled", true);
         sg.labelsNotFound.hide();
         sg.ui.pageControl.hide();
 

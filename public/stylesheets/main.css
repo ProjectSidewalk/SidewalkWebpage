@@ -105,6 +105,14 @@ footer {
     margin-left: 10px;
 }
 
+.navbar-turker-timer-container {
+    padding-left: 10px;
+}
+
+.navbar-turker-timer-list-container {
+    display: flex;
+}
+
 .navbar-brand.fixed-theme {
     font-size: 18px;
 }
@@ -147,6 +155,34 @@ footer {
     margin-right: auto;
 }
 
+#mturk-confirmation-code {
+    padding-top: 18px;
+    font: normal normal normal 14px/1.4em raleway, sans-serif;
+}
+
+#mturk-checkmark {
+    width: 20px;
+}
+
+#mturk-confirmation-code-text {
+    display: inline-block;
+    margin: 0;
+}
+
+#navbar-timer {
+    padding-left: 8px;
+    padding-top: 18px;
+    font: normal normal normal 14px/1.4em raleway, sans-serif;
+}
+
+#clock-icon {
+    width: 20px;
+}
+
+#navbar-timer-text {
+    display: inline-block;
+}
+
 #language-dropdown {
     margin-top: 4px;
     margin-left: 9px;
@@ -169,7 +205,6 @@ footer {
     color: #2D2A3F;
     font: normal normal normal 14px/1.4em raleway, sans-serif;
     font-family: 'Raleway', sans-serif;
-    font-size: 14px;
     padding: 5px 25px;
     text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
@@ -638,16 +673,18 @@ p#conditional-text {
 }
 
 .collaborator-images-container {
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-auto-flow: column;
+    grid-gap: 20px 50px;
+    align-items: center;
 }
 
 .collaborator-image {
-    padding: 15px;
+    padding: 15px 3% 15px 3%;
 }
 
 .collaborator-image img {
-    height: 220px;
+    width: 100%;
 }
 
 #collaborators-row {

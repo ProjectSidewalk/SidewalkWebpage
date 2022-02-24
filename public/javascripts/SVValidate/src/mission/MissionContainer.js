@@ -53,7 +53,7 @@ function MissionContainer () {
      * Creates a mission by parsing a JSON file
      * @param missionMetadata   JSON metadata for mission (from backend)
      * @param progressMetadata  JSON metadata about mission progress
-     *                          (counts of agree/disagree/unsure labels for this mission)
+     *                          (counts of agree/disagree/notsure labels for this mission)
      * @private
      */
     function createAMission(missionMetadata, progressMetadata) {
