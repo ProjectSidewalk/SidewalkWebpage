@@ -197,8 +197,6 @@ function CardContainer(uiCardContainer) {
                             }
                         }
                         if (callback) callback();
-                    } else {
-                        callAgain();
                     }
                 }
             });
@@ -247,8 +245,6 @@ function CardContainer(uiCardContainer) {
                             }
                         }
                         if (callback) callback();
-                    } else {
-                        callAgain();
                     }
                 }
             });

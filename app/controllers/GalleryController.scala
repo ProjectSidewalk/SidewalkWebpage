@@ -58,9 +58,9 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
             val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
             Future.successful(Ok(labelList))
 
-          // If the user doesn't already have an anonymous ID, sign them up.
+          // If the user doesn't already have an anonymous ID, will not do anything
           case _ => Future.successful(
-            Redirect("/anonSignUp?url=/label/labelsByType")
+            Ok(Json.obj("ok" -> "ok"))
           )
         }
       }
@@ -111,9 +111,9 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
             val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
             Future.successful(Ok(labelList))
             
-          // If the user doesn't already have an anonymous ID, sign them up and rerun.
+          // If the user doesn't already have an anonymous ID,  will not do anything
           case _ => Future.successful(
-            Redirect(s"/anonSignUp?url=/label/labelsBySeveritiesAndTags")
+            Ok(Json.obj("ok" -> "ok"))
           )
         }
       }
