@@ -105,6 +105,8 @@ if __name__ == '__main__':
                       'SurfaceProblem': 0.0075,
                       'Obstacle': 0.0075,
                       'NoSidewalk': 0.0075,
+                      'Crosswalk': 0.0075,
+                      'Signal': 0.0075,
                       'Occlusion': 0.0075,
                       'Other': 0.0075,
                       'Problem': 0.0075}
@@ -114,12 +116,14 @@ if __name__ == '__main__':
                       'SurfaceProblem': 0.01,
                       'Obstacle': 0.01,
                       'NoSidewalk': 0.01,
+                      'Crosswalk': 0.01,
+                      'Signal': 0.01,
                       'Occlusion': 0.01,
                       'Other': 0.01,
                       'Problem': 0.01}
 
     # Pick which label types should be included in clustering, and which should be included in the "Problem" type.
-    label_types = ['CurbRamp', 'NoSidewalk', 'Problem', 'Occlusion', 'SurfaceProblem', 'Obstacle', 'Other', 'NoCurbRamp']
+    label_types = ['CurbRamp', 'NoSidewalk', 'Problem', 'Occlusion', 'SurfaceProblem', 'Obstacle', 'Other', 'NoCurbRamp', 'Crosswalk', 'Signal']
     problem_types = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp'] if SINGLE_USER else ['Problem']
 
     # These are the columns required in the POST requests for the labels and clusters, respectively.

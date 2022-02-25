@@ -48,9 +48,6 @@ function Main (param) {
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
 
-        svv.ui.modalConfirmation = {};
-        svv.ui.modalConfirmation.confirmationCode = $("#left-column-confirmation-code-button");
-
         svv.ui.modalSkip = {};
         svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
 
@@ -161,7 +158,7 @@ function Main (param) {
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
-        svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
+        svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);

@@ -17,7 +17,7 @@
     position: absolute;
     top: 0px;
     left: 178px;
-    height: 13px;
+    height: 8px;
     width: 6px;
     background-color: black;
 }
@@ -127,9 +127,9 @@
     position: relative;
 }
 
-.label-severity-axis-label{
+.label-severity-axis-label {
     cursor: default;
-    font-size: 8pt;
+    font-size: 7.8pt;
 }
 
 #context-menu-problem-description-text-box {
@@ -139,7 +139,7 @@
 }
 
 #context-menu-temporary-problem-checkbox-holder {
-    margin: 0px 5px 5px 5px;
+    margin: 5px 5px 5px 5px;
     width: 310px;
 }
 
@@ -165,7 +165,7 @@
 }
 
 .add-tags-label {
-    display: inline-block;
+    display: inline-grid;
     position: inherit;
     font-size: 10px;
     width: 50px;

@@ -32,18 +32,18 @@ function Tag (params) {
         Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
 
         tagElement = document.createElement('button');
-        tagElement.className = "gallery-tag gallery-tag-sidebar";
+        tagElement.className = "gallery-tag gallery-tag-sidebar gallery-filter";
         tagElement.id = properties.tag;
         tagElement.innerText = i18next.t('tag.' + properties.tag);
         tagElement.disabled = true;
 
-        tagElement.onclick = handleTagClickCallback;
+        tagElement.onclick = tagClickCallback;
     }
 
     /**
      * Handles what happens when Tag is clicked.
      */
-    function handleTagClickCallback() {
+    function tagClickCallback() {
         if (status.applied) {
             sg.tracker.push("TagUnapply", null, {
                 Tag: properties.tag,

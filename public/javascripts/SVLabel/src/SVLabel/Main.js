@@ -205,11 +205,11 @@ function Main (params) {
         $(svl.ui.ribbonMenu.buttons).each(function() {
             var val = $(this).attr('val');
 
-            if(val != 'Walk' && val != 'Other') {
+            if(val !== 'Walk' && val !== 'Other') {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'top',
-                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['keyChar']})
                 });
             }
         });
@@ -221,7 +221,7 @@ function Main (params) {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'left',
-                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['keyChar']})
                 });
             }
         });
@@ -439,8 +439,7 @@ function Main (params) {
         svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
         svl.ui.map.pano = $("div#pano");
         svl.ui.map.viewControlLayer = $("div#view-control-layer");
-        svl.ui.map.modeSwitchWalk = $("span#mode-switch-walk");
-        svl.ui.map.modeSwitchDraw = $("span#modeSwitchDraw");
+        svl.ui.map.modeSwitchWalk = $("#mode-switch-button-walk");
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
         svl.ui.googleMaps.overlay = $("#google-maps-overlay");
@@ -485,11 +484,10 @@ function Main (params) {
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
-        svl.ui.ribbonMenu.buttons = $('span.mode-switch');
-        svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
+        svl.ui.ribbonMenu.buttons = $('.label-type-button-holder');
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
-        svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategories");
+        svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategory");
 
         // Context menu
         svl.ui.contextMenu = {};
@@ -563,9 +561,8 @@ function Main (params) {
 
         // Zoom control
         svl.ui.zoomControl = {};
-        svl.ui.zoomControl.holder = $("#zoom-control-holder");
-        svl.ui.zoomControl.zoomIn = $("#zoom-in-button");
-        svl.ui.zoomControl.zoomOut = $("#zoom-out-button");
+        svl.ui.zoomControl.zoomIn = $("#left-column-zoom-in-button");
+        svl.ui.zoomControl.zoomOut = $("#left-column-zoom-out-button");
 
         // Form
         svl.ui.form = {};
@@ -579,7 +576,6 @@ function Main (params) {
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
-        svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 
         // Navigation compass
         svl.ui.compass = {};

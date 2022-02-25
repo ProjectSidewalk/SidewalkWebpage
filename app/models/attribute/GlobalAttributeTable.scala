@@ -2,6 +2,8 @@ package models.attribute
 
 import models.label._
 import models.region.{Region, RegionTable}
+import models.street.{OsmWayStreetEdgeTable}
+import models.street.{StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -29,6 +31,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val disagreeCount: Int,
                                  val notsureCount: Int,
                                  val streetEdgeId: Int,
+                                 val osmStreetId: Int,
                                  val neighborhoodName: String) {
   def toJSON: JsObject = {
     Json.obj(
@@ -38,6 +41,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "attribute_id" -> globalAttributeId,
         "label_type" -> labelType,
         "street_edge_id" -> streetEdgeId,
+        "osm_street_id" -> osmStreetId,
         "neighborhood" -> neighborhoodName,
         "severity" -> severity,
         "is_temporary" -> temporary,
@@ -47,7 +51,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
       )
     )
   }
-  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, neighborhoodName, lat.toString,
+  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
                                 lng.toString, severity.getOrElse("NA").toString, temporary.toString,
                                 agreeCount.toString, disagreeCount.toString, notsureCount.toString)
 }
@@ -58,6 +62,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val attributeSeverity: Option[Int],
                                           val attributeTemporary: Boolean,
                                           val streetEdgeId: Int,
+                                          val osmStreetId: Int,
                                           val neighborhoodName: String,
                                           val labelId: Int,
                                           val labelLatLng: (Float, Float),
@@ -81,6 +86,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "attribute_id" -> globalAttributeId,
         "label_type" -> labelType,
         "street_edge_id" -> streetEdgeId,
+        "osm_street_id" -> osmStreetId,
         "neighborhood" -> neighborhoodName,
         "severity" -> attributeSeverity,
         "is_temporary" -> attributeTemporary,
@@ -102,12 +108,13 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
     )
   }
   val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
-                                attributeTemporary.toString, streetEdgeId.toString, neighborhoodName, labelId.toString,
-                                gsvPanoramaId, attributeLatLng._1.toString, attributeLatLng._2.toString,
-                                labelLatLng._1.toString, labelLatLng._2.toString, heading.toString, pitch.toString,
-                                zoom.toString, canvasXY._1.toString, canvasXY._2.toString, canvasWidth.toString,
-                                canvasHeight.toString, labelSeverity.getOrElse("NA").toString, labelTemporary.toString,
-                                agreeCount.toString, disagreeCount.toString, notsureCount.toString)
+                                attributeTemporary.toString, streetEdgeId.toString, osmStreetId.toString,
+                                neighborhoodName, labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
+                                attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
+                                heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
+                                canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString,
+                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
+                                disagreeCount.toString, notsureCount.toString)
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
@@ -184,10 +191,11 @@ object GlobalAttributeTable {
       _vc <- validationCounts if _ga.globalAttributeId === _vc._1
       _lt <- LabelTypeTable.labelTypes if _ga.labelTypeId === _lt.labelTypeId
       _r <- RegionTable.regions if _ga.regionId === _r.regionId
+      _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
       if _lt.labelType =!= "Problem"
     } yield (
       _ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary,
-      _vc._2.getOrElse(0), _vc._3.getOrElse(0), _vc._4.getOrElse(0), _ga.streetEdgeId, _r.description
+      _vc._2.getOrElse(0), _vc._3.getOrElse(0), _vc._4.getOrElse(0), _ga.streetEdgeId, _osm.osmWayId, _r.description
     )
     attributes.list.map(GlobalAttributeForAPI.tupled)
   }
@@ -205,23 +213,24 @@ object GlobalAttributeTable {
       _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
       _l <- LabelTable.labels if _ual.labelId === _l.labelId
       _lp <- LabelTable.labelPoints if _l.labelId === _lp.labelId
+      _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
       if _lt.labelType =!= "Problem"
     } yield (
-      _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId,
+      _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId, _osm.osmWayId,
       _r.description, _l.labelId, (_lp.lat, _lp.lng), _l.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
       (_lp.canvasX, _lp.canvasY), _lp.canvasWidth, _lp.canvasHeight, _l.agreeCount, _l.disagreeCount, _l.notsureCount
     )
 
     val withSeverity = for {
-      (_l, _s) <- attributesWithLabels.leftJoin(LabelSeverityTable.labelSeverities).on(_._8 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _s.severity.?)
+      (_l, _s) <- attributesWithLabels.leftJoin(LabelSeverityTable.labelSeverities).on(_._9 === _.labelId)
+    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l._20, _s.severity.?)
 
     val withTemporary = for {
-      (_l, _t) <- withSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._8 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l._20, _t.temporary.?)
+      (_l, _t) <- withSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._9 === _.labelId)
+    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l._20, _l._21, _t.temporary.?)
 
     withTemporary.list.map(a =>
-      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7, a._8, (a._9._1.get, a._9._2.get), a._10, a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20, a._21.getOrElse(false))
+      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7, a._8, a._9, (a._10._1.get, a._10._2.get), a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20, a._21, a._22.getOrElse(false))
     )
   }
 

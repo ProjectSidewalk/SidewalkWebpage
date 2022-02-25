@@ -9,7 +9,7 @@
   "surface-problems": "Problemas en superficie",
   "sidewalk-obstacles": "Obstáculos en la banqueta",
   "complete": "completado",
-  "left-ui-turk-submit-code": "Envía este código para la verificación HIT en Amazon Mechanical Turk",
+  "mturk-code": "Código de Mturk: {{code}}",
   "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
   "right-ui-turk-total-reward": "Recompensa total ganada: ",
   "mission-complete-confirmation-code": "Código de confirmación: ",
@@ -71,16 +71,20 @@
     "gravel/dirt road": "camino de tierra",
     "shared pedestrian/car space": "plataforma única",
     "height difference": "desnivel",
+    "paint fading": "cruce despintado",
+    "paint not fading": "cruce bien pintado",
+    "has button": "tiene botón",
+    "button waist height": "botón a la altura de la cintura",
     "missing crosswalk": "paso peatonal ausente (i)",
     "no bus stop access": "No hay acceso a la parada de autobús"
   },
   "gallery": {
-    "CurbRamp": "Rampa peatonal",
-    "NoCurbRamp": "Rampa peatonal ausente",
-    "Obstacle": "Obstáculo en la banqueta",
-    "SurfaceProblem": "Problema en superficie",
-    "Occlusion": "No puedo ver la banqueta",
-    "NoSidewalk" : "No hay banqueta",
-    "Other": "Otro"
+    "curb-ramp": "Rampa peatonal",
+    "no-curb-ramp": "Rampa peatonal ausente",
+    "obstacle": "Obstáculo en la banqueta",
+    "surface-problem": "Problema en superficie",
+    "occlusion": "No puedo ver la banqueta",
+    "noSidewalk" : "No hay banqueta",
+    "other": "Otro"
   }
 }
