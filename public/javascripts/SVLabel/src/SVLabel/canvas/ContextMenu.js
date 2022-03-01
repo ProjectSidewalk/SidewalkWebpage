@@ -262,16 +262,6 @@ function ContextMenu (uiContextMenu) {
                         labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalkId, labelTags);
                     }
 
-                    // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
-                    var paintFadingId = self.labelTags.filter(tag => tag.tag === 'paint fading')[0].tag_id;
-                    var paintNotFadingId = self.labelTags.filter(tag => tag.tag === 'paint not fading')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === paintFadingId) {
-                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintNotFadingId, labelTags);
-                    } else if (currTagId === paintNotFadingId) {
-                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintFadingId, labelTags);
-                    }
-
                     labelTags.push(tag.tag_id);
                     if (wasClickedByMouse) {
                         svl.tracker.push('ContextMenu_TagAdded',
