@@ -262,16 +262,6 @@ function ContextMenu (uiContextMenu) {
                         labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalkId, labelTags);
                     }
 
-                    // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
-                    var paintFadingId = self.labelTags.filter(tag => tag.tag === 'paint fading')[0].tag_id;
-                    var paintNotFadingId = self.labelTags.filter(tag => tag.tag === 'paint not fading')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === paintFadingId) {
-                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintNotFadingId, labelTags);
-                    } else if (currTagId === paintNotFadingId) {
-                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintFadingId, labelTags);
-                    }
-
                     labelTags.push(tag.tag_id);
                     if (wasClickedByMouse) {
                         svl.tracker.push('ContextMenu_TagAdded',
@@ -448,29 +438,31 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Sets the description and value of the tag based on the label type.
-     * @param label     Current label being modified.
+     * @param label Current label being modified.
      */
     function setTags (label) {
-        var maxTags = 11;
+        var maxTags = 16;
         if (label) {
             var labelTags = self.labelTags;
             if (labelTags) {
                 var count = 0;
+                var tagHolder = getContextMenuUI().tagHolder;
 
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
-                        // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
-                        $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
+                        // Remove all leftover tags from last labeling.
+                        // Warning to future devs: will remove any other classes you add to the tags.
+                        tagHolder.find("button[id=" + count + "]").attr('class', 'context-menu-tag');
 
                         // Add tag id as a class so that finding the element is easier later.
-                        $("body").find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
+                        tagHolder.find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
 
                         // Set tag texts to new underlined version as defined in the util label description map.
                         var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
-                        $("body").find("button[id=" + count + "]").html(tagText);
+                        tagHolder.find("button[id=" + count + "]").html(tagText);
 
-                        $("body").find("button[id=" + count + "]").css({
+                        tagHolder.find("button[id=" + count + "]").css({
                             visibility: 'inherit',
                             position: 'inherit'
                         });
@@ -492,7 +484,7 @@ function ContextMenu (uiContextMenu) {
                         }
 
                         // Add tooltip with tag example.
-                        $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
+                        tagHolder.find("button[id=" + count + "]").tooltip("destroy").tooltip(({
                             placement: 'top',
                             html: true,
                             delay: { "show": 300, "hide": 10 },

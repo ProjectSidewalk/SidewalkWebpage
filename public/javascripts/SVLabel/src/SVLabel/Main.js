@@ -217,7 +217,7 @@ function Main (params) {
         $(svl.ui.ribbonMenu.subcategories).each(function() {
             var val = $(this).attr('val');
 
-            if(val != 'Walk' && val != 'Other') {
+            if(val !== 'Walk' && val !== 'Other') {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'left',
