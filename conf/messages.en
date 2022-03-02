@@ -38,6 +38,7 @@ navbar.signin = Sign in
 navbar.signout = Sign out
 navbar.dashboard = Your dashboard
 navbar.admin = Admin
+navbar.city = City
 navbar.lang.aria = Language Options
 navbar.lang.icon.alt = languages icon
 
@@ -311,7 +312,6 @@ leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard">
 
 gallery = Gallery
 gallery.show = Show
-gallery.city = City
 gallery.filter.by = Filter By
 gallery.severity = Severity
 gallery.tags = Tags

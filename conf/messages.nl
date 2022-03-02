@@ -38,6 +38,7 @@ navbar.signin = Log in
 navbar.signout = Log uit
 navbar.dashboard = Je dashboard
 navbar.admin = Beheerder
+navbar.city = Stad
 navbar.lang.aria = Taal Opties
 navbar.lang.icon.alt = talen icoon
 
@@ -308,7 +309,6 @@ leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard">
 
 gallery = Galerij
 gallery.show = Tonen
-gallery.city = Stad
 gallery.filter.by = Filteren op
 gallery.severity = Ernst
 gallery.tags = Tags
