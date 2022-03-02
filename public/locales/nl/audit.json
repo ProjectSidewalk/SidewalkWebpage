@@ -154,6 +154,8 @@
                 "gravel-dirt-road": "gravel/zand weg (<tag-underline>d</tag-underline>)",
                 "shared-pedestrian-car-space": "g<tag-underline>e</tag-underline>deeld voetganger/auto gebied",
                 "paint-fading": "ver<tag-underline>f</tag-underline> vervaagd",
+                "broken-surface": "geb<tag-underline>r</tag-underline>oken oppervlak",
+                "uneven-surface": "on<tag-underline>e</tag-underline>ven oppervlak",
                 "has-button": "heeft een knop (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "knop op <tag-underline>h</tag-underline>euphoogte",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",

@@ -264,6 +264,14 @@ function UtilitiesMisc (JSON) {
                     'paint fading': {
                         keyChar: 'F',
                         text: i18next.t('center-ui.context-menu.tag.paint-fading')
+                    },
+                    'broken surface': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.broken-surface')
+                    },
+                    'uneven surface': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uneven-surface')
                     }
                 }
             },

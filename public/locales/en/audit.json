@@ -154,6 +154,8 @@
                 "gravel-dirt-road": "gravel/<tag-underline>d</tag-underline>irt road",
                 "shared-pedestrian-car-space": "shared p<tag-underline>e</tag-underline>destrian/car space",
                 "paint-fading": "paint <tag-underline>f</tag-underline>ading",
+                "broken-surface": "b<tag-underline>r</tag-underline>oken surface",
+                "uneven-surface": "un<tag-underline>e</tag-underline>ven surface",
                 "has-button": "has b<tag-underline>u</tag-underline>tton",
                 "button-waist-height": "button waist <tag-underline>h</tag-underline>eight",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",

@@ -152,6 +152,8 @@
                 "gravel-dirt-road": "camino <tag-underline>d</tag-underline>e tierra",
                 "shared-pedestrian-car-space": "plataforma única (<tag-underline>e</tag-underline>)",
                 "paint-fading": "cruce despintado (<tag-underline>f</tag-underline>)",
+                "broken-surface": "superficie <tag-underline>r</tag-underline>ota",
+                "uneven-surface": "sup<tag-underline>e</tag-underline>rficie irregular",
                 "has-button": "tiene botón (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "botón a la altura de la cintura (<tag-underline>h</tag-underline>)",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
