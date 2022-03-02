@@ -145,7 +145,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.vegetation')
                     },
                     'parked car': {
-                        keyChar: 'R',
+                        keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
@@ -169,7 +169,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.stairs')
                     },
                     'street vendor': {
-                        keyChar: 'U',
+                        keyChar: 'J',
                         text: i18next.t('center-ui.context-menu.tag.street-vendor')
                     },
                     'height difference': {
@@ -179,6 +179,14 @@ function UtilitiesMisc (JSON) {
                     'narrow': {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
+                    },
+                    'litter/garbage': {
+                        keyChar: 'X',
+                        text: i18next.t('center-ui.context-menu.tag.litter-garbage')
+                    },
+                    'parked scooter/motorcycle': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
                     }
                 }
             },
@@ -222,6 +230,10 @@ function UtilitiesMisc (JSON) {
                     'height difference': {
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
+                    },
+                    'rail/tram track': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
                     }
                 }
             },
@@ -261,9 +273,13 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'F',
                         text: i18next.t('center-ui.context-menu.tag.paint-fading')
                     },
-                    'paint not fading': {
-                        keyChar: 'T',
-                        text: i18next.t('center-ui.context-menu.tag.paint-not-fading')
+                    'broken surface': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.broken-surface')
+                    },
+                    'uneven surface': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uneven-surface')
                     }
                 }
             },
