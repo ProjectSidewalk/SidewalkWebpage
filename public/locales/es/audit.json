@@ -139,6 +139,8 @@
                 "garage-entrance": "entrada a cochera (<tag-underline>g</tag-underline>)",
                 "stairs": "escalones (<tag-underline>r</tag-underline>)",
                 "street-vendor": "comercio amb<tag-underline>u</tag-underline>lante",
+                "litter-garbage": "basura (<tag-underline>x</tag-underline>)",
+                "parked-scooter-motorcycle": "scooter/motocicleta aparcada (<tag-underline>y</tag-underline>)",
                 "bumpy": "textura irregular (<tag-underline>y</tag-underline>)",
                 "uneven-slanted": "dispareja (<tag-underline>u</tag-underline>)",
                 "cracks": "grietas (<tag-underline>k</tag-underline>)",

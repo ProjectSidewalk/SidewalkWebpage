@@ -141,6 +141,8 @@
                 "garage-entrance": "<tag-underline>g</tag-underline>arage entrance",
                 "stairs": "stai<tag-underline>r</tag-underline>s",
                 "street-vendor": "street vendor (<tag-underline>u</tag-underline>)",
+                "litter-garbage": "litter/garbage (<tag-underline>x</tag-underline>)",
+                "parked-scooter-motorcycle": "parked scooter/motorc<tag-underline>y</tag-underline>cle",
                 "bumpy": "bump<tag-underline>y</tag-underline>",
                 "uneven-slanted": "<tag-underline>u</tag-underline>neven/slanted",
                 "cracks": "crac<tag-underline>k</tag-underline>s",

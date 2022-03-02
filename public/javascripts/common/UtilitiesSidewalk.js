@@ -179,6 +179,14 @@ function UtilitiesMisc (JSON) {
                     'narrow': {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
+                    },
+                    'litter/garbage': {
+                        keyChar: 'X',
+                        text: i18next.t('center-ui.context-menu.tag.litter-garbage')
+                    },
+                    'parked scooter/motorcycle': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
                     }
                 }
             },

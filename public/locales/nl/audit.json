@@ -141,6 +141,8 @@
                 "garage-entrance": "<tag-underline>g</tag-underline>arage ingang",
                 "stairs": "t<tag-underline>r</tag-underline>ap",
                 "street-vendor": "straatverkoper (<tag-underline>u</tag-underline>)",
+                "litter-garbage": "zwerfvuil/vuilnis (<tag-underline>x</tag-underline>)",
+                "parked-scooter-motorcycle": "geparkeerde scooter/motor (<tag-underline>y</tag-underline>)",
                 "bumpy": "hobbelig (<tag-underline>y</tag-underline>)",
                 "uneven-slanted": "oneven/hellend (<tag-underline>u</tag-underline>)",
                 "cracks": "scheuren (<tag-underline>k</tag-underline>)",
