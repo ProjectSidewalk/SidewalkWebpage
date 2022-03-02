@@ -145,6 +145,7 @@
                 "grass": "hierba (<tag-underline>g</tag-underline>)",
                 "brick": "ladr<tag-underline>i</tag-underline>llo",
                 "very-broken": "<tag-underline>r</tag-underline>ota",
+                "rail-tram-track": "vía férrea/tranvía (<tag-underline>l</tag-underline>)",
                 "ends-abruptly": "termina <tag-underline>a</tag-underline>bruptamente",
                 "street-has-a-sidewalk": "la calle tiene una banqueta (<tag-underline>r</tag-underline>)",
                 "street-has-no-sidewalks": "la calle no <tag-underline>t</tag-underline>iene banquetas",

@@ -222,6 +222,10 @@ function UtilitiesMisc (JSON) {
                     'height difference': {
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
+                    },
+                    'rail/tram track': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
                     }
                 }
             },

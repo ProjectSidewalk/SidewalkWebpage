@@ -147,6 +147,7 @@
                 "grass": "<tag-underline>g</tag-underline>rass",
                 "brick": "br<tag-underline>i</tag-underline>ck",
                 "very-broken": "very b<tag-underline>r</tag-underline>oken",
+                "rail-tram-track": "rai<tag-underline>l</tag-underline>/tram track",
                 "ends-abruptly": "ends <tag-underline>a</tag-underline>bruptly",
                 "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a sidewalk",
                 "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no sidewalks",
