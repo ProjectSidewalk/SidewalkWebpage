@@ -97,6 +97,10 @@ function UtilitiesMisc (JSON) {
                     'not level with street': {
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.not-level-with-street')
+                    },
+                    'surface problem': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.surface-problem')
                     }
                 }
             },
@@ -234,6 +238,10 @@ function UtilitiesMisc (JSON) {
                     'rail/tram track': {
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
+                    },
+                    'sand/gravel': {
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.sand-gravel')
                     }
                 }
             },
@@ -280,6 +288,18 @@ function UtilitiesMisc (JSON) {
                     'uneven surface': {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.uneven-surface')
+                    },
+                    'brick': {
+                        keyChar: 'I',
+                        text: i18next.t('center-ui.context-menu.tag.brick')
+                    },
+                    'bumpy': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.bumpy')
+                    },
+                    'rail/tram track': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
                     }
                 }
             },
