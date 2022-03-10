@@ -4,10 +4,10 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
-  "missing-sidewalks": "Ontbrekende Trottoirs",
+  "missing-sidewalks": "Ontbrekende trottoirs",
   "missing-ramps": "Ontbrekende Opritten",
-  "surface-problems": "Oppervlakte Problemen",
-  "sidewalk-obstacles": "Trottoir Obstakels",
+  "surface-problems": "Oppervlakte problemen",
+  "sidewalk-obstacles": "Trottoir obstakels",
   "complete": "voltooid",
   "mturk-code": "Mturk Code: {{code}}",
   "right-ui-turk-current-reward": "Huidige missie beloning: ",
@@ -55,7 +55,7 @@
     "parked bike": "geparkeerde fiets",
     "construction": "constructie",
     "sign": "verkeersbord",
-    "garage entrance": "garage ingang",
+    "garage entrance": "ingang garage",
     "stairs": "trap",
     "street vendor": "straatverkoper",
     "litter/garbage": "zwerfvuil/vuilnis",
@@ -83,12 +83,12 @@
     "no bus stop access": "geen bushalte toegang"
   },
   "gallery": {
-    "curb-ramp": "Trottoir Oprit",
-    "no-curb-ramp": "Ontbrekende Trottoir Oprit",
+    "curb-ramp": "Trottoir oprit",
+    "no-curb-ramp": "Ontbrekende trottoir oprit",
     "obstacle": "Obstakel op het pad",
-    "surface-problem": "Oppervlakte Probleem",
+    "surface-problem": "Oppervlakte probleem",
     "occlusion": "Trottoir niet zichtbaar",
-    "no-sidewalk" : "Geen Trottoir",
+    "no-sidewalk" : "Geen trottoir",
     "other": "Anders"
   }
 }
