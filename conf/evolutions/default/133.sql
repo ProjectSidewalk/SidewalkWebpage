@@ -25,7 +25,7 @@ WHERE label_tag.tag_id = tag.tag_id
         OR (label_type.label_type = 'CurbRamp' AND tag.tag = 'surface problem')
         OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'brick')
         OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'bumpy')
-        OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'rail/tram tracks')
+        OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'rail/tram track')
     );
 
 DELETE FROM tag
@@ -36,5 +36,5 @@ WHERE tag.label_type_id = label_type.label_type_id
         OR (label_type.label_type = 'CurbRamp' AND tag.tag = 'surface problem')
         OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'brick')
         OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'bumpy')
-        OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'rail/tram tracks')
+        OR (label_type.label_type = 'Crosswalk' AND tag.tag = 'rail/tram track')
     );
