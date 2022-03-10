@@ -60,7 +60,7 @@
         "walk-4": "Perfect! Je hebt je net bewogen door de straat. Reeds bezochte delen van een route zijn gemarkeerd in het <span class= \"bold\" style=\"color: #3c763d;\">groen</span> in de mini kaart.",
         "walk-5-1": "Je kunt nu voor meer punten kijken op deze locatie. In dit geval, merk op dat er een oversteeklaats is zonder <span class=\"bold\">trottoir opritten</span>.",
         "walk-5-2": "Yes! Ik zie de ontbrekende trottoir opritten.",
-        "walk-6-1": "Gewoonlijk, zou je het label onder de knipperende pijlen met een Ontbrekende Trottoir Oprit selecteren",
+        "walk-6-1": "Gewoonlijk, zou je het label onder de knipperende pijlen met een ontbrekende trottoir oprit selecteren",
         "walk-6-2": "Echter, willen we je aan de slag laten gaan met echte voorbeelden, dus laten we <span class=\"bold\"> deze tutorial afmaken!</span>",
         "instruction-1": "Je kunt je labels bijhouden op de mini kaart!",
         "instruction-2": "Tenslotte, als je vast komt te zitten tijdens het labelen kun je de <span class=\"bold\">Vastgelopen knop</span> gebruiken om naar een andere locatie te verplaatsen.",
@@ -79,8 +79,8 @@
         "title-first": "Eerste Missie: ",
         "title-return": "Keer terug naar je missie",
         "title-continue": "Ga door met verkennen __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> voor toegankelijkheids kenmerken!",
-        "body-first": "Je <span class=\"bold\">eerste missie</span> is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheids kenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
-        "body": "Jouw missie is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheids kenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
+        "body-first": "Je <span class=\"bold\">eerste missie</span> is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
+        "body": "Jouw missie is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
         "button-resume": "Missie hervatten!"
     },
     "mission-complete": {
@@ -108,7 +108,7 @@
     },
     "right-ui": {
         "current-mission": {
-            "message-first-mission": "Zoek voor __PLACEHOLDER__ en vind alle trottoir toegankelijkheids kenmerken",
+            "message-first-mission": "Zoek voor __PLACEHOLDER__ en vind alle trottoir toegankelijkheidskenmerken",
             "message": "Zoek __PLACEHOLDER__ voor deze wijk"
         }
     },
@@ -202,12 +202,12 @@
         "signup-button-no": "Nee",
         "severity-shortcuts": "Beoordeel de ernst van elk label door tussen <kbd>1</kbd> en <kbd>5</kbd> in te drukken",
         "zoom-shortcuts": "Je kunt ook de <kbd>Z</kbd> toets gebruiken om in te zoomen en <kbd>Shift</kbd> + <kbd>Z</kbd> toetsen om uit te zoomen.",
-        "label-shortcuts-curb-ramp": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Trottoir Oprit label.",
-        "label-shortcuts-no-curb-ramp": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Ontbrekende Trottoir Oprit label.",
-        "label-shortcuts-obstacle": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Obstakel label.",
-        "label-shortcuts-surface-problem": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Grond Oppervlakte Probleem label.",
-        "label-shortcuts-no-sidewalk": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het Geen Trottoir label.",
-        "label-shortcuts-crosswalk": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van Oversteekplaats label.",
+        "label-shortcuts-curb-ramp": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het trottoir oprit label.",
+        "label-shortcuts-no-curb-ramp": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het ontbrekende trottoir oprit label.",
+        "label-shortcuts-obstacle": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het obstakel label.",
+        "label-shortcuts-surface-problem": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het grond oppervlakte probleem label.",
+        "label-shortcuts-no-sidewalk": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het geen trottoir label.",
+        "label-shortcuts-crosswalk": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van oversteekplaats label.",
         "label-shortcuts-signal": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van Verkeerslicht label.",
         "label-shortcuts-occlusion": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van 'Het trottoir is niet zichtbaar' label.",
         "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
