@@ -11,7 +11,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.mission.MissionProgressCVGroundtruthTable
 import models.street.StreetEdgePriorityTable
-import models.user.User
+import models.user.{User, UserStatTable}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -286,12 +286,23 @@ object AuditTaskTable {
   /**
     * Return audited street edges.
     */
-  def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
+  def selectStreetsAudited(filterLowQuality: Boolean): List[StreetEdge] = db.withSession { implicit session =>
+    // Optionally filter out data marked as low quality.
+    val _filteredTasks = if (filterLowQuality) {
+      for {
+        _ct <- completedTasks
+        _ut <- UserStatTable.userStats if _ct.userId === _ut.userId
+        if _ut.highQuality
+      } yield _ct
+    } else {
+      completedTasks
+    }
+
     val _streetEdges = for {
-      (_tasks, _edges) <- completedTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
+      (_tasks, _edges) <- _filteredTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
     } yield _edges
 
-    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edge
+    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edges.
   }
 
   /**

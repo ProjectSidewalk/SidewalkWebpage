@@ -1,5 +1,6 @@
 package models.attribute
 
+import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{OsmWayStreetEdgeTable}
@@ -77,6 +78,14 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val notsureCount: Int,
                                           val labelSeverity: Option[Int],
                                           val labelTemporary: Boolean) {
+  val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
+                  |size=${canvasWidth}x${canvasHeight}
+                  |&pano=${gsvPanoramaId}
+                  |&heading=${heading}
+                  |&pitch=${pitch}
+                  |&fov=${GoogleMapsHelper.getFov(zoom)}
+                  |&key=YOUR_API_KEY
+                  |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -99,6 +108,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "canvas_y" -> canvasXY._2,
         "canvas_width" -> canvasWidth,
         "canvas_height" -> canvasHeight,
+        "gsv_url" -> gsvUrl,
         "label_severity" -> labelSeverity,
         "label_is_temporary" -> labelTemporary,
         "agree_count" -> agreeCount,
@@ -112,7 +122,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 neighborhoodName, labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
                                 heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
-                                canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString,
+                                canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString, "\"" + gsvUrl + "\"",
                                 labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
                                 disagreeCount.toString, notsureCount.toString)
 }

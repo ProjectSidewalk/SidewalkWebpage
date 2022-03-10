@@ -1,11 +1,11 @@
 measurement.system = metrisch
-curb.ramp = Trottoir Oprit
-curb.ramps = Trottoir Opritten
-missing.ramp = Ontbrekende Trottoir Oprit
-missing.ramps = Ontbrekende Trottoir Opritten
+curb.ramp = Trottoir oprit
+curb.ramps = Trottoir opritten
+missing.ramp = Ontbrekende trottoir oprit
+missing.ramps = Ontbrekende trottoir opritten
 obstacle = Obstakel in het pad
-obstacles = Obstakelels in het pad
-surface.problem = Oppervlakte Probleem
+obstacles = Obstakels in het pad
+surface.problem = Oppervlakte probleem
 surface.problems = Oppervlakte Problemen
 no.sidewalk = Geen Trottoir
 crosswalk = Oversteekplaats
@@ -16,7 +16,7 @@ dist.metric.abbr = km
 ok = OK
 cancel = Annuleer
 error = Error!
-thanks = Dankjewel!
+thanks = Dank je wel!
 username = Gebruikersnaam
 loading = Laden...
 loading.encouragement = Let''s go!
@@ -27,8 +27,8 @@ feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb j
 
 navbar.explore = Start met Verkennen
 navbar.validate = Start met Valideren
-navbar.howto = Hoe te Lablen
-navbar.results = Resultaten Kaart
+navbar.howto = Hoe te Labelen
+navbar.results = Resultaten kaart
 navbar.data = Data
 navbar.labelmap = Label Kaart
 navbar.help = Help
@@ -39,14 +39,14 @@ navbar.signout = Log uit
 navbar.dashboard = Je dashboard
 navbar.admin = Beheerder
 navbar.city = Stad
-navbar.lang.aria = Taal Opties
+navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
 
 landing.create.path = Laten we een pad voor iedereen creëren
 landing.also.in = We zijn ook in:
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
-landing.how.you.help.content = Verken virtueel de straten van de stad om toegankelijkheids problemen te vinden en te labelen in  slechts drie eenvoudige stappen, gewoon vanuit je luie stoel.
+landing.how.you.help.content = Verken virtueel de straten van de stad om toegankelijkheidsproblemen te vinden en te labelen in slechts drie eenvoudige stappen, gewoon vanuit je luie stoel.
 landing.how.you.help.explore = VERKEN
 landing.how.you.help.find = ONTDEK PROBLEMEN
 landing.how.you.help.assess = BEOORDEEL DE ERNST
@@ -71,7 +71,7 @@ landing.collaborators.title = Partners
 footer.about = Over ons
 footer.terms = Gebruiksvoorwaarden
 footer.help = Help
-footer.guide = Label Handleiding
+footer.guide = Label handleiding
 footer.developer = DEVELOPER
 footer.api = Sidewalk API
 footer.connect = Contact
@@ -80,7 +80,7 @@ footer.funding = MET TROTS GESPONSORD DOOR
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> zul je je virtueel door steden verplaatsen en missies volbrengen door toegankelijkheids kenmerken en problemen te vinden en te labelen in de buurt, waaronder:
+audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> zul je je virtueel door steden verplaatsen en missies volbrengen door toegankelijkheidskenmerken en problemen te vinden en te labelen in de buurt, waaronder:
 audit.tutorial.welcome.2 = We beginnen met een korte interactieve uitleg.
 audit.tutorial.welcome.3 = Laten we eraan beginnen!
 audit.tutorial.welcome.4 = Al eerder de uitleg doorlopen? Heb je een Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Log In</a> of <a value="Skip" class="onboarding-transition-trigger">sla de uitleg over.</a>
@@ -92,14 +92,14 @@ audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstakels</span
 audit.tutorial.examples.surface.problem = Trottoirs met <span style="color:orange">oppervlakte problemen</span> zijn mogelijk niet berijdbaar
 audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">label de volgende toegankelijkheids kenmerken in Google Street View</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
 audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan een toegankelijke wereld voor iedereen!</span>
-audit.tutorial.examples = Voorbeelden van toegankelijkheids kenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakte problemen.
+audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakte problemen.
 
 audit.ribbon.find.and.label = Vind en label het volgende
 audit.ribbon.explore = Ontd<u>e</u>k
 audit.ribbon.curb.ramp = Trottoir Oprit (<u>C</u>)
 audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit
 audit.ribbon.obstacle = <u>O</u>bstakel in het Pad
-audit.ribbon.surface.problem = Oppervlakte Probleem (<u>S</u>)
+audit.ribbon.surface.problem = Oppervlakte probleem (<u>S</u>)
 audit.ribbon.no.sidewalk = Gee<u>n</u> Trottoir
 audit.ribbon.crosswalk = Oversteekplaats (<u>W</u>)
 audit.ribbon.signal = Verkeerslicht (<u>P</u>)
@@ -130,8 +130,8 @@ audit.center.ui.add.tags = Voeg<br>Tags toe:
 audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
 audit.center.ui.show.again = Laat niet opnieuw zien
 
-audit.mission.complete.labels.title = Missie Labels
-audit.mission.complete.progress.title = Wijk Voortgang
+audit.mission.complete.labels.title = Missie labels
+audit.mission.complete.progress.title = Wijk voortgang
 audit.mission.complete.progress.mission.you = Je ontdekte in deze missie
 audit.mission.complete.progress.neighborhood.you = Je ontdekte in deze wijk
 audit.mission.complete.progress.neighborhood.others = Anderen ontdekten in deze wijk
@@ -171,7 +171,7 @@ audit.help.curb.ramp.5 = Water heeft zich opgehoopt in deze trottoir oprit door 
 audit.help.missing.ramp.1 = Hoewel er geen trottoir oprit is, is de het hoogteverschil klein en zouden rolstoel gebruikers van en op het trottoir moeten kunnen komen. Er is ook een trottoir oprit op dezelfde hoek die mensen zouden kunnen gebruiken, alhoewel het niet in het verlengde ligt van het huidige pad.
 audit.help.missing.ramp.3 = Er is geen trottoir oprit op het einde van de oversteekplek. Rolstoelgebruikers zijn gedwongen om de oprit te gebruiken die niet in het verlengde ligt van de oversteekplek.
 audit.help.missing.ramp.5 = Geen trottoir oprit aan het einde van de oversteekplek. Rolstoelgebruikers kunnen niet van en op het trottoir komen om de straat hier over te steken.
-audit.help.obstacle.1 = Een verkeesrslicht dat in het midden van het trottoir staat. Er lijkt voldoende ruimte te zijn voor rolstoelgebruikers om te passeren, maar degenen die grotere rolstoelen gebruiken kunnen moeite hebben met navigeren.
+audit.help.obstacle.1 = Een verkeerslicht dat in het midden van het trottoir staat. Er lijkt voldoende ruimte te zijn voor rolstoelgebruikers om te passeren, maar degenen die grotere rolstoelen gebruiken kunnen moeite hebben met navigeren.
 audit.help.obstacle.3 = De plant blokkeert het pad, waardoor het voor rolstoelgebruikers moeilijk is om dit trottoir te gebruiken.
 audit.help.obstacle.5 = De boom blokkeert het pad volledig, waardoor deze niet begaanbaar is voor rolstoelgebruikers.
 audit.help.surface.problem.1 = Gedeeltelijk beschadigd trottoir. Omdat er voldoende ruimte is naast het beschadigde deel van het trottoir, zouden rolstoelgebruikers kunnen passeren.

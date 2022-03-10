@@ -95,7 +95,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
+      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(false)
       val features: List[JsObject] = labels.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
@@ -103,7 +103,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           "label_id" -> label.labelId,
           "gsv_panorama_id" -> label.gsvPanoramaId,
           "label_type" -> label.labelType,
-          "severity" -> label.severity
+          "severity" -> label.severity,
+          "correct" -> label.correct
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
       }
@@ -117,8 +118,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
+  def getAllLabelsForLabelMap(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
+    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(filterLowQuality)
     val features: List[JsObject] = labels.map { label =>
       val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties = Json.obj(
@@ -126,6 +127,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "gsv_panorama_id" -> label.gsvPanoramaId,
         "label_type" -> label.labelType,
         "severity" -> label.severity,
+        "correct" -> label.correct,
         "expired" -> label.expired
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
