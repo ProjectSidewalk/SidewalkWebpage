@@ -13,7 +13,7 @@ object TaskSubmissionFormats {
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
-  case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, imageWidth: Int, imageHeight: Int, tileWidth: Int, tileHeight: Int, centerHeading: Option[Float], originHeading: Option[Float], originPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String)
+  case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], centerHeading: Option[Float], originHeading: Option[Float], originPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
@@ -107,10 +107,10 @@ object TaskSubmissionFormats {
   implicit val gsvPanoramaSubmissionReads: Reads[GSVPanoramaSubmission] = (
     (JsPath \ "panorama_id").read[String] and
       (JsPath \ "image_date").read[String] and
-      (JsPath \ "image_width").read[Int] and
-      (JsPath \ "image_height").read[Int] and
-      (JsPath \ "tile_width").read[Int] and
-      (JsPath \ "tile_height").read[Int] and
+      (JsPath \ "image_width").readNullable[Int] and
+      (JsPath \ "image_height").readNullable[Int] and
+      (JsPath \ "tile_width").readNullable[Int] and
+      (JsPath \ "tile_height").readNullable[Int] and
       (JsPath \ "center_heading").readNullable[Float] and
       (JsPath \ "origin_heading").readNullable[Float] and
       (JsPath \ "origin_pitch").readNullable[Float] and
