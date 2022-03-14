@@ -373,7 +373,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, panorama.imageWidth, panorama.imageHeight,
             panorama.tileWidth, panorama.tileHeight, panorama.centerHeading, panorama.originHeading,
-            panorama.originPitch, panorama.imageDate, 1, "", false, Some(timestamp))
+            panorama.originPitch, panorama.imageDate, 1, panorama.copyright, false, Some(timestamp))
           GSVDataTable.save(gsvData)
 
           for (link <- panorama.links) {
