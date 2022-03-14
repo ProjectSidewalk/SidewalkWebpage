@@ -21,7 +21,7 @@ import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
 import models.user._
-import play.api.libs.json.{JsArray, JsError, JsObject, Json}
+import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
 import play.api.Play
@@ -396,7 +396,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllPanoIds() = UserAwareAction.async { implicit request =>
     val panos: List[(String, Option[Int], Option[Int])] = GSVDataTable.getAllPanos()
-    val json: JsArray = Json.arr(panos.map(p =>
+    val json: JsValue = Json.toJson(panos.map(p =>
       Json.obj("gsv_panorama_id" -> p._1, "image_width" -> p._2, "image_height" -> p._3)
     ))
     Future.successful(Ok(json))
