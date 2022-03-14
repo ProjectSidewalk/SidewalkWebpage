@@ -393,6 +393,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
    * Get the list of pano IDs in our database.
+   * TODO remove the /adminapi/labels/panoid endpoint once all have shifted to /adminapi/panos
    */
   def getAllPanoIds() = UserAwareAction.async { implicit request =>
     val panos: List[(String, Option[Int], Option[Int])] = GSVDataTable.getAllPanos()
