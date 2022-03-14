@@ -14,6 +14,7 @@ import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.gsv.GSVDataTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
@@ -26,7 +27,6 @@ import play.api.mvc.BodyParsers
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
-
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
@@ -392,20 +392,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-   * Get the list of pano IDs associated with labels in our database.
+   * Get the list of pano IDs in our database.
    */
   def getAllPanoIds() = UserAwareAction.async { implicit request =>
-
-    val labels = LabelTable.selectLocationsOfLabels
-    val features: List[JsObject] = labels.map { label =>
-
-      val properties = Json.obj(
-        "gsv_panorama_id" -> label.gsvPanoramaId
-      )
-      Json.obj("properties" -> properties)
-    }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
+    val panos: List[(String, Option[Int], Option[Int])] = GSVDataTable.getAllPanos()
+    val json: JsArray = Json.arr(panos.map(p =>
+      Json.obj("gsv_panorama_id" -> p._1, "image_width" -> p._2, "image_height" -> p._3)
+    ))
+    Future.successful(Ok(json))
   }
 
   /**

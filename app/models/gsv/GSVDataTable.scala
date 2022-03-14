@@ -32,6 +32,10 @@ object GSVDataTable {
   val db = play.api.db.slick.DB
   val gsvDataRecords = TableQuery[GSVDataTable]
 
+  def getAllPanos(): List[(String, Option[Int], Option[Int])] = db.withSession { implicit session =>
+    gsvDataRecords.filter(_.gsvPanoramaId =!= "tutorial").map(p => (p.gsvPanoramaId, p.imageWidth, p.imageHeight)).list
+  }
+
   /**
     * This method marks the expired column of a panorama to be true.
     *
