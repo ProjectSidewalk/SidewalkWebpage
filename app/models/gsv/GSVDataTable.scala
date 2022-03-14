@@ -6,7 +6,7 @@ import play.api.Play.current
 
 case class GSVData(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], centerHeading: Option[Float], originHeading: Option[Float],
-                   originPitch: Option[Float], imageDate: String, imageryType: Int, copyright: String, expired: Boolean,
+                   originPitch: Option[Float], imageDate: String, copyright: String, expired: Boolean,
                    lastViewed: Option[java.sql.Timestamp])
 
 class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_data") {
@@ -19,13 +19,12 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_
   def originHeading = column[Option[Float]]("origin_heading")
   def originPitch = column[Option[Float]]("origin_pitch")
   def imageDate = column[String]("image_date", O.NotNull)
-  def imageryType = column[Int]("imagery_type", O.NotNull)
   def copyright = column[String]("copyright", O.NotNull)
   def expired = column[Boolean]("expired", O.NotNull)
   def lastViewed = column[Option[java.sql.Timestamp]]("last_viewed", O.Nullable)
 
   def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, centerHeading,
-    originHeading, originPitch, imageDate, imageryType, copyright, expired, lastViewed) <>
+    originHeading, originPitch, imageDate, copyright, expired, lastViewed) <>
     ((GSVData.apply _).tupled, GSVData.unapply)
 }
 
