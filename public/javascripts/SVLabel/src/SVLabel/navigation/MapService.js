@@ -1331,7 +1331,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return new google.maps.LatLng(point.geometry.coordinates[1], point.geometry.coordinates[0]);
     }
 
-    function moveForward() {
+    function moveForward(successLogMessage, failLogMessage) {
         svl.modalComment.hide();
         svl.modalSkip.disableStuckButton();
         // TODO show loading icon. Add when resolving issue #2403.
@@ -1390,7 +1390,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     svl.streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
                 } else {
                     // If all else fails, jump to a new street.
-                    svl.tracker.push("ModalStuck_GSVNotAvailable");
+                    svl.tracker.push(failLogMessage);
                     svl.form.skip(currentTask, "GSVNotAvailable");
                     svl.stuckAlert.stuckSkippedStreet();
                     window.setTimeout(function() { svl.modalSkip.enableStuckButton(); }, 1000);
@@ -1404,7 +1404,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     currPos.geometry.coordinates[1],
                     currPos.geometry.coordinates[0]
                 );
-                svl.tracker.push('ModalStuck_Unstuck');
+                svl.tracker.push(successLogMessage);
                 svl.stuckAlert.stuckClicked();
                 window.setTimeout(function() { svl.modalSkip.enableStuckButton(); }, 1000);
             }

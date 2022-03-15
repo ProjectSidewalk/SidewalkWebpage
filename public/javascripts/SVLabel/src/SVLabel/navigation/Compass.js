@@ -324,8 +324,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _handleCompassClick() {
         var angle = self.getCompassAngle();
         var direction = _angleToDirection(angle);
+        svl.tracker.push(`Click_Compass_Direction=${direction}`);
         if (direction === 'straight') {
-            mapService.moveForward();
+            mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable');
         } else {
             mapService.setPovToRouteDirection();
         }
