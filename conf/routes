@@ -63,10 +63,11 @@ GET     /adminapi/auditpath/:id                              @controllers.AdminC
 GET     /adminapi/auditedStreets/:username                   @controllers.AdminController.getStreetsAuditedByAUser(username: String)
 GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
-GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
 GET     /adminapi/labels/cv                                  @controllers.AdminController.getAllLabelCVMetadata
 GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
+GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
+GET     /adminapi/panos                                      @controllers.AdminController.getAllPanoIds
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache

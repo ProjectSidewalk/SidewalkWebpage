@@ -371,7 +371,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Check the presence of the data.
         if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-          val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "", false, Some(timestamp))
+          val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, panorama.imageWidth, panorama.imageHeight,
+            panorama.tileWidth, panorama.tileHeight, panorama.centerHeading, panorama.originHeading,
+            panorama.originPitch, panorama.imageDate, panorama.copyright, false, Some(timestamp))
           GSVDataTable.save(gsvData)
 
           for (link <- panorama.links) {
