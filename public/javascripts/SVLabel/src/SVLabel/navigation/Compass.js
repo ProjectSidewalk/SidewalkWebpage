@@ -321,6 +321,15 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         self.setTurnMessage(streetName);
     }
 
+    function _handleCompassClick(e) {
+        var angle = self.getCompassAngle();
+        var direction = _angleToDirection(angle);
+        if (direction !== 'straight') {
+            mapService.setPovToRouteDirection();
+        }
+    }
+    uiCompass.messageHolder.bind('click', _handleCompassClick);
+
     self.blink = blink;
     self.directionToImagePath = directionToImagePath;
     self.resetBeforeJump = resetBeforeJump;
