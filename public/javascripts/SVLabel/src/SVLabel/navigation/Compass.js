@@ -85,16 +85,13 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         mapService.setPovToRouteDirection();
     }
 
-    function _makeTheMessageBoxClickable() {
-        var events = $._data(uiCompass.messageHolder[0], "events");
-        if (!events) {
-            uiCompass.messageHolder.on('click', _jumpBackToTheRoute);
-            uiCompass.messageHolder.css('cursor', 'pointer');
-        }
+    function enableCompassClick() {
+        uiCompass.messageHolder.on('click', _handleCompassClick);
+        uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
-    function _makeTheMessageBoxUnclickable () {
-        uiCompass.messageHolder.off('click', _jumpBackToTheRoute);
+    function disableCompassClick() {
+        uiCompass.messageHolder.off('click', _handleCompassClick);
         uiCompass.messageHolder.css('cursor', 'default');
     }
 
@@ -241,16 +238,12 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * Update the compass message.
      */
     function update () {
-        if (!mapService.getLabelBeforeJumpListenerStatus()) {
-            self.setTurnMessage();
-
-            if (_checkEnRoute() || svl.isOnboarding()) {
+        if (!mapService.getLabelBeforeJumpListenerStatus() && !svl.isOnboarding()) {
+            if (_checkEnRoute()) {
                 self.stopBlinking();
-                _makeTheMessageBoxUnclickable();
-            }
-            else {
+                self.setTurnMessage();
+            } else {
                 self.blink();
-                _makeTheMessageBoxClickable();
                 self.setBackToRouteMessage();
             }
         }
@@ -322,16 +315,21 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function _handleCompassClick() {
-        var angle = self.getCompassAngle();
-        var direction = _angleToDirection(angle);
-        svl.tracker.push(`Click_Compass_Direction=${direction}`);
-        if (direction === 'straight') {
-            mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable');
+        if (_checkEnRoute()) {
+            var angle = self.getCompassAngle();
+            var direction = _angleToDirection(angle);
+            svl.tracker.push(`Click_Compass_Direction=${direction}`);
+            if (direction === 'straight') {
+                mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable');
+            } else {
+                mapService.setPovToRouteDirection();
+            }
         } else {
-            mapService.setPovToRouteDirection();
+            svl.tracker.push('Click_Compass_FarFromRoute');
+            _jumpBackToTheRoute();
         }
     }
-    uiCompass.messageHolder.bind('click', _handleCompassClick);
+    enableCompassClick();
 
     self.blink = blink;
     self.directionToImagePath = directionToImagePath;
@@ -340,6 +338,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     self.getCompassMessageHolder = getCompassMessageHolder;
     self.hideMessage = hideMessage;
     self.setTurnMessage = setTurnMessage;
+    self.enableCompassClick = enableCompassClick;
+    self.disableCompassClick = disableCompassClick;
     self.setLabelBeforeJumpMessage = setLabelBeforeJumpMessage;
     self.setBackToRouteMessage = setBackToRouteMessage;
     self.stopBlinking = stopBlinking;

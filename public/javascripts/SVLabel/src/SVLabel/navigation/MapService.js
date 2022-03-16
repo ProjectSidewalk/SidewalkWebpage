@@ -732,7 +732,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // Jump to the new location if it's really far away from his location.
             if (!status.jumpMsgShown && distance >= 0.01) {
 
-                // Show message to the user instructing him to label the current location
+                // Show message to the user instructing them to label the current location.
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
                 status.jumpMsgShown = true

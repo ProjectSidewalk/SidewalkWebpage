@@ -81,6 +81,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         uiLeft.stuck.addClass('disabled');
 
         compass.hideMessage();
+        compass.disableCompassClick();
 
         _visit(getState("initialize"));
         handAnimation.initializeHandAnimation();
@@ -542,16 +543,22 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitWalkTowards(state, listener) {
-
+        var nextPanoId = 'afterWalkTutorial';
         // Add a link to the second pano so that the user can click on it.
         svl.panorama.setLinks([{
-            description: 'afterWalkTutorial',
+            description: nextPanoId,
             heading: 340,
-            pano: 'afterWalkTutorial'
+            pano: nextPanoId
         }]);
         mapService.unlockDisableWalking();
         mapService.enableWalking();
         mapService.lockDisableWalking();
+
+        // Allow clicking on the navigation message to move to the next pano.
+        var clickToNextPano = function() {
+            mapService.setPano(nextPanoId, true);
+        }
+        svl.ui.compass.messageHolder.on('click', clickToNextPano);
 
         blinkInterface(state);
 
@@ -562,13 +569,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 window.setTimeout(function () {
                     mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
                 }, 1000);
+                svl.ui.compass.messageHolder.off('click', clickToNextPano);
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
             } else {
                 console.error("Pano mismatch. Shouldn't reach here");
-                // Force the interface to go back to the previous position.
-                mapService.setPano(state.panoId, true);
+                // Force the interface to go to the correct position.
+                mapService.setPano(nextPanoId, true);
             }
         };
 
