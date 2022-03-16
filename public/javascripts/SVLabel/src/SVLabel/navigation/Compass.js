@@ -192,6 +192,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     function hideMessage () {
         uiCompass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
+        uiCompass.messageHolder.css('pointer-events', 'none');
     }
 
     /**
@@ -222,6 +223,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     function showMessage () {
         uiCompass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
+        uiCompass.messageHolder.css('pointer-events', 'auto');
     }
 
     /**

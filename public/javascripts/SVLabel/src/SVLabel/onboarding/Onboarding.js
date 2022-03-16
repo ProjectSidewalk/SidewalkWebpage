@@ -559,6 +559,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             mapService.setPano(nextPanoId, true);
         }
         svl.ui.compass.messageHolder.on('click', clickToNextPano);
+        svl.ui.compass.messageHolder.css('cursor', 'pointer');
 
         blinkInterface(state);
 
@@ -570,6 +571,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
                 }, 1000);
                 svl.ui.compass.messageHolder.off('click', clickToNextPano);
+                svl.ui.compass.messageHolder.css('cursor', 'default');
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
