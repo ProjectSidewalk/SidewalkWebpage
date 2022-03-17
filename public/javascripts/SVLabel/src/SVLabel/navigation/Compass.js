@@ -323,7 +323,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             var direction = _angleToDirection(angle);
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
             if (direction === 'straight') {
-                mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable');
+                mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable', null);
             } else {
                 mapService.setPovToRouteDirection();
             }

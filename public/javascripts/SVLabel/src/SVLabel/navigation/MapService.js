@@ -1333,7 +1333,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return new google.maps.LatLng(point.geometry.coordinates[1], point.geometry.coordinates[0]);
     }
 
-    function moveForward(successLogMessage, failLogMessage) {
+    function moveForward(successLogMessage, failLogMessage, alertFunc) {
         svl.modalComment.hide();
         svl.modalSkip.disableStuckButton();
         // TODO show loading icon. Add when resolving issue #2403.
@@ -1407,7 +1407,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     currPos.geometry.coordinates[0]
                 );
                 svl.tracker.push(successLogMessage);
-                svl.stuckAlert.stuckClicked();
+                if (alertFunc !== null) alertFunc();
                 window.setTimeout(function() { svl.modalSkip.enableStuckButton(); }, 1000);
             }
         };
