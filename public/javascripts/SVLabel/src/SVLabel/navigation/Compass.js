@@ -213,7 +213,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.message.html("<div style='width: 20%'>" + i18next.t('center-ui.compass.end-of-route') + "</div>");
     }
 
-    function setBackToRouteMessage () {
+    function _setBackToRouteMessage() {
         uiCompass.message.html(i18next.t('center-ui.compass.far-away'));
     }
 
@@ -245,7 +245,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
                 self.setTurnMessage();
             } else {
                 self.blink();
-                self.setBackToRouteMessage();
+                _setBackToRouteMessage();
             }
         }
 
