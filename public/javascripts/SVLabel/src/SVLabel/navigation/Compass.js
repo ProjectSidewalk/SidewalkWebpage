@@ -315,12 +315,15 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         self.setTurnMessage(streetName);
     }
 
+    // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
     function _handleCompassClick() {
         if (_checkEnRoute()) {
             svl.stuckAlert.compassOrStuckClicked();
+
             var angle = self.getCompassAngle();
             var direction = _angleToDirection(angle);
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
+
             if (direction === 'straight') {
                 mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable', null);
             } else {

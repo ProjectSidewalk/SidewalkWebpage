@@ -1332,6 +1332,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return new google.maps.LatLng(point.geometry.coordinates[1], point.geometry.coordinates[0]);
     }
 
+    /**
+     * Attempts to move the user forward in GSV by incrementally checking for imagery every few meters along the route.
+     * @param successLogMessage [String] internal logging when imagery is found; different for stuck button v compass.
+     * @param failLogMessage [String] internal logging when imagery is not found; different for stuck button v compass.
+     * @param alertFunc [Function] An optional function that would alert the user upon successfully finding imagery.
+     */
     function moveForward(successLogMessage, failLogMessage, alertFunc) {
         svl.modalComment.hide();
         svl.modalSkip.disableStuckButton();
