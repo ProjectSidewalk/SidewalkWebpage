@@ -613,11 +613,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 return;
             }
 
-            if (svl.streetViewService && panoId.length > 0) {
+            // Checks if pano_id is the same as the previous one. Google Maps API triggers pano_changed event twice:
+            // once moving between pano_ids and once for setting the new pano_id.
+            if (svl.streetViewService && panoId.length > 0 && panoId !== prevPanoId) {
                 // Check if panorama exists.
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            // Mark that we visited this pano so that we can tell if they've gotten stuck.
+                            svl.stuckAlert.panoVisited(panoId);
+
                             // Updates the date overlay to match when the current panorama was taken.
                             document.getElementById("svl-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
                             var panoramaPosition = svl.panorama.getPosition(); // Current position.
@@ -629,12 +634,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             _canvas.render2();
                             povChange["status"] = false;
 
-                            // Checks if pano_id is the same as the previous one. Google Maps API triggers pano_changed
-                            // event twice: once moving between pano_ids  and once for setting the new pano_id.
-                            if (panoId !== prevPanoId) {
-                                svl.tracker.push("PanoId_Changed");
-                                prevPanoId = panoId;
-                            }
+                            svl.tracker.push("PanoId_Changed");
+                            prevPanoId = panoId;
+
                         } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
                             document.getElementById("svl-panorama-date").innerText = "May 2014";
                         } else {

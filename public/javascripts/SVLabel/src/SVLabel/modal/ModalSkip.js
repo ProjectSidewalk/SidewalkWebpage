@@ -40,6 +40,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      */
     this._handleClickStuck = function(e) {
         e.preventDefault();
+        svl.stuckAlert.compassOrStuckClicked();
         tracker.push('ModalStuck_ClickStuck');
         svl.map.moveForward('ModalStuck_Unstuck', 'ModalStuck_GSVNotAvailable');
     }

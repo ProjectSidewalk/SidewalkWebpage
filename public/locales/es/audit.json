@@ -211,6 +211,7 @@
         "label-shortcuts-signal": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de Señalamiento peatonal.",
         "label-shortcuts-occlusion": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Puedo Ver la Banqueta.",
         "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
-        "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle."
+        "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
+        "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda."
     }
 }

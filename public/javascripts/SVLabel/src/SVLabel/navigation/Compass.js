@@ -318,6 +318,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
     function _handleCompassClick() {
         if (_checkEnRoute()) {
+            svl.stuckAlert.compassOrStuckClicked();
             var angle = self.getCompassAngle();
             var direction = _angleToDirection(angle);
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
