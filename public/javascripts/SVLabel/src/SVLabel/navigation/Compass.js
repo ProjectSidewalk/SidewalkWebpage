@@ -126,11 +126,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function _makeTheLabelBeforeJumpMessageBoxClickable () {
-        var events = $._data(uiCompass.messageHolder[0], "events");
-        if (!events) {
-            uiCompass.messageHolder.on('click', _jumpToTheNewRoute);
-            uiCompass.messageHolder.css('cursor', 'pointer');
-        }
+        uiCompass.messageHolder.on('click', _jumpToTheNewRoute);
+        uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
     function _makeTheLabelBeforeJumpMessageBoxUnclickable () {
@@ -144,6 +141,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             svl.tracker.push('LabelBeforeJump_Blink');
             self.blink();
         }, 15000);
+        self.disableCompassClick();
         _makeTheLabelBeforeJumpMessageBoxClickable();
         self.setLabelBeforeJumpMessage();
     }
@@ -151,6 +149,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function removeLabelBeforeJumpMessage () {
         self.stopBlinking();
         _makeTheLabelBeforeJumpMessageBoxUnclickable();
+        self.enableCompassClick();
     }
     // ** end **
 
@@ -344,7 +343,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     self.enableCompassClick = enableCompassClick;
     self.disableCompassClick = disableCompassClick;
     self.setLabelBeforeJumpMessage = setLabelBeforeJumpMessage;
-    self.setBackToRouteMessage = setBackToRouteMessage;
     self.stopBlinking = stopBlinking;
     self.showMessage = showMessage;
     self.showLabelBeforeJumpMessage = showLabelBeforeJumpMessage;

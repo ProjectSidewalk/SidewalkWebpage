@@ -713,12 +713,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Callback to track when user moves away from his current location
+     * Callback to track when user moves away from their current location.
      */
     function trackBeforeJumpActions() {
 
-        // This is a callback function that is called each time the user moves
-        // before jumping and checks if too far
+        // This is a callback function that is called each time the user moves before jumping and checks if too far.
 
         // Don't auto-jump in CV ground truth audits.
         if (svl.isCVGroundTruthAudit) {
@@ -1336,6 +1335,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function moveForward(successLogMessage, failLogMessage, alertFunc) {
         svl.modalComment.hide();
         svl.modalSkip.disableStuckButton();
+        svl.compass.disableCompassClick();
+        var enableClicksCallback = function() {
+            svl.modalSkip.enableStuckButton();
+            svl.compass.enableCompassClick();
+        };
         // TODO show loading icon. Add when resolving issue #2403.
 
         // Grab street geometry and current location.
@@ -1395,7 +1399,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     svl.tracker.push(failLogMessage);
                     svl.form.skip(currentTask, "GSVNotAvailable");
                     svl.stuckAlert.stuckSkippedStreet();
-                    window.setTimeout(function() { svl.modalSkip.enableStuckButton(); }, 1000);
+                    window.setTimeout(enableClicksCallback, 1000);
                 }
             } else if (status === GSV_OK) {
                 // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
@@ -1408,7 +1412,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 );
                 svl.tracker.push(successLogMessage);
                 if (alertFunc !== null) alertFunc();
-                window.setTimeout(function() { svl.modalSkip.enableStuckButton(); }, 1000);
+                window.setTimeout(enableClicksCallback, 1000);
             }
         };
 
