@@ -1945,7 +1945,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.walk-2'),
                 "fade-direction": "fadeInDown",
                 "arrow": "bottom",
-                "top": 263,
+                "top": 225,
                 "left": 405
             },
             "panoId": panoId,

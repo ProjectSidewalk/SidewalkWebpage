@@ -42,7 +42,7 @@ navbar.city = Stad
 navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
 
-landing.create.path = Laten we een pad voor iedereen creëren
+landing.create.path = Laten we een pad creëren voor iedereen!
 landing.also.in = We zijn ook in:
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
@@ -52,18 +52,18 @@ landing.how.you.help.find = ONTDEK PROBLEMEN
 landing.how.you.help.assess = BEOORDEEL DE ERNST
 landing.video.title = Wat is Project Sidewalk?
 landing.video.watch = Bekijk Nu
-landing.choropleth.title = Selecteer een Wijk
+landing.choropleth.title = Selecteer een wijk
 landing.choropleth.content = Je krijgt automatisch een wijk toegewezen als je op ''Start met Verkennen'' klikt, maar je kunt er ook zelf een kiezen door hieronder op een wijk te klikken!
-landing.choropleth.legend = Procent van de Wijk Compleet
-landing.stats.title = Je bijdrage maakt het verschil
+landing.choropleth.legend = Procent van de wijk compleet
+landing.stats.title = Jouw bijdrage maakt het verschil!
 landing.stats.content.unfinished = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}—dat is {3}% van de stad!
-landing.stats.content.finished = We hebben het geflikt! Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
+landing.stats.content.finished = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
 landing.stats.percent = van {0} in kaart gebracht
 landing.stats.distance = kilometers afgelegd
 landing.stats.labels = labels
 landing.stats.validations = validaties
 landing.ml.title = Wat we doen met je labels
-landing.ml.content = Je labels worden gebruikt om stedelijke planning te verbeteren, toegankelijkheidsbewuste kaart tools te bouwen, en machine learning algorithmes te trainen om automatisch toegankelijkheidsproblemen te vinden.
+landing.ml.content = Je labels worden gebruikt om stedelijke planning te verbeteren, toegankelijkheidsbewuste kaart-tools te bouwen, en machine learning algorithmes te trainen om automatisch toegankelijkheidsproblemen te vinden.
 landing.what.people.are.saying = Wat anderen<br>vinden
 landing.press.title = Pers
 landing.collaborators.title = Partners
@@ -83,7 +83,7 @@ footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{
 audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> zul je je virtueel door steden verplaatsen en missies volbrengen door toegankelijkheidskenmerken en problemen te vinden en te labelen in de buurt, waaronder:
 audit.tutorial.welcome.2 = We beginnen met een korte interactieve uitleg.
 audit.tutorial.welcome.3 = Laten we eraan beginnen!
-audit.tutorial.welcome.4 = Al eerder de uitleg doorlopen? Heb je een Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Log In</a> of <a value="Skip" class="onboarding-transition-trigger">sla de uitleg over.</a>
+audit.tutorial.welcome.4 = Heb je al eerder de uitleg doorlopen? Heb je een Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Log In</a> of <a value="Skip" class="onboarding-transition-trigger">sla de uitleg over.</a>
 audit.tutorial.accessible = <span style="color:limegreen">Toegankelijk</span>
 audit.tutorial.inaccessible = <span style="color:red">Ontoegankelijk</span>
 audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoir opritten</span> helpen rolstoelgebruikers om op en van trottoirs te komen
@@ -92,14 +92,14 @@ audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstakels</span
 audit.tutorial.examples.surface.problem = Trottoirs met <span style="color:orange">oppervlakte problemen</span> zijn mogelijk niet berijdbaar
 audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">label de volgende toegankelijkheids kenmerken in Google Street View</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
 audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan een toegankelijke wereld voor iedereen!</span>
-audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakte problemen.
+audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
 
 audit.ribbon.find.and.label = Vind en label het volgende
 audit.ribbon.explore = Ontd<u>e</u>k
 audit.ribbon.curb.ramp = Trottoir Oprit (<u>C</u>)
 audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit
 audit.ribbon.obstacle = <u>O</u>bstakel in het Pad
-audit.ribbon.surface.problem = Oppervlakte probleem (<u>S</u>)
+audit.ribbon.surface.problem = Oppervlakteprobleem (<u>S</u>)
 audit.ribbon.no.sidewalk = Gee<u>n</u> Trottoir
 audit.ribbon.crosswalk = Oversteekplaats (<u>W</u>)
 audit.ribbon.signal = Verkeerslicht (<u>P</u>)
@@ -153,7 +153,7 @@ audit.survey.difficulty.option.2 = Moeilijk
 audit.survey.difficulty.option.3 = Neutraal
 audit.survey.difficulty.option.4 = Makkelijk
 audit.survey.difficulty.option.5 = Erg makkelijk
-audit.survey.performance.question = Hoe goed denk je dat je presteert het labelen?
+audit.survey.performance.question = Hoe goed denk je dat je presteert tijdens het labelen?
 audit.survey.performance.option.1 = Slecht
 audit.survey.performance.option.2 = Matig
 audit.survey.performance.option.3 = Goed
@@ -235,7 +235,7 @@ reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-accoun
 reset.pw.email.send.link = E-mail verzenden
 reset.pw.email.reset.pw.sent = Er is een e-mail verzonden om je wachtwoord opnieuw in te stellen.
 reset.pw.email.reset.request.message = Je hebt onlangs gevraagd om je wachtwoord voor je Project Sidewalk-account opnieuw in te stellen. Klik op de onderstaande link om je wachtwoord opnieuw in te stellen:
-reset.pw.email.reset.not.requested = Als je geen wachtwoordreset hebt aangevraagd, negeer dit bericht dan of stuur ons een e-mail om het ons te laten weten.
+reset.pw.email.reset.not.requested = Als je geen wachtwoordreset hebt aangevraagd, negeer dan dit bericht of stuur ons een e-mail om het ons te laten weten.
 reset.pw.email.reset.valid.duration = Deze wachtwoordreset is de komende 60 minuten geldig
 reset.pw.email.signature = Het Project Sidewalk-team
 
@@ -282,9 +282,9 @@ dashboard.distance.badge = {0} afstandsbadge
 dashboard.label.badge = {0} labelbadge
 dashboard.validation.badge = {0} validatiebadge
 
-labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit is er een die een toegankelijke route biedt voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa
+labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.
-labeling.guide.surface.problem.summary = Een oppervlakte probleem is een probleem dat een hobbelige of anderszins ongemakkelijke ervaring zou kunnen veroorzaken voor iemand die een rolstoel of andere hulpmiddelen gebruikt. Als iets op een oppervlak het moeilijk of onmogelijk maakt om over te steken, moet het worden bestempeld als een oppervlakte probleem. Voor oppervlakteproblemen die een groot gebied beslaan, moet u een oppervlakte probleem-label aan het begin van het probleem plaatsen en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen tot het einde van het probleem.
+labeling.guide.surface.problem.summary = Een oppervlakteprobleem is een probleem dat een hobbelige of anderszins ongemakkelijke ervaring zou kunnen veroorzaken voor iemand die een rolstoel of andere hulpmiddelen gebruikt. Als iets op een oppervlak het moeilijk of onmogelijk maakt om over te steken, moet het worden bestempeld als een oppervlakteprobleem. Voor oppervlakteproblemen die een groot gebied beslaan, moet u een oppervlakteprobleem-label aan het begin van het probleem plaatsen en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen tot het einde van het probleem.
 labeling.guide.no.sidewalk.summary = Je moet een No Sidewalk-label plaatsen vanaf waar het trottoir eindigt, en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen totdat je een plaats bereikt waar het trottoir opnieuw begint.
 labeling.guide.occlusion.summary = Soms is het zicht op het trottoir volledig geblokkeerd. In deze gevallen moet je een label "Can''t See the Sidewalk" plaatsen. Dit mag zelden worden gebruikt, dus plaats het label "Het trottoir is niet zichtbaar" alleen wanneer een trottoir, oprit of ander toegankelijkheidsprobleem niet vanuit elke hoek kan worden bekeken vanwege obstakels, zoals auto''s.
 

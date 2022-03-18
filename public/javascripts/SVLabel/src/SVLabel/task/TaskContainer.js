@@ -591,7 +591,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         if (tasks) {
             var distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
-            console.log('triggered distanceArray');
             return distanceArray.sum();
         } else {
             return null;

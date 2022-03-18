@@ -1072,22 +1072,6 @@ object LabelTable {
   }
 
   /**
-    * Returns all the submitted labels.
-    */
-  def selectLocationsOfLabels: List[LabelLocation] = db.withSession { implicit session =>
-    val _labels = for {
-      (_labels, _labelTypes) <- labelsWithoutDeleted.innerJoin(labelTypes).on(_.labelTypeId === _.labelTypeId)
-    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
-
-    val _points = for {
-      (l, p) <- _labels.innerJoin(labelPoints).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
-
-    val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
-    labelLocationList
-  }
-
-  /**
     * Returns all the submitted labels with their severities included.
     */
   def selectLocationsAndSeveritiesOfLabels(filterLowQuality: Boolean): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
