@@ -327,7 +327,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             if (direction === 'straight') {
                 mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable', null);
             } else {
-                mapService.setPovToRouteDirection();
+                mapService.setPovToRouteDirection(250);
             }
         } else {
             svl.tracker.push('Click_Compass_FarFromRoute');

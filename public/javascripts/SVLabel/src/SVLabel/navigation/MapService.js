@@ -1301,12 +1301,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 pitchIncrement = pitchDelta * (timeSegment / durationMs);
 
                 interval = window.setInterval(function () {
-                    var headingDelta = pov.heading - currentPov.heading;
-                    if (Math.abs(headingDelta) > 1) {
+                    var headingDelta = (pov.heading - currentPov.heading + 360) % 360;
+                    if (headingDelta > 1 && headingDelta < 359) {
                         // Update heading angle and pitch angle.
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
-                        currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
+                        currentPov.heading = (currentPov.heading + 360) % 360;
                         svl.panorama.setPov(currentPov);
                     } else {
                         // Set the pov to adjust zoom level, then clear the interval. Invoke a callback if there is one.
@@ -1481,11 +1481,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     // Set the POV in the same direction as the route.
-    function setPovToRouteDirection() {
+    function setPovToRouteDirection(durationMs) {
         var pov = svl.panorama.getPov();
         var compassAngle = svl.compass.getCompassAngle();
-        pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
-        svl.panorama.setPov(pov);
+        var newPov = {
+            heading: parseInt(pov.heading - compassAngle, 10) % 360,
+            pitch: pov.pitch,
+            zoom: pov.zoom
+        }
+        setPov(newPov, durationMs);
     }
 
     function getMoveDelay() {
