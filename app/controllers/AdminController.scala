@@ -12,7 +12,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.label.LabelTable.LabelMetadata
@@ -320,6 +320,17 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           Future.successful(Ok(featureCollection))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
+  }
+
+  def getAuditedStreetsWithTimestamps = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val streets: List[AuditedStreetWithTimestamp] = AuditTaskTable.getAuditedStreetsWithTimestamps
+      val features: List[JsObject] = streets.map(_.toGeoJSON)
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Future.successful(Ok(featureCollection))
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
