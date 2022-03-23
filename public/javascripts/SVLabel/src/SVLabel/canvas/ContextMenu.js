@@ -8,6 +8,7 @@ function ContextMenu (uiContextMenu) {
         };
     var $menuWindow = uiContextMenu.holder,
         $connector = uiContextMenu.connector,
+        $severityMenu = uiContextMenu.severityMenu,
         $radioButtons = uiContextMenu.radioButtons,
         $temporaryLabelCheckbox = uiContextMenu.temporaryLabelCheckbox,
         $descriptionTextBox = uiContextMenu.textBox,
@@ -572,8 +573,7 @@ function ContextMenu (uiContextMenu) {
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType();
-            var acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'NoSidewalk', 'Other', 'CurbRamp', 'Crosswalk', 'Signal'];
-            if (acceptedLabelTypes.indexOf(labelType) !== -1) {
+            if (labelType !== 'Obstruction') {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
@@ -603,7 +603,7 @@ function ContextMenu (uiContextMenu) {
                     description = param.targetLabel.getProperty('description');
                 if (severity) {
                     $radioButtons.each(function (i, v) {
-                       if (severity == i + 1) { $(this).prop("checked", true); }
+                       if (severity === i + 1) { $(this).prop("checked", true); }
                     });
                 }
 
@@ -622,6 +622,13 @@ function ContextMenu (uiContextMenu) {
                     top: topCoordinate + connectorCoordinate,
                     left: x - 3
                 });
+
+                // Hide the severity menu for the Pedestrian Signal label type.
+                if (labelType === 'Signal') {
+                    $severityMenu.css({visibility: 'hidden', height: '0px'});
+                } else {
+                    $severityMenu.css({visibility: 'inherit', height: '50px'});
+                }
 
                 setStatus('visibility', 'visible');
 
