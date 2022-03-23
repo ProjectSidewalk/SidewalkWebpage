@@ -521,24 +521,40 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
-        if (labelType === "Other") {
-            // No tooltips for other.
-            $('#severity-one').tooltip('destroy');
-            $('#severity-three').tooltip('destroy');
-            $('#severity-five').tooltip('destroy');
-        } else {
-            // Update tooltips.
-            $('#severity-one').tooltip('destroy').tooltip({
-                placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+        var sevTooltipOne = $('#severity-one');
+        var sevTooltipThree = $('#severity-three');
+        var sevTooltipFive = $('#severity-five');
+        var sevImgUrlOne = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity1.png`
+        var sevImgUrlThree = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity3.png`
+        var sevImgUrlFive = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity5.png`
+
+        // Remove old tooltips.
+        sevTooltipOne.tooltip('destroy');
+        sevTooltipThree.tooltip('destroy');
+        sevTooltipFive.tooltip('destroy');
+
+        // Add severity tooltips for the current label type if we have images for them.
+        if (util.fileExists(sevImgUrlOne)) {
+            sevTooltipOne.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" + sevImgUrlOne +
+                    "' height='110'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
             });
-            $('#severity-three').tooltip('destroy').tooltip({
-                placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 3}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.png' height='110' alt='CRseverity 3'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+        }
+        if (util.fileExists(sevImgUrlThree)) {
+            sevTooltipThree.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
+                    sevImgUrlThree + "' height='110'/><br/><i>" +
+                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
             });
-            $('#severity-five').tooltip('destroy').tooltip({
-                placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+        }
+        if (util.fileExists(sevImgUrlFive)) {
+            sevTooltipFive.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
+                    sevImgUrlFive + "' height='110'/><br/><i>" +
+                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
             });
         }
     }
