@@ -50,6 +50,14 @@ function getURLParameter(argName) {
 }
 util.getURLParameter = getURLParameter;
 
+function fileExists(url) {
+    var http = new XMLHttpRequest();
+    http.open('HEAD', url, false);
+    http.send();
+    return http.status !== 404;
+}
+util.fileExists = fileExists;
+
 // Array Remove - By John Resig (MIT Licensed)
 // http://stackoverflow.com/questions/500606/javascript-array-delete-elements
 Array.prototype.remove = function(from, to) {

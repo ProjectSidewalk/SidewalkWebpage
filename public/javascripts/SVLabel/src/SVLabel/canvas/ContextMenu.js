@@ -469,30 +469,32 @@ function ContextMenu (uiContextMenu) {
 
                         // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                         const underlineClassOffset = 15;
-                        var keypressChar;
+                        var keyChar;
                         var tooltipHeader;
                         // If first letter is used for keyboard shortcut, the string will start with "<tag-underline".
                         if (tagText[0] === '<') {
-                            keypressChar = tagText[underlineClassOffset];
+                            keyChar = tagText[underlineClassOffset];
                             tooltipHeader = tagText.substring(0,underlineClassOffset) +
                                 tagText[underlineClassOffset].toUpperCase() +
                                 tagText.substring(underlineClassOffset + 1);
                         } else {
                             let underlineIndex = tagText.indexOf('<');
-                            keypressChar = tagText[underlineIndex + underlineClassOffset];
+                            keyChar = tagText[underlineIndex + underlineClassOffset];
                             tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
                         }
 
-                        // Add tooltip with tag example.
-                        tagHolder.find("button[id=" + count + "]").tooltip("destroy").tooltip(({
-                            placement: 'top',
-                            html: true,
-                            delay: { "show": 300, "hide": 10 },
-                            height: '130',
-                            title: tooltipHeader + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" +
-                                tag.tag_id + ".png' height='125'/><br/> <i>" +
-                                i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keypressChar}) + "</i>"
-                        })).tooltip("show").tooltip("hide");
+                        // Add tooltip with tag example if we have an example image to show.
+                        var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
+                        if (util.fileExists(imageUrl)) {
+                            tagHolder.find("button[id=" + count + "]").tooltip("destroy").tooltip(({
+                                placement: 'top',
+                                html: true,
+                                delay: {"show": 300, "hide": 10},
+                                height: '130',
+                                title: tooltipHeader + "<br/><img src='" + imageUrl + "' height='125'/><br/> <i>" +
+                                    i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar}) + "</i>"
+                            })).tooltip("show").tooltip("hide");
+                        }
 
                         count += 1;
                     }
@@ -509,6 +511,51 @@ function ContextMenu (uiContextMenu) {
                     });
                 }
             }
+        }
+    }
+
+    /**
+     * Set context menu severity tooltips to the correct text/images for the given label type.
+     *
+     * @param labelType
+     * @private
+     */
+    function _setSeverityTooltips(labelType) {
+        var sevTooltipOne = $('#severity-one');
+        var sevTooltipThree = $('#severity-three');
+        var sevTooltipFive = $('#severity-five');
+        var sevImgUrlOne = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity1.png`
+        var sevImgUrlThree = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity3.png`
+        var sevImgUrlFive = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity5.png`
+
+        // Remove old tooltips.
+        sevTooltipOne.tooltip('destroy');
+        sevTooltipThree.tooltip('destroy');
+        sevTooltipFive.tooltip('destroy');
+
+        // Add severity tooltips for the current label type if we have images for them.
+        if (util.fileExists(sevImgUrlOne)) {
+            sevTooltipOne.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" + sevImgUrlOne +
+                    "' height='110'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+            });
+        }
+        if (util.fileExists(sevImgUrlThree)) {
+            sevTooltipThree.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
+                    sevImgUrlThree + "' height='110'/><br/><i>" +
+                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+            });
+        }
+        if (util.fileExists(sevImgUrlFive)) {
+            sevTooltipFive.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
+                    sevImgUrlFive + "' height='110'/><br/><i>" +
+                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+            });
         }
     }
 
@@ -591,6 +638,7 @@ function ContextMenu (uiContextMenu) {
             }
         }
         self.updateRadioButtonImages();
+        _setSeverityTooltips(labelType);
     }
 
     /**
