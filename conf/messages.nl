@@ -1,4 +1,4 @@
-measurement.system = metrisch
+measurement.system = metric
 curb.ramp = Trottoir oprit
 curb.ramps = Trottoir opritten
 missing.ramp = Ontbrekende trottoir oprit
