@@ -493,6 +493,7 @@ function Main (params) {
         svl.ui.contextMenu = {};
         svl.ui.contextMenu.holder = $("#context-menu-holder");
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
+        svl.ui.contextMenu.severityMenu = $("#severity-menu");
         svl.ui.contextMenu.radioButtons = $("input[name='label-severity']");
         svl.ui.contextMenu.temporaryLabelCheckbox = $("#context-menu-temporary-problem-checkbox");
         svl.ui.contextMenu.tagHolder = $("#context-menu-tag-holder");

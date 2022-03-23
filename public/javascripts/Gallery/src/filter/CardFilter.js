@@ -102,6 +102,13 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
         } else {
             $("#filters").show();
             $("#horizontal-line").show();
+            if (status.currentLabelType === 'Signal') {
+                $('#severity-header').hide();
+                $('#severity-select').hide();
+            } else {
+                $('#severity-header').show();
+                $('#severity-select').show();
+            }
         }
 
         severities.render(uiCardFilter.severity);
