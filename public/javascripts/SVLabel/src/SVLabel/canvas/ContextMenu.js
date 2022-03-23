@@ -573,7 +573,7 @@ function ContextMenu (uiContextMenu) {
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType();
-            if (labelType !== 'Obstruction') {
+            if (labelType !== 'Occlusion') {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
