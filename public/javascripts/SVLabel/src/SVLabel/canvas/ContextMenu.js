@@ -468,28 +468,32 @@ function ContextMenu (uiContextMenu) {
                             position: 'inherit'
                         });
 
-                        // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
-                        const underlineClassOffset = 15;
-                        var keyChar;
-                        var tooltipHeader;
-                        // If first letter is used for keyboard shortcut, the string will start with "<tag-underline".
-                        if (tagText[0] === '<') {
-                            keyChar = tagText[underlineClassOffset];
-                            tooltipHeader = tagText.substring(0,underlineClassOffset) +
-                                tagText[underlineClassOffset].toUpperCase() +
-                                tagText.substring(underlineClassOffset + 1);
-                        } else {
-                            let underlineIndex = tagText.indexOf('<');
-                            keyChar = tagText[underlineIndex + underlineClassOffset];
-                            tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
-                        }
+                        // Remove old tooltip for that button.
+                        tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
                         var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
                         var buttonIndex = count; // Save index in a separate var b/c tooltips added asynchronously.
                         util.getImage(imageUrl).then(img => {
+                            // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
+                            const underlineClassOffset = 15;
+                            var keyChar;
+                            var tooltipHeader;
+                            // If first letter is used for shortcut, the string will start with "<tag-underline".
+                            if (tagText[0] === '<') {
+                                keyChar = tagText[underlineClassOffset];
+                                tooltipHeader = tagText.substring(0,underlineClassOffset) +
+                                    tagText[underlineClassOffset].toUpperCase() +
+                                    tagText.substring(underlineClassOffset + 1);
+                            } else {
+                                let underlineIndex = tagText.indexOf('<');
+                                keyChar = tagText[underlineIndex + underlineClassOffset];
+                                tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
+                            }
                             var tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
                             var tooltipImage = `<img src="${img}" height="125"/>`
+
+                            // Create the tooltip.
                             tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy").tooltip(({
                                 placement: 'top',
                                 html: true,
@@ -497,8 +501,6 @@ function ContextMenu (uiContextMenu) {
                                 height: '130',
                                 title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`
                             })).tooltip("show").tooltip("hide");
-                        }).catch(error => {
-                            tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
                         });
 
                         count += 1;
