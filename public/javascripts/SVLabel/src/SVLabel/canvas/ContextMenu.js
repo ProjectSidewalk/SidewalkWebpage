@@ -441,7 +441,7 @@ function ContextMenu (uiContextMenu) {
      * Sets the description and value of the tag based on the label type.
      * @param label Current label being modified.
      */
-    function setTags (label) {
+    function setTags(label) {
         var maxTags = 16;
         if (label) {
             var labelTags = self.labelTags;
@@ -468,34 +468,40 @@ function ContextMenu (uiContextMenu) {
                             position: 'inherit'
                         });
 
-                        // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
-                        const underlineClassOffset = 15;
-                        var keyChar;
-                        var tooltipHeader;
-                        // If first letter is used for keyboard shortcut, the string will start with "<tag-underline".
-                        if (tagText[0] === '<') {
-                            keyChar = tagText[underlineClassOffset];
-                            tooltipHeader = tagText.substring(0,underlineClassOffset) +
-                                tagText[underlineClassOffset].toUpperCase() +
-                                tagText.substring(underlineClassOffset + 1);
-                        } else {
-                            let underlineIndex = tagText.indexOf('<');
-                            keyChar = tagText[underlineIndex + underlineClassOffset];
-                            tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
-                        }
+                        // Remove old tooltip for that button.
+                        tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
                         var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
-                        if (util.fileExists(imageUrl)) {
-                            tagHolder.find("button[id=" + count + "]").tooltip("destroy").tooltip(({
+                        var buttonIndex = count; // Save index in a separate var b/c tooltips added asynchronously.
+                        util.getImage(imageUrl).then(img => {
+                            // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
+                            const underlineClassOffset = 15;
+                            var keyChar;
+                            var tooltipHeader;
+                            // If first letter is used for shortcut, the string will start with "<tag-underline".
+                            if (tagText[0] === '<') {
+                                keyChar = tagText[underlineClassOffset];
+                                tooltipHeader = tagText.substring(0,underlineClassOffset) +
+                                    tagText[underlineClassOffset].toUpperCase() +
+                                    tagText.substring(underlineClassOffset + 1);
+                            } else {
+                                let underlineIndex = tagText.indexOf('<');
+                                keyChar = tagText[underlineIndex + underlineClassOffset];
+                                tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
+                            }
+                            var tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
+                            var tooltipImage = `<img src="${img}" height="125"/>`
+
+                            // Create the tooltip.
+                            tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy").tooltip(({
                                 placement: 'top',
                                 html: true,
                                 delay: {"show": 300, "hide": 10},
                                 height: '130',
-                                title: tooltipHeader + "<br/><img src='" + imageUrl + "' height='125'/><br/> <i>" +
-                                    i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar}) + "</i>"
+                                title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`
                             })).tooltip("show").tooltip("hide");
-                        }
+                        });
 
                         count += 1;
                     }
@@ -535,29 +541,30 @@ function ContextMenu (uiContextMenu) {
         sevTooltipFive.tooltip('destroy');
 
         // Add severity tooltips for the current label type if we have images for them.
-        if (util.fileExists(sevImgUrlOne)) {
+        util.getImage(sevImgUrlOne).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 1 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             sevTooltipOne.tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" + sevImgUrlOne +
-                    "' height='110'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
-        }
-        if (util.fileExists(sevImgUrlThree)) {
+        });
+        util.getImage(sevImgUrlThree).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 3 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             sevTooltipThree.tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
-                    sevImgUrlThree + "' height='110'/><br/><i>" +
-                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
-        }
-        if (util.fileExists(sevImgUrlFive)) {
+        });
+        util.getImage(sevImgUrlFive).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 5 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             sevTooltipFive.tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
-                    sevImgUrlFive + "' height='110'/><br/><i>" +
-                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
-        }
+        });
     }
 
     /**
@@ -640,7 +647,7 @@ function ContextMenu (uiContextMenu) {
                 }
                 var labelProperties = self.getTargetLabel().getProperties();
 
-                //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
+                // Don't push event on Occlusion labels; they don't open ContextMenus.
                 svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
             }
         }
