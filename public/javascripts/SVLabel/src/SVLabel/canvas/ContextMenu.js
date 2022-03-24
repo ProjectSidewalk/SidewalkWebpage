@@ -539,29 +539,30 @@ function ContextMenu (uiContextMenu) {
         sevTooltipFive.tooltip('destroy');
 
         // Add severity tooltips for the current label type if we have images for them.
-        if (util.fileExists(sevImgUrlOne)) {
+        util.getImage(sevImgUrlOne).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 1 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             sevTooltipOne.tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" + sevImgUrlOne +
-                    "' height='110'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
-        }
-        if (util.fileExists(sevImgUrlThree)) {
+        });
+        util.getImage(sevImgUrlThree).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 3 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             sevTooltipThree.tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
-                    sevImgUrlThree + "' height='110'/><br/><i>" +
-                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
-        }
-        if (util.fileExists(sevImgUrlFive)) {
+        });
+        util.getImage(sevImgUrlFive).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 5 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             sevTooltipFive.tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='" +
-                    sevImgUrlFive + "' height='110'/><br/><i>" +
-                    i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
-        }
+        });
     }
 
     /**
