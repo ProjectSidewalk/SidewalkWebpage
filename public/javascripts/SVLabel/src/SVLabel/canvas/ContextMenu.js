@@ -441,7 +441,7 @@ function ContextMenu (uiContextMenu) {
      * Sets the description and value of the tag based on the label type.
      * @param label Current label being modified.
      */
-    function setTags (label) {
+    function setTags(label) {
         var maxTags = 16;
         if (label) {
             var labelTags = self.labelTags;
@@ -486,16 +486,20 @@ function ContextMenu (uiContextMenu) {
 
                         // Add tooltip with tag example if we have an example image to show.
                         var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
-                        if (util.fileExists(imageUrl)) {
-                            tagHolder.find("button[id=" + count + "]").tooltip("destroy").tooltip(({
+                        var buttonIndex = count; // Save index in a separate var b/c tooltips added asynchronously.
+                        util.getImage(imageUrl).then(img => {
+                            var tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
+                            var tooltipImage = `<img src="${img}" height="125"/>`
+                            tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy").tooltip(({
                                 placement: 'top',
                                 html: true,
                                 delay: {"show": 300, "hide": 10},
                                 height: '130',
-                                title: tooltipHeader + "<br/><img src='" + imageUrl + "' height='125'/><br/> <i>" +
-                                    i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar}) + "</i>"
+                                title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`
                             })).tooltip("show").tooltip("hide");
-                        }
+                        }).catch(error => {
+                            tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
+                        });
 
                         count += 1;
                     }
@@ -640,7 +644,7 @@ function ContextMenu (uiContextMenu) {
                 }
                 var labelProperties = self.getTargetLabel().getProperties();
 
-                //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
+                // Don't push event on Occlusion labels; they don't open ContextMenus.
                 svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
             }
         }
