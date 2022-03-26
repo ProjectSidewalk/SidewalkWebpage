@@ -14,7 +14,7 @@ import play.api.mvc._
 import play.api.libs.json.Json
 import formats.json.AttributeFormats
 import models.attribute._
-import models.label.LabelTypeTable
+import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionTable
 import play.api.Play.current
 import play.api.{Logger, Play}
@@ -211,6 +211,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
                   globalSessionId,
                   thresholds(cluster.labelType),
                   LabelTypeTable.labelTypeToId(cluster.labelType),
+                  LabelTable.getStreetEdgeIdClosestToLatLng(cluster.lat, cluster.lng).get,
                   RegionTable.selectRegionIdOfClosestNeighborhood(cluster.lng, cluster.lat),
                   cluster.lat,
                   cluster.lng,

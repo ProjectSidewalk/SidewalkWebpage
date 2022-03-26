@@ -306,7 +306,7 @@ function AdminGSVLabelView(admin) {
 
         var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
             labelMetadata['num_disagree'] + ' Disagree, ' +
-            labelMetadata['num_unsure'] + ' Not Sure';
+            labelMetadata['num_notsure'] + ' Not Sure';
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));

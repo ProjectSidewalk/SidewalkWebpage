@@ -3,7 +3,8 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String)], auditedDistance: Float)(implicit lang: Lang)
+@import scala.util.Random
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user, Some("/"))
@@ -30,9 +31,8 @@
                     <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA" && c._1 != "Chicago, IL")) {
+                    @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
                         <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
@@ -213,14 +213,38 @@
                     </a>
                 </div>
                 <div class="collaborator-image">
+                    <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
+                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='UIC_Logo'>
+                    </a>
+                </div>
+                <div class="collaborator-image">
                     <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
                         <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
                     </a>
                 </div>
-                @if("Columbus"== cityName){
+                @if("Columbus" == cityName){
                     <div class="collaborator-image">
                         <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
                             <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
+                        </a>
+                    </div>
+                }
+            </section>
+            <section class="collaborator-images-container">
+                @if("Amsterdam" == cityName){
+                    <div class="collaborator-image">
+                        <a id="worldenabled-img-link" href="https://worldenabled.org/">
+                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt='World_Enabled_Logo'>
+                        </a>
+                    </div>
+                    <div class="collaborator-image">
+                        <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
+                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt='City_Of_Amsterdam_Logo'>
+                        </a>
+                    </div>
+                    <div class="collaborator-image">
+                        <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
+                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt='Amsterdam_Intelligence_Logo'>
                         </a>
                     </div>
                 }

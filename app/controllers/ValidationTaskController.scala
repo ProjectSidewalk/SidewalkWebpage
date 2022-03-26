@@ -56,7 +56,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       for (label: LabelValidationSubmission <- data.labels) {
         userOption match {
           case Some(user) =>
-            LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
+            LabelValidationTable.insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
               user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
               label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
               new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.isMobile))

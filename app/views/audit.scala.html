@@ -162,26 +162,27 @@
         <div id="svl-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
-                    <div id="left-column-confirmation-code-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon">
-                        @Messages("turk.mturk.code")
+                    <div id="left-column-zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
+                        <br>@Html(Messages("audit.left.ui.zoom.in"))
+                    </div>
+                    <div id="left-column-zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
+                        <br>@Messages("audit.left.ui.zoom.out")
                     </div>
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon">
                         @Messages("audit.left.ui.sound")
                     </div>
-                    <div class="spacer10"></div>
                     <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon">
                         @Messages("audit.left.ui.jump")
                     </div>
-                    <div class="spacer10"></div>
                     <div id="left-column-stuck-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
-                        @Messages("audit.left.ui.stuck")
+                        @Html(Messages("audit.left.ui.stuck"))
                     </div>
-                    <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
                         @Html(Messages("audit.left.ui.feedback"))
@@ -189,106 +190,79 @@
                 </div>
             </div>
             <div id="ribbon-menu-holder">
-                <span id="ribbon-menu-left-column-holder">
-                    <div id="ribbon-menu-left-column-title"></div>
-                    <div id="ribbon-menu-left-column-button-holder">
-                        <span class="mode-switch" val="Walk" id="mode-switch-walk" style="">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="icon-explore" class="icon-ribbon-menu-large" alt="Mode switch: Walk" align="">
-                            </span>
-                            <span class="mode-switch-name" style="position:absolute; left: 0px;">@Html(Messages("audit.ribbon.explore"))</span>
-                            <div id="ribbon-mode-switch-horizontal-line-walk" class="ribbon-menu-mode-switch-horizontal-line" val="Walk"></div>
-                        </span>
+                <div id="ribbon-menu-label-type-button-holder">
+                    <div id="ribbon-menu-title-holder-ramp" class="ribbon-menu-title-holder">
+                        <span id="ribbon-menu-title">CURB RAMP LABELS</span>
                     </div>
-                </span>
-                <span id="label-type-holder">
-                    <div id="ribbon-menu-label-type-title">
-                        @Messages("audit.ribbon.find.and.label")
+                    <div id="ribbon-menu-title-holder-sidewalk" class="ribbon-menu-title-holder">
+                        <span id="ribbon-menu-title">SIDEWALK LABELS</span>
                     </div>
-                    <div id="ribbon-menu-label-type-button-holder">
-                        <span id="ModeSwitchButton_CurbRamp" class="mode-switch" val="CurbRamp">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <div class="mode-switch-name">@Html(Messages("audit.ribbon.curb.ramp"))</div>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" val="CurbRamp"></div>
-                        </span>
-                        <span id="ModeSwitchButton_NoCurbRamp" class="mode-switch" val="NoCurbRamp">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" val="NoCurbRamp"></div>
-                        </span>
-                        <span id="ModeSwitchButton_Obstacle" class="mode-switch" val="Obstacle">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Html(Messages("audit.ribbon.obstacle"))</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" val="Obstacle"></div>
-                        </span>
-                        <span id="ModeSwitchButton_SurfaceProblem" class="mode-switch" val="SurfaceProblem">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" val="SurfaceProblem"></div>
-                        </span>
-                        <span id="ModeSwitchButton_NoSidewalk" class="mode-switch" val="NoSidewalk">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" val="NoSidewalk"></div>
-                        </span>
-                        <span id="ModeSwitchButton_Other" class="mode-switch" val="Other">
-                            <span class="mode-switch-icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other2.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
-                            </span>
-                            <span class="mode-switch-name">@Messages("audit.ribbon.other")</span>
-                            <div class="ribbon-menu-mode-switch-horizontal-line" val="Other"></div>
-                            <div id="ribbon-menu-other-subcategory-holder">
-                                <div class="ribbon-menu-other-subcategories" val="Occlusion">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
-                                    @Html(Messages("audit.ribbon.occlusion"))
-                                </div>
-                                <div class="ribbon-menu-other-subcategories" val="Other">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
-                                    @Messages("audit.ribbon.other")
-                                </div>
+                    <div id="ribbon-menu-title-holder-other" class="ribbon-menu-title-holder">
+                        <span id="ribbon-menu-title">OTHER ACCESSIBILITY LABELS</span>
+                    </div>
+                    <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/explore.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
+                    </span>
+                    <span id="label-type-divider-major"></span>
+                    <span id="mode-switch-button-curb-ramp" class="label-type-button-holder" val="CurbRamp">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/CurbRamp.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.curb.ramp"))</span>
+                    </span>
+                    <span id="mode-switch-button-curb-ramp-needed" class="label-type-button-holder" val="NoCurbRamp">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/NoCurbRamp.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
+                    </span>
+                    <span id="label-type-divider-minor"></span>
+                    <span id="mode-switch-button-obstacle" class="label-type-button-holder" val="Obstacle">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Obstacle.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.obstacle"))</span>
+                    </span>
+                    <span id="mode-switch-button-surface-problem" class="label-type-button-holder" val="SurfaceProblem">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/SurfaceProblem.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
+                    </span>
+                    <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/NoSidewalk.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
+                    </span>
+                    <span id="label-type-divider-minor"></span>
+                    <span id="mode-switch-button-crosswalk" class="label-type-button-holder" val="Crosswalk">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Crosswalk.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.crosswalk"))</span>
+                    </span>
+                    <span id="mode-switch-button-signal" class="label-type-button-holder" val="Signal">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Signal.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.signal"))</span>
+                    </span>
+                    <span id="mode-switch-button-other" class="label-type-button-holder" val="Other">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.other"))</span>
+                        <div id="ribbon-menu-other-subcategory-holder">
+                            <div class="ribbon-menu-other-subcategory" val="Occlusion">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
+                                @Html(Messages("audit.ribbon.occlusion"))
                             </div>
-                        </span>
-                    </div>
-                </span>
-            </div>
-            <div id="zoom-control-holder">
-                <button id="zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
-                    <br>@Html(Messages("audit.ribbon.zoom.in"))
-                </button>
-                <button id="zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
-                    <br>@Messages("audit.ribbon.zoom.out")
-                </button>
+                            <div class="ribbon-menu-other-subcategory" val="Other">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
+                                @Messages("audit.ribbon.other")
+                            </div>
+                        </div>
+                    </span>
+                </div>
             </div>
             <div id="action-stack-control-holder"></div>
             <div id="status-holder">
                 <div class="status-box">
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
-
                     <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
-
-              <!--      <a href="" target="_blank" id="status-neighborhood-link">
-                        <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
-                    </a>-->
-
                     <div class="status-row" id="neighborhood-status-row">
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet.png")' class="status-icon" alt="Map icon" align="">
                             <span><span class="bold" id="status-audited-distance">0.00</span> <small>@Messages("audit.right.ui.distance")</small></span>
                         </span>
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="status-icon" alt="Total label count" align="">
                             <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>
@@ -364,7 +338,7 @@
                         <div id="severity-menu">
                             <div id="severity-radio-holder">
                                 <div class="radio-inline" id="column-passable">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible-2.png")'
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
                                     <div class="label-severity-axis-label">@Messages("audit.center.ui.passable")</div>
                                 </div>
@@ -414,7 +388,7 @@
                                     </label>
                                 </div>
                                 <div class="radio-inline" id="column-not-passable">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible-2.png")'
+                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
                                     <div class="label-severity-axis-label">@Html(Messages("audit.center.ui.not.passable"))</div>
                                 </div>
@@ -424,7 +398,7 @@
                             <div>
                                 <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                             </div>
-                            <div class="add-tags-label">@Messages("audit.center.ui.add.tags")</div>
+                            <div class="add-tags-label">@Html(Messages("audit.center.ui.add.tags"))</div>
                             <div id="context-menu-tag-holder">
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
@@ -437,6 +411,11 @@
                                 <button class="context-menu-tag" name='tag' id="8"></button>
                                 <button class="context-menu-tag" name='tag' id="9"></button>
                                 <button class="context-menu-tag" name='tag' id="10"></button>
+                                <button class="context-menu-tag" name='tag' id="11"></button>
+                                <button class="context-menu-tag" name='tag' id="12"></button>
+                                <button class="context-menu-tag" name='tag' id="13"></button>
+                                <button class="context-menu-tag" name='tag' id="14"></button>
+                                <button class="context-menu-tag" name='tag' id="15"></button>
                             </div>
                             <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
                                 <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">@Messages("audit.center.ui.temporary")</label>
@@ -451,11 +430,8 @@
                 <div id="google-maps" class="google-maps-pane"></div>
                 <div id="google-maps-overlay" class="google-maps-pane">@Messages("audit.right.ui.red.line")</div>
             </div>
-            <div id="compass-holder" class="">
-                <div id="compass-message-holder" class="animated white-background-75">
-                    <span id="compass-message"></span>
-                    <div id="compass-message-connector"></div>
-                </div>
+            <div id="compass-message-holder" class="animated white-background-75">
+                <span id="compass-message"></span>
             </div>
             <div id="page-overlay-holder">
             </div>
@@ -520,7 +496,7 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
-                    @if(user) {
+                    @if(user.isDefined) {
                         @if(user.get.role.getOrElse("") == "Turker") {
                             <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
                         }
@@ -576,7 +552,7 @@
                             <h3>@Messages("audit.mission.complete.progress.title")</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
-                                @if(user) {
+                                @if(user.isDefined) {
                                     @if(user.get.role.getOrElse("") == "Turker") {
                                         <tr>
                                             <th>Earned in this mission</th>
@@ -601,7 +577,7 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            @if(user) {
+                            @if(user.isDefined) {
                                 @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
@@ -997,9 +973,9 @@
         }
 
         function init() {
-            var mainParam = mainParam || {},
-                    formParam = {},
-                    initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
+            var mainParam = mainParam || {};
+            var formParam = {};
+            var initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
@@ -1014,42 +990,13 @@
             mainParam.initLat = initialLocation.lat;
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
-            @if(user) {
-                @if(user.get.role.getOrElse("") == "Turker") {
-                    svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
-                    svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
-                        $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                    } else {
-                        $("#left-column-confirmation-code-button").css('visibility', "");
-                        $("#left-column-confirmation-code-button").attr('data-toggle','popover');
-                        $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")k');
-                        $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
-                        $("#left-column-confirmation-code-button").popover();
 
-                        //Hide the confirmation popover on clicking the background
-                        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
-
-                        $(document).on('click', function (e) {
-                            $("#left-column-confirmation-code-button").each(function () {
-                                //the 'is' for buttons that trigger popups
-                                //the 'has' for icons within a button that triggers a popup
-                                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
-                                }
-
-                            });
-                        });
-                    }
-                    $("#current-mission-reward").show();
-                    $("#total-mission-reward").show();
-                    $("#modal-mission-reward-text").show();
-                } else {
-                    $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                }
-            } else {
-                $("#left-column-confirmation-code-button").css('visibility', "hidden");
+            @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
+                svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                $("#current-mission-reward").show();
+                $("#total-mission-reward").show();
+                $("#modal-mission-reward-text").show();
             }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
@@ -1058,9 +1005,9 @@
             mainParam.regionId = @region.regionId;
             mainParam.regionName = '@region.name';
             mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
-            if(@RegionTable.difficultRegionIds.contains(region.regionId)) {
-                   $('#advanced-overlay').show();
-                   mainParam.advancedOverlay = true
+            @if(RegionTable.difficultRegionIds.contains(region.regionId)) {
+                $('#advanced-overlay').show();
+                mainParam.advancedOverlay = true
             }
 
             mainParam.nextTemporaryLabelId = @nextTempLabelId;

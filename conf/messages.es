@@ -8,6 +8,8 @@ obstacles = Obstáculos en la banqueta
 surface.problem = Problema en superficie
 surface.problems = Problemas en superficie
 no.sidewalk = No hay banqueta
+crosswalk = Cruce peatonal
+signal = Señalamiento peatonal
 other = Otro
 labels = etiquetas
 dist.metric.abbr = km
@@ -36,6 +38,7 @@ navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
+navbar.city = Ciudad
 navbar.lang.aria = Opciones de idioma
 navbar.lang.icon.alt = icono de idiomas
 
@@ -94,15 +97,17 @@ audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatona
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
 audit.ribbon.explore = <u>E</u>xplorar
 audit.ribbon.curb.ramp = Rampa peatonal (<u>C</u>)
-audit.ribbon.missing.ramp = <span style="font-size: 8px;">Rampa peatonal ausente (<u>M</u>)</span>
-audit.ribbon.obstacle = <span style="font-size: 10px;"><u>O</u>bstáculo en la banqueta</span>
-audit.ribbon.surface.problem = <span style="font-size: 10px;">Problema en <u>s</u>uperficie</span>
+audit.ribbon.missing.ramp = Rampa peatonal ausente (<u>M</u>)
+audit.ribbon.obstacle = <u>O</u>bstáculo en la banqueta
+audit.ribbon.surface.problem = Problema en <u>s</u>uperficie
 audit.ribbon.no.sidewalk = <u>N</u>o hay banqueta
+audit.ribbon.crosswalk = Cruce peatonal (<u>W</u>)
+audit.ribbon.signal = Señalamiento <u>p</u>eatonal
 audit.ribbon.other = Otro
 audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
-audit.ribbon.zoom.in = Acercar (<u>Z</u>)
-audit.ribbon.zoom.out = Alejar
 
+audit.left.ui.zoom.in = Acercar (<u>Z</u>)
+audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
 audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
 audit.left.ui.stuck = Atorado
@@ -196,8 +201,7 @@ mobile.validate.leave.feedback = Retroalimentación
 turk.expired.navbar = SE ACABÓ EL TIEMPO
 turk.expired.title = ¡Se acabó el tiempo!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Por favor enviar su código de confirmación en el sitio web de mturk. Si la asignación ya ha vencido, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
-turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
-turk.mturk.code = Código de Mturk
+turk.mturk.code = Código de Mturk:
 turk.reward.earned = Recompensa actual de la misión
 
 authenticate.email = Correo electrónico
@@ -291,7 +295,6 @@ leaderboard.weekly.title = Tabla de clasificación semanal
 leaderboard.inter.org.title = Tabla de clasificación de equipos
 leaderboard.org.title = Tabla de {0}
 leaderboard.overall.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
-leaderboard.weekly.detail = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.org.detail = Los 10 contribuyentes mayor a {0}
 leaderboard.header.team = Equipo
 leaderboard.header.labels = Etiquetas

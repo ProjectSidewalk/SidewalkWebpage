@@ -8,7 +8,7 @@
     width: inherit;
 }
 
-#ribbon-menu-holder {
+.filter-section-holder {
    padding-bottom: 30px;
 }
 
@@ -47,7 +47,7 @@
     padding-left: 10px;
     padding-top: 20px;
     min-height: calc(100vh - 610px);
-    width: 235px;
+    width: 239px;
     grid-row: 1/2;
 }
 
@@ -82,6 +82,6 @@
 .cards {
     display: flex;
     flex-flow: row wrap;
-    margin-left: 235px; /* Offset to compensate for the space taken up by the sidebar. */
+    margin-left: 239px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 

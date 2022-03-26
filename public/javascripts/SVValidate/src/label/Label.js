@@ -214,7 +214,7 @@ function Label(params) {
      *
      * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
      *
-     * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
+     * @param validationResult  Must be one of the following: {Agree, Disagree, Notsure}.
      */
     function validate(validationResult, comment) {
         // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center

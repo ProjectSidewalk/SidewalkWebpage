@@ -13,7 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
-GET     /gallery                                             @controllers.ApplicationController.gallery
+GET     /gallery                                             @controllers.ApplicationController.gallery(label: Option[String], severity: Option[String])
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
@@ -61,12 +61,14 @@ GET     /adminapi/completionRateByDate                       @controllers.AdminC
 GET     /adminapi/tasks/:username                            @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
 GET     /adminapi/auditpath/:id                              @controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreets/:username                   @controllers.AdminController.getStreetsAuditedByAUser(username: String)
+GET     /adminapi/auditedStreetTimes                         @controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
-GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
 GET     /adminapi/labels/cv                                  @controllers.AdminController.getAllLabelCVMetadata
 GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
+GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
+GET     /adminapi/panos                                      @controllers.AdminController.getAllPanoIds
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
@@ -80,7 +82,7 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
-GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(filterLowQuality: Boolean ?= false)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
@@ -132,7 +134,7 @@ GET     /neighborhoods/difficult                             @controllers.Region
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
-GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets
+GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets(filterLowQuality: Boolean ?= false)
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
 

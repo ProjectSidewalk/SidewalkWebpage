@@ -1,6 +1,6 @@
 @import models.user._
 
-@(min: Int, user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
+@(min: Int = 1, user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
@@ -60,7 +60,7 @@
                                 } m</td>
                             }
                         } else {
-                            @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                            @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                 <td class="leaderboard-table-font">@{
                                     "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                 } miles</td>
@@ -87,7 +87,7 @@
             </table>
         </div>
     </div>
-    @if(leaderboardStatsByOrg.asInstanceOf[List[LeaderboardStat]].length >= 0) {
+    @if(leaderboardStatsByOrg.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
             <h1 class="leaderboard-header">@Messages("leaderboard.inter.org.title")</h1>
             <h5>@Messages("leaderboard.overall.detail")</h5>
@@ -129,7 +129,7 @@
                                     } m</td>
                                 }
                             } else {
-                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                     <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                     } miles</td>
@@ -159,8 +159,7 @@
     }
     @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
-            <h1 class="leaderboard-header">@Messages("leaderboard.weekly.title")</h1>
-            <h5>@Messages("leaderboard.weekly.detail")</h5>
+            <h1 class="leaderboard-header weekly-header">@Messages("leaderboard.weekly.title")</h1>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboard-table-header">
@@ -209,7 +208,7 @@
                                     } m</td>
                                 }
                             } else {
-                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                     <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                     } miles</td>
@@ -289,7 +288,7 @@
                                     } m</td>
                                 }
                             } else {
-                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 2500) {
                                     <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                     } miles</td>

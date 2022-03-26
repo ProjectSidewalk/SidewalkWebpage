@@ -170,7 +170,7 @@ function Modal(uiModal) {
         populateModalDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
-        self.header.text(i18next.t('gallery.' + properties.label_type));
+        self.header.text(i18next.t(`gallery.${util.camelToKebab(properties.label_type)}`));
 
         // Highlight selected card thumbnail.
         highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
