@@ -221,7 +221,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
             google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
             google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
-            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
+            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", switchToExploreMode);
             google.maps.event.addListener(svl.panorama, "zoom_changed", handlerZoomChange);
         }
 
