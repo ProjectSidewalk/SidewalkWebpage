@@ -180,8 +180,8 @@ function CardContainer(uiCardContainer) {
         let data = {
             labelTypeId: labelTypeId,
             n: n,
-            ...(severities != undefined && {severities: severities}),
-            ...(tags != undefined && {tags: tags}),
+            ...(severities !== undefined && {severities: severities}),
+            ...(tags !== undefined && {tags: tags}),
             loadedLabels: loadedLabels
         }
         $.ajax({
@@ -195,9 +195,7 @@ function CardContainer(uiCardContainer) {
                 if ("labelsOfType" in data) {
                     let labels = data.labelsOfType
                     let card;
-                    let i = 0;
-                    let len = labels.length;
-                    for (; i < len; i++) {
+                    for (let i = 0; i < labels.length; i++) {
                         let labelProp = labels[i];
                         if ("label" in labelProp && "imageUrl" in labelProp) {
                             card = new Card(labelProp.label, labelProp.imageUrl, modal);

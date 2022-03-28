@@ -33,7 +33,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
    * @return
    */
   def getLabels = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[GalleryLabelsRequest]
+    val submission = request.body.validate[GalleryLabelsRequest]
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
@@ -45,10 +45,10 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
             val severitiesToSelect: Set[Int] = submission.severities.getOrElse(Seq()).toSet
             val tagsToSelect: Set[String] = submission.tags.getOrElse(Seq()).toSet
 
-            // Get labels from LabelTable
+            // Get labels from LabelTable.
             val labels: Seq[LabelValidationMetadata] =
               if (validLabTypes.contains(submission.labelTypeId)) {
-                if (submission.severities == None && submission.tags == None) {
+                if (severitiesToSelect.isEmpty && tagsToSelect.isEmpty) {
                   LabelTable.getLabelsByType(submission.labelTypeId, submission.n, loadedLabelIds, user.userId)
                 } else {
                   LabelTable.getLabelsOfTypeBySeverityAndTags(
@@ -58,13 +58,8 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
               } else {
                 LabelTable.getAssortedLabels(submission.n, loadedLabelIds, user.userId, Some(severitiesToSelect))
               }
-            // Shuffle labels if needed
-            val realLabels = 
-              if (submission.severities == None && submission.tags == None) {
-                scala.util.Random.shuffle(labels)
-              } else labels
 
-            val jsonList: Seq[JsObject] = realLabels.map(l => Json.obj(
+            val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
                 "label" -> LabelTable.validationLabelMetadataToJson(l),
                 "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
               )
@@ -73,7 +68,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
             val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
             Future.successful(Ok(labelList))
             
-          // If the user doesn't already have an anonymous ID,  will not do anything
+          // If the user doesn't already have an anonymous ID,  will not do anything.
           case _ => Future.successful(
             Ok(Json.obj("ok" -> "ok"))
           )
