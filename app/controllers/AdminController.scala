@@ -95,7 +95,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(false)
+      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
       val features: List[JsObject] = labels.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
@@ -104,7 +104,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           "gsv_panorama_id" -> label.gsvPanoramaId,
           "label_type" -> label.labelType,
           "severity" -> label.severity,
-          "correct" -> label.correct
+          "correct" -> label.correct,
+          "high_quality_user" -> label.highQualityUser
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
       }
@@ -118,8 +119,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(filterLowQuality)
+  def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
+    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
     val features: List[JsObject] = labels.map { label =>
       val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties = Json.obj(
@@ -128,7 +129,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "label_type" -> label.labelType,
         "severity" -> label.severity,
         "correct" -> label.correct,
-        "expired" -> label.expired
+        "expired" -> label.expired,
+        "high_quality_user" -> label.highQualityUser
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
     }
