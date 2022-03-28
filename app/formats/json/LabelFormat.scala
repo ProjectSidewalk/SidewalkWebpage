@@ -27,5 +27,4 @@ object LabelFormat {
       (__ \ "notsure_count").write[Int] and
       (__ \ "correct").writeNullable[Boolean]
     )(unlift(Label.unapply _))
-
 }

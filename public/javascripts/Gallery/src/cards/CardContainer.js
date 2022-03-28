@@ -83,7 +83,7 @@ function CardContainer(uiCardContainer) {
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabelsByType(labelTypeIds.Assorted, initialLoad, Array.from(loadedLabelIds), function() {
+        fetchLabels(labelTypeIds.Assorted, initialLoad, Array.from(loadedLabelIds), undefined, undefined, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
@@ -166,63 +166,47 @@ function CardContainer(uiCardContainer) {
     }
 
     /**
-     * Grab n assorted labels of specified type.
-     * 
-     * @param {*} labelTypeId Label type id specifying labels of what label type to grab.
-     * @param {*} n Number of labels to grab.
-     * @param {*} loadedLabels Label Ids of labels already grabbed.
-     * @param {*} callback Function to be called when labels arrive.
-     */
-    function fetchLabelsByType(labelTypeId, n, loadedLabels, callback) {
-        $.getJSON("/label/labelsByType", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels)}, function (data) {
-            if ("labelsOfType" in data) {
-                let labels = data.labelsOfType
-                let card;
-                let i = 0;
-                let len = labels.length;
-                for (; i < len; i++) {
-                    let labelProp = labels[i];
-                    if ("label" in labelProp && "imageUrl" in labelProp) {
-                        card = new Card(labelProp.label, labelProp.imageUrl, modal);
-                        self.push(card);
-                        loadedLabelIds.add(card.getLabelId());
-                    }
-                }
-                if (callback) callback();
-            }
-        });
-        
-    }
-
-    /**
      * Grab n assorted labels of specified label type, severities, and tags.
      * 
      * @param {*} labelTypeId Label type id specifying labels of what label type to grab.
      * @param {*} n Number of labels to grab.
      * @param {*} loadedLabels Label Ids of labels already grabbed.
-     * @param {*} severities Severities the labels to be grabbed can have.
-     * @param {*} tags Tags the labels to be grabbed can have.
+     * @param {*} severities Severities the labels to be grabbed can have. (Set to undefined if N/A)
+     * @param {*} tags Tags the labels to be grabbed can have. (Set to undefined if N/A)
      * @param {*} callback Function to be called when labels arrive.
      */
-    function fetchLabelsBySeverityAndTags(labelTypeId, n, loadedLabels, severities, tags, callback) {
-        $.getJSON("/label/labelsBySeveritiesAndTags", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels), severities: JSON.stringify(severities), tags: JSON.stringify(tags) }, function (data) {
-            if ("labelsOfType" in data) {
-                let labels = data.labelsOfType
-                let card;
-                let i = 0;
-                let len = labels.length;
-                for (; i < len; i++) {
-                    let labelProp = labels[i];
-                    if ("label" in labelProp && "imageUrl" in labelProp) {
-                        card = new Card(labelProp.label, labelProp.imageUrl, modal);
-                        self.push(card);
-                        loadedLabelIds.add(card.getLabelId());
+    function fetchLabels(labelTypeId, n, loadedLabels, severities, tags, callback) {
+        var url = "/label/labels";
+        let data = {
+            labelTypeId: labelTypeId,
+            n: n,
+            ...(severities !== undefined && {severities: severities}),
+            ...(tags !== undefined && {tags: tags}),
+            loadedLabels: loadedLabels
+        }
+        $.ajax({
+            async: true,
+            contentType: "application/json; charset=utf-8",
+            url: url,
+            type: "post",
+            data: JSON.stringify(data),
+            dataType: "json",
+            success: function (data) {
+                if ("labelsOfType" in data) {
+                    let labels = data.labelsOfType
+                    let card;
+                    for (let i = 0; i < labels.length; i++) {
+                        let labelProp = labels[i];
+                        if ("label" in labelProp && "imageUrl" in labelProp) {
+                            card = new Card(labelProp.label, labelProp.imageUrl, modal);
+                            self.push(card);
+                            loadedLabelIds.add(card.getLabelId());
+                        }
                     }
+                    if (callback) callback();
                 }
-                if (callback) callback();
             }
         });
-
     }
 
     /**
@@ -261,7 +245,7 @@ function CardContainer(uiCardContainer) {
             sg.tagContainer.unapplyTags(currentLabelType);
             currentLabelType = filterLabelType;
 
-            fetchLabelsByType(labelTypeIds[filterLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), function () {
+            fetchLabels(labelTypeIds[filterLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), undefined, undefined, function () {
                 currentCards = cardsByType[currentLabelType].copy();
 
                 // We query double the amount of cards per page, "prepping" for the next page. If after querying we see
@@ -288,13 +272,13 @@ function CardContainer(uiCardContainer) {
         if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
             if (currentLabelType === "Occlusion") {
-                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), function () {
+                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), undefined, undefined, function () {
                     currentCards = cardsByType[currentLabelType].copy();
                     lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });
             } else {
-                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
                     currentCards = cardsByType[currentLabelType].copy();
                     currentCards.filterOnTags(appliedTags);
                     currentCards.filterOnSeverities(appliedSeverities);
@@ -466,7 +450,7 @@ function CardContainer(uiCardContainer) {
         return lastPage;
     }
 
-    self.fetchLabelsByType = fetchLabelsByType;
+    self.fetchLabels = fetchLabels;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
     self.isLastPage = isLastPage;
