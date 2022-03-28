@@ -97,6 +97,10 @@ function UtilitiesMisc (JSON) {
                     'not level with street': {
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.not-level-with-street')
+                    },
+                    'surface problem': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.surface-problem')
                     }
                 }
             },
@@ -145,7 +149,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.vegetation')
                     },
                     'parked car': {
-                        keyChar: 'R',
+                        keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
@@ -169,7 +173,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.stairs')
                     },
                     'street vendor': {
-                        keyChar: 'U',
+                        keyChar: 'J',
                         text: i18next.t('center-ui.context-menu.tag.street-vendor')
                     },
                     'height difference': {
@@ -179,6 +183,14 @@ function UtilitiesMisc (JSON) {
                     'narrow': {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
+                    },
+                    'litter/garbage': {
+                        keyChar: 'X',
+                        text: i18next.t('center-ui.context-menu.tag.litter-garbage')
+                    },
+                    'parked scooter/motorcycle': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
                     }
                 }
             },
@@ -222,6 +234,14 @@ function UtilitiesMisc (JSON) {
                     'height difference': {
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
+                    },
+                    'rail/tram track': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
+                    },
+                    'sand/gravel': {
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.sand-gravel')
                     }
                 }
             },
@@ -261,9 +281,25 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'F',
                         text: i18next.t('center-ui.context-menu.tag.paint-fading')
                     },
-                    'paint not fading': {
-                        keyChar: 'T',
-                        text: i18next.t('center-ui.context-menu.tag.paint-not-fading')
+                    'broken surface': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.broken-surface')
+                    },
+                    'uneven surface': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uneven-surface')
+                    },
+                    'brick': {
+                        keyChar: 'I',
+                        text: i18next.t('center-ui.context-menu.tag.brick')
+                    },
+                    'bumpy': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.bumpy')
+                    },
+                    'rail/tram track': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
                     }
                 }
             },

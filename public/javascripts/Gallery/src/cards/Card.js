@@ -118,7 +118,7 @@ function Card (params, imageUrl, modal) {
         cardInfo.appendChild(cardData);
 
         // Create the div to store the severity of the label.
-        if (getLabelType() !== "Occlusion") {
+        if (getLabelType() !== 'Occlusion' && getLabelType() !== 'Signal') {
             let cardSeverity = document.createElement('div');
             cardSeverity.className = 'card-severity';
             let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);

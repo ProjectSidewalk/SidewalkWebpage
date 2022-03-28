@@ -50,6 +50,32 @@ function getURLParameter(argName) {
 }
 util.getURLParameter = getURLParameter;
 
+// Converts a blob that we get from `fetch` into base64. Necessary to display images acquired through `fetch`.
+function convertBlobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = () => {
+            resolve(reader.result);
+        };
+        reader.readAsDataURL(blob);
+    });
+}
+util.convertBlobToBase64 = convertBlobToBase64;
+
+// Asynchronously acquire an image using `fetch` and convert it into base64. Returns a promise.
+function getImage(imageUrl) {
+    return fetch(imageUrl)
+        .then(response => {
+            if (response.status === 404) throw new Error('Image not found');
+            else if (!response.ok) throw new Error('Other network error');
+            return response.blob();
+        }).then(myBlob => {
+            return convertBlobToBase64(myBlob);
+        });
+}
+util.getImage = getImage;
+
 // Array Remove - By John Resig (MIT Licensed)
 // http://stackoverflow.com/questions/500606/javascript-array-delete-elements
 Array.prototype.remove = function(from, to) {

@@ -38,6 +38,7 @@ navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
+navbar.city = Ciudad
 navbar.lang.aria = Opciones de idioma
 navbar.lang.icon.alt = icono de idiomas
 
@@ -294,7 +295,6 @@ leaderboard.weekly.title = Tabla de clasificación semanal
 leaderboard.inter.org.title = Tabla de clasificación de equipos
 leaderboard.org.title = Tabla de {0}
 leaderboard.overall.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
-leaderboard.weekly.detail = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.org.detail = Los 10 contribuyentes mayor a {0}
 leaderboard.header.team = Equipo
 leaderboard.header.labels = Etiquetas
@@ -309,7 +309,6 @@ leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard
 
 gallery = Galería
 gallery.show = Mostrar
-gallery.city = Ciudad
 gallery.filter.by = Filtrar por
 gallery.severity = Calificación
 gallery.tags = Etiquitas

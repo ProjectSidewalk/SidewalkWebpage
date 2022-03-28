@@ -75,8 +75,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Get the list of streets that have been audited by any user.
    */
-  def getAllAuditedStreets = UserAwareAction.async { implicit request =>
-    val streets = AuditTaskTable.selectStreetsAudited
+  def getAllAuditedStreets(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
+    val streets = AuditTaskTable.selectStreetsAudited(filterLowQuality)
     val features: List[JsObject] = streets.map { edge =>
       val coordinates: Array[Coordinate] = edge.geom.getCoordinates
       val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list

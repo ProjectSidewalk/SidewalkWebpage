@@ -3,6 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
+@import scala.util.Random
 @(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
@@ -30,9 +31,8 @@
                     <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public")) {
+                    @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
                         <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>

@@ -8,8 +8,8 @@
   "nice-job": "Goed werk!",
   "keep-it-up": "Ga zo door!",
   "now-were-rolling": "We zijn lekker bezig!",
-  "thanks-for-helping": "Thanks voor je hulp!",
-  "making-great-progress": "Goeie voortgang aan het maken!",
+  "thanks-for-helping": "Bedankt voor je hulp!",
+  "making-great-progress": "Je bent een mooie voortgang aan het maken!",
   "great-job": "Geweldig werk!",
   "first": "eerste",
   "next": "volgende",
@@ -27,8 +27,8 @@
   "badge-validations-singular": "validatie",
   "badge-validations-plural": "validaties",
   "more-unit-until-achievement": "<strong>nog {{n}} $t({{unit}})</strong> tot je $t({{firstOrNext}}) prestatie.",
-  "badge-missions-earned-all": "Gefeliciteerd, je hebt alle missie badges behaald!",
-  "badge-distance-earned-all": "Gefeliciteerd, je hebt alle afstand badges behaald!",
-  "badge-labels-earned-all": "Gefeliciteerd, je hebt alle labeling badges behaald!",
-  "badge-validations-earned-all": "Gefeliciteerd, je hebt alle validatie badges behaald!"
+  "badge-missions-earned-all": "Gefeliciteerd, je hebt alle missiebadges behaald!",
+  "badge-distance-earned-all": "Gefeliciteerd, je hebt alle afstandbadges behaald!",
+  "badge-labels-earned-all": "Gefeliciteerd, je hebt alle labelingbadges behaald!",
+  "badge-validations-earned-all": "Gefeliciteerd, je hebt alle validatiebadges behaald!"
 }

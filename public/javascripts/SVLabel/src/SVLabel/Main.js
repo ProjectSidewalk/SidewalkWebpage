@@ -153,7 +153,7 @@ function Main (params) {
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel, svl.userModel);
-        svl.modalSkip = new ModalSkip(svl.form, svl.streetViewService, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
+        svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         // Survey for select users
@@ -217,7 +217,7 @@ function Main (params) {
         $(svl.ui.ribbonMenu.subcategories).each(function() {
             var val = $(this).attr('val');
 
-            if(val != 'Walk' && val != 'Other') {
+            if(val !== 'Walk' && val !== 'Other') {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'left',
@@ -493,6 +493,7 @@ function Main (params) {
         svl.ui.contextMenu = {};
         svl.ui.contextMenu.holder = $("#context-menu-holder");
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
+        svl.ui.contextMenu.severityMenu = $("#severity-menu");
         svl.ui.contextMenu.radioButtons = $("input[name='label-severity']");
         svl.ui.contextMenu.temporaryLabelCheckbox = $("#context-menu-temporary-problem-checkbox");
         svl.ui.contextMenu.tagHolder = $("#context-menu-tag-holder");

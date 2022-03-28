@@ -38,6 +38,7 @@ navbar.signin = Sign in
 navbar.signout = Sign out
 navbar.dashboard = Your dashboard
 navbar.admin = Admin
+navbar.city = City
 navbar.lang.aria = Language Options
 navbar.lang.icon.alt = languages icon
 
@@ -296,7 +297,6 @@ leaderboard.weekly.title = Weekly Leaderboard
 leaderboard.inter.org.title = Teams Leaderboard
 leaderboard.org.title = {0} Leaderboard
 leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
-leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.org.detail = Top 10 overall contributors to {0}
 leaderboard.header.team = Team
 leaderboard.header.labels = Labels
@@ -311,7 +311,6 @@ leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard">
 
 gallery = Gallery
 gallery.show = Show
-gallery.city = City
 gallery.filter.by = Filter By
 gallery.severity = Severity
 gallery.tags = Tags

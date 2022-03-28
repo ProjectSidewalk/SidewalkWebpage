@@ -9,15 +9,14 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.street.StreetEdgeTable
+import models.utils.Configs
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.Messages
-
 import java.util.Calendar
 import play.api.mvc._
-
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -124,7 +123,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
               val mapathonLink: Option[String] = Play.configuration.getString("city-params.mapathon-event-link." + cityStr)
               // Get names and URLs for other cities so we can link to them on landing page.
-              val otherCityUrls: List[(String, String, String, String)] = getAllCityInfo(excludeCity=cityStr)
+              val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity=cityStr)
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgeTable.auditedStreetDistance(1) * 1.60934.toFloat
@@ -143,24 +142,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             }
         }
     }
-  }
-
-  /**
-   * Returns list of all cities -- (city, name + ", " + state, cityURL, visibility) -- excluding the city specified.
-   */
-  def getAllCityInfo(excludeCity: String = ""): List[(String, String, String, String)] = {
-    val envType: String = Play.configuration.getString("environment-type").get
-    // Get names and URLs for cities to display in Gallery dropdown.
-    val cities: List[String] =
-      Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == excludeCity)
-    val cityUrls: List[(String, String, String, String)] = cities.map { city =>
-      val name: String = Play.configuration.getString("city-params.city-name." + city).get
-      val state: String = Play.configuration.getString("city-params.state-abbreviation." + city).get
-      val cityURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + city).get
-      val visiblity: String = Play.configuration.getString("city-params.status." + city).get
-      (city, name + ", " + state, cityURL, visiblity)
-    }
-    cityUrls
   }
 
   /**
@@ -386,7 +367,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         // Get current city.
         val cityStr: String = Play.configuration.getString("city-id").get
         // Get names and URLs for cities to display in Gallery dropdown.
-        val cityUrls: List[(String, String, String, String)] = getAllCityInfo()
+        val cityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo()
         val labels: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
           ("CurbRamp", Messages("curb.ramp")),

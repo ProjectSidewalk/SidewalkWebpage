@@ -170,6 +170,7 @@ public class ShapefilesCreatorHelper {
                         + "canvasY:Integer," // canvasY position of panorama
                         + "canvasWdth:Integer," // width of source viewfinder
                         + "canvasHght:Integer," // height of source viewfinder
+                        + "gsvUrl:String," // GSV URL
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer" // Notsure validations
@@ -213,6 +214,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.canvasXY()._2);
             featureBuilder.add(l.canvasWidth());
             featureBuilder.add(l.canvasHeight());
+            featureBuilder.add(l.gsvUrl());
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());

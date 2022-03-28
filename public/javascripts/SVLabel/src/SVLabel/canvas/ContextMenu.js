@@ -8,6 +8,7 @@ function ContextMenu (uiContextMenu) {
         };
     var $menuWindow = uiContextMenu.holder,
         $connector = uiContextMenu.connector,
+        $severityMenu = uiContextMenu.severityMenu,
         $radioButtons = uiContextMenu.radioButtons,
         $temporaryLabelCheckbox = uiContextMenu.temporaryLabelCheckbox,
         $descriptionTextBox = uiContextMenu.textBox,
@@ -262,16 +263,6 @@ function ContextMenu (uiContextMenu) {
                         labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalkId, labelTags);
                     }
 
-                    // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
-                    var paintFadingId = self.labelTags.filter(tag => tag.tag === 'paint fading')[0].tag_id;
-                    var paintNotFadingId = self.labelTags.filter(tag => tag.tag === 'paint not fading')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === paintFadingId) {
-                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintNotFadingId, labelTags);
-                    } else if (currTagId === paintNotFadingId) {
-                        labelTags = autoRemoveAlternateLabelAndUpdateUI(paintFadingId, labelTags);
-                    }
-
                     labelTags.push(tag.tag_id);
                     if (wasClickedByMouse) {
                         svl.tracker.push('ContextMenu_TagAdded',
@@ -448,59 +439,69 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Sets the description and value of the tag based on the label type.
-     * @param label     Current label being modified.
+     * @param label Current label being modified.
      */
-    function setTags (label) {
-        var maxTags = 11;
+    function setTags(label) {
+        var maxTags = 16;
         if (label) {
             var labelTags = self.labelTags;
             if (labelTags) {
                 var count = 0;
+                var tagHolder = getContextMenuUI().tagHolder;
 
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
-                        // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
-                        $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
+                        // Remove all leftover tags from last labeling.
+                        // Warning to future devs: will remove any other classes you add to the tags.
+                        tagHolder.find("button[id=" + count + "]").attr('class', 'context-menu-tag');
 
                         // Add tag id as a class so that finding the element is easier later.
-                        $("body").find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
+                        tagHolder.find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
 
                         // Set tag texts to new underlined version as defined in the util label description map.
                         var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
-                        $("body").find("button[id=" + count + "]").html(tagText);
+                        tagHolder.find("button[id=" + count + "]").html(tagText);
 
-                        $("body").find("button[id=" + count + "]").css({
+                        tagHolder.find("button[id=" + count + "]").css({
                             visibility: 'inherit',
                             position: 'inherit'
                         });
 
-                        // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
-                        const underlineClassOffset = 15;
-                        var keypressChar;
-                        var tooltipHeader;
-                        // If first letter is used for keyboard shortcut, the string will start with "<tag-underline".
-                        if (tagText[0] === '<') {
-                            keypressChar = tagText[underlineClassOffset];
-                            tooltipHeader = tagText.substring(0,underlineClassOffset) +
-                                tagText[underlineClassOffset].toUpperCase() +
-                                tagText.substring(underlineClassOffset + 1);
-                        } else {
-                            let underlineIndex = tagText.indexOf('<');
-                            keypressChar = tagText[underlineIndex + underlineClassOffset];
-                            tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
-                        }
+                        // Remove old tooltip for that button.
+                        tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
-                        // Add tooltip with tag example.
-                        $("body").find("button[id=" + count + "]").tooltip("destroy").tooltip(({
-                            placement: 'top',
-                            html: true,
-                            delay: { "show": 300, "hide": 10 },
-                            height: '130',
-                            title: tooltipHeader + "<br/><img src='/assets/javascripts/SVLabel/img/label_tag_popups/" +
-                                tag.tag_id + ".png' height='125'/><br/> <i>" +
-                                i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keypressChar}) + "</i>"
-                        })).tooltip("show").tooltip("hide");
+                        // Add tooltip with tag example if we have an example image to show.
+                        var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
+                        var buttonIndex = count; // Save index in a separate var b/c tooltips added asynchronously.
+                        util.getImage(imageUrl).then(img => {
+                            // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
+                            const underlineClassOffset = 15;
+                            var keyChar;
+                            var tooltipHeader;
+                            // If first letter is used for shortcut, the string will start with "<tag-underline".
+                            if (tagText[0] === '<') {
+                                keyChar = tagText[underlineClassOffset];
+                                tooltipHeader = tagText.substring(0,underlineClassOffset) +
+                                    tagText[underlineClassOffset].toUpperCase() +
+                                    tagText.substring(underlineClassOffset + 1);
+                            } else {
+                                let underlineIndex = tagText.indexOf('<');
+                                keyChar = tagText[underlineIndex + underlineClassOffset];
+                                tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
+                            }
+                            var tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
+                            var tooltipImage = `<img src="${img}" height="125"/>`
+
+                            // Create the tooltip.
+                            tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy").tooltip(({
+                                placement: 'top',
+                                html: true,
+                                delay: {"show": 300, "hide": 10},
+                                height: '130',
+                                title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`
+                            })).tooltip("show").tooltip("hide");
+                        });
 
                         count += 1;
                     }
@@ -521,6 +522,52 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
+     * Set context menu severity tooltips to the correct text/images for the given label type.
+     *
+     * @param labelType
+     * @private
+     */
+    function _setSeverityTooltips(labelType) {
+        var sevTooltipOne = $('#severity-one');
+        var sevTooltipThree = $('#severity-three');
+        var sevTooltipFive = $('#severity-five');
+        var sevImgUrlOne = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity1.png`
+        var sevImgUrlThree = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity3.png`
+        var sevImgUrlFive = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity5.png`
+
+        // Remove old tooltips.
+        sevTooltipOne.tooltip('destroy');
+        sevTooltipThree.tooltip('destroy');
+        sevTooltipFive.tooltip('destroy');
+
+        // Add severity tooltips for the current label type if we have images for them.
+        util.getImage(sevImgUrlOne).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 1 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
+            sevTooltipOne.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+            });
+        });
+        util.getImage(sevImgUrlThree).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 3 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
+            sevTooltipThree.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+            });
+        });
+        util.getImage(sevImgUrlFive).then(img => {
+            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 5 });
+            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
+            sevTooltipFive.tooltip({
+                placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+            });
+        });
+    }
+
+    /**
      * Show the context menu
      * @param x x-coordinate on the canvas pane
      * @param y y-coordinate on the canvas pane
@@ -533,8 +580,7 @@ function ContextMenu (uiContextMenu) {
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType();
-            var acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'NoSidewalk', 'Other', 'CurbRamp', 'Crosswalk', 'Signal'];
-            if (acceptedLabelTypes.indexOf(labelType) !== -1) {
+            if (labelType !== 'Occlusion') {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
@@ -564,7 +610,7 @@ function ContextMenu (uiContextMenu) {
                     description = param.targetLabel.getProperty('description');
                 if (severity) {
                     $radioButtons.each(function (i, v) {
-                       if (severity == i + 1) { $(this).prop("checked", true); }
+                       if (severity === i + 1) { $(this).prop("checked", true); }
                     });
                 }
 
@@ -584,6 +630,13 @@ function ContextMenu (uiContextMenu) {
                     left: x - 3
                 });
 
+                // Hide the severity menu for the Pedestrian Signal label type.
+                if (labelType === 'Signal') {
+                    $severityMenu.css({visibility: 'hidden', height: '0px'});
+                } else {
+                    $severityMenu.css({visibility: 'inherit', height: '50px'});
+                }
+
                 setStatus('visibility', 'visible');
 
                 if (description) {
@@ -594,11 +647,12 @@ function ContextMenu (uiContextMenu) {
                 }
                 var labelProperties = self.getTargetLabel().getProperties();
 
-                //don't push event on Occlusion or NoSidewalk labels; they don't open ContextMenus
+                // Don't push event on Occlusion labels; they don't open ContextMenus.
                 svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
             }
         }
         self.updateRadioButtonImages();
+        _setSeverityTooltips(labelType);
     }
 
     /**
