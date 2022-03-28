@@ -5,7 +5,6 @@ import controllers.headers.ProvidesHeader
 import controllers.helper.GoogleMapsHelper
 import formats.json.GalleryFormats._
 import models.user._
-import models.validation._
 import models.label.{LabelTable, LabelTypeTable}
 import models.label.LabelTable._
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -13,7 +12,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.Play
 import play.api.Play.current
 import play.api.mvc._
-import play.api.libs.json.{JsArray, JsObject, Json, JsError}
+import play.api.libs.json.{JsObject, Json, JsError}
 import scala.concurrent.Future
 
 
@@ -33,7 +32,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
    *
    * @return
    */
-  def getLabels() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def getLabels = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[GalleryLabelsRequest]
     submission.fold(
       errors => {

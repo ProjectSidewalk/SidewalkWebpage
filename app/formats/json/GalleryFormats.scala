@@ -1,8 +1,6 @@
 package formats.json
 
-import java.sql.Timestamp
-import play.api.libs.json.{JsBoolean, JsPath, Reads}
-
+import play.api.libs.json.{JsPath, Reads}
 import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
