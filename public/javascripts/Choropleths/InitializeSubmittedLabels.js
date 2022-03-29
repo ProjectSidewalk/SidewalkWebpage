@@ -29,6 +29,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
     document.getElementById('map-legend-obstacle').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
     document.getElementById('map-legend-surface-problem').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
     document.getElementById('map-legend-no-sidewalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
+    document.getElementById('map-legend-crosswalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Crosswalk'].fillStyle + "'></svg>";
     document.getElementById('map-legend-audited-street').innerHTML = "<svg width='20' height='20'><path stroke='" + auditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
     if (params.includeLabelCounts) {
         // Count the number of each label type and fill in the legend with those counts.
@@ -37,7 +38,9 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             'NoCurbRamp': 0,
             'Obstacle': 0,
             'SurfaceProblem': 0,
-            'NoSidewalk': 0
+            'NoSidewalk': 0,
+            'Crosswalk': 0,
+            'Signal': 0
         };
         for (let i = labelData.features.length - 1; i >= 0; i--) {
             labelCounter[labelData.features[i].properties.label_type] += 1;
@@ -47,6 +50,8 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
         document.getElementById('td-number-of-obstacles').innerHTML = labelCounter['Obstacle'];
         document.getElementById('td-number-of-surface-problems').innerHTML = labelCounter['SurfaceProblem'];
         document.getElementById('td-number-of-no-sidewalks').innerHTML = labelCounter['NoSidewalk'];
+        document.getElementById('td-number-of-crosswalks').innerHTML = labelCounter['Crosswalk'];
+        document.getElementById('td-number-of-signals').innerHTML = labelCounter['Signal'];
         createLayer(labelData).addTo(map);
     } else {    // When loading label map.
         document.getElementById('map-legend-other').innerHTML =
@@ -59,18 +64,11 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
         // Separate labels into an array for each label type and severity.
         for (let i = 0; i < labelData.features.length; i++) {
             let labelType = labelData.features[i].properties.label_type;
-            if (labelData.features[i].properties.severity === 1) {
-                mapData.allLayers[labelType][1].push(labelData.features[i]);
-            } else if (labelData.features[i].properties.severity === 2) {
-                mapData.allLayers[labelType][2].push(labelData.features[i]);
-            } else if (labelData.features[i].properties.severity === 3) {
-                mapData.allLayers[labelType][3].push(labelData.features[i]);
-            } else if (labelData.features[i].properties.severity === 4) {
-                mapData.allLayers[labelType][4].push(labelData.features[i]);
-            } else if (labelData.features[i].properties.severity === 5) {
-                mapData.allLayers[labelType][5].push(labelData.features[i]);
-            } else { // No severity level
+            let severity = labelData.features[i].properties.severity;
+            if (labelType === 'Occlusion' || labelType === 'Signal' || !severity) { // No severity level.
                 mapData.allLayers[labelType][0].push(labelData.features[i]);
+            } else {
+                mapData.allLayers[labelType][severity].push(labelData.features[i]);
             }
         }
         Object.keys(mapData.allLayers).forEach(function (key) {

@@ -56,11 +56,23 @@
                         <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
                     </tr>
                     <tr>
+                        <td id="map-legend-crosswalk"></td>
+                        <td>Crosswalk</td>
+                        <td><input type="checkbox" value="displaylabel" id="crosswalk" checked="true" onclick="toggleLayers('Crosswalk', 'crosswalk', '#crosswalk-slider', map.map, map.mapData.allLayers)"></td>
+                        <td align="left"><div id = "crosswalk-slider" style="margin-top:3px"></div></td>
+                        <td align="center"><span id="crosswalk-severity-label">N/A - 5</span></td>
+                    </tr>
+                    <tr>
                         <td id="map-legend-other"></td>
                         <td>Other</td>
                         <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="toggleLayers('Other', 'other', '#other-slider', map.map, map.mapData.allLayers)"></td>
                         <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
                         <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-signal"></td>
+                        <td>Pedestrian Signal</td>
+                        <td><input type="checkbox" value="displaylabel" id="signal" checked="true" onclick="toggleLayers('Signal', 'signal', '#signal-slider', map.map, map.mapData.allLayers)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-occlusion"></td>
@@ -116,6 +128,8 @@
             sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
             sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
             sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
+            sliderToLabelMap["crosswalk-slider"]  = "#crosswalk-severity-label";
+            sliderToLabelMap["signal-slider"]  = "#signal-severity-label";
             sliderToLabelMap["other-slider"] = "#other-severity-label";
 
             $( "*[id*='slider']" ).each(function() {
@@ -133,19 +147,23 @@
                         }
                     },
                     change: function(event,ui) {
-                        if (this.id == "curb-ramp-slider") {
+                        if (this.id === "curb-ramp-slider") {
                             toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider', map.map, map.mapData.allLayers);
-                        } else if (this.id == "missing-curb-ramp-slider") {
+                        } else if (this.id === "missing-curb-ramp-slider") {
                             toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider', map.map, map.mapData.allLayers);
-                        } else if (this.id == "obstacle-slider") {
+                        } else if (this.id === "obstacle-slider") {
                             toggleLayers('Obstacle', 'obstacle', '#obstacle-slider', map.map, map.mapData.allLayers)
-                        } else if (this.id == 'surface-problem-slider') {
+                        } else if (this.id === 'surface-problem-slider') {
                             toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider', map.map, map.mapData.allLayers);
-                        } else if (this.id == 'occlusion-slider') {
+                        } else if (this.id === 'occlusion-slider') {
                             toggleLayers('Occlusion', 'occlusion', '#occlusion-slider', map.map, map.mapData.allLayers);
-                        } else if (this.id == 'no-sidewalk-slider') {
+                        } else if (this.id === 'no-sidewalk-slider') {
                             toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider', map.map, map.mapData.allLayers);
-                        } else if (this.id == 'other-slider') {
+                        } else if (this.id === 'crosswalk-slider') {
+                            toggleLayers('Crosswalk', 'crosswalk', '#crosswalk-slider', map.map, map.mapData.allLayers);
+                        } else if (this.id === 'signal-slider') {
+                            toggleLayers('Signal', 'signal', '#signal-slider', map.map, map.mapData.allLayers);
+                        } else if (this.id === 'other-slider') {
                             toggleLayers('Other', 'other', '#other-slider', map.map, map.mapData.allLayers);
                         }
                     }

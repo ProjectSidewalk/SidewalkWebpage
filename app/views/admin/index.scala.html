@@ -380,6 +380,13 @@
                                             <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
                                         </tr>
                                         <tr>
+                                            <td id="map-legend-crosswalk"></td>
+                                            <td>Crosswalk</td>
+                                            <td><input type="checkbox" value="displaylabel" id="crosswalk" checked="true" onclick="admin.toggleLayers('Crosswalk', 'crosswalk', '#crosswalk-slider')"></td>
+                                            <td align="left"><div id = "crosswalk-slider" style="margin-top:3px"></div></td>
+                                            <td align="center"><span id="crosswalk-severity-label">N/A - 5</span></td>
+                                        </tr>
+                                        <tr>
                                             <td id="map-legend-no-sidewalk"></td>
                                             <td>No Sidewalk</td>
                                             <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
@@ -392,6 +399,11 @@
                                             <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
                                             <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
                                             <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-signal"></td>
+                                            <td>Pedestrian Signal</td>
+                                            <td><input type="checkbox" value="displaylabel" id="signal" checked="true" onclick="admin.toggleLayers('Signal', 'signal', '#signal-slider')"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-occlusion"></td>
@@ -844,6 +856,8 @@
         sliderToLabelMap['surface-problem-slider'] = '#surface-problem-severity-label';
         sliderToLabelMap['occlusion-slider']  = '#occlusion-severity-label';
         sliderToLabelMap['no-sidewalk-slider'] = '#no-sidewalk-severity-label';
+        sliderToLabelMap["crosswalk-slider"]  = "#crosswalk-severity-label";
+        sliderToLabelMap["signal-slider"]  = "#signal-severity-label";
         sliderToLabelMap['other-slider'] = '#other-severity-label';
 
         $("*[id*='slider']").each(function() {
@@ -873,6 +887,10 @@
                         admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
                     } else if (this.id === 'no-sidewalk-slider') {
                         admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
+                    } else if (this.id === 'crosswalk-slider') {
+                        admin.toggleLayers('Crosswalk', 'crosswalk', '#crosswalk-slider');
+                    } else if (this.id === 'signal-slider') {
+                        admin.toggleLayers('Signal', 'signal', '#signal-slider');
                     } else if (this.id === 'other-slider') {
                         admin.toggleLayers('Other', 'other', '#other-slider');
                     }
