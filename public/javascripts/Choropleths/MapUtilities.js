@@ -2,15 +2,15 @@
  * Handles the toggling of layers on a map/choropleth according to the slider/checkbox.
  */
 function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
+    console.log(allLayers);
     if (document.getElementById(checkboxId).checked) {
-        if(checkboxId === 'occlusion'){
+        if (checkboxId === 'occlusion') {
             for (let i = 0; i < allLayers[label].length; i++) {
                 if (!map.hasLayer(allLayers[label][i])) {
                     map.addLayer(allLayers[label][i]);
                 }
             }
-        }
-        else {
+        } else {
             for (let i = 0; i < allLayers[label].length; i++) {
                 if (!map.hasLayer(allLayers[label][i])
                     && ($(sliderId).slider('option', 'values')[0] <= i &&
