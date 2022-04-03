@@ -1,25 +1,32 @@
 /**
  * Handles the toggling of layers on a map/choropleth according to the slider/checkbox.
  */
-function toggleLayers(label, checkboxId, sliderId, allLayers) {
+function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
     if (document.getElementById(checkboxId).checked) {
         // For label types that don't have severity, show all labels.
         if (sliderId === undefined) {
             for (let i = 0; i < allLayers[label].length; i++) {
-                allLayers[label][i].setFilter(function() { return true; });
+                if (!map.hasLayer(allLayers[label][i])) {
+                    map.addLayer(allLayers[label][i]);
+                }
             }
         }
         // Only show labels with severity in range of sliders. This works for null severity b/c null >= 0 === true.
+        let lowRange = $(sliderId).slider('option', 'values')[0];
+        let highRange = $(sliderId).slider('option', 'values')[1];
         for (let i = 0; i < allLayers[label].length; i++) {
-            allLayers[label][i].setFilter( function(feature) {
-                return feature.properties.severity >= $(sliderId).slider('option', 'values')[0] &&
-                    feature.properties.severity <= $(sliderId).slider('option', 'values')[1];
-            })
+            if (lowRange <= i && highRange >= i && !map.hasLayer(allLayers[label][i])) {
+                map.addLayer(allLayers[label][i]);
+            } else if ((lowRange > i || highRange < i) && map.hasLayer(allLayers[label][i])) {
+                map.removeLayer(allLayers[label][i]);
+            }
         }
     } else {
         // Box is unchecked, remove all labels of that type.
         for (let i = 0; i < allLayers[label].length; i++) {
-            allLayers[label][i].setFilter(function() { return false; });
+            if (map.hasLayer(allLayers[label][i])) {
+                map.removeLayer(allLayers[label][i]);
+            }
         }
     }
 }
