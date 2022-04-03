@@ -79,27 +79,27 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
                 });
                 mapData.allLayers[key][i].addTo(map);
             }
-        })
+        });
     }
     
-    function onEachLabelFeature(feature, layer) {
+    function addLabelMarkerListeners(feature, marker) {
         if (params.labelPopup) {
-            layer.on('click', function () {
+            marker.on('click', function () {
                 adminGSVLabelView.showLabel(feature.properties.label_id);
             });
-            layer.on({
+            marker.on({
                 'mouseover': function () {
-                    layer.setRadius(15);
+                    marker.setRadius(15);
                 },
                 'mouseout': function () {
-                    layer.setRadius(5);
+                    marker.setRadius(5);
                 }
             });
         }
     }
 
     function createLayer(data) {
-        return L.geoJson(data, {
+        return L.mapbox.featureLayer(data, {
             pointToLayer: function (feature, latlng) {
                 let style = $.extend(true, {}, geojsonMarkerOptions);
                 style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
@@ -111,10 +111,11 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
                         style.color = colorMapping[feature.properties.label_type].strokeStyle;
                     }
                 }
-                return L.circleMarker(latlng, style);
-            },
-            onEachFeature: onEachLabelFeature
-        })
+                var marker = L.circleMarker(latlng, style);
+                addLabelMarkerListeners(feature, marker);
+                return marker;
+            }
+        });
     }
     return mapData;
 }

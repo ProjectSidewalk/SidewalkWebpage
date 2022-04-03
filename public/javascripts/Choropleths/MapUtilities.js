@@ -1,32 +1,25 @@
 /**
  * Handles the toggling of layers on a map/choropleth according to the slider/checkbox.
  */
-function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
-    console.log(allLayers);
+function toggleLayers(label, checkboxId, sliderId, allLayers) {
     if (document.getElementById(checkboxId).checked) {
-        if (checkboxId === 'occlusion') {
+        // For label types that don't have severity, show all labels.
+        if (sliderId === undefined) {
             for (let i = 0; i < allLayers[label].length; i++) {
-                if (!map.hasLayer(allLayers[label][i])) {
-                    map.addLayer(allLayers[label][i]);
-                }
-            }
-        } else {
-            for (let i = 0; i < allLayers[label].length; i++) {
-                if (!map.hasLayer(allLayers[label][i])
-                    && ($(sliderId).slider('option', 'values')[0] <= i &&
-                        $(sliderId).slider('option', 'values')[1] >= i )) {
-                    map.addLayer(allLayers[label][i]);
-                } else if ($(sliderId).slider('option', 'values')[0] > i
-                    || $(sliderId).slider('option', 'values')[1] < i) {
-                    map.removeLayer(allLayers[label][i]);
-                }
+                allLayers[label][i].setFilter(function() { return true; });
             }
         }
-    } else {
+        // Only show labels with severity in range of sliders. This works for null severity b/c null >= 0 === true.
         for (let i = 0; i < allLayers[label].length; i++) {
-            if (map.hasLayer(allLayers[label][i])) {
-                map.removeLayer(allLayers[label][i]);
-            }
+            allLayers[label][i].setFilter( function(feature) {
+                return feature.properties.severity >= $(sliderId).slider('option', 'values')[0] &&
+                    feature.properties.severity <= $(sliderId).slider('option', 'values')[1];
+            })
+        }
+    } else {
+        // Box is unchecked, remove all labels of that type.
+        for (let i = 0; i < allLayers[label].length; i++) {
+            allLayers[label][i].setFilter(function() { return false; });
         }
     }
 }

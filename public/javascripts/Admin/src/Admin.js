@@ -100,7 +100,7 @@ function Admin(_, $, difficultRegionIds) {
     }
 
     function toggleLayersAdmin(label, checkboxId, sliderId) {
-        toggleLayers(label, checkboxId, sliderId, map, mapData.allLayers);
+        toggleLayers(label, checkboxId, sliderId, mapData.allLayers);
     }
 
     function toggleAuditedStreetLayerAdmin() {
