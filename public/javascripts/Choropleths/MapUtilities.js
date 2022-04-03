@@ -1,35 +1,37 @@
 /**
  * Handles the toggling of layers on a map/choropleth according to the slider/checkbox.
  */
-function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
+function toggleLayers(label, checkboxId, sliderId, map, mapData) {
     if (document.getElementById(checkboxId).checked) {
         // For label types that don't have severity, show all labels.
         if (sliderId === undefined) {
-            for (let i = 0; i < allLayers[label].length; i++) {
-                if (!map.hasLayer(allLayers[label][i])) {
-                    map.addLayer(allLayers[label][i]);
+            for (let i = 0; i < mapData.labelLayers[label].length; i++) {
+                if (!map.hasLayer(mapData.labelLayers[label][i])) {
+                    map.addLayer(mapData.labelLayers[label][i]);
                 }
             }
         }
         // Only show labels with severity in range of sliders. This works for null severity b/c null >= 0 === true.
         let lowRange = $(sliderId).slider('option', 'values')[0];
         let highRange = $(sliderId).slider('option', 'values')[1];
-        for (let i = 0; i < allLayers[label].length; i++) {
-            if (lowRange <= i && highRange >= i && !map.hasLayer(allLayers[label][i])) {
-                map.addLayer(allLayers[label][i]);
-            } else if ((lowRange > i || highRange < i) && map.hasLayer(allLayers[label][i])) {
-                map.removeLayer(allLayers[label][i]);
+        for (let i = 0; i < mapData.labelLayers[label].length; i++) {
+            if (lowRange <= i && highRange >= i && !map.hasLayer(mapData.labelLayers[label][i])) {
+                map.addLayer(mapData.labelLayers[label][i]);
+            } else if ((lowRange > i || highRange < i) && map.hasLayer(mapData.labelLayers[label][i])) {
+                map.removeLayer(mapData.labelLayers[label][i]);
             }
         }
     } else {
         // Box is unchecked, remove all labels of that type.
-        for (let i = 0; i < allLayers[label].length; i++) {
-            if (map.hasLayer(allLayers[label][i])) {
-                map.removeLayer(allLayers[label][i]);
+        for (let i = 0; i < mapData.labelLayers[label].length; i++) {
+            if (map.hasLayer(mapData.labelLayers[label][i])) {
+                map.removeLayer(mapData.labelLayers[label][i]);
             }
         }
     }
 }
+
+
 
 function toggleAuditedStreetLayer(map, auditedStreetLayer) {
     if (document.getElementById('auditedstreet').checked) {

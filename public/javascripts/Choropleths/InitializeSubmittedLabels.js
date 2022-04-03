@@ -66,18 +66,18 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             let labelType = labelData.features[i].properties.label_type;
             let severity = labelData.features[i].properties.severity;
             if (labelType === 'Occlusion' || labelType === 'Signal' || !severity) { // No severity level.
-                mapData.allLayers[labelType][0].push(labelData.features[i]);
+                mapData.labelLayers[labelType][0].push(labelData.features[i]);
             } else {
-                mapData.allLayers[labelType][severity].push(labelData.features[i]);
+                mapData.labelLayers[labelType][severity].push(labelData.features[i]);
             }
         }
-        Object.keys(mapData.allLayers).forEach(function (key) {
-            for (let i = 0; i < mapData.allLayers[key].length; i++) {
-                mapData.allLayers[key][i] = createLayer({
+        Object.keys(mapData.labelLayers).forEach(function (key) {
+            for (let i = 0; i < mapData.labelLayers[key].length; i++) {
+                mapData.labelLayers[key][i] = createLayer({
                     'type': 'FeatureCollection',
-                    'features': mapData.allLayers[key][i]
+                    'features': mapData.labelLayers[key][i]
                 });
-                mapData.allLayers[key][i].addTo(map);
+                mapData.labelLayers[key][i].addTo(map);
             }
         });
     }
