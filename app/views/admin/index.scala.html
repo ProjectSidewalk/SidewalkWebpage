@@ -403,12 +403,12 @@
                                         <tr>
                                             <td id="map-legend-signal"></td>
                                             <td>Pedestrian Signal</td>
-                                            <td><input type="checkbox" value="displaylabel" id="signal" checked="true" onclick="admin.toggleLayers('Signal', 'signal', '#signal-slider')"></td>
+                                            <td><input type="checkbox" value="displaylabel" id="signal" checked="true" onclick="admin.toggleLayers('Signal', 'signal', undefined)"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-occlusion"></td>
                                             <td>Can't see sidewalk</td>
-                                            <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider')"></td>
+                                            <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', undefined)"></td>
                                         </tr>
                                         <tr>
                                         <td id="map-legend-audited-street"></td>
@@ -854,10 +854,8 @@
         sliderToLabelMap['missing-curb-ramp-slider'] = '#missing-curb-ramp-severity-label';
         sliderToLabelMap['obstacle-slider'] = '#obstacle-severity-label';
         sliderToLabelMap['surface-problem-slider'] = '#surface-problem-severity-label';
-        sliderToLabelMap['occlusion-slider']  = '#occlusion-severity-label';
         sliderToLabelMap['no-sidewalk-slider'] = '#no-sidewalk-severity-label';
         sliderToLabelMap["crosswalk-slider"]  = "#crosswalk-severity-label";
-        sliderToLabelMap["signal-slider"]  = "#signal-severity-label";
         sliderToLabelMap['other-slider'] = '#other-severity-label';
 
         $("*[id*='slider']").each(function() {
@@ -883,14 +881,10 @@
                         admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider');
                     } else if (this.id === 'surface-problem-slider') {
                         admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
-                    } else if (this.id === 'occlusion-slider') {
-                        admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
                     } else if (this.id === 'no-sidewalk-slider') {
                         admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
                     } else if (this.id === 'crosswalk-slider') {
                         admin.toggleLayers('Crosswalk', 'crosswalk', '#crosswalk-slider');
-                    } else if (this.id === 'signal-slider') {
-                        admin.toggleLayers('Signal', 'signal', '#signal-slider');
                     } else if (this.id === 'other-slider') {
                         admin.toggleLayers('Other', 'other', '#other-slider');
                     }
