@@ -23,7 +23,9 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
         Other : '/assets/images/icons/AdminTool_Other.png',
         Occlusion : '/assets/images/icons/AdminTool_Other.png',
-        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png'
+        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
+        Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
+        Signal : '/assets/images/icons/AdminTool_Signal.png'
     };
 
     // Determined experimentally; varies w/ GSV Panorama size

@@ -11,7 +11,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.mission.MissionProgressCVGroundtruthTable
 import models.street.StreetEdgePriorityTable
-import models.user.{User, UserStatTable}
+import models.user.{User, UserRoleTable, UserStatTable}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -50,6 +50,26 @@ case class NewTask(edgeId: Int, geom: LineString,
     )
     val feature = Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     Json.obj("type" -> "FeatureCollection", "features" -> List(feature))
+  }
+}
+case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
+                                      userId: String, role: String, highQuality: Boolean,
+                                      taskStart: Timestamp, taskEnd: Timestamp,
+                                      geom: LineString) {
+  def toGeoJSON: JsObject = {
+    val coordinates: Array[Coordinate] = geom.getCoordinates
+    val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
+    val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+    val properties = Json.obj(
+      "street_edge_id" -> streetEdgeId,
+      "audit_task_id" -> auditTaskId,
+      "user_id" -> userId,
+      "role" -> role,
+      "high_quality_user" -> highQuality,
+      "task_start" -> taskStart.toString,
+      "task_end" -> taskEnd.toString
+    )
+    Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
   }
 }
 
@@ -303,6 +323,21 @@ object AuditTaskTable {
     } yield _edges
 
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edges.
+  }
+
+  /**
+   * Get the streets that have been audited, with the time they were audited, and metadata about the user who audited.
+   */
+  def getAuditedStreetsWithTimestamps: List[AuditedStreetWithTimestamp] = db.withSession { implicit session =>
+    val auditedStreets = for {
+      _at <- completedTasks
+      _se <- streetEdges if _at.streetEdgeId === _se.streetEdgeId
+      _ut <- UserStatTable.userStats if _at.userId === _ut.userId
+      _ur <- UserRoleTable.userRoles if _ut.userId === _ur.userId
+      _r <- UserRoleTable.roles if _ur.roleId === _r.roleId
+      if _at.taskEnd.isDefined // NOTE this always seems to be true, maybe we can remove this constraint.
+    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd.get, _se.geom)
+    auditedStreets.list.map(AuditedStreetWithTimestamp.tupled)
   }
 
   /**

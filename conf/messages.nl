@@ -1,4 +1,4 @@
-measurement.system = metrisch
+measurement.system = metric
 curb.ramp = Trottoir oprit
 curb.ramps = Trottoir opritten
 missing.ramp = Ontbrekende trottoir oprit
@@ -295,7 +295,6 @@ leaderboard.overall.title = Algemeen klassement
 leaderboard.weekly.title = Wekelijks Scoreboard
 leaderboard.org.title = {0} Scoreboard
 leaderboard.overall.detail = Leiders worden berekend op basis van hun labels, afstand en nauwkeurigheid
-leaderboard.weekly.detail = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.org.detail = Top 10 algemene bijdragers aan {0}
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missies

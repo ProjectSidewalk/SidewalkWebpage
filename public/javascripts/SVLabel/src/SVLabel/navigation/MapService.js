@@ -896,42 +896,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         targetLabel: selectedLabel,
                         targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                     });
-                    var labelType = selectedLabel.getProperty("labelType");
-                    if (labelType === "Other") {
-                        // No tooltips for other.
-                        $('#severity-one').tooltip('destroy');
-                        $('#severity-three').tooltip('destroy');
-                        $('#severity-five').tooltip('destroy');
-                    } else {
-                        // Update tooltips.
-                        $('#severity-one').tooltip('destroy').tooltip({
-                            placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                            title: i18next.t('center-ui.context-menu.severity-example', { n: 1 }) +
-                                "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType +
-                                "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>" +
-                                i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
-                        });
-                        $('#severity-three').tooltip('destroy').tooltip({
-                            placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                            title: i18next.t('center-ui.context-menu.severity-example', { n: 3 }) +
-                                "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType +
-                                "_Severity3.png' height='110' alt='CRseverity 3'/><br/><i>" +
-                                i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
-                        });
-                        $('#severity-five').tooltip('destroy').tooltip({
-                            placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                            title: i18next.t('center-ui.context-menu.severity-example', { n: 5 }) +
-                                "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType +
-                                "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>" +
-                                i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
-                        });
-                    }
                 }
                 contextMenuWasOpen = false;
             }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
             // Continue logging double click. We don't have any features for it now, but it's good to know how
-            // frequently people are trying to double click. They might be trying to zoom?
+            // frequently people are trying to double-click. They might be trying to zoom?
             svl.tracker.push('ViewControl_DoubleClick');
         }
         setViewControlLayerCursor('OpenHand');
@@ -1301,12 +1271,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 pitchIncrement = pitchDelta * (timeSegment / durationMs);
 
                 interval = window.setInterval(function () {
-                    var headingDelta = pov.heading - currentPov.heading;
-                    if (Math.abs(headingDelta) > 1) {
+                    var headingDelta = (pov.heading - currentPov.heading + 360) % 360;
+                    if (headingDelta > 1 && headingDelta < 359) {
                         // Update heading angle and pitch angle.
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
-                        currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
+                        currentPov.heading = (currentPov.heading + 360) % 360;
                         svl.panorama.setPov(currentPov);
                     } else {
                         // Set the pov to adjust zoom level, then clear the interval. Invoke a callback if there is one.
@@ -1481,11 +1451,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     // Set the POV in the same direction as the route.
-    function setPovToRouteDirection() {
+    function setPovToRouteDirection(durationMs) {
         var pov = svl.panorama.getPov();
         var compassAngle = svl.compass.getCompassAngle();
-        pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
-        svl.panorama.setPov(pov);
+        var newPov = {
+            heading: parseInt(pov.heading - compassAngle, 10) % 360,
+            pitch: pov.pitch,
+            zoom: pov.zoom
+        }
+        setPov(newPov, durationMs);
     }
 
     function getMoveDelay() {

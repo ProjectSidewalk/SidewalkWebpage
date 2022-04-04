@@ -159,8 +159,7 @@
     }
     @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
-            <h1 class="leaderboard-header">@Messages("leaderboard.weekly.title")</h1>
-            <h5>@Messages("leaderboard.weekly.detail")</h5>
+            <h1 class="leaderboard-header weekly-header">@Messages("leaderboard.weekly.title")</h1>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboard-table-header">

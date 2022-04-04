@@ -12,7 +12,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.label.LabelTable.LabelMetadata
@@ -95,7 +95,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(false)
+      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
       val features: List[JsObject] = labels.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
@@ -104,7 +104,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           "gsv_panorama_id" -> label.gsvPanoramaId,
           "label_type" -> label.labelType,
           "severity" -> label.severity,
-          "correct" -> label.correct
+          "correct" -> label.correct,
+          "high_quality_user" -> label.highQualityUser
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
       }
@@ -118,8 +119,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(filterLowQuality)
+  def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
+    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
     val features: List[JsObject] = labels.map { label =>
       val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties = Json.obj(
@@ -128,7 +129,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "label_type" -> label.labelType,
         "severity" -> label.severity,
         "correct" -> label.correct,
-        "expired" -> label.expired
+        "expired" -> label.expired,
+        "high_quality_user" -> label.highQualityUser
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
     }
@@ -320,6 +322,17 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           Future.successful(Ok(featureCollection))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
+  }
+
+  def getAuditedStreetsWithTimestamps = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val streets: List[AuditedStreetWithTimestamp] = AuditTaskTable.getAuditedStreetsWithTimestamps
+      val features: List[JsObject] = streets.map(_.toGeoJSON)
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Future.successful(Ok(featureCollection))
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }

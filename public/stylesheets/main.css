@@ -1168,6 +1168,10 @@ kbd {
     font-family: Raleway-regular, sans-serif;
 }
 
+.weekly-header {
+    margin-bottom: 35px;
+}
+
 .leaderboard-detail {
     font-family: Raleway-regular, sans-serif;
 }

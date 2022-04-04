@@ -5,7 +5,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.GalleryTaskSubmissionFormats._
+import formats.json.GalleryFormats._
 import models.user.User
 import models.gallery._
 import play.api.libs.json._
