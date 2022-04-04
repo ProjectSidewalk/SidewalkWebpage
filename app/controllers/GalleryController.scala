@@ -58,8 +58,13 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
               } else {
                 LabelTable.getAssortedLabels(submission.n, loadedLabelIds, user.userId, Some(severitiesToSelect))
               }
+            // Shuffle labels if needed
+            val realLabels =
+              if (submission.severities == None && submission.tags == None) {
+                scala.util.Random.shuffle(labels)
+              } else labels
 
-            val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
+            val jsonList: Seq[JsObject] = realLabels.map(l => Json.obj(
                 "label" -> LabelTable.validationLabelMetadataToJson(l),
                 "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
               )
