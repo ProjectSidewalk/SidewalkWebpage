@@ -37,7 +37,7 @@ function toggleLayers(label, checkboxId, sliderId, map, mapData) {
  * @param mapData
  */
 function filterLayers(checkboxId, mapData) {
-    mapData[checkboxId] = document.getElementById(checkboxId).checked;
+    if (checkboxId) mapData[checkboxId] = document.getElementById(checkboxId).checked;
     Object.keys(mapData.labelLayers).forEach(function (key) {
         for (let i = 0; i < mapData.labelLayers[key].length; i++) {
             mapData.labelLayers[key][i].setFilter(function(feature) {
