@@ -39,7 +39,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * Get the angle to the next goal.
      * @returns {number}
      */
-    function _getTargetAngle() {
+    function getTargetAngle() {
         var task = taskContainer.getCurrentTask();
         var latlng = mapService.getPosition();
         var geometry = task.getGeometry();  // get the street geometry of the current task
@@ -157,10 +157,10 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * Get the compass angle
      * @returns {number}
      */
-    function getCompassAngle () {
+    function _getCompassAngle () {
         var heading = mapService.getPov().heading;
-        var targetAngle = _getTargetAngle();
-        return heading - targetAngle;
+        var targetAngle = getTargetAngle();
+        return (heading - targetAngle) % 360;
     }
 
     /**
@@ -200,7 +200,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function setTurnMessage () {
         var image,
             message,
-            angle = self.getCompassAngle(),
+            angle = _getCompassAngle(),
             direction = _angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
@@ -320,7 +320,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         if (_checkEnRoute()) {
             svl.stuckAlert.compassOrStuckClicked();
 
-            var angle = self.getCompassAngle();
+            var angle = _getCompassAngle();
             var direction = _angleToDirection(angle);
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
 
@@ -339,8 +339,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     self.blink = blink;
     self.directionToImagePath = directionToImagePath;
     self.resetBeforeJump = resetBeforeJump;
-    self.getCompassAngle = getCompassAngle;
     self.getCompassMessageHolder = getCompassMessageHolder;
+    self.getTargetAngle = getTargetAngle;
     self.hideMessage = hideMessage;
     self.setTurnMessage = setTurnMessage;
     self.enableCompassClick = enableCompassClick;
