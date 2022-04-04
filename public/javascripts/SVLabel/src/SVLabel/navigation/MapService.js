@@ -1453,9 +1453,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // Set the POV in the same direction as the route.
     function setPovToRouteDirection(durationMs) {
         var pov = svl.panorama.getPov();
-        var compassAngle = svl.compass.getCompassAngle();
         var newPov = {
-            heading: parseInt(pov.heading - compassAngle, 10) % 360,
+            heading: parseInt(svl.compass.getTargetAngle() + 360, 10) % 360,
             pitch: pov.pitch,
             zoom: pov.zoom
         }
