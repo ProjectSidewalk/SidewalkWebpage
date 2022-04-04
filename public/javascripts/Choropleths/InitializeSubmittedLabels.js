@@ -80,6 +80,9 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
                 mapData.labelLayers[key][i].addTo(map);
             }
         });
+
+        // Set up the initial set of filters.
+        filterLayers('incorrect', mapData);
     }
     
     function addLabelMarkerListeners(feature, marker) {
