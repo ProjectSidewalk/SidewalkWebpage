@@ -411,17 +411,17 @@
                                             <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', undefined)"></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-correct"></td>
+                                            <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' style="width: 23px; padding: 3px;"></td>
                                             <td>Validated correct</td>
                                             <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="admin.filterLayers('correct')"></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-incorrect"></td>
+                                            <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' style="width: 23px; padding: 3px;"></td>
                                             <td>Validated incorrect</td>
                                             <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="admin.filterLayers('incorrect')"></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unvalidated"></td>
+                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
                                             <td>Unvalidated</td>
                                             <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="admin.filterLayers('unvalidated')"></td>
                                         </tr>
