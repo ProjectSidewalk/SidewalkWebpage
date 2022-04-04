@@ -417,9 +417,9 @@ function Label (svl, pathIn, params) {
             // Renders the label image.
             path.render2(ctx, pov);
 
-            // Only render severity label if there's a severity option.
-            if (properties.labelType !== 'Occlusion') {
-                if (properties.severity == undefined) {
+            // Only render severity warning if there's a severity option.
+            if (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal') {
+                if (properties.severity === undefined) {
                     showSeverityAlert(ctx);
                 }
             }

@@ -82,7 +82,7 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
-GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(filterLowQuality: Boolean ?= false)
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks

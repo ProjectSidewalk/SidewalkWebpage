@@ -34,7 +34,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
     params.defaultZoomIncrease = params.defaultZoomIncrease ? params.defaultZoomIncrease : 0;
     mapParamData.default_zoom = mapParamData.default_zoom + params.defaultZoomIncrease;
-    
+
     // Create base map.
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     let choropleth = L.mapbox.map(params.mapName, null, {
