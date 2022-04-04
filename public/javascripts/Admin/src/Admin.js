@@ -103,6 +103,10 @@ function Admin(_, $, difficultRegionIds) {
         toggleLayers(label, checkboxId, sliderId, map, mapData);
     }
 
+    function filterLayersAdmin(checkboxId) {
+        filterLayers(checkboxId, mapData);
+    }
+
     function toggleAuditedStreetLayerAdmin() {
         toggleAuditedStreetLayer(map, auditedStreetLayer);
     }
@@ -1112,6 +1116,7 @@ function Admin(_, $, difficultRegionIds) {
     
     self.clearPlayCache = clearPlayCache;
     self.toggleLayers = toggleLayersAdmin;
+    self.filterLayers = filterLayersAdmin;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
 
     $('.change-role').on('click', changeRole);

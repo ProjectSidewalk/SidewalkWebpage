@@ -411,9 +411,24 @@
                                             <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', undefined)"></td>
                                         </tr>
                                         <tr>
-                                        <td id="map-legend-audited-street"></td>
-                                        <td>Audited Street</td>
-                                        <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer()"></td>
+                                            <td id="map-legend-correct"></td>
+                                            <td>Validated correct</td>
+                                            <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="admin.filterLayers('correct')"></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-incorrect"></td>
+                                            <td>Validated incorrect</td>
+                                            <td><input type="checkbox" value="displaylabel" id="incorrect" checked="false" onclick="admin.filterLayers('incorrect')"></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-unvalidated"></td>
+                                            <td>Unvalidated</td>
+                                            <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="admin.filterLayers('unvalidated')"></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-audited-street"></td>
+                                            <td>Audited Street</td>
+                                            <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer()"></td>
                                         </tr>
                                     </table>
                                 </div>

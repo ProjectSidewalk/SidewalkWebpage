@@ -7,7 +7,7 @@ function toggleLayers(label, checkboxId, sliderId, map, mapData) {
         if (sliderId === undefined) {
             for (let i = 0; i < mapData.labelLayers[label].length; i++) {
                 if (!map.hasLayer(mapData.labelLayers[label][i])) {
-                    map.addLayer(mapData.labelLayers[label][i]);
+                    map.addLayer(mapData.labelLayers[label][i])
                 }
             }
         }
@@ -16,7 +16,7 @@ function toggleLayers(label, checkboxId, sliderId, map, mapData) {
         let highRange = $(sliderId).slider('option', 'values')[1];
         for (let i = 0; i < mapData.labelLayers[label].length; i++) {
             if (lowRange <= i && highRange >= i && !map.hasLayer(mapData.labelLayers[label][i])) {
-                map.addLayer(mapData.labelLayers[label][i]);
+                map.addLayer(mapData.labelLayers[label][i])
             } else if ((lowRange > i || highRange < i) && map.hasLayer(mapData.labelLayers[label][i])) {
                 map.removeLayer(mapData.labelLayers[label][i]);
             }
@@ -31,7 +31,26 @@ function toggleLayers(label, checkboxId, sliderId, map, mapData) {
     }
 }
 
-
+/**
+ * Handles the filtering of labels based on validation status.
+ * @param checkboxId
+ * @param mapData
+ */
+function filterLayers(checkboxId, mapData) {
+    mapData[checkboxId] = document.getElementById(checkboxId).checked;
+    Object.keys(mapData.labelLayers).forEach(function (key) {
+        for (let i = 0; i < mapData.labelLayers[key].length; i++) {
+            mapData.labelLayers[key][i].setFilter(function(feature) {
+                return (mapData.lowQualityUsers || feature.properties.high_quality_user) &&
+                    (
+                        (mapData.correct && feature.properties.correct) ||
+                        (mapData.incorrect && feature.properties.correct === false) ||
+                        (mapData.unvalidated && feature.properties.correct === null)
+                    );
+            });
+        }
+    });
+}
 
 function toggleAuditedStreetLayer(map, auditedStreetLayer) {
     if (document.getElementById('auditedstreet').checked) {

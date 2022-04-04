@@ -3,6 +3,10 @@
  */
 function InitializeMapLayerContainer() {
     var mapData = {};
+    mapData.correct = true;
+    mapData.incorrect = false;
+    mapData.unvalidated = true;
+    mapData.lowQualityUsers = false;
 
     // Make arrays to hold labels split by label type and severity (null and 1 through 5).
     mapData.labelLayers = {};

@@ -80,6 +80,21 @@
                         <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="toggleLayers('Occlusion', 'occlusion', undefined, map.map, map.mapData)"></td>
                     </tr>
                     <tr>
+                        <td id="map-legend-correct"></td>
+                        <td>Validated correct</td>
+                        <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="filterLayers('correct', map.mapData)"></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-incorrect"></td>
+                        <td>Validated incorrect</td>
+                        <td><input type="checkbox" value="displaylabel" id="incorrect" checked="false" onclick="filterLayers('incorrect', map.mapData)"></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-unvalidated"></td>
+                        <td>Unvalidated</td>
+                        <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.mapData)"></td>
+                    </tr>
+                    <tr>
                         <td id="map-legend-audited-street"></td>
                         <td>Audited Street</td>
                         <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="toggleAuditedStreetLayer(map.map, map.auditedStreetLayer)"></td>
