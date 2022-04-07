@@ -143,7 +143,7 @@
 
                 <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
                     <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
-                        @Messages("navbar.city")
+                        @Play.configuration.getString("city-params.city-short-name." + currentCity).get
                     <b class="caret"></b>
                     </a>
                     <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
