@@ -30,18 +30,14 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         tutorialTask: tutorialTask
     };
 
-    //const w = 0.00105;
-    //const h = 0.001;
-    const w = 0.0005;
-    const h = 0.0005;
-    const cornerAngle = toDegrees(Math.atan2(w, h));
-    var lat;
-    var lng;
+    const radius = 50;
     var angle;
-    var minAngle;
-    var maxAngle;
-    var observedArea;
-    var fovArea;
+    var leftAngle;
+    var rightAngle;
+    var observedAreas;
+    var ctx;
+    var width;
+    var height;
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -66,13 +62,14 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
 
         paths = null;
 
-        lat = null;
-        lng = null;
         angle= null;
-        minAngle = null;
-        maxAngle = null;
-        observedArea = null;
-        fovArea = null;
+        leftAngle = null;
+        rightAngle = null;
+        observedAreas = [];
+        let canvas = document.getElementById("google-maps-canvas");
+        ctx = canvas.getContext("2d");
+        width = canvas.width;
+        height = canvas.height;
     };
 
     this.setStreetEdgeDirection = function (currentLat, currentLng) {
@@ -511,137 +508,96 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         }
     };
 
+    this.resetObservedArea = function() {
+        angle = null;
+        observedAreas.push({latLng: svl.map.getPosition(), minAngle: null, maxAngle: null});
+    }
+
     /**
      * From PanoMarker spec
      * @param zoom
      * @returns {number}
      */
     function get3dFov(zoom) {
-        return zoom <= 2 ?
-            126.5 - zoom * 36.75 :  // linear descent
-            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
-    }
-
-    function toDegrees(radians) {
-        return radians / Math.PI * 180;
+        return zoom <= 2 ? 126.5 - zoom * 36.75 : 195.93 / Math.pow(1.92, zoom);
     }
 
     function toRadians(degrees) {
         return degrees / 180 * Math.PI;
     }
-    
-    function renderArea(area, min, max, color) {
-        let coords = [];
-        if (max - min < 360) {
-            let cosMin = Math.cos(toRadians(min));
-            let sinMin = Math.sin(toRadians(min));
-            let hMin = Math.min(Math.abs(h / 2 / cosMin), Math.abs(w / 2 / sinMin));
-            coords.push({lat: lat, lng: lng});
-            coords.push({lat: lat + hMin * cosMin, lng: lng + hMin * sinMin});
-        }
-        let corners = new Map();
-        for (let offset = -360; offset <= 360; offset += 360) {
-            corners.set(-180 + cornerAngle + offset, {lat: lat - h / 2, lng: lng - w / 2});
-            corners.set(-cornerAngle + offset, {lat: lat + h / 2, lng: lng - w / 2});
-            corners.set(cornerAngle + offset, {lat: lat + h / 2, lng: lng + w / 2});
-            corners.set(180 - cornerAngle + offset, {lat: lat - h / 2, lng: lng + w / 2});
-        }
-        for (let [a, c] of corners) {
-            if (min < a && a < max) {
-                coords.push(c)
-            }
-        }
-        if (max - min < 360) {
-            let cosMax = Math.cos(toRadians(max));
-            let sinMax = Math.sin(toRadians(max));
-            let hMax = Math.min(Math.abs(h / 2 / cosMax), Math.abs(w / 2 / sinMax));
-            coords.push({lat: lat + hMax * cosMax, lng: lng + hMax * sinMax});
-        }
-        if (area) {
-            area.setMap(null);
-        }
-        area = new google.maps.Polygon({
-            path: coords,
-            strokeColor: color,
-            strokeOpacity: 0.5,
-            strokeWeight: 2,
-            fillColor: color,
-            fillOpacity: 0.2,
-        });
-        area.setMap(svl.map.getMap());
-        return area;
+
+    function latLngToPixel(latLng) {
+        let projection = svl.map.getMap().getProjection();
+        let bounds = svl.map.getMap().getBounds();
+        let topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
+        let bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
+        let scale = Math.pow(2, svl.map.getMap().getZoom());
+        let worldPoint = projection.fromLatLngToPoint(latLng);
+        return {x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
+                y: Math.floor((worldPoint.y - topRight.y) * scale)};
     }
 
-    this.resetObservedArea = function() {
-        let position = svl.map.getPosition();
-        let newLat = position.lat;
-        let newLng = position.lng;
-        if (observedArea) {
-            observedArea.setMap(null);
-        }
-        if (fovArea) {
-            fovArea.setMap(null);
-        }
-        if (lat) {
-            if (newLat > lat) {
-                if (newLng > lng) {
-                    maxAngle = toDegrees(Math.atan2(- w / 2, lat + h / 2 - newLat)) + 360;
-                    minAngle = toDegrees(Math.atan2(lng + w / 2 - newLng, - h / 2));
-                } else {
-                    maxAngle = toDegrees(Math.atan2(lng - w / 2 - newLng, - h / 2)) + 360;
-                    minAngle = toDegrees(Math.atan2(w / 2, lat + h / 2 - newLat));
-                }
-            } else {
-                if (newLng > lng) {
-                    maxAngle = toDegrees(Math.atan2(lng + w / 2 - newLng, h / 2));
-                    minAngle = toDegrees(Math.atan2(- w / 2, lat - h / 2 - newLat));
-                } else {
-                    maxAngle = toDegrees(Math.atan2(w / 2, lat - h / 2 - newLat));
-                    minAngle = toDegrees(Math.atan2(lng - w / 2 - newLng, h / 2));
-                }
-            }
-        }
-        lat = newLat;
-        lng = newLng;
-        angle= null;
-        observedArea = null;
-        fovArea = null;
-    }
-
-    this.renderObservedArea = function() {
+    function updateAngles() {
         let pov = svl.map.getPov();
-        let heading = pov.heading;
+        let heading = pov.heading - 90;
         let zoom = pov.zoom;
         let fov = get3dFov(zoom);
-        if (angle === null) {
-            angle = heading;
-        }
-        if (heading - angle > 180) {
-            heading -= 360;
-        }
-        if (heading - angle < -180) {
-            heading += 360;
-        }
-        let newMinAngle = heading - fov / 2;
-        let newMaxAngle = heading + fov / 2;
-        if (maxAngle - minAngle < 360) {
-            if (minAngle === null) {
-                minAngle = newMinAngle;
+        if (angle) {
+            if (heading - angle > 180) {
+                heading -= 360;
             }
-            if (maxAngle === null) {
-                maxAngle = newMaxAngle;
-            }
-            if (newMaxAngle > maxAngle) {
-                maxAngle = newMaxAngle;
-            }
-            if (newMinAngle < minAngle) {
-                minAngle = newMinAngle;
+            if (heading - angle < -180) {
+                heading += 360;
             }
         }
         angle = heading;
-        observedArea = renderArea(observedArea, minAngle, maxAngle, '#0000ff');
-        fovArea = renderArea(fovArea, newMinAngle, newMaxAngle, '#000088');
-        let observedRatio = Math.min((maxAngle - minAngle), 360) / 360;
+        leftAngle = angle - fov / 2;
+        rightAngle = angle + fov / 2;
+        let current = observedAreas[observedAreas.length - 1];
+        if (current.minAngle === null || leftAngle < current.minAngle) {
+            current.minAngle = leftAngle;
+        }
+        if (current.maxAngle === null || rightAngle > current.maxAngle) {
+            current.maxAngle = rightAngle;
+        }
+    }
+
+    function renderObservedAreas() {
+        // Background color.
+        ctx.fillStyle = "#888888";
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalCompositeOperation = "destination-out";
+        for (let area of observedAreas) {
+            let pixel = latLngToPixel(area.latLng);
+            ctx.beginPath();
+            if (area.maxAngle - area.minAngle < 360) {
+                ctx.moveTo(pixel.x, pixel.y);
+            }
+            ctx.arc(pixel.x, pixel.y, radius, toRadians(area.minAngle), toRadians(area.maxAngle));
+            ctx.fill();
+        }
+        ctx.globalCompositeOperation = "source-over";
+    }
+
+    function renderFovArea() {
+        // FOV color.
+        ctx.fillStyle = "#8080ff";
+        let current = observedAreas[observedAreas.length - 1];
+        let pixel = latLngToPixel(current.latLng);
+        ctx.beginPath();
+        ctx.moveTo(pixel.x, pixel.y);
+        ctx.arc(pixel.x, pixel.y, radius, toRadians(leftAngle), toRadians(rightAngle));
+        ctx.fill();
+    }
+
+    this.updateObservedArea = function() {
+        if (observedAreas.length > 0) {
+            updateAngles();
+            renderObservedAreas();
+            renderFovArea();
+            let area = observedAreas[observedAreas.length - 1];
+            let observedRatio = Math.min((area.maxAngle - area.minAngle), 360) / 360;
+        }
     }
 
     /**

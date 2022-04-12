@@ -1,9 +1,9 @@
 #google-maps-holder {
     position: absolute;
     left: 735px;
-    top: 393px;
+    top: 403px;
     width: 200px;
-    height: 210px;
+    height: 200px;
 }
 
 .google-maps-pane {
@@ -12,14 +12,17 @@
     left: 0;
     top:0;
     width: 200px;
-    height: 210px;
+    height: 200px;
 }
 
 #google-maps-overlay {
-    color: #888;
+    color: #444;
     font-size: 12px;
     z-index: 1;
+}
 
+#google-maps-canvas {
+    opacity: 0.5;
 }
 
 .gm-svpc {
