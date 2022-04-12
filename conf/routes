@@ -82,7 +82,7 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
-GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(filterLowQuality: Boolean ?= false)
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
@@ -123,8 +123,7 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
-GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String)
-GET     /label/labelsBySeveritiesAndTags                     @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String)
+POST    /label/labels                                        @controllers.GalleryController.getLabels
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods

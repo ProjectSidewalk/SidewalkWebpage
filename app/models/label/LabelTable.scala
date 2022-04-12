@@ -54,6 +54,7 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      lng: Float,
                                      correct: Option[Boolean],
                                      expired: Boolean,
+                                     highQualityUser: Boolean,
                                      severity: Option[Int])
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
@@ -186,7 +187,7 @@ object LabelTable {
     MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean, r.nextIntOption))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean, r.nextBoolean, r.nextIntOption))
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
@@ -1074,30 +1075,21 @@ object LabelTable {
   /**
     * Returns all the submitted labels with their severities included.
     */
-  def selectLocationsAndSeveritiesOfLabels(filterLowQuality: Boolean): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
-      _l <- labelsWithoutDeleted
+      _l <- labelsWithoutDeletedOrOnboarding
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
+      _us <- UserStatTable.userStats if _at.userId === _us.userId
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct, _gsv.expired)
-
-    // Optionally filter out data marked as low quality.
-    val _filteredLabels = if (filterLowQuality) {
-      for {
-        _l <- _labels
-        _at <- auditTasks if _l._2 === _at.auditTaskId
-        _ut <- UserStatTable.userStats if _at.userId === _ut.userId
-        if _ut.highQuality && _l._7.getOrElse(true)
-      } yield _l
-    } else {
-      _labels
-    }
+      if _l.streetEdgeId =!= tutorialStreetId // Make sure they're not on the tutorial street.
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct, _gsv.expired, _us.highQuality)
 
     val _labelsWithSeverity = for {
-      (l, s) <- _filteredLabels.leftJoin(severities).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, s.severity.?)
+      (l, s) <- _labels.leftJoin(severities).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, l._9, s.severity.?)
 
     _labelsWithSeverity.list.map(LabelLocationWithSeverity.tupled)
   }

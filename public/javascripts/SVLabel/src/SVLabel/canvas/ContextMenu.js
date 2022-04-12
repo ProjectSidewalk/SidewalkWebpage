@@ -650,9 +650,11 @@ function ContextMenu (uiContextMenu) {
                 // Don't push event on Occlusion labels; they don't open ContextMenus.
                 svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
             }
+            if (labelType !== 'Occlusion' && labelType !== 'Signal') {
+                self.updateRadioButtonImages();
+                _setSeverityTooltips(labelType);
+            }
         }
-        self.updateRadioButtonImages();
-        _setSeverityTooltips(labelType);
     }
 
     /**

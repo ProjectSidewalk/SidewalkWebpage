@@ -117,11 +117,14 @@
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
-                        <li>
-                            <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                        </li>
+                        <!-- Hides the "Results Map" tab for the Chicago server version-->
+                        @if(!List("chicago-il").contains(currentCity)) {
+                            <li>
+                                <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                            </li>
+                        }
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
+                        @if(!List("seattle-wa").contains(currentCity)) {
                             <li>
                                 <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                             </li>
@@ -140,7 +143,7 @@
 
                 <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
                     <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
-                        @Messages("navbar.city")
+                        @Play.configuration.getString("city-params.city-short-name." + currentCity).get
                     <b class="caret"></b>
                     </a>
                     <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
