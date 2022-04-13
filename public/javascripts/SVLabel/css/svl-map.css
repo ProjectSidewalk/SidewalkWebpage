@@ -21,8 +21,19 @@
     z-index: 1;
 }
 
-#google-maps-canvas {
-    opacity: 0.5;
+#google-maps-observed-ratio {
+    color: #444;
+    font-size: 12px;
+    z-index: 1;
+    text-align: right;
+}
+
+#google-maps-observed-canvas {
+    opacity: 0.4;
+}
+
+#google-maps-fov-canvas {
+    opacity: 0.6;
 }
 
 .gm-svpc {

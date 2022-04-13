@@ -30,14 +30,26 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         tutorialTask: tutorialTask
     };
 
+    // Observed area radius.
     const radius = 50;
+    // User's angle.
     var angle;
+    // Left-most angle of the user's fov.
     var leftAngle;
+    // Right-most angle of the user's fov.
     var rightAngle;
+    // List of observed areas (latLng, minAngle, maxAngle).
     var observedAreas;
-    var ctx;
+    // Canvas context for observed areas.
+    var observed_ctx;
+    // Canvas context for fov.
+    var fov_ctx;
+    // Canvas width.
     var width;
+    // Canvas height.
     var height;
+    // User's current fraction of observed area.
+    var observedRatio;
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -66,10 +78,14 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         leftAngle = null;
         rightAngle = null;
         observedAreas = [];
-        let canvas = document.getElementById("google-maps-canvas");
-        ctx = canvas.getContext("2d");
-        width = canvas.width;
-        height = canvas.height;
+        let observed_canvas = document.getElementById("google-maps-observed-canvas");
+        observed_ctx = observed_canvas.getContext("2d");
+        observed_ctx.filter = "blur(5px)";
+        let fov_canvas = document.getElementById("google-maps-fov-canvas");
+        fov_ctx = fov_canvas.getContext("2d");
+        width = observed_canvas.width;
+        height = observed_canvas.height;
+        observedRatio = 0;
     };
 
     this.setStreetEdgeDirection = function (currentLat, currentLng) {
@@ -508,6 +524,9 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         }
     };
 
+    /**
+     * Reset the user's angle and append the user's new position to 'observedAreas'.
+     */
     this.resetObservedArea = function() {
         angle = null;
         observedAreas.push({latLng: svl.map.getPosition(), minAngle: null, maxAngle: null});
@@ -522,10 +541,20 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         return zoom <= 2 ? 126.5 - zoom * 36.75 : 195.93 / Math.pow(1.92, zoom);
     }
 
+    /**
+     * Converts degrees to radians.
+     * @param degrees
+     * @returns {number}
+     */
     function toRadians(degrees) {
         return degrees / 180 * Math.PI;
     }
 
+    /**
+     * Converts a latitude and longitude to pixel xy-coordinates.
+     * @param latLng
+     * @returns {number, number}
+     */
     function latLngToPixel(latLng) {
         let projection = svl.map.getMap().getProjection();
         let bounds = svl.map.getMap().getBounds();
@@ -537,11 +566,13 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
                 y: Math.floor((worldPoint.y - topRight.y) * scale)};
     }
 
+    /**
+     * Updates all of the angle variables necessary for observed area.
+     */
     function updateAngles() {
         let pov = svl.map.getPov();
         let heading = pov.heading - 90;
-        let zoom = pov.zoom;
-        let fov = get3dFov(zoom);
+        let fov = get3dFov(pov.zoom);
         if (angle) {
             if (heading - angle > 180) {
                 heading -= 360;
@@ -562,41 +593,87 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         }
     }
 
+    /**
+     * Renders the observed area fog.
+     */
     function renderObservedAreas() {
         // Background color.
-        ctx.fillStyle = "#888888";
-        ctx.fillRect(0, 0, width, height);
-        ctx.globalCompositeOperation = "destination-out";
+        observed_ctx.fillStyle = "#888888";
+        observed_ctx.fillRect(0, 0, width, height);
+        observed_ctx.globalCompositeOperation = "destination-out";
         for (let area of observedAreas) {
-            let pixel = latLngToPixel(area.latLng);
-            ctx.beginPath();
+            let center = latLngToPixel(area.latLng);
+            observed_ctx.beginPath();
             if (area.maxAngle - area.minAngle < 360) {
-                ctx.moveTo(pixel.x, pixel.y);
+                observed_ctx.moveTo(center.x, center.y);
             }
-            ctx.arc(pixel.x, pixel.y, radius, toRadians(area.minAngle), toRadians(area.maxAngle));
-            ctx.fill();
+            observed_ctx.arc(center.x, center.y, radius, toRadians(area.minAngle), toRadians(area.maxAngle));
+            observed_ctx.fill();
         }
-        ctx.globalCompositeOperation = "source-over";
+        observed_ctx.globalCompositeOperation = "source-over";
     }
 
+    /**
+     * Renders the the user's fov.
+     */
     function renderFovArea() {
-        // FOV color.
-        ctx.fillStyle = "#8080ff";
+        // Fov color.
+        fov_ctx.fillStyle = "#8080ff";
+        fov_ctx.clearRect(0, 0, width, height);
         let current = observedAreas[observedAreas.length - 1];
-        let pixel = latLngToPixel(current.latLng);
-        ctx.beginPath();
-        ctx.moveTo(pixel.x, pixel.y);
-        ctx.arc(pixel.x, pixel.y, radius, toRadians(leftAngle), toRadians(rightAngle));
-        ctx.fill();
+        let center = latLngToPixel(current.latLng);
+        fov_ctx.beginPath();
+        fov_ctx.moveTo(center.x, center.y);
+        fov_ctx.arc(center.x, center.y, radius, toRadians(leftAngle), toRadians(rightAngle));
+        fov_ctx.fill();
     }
 
+    /**
+     * Updates 'observedRatio' to accurately measure the user's current fraction of observed area.
+     */
+    function updateObservedRatio() {
+        let current = observedAreas[observedAreas.length - 1];
+        let center = latLngToPixel(current.latLng);
+        let total_pixels = 0;
+        let observed_pixels = 0;
+        let r = radius - 1;
+        let res = 5;
+        for (let x = Math.ceil((center.x - r) / res) * res; x <= center.x + r; x += res) {
+            for (let y = Math.ceil((center.y - Math.sqrt(r * r - (x - center.x) * (x - center.x))) / res) * res;
+                    y <= center.y + Math.sqrt(r * r - (x - center.x) * (x - center.x)); y += res) {
+                let alpha = observed_ctx.getImageData(x, y, 1, 1).data[3];
+                if (alpha < 128) {
+                    observed_pixels++;
+                }
+                total_pixels++;
+            }
+        }
+        observedRatio = observed_pixels / total_pixels;
+    }
+
+    /**
+     * Renders the user's current fraction of observed area.
+     */
+    function renderObservedRatio() {
+        let observedPercentage = Math.round(100 * observedRatio) + "%";
+        document.getElementById("google-maps-observed-ratio").innerText = observedPercentage;
+    }
+
+    /**
+     * Updates everything relevant to observed area.
+     */
     this.updateObservedArea = function() {
         if (observedAreas.length > 0) {
+            let current = observedAreas[observedAreas.length - 1];
+            let minAngle = current.minAngle;
+            let maxAngle = current.maxAngle;
             updateAngles();
             renderObservedAreas();
             renderFovArea();
-            let area = observedAreas[observedAreas.length - 1];
-            let observedRatio = Math.min((area.maxAngle - area.minAngle), 360) / 360;
+            if (minAngle != current.minAngle || maxAngle != current.maxAngle) {
+                updateObservedRatio();
+            }
+            renderObservedRatio(observedRatio);
         }
     }
 

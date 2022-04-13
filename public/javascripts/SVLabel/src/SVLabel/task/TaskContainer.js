@@ -614,6 +614,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         currentTask.resetObservedArea();
     }
 
+    /**
+     * Updates the observed area.
+     */
     function updateObservedArea() {
         currentTask.updateObservedArea();
     }
