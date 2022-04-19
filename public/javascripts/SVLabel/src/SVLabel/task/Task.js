@@ -40,16 +40,16 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     var rightAngle;
     // List of observed areas (latLng, minAngle, maxAngle).
     var observedAreas;
+    // User's current fraction of observed area.
+    var fractionObserved;
     // Canvas context for observed areas.
-    var observed_ctx;
+    var observedAreaCtx;
     // Canvas context for fov.
-    var fov_ctx;
+    var fovAreaCtx;
     // Canvas width.
     var width;
     // Canvas height.
     var height;
-    // User's current fraction of observed area.
-    var fractionObserved;
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -74,18 +74,25 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
 
         paths = null;
 
-        angle= null;
+        angle = null;
         leftAngle = null;
         rightAngle = null;
         observedAreas = [];
-        let observed_canvas = document.getElementById("google-maps-observed-canvas");
-        observed_ctx = observed_canvas.getContext("2d");
-        observed_ctx.filter = "blur(5px)";
-        let fov_canvas = document.getElementById("google-maps-fov-canvas");
-        fov_ctx = fov_canvas.getContext("2d");
-        width = observed_canvas.width;
-        height = observed_canvas.height;
         fractionObserved = 0;
+        let observedAreaCanvas = document.getElementById("google-maps-observed-area-canvas");
+        observedAreaCtx = observedAreaCanvas.getContext("2d");
+        observedAreaCtx.filter = "blur(5px)";
+        let fovAreaCanvas = document.getElementById("google-maps-fov-area-canvas");
+        fovAreaCtx = fovAreaCanvas.getContext("2d");
+        width = observedAreaCanvas.width;
+        height = observedAreaCanvas.height;
+
+        // Background color.
+        observedAreaCtx.fillStyle = "#888888";
+        // Fov color.
+        fovAreaCtx.fillStyle = "#8080ff";
+        // Progress bar color.
+        fovAreaCtx.strokeStyle = "#404040";
     };
 
     this.setStreetEdgeDirection = function (currentLat, currentLng) {
@@ -580,7 +587,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      */
     function updateAngles() {
         let pov = svl.map.getPov();
-        let heading = pov.heading - 90;
+        let heading = pov.heading;
         let fov = get3dFov(pov.zoom);
         if (angle) {
             if (heading - angle > 180) {
@@ -607,43 +614,50 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      * Renders the observed area fog.
      */
     function renderObservedAreas() {
-        // Background color.
-        observed_ctx.fillStyle = "#888888";
-        observed_ctx.fillRect(0, 0, width, height);
-        observed_ctx.globalCompositeOperation = "destination-out";
+        observedAreaCtx.fillRect(0, 0, width, height);
+        observedAreaCtx.globalCompositeOperation = "destination-out";
         for (let area of observedAreas) {
             let center = latLngToPixel(area.latLng);
-            observed_ctx.beginPath();
+            observedAreaCtx.beginPath();
             if (area.maxAngle - area.minAngle < 360) {
-                observed_ctx.moveTo(center.x, center.y);
+                observedAreaCtx.moveTo(center.x, center.y);
             }
-            observed_ctx.arc(center.x, center.y, radius, toRadians(area.minAngle), toRadians(area.maxAngle));
-            observed_ctx.fill();
+            observedAreaCtx.arc(center.x, center.y, radius, toRadians(area.minAngle - 90), toRadians(area.maxAngle - 90));
+            observedAreaCtx.fill();
         }
-        observed_ctx.globalCompositeOperation = "source-over";
+        observedAreaCtx.globalCompositeOperation = "source-over";
     }
 
     /**
      * Renders the the user's fov.
      */
     function renderFovArea() {
-        // Fov color.
-        fov_ctx.fillStyle = "#8080ff";
-        fov_ctx.clearRect(0, 0, width, height);
+        fovAreaCtx.clearRect(0, 0, width, height);
         let current = observedAreas[observedAreas.length - 1];
         let center = latLngToPixel(current.latLng);
-        fov_ctx.beginPath();
-        fov_ctx.moveTo(center.x, center.y);
-        fov_ctx.arc(center.x, center.y, radius, toRadians(leftAngle), toRadians(rightAngle));
-        fov_ctx.fill();
+        fovAreaCtx.beginPath();
+        fovAreaCtx.moveTo(center.x, center.y);
+        fovAreaCtx.arc(center.x, center.y, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
+        fovAreaCtx.fill();
     }
 
     /**
      * Renders the user's current fraction of observed area.
      */
     function renderFractionObserved() {
-        let observedPercentage = Math.round(100 * fractionObserved) + "%";
-        document.getElementById("google-maps-observed-ratio").innerText = observedPercentage;
+        let observedPercentage = Math.floor(100 * fractionObserved) + "%";
+        document.getElementById("google-maps-fraction-observed").innerText = observedPercentage;
+        let progressBarColor = fovAreaCtx.strokeStyle;
+        fovAreaCtx.strokeStyle = "#808080";
+        fovAreaCtx.lineWidth = 3;
+        fovAreaCtx.beginPath();
+        fovAreaCtx.arc(width - 20, 20, 16, 0, 2 * Math.PI);
+        fovAreaCtx.stroke();
+        fovAreaCtx.strokeStyle = progressBarColor;
+        fovAreaCtx.lineCap = 'round';
+        fovAreaCtx.beginPath();
+        fovAreaCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
+        fovAreaCtx.stroke();
     }
 
     /**
