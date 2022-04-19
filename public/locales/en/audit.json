@@ -160,6 +160,7 @@
                 "paint-fading": "paint <tag-underline>f</tag-underline>ading",
                 "broken-surface": "b<tag-underline>r</tag-underline>oken surface",
                 "uneven-surface": "un<tag-underline>e</tag-underline>ven surface",
+                "no-pedestrian-priority": "no pedestrian priority (<tag-underline>v</tag-underline>)",
                 "has-button": "has b<tag-underline>u</tag-underline>tton",
                 "button-waist-height": "button waist <tag-underline>h</tag-underline>eight",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",

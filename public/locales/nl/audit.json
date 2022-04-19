@@ -160,6 +160,7 @@
                 "paint-fading": "ver<tag-underline>f</tag-underline> vervaagd",
                 "broken-surface": "geb<tag-underline>r</tag-underline>oken oppervlak",
                 "uneven-surface": "on<tag-underline>e</tag-underline>ven oppervlak",
+                "no-pedestrian-priority": "geen <tag-underline>v</tag-underline>oetgangersprioriteit",
                 "has-button": "heeft een knop (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "knop op <tag-underline>h</tag-underline>euphoogte",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",

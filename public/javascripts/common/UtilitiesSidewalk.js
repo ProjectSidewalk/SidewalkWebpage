@@ -300,6 +300,10 @@ function UtilitiesMisc (JSON) {
                     'rail/tram track': {
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
+                    },
+                    'no pedestrian priority': {
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.no-pedestrian-priority')
                     }
                 }
             },

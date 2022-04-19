@@ -158,6 +158,7 @@
                 "paint-fading": "cruce despintado (<tag-underline>f</tag-underline>)",
                 "broken-surface": "superficie <tag-underline>r</tag-underline>ota",
                 "uneven-surface": "sup<tag-underline>e</tag-underline>rficie irregular",
+                "no-pedestrian-priority": "sin prioridad peatonal (<tag-underline>v</tag-underline>)",
                 "has-button": "tiene botón (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "botón a la altura de la cintura (<tag-underline>h</tag-underline>)",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
