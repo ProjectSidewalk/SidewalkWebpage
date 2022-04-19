@@ -49,7 +49,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     // Canvas height.
     var height;
     // User's current fraction of observed area.
-    var observedRatio;
+    var fractionObserved;
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -85,7 +85,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         fov_ctx = fov_canvas.getContext("2d");
         width = observed_canvas.width;
         height = observed_canvas.height;
-        observedRatio = 0;
+        fractionObserved = 0;
     };
 
     this.setStreetEdgeDirection = function (currentLat, currentLng) {
@@ -529,7 +529,16 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      */
     this.resetObservedArea = function() {
         angle = null;
-        observedAreas.push({latLng: svl.map.getPosition(), minAngle: null, maxAngle: null});
+        leftAngle = null;
+        rightAngle = null;
+        let latLng = svl.map.getPosition();
+        for (let i = 0; i < observedAreas.length; i++) {
+            if (observedAreas[i].latLng.lat == latLng.lat && observedAreas[i].latLng.lng == latLng.lng) {
+                observedAreas.push(observedAreas.splice(i, 1)[0]);
+                return;
+            }
+        }
+        observedAreas.push({latLng: latLng, minAngle: null, maxAngle: null});
     }
 
     /**
@@ -585,12 +594,13 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         leftAngle = angle - fov / 2;
         rightAngle = angle + fov / 2;
         let current = observedAreas[observedAreas.length - 1];
-        if (current.minAngle === null || leftAngle < current.minAngle) {
+        if (!current.minAngle || leftAngle < current.minAngle) {
             current.minAngle = leftAngle;
         }
-        if (current.maxAngle === null || rightAngle > current.maxAngle) {
+        if (!current.maxAngle || rightAngle > current.maxAngle) {
             current.maxAngle = rightAngle;
         }
+        fractionObserved = Math.min(current.maxAngle - current.minAngle, 360) / 360;
     }
 
     /**
@@ -629,33 +639,10 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     }
 
     /**
-     * Updates 'observedRatio' to accurately measure the user's current fraction of observed area.
-     */
-    function updateObservedRatio() {
-        let current = observedAreas[observedAreas.length - 1];
-        let center = latLngToPixel(current.latLng);
-        let total_pixels = 0;
-        let observed_pixels = 0;
-        let r = radius - 1;
-        let res = 5;
-        for (let x = Math.ceil((center.x - r) / res) * res; x <= center.x + r; x += res) {
-            for (let y = Math.ceil((center.y - Math.sqrt(r * r - (x - center.x) * (x - center.x))) / res) * res;
-                    y <= center.y + Math.sqrt(r * r - (x - center.x) * (x - center.x)); y += res) {
-                let alpha = observed_ctx.getImageData(x, y, 1, 1).data[3];
-                if (alpha < 128) {
-                    observed_pixels++;
-                }
-                total_pixels++;
-            }
-        }
-        observedRatio = observed_pixels / total_pixels;
-    }
-
-    /**
      * Renders the user's current fraction of observed area.
      */
-    function renderObservedRatio() {
-        let observedPercentage = Math.round(100 * observedRatio) + "%";
+    function renderFractionObserved() {
+        let observedPercentage = Math.round(100 * fractionObserved) + "%";
         document.getElementById("google-maps-observed-ratio").innerText = observedPercentage;
     }
 
@@ -664,16 +651,10 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      */
     this.updateObservedArea = function() {
         if (observedAreas.length > 0) {
-            let current = observedAreas[observedAreas.length - 1];
-            let minAngle = current.minAngle;
-            let maxAngle = current.maxAngle;
             updateAngles();
             renderObservedAreas();
             renderFovArea();
-            if (minAngle != current.minAngle || maxAngle != current.maxAngle) {
-                updateObservedRatio();
-            }
-            renderObservedRatio(observedRatio);
+            renderFractionObserved();
         }
     }
 
