@@ -82,9 +82,9 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
-                    'missing friction strip': {
-                        keyChar: 'F',
-                        text: i18next.t('center-ui.context-menu.tag.missing-friction-strip')
+                    'missing tactile warning': {
+                        keyChar: 'I',
+                        text: i18next.t('center-ui.context-menu.tag.missing-tactile-warning')
                     },
                     'tactile warning': {
                         keyChar: 'E',

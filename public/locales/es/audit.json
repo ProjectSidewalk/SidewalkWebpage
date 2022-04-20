@@ -120,7 +120,7 @@
             "tag": {
                 "narrow": "muy <tag-underline>a</tag-underline>ngosta",
                 "points-into-traffic": "orientada hac<tag-underline>i</tag-underline>a el tráfico",
-                "missing-friction-strip": "pavimento de advertencia táctil ausente (<tag-underline>f</tag-underline>)",
+                "missing-tactile-warning": "pav<tag-underline>i</tag-underline>mento de advertencia táctil ausente",
                 "tactile-warning": "advert<tag-underline>e</tag-underline>ncia táctil",
                 "steep": "empinada (mucha pendien<tag-underline>t</tag-underline>e)",
                 "not-enough-landing-space": "área de aproximación insuficiente (<tag-underline>l</tag-underline>)",
