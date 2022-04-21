@@ -39,7 +39,8 @@
   "tag": {
     "narrow": "smal",
     "points into traffic": "het verkeer in gericht",
-    "missing friction strip": "ontbrekende frictie strip",
+    "missing tactile warning": "tactiele waarschuwing ontbreekt",
+    "tactile warning": "tactiele waarschuwing",
     "steep": "steil",
     "not enough landing space": "bovenaan niet genoeg ruimte",
     "not level with street": "niet zelfde niveau met straat",
@@ -79,6 +80,7 @@
     "paint fading": "verf vervaagd",
     "broken surface": "gebroken oppervlak",
     "uneven surface": "oneven oppervlak",
+    "no pedestrian priority": "geen voetgangersprioriteit",
     "has button": "heeft een knop",
     "button waist height": "knop op heuphoogte",
     "missing crosswalk": "missend zebrapad",

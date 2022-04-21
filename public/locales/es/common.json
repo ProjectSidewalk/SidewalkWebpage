@@ -39,7 +39,8 @@
   "tag": {
     "narrow": "muy angosta",
     "points into traffic": "orientada hacia el tráfico",
-    "missing friction strip": "pavimento de advertencia táctil ausente",
+    "missing tactile warning": "pavimento de advertencia táctil ausente",
+    "tactile warning": "advertencia táctil",
     "steep": "empinada (mucha pendiente)",
     "not enough landing space": "área de aproximación insuficiente",
     "not level with street": "con desnivel",
@@ -79,6 +80,7 @@
     "paint fading": "cruce despintado",
     "broken surface": "superficie rota",
     "uneven surface": "superficie irregular",
+    "no pedestrian priority": "sin prioridad peatonal",
     "has button": "tiene botón",
     "button waist height": "botón a la altura de la cintura",
     "missing crosswalk": "paso peatonal ausente (i)",
