@@ -122,8 +122,8 @@
             "tag": {
                 "narrow": "sm<tag-underline>a</tag-underline>l",
                 "points-into-traffic": "het verkeer <tag-underline>i</tag-underline>n gericht",
-                "missing-tactile-warning": "tact<tag-underline>i</tag-underline>ele waarschuwing ontbreekt",
-                "tactile-warning": "tacti<tag-underline>e</tag-underline>le waarschuwing",
+                "missing-tactile-warning": "tacti<tag-underline>e</tag-underline>le waarschuwing ontbreekt",
+                "tactile-warning": "tactile waarsc<tag-underline>h</tag-underline>uwing",
                 "steep": "s<tag-underline>t</tag-underline>eil",
                 "not-enough-landing-space": "bovenaan niet genoeg ruimte (<tag-underline>l</tag-underline>)",
                 "not-level-with-street": "niet zelfde ni<tag-underline>v</tag-underline>eau met straat",

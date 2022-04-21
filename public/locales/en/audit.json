@@ -122,8 +122,8 @@
             "tag": {
                 "narrow": "n<tag-underline>a</tag-underline>rrow",
                 "points-into-traffic": "points <tag-underline>i</tag-underline>nto traffic",
-                "missing-tactile-warning": "missing tact<tag-underline>i</tag-underline>le warning",
-                "tactile-warning": "tactil<tag-underline>e</tag-underline> warning",
+                "missing-tactile-warning": "missing tactil<tag-underline>e</tag-underline> warning",
+                "tactile-warning": "tactile warning (<tag-underline>h</tag-underline>)",
                 "steep": "s<tag-underline>t</tag-underline>eep",
                 "not-enough-landing-space": "not enough <tag-underline>l</tag-underline>anding space",
                 "not-level-with-street": "not le<tag-underline>v</tag-underline>el with street",

@@ -83,11 +83,11 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
                     'missing tactile warning': {
-                        keyChar: 'I',
+                        keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.missing-tactile-warning')
                     },
                     'tactile warning': {
-                        keyChar: 'E',
+                        keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.tactile-warning')
                     },
                     'steep': {
