@@ -64,7 +64,6 @@ GET     /adminapi/auditedStreets/:username                   @controllers.AdminC
 GET     /adminapi/auditedStreetTimes                         @controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
-GET     /adminapi/labels/cv                                  @controllers.AdminController.getAllLabelCVMetadata
 GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
@@ -87,16 +86,12 @@ GET     /label/id/:labelId                                   @controllers.AdminC
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
-GET     /audit/groundtruth                                   @controllers.AuditController.auditCVGroundTruth
-GET     /audit/groundtruth/panosTodo                         @controllers.AuditController.getCVGroundTruthRemainingPanos
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
 GET     /audit/street/:id/location                           @controllers.AuditController.auditLocation(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
-POST    /audit/groundtruth/create                            @controllers.AuditController.createGroundTruthAuditMission
-POST    /audit/groundtruth/markComplete                      @controllers.AuditController.markCVGroundTruthPanoComplete
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
@@ -104,7 +99,6 @@ POST    /validate/comment                                    @controllers.Valida
 
 # Task API.
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
-GET     /task/groundtruth/:panoid                            @controllers.TaskController.getCVGroundTruthTaskByPanoId(panoid: String)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon

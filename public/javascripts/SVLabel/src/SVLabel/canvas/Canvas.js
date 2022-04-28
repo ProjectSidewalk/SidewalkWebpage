@@ -350,7 +350,6 @@ function Canvas(ribbon) {
             svl.tracker.push('Click_LabelDelete', {labelType: self.getCurrentLabel().getProperty('labelType')});
             var currLabel = self.getCurrentLabel();
             if (!currLabel) {
-                //
                 // Sometimes (especially during ground truth insertion if you force a delete icon to show up all the time),
                 // currLabel would not be set properly. In such a case, find a label underneath the delete icon.
                 var x = svl.ui.canvas.deleteIconHolder.css('left');

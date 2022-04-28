@@ -716,14 +716,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Callback to track when user moves away from their current location.
      */
     function trackBeforeJumpActions() {
-
-        // This is a callback function that is called each time the user moves before jumping and checks if too far.
-
-        // Don't auto-jump in CV ground truth audits.
-        if (svl.isCVGroundTruthAudit) {
-            return;
-        }
-
         if (status.labelBeforeJumpListenerSet) {
             var currentLatLng = getPosition(),
                 currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),

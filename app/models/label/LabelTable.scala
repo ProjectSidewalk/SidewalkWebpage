@@ -6,7 +6,7 @@ import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
-import models.mission.{Mission, MissionTable, MissionTypeTable}
+import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresDriver
@@ -147,11 +147,7 @@ object LabelTable {
                                                 heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
                                                 canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
                                                 temporary: Boolean, description: Option[String],
-                                                userValidation: Option[Int]);
-
-  case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
-                             labelTypeId: Int, photographerHeading: Float, heading: Float,
-                             userRole: String, username: String, missionType: String, labelId: Int)
+                                                userValidation: Option[Int])
 
   case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
 
@@ -196,14 +192,14 @@ object LabelTable {
     * Find all labels with given regionId and userId.
     */
   def resumeMiniMap(regionId: Int, userId: UUID): List[MiniMapResumeMetadata] = db.withSession { implicit session =>
-    val labelsWithCVMetadata = for {
+    val labelsWithMetadata = for {
       _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
       _lb <- labels if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- LabelPointTable.labelPoints if _lb.labelId === _lp.labelId
 
     } yield (_lb.labelId, _lt.labelType, _lp.lat, _lp.lng)
-    labelsWithCVMetadata.list.map(label => MiniMapResumeMetadata.tupled(label))
+    labelsWithMetadata.list.map(label => MiniMapResumeMetadata.tupled(label))
   }
 
   /**
@@ -320,33 +316,6 @@ object LabelTable {
     val labelId: Int =
       (labels returning labels.map(_.labelId)) += label
     labelId
-  }
-
-  /**
-    * Returns all labels with sufficient metadata to produce crops for computer vision tasks.
-    */
-  def retrieveCVMetadata: List[LabelCVMetadata] = db.withSession { implicit session =>
-    val labelsWithCVMetadata = for {
-      _labels <- labels
-      _labelPoint <- LabelPointTable.labelPoints if _labels.labelId === _labelPoint.labelId
-      _mission <- MissionTable.missions if _labels.missionId === _mission.missionId
-      _missionType <- MissionTypeTable.missionTypes if _mission.missionTypeId === _missionType.missionTypeId
-      _roleid <- UserRoleTable.userRoles if _mission.userId === _roleid.userId
-      _rolename <- RoleTable.roles if _roleid.roleId === _rolename.roleId
-      _user <- UserTable.users if _mission.userId === _user.userId
-
-    } yield (_labels.gsvPanoramaId,
-      _labelPoint.svImageX,
-      _labelPoint.svImageY,
-      _labels.labelTypeId,
-      _labels.photographerHeading,
-      _labelPoint.heading,
-      _rolename.role,
-      _user.username,
-      _missionType.missionType,
-      _labels.labelId
-    )
-    labelsWithCVMetadata.list.map(label => LabelCVMetadata.tupled(label))
   }
 
   /**
