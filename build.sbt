@@ -61,7 +61,7 @@ scalacOptions ++= Seq(
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
-javaOptions ++= Seq("-Xmx3072M", "-Xms2048M")
+javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
 
 javaOptions in Test += "-Dconfig.file=conf/application.test.conf"
 
