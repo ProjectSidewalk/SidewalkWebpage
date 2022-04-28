@@ -11,11 +11,12 @@ import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
+import formats.json.LabelFormat._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
-import models.label.LabelTable.LabelMetadata
+import models.label.LabelTable.{LabelMetadata, LabelCVMetadata}
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -375,6 +376,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }
+  }
+
+  /**
+   * Get metadata used for 2022 CV project for all labels, and output as JSON.
+   */
+  def getAllLabelMetadataForCV = UserAwareAction.async { implicit request =>
+    val labels: List[LabelCVMetadata] = LabelTable.getLabelCVMetadata
+    val json: JsValue = Json.toJson(labels.map(l => Json.toJson(l)))
+    Future.successful(Ok(json))
   }
 
   /**
