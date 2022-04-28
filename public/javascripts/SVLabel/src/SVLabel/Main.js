@@ -390,7 +390,6 @@ function Main (params) {
             }
             // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
-            svl.loadComplete = true;
             $("#page-loading").css({"visibility": "hidden"});
             $(".tool-ui").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
