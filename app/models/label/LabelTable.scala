@@ -20,42 +20,16 @@ import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Label(labelId: Int,
-                 auditTaskId: Int,
-                 missionId: Int,
-                 gsvPanoramaId: String,
-                 labelTypeId: Int,
-                 photographerHeading: Float,
-                 photographerPitch: Float,
-                 panoramaLat: Float,
-                 panoramaLng: Float,
-                 deleted: Boolean,
-                 temporaryLabelId: Option[Int],
-                 timeCreated: Option[Timestamp],
-                 tutorial: Boolean,
-                 streetEdgeId: Int,
-                 agreeCount: Int,
-                 disagreeCount: Int,
-                 notsureCount: Int,
-                 correct: Option[Boolean])
+case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
+                 photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float,
+                 deleted: Boolean, temporaryLabelId: Option[Int], timeCreated: Option[Timestamp], tutorial: Boolean,
+                 streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean])
 
-case class LabelLocation(labelId: Int,
-                         auditTaskId: Int,
-                         gsvPanoramaId: String,
-                         labelType: String,
-                         lat: Float,
-                         lng: Float)
+case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 
-case class LabelLocationWithSeverity(labelId: Int,
-                                     auditTaskId: Int,
-                                     gsvPanoramaId: String,
-                                     labelType: String,
-                                     lat: Float,
-                                     lng: Float,
-                                     correct: Option[Boolean],
-                                     expired: Boolean,
-                                     highQualityUser: Boolean,
-                                     severity: Option[Int])
+case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
+                                     lat: Float, lng: Float, correct: Option[Boolean], expired: Boolean,
+                                     highQualityUser: Boolean, severity: Option[Int])
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
