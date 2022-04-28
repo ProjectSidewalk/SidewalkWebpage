@@ -67,6 +67,7 @@ GET     /adminapi/labels/all                                 @controllers.AdminC
 GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
+GET     /adminapi/labels/cvMetadata                          @controllers.AdminController.getAllLabelMetadataForCV
 GET     /adminapi/panos                                      @controllers.AdminController.getAllPanoIds
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
