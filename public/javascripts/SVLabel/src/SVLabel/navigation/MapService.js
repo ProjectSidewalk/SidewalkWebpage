@@ -404,6 +404,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             hideLinks();
             uiMap.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
+            // Disable forward and backwards keys
+            svl.keyboard.setStatus("disableMovement", true);
         }
         return this;
     }
@@ -429,6 +431,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             showNavigationArrows();
             uiMap.modeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
+            // Enable forward and backward keys
+            svl.keyboard.setStatus("disableMovement", false);
         }
         return this;
     }
