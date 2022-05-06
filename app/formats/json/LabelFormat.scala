@@ -27,4 +27,28 @@ object LabelFormat {
       (__ \ "notsure_count").write[Int] and
       (__ \ "correct").writeNullable[Boolean]
     )(unlift(Label.unapply _))
+
+  implicit val labelCVMetadataWrite: Writes[LabelTable.LabelCVMetadata] = (
+    (__ \ "label_id").write[Int] and
+      (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "label_type_id").write[Int] and
+      (__ \ "deleted").write[Boolean] and
+      (__ \ "tutorial").write[Boolean] and
+      (__ \ "agree_count").write[Int] and
+      (__ \ "disagree_count").write[Int] and
+      (__ \ "notsure_count").write[Int] and
+      (__ \ "image_width").writeNullable[Int] and
+      (__ \ "image_height").writeNullable[Int] and
+      (__ \ "sv_image_x").write[Int] and
+      (__ \ "sv_image_y").write[Int] and
+      (__ \ "canvas_width").write[Int] and
+      (__ \ "canvas_height").write[Int] and
+      (__ \ "canvas_x").write[Int] and
+      (__ \ "canvas_y").write[Int] and
+      (__ \ "zoom").write[Int] and
+      (__ \ "heading").write[Float] and
+      (__ \ "pitch").write[Float] and
+      (__ \ "photographer_heading").write[Float] and
+      (__ \ "photographer_pitch").write[Float]
+  )(unlift(LabelTable.LabelCVMetadata.unapply _))
 }

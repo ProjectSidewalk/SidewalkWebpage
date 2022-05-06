@@ -215,15 +215,6 @@ object MissionTable {
   }
 
   /**
-    * Checks whether a particular missionId belongs to a particular userId.
-    *
-    * @return true if the mission belongs to the user, false otherwise
-    */
-  def userOwnsMission(userId: UUID, missionId: Int): Boolean = db.withSession{ implicit session =>
-    missions.filter(m => m.userId === userId.toString && m.missionId === missionId).list.nonEmpty
-  }
-
-  /**
     * Check if the user has completed onboarding.
     */
   def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
@@ -236,13 +227,6 @@ object MissionTable {
     */
   def isOnboardingMission(missionId: Int): Boolean = db.withSession { implicit session =>
     MissionTypeTable.onboardingTypeIds.contains(missions.filter(_.missionId === missionId).map(_.missionTypeId).first)
-  }
-
-  /**
-    * Checks if the specified mission is a CV ground truth mission.
-    */
-  def isCVGroundTruthMission(missionId: Int): Boolean = db.withSession { implicit session =>
-    MissionTypeTable.missionTypeToId("cvGroundTruth") == missions.filter(_.missionId === missionId).map(_.missionTypeId).first
   }
 
   /**
@@ -282,18 +266,6 @@ object MissionTable {
         && m.labelTypeId === labelTypeId
         && !m.completed
     ).firstOption
-  }
-
-  /**
-    * Returns the first CV ground truth audit mission that is not yet complete for the provided mission.
-    *
-    * @param userId a user id
-    * @return an incomplete CV ground truth audit mission
-    */
-  def getIncompleteCVGroundTruthMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
-    val cvGroundTruthId: Int = missionTypes.filter(_.missionType === "cvGroundTruth").map(_.missionTypeId).first
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === cvGroundTruthId && !m.completed)
-      .sortBy(_.missionId).firstOption
   }
 
   /**
@@ -626,19 +598,6 @@ object MissionTable {
   }
 
   /**
-    * Creates and returns a new CV ground truth audit mission for a user.
-    *
-    * @param userId user creating a new CV ground truth audit mission
-    */
-  def createNextCVGroundtruthMission(userId: UUID) : Mission = db.withSession { implicit session =>
-    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionTypeId: Int = MissionTypeTable.missionTypeToId("cvGroundTruth")
-    val newMission: Mission = Mission(0, missionTypeId, userId.toString, now, now, false, 0, false, None, None, None, None, None, None, false, None)
-    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
-    missions.filter(_.missionId === missionId).first
-  }
-
-  /**
     * Creates a new auditOnboarding mission entry in the mission table for the specified user.
     *
     * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
@@ -707,12 +666,12 @@ object MissionTable {
         } yield (m.distanceProgress, m.missionEnd, m.currentAuditTaskId)
 
         if (~= (distanceProgress, missionDistance, precision = 0.00001F) ) {
-          missionToUpdate.update ((Some(missionDistance), now, auditTaskId) )
+          missionToUpdate.update((Some(missionDistance), now, auditTaskId))
         } else if (distanceProgress < missionDistance) {
-          missionToUpdate.update ((Some(distanceProgress), now, auditTaskId) )
+          missionToUpdate.update((Some(distanceProgress), now, auditTaskId))
         } else {
           Logger.error ("Trying to update mission progress with distance greater than total mission distance.")
-          missionToUpdate.update ((Some(missionDistance), now, auditTaskId) )
+          missionToUpdate.update((Some(missionDistance), now, auditTaskId))
         }
       case _ => 0
     }
