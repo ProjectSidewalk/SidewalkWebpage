@@ -11,11 +11,12 @@ import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
+import formats.json.LabelFormat._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
-import models.label.LabelTable.LabelMetadata
+import models.label.LabelTable.{LabelMetadata, LabelCVMetadata}
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -136,33 +137,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
-  }
-
-  /**
-    * Get a list of all labels with metadata needed to produce crops for computer vision applications.
-    */
-  def getAllLabelCVMetadata = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val labels: List[LabelTable.LabelCVMetadata] = LabelTable.retrieveCVMetadata
-      val jsonList: List[JsObject] = labels.map { label =>
-        Json.obj(
-          "gsv_panorama_id" -> label.gsvPanoramaId,
-          "sv_image_x" -> label.svImageX,
-          "sv_image_y" -> label.svImageY,
-          "label_type_id" -> label.labelTypeId,
-          "photographer_heading" -> label.photographerHeading,
-          "heading" -> label.heading,
-          "user_type" -> label.userRole,
-          "username" -> label.username,
-          "mission_type" -> label.missionType,
-          "label_id" -> label.labelId
-        )
-      }
-      val featureCollection: JsObject = Json.obj("labels" -> jsonList)
-      Future.successful(Ok(featureCollection))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
   }
 
   /**
@@ -402,6 +376,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }
+  }
+
+  /**
+   * Get metadata used for 2022 CV project for all labels, and output as JSON.
+   */
+  def getAllLabelMetadataForCV = UserAwareAction.async { implicit request =>
+    val labels: List[LabelCVMetadata] = LabelTable.getLabelCVMetadata
+    val json: JsValue = Json.toJson(labels.map(l => Json.toJson(l)))
+    Future.successful(Ok(json))
   }
 
   /**

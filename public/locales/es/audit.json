@@ -120,7 +120,8 @@
             "tag": {
                 "narrow": "muy <tag-underline>a</tag-underline>ngosta",
                 "points-into-traffic": "orientada hac<tag-underline>i</tag-underline>a el tráfico",
-                "missing-friction-strip": "pavimento de advertencia táctil ausente (<tag-underline>f</tag-underline>)",
+                "missing-tactile-warning": "pavim<tag-underline>e</tag-underline>nto de advertencia táctil ausente",
+                "tactile-warning": "advertencia táctil (<tag-underline>h</tag-underline>)",
                 "steep": "empinada (mucha pendien<tag-underline>t</tag-underline>e)",
                 "not-enough-landing-space": "área de aproximación insuficiente (<tag-underline>l</tag-underline>)",
                 "not-level-with-street": "con desni<tag-underline>v</tag-underline>el",
@@ -158,6 +159,7 @@
                 "paint-fading": "cruce despintado (<tag-underline>f</tag-underline>)",
                 "broken-surface": "superficie <tag-underline>r</tag-underline>ota",
                 "uneven-surface": "sup<tag-underline>e</tag-underline>rficie irregular",
+                "no-pedestrian-priority": "sin prioridad peatonal (<tag-underline>v</tag-underline>)",
                 "has-button": "tiene botón (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "botón a la altura de la cintura (<tag-underline>h</tag-underline>)",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
