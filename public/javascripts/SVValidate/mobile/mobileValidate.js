@@ -69,7 +69,7 @@ function resizeMobileValidation() {
 
     // Change validation button position.
     document.getElementById("validation-button-holder").style.top = h - 200 + "px";
-    document.getElementById("validation-button-holder").style.width = w + "px";
+    document.getElementById("validation-button-holder").style.width = w - 40 + "px";
     document.getElementById("validation-agree-button").style.width = w / 3 - 30 + "px";
     document.getElementById("validation-disagree-button").style.width = w / 3 - 30 + "px";
     document.getElementById("validation-not-sure-button").style.width = w / 3 - 30 + "px";

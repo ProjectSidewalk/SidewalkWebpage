@@ -281,7 +281,7 @@ html {
 
 #validation-button-holder {
     position: relative;
-    left: -100px;
+    left: -80px;
     height: 90px;
     width: 730px;
     z-index: 1;
