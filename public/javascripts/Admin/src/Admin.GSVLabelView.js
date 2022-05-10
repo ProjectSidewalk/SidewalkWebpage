@@ -25,47 +25,49 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px">' +
                         '</div>' +
-                        '<h3>Is this label correct?</h3>' +
-                        '<div id="validation-button-holder">' +
-                            '<button id="validation-agree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                'Agree' +
-                            '</button>' +
-                            '<button id="validation-disagree-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                'Disagree' +
-                            '</button>' +
-                            '<button id="validation-not-sure-button" class="validation-button"' +
-                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                'Not sure' +
-                            '</button>' +
+                        '<div id="validation-input-holder">' +
+                            '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
+                            '<div id="validation-button-holder" style="padding-top: 10px;">' +
+                                '<button id="validation-agree-button" class="validation-button"' +
+                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                    'Agree' +
+                                '</button>' +
+                                '<button id="validation-disagree-button" class="validation-button"' +
+                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                    'Disagree' +
+                                '</button>' +
+                                '<button id="validation-not-sure-button" class="validation-button"' +
+                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                    'Not sure' +
+                                '</button>' +
+                            '</div>' +
+                            '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
+                                '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                                '<button id="comment-button" class="submit-button">' +
+                                    i18next.t('common:label-map.submit') +
+                                '</button>' +
+                            '</div>' +
                         '</div>' +
-                        '<div id="validation-comment-holder">' +
-                            '<textarea id="comment-textarea" placeholder="' + i18next.t('label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                            '<button id="comment-button" class="submit-button">' +
-                                i18next.t('label-map.submit') +
-                            '</button>' +
-                        '</div>' +
-                        '<div class="modal-footer">' +
-                            '<table class="table table-striped" style="font-size:small; margin-bottom: 0">' +
+                        '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
+                            '<table class="table table-striped" style="font-size:small;>' +
                                 '<tr>' +
                                     '<th>Label Type</th>' +
                                     '<td id="label-type-value"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Severity</th>' +
+                                    '<th>' + i18next.t('common:severity') + '</th>' +
                                     '<td id="severity"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Temporary</th>' +
+                                    '<th>' + i18next.t('common:temporary') + '</th>' +
                                     '<td id="temporary"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Tags</th>' +
+                                    '<th>' + i18next.t('common:tags') + '</th>' +
                                     '<td colspan="3" id="tags"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Description</th>' +
+                                    '<th>' + i18next.t('common:description') + '</th>' +
                                     '<td colspan="3" id="label-description"></td>' +
                                 '</tr>' +
                                 '<tr>' +
@@ -73,10 +75,10 @@ function AdminGSVLabelView(admin) {
                                     '<td colspan="3" id="label-validations"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Time Submitted</th>' +
+                                    '<th>' + i18next.t('common:labeled') + '</th>' +
                                     '<td id="timestamp" colspan="3"></td>' +
                                 '</tr>' +
-                                    '<th>Image Date</th>' +
+                                    '<th>' + i18next.t('common:image-date') + '</th>' +
                                     '<td id="image-date" colspan="3"></td>' +
                                 '</tr>' +
                                 '<tr>' +
@@ -107,7 +109,7 @@ function AdminGSVLabelView(admin) {
         }
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-button-holder"), admin);
+        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
@@ -304,17 +306,17 @@ function AdminGSVLabelView(admin) {
 
         var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
             labelMetadata['num_disagree'] + ' Disagree, ' +
-            labelMetadata['num_unsure'] + ' Not Sure';
+            labelMetadata['num_notsure'] + ' Not Sure';
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
         self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
-        self.modalTimestamp.html(labelDate.format('LL, LTS') + " (" + labelDate.fromNow() + ")");
+        self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
-        self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
+        self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
-        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
@@ -324,6 +326,8 @@ function AdminGSVLabelView(admin) {
                 labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
                 labelMetadata['username'] + "</a>");
         }
+        // If the signed in user has already validated this label, make the button look like it has been clicked.
+        if (labelMetadata['user_validation']) _resetButtonColors(labelMetadata['user_validation']);
     }
 
     _init();

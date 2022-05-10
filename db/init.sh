@@ -26,10 +26,3 @@ EOSQL
 psql -U sidewalk -d sidewalk -a -f /opt/schema.sql
 psql -U sidewalk -d sidewalk -a -f /opt/fix-auto-inc.sql
 
-psql -U sidewalk -d sidewalk -c 'CREATE EXTENSION IF NOT EXISTS postgis'
-psql -U sidewalk -d sidewalk -c 'CREATE EXTENSION IF NOT EXISTS postgis_topology'
-psql -U sidewalk -d sidewalk -c 'CREATE EXTENSION IF NOT EXISTS fuzzystrmatch'
-psql -U sidewalk -d sidewalk -c 'CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder'
-
-# DOESN'T WORK
-# sudo su -l postgres -c "psql sidewalk -c 'CREATE EXTENSION pgrouting'"

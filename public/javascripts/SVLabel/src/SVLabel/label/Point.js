@@ -26,16 +26,11 @@ function Point (svl, x, y, pov, params) {
     var belongsTo;
     var properties = {
         fillStyleInnerCircle: params.fillStyle,
-        lineWidthOuterCircle: 2,
         iconImagePath: undefined,
         originalFillStyleInnerCircle: undefined,
-        originalStrokeStyleOuterCircle: undefined,
-        radiusInnerCircle: 4,
-        radiusOuterCircle: 5,
-        strokeStyleOuterCircle: 'rgba(255,255,255,1)',
-        storedInDatabase: false
+        radiusInnerCircle: 17,
+        radiusOuterCircle: 14
     };
-    var unnecessaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
     var status = {
             'deleted' : false,
             'visibility' : 'visible',
@@ -43,9 +38,7 @@ function Point (svl, x, y, pov, params) {
     };
 
     function _init (x, y, pov, params) {
-
-        // Keep the original canvas coordinate and
-        // canvas pov just in case.
+        // Keep the original canvas coordinate and canvas pov just in case.
         self.canvasCoordinate = {
             x : x,
             y : y
@@ -75,11 +68,15 @@ function Point (svl, x, y, pov, params) {
             zoom : pointPOV.zoom
         };
 
-        self.originalPov = {
-            heading: pointPOV.heading,
-            pitch: pointPOV.pitch,
-            zoom: pointPOV.zoom
-        };
+        if (params.originalPov) {
+            self.originalPov = params.originalPov;
+        } else {
+            self.originalPov = {
+                heading: pointPOV.heading,
+                pitch: pointPOV.pitch,
+                zoom: pointPOV.zoom
+            };
+        }
 
         // Convert a canvas coordinate (x, y) into a sv image coordinate
         // Note, svImageCoordinate.x varies from 0 to svImageWidth and
@@ -121,16 +118,10 @@ function Point (svl, x, y, pov, params) {
 
             if (propName in params) {
                 properties[propName] = params[propName];
-            } else {
-                // See if this property must be set.
-                if (unnecessaryProperties.indexOf(propName) === -1) {
-                    // throw self.className + ': "' + propName + '" is not defined.';
-                }
             }
         }
 
         properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
-        properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
         return true;
     }
 
@@ -217,18 +208,7 @@ function Point (svl, x, y, pov, params) {
                 self.pov = calculatePointPov(coord.x, coord.y, pov);
             }
 
-            ctx.save();
-            ctx.strokeStyle = properties.strokeStyleOuterCircle;
-            ctx.lineWidth = properties.lineWidthOuterCircle;
-            ctx.beginPath();
-            ctx.arc(x, y, properties.radiusOuterCircle, 2 * Math.PI, 0, true);
-            ctx.closePath();
-            ctx.stroke();
-            ctx.fillStyle = properties.fillStyleInnerCircle; // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
-            ctx.beginPath();
-            ctx.arc(x, y, properties.radiusInnerCircle, 2 * Math.PI, 0, true);
-            ctx.closePath();
-            ctx.fill();
+            // ctx.arc(x, y, properties.radiusOuterCircle, 2 * Math.PI, 0, true);
 
             // Render an icon
             var imagePath = getProperty("iconImagePath");
@@ -239,7 +219,6 @@ function Point (svl, x, y, pov, params) {
                 imageX =  x - r + 2;
                 imageY = y - r + 2;
 
-                //ctx.globalAlpha = 0.5;
                 imageObj.src = imagePath;
 
                 try {
@@ -271,15 +250,6 @@ function Point (svl, x, y, pov, params) {
     function resetSVImageCoordinate (coord) {
         self.svImageCoordinate = coord;
         self.canvasCoordinate = {x : 0, y: 0};
-        return this;
-    }
-
-    /**
-     * This method resets the strokeStyle to its original value
-     * @returns {self}
-     */
-    function resetStrokeStyle () {
-        properties.strokeStyleOuterCircle = properties.originalStrokeStyleOuterCircle;
         return this;
     }
 
@@ -320,49 +290,11 @@ function Point (svl, x, y, pov, params) {
         return this;
     }
 
-    /**
-     * This function resets all the properties specified in params.
-     * @param params
-     * @returns {self}
-     */
-    function setProperties (params) {
-        for (var key in params) {
-            if (key in properties) {
-                properties[key] = params[key];
-            }
+    function setVisibility(visibility) {
+        // This method sets the visibility of a path (and points that cons
+        if (visibility === 'visible' || visibility === 'hidden') {
+            status.visibility = visibility;
         }
-
-        if ('originalCanvasCoordinate' in params) {
-            self.originalCanvasCoordinate = params.originalCanvasCoordinate;
-        }
-
-        //
-        // Set pov parameters
-        self.pov = self.pov || {};
-        if ('pov' in params) { self.pov = params.pov; }
-        if ('heading' in params) { self.pov.heading = params.heading; }
-        if ('pitch' in params) { self.pov.pitch = params.pitch; }
-        if ('zoom' in params) { self.pov.zoom = params.zoom; }
-
-        // Set original pov parameters
-        self.originalPov = self.originalPov || {};
-        if ('originalPov' in params) { self.originalPov = params.originalPov; }
-        if ('originalHeading' in params) { self.originalPov.heading = params.originalHeading; }
-        if ('originalPitch' in params) { self.originalPov.pitch = params.originalPitch; }
-        if ('originalZoom' in params) { self.originalPov.zoom = params.originalZoom; }
-
-        if (!properties.originalFillStyleInnerCircle) {
-            properties.originalFillStyleInnerCircle = properties.fillStyleInnerCircle;
-        }
-        if (!properties.originalStrokeStyleOuterCircle) {
-            properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
-        }
-        return this;
-    }
-
-    function setStrokeStyle (val) {
-        // This method sets the strokeStyle of an outer circle to val
-        properties.strokeStyleOuterCircle = val;
         return this;
     }
 
@@ -382,27 +314,12 @@ function Point (svl, x, y, pov, params) {
     self.render = render;
     self.resetFillStyle = resetFillStyle;
     self.resetSVImageCoordinate = resetSVImageCoordinate;
-    self.resetStrokeStyle = resetStrokeStyle;
     self.setBelongsTo = setBelongsTo;
     self.setFillStyle = setFillStyle;
     self.setIconPath = setIconPath;
     self.setPhotographerPov = setPhotographerPov;
-    self.setProperties = setProperties;
-    self.setStrokeStyle = setStrokeStyle;
     self.setVisibility = setVisibility;
 
-    function setVisibility (visibility) {
-        // This method sets the visibility of a path (and points that cons
-        if (visibility === 'visible' || visibility === 'hidden') {
-            status.visibility = visibility;
-        }
-        return this;
-    }
-
-    // Todo. Deprecated method. Get rid of this later.
-    self.resetProperties = self.setProperties;
-
     _init(x, y, pov, params);
-
     return self;
 }

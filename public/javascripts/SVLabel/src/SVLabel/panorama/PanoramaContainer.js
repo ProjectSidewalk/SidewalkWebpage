@@ -41,38 +41,22 @@ function PanoramaContainer (streetViewService) {
     }
 
     /**
-     * Street View Service https://developers.google.com/maps/documentation/javascript/streetview#StreetViewServiceResponses
-     */
-    function processSVData (data, status) {
-        if (status === google.maps.StreetViewStatus.OK) {
-            if ("location" in data && "pano" in data.location) {
-                add(data.location.pano, new Panorama(data))
-            }
-        }
-        else {
-            console.error("Error retrieving Panoramas: " + status);
-        }
-    }
-
-    /**
      * Request the panorama meta data.
      */
     function fetchPanoramaMetaData(panoramaId) {
-        // streetViewService.getPanorama({ pano: panoramaId }, processSVData);
-        streetViewService.getPanorama({pano: panoramaId},
-            function (data, status) {
+        // Shows tutorial panoramas as already submitted to server, no need to add to server.
+        if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
+            add(panoramaId, new Panorama({ submitted: true }));
+        } else {
+            streetViewService.getPanorama({ pano: panoramaId }, function (data, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    if ("location" in data && "pano" in data.location) {
-                        add(data.location.pano, new Panorama(data))
-                    }
-                } else if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
-                    // Shows tutorial panoramas as already submitted to server, no need to add to server
-                    add(panoramaId, new Panorama({submitted: true}));
+                    add(data.location.pano, new Panorama(data))
                 } else {
-                    console.error("Error retrieving Panoramas: " + status);
+                    console.error("Error retrieving Panorama: " + status);
                     svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                 }
             });
+        }
     }
 
     self.getPanorama = getPanorama;

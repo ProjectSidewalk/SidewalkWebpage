@@ -1,39 +1,56 @@
 .gallery-tag {
     display: inline-block;
     padding: 0px 5px;
-    cursor: pointer;
     border-style: solid;
     border-width: 1px;
-    border-radius: 20px;
+    border-radius: 5px;
     margin: 2px 2px;
     text-align: left;
+    color: black;
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.gallery-tag, .gallery-tag-sidebar {
+    max-width: 98%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-tag-sidebar:hover {
+    background-color: #78c8aa;
+    white-space: normal;
+}
+
+.thumbnail-tag {
+    cursor: default;
+    font-weight: bold;
+    padding: 1px 5px;
+    color: #2d2a3f;
+}
+
+.not-added {
     background-color: white;
+    font-size: .6vw;
+    margin: 1px;
 }
 
-.gallery-tag:disabled {
-    opacity: 50%;
-}
-
-.gallery-severity {
-    display: inline-block;
-    padding: 0px 5px;
+.additional-count {
+    margin: 3px -2px;
+    border-style: none;
+    font-weight: bold;
     cursor: pointer;
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 3px;
-    margin: 2px 2px;
-    background-color: white;
-}
-
-.gallery-severity:disabled {
-    opacity: 50%;
 }
 
 #tags-header {
     display: none;
 }
 
-#label-select:disabled {
-    opacity: 50%;
-    background-color: white;
+.additional-tag-popover {
+    width: fit-content;
+    max-width: 250px;
+}
+
+.additional-tag-popover-content {
+    padding: 5px 10px;
 }

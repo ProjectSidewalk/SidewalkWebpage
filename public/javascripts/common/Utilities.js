@@ -1,21 +1,13 @@
 var util = util || {};
 
-// A cross-browser function to capture a mouse position
-function mouseposition (e, dom) {
+// A cross-browser function to capture a mouse position.
+function mouseposition(e, dom) {
     var mx, my;
-    //if(e.offsetX) {
-        // Chrome
-    //    mx = e.offsetX;
-    //    my = e.offsetY;
-    //} else {
-        // Firefox, Safari
-        mx = e.pageX - $(dom).offset().left;
-        my = e.pageY - $(dom).offset().top;
-    //}
+    mx = e.pageX - $(dom).offset().left;
+    my = e.pageY - $(dom).offset().top;
     return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
 }
 util.mouseposition = mouseposition;
-
 
 // Object prototype
 // http://www.smipple.net/snippet/insin/jQuery.fn.disableTextSelection
@@ -37,32 +29,12 @@ if(typeof(String.prototype.trim) === "undefined")
     };
 }
 
-// Default Text
-function focusCallback() {
-    if ($(this).val() === $(this).attr('title')) {
-        /* if the current attribute is the default one, delete it. */
-        $(this).val("");
-    }
-    $(this).removeClass('defaultTextActive');
-}
-
-function blurCallback() {
-    if(!$(this).val()) {
-        /* do following if the field is empty */
-        var msg = $(this).attr('title');
-        $(this).val( msg );
-
-        $(this).addClass('defaultTextActive');
-    }
-}
-
 // Based on a snipped posted by Eric Scheid ("ironclad") on November 17, 2000 at:
 // http://www.evolt.org/article/Javascript_to_Parse_URLs_in_the_Browser/17/14435/
 function getURLParameter(argName) {
-    // Get the value of one of the URL parameters.  For example, if this were called
-    // with the URL http://your.server.name/foo.html?bar=123 then getURLParameter("bar")
-    // would return the string "123".  If the parameter is not found, this will return
-    // an empty string, "".
+    // Get the value of one of the URL parameters. For example, if this were called with the URL
+    // http://your.server.name/foo.html?bar=123 then getURLParameter("bar") would return the string "123". If the
+    // parameter is not found, this will return an empty string, "".
 
     var argString = location.search.slice(1).split('&');
     var r = '';
@@ -77,6 +49,32 @@ function getURLParameter(argName) {
     return r;
 }
 util.getURLParameter = getURLParameter;
+
+// Converts a blob that we get from `fetch` into base64. Necessary to display images acquired through `fetch`.
+function convertBlobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = () => {
+            resolve(reader.result);
+        };
+        reader.readAsDataURL(blob);
+    });
+}
+util.convertBlobToBase64 = convertBlobToBase64;
+
+// Asynchronously acquire an image using `fetch` and convert it into base64. Returns a promise.
+function getImage(imageUrl) {
+    return fetch(imageUrl)
+        .then(response => {
+            if (response.status === 404) throw new Error('Image not found');
+            else if (!response.ok) throw new Error('Other network error');
+            return response.blob();
+        }).then(myBlob => {
+            return convertBlobToBase64(myBlob);
+        });
+}
+util.getImage = getImage;
 
 // Array Remove - By John Resig (MIT Licensed)
 // http://stackoverflow.com/questions/500606/javascript-array-delete-elements
@@ -176,62 +174,8 @@ function getOperatingSystem () {
 }
 util.getOperatingSystem = getOperatingSystem;
 
-/**
- * Given an image coordinate (x, y), return a scaled coordinate. For example, to
- * get the corresponding coordinate in a smaller 512x256 image, use r = 1/26.
- * @param x
- * @param y
- * @param r
- */
-function scaleImageCoordinate(x, y, r) {
-    var x_ = x * r;
-    var y_ = (3328 - y) * r;
-    return {x: x_, y: y_};
+// Changes a string in camelCase to kebab-case.
+function camelToKebab (theString) {
+    return theString.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
-util.scaleImageCoordinate = scaleImageCoordinate;
-
-function sleep(miliseconds) {
-    var end = false;
-}
-
-function shuffle(array) {
-    // This function returns a shuffled array.
-    // Code from http://bost.ocks.org/mike/shuffle/
-    var copy = [], n = array.length, i;
-
-    // While there remain elements to shuffle…
-    while (n) {
-
-        // Pick a remaining element…
-        i = Math.floor(Math.random() * array.length);
-
-        // If not already shuffled, move it to the new array.
-        if (i in array) {
-            copy.push(array[i]);
-            delete array[i];
-            n--;
-        }
-    }
-
-    return copy;
-}
-util.shuffle = shuffle;
-
-/**
- * Generates 8-character alphanumeric string
- * Using for debugging
- *
- * @returns {string}
- */
-function generateAlphaNumId()
-{
-    var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    for( var i=0; i < 8; i++ )
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-    return text;
-}
-
-util.generateAlphaNumId = generateAlphaNumId;
+util.camelToKebab = camelToKebab;

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.apache.httpcomponents"
 		module="project"
 		revision="7"
 		status="release"
 		publication="20130628154036"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://hc.apache.org/">
 		Components to build HTTP enabled services
 		</description>
@@ -29,6 +30,7 @@
 		<m:properties__hc.site.url>scp://people.apache.org/www/hc.apache.org/</m:properties__hc.site.url>
 		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
 		<m:properties__maven.compiler.showDeprecation>true</m:properties__maven.compiler.showDeprecation>
+		<e:sbtTransformHash>e38c5427042ea5d743fcc63230f2453000f9e8be</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-compiler-plugin__null|null__maven-jar-plugin__null</m:maven.plugins>
 		<m:properties__maven.compiler.source>1.5</m:properties__maven.compiler.source>

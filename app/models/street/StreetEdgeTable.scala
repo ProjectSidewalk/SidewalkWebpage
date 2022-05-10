@@ -174,7 +174,6 @@ object StreetEdgeTable {
     }
   }
 
-
   /**
     * Calculates the distance audited today by all users.
     * 
@@ -349,7 +348,7 @@ object StreetEdgeTable {
         |       st_e.way_type,
         |       st_e.deleted,
         |       st_e.timestamp
-        |FROM sidewalk.street_edge AS st_e
+        |FROM street_edge AS st_e
         |WHERE st_e.deleted = FALSE
         |    AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
@@ -371,8 +370,8 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp
-        |FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |FROM street_edge
+        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE street_edge.deleted = FALSE
         |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
         |    AND audit_task.completed = TRUE""".stripMargin
@@ -393,8 +392,8 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp
-        |FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |FROM street_edge
+        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE street_edge.deleted = FALSE
         |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
         |    AND audit_task.completed = TRUE""".stripMargin

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.webjars"
 		module="npm"
 		revision="1.3.26"
@@ -11,6 +11,7 @@
 		WebJar for npm
 		</description>
 		<m:properties__extractDir>${project.build.directory}/npm-${upstreamVersion}</m:properties__extractDir>
+		<e:sbtTransformHash>f230624c1d58761dfbe9f85cd17f9d45ad284f58</e:sbtTransformHash>
 		<m:properties__upstream.url>https://github.com/npm/npm</m:properties__upstream.url>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__upstreamVersion>1.3.26</m:properties__upstreamVersion>

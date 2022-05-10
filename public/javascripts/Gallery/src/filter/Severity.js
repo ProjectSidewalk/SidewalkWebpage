@@ -1,22 +1,25 @@
 /**
  * A Severity module.
- * 
+ *
  * @param {*} params Properties of severity.
+ * @param active A boolean to see if the current severity filter is active.
  * @returns {Severity}
  * @constructor
  */
-function Severity (params){
+function Severity (params, active){
     let self = this;
 
-    // UI element of severity.
+    // UI element of the severity container and image.
     let severityElement = null;
+    let severityImage = null;
+    let interactionEnabled = false;
 
     let properties = {
         severity: undefined
     };
 
     // A boolean to see if the current severity filter is active.
-    let active = false;
+    let filterActive = active;
 
     /**
      * Initialize Severity.
@@ -25,47 +28,71 @@ function Severity (params){
      */
     function _init(param) {
         properties.severity = param;
-        severityElement = document.createElement('button');
-        severityElement.className = 'gallery-severity';
-        severityElement.id = properties.severity;
-        severityElement.innerText = properties.severity;
-        severityElement.disabled = true;
+
+        severityElement = document.createElement('div');
+        severityElement.className = 'severity-filter gallery-filter';
+
+        severityImage = document.createElement('img');
+        severityImage.className = 'severity-filter-image';
+        severityImage.id = properties.severity;
+        severityImage.innerText = properties.severity;
+        if (filterActive) {
+            _showSelected();
+        } else {
+            _showDeselected();
+        }
+        
+        severityElement.appendChild(severityImage);
+
+        // Show inverted smiley face on click or hover.
         severityElement.onclick = handleOnClickCallback;
+        $(severityElement).hover(
+            function() { _showSelected(); },
+            function() { if (!filterActive) _showDeselected(); }
+        );
     }
 
     /**
      * Handles when severity is selected/deselected.
      */
-    function handleOnClickCallback(){
-        if (active){
-            sg.tracker.push("SeverityApply", null, {
-                Severity: properties.severity
-            });
+    function handleOnClickCallback() {
+        if (filterActive) {
+            sg.tracker.push("SeverityUnapply", null, { Severity: properties.severity });
             unapply();
         } else {
-            sg.tracker.push("SeverityUnapply", null, {
-                Severity: properties.severity
-            });
+            sg.tracker.push("SeverityApply", null, { Severity: properties.severity });
             apply();
         }
 
-        sg.cardContainer.updateCardsBySeverity();
+        sg.cardContainer.updateCardsByTagsAndSeverity();
+    }
+
+    function _showSelected() {
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted_green.png`;
+    }
+
+    function _showDeselected() {
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
     }
 
     /**
-     * Applies a Severity.
+     * Applies a severity filter.
      */
     function apply() {
-        active = true;
-        severityElement.setAttribute("style", "background-color: #78c8aa");
+        if (interactionEnabled) {
+            filterActive = true;
+            _showSelected();
+        }
     }
 
     /**
-     * Unapplies a Severity.
+     * Unapplies a severity filter.
      */
     function unapply() {
-        active = false;
-        severityElement.setAttribute("style", "background-color: none");
+        if (interactionEnabled) {
+            filterActive = false;
+            _showDeselected();
+        }
     }
 
     /**
@@ -81,7 +108,7 @@ function Severity (params){
      * Returns whether Severity is applied or not.
      */
     function getActive(){
-        return active;
+        return filterActive;
     }
 
     /**
@@ -95,14 +122,14 @@ function Severity (params){
      * Disables interaction with Severity.
      */
     function disable() {
-        severityElement.setAttribute("disabled", true);
+        interactionEnabled = false;
     }
 
     /**
      * Enables interaction with Severity.
      */
     function enable() {
-        severityElement.setAttribute("disabled", false);
+        interactionEnabled = true;
     }
 
     self.handleOnClickCallback = handleOnClickCallback;

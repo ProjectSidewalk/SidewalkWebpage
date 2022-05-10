@@ -1,37 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.fasterxml.jackson.core"
 		module="jackson-core"
 		revision="2.3.3"
 		status="release"
 		publication="20140410164708"
 	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<license name="GNU Lesser General Public License, Version 2.1" url="http://www.gnu.org/licenses/lgpl-2.1.html" />
 		<description homepage="http://wiki.fasterxml.com/JacksonHome">
 		Core Jackson abstractions, basic JSON streaming API implementation
 		</description>
-		<m:properties__javadoc.version>2.8.1</m:properties__javadoc.version>
 		<m:properties__packageVersion.package>com.fasterxml.jackson.core.json</m:properties__packageVersion.package>
-		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
 		<m:properties__packageVersion.template.input>${basedir}/src/main/java/${packageVersion.dir}/PackageVersion.java.in</m:properties__packageVersion.template.input>
 		<m:properties__osgi.export>com.fasterxml.jackson.core;version=${project.version},
 com.fasterxml.jackson.core.*;version=${project.version}
     </m:properties__osgi.export>
-		<m:properties__project.build.resourceEncoding>UTF-8</m:properties__project.build.resourceEncoding>
 		<m:properties__maven.build.timestamp.format>yyyy-MM-dd HH:mm:ssZ</m:properties__maven.build.timestamp.format>
-		<m:properties__osgi.versionpolicy>${range;[===,=+);${@}}</m:properties__osgi.versionpolicy>
 		<m:properties__javac.debuglevel>lines,source</m:properties__javac.debuglevel>
-		<m:properties__surefire.version>2.12</m:properties__surefire.version>
 		<m:properties__javac.src.version>1.6</m:properties__javac.src.version>
-		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__javadoc.maxmemory>1g</m:properties__javadoc.maxmemory>
 		<m:properties__packageVersion.dir>com/fasterxml/jackson/core/json</m:properties__packageVersion.dir>
 		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
 		<m:properties__javac.target.version>1.6</m:properties__javac.target.version>
 		<m:properties__packageVersion.template.output>${generatedSourcesDir}/${packageVersion.dir}/PackageVersion.java</m:properties__packageVersion.template.output>
+		<e:sbtTransformHash>5ac9f11c1efcff9c5c8fbb62e77e81a79b0f8e54</e:sbtTransformHash>
 		<m:properties__osgi.import>*</m:properties__osgi.import>
-		<m:properties__replacer.version>1.5.2</m:properties__replacer.version>
 		<m:properties__bundle.version>2.3.7</m:properties__bundle.version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.1.1|org.apache.maven.plugins__maven-compiler-plugin__2.5.1|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.12|org.apache.felix__maven-bundle-plugin__2.3.7|org.apache.maven.plugins__maven-jar-plugin__2.4|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.7|org.apache.maven.plugins__maven-enforcer-plugin__1.1.1|org.apache.maven.plugins__maven-compiler-plugin__2.5.1|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.12|org.apache.felix__maven-bundle-plugin__2.3.7|org.apache.maven.plugins__maven-jar-plugin__2.4|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.7|org.apache.maven.plugins__maven-javadoc-plugin__2.8.1|org.apache.maven.plugins__maven-site-plugin__3.1|org.apache.maven.plugins__maven-surefire-plugin__2.12|com.google.code.maven-replacer-plugin__replacer__null</m:maven.plugins>
+		<m:properties__javadoc.version>2.8.1</m:properties__javadoc.version>
+		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
+		<m:properties__project.build.resourceEncoding>UTF-8</m:properties__project.build.resourceEncoding>
+		<m:properties__osgi.versionpolicy>${range;[===,=+);${@}}</m:properties__osgi.versionpolicy>
+		<m:properties__surefire.version>2.12</m:properties__surefire.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__replacer.version>1.5.2</m:properties__replacer.version>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -49,6 +52,6 @@ com.fasterxml.jackson.core.*;version=${project.version}
 		<artifact name="jackson-core" type="bundle" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="junit" name="junit" rev="4.8.2" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

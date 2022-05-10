@@ -1,72 +1,89 @@
 @import models.user.User
-@import models.user.VersionTable
-@import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], label: String, labels: List[(String, String)], severity: List[Int])(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("/javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
 
     @navbar(user, Some("/gallery"))
-    <div id="gallery-overview-container" class="container-fluid">
-        <div class="row sidebar">
-            <div id="card-filter" class="col-md-2">
-                <!-- <h4><b>Sort by</b></h4>
-                <select id="card-sort-select">
-                    <option value="sort_LeastSevere">Least Severe</option>
-                    <option value="sort_MostSevere">Most Severe</option>
-                </select> -->
-                <div id="ribbon-menu-holder">
-                    <span id="label-type-holder">
-                        <h4><b>Show</b></h4>
-                        <select id="label-select" disabled>
-                            <option value="Assorted">All</option>
-                            <option value="CurbRamp">Curb Ramp</option>
-                            <option value="NoCurbRamp">Missing Curb Ramp</option>
-                            <option value="Obstacle">Obstacle in Path</option>
-                            <option value="SurfaceProblem">Surface Problem</option>
-                            <option value="Occlusion">Can't See Sidewalk</option>
-                            <option value="NoSidewalk">No Sidewalk</option>
-                            <option value="Other">Other</option>
+    <div id="gallery">
+        <div class="sidebar">
+            <div id="card-filter">
+                <div id="city-filter-holder" class="filter-section-holder">
+                    <span id="city-type-holder">
+                        <h4><b>@Messages("navbar.city")</b></h4>
+                        <select id="city-select" class="gallery-filter" disabled>
+                            @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
+                                @if(cityId == id) {
+                                    <option value="@cityURL" selected>@cityName</option>
+                                } else {
+                                    <option value="@cityURL">@cityName</option>
+                                }
+                            }
                         </select>
                     </span>
-                    
+                </div>
+                <div id="horizontal-line"></div>
+                <div id="label-type-filter-holder" class="filter-section-holder">
+                    <span id="label-type-holder">
+                        <h4><b>@Messages("gallery.show")</b></h4>
+                        <select id="label-select" class="gallery-filter" disabled>
+                            @for((value, message) <- labels) {
+                                @if(value == label) {
+                                    <option value="@value" selected>@message</option>
+                                } else {
+                                    <option value="@value">@message</option>
+                                }
+                            }
+                        </select>
+                    </span>
                 </div>
                 <div id="horizontal-line"></div>
                 <div id="filters">
-                    <h4><b>Filter by</b></h4>
-                    <h5 id="severity-header">Severity</h5>
-                    <span id="severity">
-                    </span>
-                    <h5 id="tags-header">Tags</h5>
-                    <span id="tags">
-                    </span>
-                </div>  
-            </div>
-            <div id="labels-not-found-text">
-                <span id="labels-not-found">No matches. <a href="/audit">Start exploring</a> to contribute more data!</span>
-            </div>
-            <div id="image-card-container" class="col-md-10">
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-5"></div>
-            <div class="col-md-2">
-                <div id="page-control">
-                    <button class="paging" id="prev-page">&lt</button>
-                    <div class="paging" id="page-number"></div>
-                    <button class="paging" id="next-page">&gt</button>
+                    <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
+                    <h5 id="severity-header" class="filter-subheader">@Messages("gallery.severity")</h5>
+                    <span id="severity-select"></span>
+                    <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
+                    <span id="tags"></span>
                 </div>
             </div>
-            <div class="col-md-5"></div>
         </div>
-        <div class="row">
-            <div id="footer-spacing"></div>
+        <div id="labels-not-found-text">
+            <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
         </div>
+        <div id="gallery-content" class="grid-container">
+            <div id="image-card-container" class="cards"></div>
+            <div class="gallery-modal">
+                <div class="modal-top-holder">
+                    <div class="gallery-modal-header"></div>
+                    <div class="gallery-modal-close">×</div>
+                </div>
+                <div class="gallery-modal-pano">
+                    <button class="gallery-modal-pano-paging" id="prev-label">&lt</button>
+                    <div class="gallery-modal-pano-display">
+                        <div class="actual-pano"></div>
+                    </div>
+                    <button class="gallery-modal-pano-paging" id="next-label">&gt</button>
+                </div>
+                <div class="gallery-modal-info">
+                    <div class="gallery-modal-info-timestamps"></div>
+                    <div class="gallery-modal-info-severity"></div>
+                    <div class="gallery-modal-info-tags"></div>
+                    <div class="gallery-modal-info-temporary"></div>
+                    <div class="gallery-modal-info-description"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="page-control">
+        <button class="paging" id="prev-page">&lt</button>
+        <div class="paging" id="page-number"></div>
+        <button class="paging" id="next-page">&gt</button>
     </div>
     @footer()
 

@@ -193,26 +193,6 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This method turn the associated Path and Points into gray.
-     * @param mode
-     * @returns {fadeFillStyle}
-     */
-    function fadeFillStyle (mode) {
-        var path = getPath(),
-            points = path.getPoints(),
-            len = points.length, fillStyle;
-
-        if (!mode) { mode = 'default'; }
-
-        fillStyle = mode == 'gray' ? 'rgba(200,200,200,0.5)' : 'rgba(255,165,0,0.8)';
-        path.setFillStyle(fillStyle);
-        for (var i = 0; i < len; i++) {
-            points[i].setFillStyle(fillStyle);
-        }
-        return this;
-    }
-
-    /**
      * This method changes the fill color of the path and points that constitute the path.
      * @param fillColor
      * @returns {fill}
@@ -253,14 +233,6 @@ function Label (svl, pathIn, params) {
         if (path && path.points.length > 0) {
             return path.points[0].getGSVImageCoordinate();
         }
-    }
-
-    /**
-     * Get image coordinates of the child path
-     * @returns {*}
-     */
-    function getImageCoordinates () {
-        return path ? path.getImageCoordinates() : false;
     }
 
     /**
@@ -342,9 +314,7 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * Return the deep copy of the properties object,
-     * so the caller can only modify properties from
-     * setProperties() (which I have not implemented.)
+     * Return deep copy of properties obj, so one can only modify props from setProperties() (not yet implemented).
      * JavaScript Deepcopy
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
@@ -419,20 +389,6 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This method calculates the area overlap between this label and another label passed as an argument.
-     * @param label
-     * @param mode
-     * @returns {*|number}
-     */
-    function overlap (label, mode) {
-        if (!mode) mode = "boundingbox";
-        if (mode !== "boundingbox") { throw self.className + ": " + mobede + " is not a valid option."; }
-        var path1 = getPath(),
-            path2 = label.getPath();
-        return path1.overlap(path2, mode);
-    }
-
-    /**
      * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
      */
     function remove () {
@@ -452,14 +408,9 @@ function Label (svl, pathIn, params) {
      * This method renders this label on a canvas.
      * @param ctx
      * @param pov
-     * @param evaluationMode
      * @returns {self}
      */
-    function render (ctx, pov, evaluationMode) {
-        if (!evaluationMode) {
-            evaluationMode = false;
-        }
-
+    function render(ctx, pov) {
         if (!status.deleted && status.visibility === 'visible') {
             // Render a tag -- triggered by mouse hover event.
             // Get a text to render (e.g, attribute type), and canvas coordinate to render the tag.
@@ -472,9 +423,9 @@ function Label (svl, pathIn, params) {
             // Renders the label image.
             path.render2(ctx, pov);
 
-            // Only render severity label if there's a severity option.
-            if (properties.labelType !== 'Occlusion') {
-                if (properties.severity == undefined) {
+            // Only render severity warning if there's a severity option.
+            if (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal') {
+                if (properties.severity === undefined) {
                     showSeverityAlert(ctx);
                 }
             }
@@ -515,7 +466,7 @@ function Label (svl, pathIn, params) {
             severityImage = new Image(),
             severityImagePath = undefined,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
-            msg = i18next.t(properties.labelType + '-description'),
+            msg = i18next.t(util.camelToKebab(properties.labelType) + '-description'),
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
 
@@ -561,7 +512,7 @@ function Label (svl, pathIn, params) {
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
-        ctx.fillStyle = util.color.changeAlphaRGBA(util.misc.getLabelColors(getProperty('labelType')), 0.9);
+        ctx.fillStyle = util.misc.getLabelColors(getProperty('labelType'));
         ctx.strokeStyle = 'rgba(255,255,255,1)';
 
 
@@ -858,75 +809,39 @@ function Label (svl, pathIn, params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates();
-            var pc = null;
-            if (properties.panoId === "tutorial") {
-                pc = svl.onboarding.getTutorialPointCloud();
-            } else  {
-                pc = svl.pointCloud.getPointCloud(properties.panoId);
-            }
+            // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
+            var panoLat = getProperty("panoramaLat");
+            var panoLng = getProperty("panoramaLng");
+            var panoHeading = getProperty("panoramaHeading");
+            var zoom = getProperty("panoramaZoom");
+            var canvasX = getPath().getPoints()[0].originalCanvasCoordinate.x;
+            var canvasY = getPath().getPoints()[0].originalCanvasCoordinate.y;
+            var svImageY = getPath().getPoints()[0].getGSVImageCoordinate().y;
 
-            if (pc) {
-                var minDx = 1000, minDy = 1000, i, delta, latlng,
-                    p, idx, dx, dy, r, minR;
-                for (i = 0; i < imageCoordinates.length; i ++) {
-                    p = util.scaleImageCoordinate(imageCoordinates[i].x, imageCoordinates[i].y, 1/26);
-                    idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y));
-                    dx = pc.pointCloud[idx];
-                    dy = pc.pointCloud[idx + 1];
-                    r = dx * dx + dy * dy;
-                    minR = minDx * minDx + minDy + minDy;
+            // Estimate heading diff and distance from pano using output from a regression analysis.
+            // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+            var estHeadingDiff =
+                LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
+                LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
+            var estDistanceFromPanoKm = Math.max(0,
+                LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
+                LATLNG_ESTIMATION_PARAMS[zoom].distanceSvImageYSlope * svImageY +
+                LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
+            ) / 1000.0;
+            var estHeading = panoHeading + estHeadingDiff;
+            var startPoint = turf.point([panoLng, panoLat]);
 
-                    if (r < minR) {
-                        minDx = dx;
-                        minDy = dy;
-                    }
-                }
-                delta = util.math.latlngOffset(properties.panoramaLat, dx, dy);
-                latlng = {
-                    lat: properties.panoramaLat + delta.dlat,
-                    lng: properties.panoramaLng + delta.dlng,
-                    latLngComputationMethod: 'depth'
-                };
-                setProperty('labelLat', latlng.lat);
-                setProperty('labelLng', latlng.lng);
-                setProperty('latLngComputationMethod', 'depth');
-                return latlng;
-            } else {
-                // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
-                var panoLat = getProperty("panoramaLat");
-                var panoLng = getProperty("panoramaLng");
-                var panoHeading = getProperty("panoramaHeading");
-                var zoom = getProperty("panoramaZoom");
-                var canvasX = getPath().getPoints()[0].originalCanvasCoordinate.x;
-                var canvasY = getPath().getPoints()[0].originalCanvasCoordinate.y;
-                var svImageY = getPath().getPoints()[0].getGSVImageCoordinate().y;
-
-                // Estimate heading diff and distance from pano using output from a regression analysis.
-                // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-                var estHeadingDiff =
-                    LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
-                    LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
-                var estDistanceFromPanoKm = Math.max(0,
-                    LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
-                    LATLNG_ESTIMATION_PARAMS[zoom].distanceSvImageYSlope * svImageY +
-                    LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
-                ) / 1000.0;
-                var estHeading = panoHeading + estHeadingDiff;
-                var startPoint = turf.point([panoLng, panoLat]);
-
-                // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
-                var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, {units: 'kilometers'});
-                var latlng = {
-                    lat: destination.geometry.coordinates[1],
-                    lng: destination.geometry.coordinates[0],
-                    latLngComputationMethod: 'approximation2'
-                };
-                setProperty('labelLat', latlng.lat);
-                setProperty('labelLng', latlng.lng);
-                setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
-                return latlng;
-            }
+            // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
+            var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, { units: 'kilometers' });
+            var latlng = {
+                lat: destination.geometry.coordinates[1],
+                lng: destination.geometry.coordinates[0],
+                latLngComputationMethod: 'approximation2'
+            };
+            setProperty('labelLat', latlng.lat);
+            setProperty('labelLng', latlng.lng);
+            setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
+            return latlng;
         } else {
             // Return the cached value.
             return {
@@ -958,10 +873,8 @@ function Label (svl, pathIn, params) {
 
     self.resetFillStyle = resetFillStyle;
     self.blink = blink;
-    self.fadeFillStyle = fadeFillStyle;
     self.getBoundingBox = getBoundingBox;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
-    self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getPanoId = getPanoId;
@@ -980,7 +893,6 @@ function Label (svl, pathIn, params) {
     self.highlight = highlight;
     self.lockTagVisibility = lockTagVisibility;
     self.lockVisibility = lockVisibility;
-    self.overlap = overlap;
     self.removePath = removePath;
     self.render = render;
     self.remove = remove;

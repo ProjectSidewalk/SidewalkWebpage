@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.slf4j"
 		module="slf4j-api"
 		revision="1.7.7"
 		status="release"
 		publication="20140404111248"
 	>
+		<license name="MIT License" url="http://www.opensource.org/licenses/mit-license.php" />
 		<description homepage="http://www.slf4j.org">
 		The slf4j API
 		</description>
@@ -13,6 +14,7 @@
 		<m:properties__logback.version>1.0.13</m:properties__logback.version>
 		<m:dependency.management__ch.qos.cal10n__cal10n-api__version>0.8.1</m:dependency.management__ch.qos.cal10n__cal10n-api__version>
 		<m:dependency.management__org.slf4j__slf4j-jdk14__version>1.7.7</m:dependency.management__org.slf4j__slf4j-jdk14__version>
+		<e:sbtTransformHash>eeaef18d9180e4c7b0d223446ae2c941a578f491</e:sbtTransformHash>
 		<m:properties__log4j.version>1.2.17</m:properties__log4j.version>
 		<m:properties__cal10n.version>0.8.1</m:properties__cal10n.version>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
@@ -37,10 +39,6 @@
 		<artifact name="slf4j-api" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="log4j" module="log4j" matcher="exact" rev="1.2.17"/>
-		<override org="ch.qos.cal10n" module="cal10n-api" matcher="exact" rev="0.8.1"/>
-		<override org="org.slf4j" module="slf4j-jdk14" matcher="exact" rev="1.7.7"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.7.7"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

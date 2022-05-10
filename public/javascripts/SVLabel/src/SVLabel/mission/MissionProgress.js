@@ -1,13 +1,13 @@
 /**
  * MissionProgress module.
  * Todo. Rename this... Probably some of these features should be moved to status/StatusFieldMission.js
- * Todo. Get rid of neighborhoodContainer and taskContainer dependencies. Instead, communicate with them through neighborhoodModel and taskModel.
+ * Todo. Get rid of neighborhoodContainer dependency. Instead, communicate with them through neighborhoodModel and taskModel.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
 function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel,
-                          missionContainer, neighborhoodContainer, taskContainer, tracker) {
+                          missionContainer, neighborhoodContainer, tracker) {
     var self = this;
     var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
@@ -17,13 +17,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     _missionModel.on("MissionProgress:update", function (parameters) {
         var mission = parameters.mission;
         var neighborhood = parameters.neighborhood;
-        // We track mission progress separately for CV ground truth missions.
-        if (!svl.isCVGroundTruthAudit) {
-            self.update(mission, neighborhood);
-        }
+        self.update(mission, neighborhood);
     });
 
-    _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
+    _neighborhoodModel.on("Neighborhood:completed", function () {
         // When the user has complete auditing all the streets in the neighborhood,
         // show the 100% coverage mission completion message.
 

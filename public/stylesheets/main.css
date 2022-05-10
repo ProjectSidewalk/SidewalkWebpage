@@ -79,39 +79,27 @@ footer {
     flex: 1;
 }
 
-.navbar-brand {
-    font-size: 24px;
-}
-
 .navbar-container {
     padding: 20px 0 20px 0;
 }
 
 .navbar-logo {
-    width: 150px;
     float: left;
     margin-top: 7px;
-}
-
-.navbar.navbar-fixed-top.fixed-theme {
-    background-color: #fff;
-    /* border-color: #080808; */
-    /* box-shadow: 0 0 5px rgba(0,0,0,.8); */
 }
 
 .navbar-lnk {
     display: inline;
     margin-top: 4px;
-    margin-left: 10px;
+    margin-left: 8px;
 }
 
-.navbar-brand.fixed-theme {
-    font-size: 18px;
+.navbar-turker-timer-container {
+    padding-left: 10px;
 }
 
-.navbar-container.fixed-theme {
-    top: -30px;
-    padding: 0;
+.navbar-turker-timer-list-container {
+    display: flex;
 }
 
 #nav-language-menu {
@@ -119,32 +107,43 @@ footer {
     min-width: 69px;
 }
 
-.navbar-right.fixed-theme{
-    position: relative;
-    top: -15px;
-}
-
-.navbar-brand.fixed-theme,
-.navbar-container.fixed-theme,
-.navbar.navbar-fixed-top.fixed-theme,
-.navbar-brand,
-.navbar-container{
+.navbar-container {
     transition: 0.8s;
     -webkit-transition:  0.8s;
 }
-.navbar-nav {
-
-}
-.navbar.fixed-theme {
-    -webkit-box-shadow: 0 8px 6px -6px #999;
-    -moz-box-shadow: 0 8px 6px -6px #999;
-    box-shadow: 0 8px 6px -6px #999;
-    /* the rest of your styling */
-}
 #navbar {
     max-width: 100%;
+    max-height: 100%;
     margin-left: auto;
     margin-right: auto;
+}
+
+#mturk-confirmation-code {
+    padding-top: 18px;
+    font: normal normal normal 13px/1.4em raleway, sans-serif;
+}
+
+#mturk-checkmark {
+    width: 20px;
+}
+
+#mturk-confirmation-code-text {
+    display: inline-block;
+    margin: 0;
+}
+
+#navbar-timer {
+    padding-left: 8px;
+    padding-top: 18px;
+    font: normal normal normal 13px/1.4em raleway, sans-serif;
+}
+
+#clock-icon {
+    width: 20px;
+}
+
+#navbar-timer-text {
+    display: inline-block;
 }
 
 #language-dropdown {
@@ -167,10 +166,9 @@ footer {
     top: 8px;
     cursor: pointer;
     color: #2D2A3F;
-    font: normal normal normal 14px/1.4em raleway, sans-serif;
+    font: normal normal normal 13px/1.4em raleway, sans-serif;
     font-family: 'Raleway', sans-serif;
-    font-size: 14px;
-    padding: 5px 25px;
+    padding: 5px 17px;
     text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     outline: none;
@@ -206,16 +204,14 @@ footer {
     border-radius:10px;
     border:1px solid rgba(251, 215, 139, 1);
     display:inline-block;
-    position: relative;
     top:8px;
     cursor:pointer;
     color:#2D2A3F;
-    font: normal normal normal 14px/1.4em raleway,sans-serif;
+    font: normal normal normal 13px/1.4em raleway,sans-serif;
     font-family: 'Raleway', sans-serif;
     text-align: start;
     font-weight: bolder;
-    font-size:14px;
-    padding:5px 25px;
+    padding: 5px 17px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
@@ -229,6 +225,10 @@ footer {
 .gray:active {
     position:relative;
     top:1px;
+}
+
+.current-city {
+    cursor: default;
 }
 
 video#bgvid {
@@ -285,17 +285,6 @@ video#bgvid {
     margin: 0 auto;
 }
 
-#description {
-    font-family: adelle-regular;
-    font-size: 14px;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    color: #fff;
-}
-
 p#conditional-text {
     margin: 5px;
 }
@@ -309,7 +298,7 @@ p#conditional-text {
     position: relative;
     top: -11px;
     background-color: #fff;
-    max-width:90%;
+    max-width:91%;
     max-height:70px;
 }
 
@@ -599,9 +588,9 @@ p#conditional-text {
     padding: 0 0 60px;
 }
 
-#maprow {
+#map-row {
     height: 500px;
-    margin-top: 25px;
+    margin-top: 10px;
 }
 #map-holder {
     height: 100%;
@@ -638,16 +627,18 @@ p#conditional-text {
 }
 
 .collaborator-images-container {
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-auto-flow: column;
+    grid-gap: 20px 50px;
+    align-items: center;
 }
 
 .collaborator-image {
-    padding: 15px;
+    padding: 15px 3% 15px 3%;
 }
 
 .collaborator-image img {
-    height: 220px;
+    width: 100%;
 }
 
 #collaborators-row {
@@ -980,16 +971,6 @@ kbd {
     margin-top: 5px;
 }
 
-.navbar-xs { min-height: 45px; height: 45px; }
-.navbar-xs .navbar-xs-brand{ padding: 0px 15px;font-size: 16px;line-height: 20px; padding-bottom: 17px; padding-top: 0px; height: 38px; float: left; }
-.navbar-xs .navbar-nav > li > a {
-    position: relative;
-    display: block;
-    padding-top: 10px;
-    margin-top: 5px;
-    line-height: 20px;
-}
-
 .navbar-nav>li, .navbar-nav {
     float: left;
 }
@@ -1014,7 +995,7 @@ kbd {
     padding: 5px 0;
     margin: 2px 0 0;
     margin-top: 0;
-    font-size: 14px;
+    font-size: 13px;
     list-style: none;
     background-color: #fff;
     -webkit-background-clip: padding-box;
@@ -1039,14 +1020,8 @@ kbd {
 #advanced-overlay,
 #neighborhood-completion-overlay,
 #already-completed-neighborhood-overlay,
-#cvgroundtruth-complete-overlay,
 #HIT-expiration-overlay {
     display:none;
-}
-#panoid-textarea {
-    color: black;
-    text-align: left;
-    font-size: 10px;
 }
 .overlay-text {
     height: 100%;
@@ -1060,9 +1035,7 @@ kbd {
 #advanced-neighborhood-text,
 #neighborhood-completion-text,
 #already-completed-neighborhood-text,
-#HIT-expiration-text,
-#cvgroundtruth-panoid-entry-form-text,
-#cvgroundtruth-complete-overlay-text {
+#HIT-expiration-text {
     color: white;
     text-align: center;
     width: 70%;
@@ -1161,19 +1134,6 @@ kbd {
     width:100%;
     font-weight:normal;
 }
-#next-pano-button-holder {
-    display:none;
-    position:absolute;
-    left: 735px;
-    top: 340px;
-    width: 200px;
-}
-#groundtruth-info-panel {
-    position:absolute;
-    right:0; bottom:0;
-    height:50px;
-    background-color: white
-}
 
 .anchor {
     display: block;
@@ -1185,6 +1145,10 @@ kbd {
 .leaderboard-header {
     font-weight: bold;
     font-family: Raleway-regular, sans-serif;
+}
+
+.weekly-header {
+    margin-bottom: 35px;
 }
 
 .leaderboard-detail {
@@ -1298,7 +1262,7 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 1175px) {
+@media only screen and (max-width: 1275px) {
     .navbar-header {
         float: none;
     }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.vividsolutions"
 		module="jts"
 		revision="1.13"
@@ -14,6 +14,7 @@
         conforms to the Simple Features Specification for
         SQL published by the Open GIS Consortium.
 		</description>
+		<e:sbtTransformHash>b4f62c43eead5467119c68db6aa35ba41c91092d</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 	</info>
 	<configurations>

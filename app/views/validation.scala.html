@@ -1,5 +1,4 @@
 @import models.user.User
-@import models.mission.MissionTable
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 
@@ -31,10 +30,6 @@
         <div id="svv-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
-                    <div id="left-column-confirmation-code-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon" align="">
-                        @Messages("turk.mturk.code")
-                    </div>
                     <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
                         <br>@Messages("validate.left.ui.skip")
@@ -157,7 +152,7 @@
                 <div class="status-box">
                     <div class="status-row">
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="status-icon" alt="Total label count" align="">
                             <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>
@@ -214,48 +209,16 @@
         var svv = svv || {};
         var param = {};
 
-        // Hide confirmation code if turker hasn't completed a mission.
-        @if(user) {
-            @if(user.get.role.getOrElse("") == "Turker") {
-                svv.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
-                svv.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                svv.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
-                    $("#left-column-confirmation-code-button").css('visibility', 'hidden');
-                } else {
-                    $("#left-column-confirmation-code-button").css('visibility', "");
-                    $("#left-column-confirmation-code-button").attr('data-toggle','popover');
-                    $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")');
-                    $("#left-column-confirmation-code-button").attr('data-content', svv.confirmationCode);
-                    $("#left-column-confirmation-code-button").popover();
-
-                    //Hide the confirmation popover on clicking the background
-                    //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
-
-                    $(document).on('click', function(e) {
-                        $("#left-column-confirmation-code-button").each(function () {
-                            //the 'is' for buttons that trigger popups
-                            //the 'has' for icons within a button that triggers a popup
-                            if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                                (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
-                            }
-
-                        });
-                    });
-                }
-                $("#current-mission-reward").show();
-                $("#total-mission-reward").show();
-                $("#modal-mission-reward-text").show();
-            } else {
-                $("#left-column-confirmation-code-button").css('visibility', "hidden");
-            }
-        } else{
-            $("#left-column-confirmation-code-button").css('visibility', "hidden");
+        // Show UI elements relevant to only turkers.
+        @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
+            $("#current-mission-reward").show();
+            $("#total-mission-reward").show();
+            $("#modal-mission-reward-text").show();
         }
 
         // Store user object.
         let userParam = {};
-        @if(user) {
+        @if(user.isDefined) {
             userParam = {
                 username: '@user.get.username',
                 role: '@user.get.role'
@@ -312,6 +275,8 @@
                         canvasX: param.labelList[key].canvas_x,
                         canvasY: param.labelList[key].canvas_y,
                         gsvPanoramaId: param.labelList[key].gsv_panorama_id,
+                        imageDate: param.labelList[key].image_date,
+                        labelTimestamp: param.labelList[key].label_timestamp,
                         heading: param.labelList[key].heading,
                         labelId: param.labelList[key].label_id,
                         labelType: param.labelList[key].label_type,

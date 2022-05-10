@@ -62,7 +62,6 @@ object DBTableDefinitions {
     import play.api.Play.current
 
     val db = play.api.db.slick.DB
-    val users: TableQuery[UserTable] = TableQuery[UserTable]
 
     def find(username: String): Option[DBUser] = db.withTransaction { implicit session =>
       slickUsers.filter(_.username === username).firstOption match {

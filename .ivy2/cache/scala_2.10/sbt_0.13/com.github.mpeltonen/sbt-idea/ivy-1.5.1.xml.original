@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.github.mpeltonen</groupId>
+    <artifactId>sbt-idea</artifactId>
+    <packaging>jar</packaging>
+    <description>sbt-idea</description>
+    <version>1.5.1</version>
+    <name>sbt-idea</name>
+    <organization>
+        <name>com.github.mpeltonen</name>
+    </organization>
+    <url>http://your.project.url</url>
+    <licenses>
+        <license>
+            <name>BSD-style</name>
+            <url>http://www.opensource.org/licenses/BSD-3-Clause</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>git@github.com:mpeltonen/sbt-idea.git</url>
+        <connection>scm:git:git@github.com:mpeltonen/sbt-idea.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>mpeltonen</id>
+            <name>Mikko Peltonen</name>
+            <url>http://github.com/mpeltonen</url>
+        </developer>
+    </developers>
+    <properties>
+        <sbtVersion>0.13</sbtVersion>
+        <scalaVersion>2.10</scalaVersion>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-sbt</groupId>
+            <artifactId>sbt</artifactId>
+            <version>0.13.0-RC3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.10.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+    </dependencies>
+</project>

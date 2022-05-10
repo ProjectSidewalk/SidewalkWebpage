@@ -13,6 +13,14 @@
 
 <!DOCTYPE html>
 <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=@{Play.configuration.getString("city-params.google-analytics-4-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '@{Play.configuration.getString("city-params.google-analytics-4-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}');
+    </script>
     <meta charset="utf-8" />
     <title>@title</title>
     <link rel="icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
@@ -28,7 +36,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/backbone-min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@Play.configuration.getString("google-maps-api-key").get&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@Play.configuration.getString("google-maps-api-key").get&language=@lang.code">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/main.css")'>
@@ -37,22 +45,6 @@
     <script src='@routes.Assets.at("javascripts/lib/countUp.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/bowser.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/common/pagetop-padding.js")'></script>
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@@umd_sidewalk">
-    <meta name="twitter:creator" content="@@umd_sidewalk">
-    <meta name="twitter:title" content="Project Sidewalk">
-    <meta name="twitter:description" content="Help us make sidewalks more accessible, for everyone.">
-    @*TODO: url should not be hardcoded*@
-    <meta name="twitter:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
-
-    <!-- Facebook Link Info -->
-    <meta property="og:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
-    <meta property="og:description" content='Help us make sidewalks more accessible, for everyone.' />
-    <meta property="og:url" content="http:/sidewalk.umiacs.umd.edu" />
-    <meta property="og:title" content="Project Sidewalk" />
-
 </head>
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
@@ -75,161 +67,158 @@
         @footer()
     } else {
 
-    <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
+        <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
-    <div class="container" id="footer-container">
-        <div class="row" style="width: 900px; position:relative; left:80px;">
-            <div class="col-sm-4 footerlink">
-                <span class="footerheader">PROJECT SIDEWALK</span><br/>
-                <!-- Back to top<br>-->
-                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">@Messages("footer.about")</a> <br/>
-                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">@Messages("footer.terms")</a> <br/>
-                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">@Messages("footer.help")</a> <br/>
-                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">@Messages("footer.guide")</a> <br/>
-            </div>
-            <div class="col-sm-4 footerlink">
-                <span class="footerheader">@Messages("footer.developer")</span><br/>
-                <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a><br/>
-            </div>
-            <div class="col-sm-4 footerlink">
-                <span class="footerheader">@Messages("footer.connect")</span><br/>
-                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
-                <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
-                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
-                <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.at("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
+        <div class="container" id="footer-container">
+            <div class="row" style="width: 900px; position:relative; left:80px;">
+                <div class="col-sm-4 footerlink">
+                    <span class="footerheader">PROJECT SIDEWALK</span><br/>
+                    <!-- Back to top<br>-->
+                    <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">@Messages("footer.about")</a> <br/>
+                    <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">@Messages("footer.terms")</a> <br/>
+                    <a href='@routes.ApplicationController.help' id="sidewalk-help-link">@Messages("footer.help")</a> <br/>
+                    <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">@Messages("footer.guide")</a> <br/>
+                </div>
+                <div class="col-sm-4 footerlink">
+                    <span class="footerheader">@Messages("footer.developer")</span><br/>
+                    <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a><br/>
+                </div>
+                <div class="col-sm-4 footerlink">
+                    <span class="footerheader">@Messages("footer.connect")</span><br/>
+                    <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
+                    <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
+                    <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
+                    <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.at("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="container" id="info-footer">
-        <br>
-        <p><span id="funding-title">@Messages("footer.funding")</span></p>
-        <div class="row" style="max-width: 900px; margin: 0 auto;">
+        <div class="container" id="info-footer">
+            <br>
+            <p><span id="funding-title">@Messages("footer.funding")</span></p>
+            <div class="row" style="max-width: 1000px; margin: 0 auto;">
+                <div class="col-sm-1">
+                    <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
+                        <img src="@routes.Assets.at("assets/nsf.png")">
+                    </a>
+                </div>
+                <div class="col-sm-3">
+                    <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
+                </div>
+                <div class="col-sm-3">
+                    <a href="https://sloan.org/fellowships/" id ="sloan-link">
+                        <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
+                    </a>
+                </div>
+                <div class="col-sm-2">
+                    <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+                        <img src="@routes.Assets.at("assets/pactrans_logo.png")">
+                    </a>
+                </div>
+                <div class="col-sm-3">
+                    <a href="https://create.uw.edu/" id="create-link">
+                        <img src="@routes.Assets.at("assets/CREATE_logo.png")" style="width: 160px; margin-top: 10px;">
+                    </a>
+                </div>
+            </div>
+            <div class="row" style="max-width: 1000px; margin: 0 auto;">
+                <div class="col-sm-2" id="awardnum">Award #1302338</div>
+                <div class="col-sm-8"></div>
+            </div>
 
-            <div class="col-sm-3">
-                <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
-                    <img src="@routes.Assets.at("assets/nsf.png")">
-                </a>
-            </div>
-            <div class="col-sm-3">
-                <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
-            </div>
-            <div class="col-sm-3">
-                <a href="https://sloan.org/fellowships/" id ="sloan-link">
-                    <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
-                </a>
-            </div>
-            <div class="col-sm-3">
-                <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
-                    <img src="@routes.Assets.at("assets/pactrans_logo.png")">
-                </a>
-            </div>
-
+            @Html(Messages("footer.designed.operated"))<br>
+            <span id="application-version">
+                @Html(Messages("footer.version", VersionTable.currentVersionId(), VersionTable.currentVersionTimestamp()))
+            </span>
         </div>
-        <div class="row" style="max-width: 900px; margin: 0 auto;">
-
-            <div class="col-sm-4" id="awardnum">
-                Award #1302338
-            </div>
-            <div class="col-sm-8">
-
-            </div>
-
-        </div>
-
-        @Html(Messages("footer.designed.operated"))<br>
-        <span id="application-version">
-            @Html(Messages("footer.version", VersionTable.currentVersionId(), VersionTable.currentVersionTimestamp()))
-        </span>
-    </div>
-
-  }
+    }
 
     <script>
+        var oldAnalyticsStr = "@{Play.configuration.getString("city-params.old-google-analytics-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}";
+        if (oldAnalyticsStr) {
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-                        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
                     m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
             })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
-            var analyticsStr = "@{Play.configuration.getString("city-params.google-analytics-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}";
-            ga('create', analyticsStr, 'auto');
+            ga('create', oldAnalyticsStr, 'auto');
             ga('send', 'pageview');
+        }
 
+        // Log clicks on links in the footer to WebpageActivityTable
+        // Depending on column, form of log varies by the following:
+        // Column is 'Project Sidewalk' or "Developer'
+        //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
+        // Column is 'Connect'
+        //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
+        $("#footer-container").on('click', 'a', function(e){
+            var currentRoute = window.location.pathname;
+            var id = e.currentTarget.id.split("-");
+            var column = id[0];
+            var link = id[1];
 
-            // Log clicks on links in the footer to WebpageActivityTable
-            // Depending on column, form of log varies by the following:
-            // Column is 'Project Sidewalk' or "Developer'
-            //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
-            // Column is 'Connect'
-            //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-            $("#footer-container").on('click', 'a', function(e){
-                var currentRoute = window.location.pathname;
-                var id = e.currentTarget.id.split("-");
-                var column = id[0];
-                var link = id[1];
+            var activity = "Click_module=Footer_section="+column+"_";
+            if(column === "sidewalk" || column === "developer"){
+                activity = activity+"target="+link;
+            }
+            else{
+                activity = activity+"platform="+link;
+            }
+            activity = activity + "_route="+currentRoute;
 
-                var activity = "Click_module=Footer_section="+column+"_";
-                if(column === "sidewalk" || column === "developer"){
-                    activity = activity+"target="+link;
+            var url = "/userapi/logWebpageActivity";
+            var async = false;
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: url,
+                type: 'post',
+                data: JSON.stringify(activity),
+                dataType: 'json',
+                success: function(result){},
+                error: function (result) {
+                    console.error(result);
                 }
-                else{
-                    activity = activity+"platform="+link;
-                }
-                activity = activity + "_route="+currentRoute;
+            });
 
-                var url = "/userapi/logWebpageActivity";
-                var async = false;
+            // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+            // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+            if (link === "about") {
                 $.ajax({
                     async: async,
                     contentType: 'application/json; charset=utf-8',
                     url: url,
                     type: 'post',
-                    data: JSON.stringify(activity),
+                    data: JSON.stringify("Visit_About"),
                     dataType: 'json',
                     success: function(result){},
                     error: function (result) {
                         console.error(result);
                     }
                 });
+            }
+        });
 
-                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
-                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
-                if (link === "about") {
-                    $.ajax({
-                        async: async,
-                        contentType: 'application/json; charset=utf-8',
-                        url: url,
-                        type: 'post',
-                        data: JSON.stringify("Visit_About"),
-                        dataType: 'json',
-                        success: function(result){},
-                        error: function (result) {
-                            console.error(result);
-                        }
-                    });
+        // Log clicks on links in the information footer to WebpageActivityTable
+        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/help|...>"
+        $('#info-footer').on('click','a', function(e){
+            var currentRoute = window.location.pathname;
+            var link = e.currentTarget.id.split("-")[0];
+            var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
+            var url = "/userapi/logWebpageActivity";
+            var async = false;
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: url,
+                type: 'post',
+                data: JSON.stringify(activity),
+                dataType: 'json',
+                success: function(result){},
+                error: function (result) {
+                    console.error(result);
                 }
             });
-
-            // Log clicks on links in the information footer to WebpageActivityTable
-            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/help|...>"
-            $('#info-footer').on('click','a', function(e){
-                var currentRoute = window.location.pathname;
-                var link = e.currentTarget.id.split("-")[0];
-                var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
-                var url = "/userapi/logWebpageActivity";
-                var async = false;
-                $.ajax({
-                    async: async,
-                    contentType: 'application/json; charset=utf-8',
-                    url: url,
-                    type: 'post',
-                    data: JSON.stringify(activity),
-                    dataType: 'json',
-                    success: function(result){},
-                    error: function (result) {
-                        console.error(result);
-                    }
-                });
-            });
+        });
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>

@@ -16,7 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
-import models.street.StreetEdgePriorityTable
+import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import play.api.Logger
 import play.api.libs.json._
@@ -32,12 +32,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission], switchToValidation: Boolean)
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission],
+                                 switchToValidation: Boolean, updatedStreets: Option[UpdatedStreets])
 
-  def isAdmin(user: Option[User]): Boolean = user match {
-    case Some(user) =>
-      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
-    case _ => false
+  case class UpdatedStreets(lastPriorityUpdateTime: Long, updatedStreetPriorities: List[StreetEdgePriority]) {
+    def toJSON: JsObject = {
+      Json.obj(
+        "last_priority_update_time" -> lastPriorityUpdateTime,
+        "updated_street_priorities" -> updatedStreetPriorities.map(_.toJSON)
+      )
+    }
   }
 
   /**
@@ -48,29 +52,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
     val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
     Future.successful(Ok(task.toJSON))
-  }
-
-  /**
-    * This endpoint accepts a panoId from the client and returns a JSON payload representing a task created from
-    * the street edge closest to the panoId. Note this method *only* works for panoIds that are part of an active CV
-    * Ground truth mission for the logged-in user.
-    */
-  def getCVGroundTruthTaskByPanoId(panoid: String) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        if (isAdmin(request.identity)) {
-          val task: Option[NewTask] = AuditTaskTable.createCVGroundTruthTaskByPanoId(user, panoid)
-          task match {
-            case Some(t) => Future.successful(Ok(t.toJSON))
-            case None =>
-              Future.successful(BadRequest(Json.obj("success" -> false, "message" -> "Bad request: Could not create a task from the panoId submitted.")))
-          }
-        } else {
-          Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "Must be admin to fetch ground truth task")))
-        }
-      case None =>
-        Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "Cannot get ground truth task for anonymous user.")))
-    }
   }
 
   /**
@@ -136,7 +117,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       } else {
         None
       }
-    } else if (!MissionTable.isCVGroundTruthMission(missionId)){
+    } else {
       if (missionProgress.distanceProgress.isEmpty) Logger.error("Received null distance progress for audit mission.")
       val distProgress: Float = missionProgress.distanceProgress.get
       val auditTaskId: Option[Int] = missionProgress.auditTaskId
@@ -146,8 +127,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       } else {
         MissionTable.updateAuditProgressOnly(userId, missionId, distProgress, auditTaskId)
       }
-    } else {
-      None
     }
   }
 
@@ -237,15 +216,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
-      // Update the MissionTable and get missionId.
-      val isCVGroundTruthMission: Boolean = MissionTable.isCVGroundTruthMission(missionId)
-
-      val possibleNewMission: Option[Mission] = if (!isCVGroundTruthMission) {
-        updateMissionTable(userOption, data.missionProgress)
-      } else {
-        None
-      }
-      // val missionId: Int = updateMissionTable() -- same as updateAuditTaskTable()
+      // Update the MissionTable.
+      val possibleNewMission: Option[Mission] = updateMissionTable(userOption, data.missionProgress)
 
       // Insert the skip information or update task street_edge_assignment_count.completion_count.
       if (data.incomplete.isDefined) {
@@ -279,11 +251,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 None
             }
 
-            var calculatedStreetEdgeId = streetEdgeId;
+            var calculatedStreetEdgeId: Int = streetEdgeId;
             for (point: LabelPointSubmission <- label.points) {
-              if(!point.lat.isEmpty && !point.lng.isEmpty){
-                val possibleStreetEdgeId = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get);
-                if(!possibleStreetEdgeId.isEmpty){
+              if(point.lat.isDefined && point.lng.isDefined){
+                val possibleStreetEdgeId: Option[Int] = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get)
+                if(possibleStreetEdgeId.isDefined){
                   calculatedStreetEdgeId = possibleStreetEdgeId.get
                 }
               }
@@ -292,7 +264,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
               label.photographerHeading, label.photographerPitch, label.panoramaLat,
               label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated,
-              label.tutorial, calculatedStreetEdgeId))
+              label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None))
         }
 
         // Insert label points.
@@ -321,7 +293,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         if (label.temporaryLabel.isDefined) {
-          val tempLabel = label.temporaryLabel.get.value
+          val tempLabel: Boolean = label.temporaryLabel.get.value
           LabelTemporarinessTable.find(labelId) match {
             case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
             case None => LabelTemporarinessTable.save(LabelTemporariness(0, labelId, tempLabel))
@@ -363,7 +335,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Check the presence of the data.
         if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-          val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "", false, Some(timestamp))
+          val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, panorama.imageWidth, panorama.imageHeight,
+            panorama.tileWidth, panorama.tileHeight, panorama.centerHeading, panorama.originHeading,
+            panorama.originPitch, panorama.imageDate, panorama.copyright, false, Some(timestamp))
           GSVDataTable.save(gsvData)
 
           for (link <- panorama.links) {
@@ -375,19 +349,36 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
+      // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
+      val updatedStreets: Option[UpdatedStreets] =
+        if (data.auditTask.requestUpdatedStreetPriority) {
+          // Update the time we performed the query to be now.
+          val newPriorityUpdateTime: Long = Instant.now.toEpochMilli
+
+          // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
+          val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
+          val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
+          val updatedStreetIds: List[Int] = AuditTaskTable.streetsCompletedAfterTime(regionId, lastPriorityUpdateTime)
+          val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
+          Some(UpdatedStreets(newPriorityUpdateTime, updatedStreetPriorities))
+        } else {
+          None
+        }
+
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
-      val switchToValidation = userOption.isDefined &&
+      val switchToValidation: Boolean = userOption.isDefined &&
         userOption.get.role.getOrElse("") == "Turker" &&
         MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
-      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation)
+      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets)
     }
 
     Future.successful(Ok(Json.obj(
       "audit_task_id" -> returnValues.head.auditTaskId,
       "street_edge_id" -> returnValues.head.streetEdgeId,
       "mission" -> returnValues.head.mission.map(_.toJSON),
-      "switch_to_validation" -> returnValues.head.switchToValidation
+      "switch_to_validation" -> returnValues.head.switchToValidation,
+      "updated_streets" -> returnValues.head.updatedStreets.map(_.toJSON)
     )))
   }
 }

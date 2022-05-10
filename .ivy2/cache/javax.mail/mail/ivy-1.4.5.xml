@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="javax.mail"
+		module="mail"
+		revision="1.4.5"
+		status="release"
+		publication="20120323220414"
+	>
+		<license name="CDDL" url="http://www.sun.com/cddl" />
+		<license name="GPLv2+CE" url="https://glassfish.dev.java.net/public/CDDL+GPL.html" />
+		<description homepage="" />
+		<m:properties__mail.version>1.4.5</m:properties__mail.version>
+		<m:properties__activation-api.version>1.1</m:properties__activation-api.version>
+		<m:properties__mail.extensionName>
+	    javax.mail
+	</m:properties__mail.extensionName>
+		<m:dependency.management__com.sun.mail__dsn__version>1.4.5</m:dependency.management__com.sun.mail__dsn__version>
+		<m:properties__javac.path>/opt/jdk1.4/bin/javac</m:properties__javac.path>
+		<m:properties__mail.packages.import>
+	    javax.security.sasl;resolution:=optional,
+	    sun.security.util;resolution:=optional,
+	    *
+	</m:properties__mail.packages.import>
+		<m:dependency.management__com.sun.mail__javax.mail__version>1.4.5</m:dependency.management__com.sun.mail__javax.mail__version>
+		<m:dependency.management__com.sun.mail__taglib__version>1.4.5</m:dependency.management__com.sun.mail__taglib__version>
+		<m:properties__findbugs.version>
+	    RELEASE
+	</m:properties__findbugs.version>
+		<e:sbtTransformHash>cbe9e188e3d9e9eb1247d101e1ea64c16585998b</e:sbtTransformHash>
+		<m:properties__mail.spec.version>1.4</m:properties__mail.spec.version>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.felix__maven-bundle-plugin__null|com.sun.enterprise__osgiversion-maven-plugin__0.4.11|null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.felix__maven-bundle-plugin__null|com.sun.enterprise__osgiversion-maven-plugin__0.4.11|null__maven-compiler-plugin__null|null__maven-jar-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|null__maven-assembly-plugin__null|null__maven-dependency-plugin__null|null__maven-jar-plugin__null</m:maven.plugins>
+		<m:properties__findbugs.threshold>
+	    High
+	</m:properties__findbugs.threshold>
+		<m:properties__mail.implementationTitle>
+	    javax.mail
+	</m:properties__mail.implementationTitle>
+		<m:properties__findbugs.skip>
+	    true
+	</m:properties__findbugs.skip>
+		<m:properties__mail.packages.private>
+	    com.sun.mail.*
+	</m:properties__mail.packages.private>
+		<m:properties__project.build.sourceEncoding>iso-8859-1</m:properties__project.build.sourceEncoding>
+		<m:properties__mail.zipversion>1_4_5</m:properties__mail.zipversion>
+		<m:properties__mail.bundle.symbolicName>
+	    javax.mail
+	</m:properties__mail.bundle.symbolicName>
+		<m:properties__hk2.plugin.version>0.4.11</m:properties__hk2.plugin.version>
+		<m:properties__mail.specificationTitle>
+	    JavaMail(TM) API Design Specification
+	</m:properties__mail.specificationTitle>
+		<m:dependency.management__javax.servlet__servlet-api__version>2.5</m:dependency.management__javax.servlet__servlet-api__version>
+		<m:dependency.management__javax.servlet.jsp__jsp-api__version>2.1</m:dependency.management__javax.servlet.jsp__jsp-api__version>
+		<m:properties__mail.packages.export>
+	    javax.mail.*; version=${mail.spec.version},
+	    com.sun.mail.imap; version=${mail.osgiversion},
+	    com.sun.mail.imap.protocol; version=${mail.osgiversion},
+	    com.sun.mail.iap; version=${mail.osgiversion},
+	    com.sun.mail.pop3; version=${mail.osgiversion},
+	    com.sun.mail.smtp; version=${mail.osgiversion},
+	    com.sun.mail.util; version=${mail.osgiversion},
+	    com.sun.mail.util.logging; version=${mail.osgiversion},
+	    com.sun.mail.handlers; version=${mail.osgiversion}
+	</m:properties__mail.packages.export>
+		<m:dependency.management__com.sun.mail__mbox__version>1.4.5</m:dependency.management__com.sun.mail__mbox__version>
+		<m:properties__jvnetDistMgmtSnapshotsUrl>https://maven.java.net/content/repositories/snapshots/</m:properties__jvnetDistMgmtSnapshotsUrl>
+		<m:properties__mail.probeFile>
+	    META-INF/gfprobe-provider.xml
+	</m:properties__mail.probeFile>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="mail" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="javax.activation" name="activation" rev="1.1" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+	</dependencies>
+</ivy-module>

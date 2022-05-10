@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.slf4j"
 		module="slf4j-parent"
 		revision="1.7.2"
@@ -14,6 +14,7 @@
 		<m:properties__logback.version>1.0.7</m:properties__logback.version>
 		<m:dependency.management__ch.qos.cal10n__cal10n-api__version>0.7.4</m:dependency.management__ch.qos.cal10n__cal10n-api__version>
 		<m:dependency.management__org.slf4j__slf4j-jdk14__version>1.7.2</m:dependency.management__org.slf4j__slf4j-jdk14__version>
+		<e:sbtTransformHash>85cf94fdbd773750ecda050c56bc7b6d8a82f1b8</e:sbtTransformHash>
 		<m:properties__log4j.version>1.2.17</m:properties__log4j.version>
 		<m:properties__cal10n.version>0.7.4</m:properties__cal10n.version>
 		<m:properties__junit.version>4.10</m:properties__junit.version>
@@ -36,10 +37,6 @@
 	<publications>
 	</publications>
 	<dependencies>
-		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(*)"/>
-		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.7.2"/>
-		<override org="org.slf4j" module="slf4j-jdk14" matcher="exact" rev="1.7.2"/>
-		<override org="log4j" module="log4j" matcher="exact" rev="1.2.17"/>
-		<override org="ch.qos.cal10n" module="cal10n-api" matcher="exact" rev="0.7.4"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

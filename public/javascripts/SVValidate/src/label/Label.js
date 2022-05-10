@@ -12,6 +12,9 @@ function Label(params) {
         canvasWidth: undefined,
         canvasX: undefined,
         canvasY: undefined,
+        gsvPanoramaId: undefined,
+        imageDate: undefined,
+        labelTimestamp: undefined,
         heading: undefined,
         labelId: undefined,
         labelType: undefined,
@@ -81,6 +84,8 @@ function Label(params) {
             if ("canvasX" in params) setAuditProperty("canvasX", params.canvasX);
             if ("canvasY" in params) setAuditProperty("canvasY", params.canvasY);
             if ("gsvPanoramaId" in params) setAuditProperty("gsvPanoramaId", params.gsvPanoramaId);
+            if ("imageDate" in params) setAuditProperty("imageDate", params.imageDate);
+            if ("labelTimestamp" in params) setAuditProperty("labelTimestamp", params.labelTimestamp);
             if ("heading" in params) setAuditProperty("heading", params.heading);
             if ("labelId" in params) setAuditProperty("labelId", params.labelId);
             if ("labelId" in params) setProperty("labelId", params.labelId);
@@ -209,7 +214,7 @@ function Label(params) {
      *
      * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
      *
-     * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
+     * @param validationResult  Must be one of the following: {Agree, Disagree, Notsure}.
      */
     function validate(validationResult, comment) {
         // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center

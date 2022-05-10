@@ -88,20 +88,16 @@ function LabelContainer($) {
                 let labelFillStyle = util.misc.getLabelColors()[labelArr[i].labelType].fillStyle;
 
                 var pointParameters = {
+                    'originalPov': originalPointPov.originalPov,
                     'fillStyleInnerCircle': labelFillStyle,
-                    'lineWidthOuterCircle': 2,
                     'iconImagePath': iconImagePath,
-                    'radiusInnerCircle': 13,
-                    'radiusOuterCircle': 14,
-                    'strokeStyleOuterCircle': 'rgba(255,255,255,1)',
-                    'storedInDatabase': true
+                    'radiusInnerCircle': 17,
+                    'radiusOuterCircle': 14
                 };
 
                 let labelPoint = new Point(
                     svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters
                 );
-                
-                labelPoint.setProperties(originalPointPov);
 
                 let path = new Path(svl, [labelPoint]);
                 let label = svl.labelFactory.create(path, labelArr[i]);
@@ -213,11 +209,6 @@ function LabelContainer($) {
         }
     };
 
-    /** Load labels */
-    function load () {
-        currentCanvasLabels = svl.storage.get("labels");
-    }
-
     /**
      * Push a label into canvasLabels
      * @param label
@@ -308,8 +299,4 @@ function LabelContainer($) {
         svl.canvas.render();
         return this;
     };
-
-    function save () {
-        svl.storage.set("labels", currentCanvasLabels);
-    }
 }

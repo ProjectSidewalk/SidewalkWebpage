@@ -3,15 +3,17 @@
  * This is responsible for allowing users to apply filters to specify what types of cards to render in the gallery.
  *
  * @param uiCardFilter UI element representing filter components of sidebar.
- * @param ribbonMenu UI element representing dropdown to select label type in sidebar.
+ * @param labelTypeMenu UI element representing dropdown to select label type in sidebar.
+ * @param cityMenu UI element representing dropdown to select city in sidebar.
  * @returns {CardFilter}
  * @constructor
  */
-function CardFilter(uiCardFilter, ribbonMenu) {
+function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     let self = this;
 
     let status = {
-        currentLabelType: 'Assorted'
+        currentCity: cityMenu.getCurrentCity(),
+        currentLabelType: "Assorted"
     };
 
     // Map label type to their collection of tags.
@@ -23,7 +25,9 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         SurfaceProblem: new TagBucket(),
         Other: new TagBucket(),
         Occlusion: new TagBucket(),
-        NoSidewalk: new TagBucket()
+        NoSidewalk: new TagBucket(),
+        Crosswalk: new TagBucket(),
+        Signal: new TagBucket()
     };
 
     // Tags of the current label type.
@@ -37,7 +41,6 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function _init() {
         getTags(function () {
-            console.log("tags received");
             render();
         });
     }
@@ -49,9 +52,9 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function getTags(callback) {
         $.getJSON("/label/tags", function (data) {
-            let tag,
-                i = 0,
-                len = data.length;
+            let tag;
+            let i = 0;
+            let len = data.length;
             for (; i < len; i++) {
                 tag = new Tag(data[i]);
                 tagsByType[tag.getLabelType()].push(tag);
@@ -62,19 +65,24 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     }
 
     /**
-     * Update filter componenets when label type changes.
+     * Update filter components when city or label type changes.
      */
     function update() {
-        let currentLabelType = ribbonMenu.getCurrentLabelType();
-        if (status.currentLabelType !== currentLabelType) {
-            clearCurrentTags();
-            severities.unapplySeverities();
-            setStatus('currentLabelType', currentLabelType);
-            currentTags = tagsByType[currentLabelType];
-            sg.cardContainer.updateCardsByType();
+        let currentCity = cityMenu.getCurrentCity();
+        if (status.currentCity !== currentCity) {
+            // Future: add URI parameters to link.
+            window.location.href = currentCity + '/gallery?label=' + status.currentLabelType;
+        } else {
+            let currentLabelType = labelTypeMenu.getCurrentLabelType();
+            if (status.currentLabelType !== currentLabelType) {
+                clearCurrentTags();
+                severities.unapplySeverities();
+                setStatus('currentLabelType', currentLabelType);
+                currentTags = tagsByType[currentLabelType];
+                sg.cardContainer.updateCardsByType();
+            }
+            render();
         }
-
-        render();
     }
 
     /**
@@ -88,12 +96,19 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         } else {
             $("#tags-header").hide();
         }
-        if (status.currentLabelType == "Occlusion") {
+        if (status.currentLabelType === "Occlusion") {
             $("#filters").hide();
             $("#horizontal-line").hide();
         } else {
             $("#filters").show();
             $("#horizontal-line").show();
+            if (status.currentLabelType === 'Signal') {
+                $('#severity-header').hide();
+                $('#severity-select').hide();
+            } else {
+                $('#severity-header').show();
+                $('#severity-select').show();
+            }
         }
 
         severities.render(uiCardFilter.severity);
@@ -162,8 +177,6 @@ function CardFilter(uiCardFilter, ribbonMenu) {
      */
     function unapplyTags(labelType) {
         if (labelType != null) {
-            console.log("tags unapplied");
-            console.log(labelType);
             tagsByType[labelType].unapplyTags();
         }
     }

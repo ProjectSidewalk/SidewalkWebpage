@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="net.sf.ehcache"
 		module="ehcache-parent"
 		revision="2.5"
@@ -20,6 +20,7 @@
 		<m:properties__skipDeploy>false</m:properties__skipDeploy>
 		<m:properties__terracotta-releases-url>http://nexus.terracotta.lan:8080/content/repositories/terracotta-releases</m:properties__terracotta-releases-url>
 		<m:properties__terracotta-staging-url>http://nexus.terracotta.lan:8080/content/repositories/terracotta-staging</m:properties__terracotta-staging-url>
+		<e:sbtTransformHash>1bee881578ae7e5cce0b1a33ba33f4c4f60d8904</e:sbtTransformHash>
 		<m:properties__checkstyle-version>1.0</m:properties__checkstyle-version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-javadoc-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__2.3.2|org.apache.maven.plugins__maven-deploy-plugin__null|org.terracotta__maven-forge-plugin__1.0.9</m:maven.plugins>
 		<m:properties__checkstyle-artifactId>terracotta-checkstyle</m:properties__checkstyle-artifactId>

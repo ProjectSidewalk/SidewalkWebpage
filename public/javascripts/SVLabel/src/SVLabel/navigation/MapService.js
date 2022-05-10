@@ -9,16 +9,8 @@
  * @constructor
  */
 function MapService (canvas, neighborhoodModel, uiMap, params) {
-    // abbreviated dates for panorama date overlay
-    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
     var self = { className: 'Map' },
         _canvas = canvas,
-        mapIconInterval,
-        lock = {
-            renderLabels : false
-        },
-        markers = [],
         prevPanoId = undefined,
         properties = {
             browser : 'unknown',
@@ -36,14 +28,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             minPitch: -35,
             minHeading: undefined,
             maxHeading: undefined,
-            mode : 'Labeling',
             isInternetExplore: undefined
         },
         status = {
             currentPanoId: undefined,
             disablePanning: false,
             disableWalking : false,
-            disableClickZoom: false,
             hideNonavailablePanoLinks : false,
             lockDisablePanning: false,
             lockDisableWalking : false,
@@ -58,12 +48,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         },
         jumpLocation = undefined,
         missionJump = undefined,
-        wasOpen = false;
+        contextMenuWasOpen = false,
+        _stuckPanos = [];
 
     var initialPositionUpdate = true,
         panoramaOptions,
         STREETVIEW_MAX_DISTANCE = 50,
-        ONE_STEP_DISTANCE_IN_M = 3,
+        END_OF_STREET_THRESHOLD = 25, // Distance from the endpoint of the street when we consider it complete (meters).
         googleMapsPaneBlinkInterval,
         moveDelay = 800; //delayed move
     //Move delay exists because too quick navigation causes rendering issues/black screens with no panos
@@ -75,20 +66,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // svl.map.setStatus("povChange", true); Instead of povChange["status"] = true;
     var povChange = {
         status: false
-    };
-
-    var panoChange = {
-        status: false,
-        initialPos: {
-            pano: undefined,
-            location: undefined,
-            resolved: false
-        },
-        newPos: {
-            pano: undefined,
-            location: undefined,
-            applied: false
-        }
     };
 
     // Mouse status and mouse event callback functions
@@ -106,9 +83,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     // Maps variables
     var fenway, map, mapOptions, mapStyleOptions;
-
-    // Street View variables
-    var _streetViewInit;
 
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
@@ -145,7 +119,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         streetViewControl:true,
         zoomControl:false,
         zoom: 18,
-        backgroundColor: "none"
+        backgroundColor: "none",
+        disableDefaultUI: true
     };
 
     var mapCanvas = document.getElementById("google-maps");
@@ -233,6 +208,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         uiMap.viewControlLayer[0].onselectstart = function () { return false; };
 
+        // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
+        // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
+        // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
+        $(window).on('resize', function() {
+            updatePov(.01,.01);
+        });
 
         // Add listeners to the SV panorama
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
@@ -240,18 +221,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
             google.maps.event.addListener(svl.panorama, "position_changed", handlerPositionUpdate);
             google.maps.event.addListener(svl.panorama, "pano_changed", handlerPanoramaChange);
-            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", modeSwitchWalkClick);
+            google.maps.event.addListenerOnce(svl.panorama, "pano_changed", switchToExploreMode);
         }
 
-        // Connect the map view and panorama view
+        // Connect the map view and panorama view.
         if (map && svl.panorama) map.setStreetView(svl.panorama);
-
-        // Set it to walking mode initially.
-
-        _streetViewInit = setInterval(initStreetView, 100);
-
-        // Hide the dude on the top-left of the map.
-        mapIconInterval = setInterval(_removeIcon, 0.2);
 
         // For Internet Explore, append an extra canvas in view-control-layer.
         properties.isInternetExplore = $.browser['msie'];
@@ -305,8 +279,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-    /*
-       Disable walking thoroughly and indicate that user is moving.
+    /**
+     * Disable walking thoroughly and indicate that user is moving.
      */
     function timeoutWalking() {
         svl.panorama.set('linksControl', false);
@@ -314,8 +288,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         disableWalking();
         svl.keyboard.setStatus("moving", true);
     }
-    /*
-     Enable walking and indicate that user has finished moving.
+
+    /**
+     * Enable walking and indicate that user has finished moving.
      */
     function resetWalking() {
         svl.panorama.set('linksControl', true);
@@ -324,34 +299,31 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.keyboard.setStatus("moving", false);
     }
 
-
     /*
-     * Get the status of the labelBeforeJump listener
+     * Get the status of the labelBeforeJump listener.
      */
     function getLabelBeforeJumpListenerStatus() {
         return status.labelBeforeJumpListenerSet;
     }
 
     /*
-     * Set the status of the labelBeforeJump listener
+     * Set the status of the labelBeforeJump listener.
      */
     function setLabelBeforeJumpListenerStatus(statusToSet) {
         status.labelBeforeJumpListenerSet = statusToSet;
     }
 
     /**
-     * A helper function to move a user to the task location
+     * A helper function to move a user to the task location.
      * @param task
      * @param caller
      * @private
      */
     function moveToTheTaskLocation(task, caller) {
-
-        // Reset all jump parameters
+        // Reset all jump parameters.
         if (status.labelBeforeJumpListenerSet) {
             setLabelBeforeJumpListenerStatus(false);
             resetBeforeJumpLocationAndListener();
-            //console.log("Jumped to street: " + task.getStreetEdgeId());
         }
 
         var callback = function (data, status) {
@@ -359,7 +331,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 util.misc.reportNoStreetView(task.getStreetEdgeId());
                 svl.taskContainer.endTask(task);
 
-                // Get a new task and repeat
+                // Get a new task and repeat.
                 task = svl.taskContainer.nextTask(task);
                 svl.taskContainer.setCurrentTask(task);
                 if (caller !== undefined) {
@@ -391,62 +363,31 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 status.jumpImageryNotFoundStatus = false;
             }
         }
-
-        /*
-        if (status.labelBeforeJumpListenerSet) {
-            setLabelBeforeJumpListenerStatus(false);
-            if ("compass" in svl) {svl.compass.update();}
-        }*/
     }
 
     /**
-     * A helper method to remove icons on Google Maps
+     * Blink google maps pane.
      */
-    function _removeIcon() {
-        var doms = $('.gmnoprint'), $images;
-        if (doms.length > 0) {
-            window.clearInterval(mapIconInterval);
-            $.each($('.gmnoprint'), function (i, v) {
-                $images = $(v).find('img');
-                if ($images) $images.css('visibility', 'hidden');
-            });
-        }
-    }
-
-    /**
-     * Blink google maps pane
-     */
-    function blinkGoogleMaps () {
+    function blinkGoogleMaps() {
         stopBlinkingGoogleMaps();
         googleMapsPaneBlinkInterval = window.setInterval(function () {
             svl.ui.googleMaps.overlay.toggleClass("highlight-50");
         }, 500);
     }
 
-    function destroyMaps() {
-        hideGoogleMaps();
-    }
-
-    function hideGoogleMaps () {
+    function hideGoogleMaps() {
         svl.ui.googleMaps.holder.hide();
     }
 
-    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
-        destroyMaps();
+    svl.neighborhoodModel.on("Neighborhood:completed", function() {
+        hideGoogleMaps();
     });
-
-    /**
-     * This method disables zooming by double click.
-     */
-    function disableClickZoom () {
-        status.disableClickZoom = true;
-    }
 
     /**
      * Disable panning on Street View
      * @returns {disablePanning}
      */
-    function disablePanning () {
+    function disablePanning() {
         if (!status.lockDisablePanning) {
             status.disablePanning = true;
         }
@@ -457,28 +398,23 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * This method disables walking by hiding links towards other Street View panoramas.
      * @returns {disableWalking}
      */
-    function disableWalking () {
+    function disableWalking() {
         if (!status.lockDisableWalking) {
-            // Disable clicking links and changing POV
+            // Disable clicking links and changing POV.
             hideLinks();
             uiMap.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
+            // Disable forward and backwards keys
+            svl.keyboard.setStatus("disableMovement", true);
         }
         return this;
     }
 
     /**
-     * This method enables zooming by double click.
-     */
-    function enableClickZoom () {
-        status.disableClickZoom = false;
-    }
-
-    /**
-     * Enable panning on Street View
+     * Enable panning on Street View.
      * @returns {enablePanning}
      */
-    function enablePanning () {
+    function enablePanning() {
         if (!status.lockDisablePanning) {
             status.disablePanning = false;
         }
@@ -488,47 +424,25 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * This method enables walking to other panoramas by showing links.
      */
-    function enableWalking () {
+    function enableWalking() {
         // This method shows links on SV and enables users to walk.
         if (!status.lockDisableWalking) {
-            // Enable clicking links and changing POV
-            showLinks();
+            // Enable clicking links and changing POV.
+            showNavigationArrows();
             uiMap.modeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
+            // Enable forward and backward keys
+            svl.keyboard.setStatus("disableMovement", false);
         }
         return this;
     }
 
     /**
-     * Get the google map
+     * Get the google map.
      * @returns {null}
      */
     function getMap() {
         return map;
-    }
-
-    /**
-     * Get the max pitch
-     * @returns {number}
-     */
-    function getMaxPitch () {
-        return properties.maxPitch;
-    }
-
-    /**
-     * Get the minimum pitch
-     * @returns {number|*}
-     */
-    function getMinPitch () {
-        return properties.minPitch;
-    }
-
-    /**
-     * Returns a panorama dom element that is dynamically created by GSV API
-     * @returns {*}
-     */
-    function getPanoramaLayer () {
-        return uiMap.pano.children(':first').children(':first').children(':first').children(':eq(5)');
     }
 
     /**
@@ -540,19 +454,19 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Get the current latlng coordinate
+     * Get the current latlng coordinate.
      * @returns {{lat: number, lng: number}}
      */
-    function getPosition () {
+    function getPosition() {
         var pos = svl.panorama.getPosition();
         return { 'lat' : pos.lat(), 'lng' : pos.lng() };
     }
 
     /**
-     * Get the current point of view
+     * Get the current point of view.
      * @returns {object} pov
      */
-    function getPov () {
+    function getPov() {
         if ("panorama" in svl) {
             var pov = svl.panorama.getPov();
 
@@ -574,7 +488,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param prop
      * @returns {*}
      */
-    function getProperty (prop) {
+    function getProperty(prop) {
         return (prop in properties) ? properties[prop] : false;
     }
 
@@ -582,84 +496,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Get svg element (arrows) in Street View.
      * @returns {*}
      */
-    function getLinkLayer () {
+    function getNavArrowsLayer() {
         return uiMap.pano.find('svg').parent();
+    }
+
+    /**
+     * Get layer of bottom terms/report a problem links.
+     * @returns {*}
+     */
+    function getBottomLinkLayer() {
+        return $('.gm-style-cc').slice(1, 3);
     }
 
     self.getStatus = function (key) {
         return status[key];
     };
-
-    /**
-     * This function takes a step in the given direction
-     * https://developers.google.com/maps/documentation/javascript/geometry#Navigation
-     *
-     * @param currentPosition
-     * @param heading
-     * @returns {*}
-     */
-    function _takeAStep(currentPosition, heading) {
-        return google.maps.geometry.spherical.computeOffset(currentPosition, ONE_STEP_DISTANCE_IN_M, heading);
-    }
-
-    /**
-     * Find a pano location where there is imagery available
-     *
-     * Mar 27: Currently not being used. A simple fix has been applied in the handlerPanoramaChange()
-     * where this function was originally intended to be called.
-     *
-     * @param currentPosition
-     * @param heading
-     * @param round
-     */
-    function findPanoramaWhereImageryExists(currentPosition, heading, round) {
-        // Loop through 3 steps from the current position
-        // and find if panorama exists. If no panorama found,
-        // then skip to a random location within the neighborhood
-        if (round === undefined) round = 1;
-
-        var rId = util.generateAlphaNumId();
-
-        console.log("[" + rId + "]\n Pano: " + getPanoId() + "\nCurrent Position: " + currentPosition +
-                    "\nHeading: " + heading);
-
-        // Check for the next step
-        var newLatLng = _takeAStep(currentPosition, heading);
-
-        // Calculation from http://www.movable-type.co.uk/scripts/latlong.html
-        // For final bearing, simply take the initial bearing from the end point
-        // to the start point and reverse it with (brng+180)%360.
-        var newHeading = google.maps.geometry.spherical.computeHeading(newLatLng, currentPosition);
-        newHeading = (newHeading + 180) % 360; // New Heading
-
-        console.log("[" + rId + "]\n Pano: " + getPanoId() + "\nNewLatLng:" + JSON.stringify(newLatLng));
-
-        if (svl.streetViewService) {
-            svl.streetViewService.getPanorama({location: newLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
-                function (data, status) {
-                    console.error("[" + rId + "]\nPano:" + getPanoId() + " Round:" + round + " LOC:Status: " + status);
-
-                    if (status === google.maps.StreetViewStatus.OK) {
-                        // Move to that location
-                        console.error("[" + rId + "]\nPano: " + getPanoId() + " Panorama found at location: " + JSON.stringify(newLatLng));
-                        var lat = newLatLng.lat(), lng = newLatLng.lng();
-                        self.setPosition(lat, lng);
-                    }
-                    else {
-                        console.error("[" + rId + "]\nPano:" + getPanoId() + " Panorama not found at location: " + JSON.stringify(newLatLng));
-                        svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(newLatLng)});
-
-                        if (round < 3) {
-                            findPanoramaWhereImageryExists(newLatLng, newHeading, round + 1);
-                        } else {
-                            jumpImageryNotFound();
-                            console.error("[" + rId + "]\nPano: " + getPanoId() + " Position Updated");
-                        }
-                    }
-                }
-            );
-        }
-    }
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
@@ -672,20 +523,18 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     function _jumpToNewLocation() {
-
-        // Finish the current task
+        // Finish the current task.
         var currentMission = svl.missionContainer.getCurrentMission();
         if (currentMission) {
             finishCurrentTaskBeforeJumping(currentMission);
 
-            // Get a new task and jump to the new task location
+            // Get a new task and jump to the new task location.
             var currentTask = svl.taskContainer.getCurrentTask();
             var newTask = svl.taskContainer.nextTask(currentTask);
             if (newTask) {
                 _jumpToNewTask(newTask, "jumpImageryNotFound");
-
             } else {
-                // Complete current neighborhood if no new task available
+                // Complete current neighborhood if no new task available.
                 finishNeighborhood();
                 status.jumpImageryNotFoundStatus = true;
             }
@@ -696,7 +545,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     /**
      *  Callback for when there is no panorama imagery found.
-     *  A popup message is shown. When the user clicks okay, the user is moved to a new location
+     *  A popup message is shown. When the user clicks okay, the user is moved to a new location.
      *  Issue #537
      */
     function jumpImageryNotFound() {
@@ -705,51 +554,45 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var currentNeighborhoodName = currentNeighborhood.getProperty("name");
 
         var title = "Error in Google Street View";
-        var message = "Uh-oh, something went wrong with Google Street View. " +
-            "This is not your fault, but we will need to move you to another location in the " +
-            currentNeighborhoodName + " neighborhood. Keep up the good work!";
-        svl.panorama.set('linksControl', false);//disable arrows
-        disableWalking(); //disable walking
-        disablePanning(); //disable panning
-        svl.canvas.disableLabeling(); //disable labeling
+        var message = "Uh-oh, something went wrong with Google Street View. This is not your fault, but we will need " +
+            "to move you to another place in the " + currentNeighborhoodName + " neighborhood. Keep up the good work!";
+        svl.panorama.set('linksControl', false); // Disable navigation arrows.
+        disableWalking();
+        disablePanning();
+        svl.canvas.disableLabeling();
 
         var callback = function () {
-            enableWalking(); //enable walking
-            enablePanning(); //panning
+            enableWalking();
+            enablePanning();
             svl.canvas.enableLabeling();
 
             _jumpToNewLocation();
             var afterJumpStatus = status.jumpImageryNotFoundStatus;
 
             if (!afterJumpStatus) {
-                // Find another location
-                _jumpToNewLocation();// Reset variable after the jump
-                status.jumpImageryNotFoundStatus = undefined;
+                // Find another location.
+                _jumpToNewLocation();
+                status.jumpImageryNotFoundStatus = undefined; // Reset variable after the jump.
             }
             else {
-                // Reset variable after the jump
-                status.jumpImageryNotFoundStatus = undefined;
+                status.jumpImageryNotFoundStatus = undefined; // Reset variable after the jump.
             }
-            svl.panorama.set('linksControl', true); //enable arrows
+            svl.panorama.set('linksControl', true); // Enable navigation arrows.
             svl.panorama.setVisible(true);
-            //handlerPanoramaChange();//refresh pano ID, etc
         };
 
         svl.popUpMessage.notify(title, message, callback);
-
     }
 
-    /***
-     * Initiate imagery not found mechanism
+    /**
+     * Initiate imagery not found mechanism.
      */
     function handleImageryNotFound(panoId, panoStatus) {
-        // Imagery not found
         var currentTask = svl.taskContainer.getCurrentTask();
         if (currentTask) {
             util.misc.reportNoStreetView(currentTask.getStreetEdgeId());
             console.error("Error Type: " + JSON.stringify(panoStatus) +
-                "\nNo street view found at this location: " + panoId + " street " +
-                currentTask.getStreetEdgeId() +
+                "\nNo Street View found at this location: " + panoId + " street " + currentTask.getStreetEdgeId() +
                 "\nNeed to move to a new location.");
         }
 
@@ -757,17 +600,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         // Move to a new location
         jumpImageryNotFound();
-
-        // Sophisticated Fix - Find pano along the route first before jumping
-        // var pov = getPov();
-        // findPanoramaWhereImageryExists(panoramaPosition, pov.heading);
     }
 
     /**
      * Callback for pano_changed event (https://developers.google.com/maps/documentation/javascript/streetview).
      * Update the map pane, and also query data for the new panorama.
      */
-    function handlerPanoramaChange () {
+    function handlerPanoramaChange() {
         if (svl.panorama) {
             var panoId = getPanoId();
 
@@ -778,42 +617,30 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 return;
             }
 
-            if (svl.streetViewService && panoId.length > 0) {
-                // Check if panorama exists
+            // Checks if pano_id is the same as the previous one. Google Maps API triggers pano_changed event twice:
+            // once moving between pano_ids and once for setting the new pano_id.
+            if (svl.streetViewService && panoId.length > 0 && panoId !== prevPanoId) {
+                // Check if panorama exists.
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            // Mark that we visited this pano so that we can tell if they've gotten stuck.
+                            svl.stuckAlert.panoVisited(panoId);
+
                             // Updates the date overlay to match when the current panorama was taken.
                             document.getElementById("svl-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
-                            var panoramaPosition = svl.panorama.getPosition(); // Current Position
+                            var panoramaPosition = svl.panorama.getPosition(); // Current position.
                             map.setCenter(panoramaPosition);
 
                             povChange["status"] = true;
-
                             _canvas.clear();
                             _canvas.setVisibilityBasedOnLocation('visible', panoId);
                             _canvas.render2();
-
                             povChange["status"] = false;
 
-                            // Attach listeners to svl.pointCloud
-                            if ('pointCloud' in svl && svl.pointCloud) {
-                                var pointCloud = svl.pointCloud.getPointCloud(panoId);
-                                if (!pointCloud) {
-                                    svl.pointCloud.createPointCloud(panoId);
-                                    // svl.pointCloud.ready(panoId, function () {
-                                    // console.log(svl.pointCloud.getPointCloud(panoId));
-                                    //});
-                                }
-                            }
+                            svl.tracker.push("PanoId_Changed");
+                            prevPanoId = panoId;
 
-                            // Checks if pano_id is the same as the previous one.
-                            // Google maps API triggers the pano_changed event twice: once moving
-                            // between pano_ids  and once for setting the new pano_id.
-                            if (panoId !== prevPanoId) {
-                                svl.tracker.push("PanoId_Changed");
-                                prevPanoId = panoId;
-                            }
                         } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
                             document.getElementById("svl-panorama-date").innerText = "May 2014";
                         } else {
@@ -828,27 +655,26 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         } else {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
-
     }
 
     function finishNeighborhood() {
         var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-        svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
-        svl.tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
+        svl.neighborhoodModel.neighborhoodCompleted();
+        svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': currentNeighborhoodId });
     }
 
     function finishCurrentTaskBeforeJumping(mission, nextTask) {
         if (mission === undefined) {
             mission = missionJump;
         }
-        // Finish the current task
+        // Finish the current task.
         var currentTask = svl.taskContainer.getCurrentTask();
         svl.taskContainer.endTask(currentTask, nextTask);
         mission.pushATaskToTheRoute(currentTask);
     }
 
-    function _endTheCurrentTask(task, mission, neighborhood) {
+    function _endTheCurrentTask(task, mission) {
 
         if (!status.labelBeforeJumpListenerSet) {
 
@@ -891,18 +717,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Callback to track when user moves away from his current location
+     * Callback to track when user moves away from their current location.
      */
     function trackBeforeJumpActions() {
-
-        // This is a callback function that is called each time the user moves
-        // before jumping and checks if too far
-
-        // Don't auto-jump in CV ground truth audits.
-        if (svl.isCVGroundTruthAudit) {
-            return;
-        }
-
         if (status.labelBeforeJumpListenerSet) {
             var currentLatLng = getPosition(),
                 currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
@@ -911,9 +728,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             // Jump to the new location if it's really far away from his location.
             if (!status.jumpMsgShown && distance >= 0.01) {
-                //console.log("Jump message shown at " + distance)
 
-                // Show message to the user instructing him to label the current location
+                // Show message to the user instructing them to label the current location.
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
                 status.jumpMsgShown = true
@@ -996,22 +812,22 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if ("taskContainer" in svl) {
                 svl.taskContainer.update();
 
-                // End of the task if the user is close enough to the end point
+                // End of the task if the user is close enough to the end point.
                 var task = svl.taskContainer.getCurrentTask();
-                if (task && task.isAtEnd(position.lat(), position.lng(), 25)) {
-                    _endTheCurrentTask(task, currentMission, neighborhood);
+                if (task && task.isAtEnd(position.lat(), position.lng(), END_OF_STREET_THRESHOLD)) {
+                    _endTheCurrentTask(task, currentMission);
                 }
             }
             svl.missionModel.updateMissionProgress(currentMission, neighborhood);
         }
 
-        // Set the heading angle when the user is dropped to the new position
+        // Set the heading angle when the user is dropped to the new position.
         if (initialPositionUpdate && 'compass' in svl) {
             setPovToRouteDirection();
             initialPositionUpdate = false;
         }
 
-        // Calling callbacks for position_changed event
+        // Calling callbacks for position_changed event.
         for (var i = 0, len = positionUpdateCallbacks.length; i < len; i++) {
             var callback = positionUpdateCallbacks[i];
             if (typeof callback == 'function') {
@@ -1021,10 +837,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Callback for pov update
+     * Callback for pov update.
      */
-    function handlerPovChange () {
-        // This is a callback function that is fired when pov is changed
+    function handlerPovChange() {
         povChange["status"] = true;
         updateCanvas();
         povChange["status"] = false;
@@ -1034,71 +849,32 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This is a callback function that is fired with the mouse down event
-     * on the view control layer (where you control street view angle.)
+     * Callback that is fired with the mouse down event on the view control layer (where you control street view angle).
      * @param e
      */
-    function handlerViewControlLayerMouseDown (e) {
+    function handlerViewControlLayerMouseDown(e) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
-
-        // Setting a cursor (crosshair cursor instead of correct zoom out png)
-        // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-        //if (svl.keyboard.isShiftDown()) {
-        //    setViewControlLayerCursor('ZoomOut');
-        //} else {
         setViewControlLayerCursor('ClosedHand');
-        //}
 
-        // Adding delegation on SVG elements
-        // http://stackoverflow.com/questions/14431361/event-delegation-on-svg-elements
-        // Or rather just attach a listener to svg and check it's target.
-        if (!status.panoLinkListenerSet) {
-            try {
-                $('svg')[0].addEventListener('click', function (e) {
-                    var targetPanoId = e.target.getAttribute('pano');
-                    if (targetPanoId) {
-                        svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
-                    }
-                });
-
-                status.panoLinkListenerSet = true;
-            } catch (err) {
-
-            }
-        }
-
-        //This is necessary for supporting touch devices, because there is no mouse hover
+        // This is necessary for supporting touch devices, because there is no mouse hover.
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
     }
 
     /**
-     * This is a callback function that is called with mouse up event on
-     * the view control layer (where you change the Google Street view angle.
+     * Callback on mouse up event on the view control layer (where you change the Google Street view angle).
      * @param e
      */
-    function handlerViewControlLayerMouseUp (e) {
-        var currTime;
-
+    function handlerViewControlLayerMouseUp(e) {
         mouseStatus.isLeftDown = false;
         mouseStatus.leftUpX = mouseposition(e, this).x;
         mouseStatus.leftUpY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
-
-        // Setting a mouse cursor (crosshair cursor instead of correct zoom out png)
-        // http://www.jaycodesign.co.nz/css/cross-browser-css-grab-cursors-for-dragging/
-        //if (!svl.keyboard.isShiftDown()) {
         setViewControlLayerCursor('OpenHand');
-            // uiMap.viewControlLayer.css("cursor", "url(public/img/cursors/openhand.cur) 4 4, move");
-        //} else {
-        //    setViewControlLayerCursor('ZoomOut');
-        //}
-
-
-        currTime = new Date().getTime();
+        var currTime = new Date().getTime();
 
         var point = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
         if (point && point.className === "Point") {
@@ -1109,121 +885,43 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
-              if (wasOpen) {
-                svl.contextMenu.hide();
-              } else {
-                svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
-                    targetLabel: selectedLabel,
-                    targetLabelColor: selectedLabel.getProperty("labelFillStyle")
-                });
-
-                var labelType = selectedLabel.getProperty("labelType");
-                if (labelType === "Other") {
-                  // No tooltips for other.
-                  $('#severity-one').tooltip('destroy');
-                  $('#severity-three').tooltip('destroy');
-                  $('#severity-five').tooltip('destroy');
+                if (contextMenuWasOpen) {
+                    svl.contextMenu.hide();
                 } else {
-                  // Update tooltips.
-                  $('#severity-one').tooltip('destroy').tooltip({
-                      placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                      title: i18next.t('center-ui.context-menu.severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.png' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
-                  });
-                  $('#severity-three').tooltip('destroy').tooltip({
-                      placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                      title: i18next.t('center-ui.context-menu.severity-example', {n: 3}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.png' height='110' alt='CRseverity 3'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
-                  });
-                  $('#severity-five').tooltip('destroy').tooltip({
-                      placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                      title: i18next.t('center-ui.context-menu.severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.png' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('center-ui.context-menu.severity-shortcuts') + "</i>"
-                  });
+                    svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
+                        targetLabel: selectedLabel,
+                        targetLabelColor: selectedLabel.getProperty("labelFillStyle")
+                    });
                 }
-              }
-              wasOpen = false;
+                contextMenuWasOpen = false;
             }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
-            // Double click
+            // Continue logging double click. We don't have any features for it now, but it's good to know how
+            // frequently people are trying to double-click. They might be trying to zoom?
             svl.tracker.push('ViewControl_DoubleClick');
-            if (!status.disableClickZoom) {
-
-                if (svl.keyboard.isShiftDown()) {
-                    // If Shift is down, then zoom out with double click.
-                    svl.zoomControl.zoomOut();
-                    svl.tracker.push('ViewControl_ZoomOut');
-                } else {
-                    // If Shift is up, then zoom in wiht double click.
-                    svl.zoomControl.pointZoomIn(mouseStatus.leftUpX, mouseStatus.leftUpY);
-                    svl.tracker.push('ViewControl_ZoomIn');
-                }
-            } else {
-                // Double click to walk. First check whether Street View is available at the point where user has
-                // double clicked. If a Street View scene exists and the distance is below STREETVIEW_MAX_DISTANCE (50 meters),
-                // then jump to the scene
-                if (!status.disableWalking) {
-                    var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate (mouseStatus.currX, mouseStatus.currY, getPov()),
-                        latlng = getPosition(),
-                        newLatlng = imageCoordinateToLatLng(imageCoordinate.x, imageCoordinate.y, latlng.lat, latlng.lng);
-                    if (newLatlng) {
-                        var distance = util.math.haversine(latlng.lat, latlng.lng, newLatlng.lat, newLatlng.lng);
-                        if (distance < STREETVIEW_MAX_DISTANCE) {
-                            svl.streetViewService.getPanorama({location: new google.maps.LatLng(newLatlng.lat, newLatlng.lng),
-                                radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
-                                if (status === google.maps.StreetViewStatus.OK) {
-                                    self.setPano(streetViewPanoramaData.location.pano);
-                                    //self.handlerPositionUpdate();
-                                }
-                                else {
-                                    var currentTask = svl.taskContainer.getCurrentTask();
-                                    if (currentTask) {
-                                        util.misc.reportNoStreetView(currentTask.getStreetEdgeId());
-                                        console.error("Error Type:" + JSON.stringify(status)  +
-                                            "\nNo street view found at this location: " + newLatlng +
-                                            " street " + currentTask.getStreetEdgeId() +
-                                            "\nNeed to move to a new location.");
-
-                                    }
-                                    svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(newLatlng)});
-
-                                    // Move to a new location
-                                    jumpImageryNotFound();
-
-                                }
-                            });
-                        }
-                    }
-                }
-            }
         }
-
-
         setViewControlLayerCursor('OpenHand');
         mouseStatus.prevMouseUpTime = currTime;
     }
 
-    /**
-     *
-     * @param e
-     */
-    function handlerViewControlLayerMouseLeave (e) {
+    function handlerViewControlLayerMouseLeave(e) {
         setViewControlLayerCursor('OpenHand');
         mouseStatus.isLeftDown = false;
     }
 
     /**
-     * This is a callback function that is fired when a user moves a mouse on the
-     * view control layer where you change the pov.
+     * Callback that is fired when a user moves a mouse on the view control layer where you change the pov.
      */
-    function handlerViewControlLayerMouseMove (e) {
+    function handlerViewControlLayerMouseMove(e) {
         mouseStatus.currX = mouseposition(e, this).x;
         mouseStatus.currY = mouseposition(e, this).y;
 
-        // Show a link and fade it out
+        // Show/hide navigation arrows.
         if (!status.disableWalking) {
-            showLinks(2000);
+            showNavigationArrows();
         } else {
             hideLinks();
         }
-
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
@@ -1239,10 +937,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             updatePov(dx, dy);
         }
 
-        // Show label delete menu
+        // Show label delete menu.
         var item = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
         if (item && item.className === "Point") {
-            // console.log("On a point");
             var path = item.belongsTo();
             var selectedLabel = path.belongsTo();
 
@@ -1271,102 +968,56 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
 
     /**
-     * This method hides links to neighboring Street View images by changing the
-     * svg path elements.
+     * This method hides links to neighboring Street View images by changing the svg path elements.
      *
      * @returns {hideLinks} This object.
      */
-    function hideLinks () {
+    function hideLinks() {
         var $paths = $("#view-control-layer").find('path');
         $paths.css('visibility', 'hidden');
         $paths.css('pointer-events', 'none');
-        // if (properties.browser === 'chrome') {
-        //     // Somehow chrome does not allow me to select path
-        //     // and fadeOut. Instead, I'm just manipulating path's style
-        //     // and making it hidden.
-        //
-        //     $paths.css('visibility', 'hidden');
-        // } else {
-        //     // $('path').fadeOut(1000);
-        //     $paths.css('visibility', 'hidden');
-        // }
         return this;
     }
 
     /**
-     * This method takes an image coordinate and map it to the corresponding latlng position
-     * @param imageX image x coordinate
-     * @param imageY image y coordinate
-     * @param lat current latitude of where you are standing
-     * @param lng current longitude of where you are standing
-     * @returns {*}
-     */
-    function imageCoordinateToLatLng(imageX, imageY, lat, lng) {
-        var pc = svl.pointCloud.getPointCloud(getPanoId());
-        if (pc) {
-            var p = util.scaleImageCoordinate(imageX, imageY, 1 / 26),
-                idx = 3 * (Math.ceil(p.x) + 512 * Math.ceil(p.y)),
-                dx = pc.pointCloud[idx],
-                dy = pc.pointCloud[idx + 1],
-                delta = util.math.latlngOffset(lat, dx, dy);
-            return { lat: lat + delta.dlat, lng: lng + delta.dlng };
-        } else {
-            return null;
-        }
-    }
-
-
-    /**
-     * Initailize Street View
-     */
-    function initStreetView () {
-        // Initialize the Street View interface
-        var numPath = uiMap.viewControlLayer.find("path").length;
-        if (numPath !== 0) {
-            status.svLinkArrowsLoaded = true;
-            window.clearTimeout(_streetViewInit);
-        }
-    }
-
-
-    /**
-     * Load the state of the map
-     */
-    function load () {
-        return svl.storage.get("map");
-    }
-
-    /**
-     * Lock disable panning
+     * Lock disable panning.
      * @returns {lockDisablePanning}
      */
-    function lockDisablePanning () {
+    function lockDisablePanning() {
         status.lockDisablePanning = true;
         return this;
     }
 
     /**
-     * This method locks status.disableWalking
+     * This method locks status.disableWalking.
      * @returns {lockDisableWalking}
      */
-    function lockDisableWalking () {
+    function lockDisableWalking() {
         status.lockDisableWalking = true;
         return this;
     }
 
-    /** Lock render labreling */
-    function lockRenderLabels () {
-        lock.renderLabels = true;
-        return this;
-    }
-
     /**
-     * This method brings the links (<, >) to the view control layer so that a user can click them to walk around
+     * This method brings the links (<, >) to the view control layer so that a user can click them to walk around.
      */
-    function makeLinksClickable () {
-        // Bring the layer with arrows forward.
-        var $links = getLinkLayer();
-        uiMap.viewControlLayer.append($links);
+    function makeArrowsAndLinksClickable() {
+        // Bring the layer with arrows and bottom links forward.
+        var $navArrows = getNavArrowsLayer();
+        var $bottomlinks = getBottomLinkLayer();
+        uiMap.viewControlLayer.append($navArrows);
+        uiMap.viewControlLayer.append($bottomlinks);
+
+        // Add an event listener to the nav arrows to log their clicks.
+        if (!status.panoLinkListenerSet) {
+            // TODO We are adding click events to extra elements that don't need it, we shouldn't do that :)
+            $navArrows[0].addEventListener('click', function (e) {
+                var targetPanoId = e.target.getAttribute('pano');
+                if (targetPanoId) {
+                    svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
+                }
+            });
+            status.panoLinkListenerSet = true;
+        }
 
         if (properties.browser === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
@@ -1376,11 +1027,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-
-    /**
-     *
-     */
-    function modeSwitchLabelClick () {
+    // Moves label drawing layer to the top and hides navigation arrows.
+    function switchToLabelingMode() {
         uiMap.drawingLayer.css('z-index','1');
         uiMap.viewControlLayer.css('z-index', '0');
 
@@ -1390,83 +1038,38 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         hideLinks();
     }
 
-    /**
-     * This function brings a div element for drawing labels in front of
-     */
-    function modeSwitchWalkClick () {
+    // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
+    function switchToExploreMode() {
         uiMap.viewControlLayer.css('z-index', '1');
         uiMap.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {
-            // Show the link arrows on top of the panorama and make links clickable
-            showLinks();
-            makeLinksClickable();
-        }
-    }
-
-
-    /**
-     * Plot markers on the Google Maps pane
-     *
-     * Example: https://google-developers.appspot.com/maps/documentation/javascript/examples/icon-complex?hl=fr-FR
-     * @returns {boolean}
-     */
-    function plotMarkers () {
-        if (canvas) {
-            var prop, labelType, latlng, labels = canvas.getLabels(), labelsLen = labels.length;
-
-            // Clear the map first, then plot markers
-            for (var i = 0; i < markers.length; i++) { markers[i].setMap(null); }
-
-            markers = [];
-            for (i = 0; i < labelsLen; i++) {
-                prop = labels[i].getProperties();
-                labelType = prop.labelProperties.labelType;
-                latlng = prop.panoramaProperties.latlng;
-                if (prop.labelerId.indexOf('Researcher') !== -1) {
-                    // Skip researcher labels
-                    continue;
-                }
-
-                markers.push(
-                    new google.maps.Marker({
-                        position: new google.maps.LatLng(latlng.lat, latlng.lng),
-                        map: map,
-                        zIndex: i
-                    })
-                );
-            }
+            // Show the navigation arrows on top of the panorama and make arrows clickable.
+            showNavigationArrows();
+            makeArrowsAndLinksClickable();
         }
     }
 
     /**
-     * Save the state of the map
-     */
-    function save () {
-        svl.storage.set("map", {"pov": getPov(), "latlng": getPosition(), "panoId": getPanoId() });
-    }
-
-    /**
-     *
      * @param panoramaId
      * @param force: force to change pano, even if walking is disabled
      * @returns {setPano}
      */
-    self.setPano = function (panoramaId, force) {
+    function setPano(panoramaId, force) {
         if (force == undefined) force = false;
 
         if (!status.disableWalking || force == true) {
             svl.panorama.setPano(panoramaId);
         }
         return this;
-    };
+    }
 
     /**
-     * Set map position
+     * Set map position.
      * @param lat
      * @param lng
      * @param callback
      */
-    self.setPosition = function (lat, lng, callback) {
+    function setPosition(lat, lng, callback) {
         if (!status.disableWalking) {
             // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
@@ -1476,9 +1079,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
                         self.enableWalking();
 
-                        // Sets new panorama
+                        // Sets new panorama.
                         var newPano = streetViewPanoramaData.location.pano;
-
                         self.setPano(newPano);
                         map.setCenter(gLatLng);
 
@@ -1490,18 +1092,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     if (callback) callback(streetViewPanoramaData, status);
                 });
         }
-
         return this;
-    };
+    }
 
-    // For setting the position when the exact panorama is known
-    self.setPositionByIdAndLatLng = function(panoId, lat, lng) {
+    // For setting the position when the exact panorama is known.
+    function setPositionByIdAndLatLng(panoId, lat, lng) {
         // Only set the location if walking is enabled
         if (!status.disableWalking) {
             var gLatLng = new google.maps.LatLng(lat, lng);
 
             self.enableWalking();
-
             self.setPano(panoId);
             map.setCenter(gLatLng);
 
@@ -1509,20 +1109,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             window.setTimeout(function() { self.enableWalking(); }, 1000);
         }
         return this;
-    };
+    }
 
-    /**
-     * Stop blinking google maps
-     */
-    function stopBlinkingGoogleMaps () {
+    function stopBlinkingGoogleMaps() {
         window.clearInterval(googleMapsPaneBlinkInterval);
         svl.ui.googleMaps.overlay.removeClass("highlight-50");
     }
 
-    /**
-     * Update the canvas
-     */
-    function updateCanvas () {
+    function updateCanvas() {
         _canvas.clear();
         if (status.currentPanoId !== getPanoId()) {
             _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
@@ -1531,15 +1125,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         _canvas.render2();
     }
 
-    /**
-     *
-     * @param type
-     */
     function setViewControlLayerCursor(type) {
         switch(type) {
-            case 'ZoomOut':
-                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/ZoomOut.png) 4 4, move");
-                break;
             case 'OpenHand':
                 uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
                 break;
@@ -1552,17 +1139,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Show links (<, >) for walking
-     * @param delay
+     * Show navigation arrow links (<, >) for walking.
      */
-    function showLinks (delay) {
-        // This is kind of redundant, but as long as the link arrows have not been
-        // moved to user control layer, keep calling the modeSwitchWalkClick()
-        // to bring arrows to the top layer. Once loaded, move svLinkArrowsLoaded to true.
+    function showNavigationArrows() {
+        // A bit redundant, but as long as the link arrows have not been moved to user control layer, keep calling the
+        // makeArrowsAndLinksClickable() to bring arrows to the top layer. Once loaded, set svLinkArrowsLoaded to true.
         if (!status.svLinkArrowsLoaded) {
             var numPath = uiMap.viewControlLayer.find("path").length;
             if (numPath === 0) {
-                makeLinksClickable();
+                makeArrowsAndLinksClickable();
             } else {
                 status.svLinkArrowsLoaded = true;
             }
@@ -1572,96 +1157,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /*
-     * Gets the pov change tracking variable
+     * Gets the pov change tracking variable.
      */
     function getPovChangeStatus() {
         return povChange;
     }
 
-    /****
-     * Pano Changing Mechanism - START
-     */
-
-    /*
-     * Gets the pano change tracking variable
-     */
-    function getPanoChange() {
-        return panoChange;
-    }
-
     /**
-     * Sets the pano change tracking variable
-     * @param status
+     * Prevents users from looking at the sky or straight to the ground. Restrict heading angle if specified in props.
      */
-    function setPanoChangeStatus(status) {
-        panoChange["status"] = status;
-    }
-
-    /**
-     * Resets the pano change tracking variable
-     */
-    function resetPanoChange() {
-        panoChange = {
-            status: false,
-            initialPos: {
-                pano: undefined,
-                location: undefined,
-                resolved: false
-            },
-            newPos: {
-                pano: undefined,
-                location: undefined,
-                applied: false
-            }
-        };
-    }
-
-    function getPanoChangeNewPosition() {
-        return panoChange["newPos"];
-    }
-
-    function isNewPanoApplied() {
-        return panoChange["newPos"]["applied"];
-    }
-
-    function setPanoApplied() {
-        panoChange["newPos"]["applied"] = true;
-    }
-
-    /**
-     * Sets the new location when the pano changed happens
-     * and sets the appropriate tracking flags to indicate the change
-     * @param gLatLng
-     * @param newPano
-     */
-    function setPanoChangeNewPosition(gLatLng, newPano) {
-
-        panoChange["initialPos"]["resolved"] = true;
-
-        panoChange["newPos"]["location"] = gLatLng;
-        panoChange["newPos"]["pano"] = newPano;
-
-        console.log("NewPanoChange: " + JSON.stringify(panoChange));
-    }
-
-    /**
-     * Sets the initial location before the pano change happens
-     * @param gLatLng
-     * @param panoId
-     */
-    function setPanoChangeInitialLocation(gLatLng, panoId) {
-        panoChange["initialPos"]["pano"] = panoId;
-        panoChange["initialPos"]["location"] = gLatLng;
-    }
-
-    /****
-     * Pano Changing Mechanism - END
-     */
-
     function restrictViewPort(pov) {
-        // View port restriction.
-        // Do not allow users to look up the sky or down the ground.
-        // If specified, do not allow users to turn around too much by restricting the heading angle.
         if (pov.pitch > properties.maxPitch) {
             pov.pitch = properties.maxPitch;
         } else if (pov.pitch < properties.minPitch) {
@@ -1689,24 +1194,24 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Update POV of Street View as a user drag a mouse cursor.
+     * Update POV of Street View as a user drags their mouse cursor.
      * @param dx
      * @param dy
      */
-    function updatePov (dx, dy) {
+    function updatePov(dx, dy) {
         if (svl.panorama) {
-            var pov = svl.panorama.getPov(),
-                alpha = 0.25;
+            var pov = svl.panorama.getPov();
+            var alpha = 0.25;
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
 
-            // View port restriction
+            // View port restriction.
             pov = restrictViewPort(pov);
 
-            // Update the status of pov change
+            // Update the status of pov change.
             povChange["status"] = true;
 
-            // Set the property this object. Then update the Street View image
+            // Set the property this object, then update the Street View image.
             properties.panoramaPov = pov;
             svl.panorama.setPov(pov);
         } else {
@@ -1715,46 +1220,24 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This method sets the minimum and maximum heading angle that users can adjust the Street View camera.
+     * Set the minimum and maximum heading angle that users can adjust the Street View camera.
      * @param range
      * @returns {setHeadingRange}
      */
-    function setHeadingRange (range) {
+    function setHeadingRange(range) {
         properties.minHeading = range[0];
         properties.maxHeading = range[1];
         return this;
     }
 
     /**
-     * Set mode.
-     * @param modeIn
-     * @returns {setMode}
-     */
-    function setMode (modeIn) {
-        properties.mode = modeIn;
-        return this;
-    }
-
-    /**
-     * This method sets the minimum and maximum pitch angle that users can adjust the Street View camera.
-     * @param range
-     * @returns {setPitchRange}
-     */
-    function setPitchRange (range) {
-        properties.minPitch = range[0];
-        properties.maxPitch = range[1];
-        return this;
-    }
-
-    /**
-     * This method changes the Street View pov. If a transition duration is given, the function smoothly updates the
-     * pov over the time.
+     * Changes the Street View pov. If a transition duration is given, smoothly updates the pov over that time.
      * @param pov Target pov
      * @param durationMs Transition duration in milli-seconds
      * @param callback Callback function executed after updating pov.
      * @returns {setPov}
      */
-    function setPov (pov, durationMs, callback) {
+    function setPov(pov, durationMs, callback) {
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var interval;
@@ -1763,35 +1246,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             pov.pitch = parseInt(pov.pitch, 10);
             pov.zoom = parseInt(pov.zoom, 10);
 
-            //
-            // Pov restriction
-            if (pov.pitch > properties.maxPitch) {
-                pov.pitch = properties.maxPitch;
-            } else if (pov.pitch < properties.minPitch) {
-                pov.pitch = properties.minPitch;
-            }
-
-            if (properties.minHeading && properties.maxHeading) {
-                if (properties.minHeading <= properties.maxHeading) {
-                    if (pov.heading > properties.maxHeading) {
-                        pov.heading = properties.maxHeading;
-                    } else if (pov.heading < properties.minHeading) {
-                        pov.heading = properties.minHeading;
-                    }
-                } else {
-                    if (pov.heading < properties.minHeading &&
-                        pov.heading > properties.maxHeading) {
-                        if (Math.abs(pov.heading - properties.maxHeading) < Math.abs(pov.heading - properties.minHeading)) {
-                            pov.heading = properties.maxHeading;
-                        } else {
-                            pov.heading = properties.minHeading;
-                        }
-                    }
-                }
-            }
+            // Pov restriction.
+            restrictViewPort(pov);
 
             if (durationMs) {
-                var timeSegment = 25; // 25 millisecconds
+                var timeSegment = 25; // 25 milliseconds.
 
                 // Get how much angle you change over timeSegment of time.
                 var cw = (pov.heading - currentPov.heading + 360) % 360;
@@ -1807,19 +1266,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 var pitchDelta = pov.pitch - currentPov.pitch;
                 pitchIncrement = pitchDelta * (timeSegment / durationMs);
 
-
                 interval = window.setInterval(function () {
-                    var headingDelta = pov.heading - currentPov.heading;
-                    if (Math.abs(headingDelta) > 1) {
-                        // Update heading angle and pitch angle
-
+                    var headingDelta = (pov.heading - currentPov.heading + 360) % 360;
+                    if (headingDelta > 1 && headingDelta < 359) {
+                        // Update heading angle and pitch angle.
                         currentPov.heading += headingIncrement;
                         currentPov.pitch += pitchIncrement;
-                        currentPov.heading = (currentPov.heading + 360) % 360; //Math.ceil(currentPov.heading);
+                        currentPov.heading = (currentPov.heading + 360) % 360;
                         svl.panorama.setPov(currentPov);
                     } else {
-                        // Set the pov to adjust the zoom level. Then clear the interval.
-                        // Invoke a callback function if there is one.
+                        // Set the pov to adjust zoom level, then clear the interval. Invoke a callback if there is one.
                         if (!pov.zoom) {
                             pov.zoom = 1;
                         }
@@ -1831,23 +1287,118 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         }
                     }
                 }, timeSegment);
-
-
             } else {
                 svl.panorama.setPov(pov);
             }
         }
-
         return this;
     }
 
+    function _turfPointToGoogleLatLng(point) {
+        return new google.maps.LatLng(point.geometry.coordinates[1], point.geometry.coordinates[0]);
+    }
+
     /**
-     * This function sets the current status of the instantiated object
+     * Attempts to move the user forward in GSV by incrementally checking for imagery every few meters along the route.
+     * @param successLogMessage [String] internal logging when imagery is found; different for stuck button v compass.
+     * @param failLogMessage [String] internal logging when imagery is not found; different for stuck button v compass.
+     * @param alertFunc [Function] An optional function that would alert the user upon successfully finding imagery.
+     */
+    function moveForward(successLogMessage, failLogMessage, alertFunc) {
+        svl.modalComment.hide();
+        svl.modalSkip.disableStuckButton();
+        svl.compass.disableCompassClick();
+        var enableClicksCallback = function() {
+            svl.modalSkip.enableStuckButton();
+            svl.compass.enableCompassClick();
+        };
+        // TODO show loading icon. Add when resolving issue #2403.
+
+        // Grab street geometry and current location.
+        var currentTask = svl.taskContainer.getCurrentTask();
+        var streetEdge = currentTask.getFeature();
+        var currentPano = getPanoId();
+        var point = getPosition();
+        var currPos = turf.point([point.lng, point.lat]);
+        var streetEndpoint = turf.point([currentTask.getLastCoordinate().lng, currentTask.getLastCoordinate().lat]);
+
+        // Remove the part of the street geometry that you've already passed using lineSlice.
+        var remainder = turf.lineSlice(currPos, streetEndpoint, streetEdge);
+        currPos = turf.point([remainder.geometry.coordinates[0][0], remainder.geometry.coordinates[0][1]]);
+        var gLatLng = _turfPointToGoogleLatLng(currPos);
+
+        // Save the current pano ID as one that you're stuck at.
+        if (!_stuckPanos.includes(currentPano)) _stuckPanos.push(currentPano);
+
+        // Set radius around each attempted point for which you'll accept GSV imagery to 10 meters.
+        var MAX_DIST = 10;
+        // Set how far to move forward along the street for each new attempt at finding imagery to 10 meters.
+        var DIST_INCREMENT = 0.01;
+
+        var GSV_SRC = google.maps.StreetViewSource.OUTDOOR;
+        var GSV_OK = google.maps.StreetViewStatus.OK;
+        var line;
+        var end;
+
+        // Callback function when querying GSV for imagery using streetViewService.getPanorama. If we don't find imagery
+        // here, recursively call getPanorama with this callback function to test another 10 meters down the street.
+        var callback = function(streetViewPanoData, status) {
+            // If there is no imagery here that we haven't already been stuck in, either try further down the street,
+            // try with a larger radius, or just jump to a new street if all else fails.
+            if (status !== GSV_OK || _stuckPanos.includes(streetViewPanoData.location.pano)) {
+
+                // If there is room to move forward then try again, recursively calling getPanorama with this callback.
+                if (turf.length(remainder) > 0) {
+                    // Save the current pano ID as one that doesn't work.
+                    if (status === GSV_OK) {
+                        _stuckPanos.push(streetViewPanoData.location.pano);
+                    }
+                    // Set `currPos` to be `DIST_INCREMENT` further down the street. Use `lineSliceAlong` to find that
+                    // next point, and use `lineSlice` to remove the piece we just moved past from `remainder`.
+                    line = turf.lineSliceAlong(remainder, 0, DIST_INCREMENT);
+                    end = line.geometry.coordinates.length - 1;
+                    currPos = turf.point([line.geometry.coordinates[end][0], line.geometry.coordinates[end][1]]);
+                    remainder = turf.lineSlice(currPos, streetEndpoint, remainder);
+                    gLatLng = _turfPointToGoogleLatLng(currPos);
+                    svl.streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
+                } else if (MAX_DIST === 10 && status !== GSV_OK) {
+                    // If we get to the end of the street, increase the radius a bit to try and drop them at the end.
+                    MAX_DIST = 25;
+                    gLatLng = _turfPointToGoogleLatLng(currPos);
+                    svl.streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
+                } else {
+                    // If all else fails, jump to a new street.
+                    svl.tracker.push(failLogMessage);
+                    svl.form.skip(currentTask, "GSVNotAvailable");
+                    svl.stuckAlert.stuckSkippedStreet();
+                    window.setTimeout(enableClicksCallback, 1000);
+                }
+            } else if (status === GSV_OK) {
+                // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
+                _stuckPanos.push(streetViewPanoData.location.pano);
+                // Move them to the new pano we found.
+                setPositionByIdAndLatLng(
+                    streetViewPanoData.location.pano,
+                    currPos.geometry.coordinates[1],
+                    currPos.geometry.coordinates[0]
+                );
+                svl.tracker.push(successLogMessage);
+                if (alertFunc !== null) alertFunc();
+                window.setTimeout(enableClicksCallback, 1000);
+            }
+        };
+
+        // Initial call to getPanorama with using the recursive callback function.
+        svl.streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
+    }
+
+    /**
+     * This function sets the current status of the instantiated object.
      * @param key
      * @param value
      * @returns {*}
      */
-    function setStatus (key, value) {
+    function setStatus(key, value) {
         if (key in status) {
             // if the key is disableWalking, invoke walk disabling/enabling function
             if (key === "disableWalking") {
@@ -1869,47 +1420,41 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Unlock disable panning
+     * Unlock disable panning.
      * @returns {unlockDisablePanning}
      */
-    function unlockDisablePanning () {
+    function unlockDisablePanning() {
         status.lockDisablePanning = false;
         return this;
     }
 
     /**
-     * Unlock disable walking
+     * Unlock disable walking.
      * @returns {unlockDisableWalking}
      */
-    function unlockDisableWalking () {
+    function unlockDisableWalking() {
         status.lockDisableWalking = false;
         return this;
     }
 
-    /**
-     * Unlock render labels
-     * @returns {unlockRenderLabels}
-     */
-    function unlockRenderLabels () {
-        lock.renderLabels = false;
-        return this;
-    }
-
-    function setZoom (zoomLevel) {
+    function setZoom(zoomLevel) {
         svl.panorama.setZoom(zoomLevel);
     }
 
-
-    // Set a flag that triggers the POV being reset into the route direction upon the position changing
-    self.preparePovReset = function() {
+    // Set a flag that triggers the POV being reset into the route direction upon the position changing.
+    function preparePovReset() {
         initialPositionUpdate = true;
-    };
-    // Set the POV in the same direction as the route
-    function setPovToRouteDirection() {
-        var pov = svl.panorama.getPov(),
-            compassAngle = svl.compass.getCompassAngle();
-        pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
-        svl.panorama.setPov(pov);
+    }
+
+    // Set the POV in the same direction as the route.
+    function setPovToRouteDirection(durationMs) {
+        var pov = svl.panorama.getPov();
+        var newPov = {
+            heading: parseInt(svl.compass.getTargetAngle() + 360, 10) % 360,
+            pitch: pov.pitch,
+            zoom: pov.zoom
+        }
+        setPov(newPov, durationMs);
     }
 
     function getMoveDelay() {
@@ -1920,53 +1465,42 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
     self.disablePanning = disablePanning;
     self.disableWalking = disableWalking;
-    self.disableClickZoom = disableClickZoom;
     self.enablePanning = enablePanning;
-    self.enableClickZoom = enableClickZoom;
     self.enableWalking = enableWalking;
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
     self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
     self.getMap = getMap;
-    self.getMaxPitch = getMaxPitch;
-    self.getMinPitch = getMinPitch;
     self.getPanoId = getPanoId;
     self.getProperty = getProperty;
     self.getPosition = getPosition;
     self.getPov = getPov;
     self.getPovChangeStatus = getPovChangeStatus;
-    self.getPanoChange = getPanoChange;
-    self.resetPanoChange = resetPanoChange;
-    self.setPanoChangeStatus = setPanoChangeStatus;
     self.hideLinks = hideLinks;
-    self.load = load;
     self.lockDisablePanning = lockDisablePanning;
     self.lockDisableWalking = lockDisableWalking;
-    self.lockRenderLabels = lockRenderLabels;
-    self.modeSwitchLabelClick = modeSwitchLabelClick;
-    self.modeSwitchWalkClick = modeSwitchWalkClick;
+    self.switchToLabelingMode = switchToLabelingMode;
+    self.switchToExploreMode = switchToExploreMode;
     self.moveToTheTaskLocation = moveToTheTaskLocation;
-    self.plotMarkers = plotMarkers;
-    // self.povToCanvasCoordinate = povToCanvasCoordinate;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
     self.restrictViewPort = restrictViewPort;
-    self.save = save;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
     self.setHeadingRange = setHeadingRange;
     self.setLabelBeforeJumpListenerStatus = setLabelBeforeJumpListenerStatus;
-    self.setMode = setMode;
-    // self.setPano = setPano;
-    self.setPitchRange = setPitchRange;
+    self.setPano = setPano;
+    self.setPosition = setPosition;
+    self.setPositionByIdAndLatLng = setPositionByIdAndLatLng;
     self.setPov = setPov;
+    self.moveForward = moveForward;
     self.setStatus = setStatus;
-    self.setZoom = setZoom;
-    self.showLinks = showLinks;
     self.unlockDisableWalking = unlockDisableWalking;
     self.unlockDisablePanning = unlockDisablePanning;
-    self.unlockRenderLabels = unlockRenderLabels;
+    self.setZoom = setZoom;
+    self.preparePovReset = preparePovReset;
     self.setPovToRouteDirection = setPovToRouteDirection;
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
     self.getMoveDelay = getMoveDelay;
+
     _init(params);
     return self;
 }

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="com.fasterxml"
+		module="oss-parent"
+		revision="38"
+		status="release"
+		publication="20190719021323"
+	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<description homepage="http://github.com/FasterXML/">
+		FasterXML.com parent pom
+		</description>
+		<m:properties__version.plugin.install>3.0.0-M1</m:properties__version.plugin.install>
+		<m:properties__osgi.export>${project.groupId}.*;version=${project.version}</m:properties__osgi.export>
+		<m:properties__maven.build.timestamp.format>yyyy-MM-dd HH:mm:ssZ</m:properties__maven.build.timestamp.format>
+		<m:properties__version.plugin.site>3.1</m:properties__version.plugin.site>
+		<m:properties__javac.debuglevel>lines,source,vars</m:properties__javac.debuglevel>
+		<m:properties__version.plugin.bundle>4.2.0</m:properties__version.plugin.bundle>
+		<m:properties__javac.src.version>1.6</m:properties__javac.src.version>
+		<m:properties__javadoc.maxmemory>1g</m:properties__javadoc.maxmemory>
+		<m:properties__version.plugin.resources>2.7</m:properties__version.plugin.resources>
+		<m:properties__generatedSourcesDir>${project.build.directory}/generated-sources</m:properties__generatedSourcesDir>
+		<m:properties__version.plugin.moditect>1.0.0.Beta2</m:properties__version.plugin.moditect>
+		<m:properties__version.plugin.gpg>1.6</m:properties__version.plugin.gpg>
+		<m:properties__version.junit>4.12</m:properties__version.junit>
+		<m:properties__javac.target.version>1.6</m:properties__javac.target.version>
+		<e:sbtTransformHash>51bd37db5267b21a65ad61ddd2ebe6180fd4b9fb</e:sbtTransformHash>
+		<m:properties__osgi.import>*</m:properties__osgi.import>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__3.0.0-M1|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.codehaus.mojo__build-helper-maven-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.22.2|org.apache.felix__maven-bundle-plugin__4.2.0|org.apache.maven.plugins__maven-jar-plugin__3.1.2|null__maven-site-plugin__null|org.apache.maven.plugins__maven-scm-plugin__1.9.1</m:maven.plugins>
+		<m:properties__version.plugin.jar>3.1.2</m:properties__version.plugin.jar>
+		<m:properties__version.plugin.source>3.0.1</m:properties__version.plugin.source>
+		<m:properties__version.plugin.surefire>2.22.2</m:properties__version.plugin.surefire>
+		<m:properties__osgi.includeResource>{maven-resources}</m:properties__osgi.includeResource>
+		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
+		<m:properties__version.plugin.replacer>1.5.3</m:properties__version.plugin.replacer>
+		<m:properties__project.build.resourceEncoding>UTF-8</m:properties__project.build.resourceEncoding>
+		<m:properties__osgi.versionpolicy>${range;[===,=+);${@}}</m:properties__osgi.versionpolicy>
+		<m:properties__version.plugin.clean>2.6.1</m:properties__version.plugin.clean>
+		<m:properties__version.plugin.compiler>3.8.0</m:properties__version.plugin.compiler>
+		<m:properties__version.plugin.shade>3.2.1</m:properties__version.plugin.shade>
+		<m:properties__version.plugin.release>2.5.3</m:properties__version.plugin.release>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__version.plugin.deploy>3.0.0-M1</m:properties__version.plugin.deploy>
+		<m:properties__version.plugin.enforcer>3.0.0-M1</m:properties__version.plugin.enforcer>
+		<m:properties__version.plugin.cobertura>2.7</m:properties__version.plugin.cobertura>
+		<m:properties__version.plugin.javadoc>3.0.1</m:properties__version.plugin.javadoc>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+	</publications>
+</ivy-module>

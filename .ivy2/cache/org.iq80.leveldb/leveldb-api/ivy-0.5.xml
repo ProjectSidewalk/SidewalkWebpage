@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.iq80.leveldb"
 		module="leveldb-api"
 		revision="0.5"
 		status="release"
 		publication="20130122183949"
 	>
+		<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="">
 		High level Java API for LevelDB
 		</description>
+		<e:sbtTransformHash>16d0cf6b8264d2329ece9bd336992b9c54c76c95</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-source-plugin__null</m:maven.plugins>

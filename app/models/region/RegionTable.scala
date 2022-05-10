@@ -1,27 +1,28 @@
 package models.region
 
 import java.util.UUID
-import com.vividsolutions.jts.geom.Polygon
+import com.vividsolutions.jts.geom.{Coordinate, MultiPolygon, Polygon}
 import models.audit.AuditTaskTable
-
 import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
+import play.extras.geojson
+import play.extras.geojson.LatLng
+import scala.collection.immutable.Seq
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class Region(regionId: Int, dataSource: String, description: String, geom: Polygon, deleted: Boolean)
-case class NamedRegion(regionId: Int, name: String, geom: Polygon)
-case class NamedRegionAndUserCompletion(regionId: Int, name: String, geom: Polygon, userCompleted: Boolean)
+case class Region(regionId: Int, dataSource: String, description: String, geom: MultiPolygon, deleted: Boolean)
+case class NamedRegion(regionId: Int, name: String, geom: MultiPolygon)
+case class NamedRegionAndUserCompletion(regionId: Int, name: String, geom: MultiPolygon, userCompleted: Boolean)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
   def dataSource = column[String]("data_source", O.Nullable)
   def description = column[String]("description", O.Nullable)
-  def geom = column[Polygon]("geom")
+  def geom = column[MultiPolygon]("geom")
   def deleted = column[Boolean]("deleted")
 
   def * = (regionId, dataSource, description, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
@@ -34,17 +35,35 @@ object RegionTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val regionConverter = GetResult[Region](r => {
-    Region(r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)
+    Region(r.nextInt, r.nextString, r.nextString, r.nextGeometry[MultiPolygon], r.nextBoolean)
   })
 
   implicit val namedRegionConverter = GetResult[NamedRegion](r => {
-    NamedRegion(r.nextInt, r.nextString, r.nextGeometry[Polygon])
+    NamedRegion(r.nextInt, r.nextString, r.nextGeometry[MultiPolygon])
   })
 
   case class StreetCompletion(regionId: Int, regionName: String, streetEdgeId: Int, completionCount: Int, distance: Double)
   implicit val streetCompletionConverter = GetResult[StreetCompletion](r => {
     StreetCompletion(r.nextInt, r.nextString, r.nextInt, r.nextInt, r.nextDouble)
   })
+
+  implicit class MultiPolygonUtils(val multiPolygon: MultiPolygon) {
+    // Put MultiPolygon in geojson format, an array[array[array[latlng]]], where each array[array[latlng]] represents a
+    // single polygon. In each polygon, the first array contains the latlngs for the outer boundary of the polygon, and
+    // the remaining arrays have the latlngs for any holes in the polygon.
+    def toJSON: geojson.MultiPolygon[LatLng] = {
+      val nPolygons: Int = multiPolygon.getNumGeometries
+      val allCoordinates: Seq[Seq[Seq[geojson.LatLng]]] = (0 until nPolygons).map { polygonIndex =>
+        val currPolygon: Polygon = multiPolygon.getGeometryN(polygonIndex).asInstanceOf[Polygon]
+        val nHoles: Int = currPolygon.getNumInteriorRing
+        val outerRing: Seq[Array[Coordinate]] = Seq(currPolygon.getExteriorRing.getCoordinates)
+        val holes: Seq[Array[Coordinate]] = (0 until nHoles).map(i => currPolygon.getInteriorRingN(i).getCoordinates)
+        val coordinates: Seq[Array[Coordinate]] = outerRing ++ holes
+        coordinates.map { ring => ring.map(coord => geojson.LatLng(coord.y, coord.x)).toList }
+      }
+      geojson.MultiPolygon(allCoordinates)
+    }
+  }
 
   val db = play.api.db.slick.DB
   val regions = TableQuery[RegionTable]
@@ -187,18 +206,13 @@ object RegionTable {
     * Gets the region id of the neighborhood wherein the lat-lng point is located, the closest neighborhood otherwise.
     */
   def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Int = db.withSession { implicit session =>
-    val closestNeighborhoodQuery = Q.query[(Float, Float, Float, Float), Int](
+    val closestNeighborhoodQuery = Q.query[(Float, Float), Int](
       """SELECT region_id
-        |FROM region,
-        |     (
-        |         SELECT MIN(st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326))) AS min_dist
-        |         FROM region
-        |         WHERE region.deleted = FALSE
-        |     ) region_dists
-        |WHERE st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326)) = min_dist
-        |    AND deleted = FALSE;
-      """.stripMargin
+        |FROM region
+        |WHERE deleted = FALSE
+        |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
+        |LIMIT 1;""".stripMargin
     )
-    closestNeighborhoodQuery((lng, lat, lng, lat)).first
+    closestNeighborhoodQuery((lng, lat)).first
   }
 }

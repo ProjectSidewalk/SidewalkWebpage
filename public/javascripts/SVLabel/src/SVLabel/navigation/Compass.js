@@ -20,16 +20,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
     };
 
-    var height = 50, width = 50, padding = { top: 5, right: 5, bottom: 5, left: 5 },
-        el = d3.select('#compass-holder'),
-        svg = el.append('svg'),
-        chart = svg.append('g'),
-        needle;
-
-    svg.attr('width', width + padding.left + padding.right)
-        .attr('height', height + padding.top + padding.bottom + 30)
-        .style({ position: 'absolute', left: 0, top: 0 });
-
     /**
      * Blink the compass message
      */
@@ -49,7 +39,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * Get the angle to the next goal.
      * @returns {number}
      */
-    function _getTargetAngle() {
+    function getTargetAngle() {
         var task = taskContainer.getCurrentTask();
         var latlng = mapService.getPosition();
         var geometry = task.getGeometry();  // get the street geometry of the current task
@@ -93,19 +83,15 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         mapService.preparePovReset();
         mapService.setPosition(coordinate.lat, coordinate.lng);
         mapService.setPovToRouteDirection();
-        // mapService.resetPanoChange();
     }
 
-    function _makeTheMessageBoxClickable() {
-        var events = $._data(uiCompass.messageHolder[0], "events");
-        if (!events) {
-            uiCompass.messageHolder.on('click', _jumpBackToTheRoute);
-            uiCompass.messageHolder.css('cursor', 'pointer');
-        }
+    function enableCompassClick() {
+        uiCompass.messageHolder.on('click', _handleCompassClick);
+        uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
-    function _makeTheMessageBoxUnclickable () {
-        uiCompass.messageHolder.off('click', _jumpBackToTheRoute);
+    function disableCompassClick() {
+        uiCompass.messageHolder.off('click', _handleCompassClick);
         uiCompass.messageHolder.css('cursor', 'default');
     }
 
@@ -140,11 +126,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function _makeTheLabelBeforeJumpMessageBoxClickable () {
-        var events = $._data(uiCompass.messageHolder[0], "events");
-        if (!events) {
-            uiCompass.messageHolder.on('click', _jumpToTheNewRoute);
-            uiCompass.messageHolder.css('cursor', 'pointer');
-        }
+        uiCompass.messageHolder.on('click', _jumpToTheNewRoute);
+        uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
     function _makeTheLabelBeforeJumpMessageBoxUnclickable () {
@@ -158,6 +141,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             svl.tracker.push('LabelBeforeJump_Blink');
             self.blink();
         }, 15000);
+        self.disableCompassClick();
         _makeTheLabelBeforeJumpMessageBoxClickable();
         self.setLabelBeforeJumpMessage();
     }
@@ -165,6 +149,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function removeLabelBeforeJumpMessage () {
         self.stopBlinking();
         _makeTheLabelBeforeJumpMessageBoxUnclickable();
+        self.enableCompassClick();
     }
     // ** end **
 
@@ -172,10 +157,10 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * Get the compass angle
      * @returns {number}
      */
-    function getCompassAngle () {
+    function _getCompassAngle () {
         var heading = mapService.getPov().heading;
-        var targetAngle = _getTargetAngle();
-        return heading - targetAngle;
+        var targetAngle = getTargetAngle();
+        return (heading - targetAngle) % 360;
     }
 
     /**
@@ -206,6 +191,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     function hideMessage () {
         uiCompass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
+        uiCompass.messageHolder.css('pointer-events', 'none');
     }
 
     /**
@@ -214,7 +200,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function setTurnMessage () {
         var image,
             message,
-            angle = self.getCompassAngle(),
+            angle = _getCompassAngle(),
             direction = _angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
@@ -227,7 +213,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.message.html("<div style='width: 20%'>" + i18next.t('center-ui.compass.end-of-route') + "</div>");
     }
 
-    function setBackToRouteMessage () {
+    function _setBackToRouteMessage() {
         uiCompass.message.html(i18next.t('center-ui.compass.far-away'));
     }
 
@@ -236,6 +222,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     function showMessage () {
         uiCompass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
+        uiCompass.messageHolder.css('pointer-events', 'auto');
     }
 
     /**
@@ -249,32 +236,16 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     /**
-     * Update the compass visualization
+     * Update the compass message.
      */
     function update () {
-        var compassAngle = self.getCompassAngle(),
-            cosine = Math.cos(compassAngle / 360 * 2 * Math.PI),
-            val = (cosine + 1) / 2,
-            r = 229 - 185 * val, g = 245 - 83 * val, b = 249 - 154 * val, rgb = 'rgb(' + r + ',' + g + ',' + b + ')';
-
-        if (needle && chart) {
-            needle.transition(100)
-                .attr('fill', rgb);
-            chart.transition(100)
-                .attr('transform', 'translate(' + (height / 2 + padding.top) + ', ' + (width / 2 + padding.left) + ') rotate(' + (-compassAngle) + ')');
-        }
-
-        if (!mapService.getLabelBeforeJumpListenerStatus()) {
-            self.setTurnMessage();
-
-            if (_checkEnRoute() || svl.isOnboarding()) {
+        if (!mapService.getLabelBeforeJumpListenerStatus() && !svl.isOnboarding()) {
+            if (_checkEnRoute()) {
                 self.stopBlinking();
-                _makeTheMessageBoxUnclickable();
-            }
-            else {
+                self.setTurnMessage();
+            } else {
                 self.blink();
-                _makeTheMessageBoxClickable();
-                self.setBackToRouteMessage();
+                _setBackToRouteMessage();
             }
         }
 
@@ -344,15 +315,37 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         self.setTurnMessage(streetName);
     }
 
+    // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
+    function _handleCompassClick() {
+        if (_checkEnRoute()) {
+            svl.stuckAlert.compassOrStuckClicked();
+
+            var angle = _getCompassAngle();
+            var direction = _angleToDirection(angle);
+            svl.tracker.push(`Click_Compass_Direction=${direction}`);
+
+            if (direction === 'straight') {
+                mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable', null);
+            } else {
+                mapService.setPovToRouteDirection(250);
+            }
+        } else {
+            svl.tracker.push('Click_Compass_FarFromRoute');
+            _jumpBackToTheRoute();
+        }
+    }
+    enableCompassClick();
+
     self.blink = blink;
     self.directionToImagePath = directionToImagePath;
     self.resetBeforeJump = resetBeforeJump;
-    self.getCompassAngle = getCompassAngle;
     self.getCompassMessageHolder = getCompassMessageHolder;
+    self.getTargetAngle = getTargetAngle;
     self.hideMessage = hideMessage;
     self.setTurnMessage = setTurnMessage;
+    self.enableCompassClick = enableCompassClick;
+    self.disableCompassClick = disableCompassClick;
     self.setLabelBeforeJumpMessage = setLabelBeforeJumpMessage;
-    self.setBackToRouteMessage = setBackToRouteMessage;
     self.stopBlinking = stopBlinking;
     self.showMessage = showMessage;
     self.showLabelBeforeJumpMessage = showLabelBeforeJumpMessage;

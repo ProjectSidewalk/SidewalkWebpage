@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.eclipse.sisu"
 		module="org.eclipse.sisu.inject"
 		revision="0.0.0.M5"
 		status="release"
 		publication="20130725232046"
 	>
+		<license name="Eclipse Public License, Version 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
 		<description homepage="" />
 		<m:properties__tycho-version>0.18.1</m:properties__tycho-version>
 		<m:properties__tycho.scmUrl>scm:git:http://git.eclipse.org/gitroot/sisu/org.eclipse.sisu.inject.git</m:properties__tycho.scmUrl>
+		<e:sbtTransformHash>2f4f99dca66cf2e1f523892b4542caa6bea655b1</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
@@ -31,6 +33,6 @@
 		<artifact name="org.eclipse.sisu.inject" type="eclipse-plugin" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="com.google.inject" name="guice" rev="3.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="com.google.inject" name="guice" rev="3.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

@@ -1,15 +1,8 @@
-#compass-holder {
-    position: absolute;
-    top: 525px;
-    left: 660px;
-}
-
 #compass-message-holder {
     position: absolute;
-    right: -65px;
-    top: 0;
-    /*background: rgba(255, 255, 255, 0.75);*/
-    padding: 10px 10px 10px 5px;
+    right: 236px;
+    top: 525px;
+    padding: 5px 10px 10px 5px;
     height: 55px;
     min-width: 120px;
     white-space: nowrap;
@@ -21,21 +14,6 @@
 .compass-message-small {
     font-size: 8pt;
     margin: 5px;
-}
-
-#compass-message-connector {
-    visibility: hidden;
-    height: 2px;
-    width: 20px;
-    background: white;
-    position: absolute;
-    right: -20px;
-    top: 25px;
-    border: solid 1px white;
-
-    border-radius: 0 1px 1px 0;
-    -webkit-border-radius: 0 1px 1px 0;
-    -moz-border-radius: 0 1px 1px 0;
 }
 
 .compass-turn-images {

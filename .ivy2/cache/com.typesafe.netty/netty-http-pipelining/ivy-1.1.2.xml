@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="com.typesafe.netty"
 		module="netty-http-pipelining"
 		revision="1.1.2"
 		status="release"
-		publication="20150421150439"
+		publication="20210429071134"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="https://github.com/typesafehub/netty-http-pipelining">
 		This library provides a handler and some new message types that enable http pipelining in Netty
 		</description>
+		<e:sbtTransformHash>561800993ff649fd6b7abf701d4b8d52dc652246</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,7 +28,7 @@
 		<artifact name="netty-http-pipelining" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="io.netty" name="netty" rev="3.6.3.Final" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="io.netty" name="netty" rev="3.6.3.Final" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

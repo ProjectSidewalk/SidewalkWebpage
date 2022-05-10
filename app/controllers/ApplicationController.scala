@@ -9,15 +9,14 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.street.StreetEdgeTable
+import models.utils.Configs
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.Messages
-
 import java.util.Calendar
 import play.api.mvc._
-
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -38,11 +37,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
-    var referrer: Option[String] = qString.get("referrer") match{
-      case Some(r) =>
-        Some(r)
-      case None =>
-        qString.get("r")
+    val referrer: Option[String] = qString.get("referrer") match {
+      case Some(r) => Some(r)
+      case None    => qString.get("r")
     }
 
     referrer match {
@@ -120,21 +117,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               // Get city configs.
-              val envType: String = Play.configuration.getString("environment-type").get
               val cityStr: String = Play.configuration.getString("city-id").get
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
               val mapathonLink: Option[String] = Play.configuration.getString("city-params.mapathon-event-link." + cityStr)
               // Get names and URLs for other cities so we can link to them on landing page.
-              val otherCities: List[String] =
-                Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == cityStr)
-              val otherCityUrls: List[(String, String)] = otherCities.map { otherCity =>
-                val otherName: String = Play.configuration.getString("city-params.city-name." + otherCity).get
-                val otherState: String = Play.configuration.getString("city-params.state-abbreviation." + otherCity).get
-                val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + otherCity).get
-                (otherName + ", " + otherState, otherURL)
-              }
+              val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity=cityStr)
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgeTable.auditedStreetDistance(1) * 1.60934.toFloat
@@ -321,6 +310,18 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+    * Returns the maintenance page.
+    */
+  def maintenance = UserAwareAction.async { implicit request =>
+    val user: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+
+    WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, "Visit_Maintenance", timestamp))
+    Future.successful(Ok(views.html.maintenance("Project Sidewalk - Maintenance")))
+  }
+
+  /**
    * Returns the results page that contains a cool visualization.
    */
   def results = UserAwareAction.async { implicit request =>
@@ -355,17 +356,38 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery = UserAwareAction.async { implicit request =>
+  def gallery(label: Option[String], severity: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        // Log visit to Gallery
+        // Log visit to Gallery.
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user))))
+        // Get current city.
+        val cityStr: String = Play.configuration.getString("city-id").get
+        // Get names and URLs for cities to display in Gallery dropdown.
+        val cityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo()
+        val labels: List[(String, String)] = List(
+          ("Assorted", Messages("gallery.all")),
+          ("CurbRamp", Messages("curb.ramp")),
+          ("NoCurbRamp", Messages("missing.ramp")),
+          ("Obstacle", Messages("obstacle")),
+          ("SurfaceProblem", Messages("surface.problem")),
+          ("Occlusion", Messages("gallery.occlusion")),
+          ("NoSidewalk", Messages("no.sidewalk")),
+          ("Crosswalk", Messages("crosswalk")),
+          ("Signal", Messages("signal")),
+          ("Other", Messages("other"))
+        )
+        val realLabel: String = if (labels.exists(x => {x._1 == label.getOrElse("Assorted")})) {
+          label.getOrElse("Assorted")
+        } else {
+          "Assorted"
+        }
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, realLabel, labels, List())))
       case None =>
-        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
+        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         Future.successful(Redirect("/anonSignUp?url=/gallery"))
     }
   }

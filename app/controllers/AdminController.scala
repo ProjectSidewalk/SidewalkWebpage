@@ -11,22 +11,23 @@ import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
+import formats.json.LabelFormat._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.LabelMetadataWithValidation
+import models.gsv.GSVDataTable
+import models.label.LabelTable.{LabelMetadata, LabelCVMetadata}
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
 import models.user._
-import play.api.libs.json.{JsArray, JsError, JsObject, Json}
+import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
-
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
@@ -103,7 +104,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           "label_id" -> label.labelId,
           "gsv_panorama_id" -> label.gsvPanoramaId,
           "label_type" -> label.labelType,
-          "severity" -> label.severity
+          "severity" -> label.severity,
+          "correct" -> label.correct,
+          "high_quality_user" -> label.highQualityUser
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
       }
@@ -126,39 +129,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "gsv_panorama_id" -> label.gsvPanoramaId,
         "label_type" -> label.labelType,
         "severity" -> label.severity,
-        "expired" -> label.expired
+        "correct" -> label.correct,
+        "expired" -> label.expired,
+        "high_quality_user" -> label.highQualityUser
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
     }
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
-  }
-
-  /**
-    * Get a list of all labels with metadata needed to produce crops for computer vision applications.
-    */
-  def getAllLabelCVMetadata = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val labels: List[LabelTable.LabelCVMetadata] = LabelTable.retrieveCVMetadata
-      val jsonList: List[JsObject] = labels.map { label =>
-        Json.obj(
-          "gsv_panorama_id" -> label.gsvPanoramaId,
-          "sv_image_x" -> label.svImageX,
-          "sv_image_y" -> label.svImageY,
-          "label_type_id" -> label.labelTypeId,
-          "photographer_heading" -> label.photographerHeading,
-          "heading" -> label.heading,
-          "user_type" -> label.userRole,
-          "username" -> label.username,
-          "mission_type" -> label.missionType,
-          "label_id" -> label.labelId
-        )
-      }
-      val featureCollection: JsObject = Json.obj("labels" -> jsonList)
-      Future.successful(Ok(featureCollection))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
   }
 
   /**
@@ -191,10 +169,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
     val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
     val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
+      val completionRate: Double =
+        if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
+        else 1.0D
       Json.obj("region_id" -> neighborhood.regionId,
         "total_distance_m" -> neighborhood.totalDistance,
         "completed_distance_m" -> neighborhood.auditedDistance,
-        "rate" -> (neighborhood.auditedDistance / neighborhood.totalDistance),
+        "rate" -> completionRate,
         "name" -> neighborhood.name
       )
     }
@@ -273,7 +254,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val labels = LabelTable.selectLocationsOfLabelsByUserId(UUID.fromString(user.userId))
+          val labels = LabelTable.getLabelLocations(UUID.fromString(user.userId))
           val features: List[JsObject] = labels.map { label =>
             val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
             val properties = Json.obj(
@@ -300,7 +281,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val streets = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
+          val streets = AuditTaskTable.getAuditedStreets(UUID.fromString(user.userId))
           val features: List[JsObject] = streets.map { edge =>
             val coordinates: Array[Coordinate] = edge.geom.getCoordinates
             val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
@@ -315,6 +296,17 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           Future.successful(Ok(featureCollection))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
+  }
+
+  def getAuditedStreetsWithTimestamps = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val streets: List[AuditedStreetWithTimestamp] = AuditTaskTable.getAuditedStreetsWithTimestamps
+      val features: List[JsObject] = streets.map(_.toGeoJSON)
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Future.successful(Ok(featureCollection))
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
@@ -361,7 +353,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
-          val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+          val userId: String = request.identity.get.userId.toString
+          val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
           val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
@@ -377,7 +370,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     LabelPointTable.find(labelId) match {
       case Some(labelPointObj) =>
-        val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+        val userId: String = request.identity.map(_.userId.toString).getOrElse("")
+        val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
         val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
@@ -385,20 +379,24 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-   * Get the list of pano IDs associated with labels in our database.
+   * Get metadata used for 2022 CV project for all labels, and output as JSON.
+   */
+  def getAllLabelMetadataForCV = UserAwareAction.async { implicit request =>
+    val labels: List[LabelCVMetadata] = LabelTable.getLabelCVMetadata
+    val json: JsValue = Json.toJson(labels.map(l => Json.toJson(l)))
+    Future.successful(Ok(json))
+  }
+
+  /**
+   * Get the list of pano IDs in our database.
+   * TODO remove the /adminapi/labels/panoid endpoint once all have shifted to /adminapi/panos
    */
   def getAllPanoIds() = UserAwareAction.async { implicit request =>
-
-    val labels = LabelTable.selectLocationsOfLabels
-    val features: List[JsObject] = labels.map { label =>
-
-      val properties = Json.obj(
-        "gsv_panorama_id" -> label.gsvPanoramaId
-      )
-      Json.obj("properties" -> properties)
-    }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
+    val panos: List[(String, Option[Int], Option[Int])] = GSVDataTable.getAllPanos()
+    val json: JsValue = Json.toJson(panos.map(p =>
+      Json.obj("gsv_panorama_id" -> p._1, "image_width" -> p._2, "image_height" -> p._3)
+    ))
+    Future.successful(Ok(json))
   }
 
   /**
@@ -424,7 +422,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val validationCounts = LabelValidationTable.getValidationCountsPerUser
       val json: JsArray = Json.arr(validationCounts.map(x => Json.obj(
-        "user_id" -> x._1, "role" -> x._2, "count" -> x._4, "agreed" -> x._5
+        "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
       )))
       Future.successful(Ok(json))
     } else {

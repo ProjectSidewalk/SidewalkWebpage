@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.jboss.weld"
 		module="weld-api-parent"
 		revision="1.0"
@@ -22,6 +22,7 @@
 		<m:dependency.management__javax.enterprise__cdi-api__version>1.0</m:dependency.management__javax.enterprise__cdi-api__version>
 		<m:dependency.management__org.jboss.weld__weld-api__version>1.0</m:dependency.management__org.jboss.weld__weld-api__version>
 		<m:properties__jstl.api.version>1.2</m:properties__jstl.api.version>
+		<e:sbtTransformHash>cfc00afdb8e5d6e45abb86891ccfd77a9a1e2980</e:sbtTransformHash>
 		<m:dependency.management__javax.el__el-api__version>2.1.2-b04</m:dependency.management__javax.el__el-api__version>
 		<m:properties__interceptor.api.version>1.1</m:properties__interceptor.api.version>
 		<m:properties__atinject.api.version>1</m:properties__atinject.api.version>

@@ -16,7 +16,7 @@ function SeverityBucket(inputSeverities) {
      */
     function _init() {
         for(let i = 1; i <= 5; i++ ){
-            push(new Severity(i));
+            push(new Severity(i, false));
         }
     }
 
@@ -76,7 +76,7 @@ function SeverityBucket(inputSeverities) {
      * Enable interaction with Severities.
      */
     function enable() {
-        $(".gallery-severity").prop("disabled", false);
+        bucket.forEach(severity => severity.enable());
     }
 
     self.push = push;

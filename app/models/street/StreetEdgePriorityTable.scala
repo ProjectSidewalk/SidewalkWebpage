@@ -9,7 +9,7 @@ import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
-case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double){
+case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double) {
   /**
     * Converts a StreetEdgePriority object into the JSON format.
     */
@@ -85,6 +85,16 @@ object StreetEdgePriorityTable {
   }
 
   /**
+    * Returns list of StreetEdgePriority from a list of streetEdgeIds.
+    *
+    * @param streetEdgeIds List[Int] of street edge ids.
+    * @return
+    */
+  def streetPrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriority] = db.withSession { implicit session =>
+    streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds.toSet).list
+  }
+
+  /**
     * Recalculate the priority attribute for all streetEdges.
     *
     * Computes a weighted sum of factors that influence priority (e.g. audit count). It takes a list of functions that
@@ -142,6 +152,7 @@ object StreetEdgePriorityTable {
     val completions = AuditTaskTable.completedTasks
       .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
       .innerJoin(UserStatTable.getQualityOfUsers).on(_._2 === _._1)  // join on user_id
+      .filterNot(_._2._3.getOrElse(false)) // filter out users marked with exclude_manual = TRUE
       .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
 
     /********** Compute Audit Counts **********/

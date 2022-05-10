@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.json"
 		module="json"
 		revision="20080701"
@@ -16,6 +16,7 @@
     Java, JavaScript, Perl, Python, and many others.
     These properties make JSON an ideal data-interchange language.
 		</description>
+		<e:sbtTransformHash>9c7d939d5fe6b07a4d469eb7ed2344d9eb3a8b35</e:sbtTransformHash>
 		<m:maven.plugins>null__maven-compiler-plugin__null</m:maven.plugins>
 	</info>
 	<configurations>

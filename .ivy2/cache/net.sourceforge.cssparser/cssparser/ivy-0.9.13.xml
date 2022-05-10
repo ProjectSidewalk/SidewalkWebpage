@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="net.sourceforge.cssparser"
 		module="cssparser"
 		revision="0.9.13"
@@ -10,6 +10,7 @@
 		<description homepage="http://cssparser.sourceforge.net/">
 		A CSS parser which implements SAC (the Simple API for CSS).
 		</description>
+		<e:sbtTransformHash>0894f86144ba34f73ee8866b699f006e8fbaf925</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-compiler-plugin__3.0|org.codehaus.mojo__javacc-maven-plugin__2.6|com.google.code.maven-replacer-plugin__replacer__1.5.2|org.apache.maven.plugins__maven-checkstyle-plugin__2.10|org.apache.maven.plugins__maven-source-plugin__2.2.1|org.apache.maven.plugins__maven-site-plugin__3.3|org.apache.maven.plugins__maven-eclipse-plugin__2.9|org.apache.maven.plugins__maven-release-plugin__2.4</m:maven.plugins>
@@ -30,7 +31,7 @@
 		<artifact name="cssparser" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.w3c.css" name="sac" rev="1.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.w3c.css" name="sac" rev="1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>
