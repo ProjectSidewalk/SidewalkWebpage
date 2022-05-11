@@ -272,6 +272,7 @@ dashboard.label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsma
 dashboard.validation.icon.alt = Checklist naast een potlood
 dashboard.accuracy.icon.alt = Doel met een pijl in de roos
 dashboard.accuracy.icon.tooltip = je labelnauwkeurigheid. Als N/A wordt weergegeven, zijn er niet genoeg van je labels gevalideerd door andere gebruikers.
+dashboard.achievements = Prestaties
 dashboard.eerst = eerste
 dashboard.seconde = tweede
 dashboard.derde = derde
