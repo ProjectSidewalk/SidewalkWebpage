@@ -9,7 +9,7 @@ surface.problem = Problema en superficie
 surface.problems = Problemas en superficie
 no.sidewalk = No hay banqueta
 crosswalk = Cruce peatonal
-signal = Señalamiento peatonal
+signal = Semáforo peatonal
 other = Otro
 labels = etiquetas
 dist.metric.abbr = km
@@ -102,7 +102,7 @@ audit.ribbon.obstacle = <u>O</u>bstáculo en la banqueta
 audit.ribbon.surface.problem = Problema en <u>s</u>uperficie
 audit.ribbon.no.sidewalk = <u>N</u>o hay banqueta
 audit.ribbon.crosswalk = Cruce peatonal (<u>W</u>)
-audit.ribbon.signal = Señalamiento <u>p</u>eatonal
+audit.ribbon.signal = Semáforo <u>p</u>eatonal
 audit.ribbon.other = Otro
 audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
 
@@ -272,6 +272,7 @@ dashboard.label.icon.alt = Icono minimalista de un mapa, con un gran marcador de
 dashboard.validation.icon.alt = Listado junto a un lápiz
 dashboard.accuracy.icon.alt = Blanco con una flecha en la mira
 dashboard.accuracy.icon.tooltip = Tu precisión de etiquetado. Si se muestra N/A, significa que no se han validado suficientes de tus etiquetas por otras personas usuarias
+dashboard.achievements = Logros
 dashboard.first = primera
 dashboard.second = segunda
 dashboard.third = tercera
