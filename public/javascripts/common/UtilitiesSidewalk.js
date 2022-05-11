@@ -105,6 +105,10 @@ function UtilitiesMisc (JSON) {
                     'surface problem': {
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.surface-problem')
+                    },
+                    'pooled water': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.pooled-water')
                     }
                 }
             },
@@ -246,6 +250,10 @@ function UtilitiesMisc (JSON) {
                     'sand/gravel': {
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.sand-gravel')
+                    },
+                    'uncovered manhole': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     }
                 }
             },
@@ -308,6 +316,10 @@ function UtilitiesMisc (JSON) {
                     'no pedestrian priority': {
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.no-pedestrian-priority')
+                    },
+                    'very long crossing': {
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.very-long-crossing')
                     }
                 }
             },
