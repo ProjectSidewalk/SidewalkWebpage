@@ -16,6 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
+import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import play.api.Logger
@@ -137,13 +138,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion.
     if ((auditTask.completed.isDefined && auditTask.completed.get)
       || (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable")) {
-      // if this was the first completed audit of this street edge, increase total audited distance of that region.
-      if (!AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId)) {
-        AuditTaskTable.updateCompleted(auditTaskId, completed = true)
-        RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
-      } else {
-        AuditTaskTable.updateCompleted(auditTaskId, completed = true)
-      }
+      AuditTaskTable.updateCompleted(auditTaskId, completed = true)
     }
   }
 
@@ -189,6 +184,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val missionId: Int = data.missionProgress.missionId
 
       if (data.auditTask.auditTaskId.isDefined) {
+        val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
         userOption match {
           case Some(user) =>
             // Update the street's priority only if the user has not completed this street previously.
@@ -207,6 +203,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, None)
               }
             }
+        }
+        // If street priority went from 1 to < 1 due to this audit, update the region_completion table accordingly.
+        val priorityAfter: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
+        if (priorityBefore.priority == 1.0D && priorityAfter.priority < 1.0D) {
+          RegionCompletionTable.updateAuditedDistance(streetEdgeId)
         }
       }
 

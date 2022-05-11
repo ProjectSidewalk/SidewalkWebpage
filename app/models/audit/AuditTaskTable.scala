@@ -296,13 +296,6 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns true if there is a completed audit task for the given street edge, false otherwise.
-    */
-  def anyoneHasAuditedStreet(streetEdgeId: Int): Boolean = db.withSession { implicit session =>
-    completedTasks.filter(_.streetEdgeId === streetEdgeId).list.nonEmpty
-  }
-
-  /**
     * Return audited street edges.
     */
   def selectStreetsAudited(filterLowQuality: Boolean): List[StreetEdge] = db.withSession { implicit session =>
