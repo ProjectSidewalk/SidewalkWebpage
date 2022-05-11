@@ -198,13 +198,24 @@ object StreetEdgePriorityTable {
     * @param streetEdgeId
     * @return success boolean
     */
-  def partiallyUpdatePriority(streetEdgeId: Int): Boolean = db.withTransaction { implicit session =>
+  def partiallyUpdatePriority(streetEdgeId: Int, userId: Option[String]): Boolean = db.withTransaction { implicit session =>
+    // Check if the user that audited is high quality. If we don't have their user_id, assume high quality for now.
+    val userHighQuality: Boolean = userId.flatMap {
+      u => UserStatTable.userStats.filter(_.userId === u).map(_.highQuality).list.headOption
+    }.getOrElse(true)
+
     val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
-    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map {
-      currPriority =>
-        val newPriority: Double = 1 / (1 + (1 / currPriority))
-        val rowsUpdated: Int = priorityQuery.update(newPriority)
-        rowsUpdated > 0
+    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map { currPriority =>
+      // Only update the priority if the street was audited by a high quality user.
+      val newPriority: Double = if (userHighQuality) {
+        1 / (1 + (1 / currPriority))
+      } else if (currPriority < 1) {
+        1 / (0.25 + (1 / currPriority))
+      } else {
+        currPriority
+      }
+      val rowsUpdated: Int = priorityQuery.update(newPriority)
+      rowsUpdated > 0
     }
     rowsWereUpdated.getOrElse(false)
   }

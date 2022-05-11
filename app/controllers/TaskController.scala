@@ -184,8 +184,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-      val userOption = identity
-      val streetEdgeId = data.auditTask.streetEdgeId
+      val userOption: Option[User] = identity
+      val streetEdgeId: Int = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
 
       if (data.auditTask.auditTaskId.isDefined) {
@@ -195,7 +195,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
               data.auditTask.completed.map { completed =>
                 if (completed) {
-                  StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                  StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, Some(user.userId.toString))
                 }
               }
             }
@@ -204,7 +204,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             Logger.warn("User without user_id audited a street, but every user should have a user_id.")
             data.auditTask.completed.map { completed =>
               if (completed) {
-                StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, None)
               }
             }
         }
