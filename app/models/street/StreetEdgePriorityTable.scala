@@ -4,7 +4,9 @@ import models.audit.AuditTaskTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import play.api.cache.Cache
 import play.api.libs.json._
+import scala.concurrent.duration.DurationInt
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
 
@@ -47,6 +49,27 @@ object StreetEdgePriorityTable {
     val streetEdgePriorityId: Int =
       (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
     streetEdgePriorityId
+  }
+
+  def auditedStreetDistanceUsingPriority: Float = db.withSession { implicit session =>
+    val cacheKey = s"auditedStreetDistanceFromPriority"
+    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
+      // Get the lengths of all the audited street edges.
+      val edgeLengths = for {
+        se <- StreetEdgeTable.streetEdgesWithoutDeleted
+        sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+        if sep.priority < 1.0D
+      } yield se.geom.transform(26918).length
+
+      // Sum the lengths and convert from meters to miles.
+      edgeLengths.sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
+    }
+  }
+
+  def streetDistanceCompletionRateUsingPriority: Float = db.withSession { implicit session =>
+    val auditedDistance: Float = auditedStreetDistanceUsingPriority
+    val totalDistance: Float = StreetEdgeTable.totalStreetDistance()
+    auditedDistance / totalDistance
   }
 
   /**

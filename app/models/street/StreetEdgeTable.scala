@@ -119,8 +119,8 @@ object StreetEdgeTable {
     * @return Float between 0 and 1
     */
   def streetDistanceCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
-    val auditedDistance = auditedStreetDistance(auditCount, userType)
-    val totalDistance = totalStreetDistance()
+    val auditedDistance: Float = auditedStreetDistance(auditCount, userType)
+    val totalDistance: Float = totalStreetDistance()
     auditedDistance / totalDistance
   }
 
@@ -149,7 +149,7 @@ object StreetEdgeTable {
   def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
     val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
-    Cache.getOrElse(cacheKey, 1.hour.toSeconds.toInt) {
+    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
       val auditTaskQuery = userType match {
         case "All" => completedAuditTasks
         case "Researcher" => researcherCompletedAuditTasks
