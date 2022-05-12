@@ -164,7 +164,7 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
         referenceCard.setProperty('user_validation', action);
 
         let actionStr = onExpandedView ? 'Validate_ExpandedMenuClick' + action : 'Validate_MenuClick' + action;
-        sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: cardProperties.label_id});
+        sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
         let validationTimestamp = new Date().getTime();
 
         let data = {
