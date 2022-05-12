@@ -72,6 +72,20 @@ object StreetEdgePriorityTable {
     auditedDistance / totalDistance
   }
 
+  /** Returns the sum of the lengths of all streets in the region that have been audited. */
+  def getDistanceAuditedInARegion(regionId: Int): Float = db.withSession { implicit session =>
+    // Get the lengths of all the audited street edges in the given region.
+    val auditedStreetsInRegion = for {
+      ser <- StreetEdgeTable.streetEdgeRegion
+      se <- StreetEdgeTable.streetEdgesWithoutDeleted if se.streetEdgeId === ser.streetEdgeId
+      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+      if ser.regionId === regionId && sep.priority < 1.0D
+    } yield se.geom.transform(26918).length
+
+    // Sum the lengths of the streets.
+    auditedStreetsInRegion.sum.run.getOrElse(0.0F)
+  }
+
   /**
     * Helper function to normalize the priorityParameter of a list of StreetEdgePriorityParameter objects to between 0
     * and 1. This returns the reciprocal for each street edge's parameter value. The reciprocal is calculated after
