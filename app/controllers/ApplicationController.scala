@@ -2,7 +2,6 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
-import scala.collection.JavaConverters._
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -10,7 +9,7 @@ import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.street.StreetEdgeTable
+import models.street.StreetEdgePriorityTable
 import models.utils.Configs
 import play.api.Play
 import play.api.Play.current
@@ -126,8 +125,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity=cityStr)
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
-                if (Messages("measurement.system") == "metric") StreetEdgeTable.auditedStreetDistance(1) * 1.60934.toFloat
-                else StreetEdgeTable.auditedStreetDistance(1)
+                if (Messages("measurement.system") == "metric") StreetEdgePriorityTable.auditedStreetDistanceUsingPriority * 1.60934.toFloat
+                else StreetEdgePriorityTable.auditedStreetDistanceUsingPriority
               Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))

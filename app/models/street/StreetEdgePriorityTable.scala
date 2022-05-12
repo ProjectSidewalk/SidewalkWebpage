@@ -4,7 +4,9 @@ import models.audit.AuditTaskTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import play.api.cache.Cache
 import play.api.libs.json._
+import scala.concurrent.duration.DurationInt
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
 
@@ -47,6 +49,41 @@ object StreetEdgePriorityTable {
     val streetEdgePriorityId: Int =
       (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
     streetEdgePriorityId
+  }
+
+  def auditedStreetDistanceUsingPriority: Float = db.withSession { implicit session =>
+    val cacheKey = s"auditedStreetDistanceFromPriority"
+    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
+      // Get the lengths of all the audited street edges.
+      val edgeLengths = for {
+        se <- StreetEdgeTable.streetEdgesWithoutDeleted
+        sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+        if sep.priority < 1.0D
+      } yield se.geom.transform(26918).length
+
+      // Sum the lengths and convert from meters to miles.
+      edgeLengths.sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
+    }
+  }
+
+  def streetDistanceCompletionRateUsingPriority: Float = db.withSession { implicit session =>
+    val auditedDistance: Float = auditedStreetDistanceUsingPriority
+    val totalDistance: Float = StreetEdgeTable.totalStreetDistance()
+    auditedDistance / totalDistance
+  }
+
+  /** Returns the sum of the lengths of all streets in the region that have been audited. */
+  def getDistanceAuditedInARegion(regionId: Int): Float = db.withSession { implicit session =>
+    // Get the lengths of all the audited street edges in the given region.
+    val auditedStreetsInRegion = for {
+      ser <- StreetEdgeTable.streetEdgeRegion
+      se <- StreetEdgeTable.streetEdgesWithoutDeleted if se.streetEdgeId === ser.streetEdgeId
+      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+      if ser.regionId === regionId && sep.priority < 1.0D
+    } yield se.geom.transform(26918).length
+
+    // Sum the lengths of the streets.
+    auditedStreetsInRegion.sum.run.getOrElse(0.0F)
   }
 
   /**
@@ -198,13 +235,24 @@ object StreetEdgePriorityTable {
     * @param streetEdgeId
     * @return success boolean
     */
-  def partiallyUpdatePriority(streetEdgeId: Int): Boolean = db.withTransaction { implicit session =>
+  def partiallyUpdatePriority(streetEdgeId: Int, userId: Option[String]): Boolean = db.withTransaction { implicit session =>
+    // Check if the user that audited is high quality. If we don't have their user_id, assume high quality for now.
+    val userHighQuality: Boolean = userId.flatMap {
+      u => UserStatTable.userStats.filter(_.userId === u).map(_.highQuality).list.headOption
+    }.getOrElse(true)
+
     val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
-    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map {
-      currPriority =>
-        val newPriority: Double = 1 / (1 + (1 / currPriority))
-        val rowsUpdated: Int = priorityQuery.update(newPriority)
-        rowsUpdated > 0
+    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map { currPriority =>
+      // Only update the priority if the street was audited by a high quality user.
+      val newPriority: Double = if (userHighQuality) {
+        1 / (1 + (1 / currPriority))
+      } else if (currPriority < 1) {
+        1 / (0.25 + (1 / currPriority))
+      } else {
+        currPriority
+      }
+      val rowsUpdated: Int = priorityQuery.update(newPriority)
+      rowsUpdated > 0
     }
     rowsWereUpdated.getOrElse(false)
   }
