@@ -6,7 +6,7 @@ import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
-import models.mission.{Mission, MissionTable, MissionTypeTable}
+import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresDriver
@@ -20,42 +20,16 @@ import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Label(labelId: Int,
-                 auditTaskId: Int,
-                 missionId: Int,
-                 gsvPanoramaId: String,
-                 labelTypeId: Int,
-                 photographerHeading: Float,
-                 photographerPitch: Float,
-                 panoramaLat: Float,
-                 panoramaLng: Float,
-                 deleted: Boolean,
-                 temporaryLabelId: Option[Int],
-                 timeCreated: Option[Timestamp],
-                 tutorial: Boolean,
-                 streetEdgeId: Int,
-                 agreeCount: Int,
-                 disagreeCount: Int,
-                 notsureCount: Int,
-                 correct: Option[Boolean])
+case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
+                 photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float,
+                 deleted: Boolean, temporaryLabelId: Option[Int], timeCreated: Option[Timestamp], tutorial: Boolean,
+                 streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean])
 
-case class LabelLocation(labelId: Int,
-                         auditTaskId: Int,
-                         gsvPanoramaId: String,
-                         labelType: String,
-                         lat: Float,
-                         lng: Float)
+case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 
-case class LabelLocationWithSeverity(labelId: Int,
-                                     auditTaskId: Int,
-                                     gsvPanoramaId: String,
-                                     labelType: String,
-                                     lat: Float,
-                                     lng: Float,
-                                     correct: Option[Boolean],
-                                     expired: Boolean,
-                                     highQualityUser: Boolean,
-                                     severity: Option[Int])
+case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
+                                     lat: Float, lng: Float, correct: Option[Boolean], expired: Boolean,
+                                     highQualityUser: Boolean, severity: Option[Int])
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -147,13 +121,15 @@ object LabelTable {
                                                 heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
                                                 canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
                                                 temporary: Boolean, description: Option[String],
-                                                userValidation: Option[Int]);
-
-  case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
-                             labelTypeId: Int, photographerHeading: Float, heading: Float,
-                             userRole: String, username: String, missionType: String, labelId: Int)
+                                                userValidation: Option[Int])
 
   case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
+
+  case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, deleted: Boolean, tutorial: Boolean,
+                             agreeCount: Int, disagreeCount: Int, notsureCount: Int, imageWidth: Option[Int],
+                             imageHeight: Option[Int], svImageX: Int, svImageY: Int, canvasWidth: Int,
+                             canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float, pitch: Float,
+                             photographerHeading: Float, photographerPitch: Float)
 
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
@@ -196,14 +172,14 @@ object LabelTable {
     * Find all labels with given regionId and userId.
     */
   def resumeMiniMap(regionId: Int, userId: UUID): List[MiniMapResumeMetadata] = db.withSession { implicit session =>
-    val labelsWithCVMetadata = for {
+    val labelsWithMetadata = for {
       _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
       _lb <- labels if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- LabelPointTable.labelPoints if _lb.labelId === _lp.labelId
 
     } yield (_lb.labelId, _lt.labelType, _lp.lat, _lp.lng)
-    labelsWithCVMetadata.list.map(label => MiniMapResumeMetadata.tupled(label))
+    labelsWithMetadata.list.map(label => MiniMapResumeMetadata.tupled(label))
   }
 
   /**
@@ -320,33 +296,6 @@ object LabelTable {
     val labelId: Int =
       (labels returning labels.map(_.labelId)) += label
     labelId
-  }
-
-  /**
-    * Returns all labels with sufficient metadata to produce crops for computer vision tasks.
-    */
-  def retrieveCVMetadata: List[LabelCVMetadata] = db.withSession { implicit session =>
-    val labelsWithCVMetadata = for {
-      _labels <- labels
-      _labelPoint <- LabelPointTable.labelPoints if _labels.labelId === _labelPoint.labelId
-      _mission <- MissionTable.missions if _labels.missionId === _mission.missionId
-      _missionType <- MissionTypeTable.missionTypes if _mission.missionTypeId === _missionType.missionTypeId
-      _roleid <- UserRoleTable.userRoles if _mission.userId === _roleid.userId
-      _rolename <- RoleTable.roles if _roleid.roleId === _rolename.roleId
-      _user <- UserTable.users if _mission.userId === _user.userId
-
-    } yield (_labels.gsvPanoramaId,
-      _labelPoint.svImageX,
-      _labelPoint.svImageY,
-      _labels.labelTypeId,
-      _labels.photographerHeading,
-      _labelPoint.heading,
-      _rolename.role,
-      _user.username,
-      _missionType.missionType,
-      _labels.labelId
-    )
-    labelsWithCVMetadata.list.map(label => LabelCVMetadata.tupled(label))
   }
 
   /**
@@ -1260,5 +1209,23 @@ object LabelTable {
         |FROM label
         |WHERE disagree_count > 2 AND disagree_count >= 2 * agree_count""".stripMargin
     ).list.toSet
+  }
+
+  /**
+   * Get metadata used for 2022 CV project for all labels.
+   */
+  def getLabelCVMetadata: List[LabelCVMetadata] = db.withSession { implicit session =>
+    (for {
+      _l <- labels
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
+      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+    } yield (
+      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.deleted,
+      _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId,
+      _l.agreeCount, _l.disagreeCount, _l.notsureCount, _gsv.imageWidth, _gsv.imageHeight, _lp.svImageX, _lp.svImageY,
+      _lp.canvasWidth, _lp.canvasHeight, _lp.canvasX, _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch,
+      _l.photographerHeading, _l.photographerPitch
+    )).list.map(LabelCVMetadata.tupled)
   }
 }

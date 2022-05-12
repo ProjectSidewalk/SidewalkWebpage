@@ -1,11 +1,11 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.label._
-@import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
 @import scala.util.Random
 @import play.api.Play
 @import play.api.Play.current
+@import models.street.StreetEdgePriorityTable
 @(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
@@ -154,12 +154,12 @@
             </a>
         </div>
         <script language="javascript">
-            if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
+            if (@("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) < 100) {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else {
                 document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
             }
-            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
+            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)),1,2.5,{suffix:'%'});
             var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
             var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
             var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});

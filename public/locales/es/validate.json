@@ -10,8 +10,8 @@
     "title": {
       "curb-ramp": "¿Es esta una <b>Rampa Peatonal</b>?",
       "no-curb-ramp": "¿Es esta una <b>Rampa Peatonal Ausente</b>?",
-      "obstacle": "¿Es esta un <b>Obstáculo</b>?",
-      "surface-problem": "¿Es esta un <b>Problema en Superficie</b>?",
+      "obstacle": "¿Es este un <b>Obstáculo</b>?",
+      "surface-problem": "¿Es este un <b>Problema en Superficie</b>?",
       "no-sidewalk": "¿Debería haber una etiqueta de <b>No Hay Banqueta</b> aquí?"
     }
   },

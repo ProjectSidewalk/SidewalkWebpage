@@ -1020,14 +1020,8 @@ kbd {
 #advanced-overlay,
 #neighborhood-completion-overlay,
 #already-completed-neighborhood-overlay,
-#cvgroundtruth-complete-overlay,
 #HIT-expiration-overlay {
     display:none;
-}
-#panoid-textarea {
-    color: black;
-    text-align: left;
-    font-size: 10px;
 }
 .overlay-text {
     height: 100%;
@@ -1041,9 +1035,7 @@ kbd {
 #advanced-neighborhood-text,
 #neighborhood-completion-text,
 #already-completed-neighborhood-text,
-#HIT-expiration-text,
-#cvgroundtruth-panoid-entry-form-text,
-#cvgroundtruth-complete-overlay-text {
+#HIT-expiration-text {
     color: white;
     text-align: center;
     width: 70%;
@@ -1141,19 +1133,6 @@ kbd {
 .survey-option label {
     width:100%;
     font-weight:normal;
-}
-#next-pano-button-holder {
-    display:none;
-    position:absolute;
-    left: 735px;
-    top: 340px;
-    width: 200px;
-}
-#groundtruth-info-panel {
-    position:absolute;
-    right:0; bottom:0;
-    height:50px;
-    background-color: white
 }
 
 .anchor {

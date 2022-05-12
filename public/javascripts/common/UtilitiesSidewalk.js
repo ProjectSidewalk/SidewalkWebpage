@@ -82,9 +82,13 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
-                    'missing friction strip': {
-                        keyChar: 'F',
-                        text: i18next.t('center-ui.context-menu.tag.missing-friction-strip')
+                    'missing tactile warning': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.missing-tactile-warning')
+                    },
+                    'tactile warning': {
+                        keyChar: 'H',
+                        text: i18next.t('center-ui.context-menu.tag.tactile-warning')
                     },
                     'steep': {
                         keyChar: 'T',
@@ -101,6 +105,10 @@ function UtilitiesMisc (JSON) {
                     'surface problem': {
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.surface-problem')
+                    },
+                    'pooled water': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.pooled-water')
                     }
                 }
             },
@@ -242,6 +250,10 @@ function UtilitiesMisc (JSON) {
                     'sand/gravel': {
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.sand-gravel')
+                    },
+                    'uncovered manhole': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     }
                 }
             },
@@ -300,6 +312,14 @@ function UtilitiesMisc (JSON) {
                     'rail/tram track': {
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
+                    },
+                    'no pedestrian priority': {
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.no-pedestrian-priority')
+                    },
+                    'very long crossing': {
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.very-long-crossing')
                     }
                 }
             },
