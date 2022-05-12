@@ -209,17 +209,21 @@ object AuditTaskInteractionTable {
          |FROM (
          |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
          |    FROM (
-         |        SELECT user_id, timestamp
-         |        FROM validation_task_interaction
-         |        INNER JOIN mission ON mission.mission_id = validation_task_interaction.mission_id
-         |        WHERE action IN ('ValidationButtonClick_Agree', 'ValidationButtonClick_Disagree', 'ValidationButtonClick_NotSure', 'ValidationKeyboardShortcut_Agree', 'ValidationKeyboardShortcut_Disagree', 'ValidationKeyboardShortcut_NotSure')
-         |            AND mission.user_id = '$userId'
+         |        SELECT user_id, end_timestamp AS timestamp
+         |        FROM label_validation
+         |        WHERE end_timestamp IS NOT NULL
+         |            AND user_id = '$userId'
          |        UNION
          |        SELECT user_id, timestamp
          |        FROM audit_task_interaction
          |        INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
          |        WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
          |            AND audit_task.user_id = '$userId'
+         |        UNION
+         |        SELECT user_id, timestamp
+         |        FROM webpage_activity
+         |        WHERE activity LIKE 'Visit_Labeling_Guide%'
+         |            AND user_id = '$userId'
          |    )"timestamps"
          |) "time_diffs"
          |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
