@@ -89,7 +89,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 && interaction.audit_task_id === auditTaskId);
             var timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
-
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),

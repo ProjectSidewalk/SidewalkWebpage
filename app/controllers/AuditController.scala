@@ -110,7 +110,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
               else
                 AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-            val nextTempLabelId: Int = LabelTable.nextTempLabelId(mission.currentAuditTaskId)
+            val nextTempLabelId: Int = LabelTable.nextTempLabelId(user.userId)
 
             // Check if they have already completed an audit mission. We send them to /validate after their first audit
             // mission, but only after every third audit mission after that.
@@ -172,7 +172,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
               else
                 AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-            val nextTempLabelId: Int = LabelTable.nextTempLabelId(mission.currentAuditTaskId)
+            val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
             // Check if they have already completed an audit mission. We send them to /validate after their first audit.
             // mission, but only after every third audit mission after that.
@@ -223,7 +223,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
           var mission: Mission =
             MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
-          val nextTempLabelId: Int = LabelTable.nextTempLabelId(mission.currentAuditTaskId)
+          val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
           val missionSetProgress: MissionSetProgress =
             if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
@@ -274,7 +274,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
         val mission: Mission =
           MissionTable.resumeOrCreateNewAuditMission(userId, region.regionId, payPerMeter, tutorialPay).get
-        val nextTempLabelId: Int = LabelTable.nextTempLabelId(mission.currentAuditTaskId)
+        val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
         val missionSetProgress: MissionSetProgress =
           if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)

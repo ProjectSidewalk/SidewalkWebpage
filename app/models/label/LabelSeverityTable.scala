@@ -37,8 +37,8 @@ object LabelSeverityTable {
   /**
     * Updates severity of the specified id to be newSeverity.
     */
-  def updateSeverity(severityId: Int, newSeverity: Int): Int = db.withTransaction { implicit session =>
-    val severities = labelSeverities.filter(_.labelSeverityId === severityId).map(x => x.severity)
+  def updateSeverity(severityId: Int, newSeverity: Int) = db.withTransaction { implicit session =>
+    val severities = for { label <- labelSeverities if label.labelSeverityId === severityId } yield label.severity
     severities.update(newSeverity)
   }
 }
