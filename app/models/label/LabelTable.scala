@@ -128,11 +128,10 @@ object LabelTable {
                                  svImageHeight: Int, description: Option[String], severity: Option[Int],
                                  temporary: Option[Boolean], tagIds: List[Int])
 
-  case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, deleted: Boolean, tutorial: Boolean,
-                             agreeCount: Int, disagreeCount: Int, notsureCount: Int, imageWidth: Option[Int],
-                             imageHeight: Option[Int], svImageX: Int, svImageY: Int, canvasWidth: Int,
-                             canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float, pitch: Float,
-                             photographerHeading: Float, photographerPitch: Float)
+  case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agreeCount: Int, disagreeCount: Int,
+                             notsureCount: Int, imageWidth: Option[Int], imageHeight: Option[Int], svImageX: Int,
+                             svImageY: Int, canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int,
+                             heading: Float, pitch: Float, photographerHeading: Float, photographerPitch: Float)
 
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
@@ -1252,12 +1251,13 @@ object LabelTable {
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      // Filter out deleted and tutorial labels.
+      if !_l.deleted
+      if !_l.tutorial && !(_l.streetEdgeId === tutorialStreetId) && !(_at.streetEdgeId === tutorialStreetId)
     } yield (
-      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.deleted,
-      _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId,
-      _l.agreeCount, _l.disagreeCount, _l.notsureCount, _gsv.imageWidth, _gsv.imageHeight, _lp.svImageX, _lp.svImageY,
-      _lp.canvasWidth, _lp.canvasHeight, _lp.canvasX, _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch,
-      _l.photographerHeading, _l.photographerPitch
+      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount,
+      _gsv.imageWidth, _gsv.imageHeight, _lp.svImageX, _lp.svImageY, _lp.canvasWidth, _lp.canvasHeight, _lp.canvasX,
+      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _l.photographerHeading, _l.photographerPitch
     )).list.map(LabelCVMetadata.tupled)
   }
 }
