@@ -140,9 +140,9 @@
             <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
             <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
             @if(Play.configuration.getString("city-params.open-status." + cityId).get == "partially") {
-	    	<span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percentopen")</span> 
+	    	<span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span> 
 	    } else {
-		<span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent", cityShortName)</span>
+		<span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", cityShortName)</span>
 	    }
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
@@ -159,9 +159,9 @@
         </div>
         <script language="javascript">
             if ("@(Play.configuration.getString("city-params.open-status." + cityId).get)" === "partially") {
-		document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.partiallyopen", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+		document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
 	    } else if (@("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) < 100) {
-		document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+		document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
 	    } else {
                 document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
             }
