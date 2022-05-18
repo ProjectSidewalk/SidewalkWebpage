@@ -273,6 +273,7 @@ dashboard.label.icon.alt = Minimalist map icon with large destination marker
 dashboard.validation.icon.alt = Checklist next to a pencil
 dashboard.accuracy.icon.alt = Target with an arrow in the bullseye
 dashboard.accuracy.icon.tooltip = Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users.
+dashboard.achievements = Achievements
 dashboard.first = first
 dashboard.second = second
 dashboard.third = third

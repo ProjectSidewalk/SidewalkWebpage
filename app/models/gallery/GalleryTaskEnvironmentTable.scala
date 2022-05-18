@@ -1,15 +1,15 @@
 package models.gallery
 
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class GalleryTaskEnvironment(galleryTaskEnvironmentId: Int, browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
-                                language: String)
+                                language: String, userId: Option[String])
 
 class GalleryTaskEnvironmentTable(tag: Tag) extends Table[GalleryTaskEnvironment](tag, Some("sidewalk"), "gallery_task_environment") {
   def galleryTaskEnvironmentId = column[Int]("gallery_task_environment_id", O.PrimaryKey, O.AutoInc)
@@ -24,9 +24,13 @@ class GalleryTaskEnvironmentTable(tag: Tag) extends Table[GalleryTaskEnvironment
   def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
   def ipAddress = column[Option[String]]("ip_address", O.Nullable)
   def language = column[String]("language", O.NotNull)
+  def userId = column[Option[String]]("user_id", O.Nullable)
 
   def * = (galleryTaskEnvironmentId, browser, browserVersion, browserWidth, browserHeight, availWidth,
-    availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language) <> ((GalleryTaskEnvironment.apply _).tupled, GalleryTaskEnvironment.unapply)
+    availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, userId) <> ((GalleryTaskEnvironment.apply _).tupled, GalleryTaskEnvironment.unapply)
+
+  def user: ForeignKeyQuery[UserTable, DBUser] =
+    foreignKey("gallery_task_environment_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
 /**

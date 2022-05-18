@@ -16,6 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
+import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import play.api.Logger
@@ -137,13 +138,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion.
     if ((auditTask.completed.isDefined && auditTask.completed.get)
       || (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable")) {
-      // if this was the first completed audit of this street edge, increase total audited distance of that region.
-      if (!AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId)) {
-        AuditTaskTable.updateCompleted(auditTaskId, completed = true)
-        RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
-      } else {
-        AuditTaskTable.updateCompleted(auditTaskId, completed = true)
-      }
+      AuditTaskTable.updateCompleted(auditTaskId, completed = true)
     }
   }
 
@@ -184,18 +179,19 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-      val userOption = identity
-      val streetEdgeId = data.auditTask.streetEdgeId
+      val userOption: Option[User] = identity
+      val streetEdgeId: Int = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
 
       if (data.auditTask.auditTaskId.isDefined) {
+        val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
         userOption match {
           case Some(user) =>
             // Update the street's priority only if the user has not completed this street previously.
             if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
               data.auditTask.completed.map { completed =>
                 if (completed) {
-                  StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                  StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, Some(user.userId.toString))
                 }
               }
             }
@@ -204,9 +200,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             Logger.warn("User without user_id audited a street, but every user should have a user_id.")
             data.auditTask.completed.map { completed =>
               if (completed) {
-                StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, None)
               }
             }
+        }
+        // If street priority went from 1 to < 1 due to this audit, update the region_completion table accordingly.
+        val priorityAfter: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
+        if (priorityBefore.priority == 1.0D && priorityAfter.priority < 1.0D) {
+          RegionCompletionTable.updateAuditedDistance(streetEdgeId)
         }
       }
 
@@ -308,9 +309,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         // Remove any tag entries from database that were removed on the front-end and add any new ones.
+        val labelTagIds: Set[Int] = label.tagIds.toSet
         val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labelId).toSet
-        val tagsToRemove: Set[Int] = existingTagIds -- label.tagIds.toSet
-        val tagsToAdd: Set[Int] = label.tagIds.toSet -- existingTagIds
+        val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
+        val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
         tagsToRemove.map { tagId => LabelTagTable.delete(labelId, tagId) }
         tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }
       }

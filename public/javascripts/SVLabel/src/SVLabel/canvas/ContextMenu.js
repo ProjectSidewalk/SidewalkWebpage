@@ -236,7 +236,6 @@ function ContextMenu (uiContextMenu) {
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
-
                 // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
                 var currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
                 var tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];

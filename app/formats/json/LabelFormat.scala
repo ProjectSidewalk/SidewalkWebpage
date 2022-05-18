@@ -32,8 +32,6 @@ object LabelFormat {
     (__ \ "label_id").write[Int] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
-      (__ \ "deleted").write[Boolean] and
-      (__ \ "tutorial").write[Boolean] and
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
       (__ \ "notsure_count").write[Int] and

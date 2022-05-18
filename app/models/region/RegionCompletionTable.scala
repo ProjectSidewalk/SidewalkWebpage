@@ -1,6 +1,6 @@
 package models.region
 
-import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
+import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -99,7 +99,7 @@ object RegionCompletionTable {
 
           regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
         } else {
-          val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
+          val auditedDistance: Double = StreetEdgePriorityTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
           val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
           regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
