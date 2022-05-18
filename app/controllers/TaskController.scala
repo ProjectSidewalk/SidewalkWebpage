@@ -230,12 +230,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       for (label: LabelSubmission <- data.labels) {
         val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
 
-        val existingLabelId: Option[Int] = label.temporaryLabelId match {
-          case Some(tempLabelId) =>
-            LabelTable.find(tempLabelId, label.auditTaskId)
-          case None =>
-            Logger.error("Received label with Null temporary_label_id")
-            None
+        val existingLabelId: Option[Int] = if (label.temporaryLabelId.isDefined && userOption.isDefined) {
+          LabelTable.find(label.temporaryLabelId.get, userOption.get.userId)
+        } else {
+          Logger.error("Received label with Null temporary_label_id or user_id")
+          None
         }
 
         // If the label already exists, update deleted field, o/w insert the new label.

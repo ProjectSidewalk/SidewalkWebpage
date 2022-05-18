@@ -181,13 +181,14 @@ object LabelTable {
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
 
   /**
-    * Find a label based on temp_label_id and audit_task_id.
+    * Find a label based on temp_label_id and user_id.
     */
-  def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
-    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map {
-      label => label.labelId
-    }
-    labelIds.firstOption
+  def find(tempLabelId: Int, userId: UUID): Option[Int] = db.withSession { implicit session =>
+    (for {
+      m <- missions
+      l <- labels if l.missionId === m.missionId
+      if l.temporaryLabelId === tempLabelId && m.userId === userId.toString
+    } yield l.labelId).firstOption
   }
 
   def countLabels: Int = db.withTransaction(implicit session =>
