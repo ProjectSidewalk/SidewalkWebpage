@@ -167,9 +167,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 image_height: panoramaData.tiles.worldSize.height,
                 tile_width: panoramaData.tiles.tileSize.width,
                 tile_height: panoramaData.tiles.tileSize.height,
-                center_heading: panoramaData.tiles.centerHeading,
-                origin_heading: panoramaData.tiles.originHeading,
-                origin_pitch: panoramaData.tiles.originPitch,
                 links: links,
                 copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
             };
