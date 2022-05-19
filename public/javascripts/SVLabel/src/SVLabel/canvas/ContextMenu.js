@@ -614,9 +614,7 @@ function ContextMenu (uiContextMenu) {
                     });
                 }
 
-                if (temporaryLabel) {
-                    $temporaryLabelCheckbox.prop("checked", temporaryLabel);
-                }
+                $temporaryLabelCheckbox.prop("checked", temporaryLabel);
 
                 $menuWindow.css({
                     visibility: 'visible',

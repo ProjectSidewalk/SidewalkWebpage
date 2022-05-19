@@ -237,10 +237,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           None
         }
 
-        // If the label already exists, update deleted field, o/w insert the new label.
+        // If the label already exists, update deleted, severity, temporary, and description cols, o/w insert new label.
         val labelId: Int = existingLabelId match {
           case Some(labId) =>
-            LabelTable.updateDeleted(labId, label.deleted.value)
+            LabelTable.update(labId, label.deleted, label.severity, label.temporary, label.description)
             labId
           case None =>
             // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
@@ -262,9 +262,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
 
             LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
-              label.photographerHeading, label.photographerPitch, label.panoramaLat,
-              label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated,
-              label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None))
+              label.photographerHeading, label.photographerPitch, label.panoramaLat, label.panoramaLng, label.deleted,
+              label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
+              label.severity, label.temporary, label.description))
         }
 
         // Insert label points.
@@ -281,29 +281,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               point.canvasY, point.heading, point.pitch, point.zoom,
               point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
               point.lat, point.lng, pointGeom, point.computationMethod))
-          }
-        }
-
-        // If temporariness/severity/description they are set, update/insert them.
-        if (label.severity.isDefined) {
-          LabelSeverityTable.find(labelId) match {
-            case Some(ls) => LabelSeverityTable.updateSeverity(ls.labelSeverityId, label.severity.get)
-            case None => LabelSeverityTable.save(LabelSeverity(0, labelId, label.severity.get))
-          }
-        }
-
-        if (label.temporaryLabel.isDefined) {
-          val tempLabel: Boolean = label.temporaryLabel.get.value
-          LabelTemporarinessTable.find(labelId) match {
-            case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
-            case None => LabelTemporarinessTable.save(LabelTemporariness(0, labelId, tempLabel))
-          }
-        }
-
-        if (label.description.isDefined) {
-          LabelDescriptionTable.find(labelId) match {
-            case Some(pd) => LabelDescriptionTable.updateDescription(pd.labelDescriptionId, label.description.get)
-            case None => LabelDescriptionTable.save(LabelDescription(0, labelId, label.description.get))
           }
         }
 

@@ -25,7 +25,10 @@ object LabelFormat {
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
       (__ \ "notsure_count").write[Int] and
-      (__ \ "correct").writeNullable[Boolean]
+      (__ \ "correct").writeNullable[Boolean] and
+      (__ \ "severity").writeNullable[Int] and
+      (__ \ "temporary").write[Boolean] and
+      (__ \ "description").writeNullable[String]
     )(unlift(Label.unapply _))
 
   implicit val labelCVMetadataWrite: Writes[LabelTable.LabelCVMetadata] = (

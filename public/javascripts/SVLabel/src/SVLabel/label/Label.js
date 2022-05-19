@@ -72,7 +72,7 @@ function Label (svl, pathIn, params) {
         severity: null,
         tutorial: null,
         temporary_label_id: null,
-        temporaryLabel: null,
+        temporaryLabel: false,
         description: null
     };
 
