@@ -225,15 +225,13 @@ object GlobalAttributeTable {
       _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
       if _lt.labelType =!= "Problem"
     } yield (
-      _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId, _osm.osmWayId,
-      _r.description, _l.labelId, (_lp.lat, _lp.lng), _l.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
-      (_lp.canvasX, _lp.canvasY), _lp.canvasWidth, _lp.canvasHeight, _l.agreeCount, _l.disagreeCount, _l.notsureCount,
-      _l.severity, _l.temporary
+      _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId,
+      _osm.osmWayId, _r.description, _l.labelId, (_lp.lat.get, _lp.lng.get), _l.gsvPanoramaId, _lp.heading, _lp.pitch,
+      _lp.zoom, (_lp.canvasX, _lp.canvasY), _lp.canvasWidth, _lp.canvasHeight, _l.agreeCount, _l.disagreeCount,
+      _l.notsureCount, _l.severity, _l.temporary
     )
 
-    attributesWithLabels.list.map(a =>
-      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7, a._8, a._9, (a._10._1.get, a._10._2.get), a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20, a._21, a._22)
-    )
+    attributesWithLabels.list.map(GlobalAttributeWithLabelForAPI.tupled)
   }
 
   /**
