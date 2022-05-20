@@ -68,7 +68,7 @@
     "cracks": "cracks",
     "grass": "grass",
     "narrow sidewalk": "narrow sidewalk",
-    "brick": "brick",
+    "brick/cobblestone": "brick/cobblestone",
     "very broken": "very broken",
     "rail/tram track": "rail/tram track",
     "sand/gravel": "sand/gravel",

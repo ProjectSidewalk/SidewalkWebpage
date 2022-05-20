@@ -227,9 +227,9 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
-                    'brick': {
+                    'brick/cobblestone': {
                         keyChar: 'I',
-                        text: i18next.t('center-ui.context-menu.tag.brick')
+                        text: i18next.t('center-ui.context-menu.tag.brick-cobblestone')
                     },
                     'construction': {
                         keyChar: 'T',
@@ -301,9 +301,9 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.uneven-surface')
                     },
-                    'brick': {
+                    'brick/cobblestone': {
                         keyChar: 'I',
-                        text: i18next.t('center-ui.context-menu.tag.brick')
+                        text: i18next.t('center-ui.context-menu.tag.brick-cobblestone')
                     },
                     'bumpy': {
                         keyChar: 'Y',
