@@ -793,6 +793,8 @@ p#conditional-text {
 #awardnum {
     font-size:10px;
     color:#c0becf;
+    right: 27px;
+    bottom: 10px;
 }
 #funding-title {
     font-weight: bold;
