@@ -148,7 +148,7 @@
                 "uneven-slanted": "dispareja/inclinada (<tag-underline>u</tag-underline>)",
                 "cracks": "grietas (<tag-underline>k</tag-underline>)",
                 "grass": "hierba (<tag-underline>g</tag-underline>)",
-                "brick": "ladr<tag-underline>i</tag-underline>llo",
+                "brick-cobblestone": "ladr<tag-underline>i</tag-underline>llo/adoquín",
                 "very-broken": "<tag-underline>r</tag-underline>ota",
                 "rail-tram-track": "vía férrea/tranvía (<tag-underline>l</tag-underline>)",
                 "sand-gravel": "arena/gra<tag-underline>v</tag-underline>a",

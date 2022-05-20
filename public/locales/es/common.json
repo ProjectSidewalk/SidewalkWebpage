@@ -68,7 +68,7 @@
     "cracks": "grietas",
     "grass": "hierba",
     "narrow sidewalk": "muy angosta",
-    "brick": "ladrillo",
+    "brick/cobblestone": "ladrillo/adoquín",
     "very broken": "rota",
     "rail/tram track": "vía férrea/tranvía",
     "sand/gravel": "arena/grava",

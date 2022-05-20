@@ -150,7 +150,7 @@
                 "uneven-slanted": "<tag-underline>u</tag-underline>neven/slanted",
                 "cracks": "crac<tag-underline>k</tag-underline>s",
                 "grass": "<tag-underline>g</tag-underline>rass",
-                "brick": "br<tag-underline>i</tag-underline>ck",
+                "brick-cobblestone": "br<tag-underline>i</tag-underline>ck/cobblestone",
                 "very-broken": "very b<tag-underline>r</tag-underline>oken",
                 "rail-tram-track": "rai<tag-underline>l</tag-underline>/tram track",
                 "sand-gravel": "sand/gra<tag-underline>v</tag-underline>el",
