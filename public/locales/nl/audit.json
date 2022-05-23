@@ -150,7 +150,7 @@
                 "uneven-slanted": "oneven/hellend (<tag-underline>u</tag-underline>)",
                 "cracks": "scheuren (<tag-underline>k</tag-underline>)",
                 "grass": "<tag-underline>g</tag-underline>ras",
-                "brick": "steen (<tag-underline>i</tag-underline>)",
+                "brick-cobblestone": "steen (<tag-underline>i</tag-underline>)",
                 "very-broken": "e<tag-underline>r</tag-underline>nstig beschadigd",
                 "rail-tram-track": "spoor/trambaan (<tag-underline>l</tag-underline>)",
                 "sand-gravel": "zand/grind (<tag-underline>v</tag-underline>)",
