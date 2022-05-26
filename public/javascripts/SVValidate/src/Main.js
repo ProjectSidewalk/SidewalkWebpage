@@ -27,7 +27,9 @@ function Main (param) {
             2: i18next.t('missing-curb-ramp-caps'),
             3: i18next.t('obstacle-caps'),
             4: i18next.t('surface-problem-caps'),
-            7: i18next.t('no-sidewalk-caps')
+            7: i18next.t('no-sidewalk-caps'),
+            9: i18next.t('crosswalk-caps'),
+            10: i18next.t('signal-caps')
         };
 
         svv.labelTypes = {
@@ -35,7 +37,9 @@ function Main (param) {
             2: 'NoCurbRamp',
             3: 'Obstacle',
             4: 'SurfaceProblem',
-            7: 'NoSidewalk'
+            7: 'NoSidewalk',
+            9: 'Crosswalk',
+            10: 'Signal'
         };
         svv.ui = {};
 

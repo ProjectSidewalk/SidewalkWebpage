@@ -4,6 +4,8 @@
   "obstacle-caps": "Obstacle",
   "surface-problem-caps": "Surface Problem",
   "no-sidewalk-caps": "No Sidewalk",
+  "crosswalk-caps": "Crosswalk",
+  "signal-caps": "Signal",
   "user-description": "User Description: ",
   "temporary": "Temporary",
   "top-ui": {
@@ -12,7 +14,9 @@
       "no-curb-ramp": "Is this a <b>Missing Curb Ramp</b>?",
       "obstacle": "Is this an <b>Obstacle</b>?",
       "surface-problem": "Is this a <b>Surface Problem</b>?",
-      "no-sidewalk": "Should there be a <b>No Sidewalk</b> label here?"
+      "no-sidewalk": "Should there be a <b>No Sidewalk</b> label here?",
+      "crosswalk": "Is this a <b>Crosswalk</b>?",
+      "signal": "Is this a <b>Pedestrian Signal</b>?"
     }
   },
   "right-ui": {
@@ -99,6 +103,8 @@
     "body-3": "You just validated {{n}} Obstacle labels.",
     "body-4": "You just validated {{n}} Surface Problem labels.",
     "body-7": "You just validated {{n}} No Sidewalk labels.",
+    "body-9": "You just validated {{n}} Crosswalk labels.",
+    "body-10": "You just validated {{n}} Pedestrian Signal labels.",
     "validate-more": "Validate more labels",
     "continue": "Continue validating",
     "explore": "Start an exploration mission",
@@ -111,6 +117,8 @@
     "info-title-no-curb-ramp": "What is a Missing Curb Ramp?",
     "info-title-obstacle": "What is an Obstacle?",
     "info-title-surface-problem": "What is a Surface Problem?",
-    "info-title-no-sidewalk": "What is a \"No Sidewalk\""
+    "info-title-no-sidewalk": "What is a \"No Sidewalk\"",
+    "info-title-crosswalk": "What is a Crosswalk?",
+    "info-title-signal": "What is a Pedestrian Signal?"
   }
 }
