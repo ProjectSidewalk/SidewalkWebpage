@@ -20,10 +20,10 @@ function ContextMenu (uiContextMenu) {
     var lastShownLabelColor;
 
     var context_menu_el = document.getElementById('context-menu-holder');
-    document.addEventListener('mousedown', function(event){
+    document.addEventListener('mousedown', function(event) {
         //event.stopPropagation();
         var clicked_out = !(context_menu_el.contains(event.target));
-        if (isOpen()){
+        if (isOpen()) {
             if (clicked_out) {
              svl.tracker.push('ContextMenu_CloseClickOut');
             handleSeverityPopup();
@@ -82,7 +82,7 @@ function ContextMenu (uiContextMenu) {
         uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click", {lowLevelLogging: false});
     }
 
-    function getContextMenuUI(){
+    function getContextMenuUI() {
         return uiContextMenu;
     }
 
@@ -95,7 +95,7 @@ function ContextMenu (uiContextMenu) {
         return (key in status) ? status[key] : null;
     }
 
-    function getTargetLabel () {
+    function getTargetLabel() {
         return getStatus('targetLabel');
     }
 
@@ -129,24 +129,24 @@ function ContextMenu (uiContextMenu) {
         svl.keyboard.setStatus('focusOnTextField', true);
     }
 
-    function handleCloseButtonClick () {
+    function handleCloseButtonClick() {
         svl.tracker.push('ContextMenu_CloseButtonClick');
         handleSeverityPopup();
         hide();
 
     }
 
-    function _handleOKButtonClick () {
+    function _handleOKButtonClick() {
         svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
         hide();
 
     }
 
-    function handleSeverityPopup () {
+    function handleSeverityPopup() {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
-        if (labels.length == 0){
+        if (labels.length == 0) {
             labels = prev_labels;
         }
         if (labels.length > 0) {
@@ -172,12 +172,12 @@ function ContextMenu (uiContextMenu) {
         }
     }
 
-    function _handleRadioButtonLabelMouseEnter () {
+    function _handleRadioButtonLabelMouseEnter() {
         var radioValue = parseInt($(this).find("input").attr("value"), 10);
         self.updateRadioButtonImages(radioValue);
     }
 
-    function _handleRadioButtonLabelMouseLeave () {
+    function _handleRadioButtonLabelMouseLeave() {
         self.updateRadioButtonImages();
     }
 
@@ -332,8 +332,8 @@ function ContextMenu (uiContextMenu) {
      * Hide the context menu
      * @returns {hide}
      */
-    function hide () {
-        if(isOpen()) {
+    function hide() {
+        if (isOpen()) {
             $descriptionTextBox.blur(); // force the blur event before the ContextMenu close event
             svl.tracker.push('ContextMenu_Close');
         }
@@ -349,7 +349,7 @@ function ContextMenu (uiContextMenu) {
      * Unhide the context menu
      * @returns {hide}
      */
-    function unhide () {
+    function unhide() {
         $menuWindow.css('visibility', 'visible');
         if (lastShownLabelColor) {
             setBorderColor(lastShownLabelColor);
@@ -363,7 +363,7 @@ function ContextMenu (uiContextMenu) {
      * @returns {boolean}
      */
     function isOpen() {
-        return getStatus('visibility') == 'visible';
+        return getStatus('visibility') === 'visible';
     }
 
     /**
@@ -390,7 +390,7 @@ function ContextMenu (uiContextMenu) {
      * Disable tagging. Adds the disabled visual effects to the
      * tags on current context menu.
      */
-    function disableTagging () {
+    function disableTagging() {
         setStatus('disableTagging', true);
         $("body").find("button[name=tag]").each(function(t) {
             $(this).addClass('disabled');
@@ -401,7 +401,7 @@ function ContextMenu (uiContextMenu) {
      * Enable tagging. Removes the disabled visual effects to the
      * tags on current context menu.
      */
-    function enableTagging () {
+    function enableTagging() {
         setStatus('disableTagging', false);
         $("body").find("button[name=tag]").each(function(t) {
             $(this).removeClass('disabled');
@@ -411,7 +411,7 @@ function ContextMenu (uiContextMenu) {
     /**
      * Returns true if tagging is currently disabled.
      */
-    function isTagDisabled () {
+    function isTagDisabled() {
         return getStatus('disableTagging');
     }
 
@@ -592,7 +592,7 @@ function ContextMenu (uiContextMenu) {
                 var connectorCoordinate = -5;
 
                 // Determine coordinates for context menu when displayed above the label.
-                if(y + windowHeight + 22 > 480) {
+                if (y + windowHeight + 22 > 480) {
                     topCoordinate = y - windowHeight - 22;
                     connectorCoordinate = windowHeight;
                 }
