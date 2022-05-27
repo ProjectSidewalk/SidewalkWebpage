@@ -22,11 +22,11 @@
     "correct": {
       "curb-ramp": {
         "title": "Rampa peatonal <strong>correcta</strong>",
-        "example-1-to-4": "Esta etiqueta está colocada correctamente en la parte inferior de una rampa peatonal"
+        "example-1-2-3-4": "Esta etiqueta está colocada correctamente en la parte inferior de una rampa peatonal"
       },
       "no-curb-ramp": {
         "title": "Rampa peatonal ausente <strong>correcta</strong>",
-        "example-1-to-3": "Esta intersección carece de una rampa peatonal",
+        "example-1-2-3": "Esta intersección carece de una rampa peatonal",
         "example-4": "Este cruce peatonal indica que debería haber una rampa peatonal aquí"
       },
       "obstacle": {
@@ -45,7 +45,7 @@
       },
       "no-sidewalk": {
         "title": "No hay banqueta <strong>correcto</strong>",
-        "example-1-to-2": "Esta es una banqueta que termina abruptamente",
+        "example-1-2": "Esta es una banqueta que termina abruptamente",
         "example-3": "Esta calle no tiene banqueta",
         "example-4": "Esta intersección no tiene banqueta"
       }
@@ -53,13 +53,13 @@
     "incorrect": {
       "curb-ramp": {
         "title": "Rampa peatonal <strong>incorrecta</strong>",
-        "example-1-to-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
-        "example-3-to-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
+        "example-1-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
+        "example-3-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
       },
       "no-curb-ramp": {
         "title": "Rampa peatonal ausente <strong>incorrecta</strong>",
         "example-1": "Los caminos de las entradas residenciales no deben marcarse como una rampa peatonal ausente",
-        "example-2-and-4": "Esto no está ubicado en un camino peatonal",
+        "example-2-4": "Esto no está ubicado en un camino peatonal",
         "example-3": "Esta no es una intersección en la que las personas peatonas deben cruzar"
       },
       "obstacle": {

@@ -26,11 +26,11 @@
     "correct": {
       "curb-ramp": {
         "title": "<strong>Correct</strong> Curb Ramp",
-        "example-1-to-4": "This label is correctly placed at the bottom of a curb ramp"
+        "example-1-2-3-4": "This label is correctly placed at the bottom of a curb ramp"
       },
       "no-curb-ramp": {
         "title": "<strong>Correct</strong> Missing Curb Ramp",
-        "example-1-to-3": "This intersection is lacking a curb ramp",
+        "example-1-2-3": "This intersection is lacking a curb ramp",
         "example-4": "This crosswalk indicates there should be a curb ramp here"
       },
       "obstacle": {
@@ -49,31 +49,31 @@
       },
       "no-sidewalk": {
         "title": "<strong>Correct</strong> No Sidewalk",
-        "example-1-to-2": "This is an abruptly ending sidewalk",
+        "example-1-2": "This is an abruptly ending sidewalk",
         "example-3": "This street has no sidewalk",
         "example-4": "This intersection has no sidewalk"
       },
       "crosswalk": {
         "title": "<strong>Correct</strong> Crosswalk",
-        "example-1-to-3": "This label is correctly placed on a painted crosswalk",
+        "example-1-2-3": "This label is correctly placed on a painted crosswalk",
         "example-4": "This label is correctly placed on a crosswalk with fading paint"
       },
       "signal": {
         "title": "<strong>Correct</strong> Pedestrian Signal",
-        "example-1-to-3": "This label is correctly placed at the base of a pole with a button for a pedestrian signal",
+        "example-1-2-3": "This label is correctly placed at the base of a pole with a button for a pedestrian signal",
         "example-4": "This pole has the light and button for a pedestrian signal"
       }
     },
     "incorrect": {
       "curb-ramp": {
         "title": "<strong>Incorrect</strong> Curb Ramp",
-        "example-1-to-2": "Sidewalk to driveway transitions are not curb ramps",
-        "example-3-to-4": "Driveways are not curb ramps"
+        "example-1-2": "Sidewalk to driveway transitions are not curb ramps",
+        "example-3-4": "Driveways are not curb ramps"
       },
       "no-curb-ramp": {
         "title": "<strong>Incorrect</strong> Missing Curb Ramp",
         "example-1": "Residential walkways should not be labeled as a missing curb ramp",
-        "example-2-and-4": "This is not located on a pedestrian path",
+        "example-2-4": "This is not located on a pedestrian path",
         "example-3": "This is not an intersection pedestrians should cross at"
       },
       "obstacle": {
@@ -101,11 +101,11 @@
         "title": "<strong>Incorrect</strong> Crosswalk",
         "example-1": "Crossings with no visual indicator should not be labeled as crosswalks",
         "example-2": "Stop lines for cars should not be labeled as crosswalks",
-        "example-3-to-4": "Speed bumps should not be labeled as crosswalks"
+        "example-3-4": "Speed bumps should not be labeled as crosswalks"
       },
       "signal": {
         "title": "<strong>Incorrect</strong> Pedestrian Signal",
-        "example-1-to-2": "This sign does not indicate when pedestrians can cross the street",
+        "example-1-2": "This sign does not indicate when pedestrians can cross the street",
         "example-3": "This traffic light is only for vehicles, not for pedestrians",
         "example-4": "This pole does not have a pedestrian signal button"
       }

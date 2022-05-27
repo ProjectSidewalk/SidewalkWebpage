@@ -22,11 +22,11 @@
     "correct": {
       "curb-ramp": {
         "title": "<strong>Correcte</strong> Trottoir Oprit",
-        "example-1-to-4": "Dit label is correct geplaatst aan de voet van de trottoir oprit"
+        "example-1-2-3-4": "Dit label is correct geplaatst aan de voet van de trottoir oprit"
       },
       "no-curb-ramp": {
         "title": "<strong>Correcte</strong> Ontbrekende Trottoir Oprit",
-        "example-1-to-3": "Dit kruispunt mist een een trottoir oprit",
+        "example-1-2-3": "Dit kruispunt mist een een trottoir oprit",
         "example-4": "Deze oversteekplaat indiceert dat er een trottoir oprit zou moeten zijn"
       },
       "obstacle": {
@@ -45,7 +45,7 @@
       },
       "no-sidewalk": {
         "title": "<strong>Correcte</strong> Ontbrekend Trottoir",
-        "example-1-to-2": "Dit is een abrubt eindigend trottoir",
+        "example-1-2": "Dit is een abrubt eindigend trottoir",
         "example-3": "Deze straat heeft geen trottoir",
         "example-4": "Dit kruispunt heeft geen trottoir"
       }
@@ -53,13 +53,13 @@
     "incorrect": {
       "curb-ramp": {
         "title": "<strong>Incorrecte</strong> Trottoir Oprit",
-        "example-1-to-2": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten",
-        "example-3-to-4": "Auto-opritten zijn geen trottoir opritten"
+        "example-1-2": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten",
+        "example-3-4": "Auto-opritten zijn geen trottoir opritten"
       },
       "no-curb-ramp": {
         "title": "<strong>Incorrecte</strong> Ontbrekende Trottoir Oprit",
         "example-1": "Residentiële voetpaden en auto-opritten zouden niet als ontbrekende trottoir opritten moeten worden gelabeld",
-        "example-2-and-4": "Dit is niet op een voetgangerspad",
+        "example-2-4": "Dit is niet op een voetgangerspad",
         "example-3": "Dit is niet een kruispunt waar voetgangers zouden moeten oversteken"
       },
       "obstacle": {

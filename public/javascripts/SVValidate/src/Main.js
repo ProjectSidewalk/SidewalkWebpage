@@ -143,7 +143,6 @@ function Main (param) {
         };
         svv.statusField = new StatusField(statusFieldParam);
         svv.statusExample = new StatusExample(svv.ui.status.examples);
-        svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
         svv.validationContainer = new ValidationContainer(param.labelList);
