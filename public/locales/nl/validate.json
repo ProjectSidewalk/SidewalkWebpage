@@ -4,6 +4,8 @@
   "obstacle-caps": "Obstakel",
   "surface-problem-caps": "Oppervlakte probleem",
   "no-sidewalk-caps": "Geen Trottoir",
+  "crosswalk-caps": "Oversteekplaats",
+  "signal-caps": "Verkeerslicht",
   "user-description": "Beschrijving van gebruiker: ",
   "temporary": "Tijdelijk",
   "top-ui": {
@@ -12,7 +14,9 @@
       "no-curb-ramp": "Is dit een <b>Ontbrekende Trottoir Oprit</b>?",
       "obstacle": "Is dit een <b>Obstakel</b>?",
       "surface-problem": "Is dit een <b>Oppervlakte probleem</b>?",
-      "no-sidewalk": "Zou er een <b>Geen Trottoir</b> label moeten zijn hier?"
+      "no-sidewalk": "Zou er een <b>Geen Trottoir</b> label moeten zijn hier?",
+      "crosswalk": "Is dit een <b>Oversteekplaats</b>?",
+      "signal": "is dit een <b>Verkeerslicht</b>?"
     }
   },
   "right-ui": {
@@ -48,6 +52,16 @@
         "example-1-2": "Dit is een abrubt eindigend trottoir",
         "example-3": "Deze straat heeft geen trottoir",
         "example-4": "Dit kruispunt heeft geen trottoir"
+      },
+      "crosswalk": {
+        "title": "<strong>Correcte</strong> Oversteekplaats",
+        "example-1-2-3": "Dit label is correct op een geverfde oversteekplaats geplaatst",
+        "example-4": "Dit label is correct geplaatst op een oversteekplaats met vervagende verf"
+      },
+      "signal": {
+        "title": "<strong>Correcte</strong> Verkeerslicht",
+        "example-1-2-3": "Dit label is correct geplaatst aan de voet van een paal met een knop voor een verkeerslicht",
+        "example-4": "Deze paal heeft het licht en knop voor een verkeerslicht"
       }
     },
     "incorrect": {
@@ -82,6 +96,18 @@
         "example-2": "Auto-opritten zouden niet moeten worden gelabeld als Geen Trottoir",
         "example-3": "Middenbermen en verkeersheuvels zouden niet moeten worden gelabeld als Geen Trottoir",
         "example-4": "Steegjes en zijstraten zouden niet moeten worden gelabeld als Geen Trottoir"
+      },
+      "crosswalk": {
+        "title": "<strong>Incorrecte</strong> Oversteekplaats",
+        "example-1": "Oversteekplaatsen zonder visuele indicator mogen niet als oversteekplaatsen worden bestempeld",
+        "example-2": "Stoplijnen voor auto's mogen niet als oversteekplaatsen worden bestempeld",
+        "example-3-4": "Verkeersdrempels mogen niet als oversteekplaatsen worden bestempeld"
+      },
+      "signal": {
+        "title": "<strong>Incorrecte</strong> Verkeerslicht",
+        "example-1-2": "Dit bord geeft niet aan wanneer voetgangers de straat mogen oversteken",
+        "example-3": "Dit verkeerslicht is alleen voor voertuigen, niet voor voetgangers",
+        "example-4": "Deze paal heeft geen verkeerslichtknop"
       }
     }
   },
@@ -99,6 +125,8 @@
     "body-3": "Je hebt net {{n}} Obstakel labels gelabeld.",
     "body-4": "Je hebt net {{n}} Oppervlakte Probleem labels gelabeld.",
     "body-7": "Je hebt net {{n}} Geen Trottoir labels gelabeld.",
+    "body-9": "Je hebt net {{n}} Oversteekplaats labels gelabeld.",
+    "body-10": "Je hebt net {{n}} Verkeerslicht labels gelabeld.",
     "validate-more": "Valideer meer labels",
     "continue": "Ga door met valideren",
     "explore": "Start een ondtekkingsmissie",
@@ -111,6 +139,8 @@
     "info-title-no-curb-ramp": "Wat is een Missende Trottoir Oprit?",
     "info-title-obstacle": "Wat is een Obstakel?",
     "info-title-surface-problem": "Wat is een Oppervlakte Probleem?",
-    "info-title-no-sidewalk": "Wat is \"Geen Trottoir\"?"
+    "info-title-no-sidewalk": "Wat is \"Geen Trottoir\"?",
+    "info-title-crosswalk": "Wat is een Oversteekplaats?",
+    "info-title-signal": "Wat is een Verkeerslicht?"
   }
 }
