@@ -236,7 +236,6 @@ function ContextMenu (uiContextMenu) {
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
-
                 // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
                 var currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
                 var tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];
@@ -452,18 +451,20 @@ function ContextMenu (uiContextMenu) {
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
+                        var buttonIndex = count; // Save index in a separate var b/c tooltips are added asynchronously.
+
                         // Remove all leftover tags from last labeling.
                         // Warning to future devs: will remove any other classes you add to the tags.
-                        tagHolder.find("button[id=" + count + "]").attr('class', 'context-menu-tag');
+                        tagHolder.find("button[id=" + buttonIndex + "]").attr('class', 'context-menu-tag');
 
                         // Add tag id as a class so that finding the element is easier later.
-                        tagHolder.find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
+                        tagHolder.find("button[id=" + buttonIndex + "]").addClass("tag-id-" + tag.tag_id);
 
                         // Set tag texts to new underlined version as defined in the util label description map.
                         var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
-                        tagHolder.find("button[id=" + count + "]").html(tagText);
+                        tagHolder.find("button[id=" + buttonIndex + "]").html(tagText);
 
-                        tagHolder.find("button[id=" + count + "]").css({
+                        tagHolder.find("button[id=" + buttonIndex + "]").css({
                             visibility: 'inherit',
                             position: 'inherit'
                         });
@@ -473,7 +474,6 @@ function ContextMenu (uiContextMenu) {
 
                         // Add tooltip with tag example if we have an example image to show.
                         var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
-                        var buttonIndex = count; // Save index in a separate var b/c tooltips added asynchronously.
                         util.getImage(imageUrl).then(img => {
                             // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                             const underlineClassOffset = 15;
@@ -494,7 +494,7 @@ function ContextMenu (uiContextMenu) {
                             var tooltipImage = `<img src="${img}" height="125"/>`
 
                             // Create the tooltip.
-                            tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy").tooltip(({
+                            tagHolder.find("button[id=" + buttonIndex + "]").tooltip(({
                                 placement: 'top',
                                 html: true,
                                 delay: {"show": 300, "hide": 10},
@@ -614,9 +614,7 @@ function ContextMenu (uiContextMenu) {
                     });
                 }
 
-                if (temporaryLabel) {
-                    $temporaryLabelCheckbox.prop("checked", temporaryLabel);
-                }
+                $temporaryLabelCheckbox.prop("checked", temporaryLabel);
 
                 $menuWindow.css({
                     visibility: 'visible',

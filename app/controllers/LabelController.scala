@@ -37,26 +37,50 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Fetches the labels that a user has added in the current region they are working in.
-    *
-    * @return A list of labels
-    */
-  def getLabelsForMiniMap(regionId: Int) = UserAwareAction.async { implicit request =>
+   * Fetches the labels that a user has added in the current region they are working in.
+   *
+   * @param regionId Region id
+   * @return A list of labels
+   */
+  def getLabelsToResumeMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels: List[LabelTable.MiniMapResumeMetadata] = LabelTable.resumeMiniMap(regionId, user.userId)
-        val jsonList: List[JsObject] = labels.map { label =>
+        val labels: List[LabelTable.ResumeLabelMetadata] = LabelTable.getLabelsFromUserInRegion(regionId, user.userId)
+        val jsLabels: List[JsObject] = labels.map { label =>
           Json.obj(
-            "label_id" -> label.labelId,
-            "label_type" -> label.labelType,
-            "label_lat" -> label.lat,
-            "label_lng" -> label.lng
+            "canvasWidth" -> label.pointData.canvasWidth,
+            "canvasHeight" -> label.pointData.canvasHeight,
+            "canvasDistortionAlphaX" -> label.pointData.alphaX,
+            "canvasDistortionAlphaY" -> label.pointData.alphaY,
+            "labelId" -> label.labelData.labelId,
+            "labelType" -> label.labelType,
+            "panoId" -> label.labelData.gsvPanoramaId,
+            "panoramaLat" -> label.labelData.panoramaLat,
+            "panoramaLng" -> label.labelData.panoramaLng,
+            "panoramaHeading" -> label.pointData.heading,
+            "panoramaPitch" -> label.pointData.pitch,
+            "panoramaZoom" -> label.pointData.zoom,
+            "photographerHeading" -> label.labelData.photographerHeading,
+            "photographerPitch" -> label.labelData.photographerPitch,
+            "svImageWidth" -> label.svImageWidth,
+            "svImageHeight" -> label.svImageHeight,
+            "tagIds" -> label.tagIds,
+            "severity" -> label.labelData.severity,
+            "tutorial" -> label.labelData.tutorial,
+            "temporary_label_id" -> label.labelData.temporaryLabelId,
+            "temporaryLabel" -> label.labelData.temporary,
+            "description" -> label.labelData.description,
+            "canvasX" -> label.pointData.canvasX,
+            "canvasY" -> label.pointData.canvasY,
+            "audit_task_id" -> label.labelData.auditTaskId,
+            "labelLat" -> label.pointData.lat,
+            "labelLng" -> label.pointData.lng
           )
         }
-        val featureCollection: JsObject = Json.obj("labels" -> jsonList)
-        Future.successful(Ok(featureCollection))
+        val labelCollection: JsObject = Json.obj("labels" -> jsLabels)
+        Future.successful(Ok(labelCollection))
       case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/label/miniMapResume?regionId=$regionId"))
+        Future.successful(Redirect(s"/anonSignUp?url=/label/resumeMission?regionId=$regionId"))
     }
   }
 

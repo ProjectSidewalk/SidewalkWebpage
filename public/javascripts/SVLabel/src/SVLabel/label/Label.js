@@ -72,7 +72,7 @@ function Label (svl, pathIn, params) {
         severity: null,
         tutorial: null,
         temporary_label_id: null,
-        temporaryLabel: null,
+        temporaryLabel: false,
         description: null
     };
 
@@ -248,6 +248,12 @@ function Label (svl, pathIn, params) {
      * @returns {*}
      */
     function getLabelType () { return properties.labelType; }
+
+    /**
+     * This function returns panoId property
+     * @returns {*}
+     */
+    function getPanoId () { return properties.panoId; }
 
     /**
      * This function returns the coordinate of a point.
@@ -871,6 +877,7 @@ function Label (svl, pathIn, params) {
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
+    self.getPanoId = getPanoId;
     self.getPath = getPath;
     self.getPoint = getPoint;
     self.getPoints = getPoints;

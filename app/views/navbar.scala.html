@@ -16,7 +16,7 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)'></a>
             </div>
             <div class="navbar-right pull-left navbar-turker-timer-container">
                 <ul class="nav pull-left navbar-turker-timer-list-container">
@@ -143,7 +143,7 @@
 
                 <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
                     <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
-                        @Messages("navbar.city")
+                        @Play.configuration.getString("city-params.city-short-name." + currentCity).get
                     <b class="caret"></b>
                     </a>
                     <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">

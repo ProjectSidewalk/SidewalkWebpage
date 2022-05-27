@@ -28,8 +28,8 @@ function Point (svl, x, y, pov, params) {
         fillStyleInnerCircle: params.fillStyle,
         iconImagePath: undefined,
         originalFillStyleInnerCircle: undefined,
-        radiusInnerCircle: 6,
-        radiusOuterCircle: 5
+        radiusInnerCircle: 17,
+        radiusOuterCircle: 14
     };
     var status = {
             'deleted' : false,
@@ -68,11 +68,15 @@ function Point (svl, x, y, pov, params) {
             zoom : pointPOV.zoom
         };
 
-        self.originalPov = {
-            heading: pointPOV.heading,
-            pitch: pointPOV.pitch,
-            zoom: pointPOV.zoom
-        };
+        if (params.originalPov) {
+            self.originalPov = params.originalPov;
+        } else {
+            self.originalPov = {
+                heading: pointPOV.heading,
+                pitch: pointPOV.pitch,
+                zoom: pointPOV.zoom
+            };
+        }
 
         // Convert a canvas coordinate (x, y) into a sv image coordinate
         // Note, svImageCoordinate.x varies from 0 to svImageWidth and
@@ -300,6 +304,7 @@ function Point (svl, x, y, pov, params) {
     self.getCanvasY = getCanvasY;
     self.getCanvasCoordinate = getCanvasCoordinate;
     self.getPOV = getPOV;
+    self.getOriginalPov = getOriginalPov;
     self.getFill = getFill;
     self.getFillStyle = getFillStyle;
     self.getGSVImageCoordinate = getGSVImageCoordinate;

@@ -4,8 +4,7 @@ import models.gsv.GSVDataTable
 import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
-import models.street.{OsmWayStreetEdgeTable}
-import models.street.{StreetEdgeTable}
+import models.street.OsmWayStreetEdgeTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -231,22 +230,13 @@ object GlobalAttributeTable {
       _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
       if _lt.labelType =!= "Problem"
     } yield (
-      _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId, _osm.osmWayId,
-      _r.description, _l.labelId, (_lp.lat, _lp.lng), _l.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
-      (_lp.canvasX, _lp.canvasY), _lp.canvasWidth, _lp.canvasHeight, _l.agreeCount, _l.disagreeCount, _l.notsureCount
+      _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId,
+      _osm.osmWayId, _r.description, _l.labelId, (_lp.lat.get, _lp.lng.get), _l.gsvPanoramaId, _lp.heading, _lp.pitch,
+      _lp.zoom, (_lp.canvasX, _lp.canvasY), _lp.canvasWidth, _lp.canvasHeight, _l.agreeCount, _l.disagreeCount,
+      _l.notsureCount, _l.severity, _l.temporary
     )
 
-    val withSeverity = for {
-      (_l, _s) <- attributesWithLabels.leftJoin(LabelSeverityTable.labelSeverities).on(_._9 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l._20, _s.severity.?)
-
-    val withTemporary = for {
-      (_l, _t) <- withSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._9 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _l._20, _l._21, _t.temporary.?)
-
-    withTemporary.list.map(a =>
-      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7, a._8, a._9, (a._10._1.get, a._10._2.get), a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20, a._21, a._22.getOrElse(false))
-    )
+    attributesWithLabels.list.map(GlobalAttributeWithLabelForAPI.tupled)
   }
 
   /**
