@@ -13,6 +13,7 @@ import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 import math._
 import models.region._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.gsv.GSVDataTable
 import models.label.{LabelLocation, LabelTable}
 import models.street.{OsmWayStreetEdge, OsmWayStreetEdgeTable}
 import models.street.{StreetEdge, StreetEdgeTable}
@@ -34,14 +35,18 @@ case class NeighborhoodAttributeSignificance (val name: String,
                                               val coverage: Double,
                                               val score: Double,
                                               val attributeScores: Array[Double],
-                                              val significanceScores: Array[Double])
+                                              val significanceScores: Array[Double],
+                                              val avgLabelAge: Float,
+                                              val avgImageAge: Float)
 
 case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val streetID: Int,
                                         val osmID: Int,
                                         val score: Double,
                                         val attributeScores: Array[Double],
-                                        val significanceScores: Array[Double])
+                                        val significanceScores: Array[Double],
+                                        val avgLabelAge: Float,
+                                        val avgImageAge: Float)
 
 
 /**
@@ -52,8 +57,8 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String)
-  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Int, score: Double, attributes: Array[Double], significance: Array[Double]) {
+  case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, labelAge: Long, imageAge: Long)
+  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Int, score: Double, attributes: Array[Double], significance: Array[Double], avgLabelAge: Float, avgImageAge: Float) {
     def toJSON: JsObject  = {
       val latlngs: List[JsonLatLng] = streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
       val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
@@ -61,6 +66,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "street_edge_id" -> streetEdge.streetEdgeId,
         "osm_id" -> osmId,
         "score" -> score,
+        "average_label_age" -> avgLabelAge,
+        "average_image_age" -> avgImageAge,
         "significance" -> Json.obj(
           "CurbRamp" -> significance(0),
           "NoCurbRamp" -> significance(1),
@@ -125,7 +132,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val header: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID," +
         "OSM Street ID,Neighborhood Name,Label ID,Panorama ID,Attribute Latitude," + 
         "Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y," +
-        "Canvas Width,Canvas Height,GSV URL,Label Severity,Label Temporary,Agree Count,Disagree Count,Not Sure Count"
+        "Canvas Width,Canvas Height,GSV URL,Image Date,Label Date,Label Severity,Label Temporary," +
+        "Agree Count,Disagree Count,Not Sure Count"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
@@ -298,9 +306,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var coverage: Double = 0.0
       var accessScore: Double = 0.0
       var averagedStreetFeatures: Array[Double] = Array(0.0,0.0,0.0,0.0,0.0)
+      var avgLabelAge: Float = 0
+      var avgImageAge: Float = 0
       if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
         val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
         averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
+        avgLabelAge = streetAccessScores.map(s => if (!s.avgLabelAge.isNaN) s.avgLabelAge else 0).sum / streetAccessScores.size
+        avgImageAge = streetAccessScores.map(s => if (!s.avgImageAge.isNaN) s.avgImageAge else 0).sum / streetAccessScores.size
         accessScore = computeAccessScore(averagedStreetFeatures, significance)
         val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
         coverage = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
@@ -313,7 +325,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                                                                 coverage, 
                                                                 accessScore, 
                                                                 averagedStreetFeatures, 
-                                                                significance))
+                                                                significance,
+                                                                avgLabelAge,
+                                                                avgImageAge))
     }
     // Send the list of objects to the helper class.
     ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList)
@@ -334,7 +348,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val header: String = "Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Average Curb Ramp Score," + 
                           "Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score," + 
                           "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," + 
-                          "Surface Problem Significance"
+                          "Surface Problem Significance,Average Label Age,Average Image Age"
     // Write the column headers.
     writer.println(header)
     val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version, coordinates)
@@ -350,6 +364,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
         val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
         val averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
+        val avgLabelAge = streetAccessScores.map(s => if (!s.avgLabelAge.isNaN) s.avgLabelAge else 0).sum / streetAccessScores.size
+        val avgImageAge = streetAccessScores.map(s => if (!s.avgImageAge.isNaN) s.avgImageAge else 0).sum / streetAccessScores.size
         val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
 
         val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
@@ -360,12 +376,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         writer.println(neighborhood.name + "," + neighborhood.regionId + "," + accessScore + "," +
                       coordStr + "," + coverage + "," + averagedStreetFeatures(0) + "," + averagedStreetFeatures(1) + "," + 
                       averagedStreetFeatures(2) + "," + averagedStreetFeatures(3) + "," + 
-                      significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3))                
+                      significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3) + "," +
+                      avgLabelAge + "," + avgImageAge)                
       } else {
         writer.println(neighborhood.name + "," + neighborhood.regionId + "," + "NA" + "," +
                       coordStr + ","  + 0.0 + "," + "NA" + "," + "NA" + "," + "NA" + "," + "NA" + "," + 
                       significance(0) + "," + significance(1) + "," + 
-                      significance(2) + "," + significance(3))
+                      significance(2) + "," + significance(3) + "," + "NA" + "," + "NA")
       }
     }
     writer.close()
@@ -384,10 +401,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       case 1 =>
         val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
         val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
-        clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
+        clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, LabelTable.getLabelAgeFromPanoramaId(l.gsvPanoramaId), GSVDataTable.getImageAge(l.gsvPanoramaId)))
       case 2 =>
         val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(coordinates(0).toFloat, coordinates(2).toFloat, coordinates(1).toFloat, coordinates(3).toFloat, None)
-        globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
+        for (l <- globalAttributes) yield {
+          val gsvPanoramaId: String = LabelTable.getPanoramaIdFromGlobalAttributeId(l.globalAttributeId)
+          AttributeForAccessScore(l.lat, l.lng, l.labelType, LabelTable.getLabelAgeFromPanoramaId(gsvPanoramaId), GSVDataTable.getImageAge(gsvPanoramaId))
+        }
     }
     labelsForScore
   }
@@ -415,6 +435,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
           val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
           val averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
+          val avgLabelAge = streetAccessScores.map(s => if (!s.avgLabelAge.isNaN) s.avgLabelAge else 0).sum / streetAccessScores.size
+          val avgImageAge = streetAccessScores.map(s => if (!s.avgImageAge.isNaN) s.avgImageAge else 0).sum / streetAccessScores.size
           val significance = Array(0.75, -1.0, -1.0, -1.0)
           val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
 
@@ -439,7 +461,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
               "NoCurbRamp" -> averagedStreetFeatures(1),
               "Obstacle" -> averagedStreetFeatures(2),
               "SurfaceProblem" -> averagedStreetFeatures(3)
-            )
+            ),
+            "avgLabelAge" -> avgLabelAge,
+            "avgImageAge" -> avgImageAge
           )
           Json.obj("type" -> "Feature", "geometry" -> neighborhoodJson, "properties" -> properties)
         } else {
@@ -500,7 +524,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val header: String = "Region ID,OSM ID,Access Score,Coordinates,Average Curb Ramp Score," + 
                             "Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score," + 
                             "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," + 
-                            "Surface Problem Significance"
+                            "Surface Problem Significance,Average Label Date,Average Image Date"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
@@ -511,7 +535,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                       streetAccessScore.attributes(0) + "," + streetAccessScore.attributes(1) + "," + 
                       streetAccessScore.attributes(2) + "," + streetAccessScore.attributes(3) + "," + 
                       streetAccessScore.significance(0) + "," + streetAccessScore.significance(1) + "," + 
-                      streetAccessScore.significance(2) + "," + streetAccessScore.significance(3))
+                      streetAccessScore.significance(2) + "," + streetAccessScore.significance(3) + "," +
+                      streetAccessScore.avgLabelAge + "," + streetAccessScore.avgImageAge)
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
@@ -525,7 +550,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
             streetAccessScore.osmId,
             streetAccessScore.score,
             streetAccessScore.attributes,
-            streetAccessScore.significance))
+            streetAccessScore.significance,
+            streetAccessScore.avgLabelAge,
+            streetAccessScore.avgImageAge))
       }
       ShapefilesCreatorHelper.createStreetShapefile("streetValues", streetBuffer)
 
@@ -628,18 +655,26 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "Obstacle" -> 0,
         "SurfaceProblem" -> 0
       ).withDefaultValue(0)
+      var labelAgeSum: Float = 0
+      var imageAgeSum: Float = 0
+      var totalLabels: Float = 0
       labelLocations.foreach { ll =>
         val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
         if (p.within(buffer)) {
           labelCounter(ll.labelType) += 1
+          labelAgeSum += ll.labelAge
+          imageAgeSum += ll.imageAge
+          totalLabels += 1
         }
       }
+      val avgLabelAge: Float = labelAgeSum / totalLabels
+      val avgImageAge: Float = imageAgeSum / totalLabels
 
       // Compute an access score.
       val attributes = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
       val significance = Array(0.75, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(attributes, significance)
-      AccessScoreStreet(edge, osmStreetId.osmWayId, accessScore, attributes, significance)
+      AccessScoreStreet(edge, osmStreetId.osmWayId, accessScore, attributes, significance, avgLabelAge, avgImageAge)
     }
     streetAccessScores
   }

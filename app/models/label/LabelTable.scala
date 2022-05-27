@@ -3,6 +3,7 @@ package models.label
 import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
 import java.util.UUID
+import models.attribute.{GlobalAttributeUserAttributeTable, UserAttributeLabelTable}
 import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
@@ -191,6 +192,58 @@ object LabelTable {
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
+
+  /**
+    * This method gets the label date associated with the given label Id.
+    *
+    * @param labelId Label ID.
+    * @return        String representing the image date in form "yyyy-MM-dd".
+    */
+  def getLabelDate(labelId: Int): String = db.withSession { implicit session =>
+    val labelsWithGivenId = for {
+      _lb <- labels if _lb.labelId === labelId
+    } yield (
+      _lb
+    )
+    val fullDate: String = labelsWithGivenId.first.timeCreated.getOrElse("").toString()
+    val endOfDate: Int = fullDate.indexOf(" ")
+    fullDate.substring(0, endOfDate.min(fullDate.length())) // only include month, date, and year
+  }
+
+  /**
+    * This method gets the Panorama Id of the image associated with the given global attribute Id.
+    *
+    * @param globalAttributeId Global Attribute ID.
+    * @return                  String representing the GSV Panorama ID of the image.
+    */
+  def getPanoramaIdFromGlobalAttributeId(globalAttributeId: Int): String = db.withSession { implicit session =>
+    val labelsWithGivenGlobalAttributeId = for {
+      _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _gaua.globalAttributeId === globalAttributeId
+      _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
+      _lb <- LabelTable.labels if _ual.labelId === _lb.labelId
+    } yield (
+      _lb
+    )
+    labelsWithGivenGlobalAttributeId.first.gsvPanoramaId
+  }
+
+  /**
+    * This method gets the age of the image associated with the given panorama Id.
+    *
+    * @param gsvPanoramaId GSV Panorama ID.
+    * @return              Long representing the image age in seconds.
+    */
+  def getLabelAgeFromPanoramaId(gsvPanoramaId: String): Long = db.withSession { implicit session =>
+    val labelsWithGivenId = for {
+      _lb <- labels if _lb.gsvPanoramaId === gsvPanoramaId
+    } yield (
+      _lb
+    )
+
+    val now: Long = System.currentTimeMillis();
+    val labelTime: Long = labelsWithGivenId.first.timeCreated.getOrElse(new Timestamp(now)).getTime()
+    now - labelTime
+  }
 
   /**
     * Find all labels with given regionId and userId.

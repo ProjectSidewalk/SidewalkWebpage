@@ -1,5 +1,6 @@
 package models.attribute
 
+import models.gsv.GSVDataTable
 import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
@@ -86,6 +87,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                   |&fov=${GoogleMapsHelper.getFov(zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+  val imageDate = GSVDataTable.getImageDate(gsvPanoramaId)
+  val labelDate = LabelTable.getLabelDate(labelId)
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -109,6 +112,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "canvas_width" -> canvasWidth,
         "canvas_height" -> canvasHeight,
         "gsv_url" -> gsvUrl,
+        "image_date" -> imageDate,
+        "label_date" -> labelDate,
         "label_severity" -> labelSeverity,
         "label_is_temporary" -> labelTemporary,
         "agree_count" -> agreeCount,
@@ -123,8 +128,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
                                 heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
                                 canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString, "\"" + gsvUrl + "\"",
-                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
-                                disagreeCount.toString, notsureCount.toString)
+                                imageDate, labelDate, labelSeverity.getOrElse("NA").toString, labelTemporary.toString,
+                                agreeCount.toString, disagreeCount.toString, notsureCount.toString)
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {

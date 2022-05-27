@@ -171,6 +171,8 @@ public class ShapefilesCreatorHelper {
                         + "canvasWdth:Integer," // width of source viewfinder
                         + "canvasHght:Integer," // height of source viewfinder
                         + "gsvUrl:String," // GSV URL
+                        + "imageDate," // Image date
+                        + "labelDate," // Label date
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer" // Notsure validations
@@ -215,6 +217,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.canvasWidth());
             featureBuilder.add(l.canvasHeight());
             featureBuilder.add(l.gsvUrl());
+            featureBuilder.add(l.imageDate());
+            featureBuilder.add(l.labelDate());
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
@@ -245,7 +249,9 @@ public class ShapefilesCreatorHelper {
                         + "nRamp:Double," // curb ramp feature score
                         + "nNoRamp:Double," // no Curb ramp feature score
                         + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double" // Surface problem feature score
+                        + "nSurfce:Double," // Surface problem feature score
+                        + "avgLabelAge:Float," // average label age in seconds
+                        + "avgImageAge:Float" // average image age in seconds
                 );
 
         /*
@@ -274,6 +280,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.attributeScores()[1]);
             featureBuilder.add(s.attributeScores()[2]);
             featureBuilder.add(s.attributeScores()[3]);
+            featureBuilder.add(s.avgLabelAge());
+            featureBuilder.add(s.avgImageAge());
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
@@ -303,7 +311,9 @@ public class ShapefilesCreatorHelper {
                         + "nRamp:Double," // curb ramp feature score
                         + "nNoRamp:Double," // no Curb ramp feature score
                         + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double" // Surface problem feature score
+                        + "nSurfce:Double," // Surface problem feature score
+                        + "avgLabelAge:Float," // average label age in seconds
+                        + "avgImageAge:Float" // average image age in seconds
                 );
 
         /*
@@ -333,6 +343,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(n.attributeScores()[1]);
             featureBuilder.add(n.attributeScores()[2]);
             featureBuilder.add(n.attributeScores()[3]);
+            featureBuilder.add(n.avgLabelAge());
+            featureBuilder.add(n.avgImageAge());
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
