@@ -111,11 +111,55 @@ function StatusPopupDescriptions () {
         }
     }
 
+    function getCrosswalkDescription(id) {
+        switch (id) {
+            case 'example-image-1':
+                return i18next.t('right-ui.correct.crosswalk.example-1-to-3');
+            case 'example-image-2':
+                return i18next.t('right-ui.correct.crosswalk.example-1-to-3');
+            case 'example-image-3':
+                return i18next.t('right-ui.correct.crosswalk.example-1-to-3');
+            case 'example-image-4':
+                return i18next.t('right-ui.correct.crosswalk.example-4');
+            case 'counterexample-image-1':
+                return i18next.t('right-ui.incorrect.crosswalk.example-1');
+            case 'counterexample-image-2':
+                return i18next.t('right-ui.incorrect.crosswalk.example-2');
+            case 'counterexample-image-3':
+                return i18next.t('right-ui.incorrect.crosswalk.example-3-to-4');
+            case 'counterexample-image-4':
+                return i18next.t('right-ui.incorrect.crosswalk.example-3-to-4');
+        }
+    }
+
+    function getSignalDescription(id) {
+        switch (id) {
+            case 'example-image-1':
+                return i18next.t('right-ui.correct.signal.example-1-to-3');
+            case 'example-image-2':
+                return i18next.t('right-ui.correct.signal.example-1-to-3');
+            case 'example-image-3':
+                return i18next.t('right-ui.correct.signal.example-1-to-3');
+            case 'example-image-4':
+                return i18next.t('right-ui.correct.signal.example-4');
+            case 'counterexample-image-1':
+                return i18next.t('right-ui.incorrect.signal.example-1-to-2');
+            case 'counterexample-image-2':
+                return i18next.t('right-ui.incorrect.signal.example-1-to-2');
+            case 'counterexample-image-3':
+                return i18next.t('right-ui.incorrect.signal.example-3');
+            case 'counterexample-image-4':
+                return i18next.t('right-ui.incorrect.signal.example-4');
+        }
+    }
+
     self.getCurbRampDescription = getCurbRampDescription;
     self.getMissingCurbRampDescription = getMissingCurbRampDescription;
     self.getObstacleDescription = getObstacleDescription;
     self.getSurfaceProblemDescription = getSurfaceProblemDescription;
     self.getNoSidewalkDescription = getNoSidewalkDescription;
+    self.getCrosswalkDescription = getCrosswalkDescription;
+    self.getSignalDescription = getSignalDescription;
 
     return this;
 }

@@ -51,6 +51,12 @@ function StatusExample (statusUI) {
             case "NoSidewalk":
                 description = svv.statusPopupDescriptions.getNoSidewalkDescription(id);
                 break;
+            case "Crosswalk":
+                description = svv.statusPopupDescriptions.getCrosswalkDescription(id);
+                break;
+            case "Signal":
+                description = svv.statusPopupDescriptions.getSignalDescription(id);
+                break;
         }
 
         statusUI.popupDescription.html(description);
