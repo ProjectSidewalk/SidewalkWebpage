@@ -77,7 +77,7 @@ footer.api = Sidewalk API
 footer.connect = Contact
 footer.email = Email ons
 footer.funding = MET TROTS GESPONSORD DOOR
-footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
+footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 
