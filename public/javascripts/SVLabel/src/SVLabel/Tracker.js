@@ -189,13 +189,19 @@ function Tracker () {
         if(self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
-            updatedLabels.push(currentLabel);
-            svl.labelContainer.addUpdatedLabel(currentLabel);
 
             if (notes === null || typeof (notes) === 'undefined') {
                 notes = {'auditTaskId': labelProperties.audit_task_id};
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
+            }
+
+            // Reset currentLabel to null if this is a context menu event that fired after the menu already closed.
+            if (svl.contextMenu.isOpen()) {
+                updatedLabels.push(currentLabel);
+                svl.labelContainer.addUpdatedLabel(currentLabel);
+            } else {
+                currentLabel = null;
             }
 
         } else if (self._isClickLabelDeleteAction(action)){
@@ -209,7 +215,6 @@ function Tracker () {
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
-
         }
 
         var item = self.create(action, notes, extraData);
