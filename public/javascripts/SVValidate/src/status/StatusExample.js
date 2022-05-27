@@ -72,24 +72,24 @@ function StatusExample (statusUI) {
 
         // Horizontal positioning.
         if (id.includes("1")) {
-            statusUI.popup.css('left', '480px');
+            statusUI.popup.css('left', '490px');
             statusUI.popupPointer.css('top', '50px');
         } else if (id.includes("2")) {
-            statusUI.popup.css('left', '580px');
+            statusUI.popup.css('left', '590px');
             statusUI.popupPointer.css('top', '50px');
         } else if (id.includes("3")) {
-            statusUI.popup.css('left', '480px');
+            statusUI.popup.css('left', '490px');
             statusUI.popupPointer.css('top', '135px');
         } else if(id.includes("4")) {
-            statusUI.popup.css('left', '580px');
+            statusUI.popup.css('left', '590px');
             statusUI.popupPointer.css('top', '135px');
         }
 
         // Vertical Positioning.
         if (id.includes("counterexample")) {
-            statusUI.popup.css('top', '108px');
+            statusUI.popup.css('top', '196px');
         } else {
-            statusUI.popup.css('top', '-108px');
+            statusUI.popup.css('top', '-10px');
         }
     }
 
