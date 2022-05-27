@@ -523,16 +523,20 @@
                                     <span>Average (curb ramp): </span><span id="curb-ramp-mean"></span><br>
                                     <span>Average (missing curb ramp): </span><span id="missing-ramp-mean"></span><br>
                                     <span>Average (surface problem): </span><span id="surface-mean"></span><br>
+                                    <span>Average (crosswalk): </span><span id="crosswalk-mean"></span><br>
                                     <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
                                     <span>Average (no sidewalk): </span><span id="no-sidewalk-mean"></span><br>
+                                    <span>Average (pedestrial signal): </span><span id="signal-mean"></span><br>
                                     <span>Average (all label types): </span><span id="labels-mean"></span><br>
                                 </p>
                                 <p>
                                     <span>Standard Deviation (curb ramp): </span><span id="curb-ramp-std"></span><br>
                                     <span>Standard Deviation (missing curb ramp): </span><span id="missing-ramp-std"></span><br>
                                     <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
+                                    <span>Standard Deviation (crosswalk): </span><span id="crosswalk-std"></span><br>
                                     <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
                                     <span>Standard Deviation (no sidewalk): </span><span id="no-sidewalk-std"></span><br>
+                                    <span>Standard Deviation (pedestrial signal): </span><span id="signal-std"></span><br>
                                     <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
                                 </p>
                             </div>
@@ -696,11 +700,25 @@
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Crosswalk</td>
+                                        <td>@LabelValidationTable.countValidations("Crosswalk")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                    </tr>
+                                    <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">No Sidewalk</td>
                                         <td>@LabelValidationTable.countValidations("NoSidewalk")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
+                                    </tr>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Pedestrian Signal</td>
+                                        <td>@LabelValidationTable.countValidations("Signal")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
                                     </tr>
                                 </table>
                             </div>

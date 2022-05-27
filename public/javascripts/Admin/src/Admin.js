@@ -318,8 +318,10 @@ function Admin(_, $, difficultRegionIds) {
                 var curbRamps = data.features.filter(function(label) {return label.properties.label_type === "CurbRamp"});
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
+                var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
                 var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
+                var pedestrianSignals = data.features.filter(function(label) {return label.properties.label_type === "Signal"});
                 
                 var curbRampStats = getSummaryStats(curbRamps, "severity");
                 $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
@@ -333,6 +335,10 @@ function Admin(_, $, difficultRegionIds) {
                 $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
                 $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
                 
+                var crosswalkStats = getSummaryStats(crosswalks, "severity");
+                $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
+                $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
+
                 var obstacleStats = getSummaryStats(obstacles, "severity");
                 $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
                 $("#obstacle-std").html((obstacleStats.std).toFixed(2));
@@ -340,6 +346,10 @@ function Admin(_, $, difficultRegionIds) {
                 var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
                 $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
                 $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
+                
+                var pedestrianSignalStats = getSummaryStats(pedestrianSignals, "severity");
+                $("#signal-mean").html((pedestrianSignalStats.mean).toFixed(2));
+                $("#signal-std").html((pedestrianSignalStats.std).toFixed(2));
 
                 var allData = data.features;
                 var allDataStats = getSummaryStats(allData, "severity");
