@@ -75,7 +75,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1a",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
@@ -106,7 +105,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1b",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
@@ -140,7 +138,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1a",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
@@ -167,7 +164,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1a",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
