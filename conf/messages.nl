@@ -56,9 +56,12 @@ landing.choropleth.title = Selecteer een wijk
 landing.choropleth.content = Je krijgt automatisch een wijk toegewezen als je op ''Start met Verkennen'' klikt, maar je kunt er ook zelf een kiezen door hieronder op een wijk te klikken!
 landing.choropleth.legend = Procent van de wijk compleet
 landing.stats.title = Jouw bijdrage maakt het verschil!
-landing.stats.content.unfinished = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}—dat is {3}% van de stad!
-landing.stats.content.finished = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
-landing.stats.percent = van {0} in kaart gebracht
+landing.stats.content.unfinished.partial = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}—dat is {3}% van het doelgebied in de stad!
+landing.stats.content.unfinished.full = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}—dat is {3}% van de stad!
+landing.stats.content.finished.partial = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van het doelgebied in {1} in kaart gebracht, {2}. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
+landing.stats.content.finished.full = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
+landing.stats.percent.partial = van doelgebied in kaart gebracht
+landing.stats.percent.full = van {0} in kaart gebracht
 landing.stats.distance = kilometers afgelegd
 landing.stats.labels = labels
 landing.stats.validations = validaties
@@ -77,6 +80,7 @@ footer.api = Sidewalk API
 footer.connect = Contact
 footer.email = Email ons
 footer.funding = MET TROTS GESPONSORD DOOR
+footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 

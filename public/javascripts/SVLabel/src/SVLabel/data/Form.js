@@ -102,9 +102,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
-                temporary_label: label.getProperty('temporaryLabel'),
+                temporary: label.getProperty('temporaryLabel'),
                 tag_ids: label.getProperty('tagIds'),
-                description: label.getProperty('description'),
+                description: label.getProperty('description') ? label.getProperty('description') : null,
                 time_created: timeCreated,
                 tutorial: prop.tutorial
             };
@@ -167,9 +167,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 image_height: panoramaData.tiles.worldSize.height,
                 tile_width: panoramaData.tiles.tileSize.width,
                 tile_height: panoramaData.tiles.tileSize.height,
-                center_heading: panoramaData.tiles.centerHeading,
-                origin_heading: panoramaData.tiles.originHeading,
-                origin_pitch: panoramaData.tiles.originPitch,
                 links: links,
                 copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
             };

@@ -221,14 +221,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             imY = state.annotations[i].y;
             origPointPov = null;
 
-            // For the first arrow to be applied, looking at the initial heading (initialize state) of the onboarding.
-            // This avoids applying the first arrow if the heading is not set correctly.
-            // This will avoid incorrect POV calculation.
-            var initialHeading = getState("initialize").properties.heading;
-            if (state.annotations[i].name === "arrow-1a" && currentPov.heading !== initialHeading) {
-                povChange["status"] = false;
-                return this;
-            }
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
             if (currentPov.heading < 180) {
                 if (imX > svl.svImageWidth - 3328 && imX > 3328) {

@@ -56,9 +56,12 @@ landing.choropleth.title = Elige un barrio
 landing.choropleth.content = Se te asignará automáticamente un barrio al hacer click en ''Comienza a explorar'', pero también puedes elegir una haciendo clic en cualquier zona del siguiente mapa.
 landing.choropleth.legend = Porcentaje del barrio completo
 landing.stats.title = Tu trabajo está haciendo la diferencia
-landing.stats.content.unfinished = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}, {2}—¡eso es el {3}% de la ciudad!
-landing.stats.content.finished = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros de {1}, {2}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
-landing.stats.percent = de {0} mapeado
+landing.stats.content.unfinished.partial = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}, {2}—¡eso es el {3}% del área objetivo en la ciudad!
+landing.stats.content.unfinished.full = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}, {2}—¡eso es el {3}% de la ciudad!
+landing.stats.content.finished.partial = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros del área objetivo en {1}, {2}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
+landing.stats.content.finished.full = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros de {1}, {2}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
+landing.stats.percent.partial = del área objetivo mapeada
+landing.stats.percent.full = de {0} mapeado
 landing.stats.distance = kilómetros cubiertos
 landing.stats.labels = etiquetas
 landing.stats.validations = validaciones
@@ -77,6 +80,7 @@ footer.api = Sidewalk API
 footer.connect = CONECTA
 footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
+footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> y <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 

@@ -1,7 +1,7 @@
 package models.attribute
 
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTemporarinessTable, LabelTypeTable}
+import models.label.{LabelTable, LabelTypeTable}
 import models.mission.MissionTable
 import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
@@ -75,19 +75,9 @@ object UserClusteringSessionTable {
       _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
       _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
       if _region.deleted === false
-    } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng)
+    } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng, _lab.severity, _lab.temporary)
 
-    // Left joins to get severity for any labels that have them.
-    val labelsWithSeverity = for {
-      (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
-
-    // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
-    val labelsWithTemporariness = for {
-      (_lab, _temp) <- labelsWithSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporary.?.getOrElse(false))
-
-    labelsWithTemporariness.list.map(LabelToCluster.tupled)
+    labels.list.map(LabelToCluster.tupled)
   }
 
   /**
