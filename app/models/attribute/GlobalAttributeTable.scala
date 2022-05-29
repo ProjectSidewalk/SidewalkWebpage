@@ -34,6 +34,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val streetEdgeId: Int,
                                  val osmStreetId: Int,
                                  val neighborhoodName: String) {
+  val imageDate = GSVDataTable.getImageDate(LabelTable.getPanoramaIdFromGlobalAttributeId(globalAttributeId))
+  val labelDate = LabelTable.getLabelDateFromPanoramaId(LabelTable.getPanoramaIdFromGlobalAttributeId(globalAttributeId))
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -44,6 +46,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "street_edge_id" -> streetEdgeId,
         "osm_street_id" -> osmStreetId,
         "neighborhood" -> neighborhoodName,
+        "image_date" -> imageDate,
+        "label_date" -> labelDate,
         "severity" -> severity,
         "is_temporary" -> temporary,
         "agree_count" -> agreeCount,
@@ -53,7 +57,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
     )
   }
   val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
-                                lng.toString, severity.getOrElse("NA").toString, temporary.toString,
+                                lng.toString, imageDate, labelDate, severity.getOrElse("NA").toString, temporary.toString,
                                 agreeCount.toString, disagreeCount.toString, notsureCount.toString)
 }
 

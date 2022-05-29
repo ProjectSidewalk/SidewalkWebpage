@@ -100,6 +100,8 @@ public class ShapefilesCreatorHelper {
                         + "streetId:Integer," // Street edge ID of the nearest street
                         + "osmWayId:Integer," // Street OSM ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
+                        + "imageDate," // Image date
+                        + "labelDate," // Label date
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
                         + "nAgree:Integer," // Agree validations
@@ -127,6 +129,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.streetEdgeId());
             featureBuilder.add(a.osmStreetId());
             featureBuilder.add(a.neighborhoodName());
+            featureBuilder.add(a.imageDate());
+            featureBuilder.add(a.labelDate());
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
                 public Integer apply() {
@@ -250,8 +254,8 @@ public class ShapefilesCreatorHelper {
                         + "nNoRamp:Double," // no Curb ramp feature score
                         + "nObs:Double," // obstacle feature score
                         + "nSurfce:Double," // Surface problem feature score
-                        + "avgLabelAge:Float," // average label age in seconds
-                        + "avgImageAge:Float" // average image age in seconds
+                        + "avgLblAge:Float," // average label age in milliseconds
+                        + "avgImgAge:Float" // average image age in milliseconds
                 );
 
         /*
@@ -312,8 +316,8 @@ public class ShapefilesCreatorHelper {
                         + "nNoRamp:Double," // no Curb ramp feature score
                         + "nObs:Double," // obstacle feature score
                         + "nSurfce:Double," // Surface problem feature score
-                        + "avgLabelAge:Float," // average label age in seconds
-                        + "avgImageAge:Float" // average image age in seconds
+                        + "avgLblAge:Float," // average label age in milliseconds
+                        + "avgImgAge:Float" // average image age in milliseconds
                 );
 
         /*

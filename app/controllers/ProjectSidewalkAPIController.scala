@@ -186,7 +186,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val accessAttributesfile = new java.io.File("access_attributes.csv")
       val writer = new java.io.PrintStream(accessAttributesfile)
       // Write column headers.
-      writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count")
+      writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Image Date,Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count")
       // Write each rown in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         writer.println(current.attributesToArray.mkString(","))

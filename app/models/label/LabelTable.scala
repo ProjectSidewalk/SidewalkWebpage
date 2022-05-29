@@ -198,6 +198,24 @@ object LabelTable {
   }
 
   /**
+    * This method gets the label date associated with the given panorama Id.
+    *
+    * @param gsvPanoramaId GSV Panorama ID.
+    * @return              String representing the image date in form "yyyy-MM-dd".
+    */
+  def getLabelDateFromPanoramaId(gsvPanoramaId: String): String = db.withSession { implicit session =>
+    val labelsWithGivenId = for {
+      _lb <- labels if _lb.gsvPanoramaId === gsvPanoramaId
+    } yield (
+      _lb
+    )
+
+    val fullDate: String = labelsWithGivenId.first.timeCreated.getOrElse("").toString()
+    val endOfDate: Int = fullDate.indexOf(" ")
+    fullDate.substring(0, endOfDate.min(fullDate.length())) // only include month, date, and year
+  }
+
+  /**
     * This method gets the Panorama Id of the image associated with the given global attribute Id.
     *
     * @param globalAttributeId Global Attribute ID.
