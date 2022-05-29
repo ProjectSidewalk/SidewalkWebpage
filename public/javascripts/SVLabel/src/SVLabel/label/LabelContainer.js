@@ -162,7 +162,7 @@ function LabelContainer($) {
                 return label.getProperty("temporary_label_id") === tempId;
             });
 
-        if(matchingLabels.length === 0){
+        if (matchingLabels.length === 0) {
             return null;
         }
 
@@ -174,36 +174,32 @@ function LabelContainer($) {
     this.addUpdatedLabel = function (tempId) {
         // All labels that don't have the specified tempId reduced to an array.
         var otherLabels = _.filter(this.getCurrentLabels(),
-            function(label){
+            function(label) {
                 return label.getProperty("temporary_label_id") !== tempId;
             });
 
-        // If there are no temporary labels with this ID in currentCanvasLabels
-        // then add it to that list.
+        // If there are no temporary labels with this ID in currentCanvasLabels then add it to that list.
         // Otherwise get rid of all old instances in currentCanvasLabels and add the updated label.
 
         var match = this.findLabelByTempId(tempId);
 
         // Label with this id doesn't exist in currentCanvasLabels as the
         // filtered vs unfiltered arrays are the same length.
-        if(otherLabels.length === this.getCurrentLabels().length){
+        if (otherLabels.length === this.getCurrentLabels().length) {
             if (!(match.getPanoId() in currentCanvasLabels)) {
                 currentCanvasLabels[match.getPanoId()] = [];
             }
-            
-            // Add updated label
+            // Add updated label.
             currentCanvasLabels[match.getPanoId()].push(match);
         } else {
             for (let key in currentCanvasLabels) {
                 currentCanvasLabels[key] = currentCanvasLabels[key].filter(label => label.getProperty("temporary_label_id") !== tempId);
             }
-
-            if(match !== null) {
+            if (match !== null) {
                 if (!(match.getPanoId() in currentCanvasLabels)) {
                     currentCanvasLabels[match.getPanoId()] = [];
                 }
-            
-                // Add updated label
+                // Add updated label.
                 currentCanvasLabels[match.getPanoId()].push(match);
             }
         }

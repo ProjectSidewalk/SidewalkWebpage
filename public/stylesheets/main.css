@@ -790,9 +790,26 @@ p#conditional-text {
     color:#fff;
     text-decoration:underline;
 }
+
+@media only screen and (max-device-width: 500px) {
+    #awardnum {
+        width: 100% !important;
+        right: 0% !important;
+    }
+}
+
+@media only screen and (max-device-width: 800px) and (min-device-width: 500px) {
+    #awardnum {
+        width: 350% !important;
+        right: 45% !important;
+    }
+}
+
 #awardnum {
     font-size:10px;
     color:#c0becf;
+    width: 220%;
+    right: 35%;
 }
 #funding-title {
     font-weight: bold;

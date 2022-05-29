@@ -177,8 +177,8 @@ object LabelTable {
     )
   )
 
-  // Valid label type ids -- excludes Other and Occlusion labels
-  val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
+  // Valid label type ids for the /validate -- excludes Other and Occlusion labels.
+  val valLabelTypeIds: List[Int] = List(1, 2, 3, 4, 7, 9, 10)
 
   /**
     * This method gets the label date associated with the given label Id.
@@ -924,7 +924,7 @@ object LabelTable {
     * @param currentLabelTypeId   Label ID of the current mission
     */
   def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
-    getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(labelTypeIdList.contains(_))
+    getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(valLabelTypeIds.contains(_))
   }
 
     /**
