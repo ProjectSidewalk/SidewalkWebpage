@@ -1,7 +1,8 @@
 package models.label
 
 import com.vividsolutions.jts.geom.Point
-import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
+import java.net.{ConnectException, SocketException, URL}
+import javax.net.ssl.HttpsURLConnection;
 import java.sql.Timestamp
 import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
@@ -865,9 +866,9 @@ object LabelTable {
   def panoExists(gsvPanoId: String): Boolean = {
     try {
       val now = new DateTime(DateTimeZone.UTC)
-      val urlString : String = "http://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
+      val urlString : String = "https://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
       val panoURL : URL = new java.net.URL(urlString)
-      val connection : HttpURLConnection = panoURL.openConnection.asInstanceOf[HttpURLConnection]
+      val connection : HttpsURLConnection = panoURL.openConnection.asInstanceOf[HttpsURLConnection]
       connection.setConnectTimeout(5000)
       connection.setReadTimeout(5000)
       connection.setRequestMethod("GET")
