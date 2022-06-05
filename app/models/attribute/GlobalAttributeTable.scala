@@ -85,6 +85,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                   |&fov=${GoogleMapsHelper.getFov(zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+  val labelTags: List[String] = LabelTagTable.selectTagsForLabelId(labelId)
+  val labelDescription: String = LabelTable.selectDescriptionForLabelId(labelId)
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -112,7 +114,9 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "label_is_temporary" -> labelTemporary,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
-        "notsure_count" -> notsureCount
+        "notsure_count" -> notsureCount,
+        "label_tags" -> labelTags,
+        "label_description" -> labelDescription
       )
     )
   }
@@ -123,7 +127,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
                                 canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString, "\"" + gsvUrl + "\"",
                                 labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
-                                disagreeCount.toString, notsureCount.toString)
+                                disagreeCount.toString, notsureCount.toString, "\"[" + labelTags.mkString(",") + "]\"",
+                                "\"" + labelDescription + "\"")
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {

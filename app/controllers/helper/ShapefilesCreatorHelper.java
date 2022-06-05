@@ -173,7 +173,9 @@ public class ShapefilesCreatorHelper {
                         + "gsvUrl:String," // GSV URL
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
-                        + "nNotsure:Integer" // Notsure validations
+                        + "nNotsure:Integer," // Notsure validations
+                        + "labelTags:String," // Label Tags
+                        + "labelDescr:String" // Label Description
                 );
 
 
@@ -218,6 +220,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
+            featureBuilder.add(l.labelTagsStr());
+            featureBuilder.add(l.labelDescription());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
