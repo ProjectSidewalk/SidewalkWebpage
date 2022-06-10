@@ -165,6 +165,7 @@
                 "uneven-surface": "on<tag-underline>e</tag-underline>ven oppervlak",
                 "no-pedestrian-priority": "geen <tag-underline>v</tag-underline>oetgangersprioriteit",
                 "very-long-crossing": "zeer lange oversteek (<tag-underline>u</tag-underline>)",
+                "level-with-sidewalk": "niveau met stoep (<tag-underline>d</tag-underline>)",
                 "has-button": "heeft een knop (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "knop op <tag-underline>h</tag-underline>euphoogte",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
