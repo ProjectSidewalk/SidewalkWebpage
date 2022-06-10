@@ -320,6 +320,10 @@ function UtilitiesMisc (JSON) {
                     'very long crossing': {
                         keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.very-long-crossing')
+                    },
+                    'level with sidewalk': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk')
                     }
                 }
             },
