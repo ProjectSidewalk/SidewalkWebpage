@@ -168,6 +168,7 @@
                 "level-with-sidewalk": "niveau met stoep (<tag-underline>d</tag-underline>)",
                 "has-button": "heeft een knop (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "knop op <tag-underline>h</tag-underline>euphoogte",
+                "APS": "<tag-underline>A</tag-underline>PS",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
                 "no-bus-stop-access": "geen bush<tag-underline>a</tag-underline>lte toegang",
                 "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)"
