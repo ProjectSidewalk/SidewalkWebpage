@@ -165,6 +165,7 @@
                 "uneven-surface": "un<tag-underline>e</tag-underline>ven surface",
                 "no-pedestrian-priority": "no pedestrian priority (<tag-underline>v</tag-underline>)",
                 "very-long-crossing": "very long crossing (<tag-underline>u</tag-underline>)",
+                "level-with-sidewalk": "level with si<tag-underline>d</tag-underline>ewalk",
                 "has-button": "has b<tag-underline>u</tag-underline>tton",
                 "button-waist-height": "button waist <tag-underline>h</tag-underline>eight",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
