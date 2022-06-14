@@ -339,6 +339,10 @@ function UtilitiesMisc (JSON) {
                     'button waist height': {
                         keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.button-waist-height')
+                    },
+                    'APS': {
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.APS')
                     }
                 }
             },
