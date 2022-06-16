@@ -49,20 +49,4 @@ object StreetEdgeRegionTable {
   def selectNonDeletedByRegionId(regionId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
     nonDeletedStreetEdgeRegions.filter(item => item.regionId === regionId).list
   }
-
-  /**
-    * Checks if every street in the region has an associated completed audit task.
-    *
-    * @param regionId
-    * @return
-    */
-  def allStreetsInARegionAudited(regionId: Int): Boolean = db.withSession { implicit session =>
-    val edgesInRegion: Int = selectNonDeletedByRegionId(regionId).length
-    val edgesAuditedInRegion: Int = (for {
-      _edgeRegions <- nonDeletedStreetEdgeRegions if _edgeRegions.regionId === regionId
-      _audits <- AuditTaskTable.completedTasks if _audits.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _audits.streetEdgeId).groupBy(x => x).map(_._1).size.run
-
-    edgesAuditedInRegion == edgesInRegion
-  }
 }

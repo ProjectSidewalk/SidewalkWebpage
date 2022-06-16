@@ -73,7 +73,7 @@ object RegionCompletionTable {
           // audited in that neighborhood; this has never been observed, but it could theoretically be an issue if there
           // is a sizable error, while there is a single (very very short) street segment left to be audited. That case
           // shouldn't happen, but we are just being safe, and setting audited_distance to be less than total_distance.
-          if (StreetEdgeRegionTable.allStreetsInARegionAudited(regionId)) {
+          if (StreetEdgePriorityTable.allStreetsInARegionAuditedUsingPriority(regionId)) {
             q.map(_.auditedDistance).update(rC.totalDistance)
           } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
             q.map(_.auditedDistance).update(rC.totalDistance * 0.995)
@@ -94,7 +94,7 @@ object RegionCompletionTable {
 
         // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
         // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
-        if (StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId)) {
+        if (StreetEdgePriorityTable.allStreetsInARegionAuditedUsingPriority(neighborhood.regionId)) {
           val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
           regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
