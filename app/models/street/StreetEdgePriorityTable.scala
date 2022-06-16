@@ -79,7 +79,7 @@ object StreetEdgePriorityTable {
       if ser.regionId === regionId
       if sep.priority === 1.0
     } yield sep
-    streetsToAudit.size.run == 0
+    streetsToAudit.length.run == 0
   }
 
   def streetDistanceCompletionRateUsingPriority: Float = db.withSession { implicit session =>
