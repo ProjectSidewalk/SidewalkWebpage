@@ -4,7 +4,7 @@ import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable, StreetEdge
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.GetResult
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: String, totalDistance: Double, auditedDistance: Double)
@@ -89,7 +89,7 @@ object RegionCompletionTable {
 
     if (regionCompletions.length.run == 0) {
 
-      val neighborhoods = RegionTable.selectAllNamedNeighborhoods
+      val neighborhoods: List[NamedRegion] = RegionTable.selectAllNamedNeighborhoods
       for (neighborhood <- neighborhoods) yield {
 
         // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
@@ -106,5 +106,9 @@ object RegionCompletionTable {
         }
       }
     }
+  }
+
+  def truncateTable(): Unit = db.withTransaction { implicit session =>
+    Q.updateNA("TRUNCATE TABLE region_completion").execute
   }
 }

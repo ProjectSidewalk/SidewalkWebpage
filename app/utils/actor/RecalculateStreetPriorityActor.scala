@@ -3,6 +3,7 @@ package utils.actor
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
 import akka.actor.{Actor, Cancellable, Props}
+import models.region.RegionCompletionTable
 import models.street.StreetEdgePriorityTable
 import play.api.Play.current
 import play.api.{Logger, Play}
@@ -62,7 +63,9 @@ class RecalculateStreetPriorityActor extends Actor {
 
       val currentTimeStart: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
-      StreetEdgePriorityTable.recalculateStreetPriority
+      StreetEdgePriorityTable.recalculateStreetPriority()
+      RegionCompletionTable.truncateTable()
+      RegionCompletionTable.initializeRegionCompletionTable()
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Street priority recalculation completed at: $currentEndTime")
   }
