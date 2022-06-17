@@ -321,6 +321,38 @@
 
         <div class="row">
             <div class="col-sm-12">
+                <h2 id="access-dataset">Users API</h2>
+                <table class="table">
+                    <tr>
+                        <th>URL</th>
+                        <td><code>/v2/userStats</code></td>
+                    </tr>
+                    <tr>
+                        <th>Method</th>
+                        <td>GET</td>
+                    </tr>
+                    <tr>
+                        <th>Examples</th>
+                        <td>
+                            <a href="/v2/userStats" target="_blank">
+                                <code>/v2/userStats</code>
+                            </a><br>
+                            <a href="/v2/userStats?filetype=csv" target="_blank">
+                                <code>/v2/userStats?filetype=csv</code>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Description</th>
+                        <td>
+                            This endpoint gives some statistics about Project Sidewalk users. It includes some overall
+                            statistics like accuracy and meters explored. It also gives counts of the number of labels
+                            placed for each label type. More formal documentation is in the works! The IDs for users are
+                            anonymized, but persistent over time.
+                        </td>
+                    </tr>
+                </table>
+
                 <h2 id="access-dataset">Access Dataset</h2>
                 <p>We are working on this!</p>
 
