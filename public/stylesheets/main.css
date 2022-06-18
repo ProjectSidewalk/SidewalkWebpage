@@ -543,7 +543,7 @@ p#conditional-text {
     font-weight: normal;
     line-height: 1.8em;
     letter-spacing: 0.1em;
-    max-width: 500px;
+    width: 450px;
     margin: 0 auto;
     position: relative;
     top: 25px;
