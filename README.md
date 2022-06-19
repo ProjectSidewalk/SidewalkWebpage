@@ -8,7 +8,7 @@ If you would like to suggest that we deploy in your city/municipality, please em
 
 ### Setting up the development environment
 
-If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
+If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "core" or "intern" channels on Slack! We prefer posting to channels vs. DMs to Mikey to enable all of us to help each other.
 
 <details><summary>Linux (Ubuntu)</summary>
 
@@ -30,7 +30,7 @@ There are two methods to setup your Docker dev environment with Windows: with WS
 WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/). WSL2 offers faster compile times and is better supported by Docker.
 
 1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/).
-1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
+1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10) using the default Linux distribution (Ubuntu).
 1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
 1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
 1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository.
@@ -64,7 +64,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of `dc`, `seattle`, `newberg`, `columbus`, `cdmx`, `spgg`, `chicago`, or `pittsburgh`, depending on which city your database dump is for.
+1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of `dc`, `seattle`, `newberg`, `columbus`, `cdmx`, `spgg`, `chicago`, `amsterdam`, `la-piedad`, `oradell`, or `pittsburg` (pittsburgh is missing the 'h', but it's a typo we're stuck with), depending on which city your database dump is for.
 
     ```
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
@@ -95,7 +95,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     (Server started, use Ctrl+D to stop and go back to the console...)
     ```
 
-1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. It might take time to load initially.
+1. Head on over to your browser and navigate to `127.0.0.1:9000` (or try localhost:9000). This should display the Project Sidewalk webpage. It might take time to load initially.
 
 ### Setting up another database or city
 1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.

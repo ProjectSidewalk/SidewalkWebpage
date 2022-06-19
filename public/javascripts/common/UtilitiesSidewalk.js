@@ -4,43 +4,6 @@ util.misc = util.misc || {};
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 
-    function getLabelCursorImagePath() {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'cursorImagePath' : undefined
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                cursorImagePath : svl.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
-            },
-            Other: {
-                id: 'Other',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_NoSidewalk.png'
-            }
-        }
-    }
-
     // Returns image paths corresponding to each label type.
     function getIconImagePaths(category) {
         var imagePaths = {
@@ -51,129 +14,52 @@ function UtilitiesMisc (JSON) {
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_CurbRamp.svg',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_CurbRamp.png'
+                iconImagePath : svl.rootDirectory + 'img/icons/CurbRamp_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/CurbRamp_tiny.png'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                iconImagePath : svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoCurbRamp.svg',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoCurbRamp.png'
+                iconImagePath : svl.rootDirectory + 'img/icons/NoCurbRamp_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/NoCurbRamp_tiny.png'
             },
             Obstacle: {
                 id: 'Obstacle',
-                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk//Icon_Obstacle.svg',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Obstacle.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Obstacle_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Obstacle_tiny.png'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_SurfaceProblem.svg',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_SurfaceProblem.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_tiny.png'
             },
             Other: {
                 id: 'Other',
-                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Other_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Other_tiny.png'
             },
             Occlusion: {
                 id: 'Occlusion',
-                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Occlusion_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Occlusion_tiny.png'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoSidewalk.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoSidewalk.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_tiny.png'
+            },
+            Crosswalk: {
+                id: 'Crosswalk',
+                iconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_tiny.png'
+            },
+            Signal: {
+                id: 'Signal',
+                iconImagePath: svl.rootDirectory + 'img/icons/Signal_small.png',
+                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Signal_tiny.png'
             }
         };
 
         return category ? imagePaths[category] : imagePaths;
-    }
-
-    function getLabelInstructions() {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'instructionalText' : i18next.t('top-ui.instruction.explore'),
-                'textColor' : 'rgba(255,255,255,1)'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                instructionalText: i18next.t('top-ui.instruction.curb-ramp'),
-                textColor: 'rgba(255,255,255,1)'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                instructionalText: i18next.t('top-ui.instruction.missing-curb-ramp'),
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                instructionalText: i18next.t('top-ui.instruction.obstacle'),
-                textColor: 'rgba(255,255,255,1)'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                instructionalText: i18next.t('top-ui.instruction.surface-problem'),
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Other: {
-                id: 'Other',
-                instructionalText: i18next.t('top-ui.instruction.other'),
-                textColor: 'rgba(255,255,255,1)'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                instructionalText: i18next.t('top-ui.instruction.occlusion'),
-                textColor: 'rgba(255,255,255,1)'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                instructionalText: i18next.t('top-ui.instruction.no-sidewalk'),
-                textColor: 'rgba(255,255,255,1)'
-            }
-        }
-    }
-
-    /**
-     * Todo. This should be moved to RibbonMenu.js
-     * @returns {{Walk: {id: string, text: string, labelRibbonConnection: string}, CurbRamp: {id: string, labelRibbonConnection: string}, NoCurbRamp: {id: string, labelRibbonConnection: string}, Obstacle: {id: string, labelRibbonConnection: string}, SurfaceProblem: {id: string, labelRibbonConnection: string}, Other: {id: string, labelRibbonConnection: string}, Occlusion: {id: string, labelRibbonConnection: string}, NoSidewalk: {id: string, labelRibbonConnection: string}}}
-     */
-    function getRibbonConnectionPositions() {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'text' : 'Walk',
-                'labelRibbonConnection' : '25px'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                labelRibbonConnection: '100px'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                labelRibbonConnection: '174px'
-            },
-            Obstacle: {
-                id: 'Obstacle',
-                labelRibbonConnection: '248px'
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                labelRibbonConnection: '322px'
-            },
-            Other: {
-                id: 'Other',
-                labelRibbonConnection: '396px'
-            },
-            Occlusion: {
-                id: 'Occlusion',
-                labelRibbonConnection: '396px'
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                labelRibbonConnection: '396px'
-            }
-        }
     }
 
     function getLabelDescriptions(category) {
@@ -181,71 +67,65 @@ function UtilitiesMisc (JSON) {
             'Walk': {
                 'id': 'Walk',
                 'text': 'Walk',
-                shortcut: {
-                    keyNumber: 69,
-                    keyChar: 'E'
-                }
+                keyChar: 'E'
             },
             CurbRamp: {
                 id: 'CurbRamp',
                 text: 'Curb Ramp',
-                shortcut: {
-                    keyNumber: 67,
-                    keyChar: 'C'
-                },
+                keyChar: 'C',
                 tagInfo: {
                     'narrow': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
                     'points into traffic': {
-                        keyNumber: 80,
-                        keyChar: 'P',
+                        keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
-                    'missing friction strip': {
-                        keyNumber: 70,
-                        keyChar: 'F',
-                        text: i18next.t('center-ui.context-menu.tag.missing-friction-strip')
+                    'missing tactile warning': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.missing-tactile-warning')
+                    },
+                    'tactile warning': {
+                        keyChar: 'H',
+                        text: i18next.t('center-ui.context-menu.tag.tactile-warning')
                     },
                     'steep': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.steep')
                     },
                     'not enough landing space': {
-                        keyNumber: 76,
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.not-enough-landing-space')
                     },
                     'not level with street': {
-                        keyNumber: 86,
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.not-level-with-street')
+                    },
+                    'surface problem': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.surface-problem')
+                    },
+                    'pooled water': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.pooled-water')
                     }
                 }
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
                 text: 'Missing Curb Ramp',
-                shortcut: {
-                    keyNumber: 77,
-                    keyChar: 'M'
-                },
+                keyChar: 'M',
                 tagInfo: {
                     'alternate route present': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.alternate-route-present')
                     },
                     'no alternate route': {
-                        keyNumber: 76,
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.no-alternate-route')
                     },
                     'unclear if needed': {
-                        keyNumber: 85,
                         keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.unclear-if-needed')
                     }
@@ -254,170 +134,215 @@ function UtilitiesMisc (JSON) {
             Obstacle: {
                 id: 'Obstacle',
                 text: 'Obstacle in Path',
-                shortcut: {
-                    keyNumber: 79,
-                    keyChar: 'O'
-                },
+                keyChar: 'O',
                 tagInfo: {
                     'trash/recycling can': {
-                        keyNumber: 72,
                         keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.trash-recycling-can')
                     },
                     'fire hydrant': {
-                        keyNumber: 70,
                         keyChar: 'F',
                         text: i18next.t('center-ui.context-menu.tag.fire-hydrant')
                     },
                     'pole': {
-                        keyNumber: 80,
-                        keyChar: 'P',
+                        keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.pole')
                     },
                     'tree': {
-                        keyNumber: 69,
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.tree')
                     },
                     'vegetation': {
-                        keyNumber: 86,
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.vegetation')
                     },
                     'parked car': {
-                        keyNumber: 65,
-                        keyChar: 'A',
+                        keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
-                        keyNumber: 75,
                         keyChar: 'K',
                         text: i18next.t('center-ui.context-menu.tag.parked-bike')
                     },
                     'construction': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.construction')
                     },
                     'sign': {
-                        keyNumber: 73,
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.sign')
                     },
                     'garage entrance': {
-                        keyNumber: 71,
                         keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.garage-entrance')
                     },
                     'stairs': {
-                        keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.stairs')
                     },
                     'street vendor': {
-                        keyNumber: 85,
-                        keyChar: 'U',
+                        keyChar: 'J',
                         text: i18next.t('center-ui.context-menu.tag.street-vendor')
                     },
                     'height difference': {
-                        keyNumber: 68,
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
                     },
                     'narrow': {
-                        keyNumber: 87,
-                        keyChar: 'W',
-                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.narrow')
+                    },
+                    'litter/garbage': {
+                        keyChar: 'X',
+                        text: i18next.t('center-ui.context-menu.tag.litter-garbage')
+                    },
+                    'parked scooter/motorcycle': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
                     }
                 }
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
                 text: 'Surface Problem',
-                shortcut: {
-                    keyNumber: 83,
-                    keyChar: 'S'
-                },
+                keyChar: 'S',
                 tagInfo: {
                     'bumpy': {
-                        keyNumber: 80,
-                        keyChar: 'P',
+                        keyChar: 'Y',
                         text: i18next.t('center-ui.context-menu.tag.bumpy')
                     },
                     'uneven/slanted': {
-                        keyNumber: 85,
                         keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.uneven-slanted')
                     },
                     'cracks': {
-                        keyNumber: 75,
                         keyChar: 'K',
                         text: i18next.t('center-ui.context-menu.tag.cracks')
                     },
                     'grass': {
-                        keyNumber: 71,
                         keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.grass')
                     },
                     'narrow sidewalk': {
-                        keyNumber: 87,
-                        keyChar: 'W',
-                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
-                    'brick': {
-                        keyNumber: 73,
+                    'brick/cobblestone': {
                         keyChar: 'I',
-                        text: i18next.t('center-ui.context-menu.tag.brick')
+                        text: i18next.t('center-ui.context-menu.tag.brick-cobblestone')
                     },
                     'construction': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.construction')
                     },
                     'very broken': {
-                        keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.very-broken')
                     },
                     'height difference': {
-                        keyNumber: 68,
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.height-difference')
+                    },
+                    'rail/tram track': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
+                    },
+                    'sand/gravel': {
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.sand-gravel')
+                    },
+                    'uncovered manhole': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     }
                 }
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
                 text: 'No Sidewalk',
-                shortcut: {
-                    keyNumber: 78,
-                    keyChar: 'N'
-                },
+                keyChar: 'N',
                 tagInfo: {
                     'ends abruptly': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.ends-abruptly')
                     },
                     'street has a sidewalk': {
-                        keyNumber: 82,
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk')
                     },
                     'street has no sidewalks': {
-                        keyNumber: 84,
                         keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks')
                     },
                     'gravel/dirt road': {
-                        keyNumber: 68,
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.gravel-dirt-road')
                     },
                     'shared pedestrian/car space': {
-                        keyNumber: 80,
-                        keyChar: 'P',
+                        keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space')
+                    }
+                }
+            },
+            Crosswalk: {
+                id: 'Crosswalk',
+                text: 'Crosswalk',
+                keyChar: 'W',
+                tagInfo: {
+                    'paint fading': {
+                        keyChar: 'F',
+                        text: i18next.t('center-ui.context-menu.tag.paint-fading')
+                    },
+                    'broken surface': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.broken-surface')
+                    },
+                    'uneven surface': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uneven-surface')
+                    },
+                    'brick/cobblestone': {
+                        keyChar: 'I',
+                        text: i18next.t('center-ui.context-menu.tag.brick-cobblestone')
+                    },
+                    'bumpy': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.bumpy')
+                    },
+                    'rail/tram track': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
+                    },
+                    'no pedestrian priority': {
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.no-pedestrian-priority')
+                    },
+                    'very long crossing': {
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.very-long-crossing')
+                    },
+                    'level with sidewalk': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk')
+                    }
+                }
+            },
+            Signal: {
+                id: 'Signal',
+                text: 'Pedestrian Signal',
+                keyChar: 'P',
+                tagInfo: {
+                    'has button': {
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.has-button')
+                    },
+                    'button waist height': {
+                        keyChar: 'H',
+                        text: i18next.t('center-ui.context-menu.tag.button-waist-height')
+                    },
+                    'APS': {
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.APS')
                     }
                 }
             },
@@ -426,12 +351,10 @@ function UtilitiesMisc (JSON) {
                 text: 'Other',
                 tagInfo: {
                     'missing crosswalk': {
-                        keyNumber: 73,
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.missing-crosswalk')
                     },
                     'no bus stop access': {
-                        keyNumber: 65,
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.no-bus-stop-access')
                     }
@@ -440,10 +363,7 @@ function UtilitiesMisc (JSON) {
             Occlusion: {
                 id: 'Occlusion',
                 text: "Can't see the sidewalk",
-                shortcut: {
-                    keyNumber: 66,
-                    keyChar: 'B'
-                }
+                keyChar: 'B'
             }
         };
         return category ? descriptions[category] : descriptions;
@@ -501,60 +421,59 @@ function UtilitiesMisc (JSON) {
         Walk : {
             id : 'Walk',
             fillStyle : 'rgba(0, 0, 0, 1)',
-            strokeStyle: '#ffffff',
-            missingPanoStrokeStyle: 'rgba(0, 0, 0, .8)',
+            strokeStyle: '#FFFFFF'
         },
         CurbRamp: {
             id: 'CurbRamp',
-            fillStyle: 'rgba(0, 222, 38, 1)',  // 'rgba(0, 244, 38, 1)'
-            strokeStyle: '#ffffff',
-            missingPanoStrokeStyle: 'rgba(0, 222, 38, .8)',
+            fillStyle: '#90C31F',
+            strokeStyle: '#FFFFFF'
         },
         NoCurbRamp: {
             id: 'NoCurbRamp',
-            fillStyle: 'rgba(233, 39, 113, 1)',  // 'rgba(255, 39, 113, 1)'
-            strokeStyle: '#ffffff',
-            missingPanoStrokeStyle: 'rgba(233, 39, 113, .8)',
+            fillStyle: '#E679B6',
+            strokeStyle: '#FFFFFF'
         },
         Obstacle: {
             id: 'Obstacle',
-            fillStyle: 'rgba(0, 161, 203, 1)',
-            strokeStyle: '#ffffff',
-            missingPanoStrokeStyle: 'rgba(0, 161, 203, .8)'
+            fillStyle: '#78B0EA',
+            strokeStyle: '#FFFFFF'
         },
         Other: {
             id: 'Other',
-            fillStyle: 'rgba(179, 179, 179, 1)', //'rgba(204, 204, 204, 1)'
-            strokeStyle: '#0000ff',
-            missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
+            fillStyle: '#B3B3B3',
+            strokeStyle: '#0000FF'
         },
         Occlusion: {
             id: 'Occlusion',
-            fillStyle: 'rgba(179, 179, 179, 1)',
-            strokeStyle: '#009902',
-            missingPanoStrokeStyle: 'rgba(179, 179, 179, .8)'
+            fillStyle: '#B3B3B3',
+            strokeStyle: '#009902'
         },
         NoSidewalk: {
             id: 'NoSidewalk',
-            fillStyle: 'rgba(153, 131, 239, 1)',
-            strokeStyle: '#ffffff',
-            missingPanoStrokeStyle: 'rgba(153, 131, 239, .8)'
+            fillStyle: '#BE87D8',
+            strokeStyle: '#FFFFFF'
         },
         SurfaceProblem: {
             id: 'SurfaceProblem',
-            fillStyle: 'rgba(241, 141, 5, 1)',
-            strokeStyle: '#ffffff',
-            missingPanoStrokeStyle: 'rgba(241, 141, 5, .8)'
+            fillStyle: '#F68D3E',
+            strokeStyle: '#FFFFFF'
+        },
+        Crosswalk: {
+            id: 'Crosswalk',
+            fillStyle: '#FABF1C',
+            strokeStyle: '#FFFFFF'
+        },
+        Signal: {
+            id: 'Signal',
+            fillStyle: '#63C0AB',
+            strokeStyle: '#FFFFFF'
         }
     };
     function getLabelColors(category) {
         return category ? colors[category].fillStyle : colors;
     }
 
-    self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
-    self.getLabelInstructions = getLabelInstructions;
-    self.getRibbonConnectionPositions = getRibbonConnectionPositions;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
     self.getLabelColors = getLabelColors;

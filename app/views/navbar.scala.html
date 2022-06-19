@@ -1,7 +1,13 @@
 @import models.user.User
 @import play.api.Play
 @import play.api.Play.current
+@import models.mission.MissionTable
+@import models.amt.AMTAssignmentTable
+@import models.utils.Configs
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
+
+@currentCity =@{Play.configuration.getString("city-id").get}
+@cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._4 == "public")}
 
 @import views.html.bootstrap._
 
@@ -10,7 +16,67 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)'></a>
+            </div>
+            <div class="navbar-right pull-left navbar-turker-timer-container">
+                <ul class="nav pull-left navbar-turker-timer-list-container">
+                    @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
+                        @if(MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
+                            <li id="mturk-confirmation-code">
+                                <img id="mturk-checkmark" src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
+                                <p id="mturk-confirmation-code-text">@Messages("turk.mturk.code"): @AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))</p>
+                            </li>
+                        }
+                        <li id="navbar-timer">
+                            <img id="clock-icon" src="@routes.Assets.at("assets/clock.png")" alt="clock icon">
+                            <p id="navbar-timer-text">Loading...</p>
+                        </li>
+                        <script>
+                            // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
+                            var expired = true;
+                            var msRemaining = @{models.amt.AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username)};
+    
+                            // Update the count-down every 1 second
+                            var timerInterval = setInterval(function() {
+                                var now = new Date().getTime();
+                                msRemaining -= 1000;
+    
+                                // Time calculations for days, hours, minutes and seconds
+                                var hours = Math.floor(msRemaining / (1000 * 60 * 60));
+                                var minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                                var seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
+    
+                                // Output the result in an element with id="navbar-timer-text"
+                                if (msRemaining < 0) {
+                                    clearInterval(timerInterval);
+                                    document.getElementById("navbar-timer-text").innerHTML = "@Messages("turk.expired.navbar")";
+    
+                                    // If on the audit or validation page and the timer has just expired, refresh page
+                                    // to show HIT expiration overlay so that they are unable to audit.
+                                    if("@url.get" === "/audit" && !expired) {
+                                        window.location.href = window.location.origin + "/audit";
+                                    } else if ("@url.get" === "/validate" && !expired) {
+                                        window.location.href = window.location.origin + "/validate"
+                                    }
+                                } else if (hours > 0) {
+                                    document.getElementById("navbar-timer-text").innerHTML = hours + "h " + minutes + "m ";
+                                    expired = false;
+                                } else if (minutes > 0) {
+                                    document.getElementById("navbar-timer-text").innerHTML = minutes + "m " + seconds + "s ";
+                                    expired = false;
+                                } else {
+                                    document.getElementById("navbar-timer-text").innerHTML = seconds + "s ";
+                                    expired = false;
+                                }
+                                // If there are less than 15 minutes remaining, color the text red.
+                                var fifteenMinutes = 1000 * 60 * 15;
+                                if (msRemaining < fifteenMinutes) {
+                                    document.getElementById('navbar-timer-text').style.color = 'red'
+                                }
+                            }, 1000);
+                        </script>
+                    }
+                 </ul>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
@@ -19,56 +85,6 @@
         </div>
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
-                @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
-                    <li>
-                        <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:20px;padding-right:5px;">
-                    </li>
-                    <li><p id="navbarTimer" style="width:75px;margin-top:19px;">Loading...</p></li>
-                    <script>
-                        // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
-                        var expired = true;
-                        var msRemaining = @{models.amt.AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username)};
-
-                        // Update the count down every 1 second
-                        var timerInterval = setInterval(function() {
-                            var now = new Date().getTime();
-                            msRemaining -= 1000;
-
-                            // Time calculations for days, hours, minutes and seconds
-                            var hours = Math.floor(msRemaining / (1000 * 60 * 60));
-                            var minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                            var seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
-
-                            // Output the result in an element with id="navbarTimer"
-                            if (msRemaining < 0) {
-                                clearInterval(timerInterval);
-                                document.getElementById("navbarTimer").innerHTML = "@Messages("turk.expired.navbar")";
-
-                                // If on the audit or validation page and the timer has just expired, refresh page to
-                                // show HIT expiration overlay so they are unable to audit.
-                                if("@url.get" === "/audit" && !expired) {
-                                    window.location.href = window.location.origin + "/audit";
-                                } else if ("@url.get" === "/validate" && !expired) {
-                                    window.location.href = window.location.origin + "/validate"
-                                }
-                            } else if (hours > 0) {
-                                document.getElementById("navbarTimer").innerHTML = hours + "h " + minutes + "m ";
-                                expired = false;
-                            } else if (minutes > 0) {
-                                document.getElementById("navbarTimer").innerHTML = minutes + "m " + seconds + "s ";
-                                expired = false;
-                            } else {
-                                document.getElementById("navbarTimer").innerHTML = seconds + "s ";
-                                expired = false;
-                            }
-                            // If there are less than 15 minutes remaining, color the text red.
-                            var fifteenMinutes = 1000 * 60 * 15;
-                            if (msRemaining < fifteenMinutes) {
-                                document.getElementById('navbarTimer').style.color = 'red'
-                            }
-                        }, 1000);
-                    </script>
-                }
                 @if(url.isDefined && url.get == "/audit") {
                     <li class="active navbar-lnk">
                         <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
@@ -80,9 +96,11 @@
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {
-                    <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
-                    </li>
+                    @if(user.isEmpty || user.get.role.getOrElse("") != "Turker") {
+                        <li class="active navbar-lnk">
+                            <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                        </li>
+                    }
                 }
                 <li class="active navbar-lnk">
                     <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
@@ -99,27 +117,49 @@
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
-                        <li>
-                            <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                        </li>
+                        <!-- Hides the "Results Map" tab for the Chicago server version-->
+                        @if(!List("chicago-il").contains(currentCity)) {
+                            <li>
+                                <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                            </li>
+                        }
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
+                        @if(!List("seattle-wa").contains(currentCity)) {
                             <li>
                                 <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                             </li>
                         }
                         <li>
-                            <!-- TODO: Internationalization for sidewalk gallery name -->
-                            <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery">@Messages("gallery")</a>
+                            <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery(None, None)">@Messages("gallery")</a>
                         </li>
                         <li>
-                            <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>
-                            @Messages("navbar.leaderboard")
-                            </a>
+                            <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                         </li>
                         <li>
                             <a id="navbar-api-btn" role="menuitem" href='@routes.ApplicationController.developer' aria-label="Developer A.P.I.">@Messages("footer.api")</a>
                         </li>
+                    </ul>
+                </li>
+
+                <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
+                    <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
+                        @Play.configuration.getString("city-params.city-short-name." + currentCity).get
+                    <b class="caret"></b>
+                    </a>
+                    <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
+                        @for(cityInfo <- cities.sortBy(_._2)) {
+                            <li>
+                                @if(cityInfo._1 == currentCity) {
+                                    <a id="@cityInfo._1" role="menuitem" class="current-city" href='javascript:void(0);'>
+                                            <b>@cityInfo._2</b>
+                                    </a>
+                                } else {
+                                    <a id="@cityInfo._1" role="menuitem" href='@cityInfo._3'>
+                                        @cityInfo._2
+                                    </a>
+                                }
+                            </li>
+                        }
                     </ul>
                 </li>
 
@@ -239,6 +279,15 @@ $(document).ready(function () {
     $("#navbar-api-btn").on('click', function() {
         logWebpageActivity("Click_module=SidewalkAPI");
     });
+
+    // The buttons in the City drop down menu. Log clicks to any of them but the current city.
+    for (cityLink of $('#nav-city-menu').children().children()) {
+        $(cityLink).on('click', function(e) {
+            if (!e.currentTarget.className.includes('current-city')) {
+                logWebpageActivity(`Click_module=NavbarCityDropdown_city=${e.currentTarget.id}`);
+            }
+        });
+    }
     
     // The following buttons are in the User drop down menu.
     $("#navbar-sign-out-btn").on('click', function() {

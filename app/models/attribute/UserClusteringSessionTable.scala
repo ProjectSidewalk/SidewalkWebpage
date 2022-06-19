@@ -1,8 +1,9 @@
 package models.attribute
 
-import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTypeTable, LabelTemporarinessTable}
+import models.label.{LabelTable, LabelTypeTable}
+import models.mission.MissionTable
+import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -68,23 +69,15 @@ object UserClusteringSessionTable {
 
     // Gets all non-deleted, non-tutorial labels placed by the specified user.
     val labels = for {
-      _task <- AuditTaskTable.auditTasks if _task.userId === userId
-      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.auditTaskId === _task.auditTaskId
+      _mission <- MissionTable.missions if _mission.userId === userId
+      _region <- RegionTable.regions if _mission.regionId === _region.regionId
+      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.missionId === _mission.missionId
       _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
       _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
-    } yield (_task.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng)
+      if _region.deleted === false
+    } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng, _lab.severity, _lab.temporary)
 
-    // Left joins to get severity for any labels that have them.
-    val labelsWithSeverity = for {
-      (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
-
-    // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
-    val labelsWithTemporariness = for {
-      (_lab, _temp) <- labelsWithSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporary.?.getOrElse(false))
-
-    labelsWithTemporariness.list.map(LabelToCluster.tupled)
+    labels.list.map(LabelToCluster.tupled)
   }
 
   /**

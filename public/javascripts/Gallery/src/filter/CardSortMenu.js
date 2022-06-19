@@ -22,7 +22,7 @@ function CardSortMenu(uiCardSortMenu) {
     function _init() {
         if (uiCardSortMenu) {
             uiCardSortMenu.sort.bind({
-                change: handleSortSwitchClickCallback
+                change: sortSelectCallback
             });
         }
     }
@@ -30,7 +30,7 @@ function CardSortMenu(uiCardSortMenu) {
     /**
      * Callback function for when sorting order of cards is changed.
      */
-    function handleSortSwitchClickCallback() {
+    function sortSelectCallback() {
         let sortType = $(this).val();
         setStatus("sortType", sortType);
 

@@ -2,7 +2,7 @@ import play.PlayScala
 
 name := """sidewalk-webpage"""
 
-version := "6.18.0"
+version := "7.6.3"
 
 scalaVersion := "2.10.7"
 
@@ -61,7 +61,7 @@ scalacOptions ++= Seq(
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
-javaOptions ++= Seq("-Xmx3072M", "-Xms2048M")
+javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
 
 javaOptions in Test += "-Dconfig.file=conf/application.test.conf"
 

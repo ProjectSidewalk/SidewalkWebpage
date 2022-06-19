@@ -89,7 +89,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 && interaction.audit_task_id === auditTaskId);
             var timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
-
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
@@ -103,9 +102,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
-                temporary_label: label.getProperty('temporaryLabel'),
+                temporary: label.getProperty('temporaryLabel'),
                 tag_ids: label.getProperty('tagIds'),
-                description: label.getProperty('description'),
+                description: label.getProperty('description') ? label.getProperty('description') : null,
                 time_created: timeCreated,
                 tutorial: prop.tutorial
             };
@@ -164,6 +163,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             temp = {
                 panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
                 image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
+                image_width: panoramaData.tiles.worldSize.width,
+                image_height: panoramaData.tiles.worldSize.height,
+                tile_width: panoramaData.tiles.tileSize.width,
+                tile_height: panoramaData.tiles.tileSize.height,
                 links: links,
                 copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
             };

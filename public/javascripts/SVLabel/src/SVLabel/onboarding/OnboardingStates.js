@@ -75,7 +75,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1a",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
@@ -106,7 +105,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1b",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
@@ -140,7 +138,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1a",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
@@ -167,7 +164,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": [
                 {
-                    "name": "arrow-1a",
                     "type": "arrow",
                     "x": 9730,
                     "y": -350,
@@ -268,10 +264,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-in'),
-                "fade-direction": "fadeInUp",
-                "arrow": "top",
-                "top": 0,
-                "left": 428
+                "fade-direction": "fadeInRight",
+                "arrow": "left",
+                "top": -53
             },
             "panoId": panoId,
             "annotations": null,
@@ -753,10 +748,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-out'),
-                "fade-direction": "fadeInUp",
-                "arrow": "top",
-                "top": 0,
-                "left": 495
+                "fade-direction": "fadeInRight",
+                "arrow": "left",
+                "top": 7
             },
             "panoId": panoId,
             "annotations": null,
@@ -1947,7 +1941,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.walk-2'),
                 "fade-direction": "fadeInDown",
                 "arrow": "bottom",
-                "top": 263,
+                "top": 225,
                 "left": 405
             },
             "panoId": panoId,
@@ -2049,7 +2043,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.walk-6-1') +
-                '<img src="' + svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
+                '<img src="' + svl.rootDirectory + 'img/icons/NoCurbRamp_small.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
                     i18next.t('tutorial.walk-6-2'),
                 "width": 400,
                 "fade-direction": "fadeIn"
@@ -2113,7 +2107,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.instruction-2'),
                 "fade-direction": "fadeInRight",
                 "arrow": "left",
-                "top": 235,
+                "top": 245,
                 "left": 5
             },
             "panoId": afterWalkPanoId,

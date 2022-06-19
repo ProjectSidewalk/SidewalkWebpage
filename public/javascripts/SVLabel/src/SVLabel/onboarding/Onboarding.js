@@ -81,6 +81,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         uiLeft.stuck.addClass('disabled');
 
         compass.hideMessage();
+        compass.disableCompassClick();
 
         _visit(getState("initialize"));
         handAnimation.initializeHandAnimation();
@@ -220,14 +221,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             imY = state.annotations[i].y;
             origPointPov = null;
 
-            // For the first arrow to be applied, looking at the initial heading (initialize state) of the onboarding.
-            // This avoids applying the first arrow if the heading is not set correctly.
-            // This will avoid incorrect POV calculation.
-            var initialHeading = getState("initialize").properties.heading;
-            if (state.annotations[i].name === "arrow-1a" && currentPov.heading !== initialHeading) {
-                povChange["status"] = false;
-                return this;
-            }
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
             if (currentPov.heading < 180) {
                 if (imX > svl.svImageWidth - 3328 && imX > 3328) {
@@ -542,16 +535,23 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitWalkTowards(state, listener) {
-
+        var nextPanoId = 'afterWalkTutorial';
         // Add a link to the second pano so that the user can click on it.
         svl.panorama.setLinks([{
-            description: 'afterWalkTutorial',
+            description: nextPanoId,
             heading: 340,
-            pano: 'afterWalkTutorial'
+            pano: nextPanoId
         }]);
         mapService.unlockDisableWalking();
         mapService.enableWalking();
         mapService.lockDisableWalking();
+
+        // Allow clicking on the navigation message to move to the next pano.
+        var clickToNextPano = function() {
+            mapService.setPano(nextPanoId, true);
+        }
+        svl.ui.compass.messageHolder.on('click', clickToNextPano);
+        svl.ui.compass.messageHolder.css('cursor', 'pointer');
 
         blinkInterface(state);
 
@@ -562,13 +562,15 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 window.setTimeout(function () {
                     mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
                 }, 1000);
+                svl.ui.compass.messageHolder.off('click', clickToNextPano);
+                svl.ui.compass.messageHolder.css('cursor', 'default');
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 next(state.transition);
             } else {
                 console.error("Pano mismatch. Shouldn't reach here");
-                // Force the interface to go back to the previous position.
-                mapService.setPano(state.panoId, true);
+                // Force the interface to go to the correct position.
+                mapService.setPano(nextPanoId, true);
             }
         };
 

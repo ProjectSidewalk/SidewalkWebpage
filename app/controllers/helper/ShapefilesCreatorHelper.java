@@ -97,9 +97,14 @@ public class ShapefilesCreatorHelper {
                         "the_geom:Point:srid=4326," // the geometry attribute: Point type
                         + "id:Integer," // a attribute ID
                         + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
+                        + "osmWayId:Integer," // Street OSM ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
-                        + "temporary:Boolean" // Temporary flag
+                        + "temporary:Boolean," // Temporary flag
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
+                        + "nNotsure:Integer" // Notsure validations
                 );
 
         /*
@@ -119,6 +124,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng(), a.lat())));
             featureBuilder.add(a.globalAttributeId());
             featureBuilder.add(a.labelType());
+            featureBuilder.add(a.streetEdgeId());
+            featureBuilder.add(a.osmStreetId());
             featureBuilder.add(a.neighborhoodName());
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -127,10 +134,12 @@ public class ShapefilesCreatorHelper {
                 }
             }));
             featureBuilder.add(a.temporary());
+            featureBuilder.add(a.agreeCount());
+            featureBuilder.add(a.disagreeCount());
+            featureBuilder.add(a.notsureCount());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
-
         createGeneralShapeFile(outputFile, TYPE, features);
     }
 
@@ -148,6 +157,8 @@ public class ShapefilesCreatorHelper {
                         + "labelId:Integer," // label ID
                         + "attribId:Integer," // attribute ID
                         + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
+                        + "osmWayId:Integer," // Street OSM ID of the nearest street (10 char max)
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -158,7 +169,11 @@ public class ShapefilesCreatorHelper {
                         + "canvasX:Integer," // canvasX position of panorama
                         + "canvasY:Integer," // canvasY position of panorama
                         + "canvasWdth:Integer," // width of source viewfinder
-                        + "canvasHght:Integer" // height of source viewfinder
+                        + "canvasHght:Integer," // height of source viewfinder
+                        + "gsvUrl:String," // GSV URL
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
+                        + "nNotsure:Integer" // Notsure validations
                 );
 
 
@@ -177,10 +192,12 @@ public class ShapefilesCreatorHelper {
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
         for(GlobalAttributeWithLabelForAPI l : labels){
-            featureBuilder.add(geometryFactory.createPoint(new Coordinate((double) l.labelLng(), (double) l.labelLat())));
+            featureBuilder.add(geometryFactory.createPoint(new Coordinate(Double.parseDouble(l.labelLatLng()._2.toString()), Double.parseDouble(l.labelLatLng()._1.toString()))));
             featureBuilder.add(l.labelId());
             featureBuilder.add(l.globalAttributeId());
             featureBuilder.add(l.labelType());
+            featureBuilder.add(l.streetEdgeId());
+            featureBuilder.add(l.osmStreetId());
             featureBuilder.add(l.neighborhoodName());
             featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -193,10 +210,14 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.heading());
             featureBuilder.add(l.pitch());
             featureBuilder.add(l.zoom());
-            featureBuilder.add(l.canvasX());
-            featureBuilder.add(l.canvasY());
+            featureBuilder.add(l.canvasXY()._1);
+            featureBuilder.add(l.canvasXY()._2);
             featureBuilder.add(l.canvasWidth());
             featureBuilder.add(l.canvasHeight());
+            featureBuilder.add(l.gsvUrl());
+            featureBuilder.add(l.agreeCount());
+            featureBuilder.add(l.disagreeCount());
+            featureBuilder.add(l.notsureCount());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
@@ -215,6 +236,7 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:LineString:srid=4326," // the geometry attribute: Line type
                         + "streetId:Integer," // StreetId
+                        + "osmWayId:Integer," // osmWayId
                         + "score:Double," // street score
                         + "sigRamp:Double," // curb ramp significance score
                         + "sigNoRamp:Double," // no Curb ramp significance score
@@ -242,6 +264,7 @@ public class ShapefilesCreatorHelper {
         for (StreetAttributeSignificance s : streets) {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
+            featureBuilder.add(s.osmID());
             featureBuilder.add(s.score());
             featureBuilder.add(s.significanceScores()[0]);
             featureBuilder.add(s.significanceScores()[1]);

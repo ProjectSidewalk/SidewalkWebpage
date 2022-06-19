@@ -85,6 +85,10 @@
     border-top: 0;
 }
 
+#legend-table>tbody>tr>td {
+    padding: 2px 8px;
+}
+
 .mapbox-logo {
     left: 405px;
     bottom: 5px

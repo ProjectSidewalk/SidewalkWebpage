@@ -150,8 +150,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
             delete svl.confirmationCode;
-            svl.ui.leftColumn.confirmationCode.css('visibility', '');
-            svl.ui.leftColumn.confirmationCode.popover();
         }
         self.showingMissionCompleteScreen = false;
     };
@@ -200,8 +198,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
-        // If the user has completed their first mission then display the confirmation code and add show the
-        // confirmation code button on the left column UI.
+        // If the user has completed their first mission then display the confirmation code and show the confirmation
+        // code text in the navbar.
         if (uiModalMissionComplete.generateConfirmationButton !== null
             && uiModalMissionComplete.generateConfirmationButton !== undefined) {
             var data = {
@@ -229,30 +227,15 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
                 i18next.t('common:mission-complete-confirmation-code') +
                 svl.confirmationCode;
             confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
-            confirmationCodeElement.style.marginTop = "1px";
+            confirmationCodeElement.style.marginTop = "-10px";
             confirmationCodeElement.style.marginBottom = "1px";
             uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
             uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
             uiModalMissionComplete.generateConfirmationButton.remove();
             delete uiModalMissionComplete.generateConfirmationButton;
 
-            svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
-            svl.ui.leftColumn.confirmationCode.attr('title', i18next.t('common:left-ui-turk-submit-code'));
-            svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
-
-            //Hide the mTurk confirmation code popover on clicking the background (i.e. outside the popover)
-            //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
-
-            $(document).on('click', function (e) {
-                svl.ui.leftColumn.confirmationCode.each(function () {
-                    //the 'is' for buttons that trigger popups
-                    //the 'has' for icons within a button that triggers a popup
-                    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                        (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
-                    }
-
-                });
-            });
+            $('#mturk-confirmation-code-text').text(i18next.t('common:mturk-code', { code: svl.confirmationCode }));
+            $("#mturk-confirmation-code").css('visibility', '');
         }
     };
 

@@ -4,30 +4,32 @@ import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class GSVData(gsvPanoramaId: String, imageWidth: Int, imageHeight: Int, tileWidth: Int, tileHeight: Int,
-                   imageDate: String, imageryType: Int, copyright: String, expired: Boolean,
+case class GSVData(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int],
+                   tileHeight: Option[Int], imageDate: String, copyright: String, expired: Boolean,
                    lastViewed: Option[java.sql.Timestamp])
 
 class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_data") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
-  def imageWidth = column[Int]("image_width", O.NotNull)
-  def imageHeight = column[Int]("image_height", O.NotNull)
-  def tileWidth = column[Int]("tile_width", O.NotNull)
-  def tileHeight = column[Int]("tile_height", O.NotNull)
+  def imageWidth = column[Option[Int]]("image_width")
+  def imageHeight = column[Option[Int]]("image_height")
+  def tileWidth = column[Option[Int]]("tile_width")
+  def tileHeight = column[Option[Int]]("tile_height")
   def imageDate = column[String]("image_date", O.NotNull)
-  def imageryType = column[Int]("imagery_type", O.NotNull)
   def copyright = column[String]("copyright", O.NotNull)
   def expired = column[Boolean]("expired", O.NotNull)
   def lastViewed = column[Option[java.sql.Timestamp]]("last_viewed", O.Nullable)
 
-  def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, imageDate, imageryType,
-    copyright, expired, lastViewed) <>
+  def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, imageDate, copyright, expired, lastViewed) <>
     ((GSVData.apply _).tupled, GSVData.unapply)
 }
 
 object GSVDataTable {
   val db = play.api.db.slick.DB
   val gsvDataRecords = TableQuery[GSVDataTable]
+
+  def getAllPanos(): List[(String, Option[Int], Option[Int])] = db.withSession { implicit session =>
+    gsvDataRecords.filter(_.gsvPanoramaId =!= "tutorial").map(p => (p.gsvPanoramaId, p.imageWidth, p.imageHeight)).list
+  }
 
   /**
     * This method marks the expired column of a panorama to be true.

@@ -33,35 +33,15 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
     /**
      * Set the message in the overlay box
      * @param mode
-     * @param message
      * @returns {*}
      */
-    this.setMessage =function (mode, message) {
-        var instructions = util.misc.getLabelInstructions();
-        var labelColors = util.misc.getLabelColors();
-
-        // Set the box color.
-        var modeColor = labelColors[mode];
-        var backgroundColor = util.color.changeAlphaRGBA(modeColor.fillStyle, 0.85);
-        backgroundColor = util.color.changeDarknessRGBA(backgroundColor, 0.35);
-
-        uiOverlayMessage.box.css({
-            'background' : backgroundColor
+    this.setMessage =function (mode) {
+        var instruction = i18next.t('top-ui.instruction.' + util.camelToKebab(mode));
+        uiOverlayMessage.message.html(`<strong>${instruction}</strong>`);
+        uiOverlayMessage.message.find(".overlay-message-label-type").on('click', function () {
+            var labelType = $(this).attr("val");
+            modalModel.showModalExample(labelType);
         });
-        uiOverlayMessage.message.css({
-            'color' : instructions[mode].textColor
-        });
-
-        // Set the instructional message.
-        if (message) {
-            uiOverlayMessage.message.html(message);
-        } else {
-            uiOverlayMessage.message.html('<strong>' + instructions[mode].instructionalText + '</strong>');
-            uiOverlayMessage.message.find(".overlay-message-label-type").on('click', function () {
-                var labelType = $(this).attr("val");
-                modalModel.showModalExample(labelType);
-            });
-        }
     };
 
     this.setMessage('Walk');

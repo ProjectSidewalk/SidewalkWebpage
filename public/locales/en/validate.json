@@ -4,15 +4,19 @@
   "obstacle-caps": "Obstacle",
   "surface-problem-caps": "Surface Problem",
   "no-sidewalk-caps": "No Sidewalk",
+  "crosswalk-caps": "Crosswalk",
+  "signal-caps": "Pedestrian Signal",
   "user-description": "User Description: ",
   "temporary": "Temporary",
   "top-ui": {
     "title": {
-      "CurbRamp": "Is this a <b>Curb Ramp</b>?",
-      "NoCurbRamp": "Is this a <b>Missing Curb Ramp</b>?",
-      "Obstacle": "Is this an <b>Obstacle</b>?",
-      "SurfaceProblem": "Is this a <b>Surface Problem</b>?",
-      "NoSidewalk": "Should there be a <b>No Sidewalk</b> label here?"
+      "curb-ramp": "Is this a <b>Curb Ramp</b>?",
+      "no-curb-ramp": "Is this a <b>Missing Curb Ramp</b>?",
+      "obstacle": "Is this an <b>Obstacle</b>?",
+      "surface-problem": "Is this a <b>Surface Problem</b>?",
+      "no-sidewalk": "Should there be a <b>No Sidewalk</b> label here?",
+      "crosswalk": "Is this a <b>Crosswalk</b>?",
+      "signal": "Is this a <b>Pedestrian Signal</b>?"
     }
   },
   "right-ui": {
@@ -20,68 +24,90 @@
       "validate-labels": "Validate {{n}} labels"
     },
     "correct": {
-      "CurbRamp": {
+      "curb-ramp": {
         "title": "<strong>Correct</strong> Curb Ramp",
-        "example-1-to-4": "This label is correctly placed at the bottom of a curb ramp"
+        "example-1-2-3-4": "This label is correctly placed at the bottom of a curb ramp"
       },
-      "NoCurbRamp": {
+      "no-curb-ramp": {
         "title": "<strong>Correct</strong> Missing Curb Ramp",
-        "example-1-to-3": "This intersection is lacking a curb ramp",
+        "example-1-2-3": "This intersection is lacking a curb ramp",
         "example-4": "This crosswalk indicates there should be a curb ramp here"
       },
-      "Obstacle": {
+      "obstacle": {
         "title": "<strong>Correct</strong> Obstacle",
         "example-1": "These construction cones are blocking a pedestrian crosswalk",
         "example-2": "This tree blocks the entire sidewalk",
         "example-3": "This pole blocks the sidewalk and a curb ramp entrance",
         "example-4": "This fire hydrant blocks the sidewalk"
       },
-      "SurfaceProblem": {
+      "surface-problem": {
         "title": "<strong>Correct</strong> Surface Problem",
         "example-1": "This sidewalk is very uneven",
         "example-2": "Brick sidewalks are bumpy and can be difficult to pass",
         "example-3": "This sidewalk is cracked",
         "example-4": "There is a lot of grass growing between the sidewalk cracks"
       },
-      "NoSidewalk": {
+      "no-sidewalk": {
         "title": "<strong>Correct</strong> No Sidewalk",
-        "example-1-to-2": "This is an abruptly ending sidewalk",
+        "example-1-2": "This is an abruptly ending sidewalk",
         "example-3": "This street has no sidewalk",
         "example-4": "This intersection has no sidewalk"
+      },
+      "crosswalk": {
+        "title": "<strong>Correct</strong> Crosswalk",
+        "example-1-2-3": "This label is correctly placed on a painted crosswalk",
+        "example-4": "This label is correctly placed on a crosswalk with fading paint"
+      },
+      "signal": {
+        "title": "<strong>Correct</strong> Pedestrian Signal",
+        "example-1-2-3": "This label is correctly placed at the base of a pole with a button for a pedestrian signal",
+        "example-4": "This pole has the light and button for a pedestrian signal"
       }
     },
     "incorrect": {
-      "CurbRamp": {
+      "curb-ramp": {
         "title": "<strong>Incorrect</strong> Curb Ramp",
-        "example-1-to-2": "Sidewalk to driveway transitions are not curb ramps",
-        "example-3-to-4": "Driveways are not curb ramps"
+        "example-1-2": "Sidewalk to driveway transitions are not curb ramps",
+        "example-3-4": "Driveways are not curb ramps"
       },
-      "NoCurbRamp": {
+      "no-curb-ramp": {
         "title": "<strong>Incorrect</strong> Missing Curb Ramp",
         "example-1": "Residential walkways should not be labeled as a missing curb ramp",
-        "example-2-and-4": "This is not located on a pedestrian path",
+        "example-2-4": "This is not located on a pedestrian path",
         "example-3": "This is not an intersection pedestrians should cross at"
       },
-      "Obstacle": {
+      "obstacle": {
         "title": "<strong>Incorrect</strong> Obstacle",
         "example-1": "There is enough space to comfortably maneuver around this pole",
         "example-2": "This pole located between, but not on these curb ramps",
         "example-3": "This tree is not on the pedestrian path",
         "example-4": "There is enough space to comfortably maneuver around this lid"
       },
-      "SurfaceProblem": {
+      "surface-problem": {
         "title": "<strong>Incorrect</strong> Surface Problem",
         "example-1": "Surface problems on curb ramps should be marked with a curb ramp label with a higher severity",
         "example-2": "This gravel is not on the pedestrian path",
         "example-3": "This grass is not on the pedestrian path",
         "example-4": "Normal sidewalk tiles are not surface problems"
       },
-      "NoSidewalk": {
+      "no-sidewalk": {
         "title": "<strong>Incorrect</strong> No Sidewalk",
         "example-1": "Narrow sidewalks should not be labeled as no sidewalk",
         "example-2": "Driveways should not be labeled as no sidewalk",
         "example-3": "Traffic medians should not be labeled as no sidewalk",
         "example-4": "Alleyways and side streets should not be labeled as no sidewalk"
+      },
+      "crosswalk": {
+        "title": "<strong>Incorrect</strong> Crosswalk",
+        "example-1": "Crossings with no visual indicator should not be labeled as crosswalks",
+        "example-2": "Stop lines for cars should not be labeled as crosswalks",
+        "example-3-4": "Speed bumps should not be labeled as crosswalks"
+      },
+      "signal": {
+        "title": "<strong>Incorrect</strong> Pedestrian Signal",
+        "example-1-2": "This sign does not indicate when pedestrians can cross the street",
+        "example-3": "This traffic light is only for vehicles, not for pedestrians",
+        "example-4": "This pole does not have a pedestrian signal button"
       }
     }
   },
@@ -99,6 +125,8 @@
     "body-3": "You just validated {{n}} Obstacle labels.",
     "body-4": "You just validated {{n}} Surface Problem labels.",
     "body-7": "You just validated {{n}} No Sidewalk labels.",
+    "body-9": "You just validated {{n}} Crosswalk labels.",
+    "body-10": "You just validated {{n}} Pedestrian Signal labels.",
     "validate-more": "Validate more labels",
     "continue": "Continue validating",
     "explore": "Start an exploration mission",
@@ -107,10 +135,12 @@
     "no-new-mission-button": "Start Exploring"
   },
   "mobile": {
-    "info-title-CurbRamp": "What is a Curb Ramp?",
-    "info-title-NoCurbRamp": "What is a Missing Curb Ramp?",
-    "info-title-Obstacle": "What is an Obstacle?",
-    "info-title-SurfaceProblem": "What is a Surface Problem?",
-    "info-title-NoSidewalk": "What is a \"No Sidewalk\""
+    "info-title-curb-ramp": "What is a Curb Ramp?",
+    "info-title-no-curb-ramp": "What is a Missing Curb Ramp?",
+    "info-title-obstacle": "What is an Obstacle?",
+    "info-title-surface-problem": "What is a Surface Problem?",
+    "info-title-no-sidewalk": "What is a \"No Sidewalk\"",
+    "info-title-crosswalk": "What is a Crosswalk?",
+    "info-title-signal": "What is a Pedestrian Signal?"
   }
 }

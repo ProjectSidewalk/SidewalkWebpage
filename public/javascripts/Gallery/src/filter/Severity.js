@@ -1,11 +1,12 @@
 /**
  * A Severity module.
- * 
+ *
  * @param {*} params Properties of severity.
+ * @param active A boolean to see if the current severity filter is active.
  * @returns {Severity}
  * @constructor
  */
-function Severity (params){
+function Severity (params, active){
     let self = this;
 
     // UI element of the severity container and image.
@@ -18,7 +19,7 @@ function Severity (params){
     };
 
     // A boolean to see if the current severity filter is active.
-    let filterActive = false;
+    let filterActive = active;
 
     /**
      * Initialize Severity.
@@ -29,14 +30,18 @@ function Severity (params){
         properties.severity = param;
 
         severityElement = document.createElement('div');
-        severityElement.className = 'gallery-severity';
+        severityElement.className = 'severity-filter gallery-filter';
 
         severityImage = document.createElement('img');
-        severityImage.className = 'gallery-severity-image';
+        severityImage.className = 'severity-filter-image';
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
-        _showDeselected();
-
+        if (filterActive) {
+            _showSelected();
+        } else {
+            _showDeselected();
+        }
+        
         severityElement.appendChild(severityImage);
 
         // Show inverted smiley face on click or hover.
@@ -63,7 +68,7 @@ function Severity (params){
     }
 
     function _showSelected() {
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted.png`;
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted_green.png`;
     }
 
     function _showDeselected() {

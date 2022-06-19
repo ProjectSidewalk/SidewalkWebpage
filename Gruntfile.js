@@ -111,6 +111,7 @@ module.exports = function(grunt) {
         watch : {
             scripts: {
                 files: [
+                    'public/javascripts/common/*.js',
                     'public/javascripts/SVLabel/src/**/*.js',
                     'public/javascripts/SVLabel/css/*.css',
                     'public/javascripts/Progress/src/**/*.js',

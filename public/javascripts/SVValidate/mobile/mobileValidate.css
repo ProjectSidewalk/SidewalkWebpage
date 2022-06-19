@@ -281,7 +281,7 @@ html {
 
 #validation-button-holder {
     position: relative;
-    left: -100px;
+    left: -80px;
     height: 90px;
     width: 730px;
     z-index: 1;
@@ -305,9 +305,12 @@ html {
     text-align: center;
     font-weight: bolder;
     font-size:40px;
-    width: 250px;
+    max-width: 500px;
     height: 75px;
     padding:5px 25px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }

@@ -9,9 +9,8 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
-import models.mission.MissionProgressCVGroundtruthTable
 import models.street.StreetEdgePriorityTable
-import models.user.User
+import models.user.{User, UserRoleTable, UserStatTable}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -50,6 +49,26 @@ case class NewTask(edgeId: Int, geom: LineString,
     )
     val feature = Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     Json.obj("type" -> "FeatureCollection", "features" -> List(feature))
+  }
+}
+case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
+                                      userId: String, role: String, highQuality: Boolean,
+                                      taskStart: Timestamp, taskEnd: Timestamp,
+                                      geom: LineString) {
+  def toGeoJSON: JsObject = {
+    val coordinates: Array[Coordinate] = geom.getCoordinates
+    val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
+    val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+    val properties = Json.obj(
+      "street_edge_id" -> streetEdgeId,
+      "audit_task_id" -> auditTaskId,
+      "user_id" -> userId,
+      "role" -> role,
+      "high_quality_user" -> highQuality,
+      "task_start" -> taskStart.toString,
+      "task_end" -> taskEnd.toString
+    )
+    Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
   }
 }
 
@@ -277,21 +296,40 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns true if there is a completed audit task for the given street edge, false otherwise.
+    * Return audited street edges.
     */
-  def anyoneHasAuditedStreet(streetEdgeId: Int): Boolean = db.withSession { implicit session =>
-    completedTasks.filter(_.streetEdgeId === streetEdgeId).list.nonEmpty
+  def selectStreetsAudited(filterLowQuality: Boolean): List[StreetEdge] = db.withSession { implicit session =>
+    // Optionally filter out data marked as low quality.
+    val _filteredTasks = if (filterLowQuality) {
+      for {
+        _ct <- completedTasks
+        _ut <- UserStatTable.userStats if _ct.userId === _ut.userId
+        if _ut.highQuality
+      } yield _ct
+    } else {
+      completedTasks
+    }
+
+    val _streetEdges = for {
+      (_tasks, _edges) <- _filteredTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _edges
+
+    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edges.
   }
 
   /**
-    * Return audited street edges.
-    */
-  def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
-    val _streetEdges = for {
-      (_tasks, _edges) <- completedTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _edges
-
-    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edge
+   * Get the streets that have been audited, with the time they were audited, and metadata about the user who audited.
+   */
+  def getAuditedStreetsWithTimestamps: List[AuditedStreetWithTimestamp] = db.withSession { implicit session =>
+    val auditedStreets = for {
+      _at <- completedTasks
+      _se <- streetEdges if _at.streetEdgeId === _se.streetEdgeId
+      _ut <- UserStatTable.userStats if _at.userId === _ut.userId
+      _ur <- UserRoleTable.userRoles if _ut.userId === _ur.userId
+      _r <- UserRoleTable.roles if _ur.roleId === _r.roleId
+      if _at.taskEnd.isDefined // NOTE this always seems to be true, maybe we can remove this constraint.
+    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd.get, _se.geom)
+    auditedStreets.list.map(AuditedStreetWithTimestamp.tupled)
   }
 
   /**
@@ -331,38 +369,6 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, userCompleted)
 
     NewTask.tupled(edges.first)
-  }
-
-  /**
-    * Helper method for creating a task for computer vision ground truth auditing.
-    *
-    * In CV ground truth auditing, we create a task for *each* pano that needs to be audited, corresponding to the
-    * street segment closest to the pano. This method fetches the id of the pano closest to the provided panoid. This
-    * panoid *must* be part of an active CV groundtruth mission for the provided user.
-    * @param user the user performing a CV ground truth audit
-    * @param panoid panoId to query
-    * @return street segment id closest to pano
-    */
-  def getStreetEdgeIdClosestToCVPanoId(user: User, panoid:String): Option[Int] = {
-    val (panoLat, panoLng): (Option[Float], Option[Float]) = MissionProgressCVGroundtruthTable.getPanoLatLng(user.userId, panoid)
-    (panoLat, panoLng) match {
-      case (Some(lat), Some(lng)) =>
-        LabelTable.getStreetEdgeIdClosestToLatLng(lat, lng)
-      case _ =>  None
-    }
-  }
-
-  /**
-    * Creates a computer vision ground truth audit task and inserts it into the database.
-    * @param user user performing the CV ground truth audit
-    * @param panoid panoId that corresponds to the task
-    */
-  def createCVGroundTruthTaskByPanoId(user: User, panoid:String): Option[NewTask] = {
-    val closestStreetEdgeId: Option[Int] = getStreetEdgeIdClosestToCVPanoId(user, panoid)
-    closestStreetEdgeId match {
-      case Some(id) => Some(AuditTaskTable.selectANewTask(id, None))
-      case None => None
-    }
   }
 
   /**

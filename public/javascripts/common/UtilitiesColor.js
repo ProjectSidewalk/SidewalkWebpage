@@ -25,42 +25,6 @@ function UtilitiesColor () {
         }
     }
 
-    function changeDarknessRGBA(rgba, value) {
-        // This function takes rgba and value as arguments
-        // rgba: a string such as "rgba(10, 20, 30, 0.5)"
-        // value: a value between [0, 1]
-        var rgbaList = rgba.replace('rgba(','').replace(')','').split(",");
-
-        if (rgbaList.length === 4) {
-            var r;
-            var g;
-            var b;
-            var a;
-            var hsvList;
-            var newRgbList;
-            var newR;
-            var newG;
-            var newB;
-            var newRgba;
-            r = parseInt(rgbaList[0].trim());
-            g = parseInt(rgbaList[1].trim());
-            b = parseInt(rgbaList[2].trim());
-            a = rgbaList[3].trim();
-            hsvList = rgbToHsv(r,g,b);
-
-            newRgbList = hsvToRgb(hsvList[0],hsvList[1],value);
-            newR = parseInt(newRgbList[0]);
-            newG = parseInt(newRgbList[1]);
-            newB = parseInt(newRgbList[2]);
-            newRgba = 'rgba(' + newR + ',' +
-                newG + ',' +
-                newB + ',' +
-                a + ')';
-            return newRgba;
-        }
-        return rgba;
-    }
-
     /**
      * Converts an RGB color value to HSV. Conversion formula adapted from http://en.wikipedia.org/wiki/HSV_color_space.
      * Assumes r, g, and b are contained in the set [0, 255] and returns h, s, and v in the set [0, 1].
@@ -123,7 +87,6 @@ function UtilitiesColor () {
     }
 
     self.changeAlphaRGBA = changeAlphaRGBA;
-    self.changeDarknessRGBA = changeDarknessRGBA;
     self.rgbToHsv = rgbToHsv;
     self.hsvToRgb = hsvToRgb;
 

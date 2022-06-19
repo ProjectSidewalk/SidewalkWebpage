@@ -1,9 +1,12 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.label._
-@import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String)], auditedDistance: Float)(implicit lang: Lang)
+@import scala.util.Random
+@import play.api.Play
+@import play.api.Play.current
+@import models.street.StreetEdgePriorityTable
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user, Some("/"))
@@ -30,9 +33,8 @@
                     <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA" && c._1 != "Chicago, IL")) {
+                    @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
                         <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
@@ -126,9 +128,9 @@
     <div class="ps-skyline">
         <div class="ps-skyline-container">
             @if(cityName == "Washington" || cityName == "Seattle") {
-                <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+                <img src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
             } else {
-                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
             }
             <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay">
         </div>
@@ -137,7 +139,11 @@
             <span class="ps-skyline-stats-holder-stat-number" id="distance">NA</span>
             <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
             <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
-            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent", cityShortName)</span>
+            @if(Play.configuration.getString("city-params.open-status." + cityId).get == "partially") {
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
+            } else {
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", cityShortName)</span>
+            }
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
             <span class="ps-skyline-stats-holder-stat-label" >@Messages("landing.stats.validations")</span>
@@ -152,12 +158,16 @@
             </a>
         </div>
         <script language="javascript">
-            if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
+            if ("@Play.configuration.getString("city-params.open-status." + cityId).get" === "partially" && @("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) >= 100) {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+            } else if ("@Play.configuration.getString("city-params.open-status." + cityId).get" === "partially") {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+            } else if (@("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) < 100) {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
             }
-            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
+            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)),1,2.5,{suffix:'%'});
             var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
             var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
             var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
@@ -213,14 +223,38 @@
                     </a>
                 </div>
                 <div class="collaborator-image">
+                    <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
+                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='UIC_Logo'>
+                    </a>
+                </div>
+                <div class="collaborator-image">
                     <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
                         <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
                     </a>
                 </div>
-                @if("Columbus"== cityName){
+                @if("Columbus" == cityName){
                     <div class="collaborator-image">
                         <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
                             <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
+                        </a>
+                    </div>
+                }
+            </section>
+            <section class="collaborator-images-container">
+                @if("Amsterdam" == cityName){
+                    <div class="collaborator-image">
+                        <a id="worldenabled-img-link" href="https://worldenabled.org/">
+                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt='World_Enabled_Logo'>
+                        </a>
+                    </div>
+                    <div class="collaborator-image">
+                        <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
+                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt='City_Of_Amsterdam_Logo'>
+                        </a>
+                    </div>
+                    <div class="collaborator-image">
+                        <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
+                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt='Amsterdam_Intelligence_Logo'>
                         </a>
                     </div>
                 }

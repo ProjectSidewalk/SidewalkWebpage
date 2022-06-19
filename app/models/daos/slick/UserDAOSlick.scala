@@ -21,7 +21,7 @@ import scala.slick.jdbc.{StaticQuery => Q}
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
                                  completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
-                                 ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedUnsurePct: Double,
+                                 ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedNotsurePct: Double,
                                  othersValidated: Int, othersValidatedAgreedPct: Double)
 
 class UserDAOSlick extends UserDAO {
@@ -187,11 +187,11 @@ object UserDAOSlick {
     // Defaults to *not* specifying a time (which is the same thing as "all time").
     val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
       case "today" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
+        "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
       )
       case "week" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
+        "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       )
       case _ => ("TRUE", "TRUE")
@@ -204,7 +204,7 @@ object UserDAOSlick {
 
     // Add in the task completion logic.
     val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "labels_progress > 0" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
 
     val countQuery = s"""SELECT COUNT(DISTINCT(users.user_id))
                    |FROM (
@@ -212,7 +212,7 @@ object UserDAOSlick {
                    |    FROM mission
                    |    INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
                    |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-                   |    WHERE mission_type.mission_type = 'validation'
+                   |    WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
                    |        AND $lblValidationTimeIntervalSql
                    |        AND $validationCompletedSql
                    |    UNION
@@ -247,7 +247,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).size.run
+    users.groupBy(x => x).map(_._1).length.run
   }
 
   /**
@@ -361,7 +361,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).size.run
+    users.groupBy(x => x).map(_._1).length.run
   }
 
   /**
@@ -499,9 +499,9 @@ object UserDAOSlick {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
         .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
-    // Map(user_id: String -> (role: String, distinct: Int, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
+    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
-      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6, valCount._7))
+      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
     }.toMap
 
     // Map(user_id: String -> (count: Int, agreed: Int)).
@@ -511,12 +511,11 @@ object UserDAOSlick {
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
     usersMinusAnonUsersWithNoLabels.list.map{ u =>
-      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0, 0))
-      val ownValidatedDistinct = ownValidatedCounts._2
-      val ownValidatedTotal = ownValidatedCounts._3
-      val ownValidatedAgreed = ownValidatedCounts._4
-      val ownValidatedDisagreed = ownValidatedCounts._5
-      val ownValidatedUnsure = ownValidatedCounts._6
+      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
+      val ownValidatedTotal = ownValidatedCounts._2
+      val ownValidatedAgreed = ownValidatedCounts._3
+      val ownValidatedDisagreed = ownValidatedCounts._4
+      val ownValidatedNotsure = ownValidatedCounts._5
 
       val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
       val otherValidatedTotal = otherValidatedCounts._1
@@ -530,9 +529,9 @@ object UserDAOSlick {
         if (ownValidatedTotal == 0) 0f
         else ownValidatedDisagreed * 1.0 / ownValidatedTotal
 
-      val ownValidatedUnsurePct =
+      val ownValidatedNotsurePct =
         if (ownValidatedTotal == 0) 0f
-        else ownValidatedUnsure * 1.0 / ownValidatedTotal
+        else ownValidatedNotsure * 1.0 / ownValidatedTotal
 
       val otherValidatedAgreedPct =
         if (otherValidatedTotal == 0) 0f
@@ -546,10 +545,10 @@ object UserDAOSlick {
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
         labelCounts.getOrElse(u.userId, 0),
-        ownValidatedDistinct,
+        ownValidatedTotal,
         ownValidatedAgreedPct,
         ownValidatedDisagreedPct,
-        ownValidatedUnsurePct,
+        ownValidatedNotsurePct,
         otherValidatedTotal,
         otherValidatedAgreedPct
       )

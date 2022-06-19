@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.json.{JsBoolean, JsPath, Reads}
+import play.api.libs.json.{JsPath, Reads}
 
 import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
@@ -9,11 +9,11 @@ object TaskSubmissionFormats {
   case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String)
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
-  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryLabel: Option[JsBoolean], description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
+  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
-  case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
+  case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
@@ -75,9 +75,9 @@ object TaskSubmissionFormats {
       (JsPath \ "photographer_pitch").read[Float] and
       (JsPath \ "panorama_lat").read[Float] and
       (JsPath \ "panorama_lng").read[Float] and
-      (JsPath \ "deleted").read[JsBoolean] and
+      (JsPath \ "deleted").read[Boolean] and
       (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "temporary_label").readNullable[JsBoolean] and
+      (JsPath \ "temporary").read[Boolean] and
       (JsPath \ "description").readNullable[String] and
       (JsPath \ "tag_ids").read[Seq[Int]] and
       (JsPath \ "label_points").read[Seq[LabelPointSubmission]] and
@@ -107,6 +107,10 @@ object TaskSubmissionFormats {
   implicit val gsvPanoramaSubmissionReads: Reads[GSVPanoramaSubmission] = (
     (JsPath \ "panorama_id").read[String] and
       (JsPath \ "image_date").read[String] and
+      (JsPath \ "image_width").readNullable[Int] and
+      (JsPath \ "image_height").readNullable[Int] and
+      (JsPath \ "tile_width").readNullable[Int] and
+      (JsPath \ "tile_height").readNullable[Int] and
       (JsPath \ "links").read[Seq[GSVLinkSubmission]] and
       (JsPath \ "copyright").read[String]
     )(GSVPanoramaSubmission.apply _)

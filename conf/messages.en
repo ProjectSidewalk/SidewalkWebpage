@@ -8,6 +8,8 @@ obstacles = Obstacles in Path
 surface.problem = Surface Problem
 surface.problems = Surface Problems
 no.sidewalk = No Sidewalk
+crosswalk = Crosswalk
+signal = Pedestrian Signal
 other = Other
 labels = labels
 dist.metric.abbr = mi
@@ -17,7 +19,7 @@ error = Error!
 thanks = Thanks!
 username = Username
 loading = Loading...
-loading.encouragement = Let's do this!
+loading.encouragement = Let''s do this!
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -36,6 +38,7 @@ navbar.signin = Sign in
 navbar.signout = Sign out
 navbar.dashboard = Your dashboard
 navbar.admin = Admin
+navbar.city = City
 navbar.lang.aria = Language Options
 navbar.lang.icon.alt = languages icon
 
@@ -53,9 +56,12 @@ landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = You are automatically assigned a neighborhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
-landing.stats.content.unfinished = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the city!
-landing.stats.content.finished = We did it! Users like you have mapped all {0} kilometers of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
-landing.stats.percent = of {0} mapped
+landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the target area in the city!
+landing.stats.content.unfinished.full = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the city!
+landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} kilometers of the target area in {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometers of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.percent.partial = of target area mapped
+landing.stats.percent.full = of {0} mapped
 landing.stats.distance = kilometers covered
 landing.stats.labels = labels
 landing.stats.validations = validations
@@ -74,6 +80,7 @@ footer.api = Sidewalk API
 footer.connect = CONNECT
 footer.email = Email Us
 footer.funding = WE ARE PROUDLY FUNDED BY
+footer.award = Award <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> and <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk is designed and operated by the <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Version {0} | Last Updated: <span class = "timestamp date">{1}</span>
 
@@ -95,14 +102,16 @@ audit.ribbon.find.and.label = Find and label the following
 audit.ribbon.explore = <u>E</u>xplore
 audit.ribbon.curb.ramp = <u>C</u>urb Ramp
 audit.ribbon.missing.ramp = <u>M</u>issing Curb Ramp
-audit.ribbon.obstacle = <u>O</u>bstacle in<br>Path
+audit.ribbon.obstacle = <u>O</u>bstacle in Path
 audit.ribbon.surface.problem = <u>S</u>urface Problem
 audit.ribbon.no.sidewalk = <u>N</u>o Sidewalk
+audit.ribbon.crosswalk = Cross<u>w</u>alk
+audit.ribbon.signal = <u>P</u>edestrian Signal
 audit.ribbon.other = Other
 audit.ribbon.occlusion = Can''t See the Sidewalk (<u>B</u>)
-audit.ribbon.zoom.in = <u>Z</u>oom In
-audit.ribbon.zoom.out = Zoom Out
 
+audit.left.ui.zoom.in = <u>Z</u>oom In
+audit.left.ui.zoom.out = Zoom Out
 audit.left.ui.sound = Sound
 audit.left.ui.feedback = Feedback
 audit.left.ui.stuck = Stuck
@@ -197,8 +206,7 @@ mobile.validate.leave.feedback = Leave Feedback
 turk.expired.navbar = TIME''S UP
 turk.expired.title = Time''s up!
 turk.expired.body = You should receive your bonus amount in the next two days. Please submit your confirmation code on the mturk website. If the assignment has already expired, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
-turk.submit.code = Submit this code for HIT verification on Amazon Mechanical Turk
-turk.mturk.code = Mturk Code
+turk.mturk.code = Mturk Code:
 turk.reward.earned = Total earned reward
 
 authenticate.email = Email address
@@ -249,7 +257,7 @@ results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk
 
 dashboard.no.org = No Organization
 dashboard.edit.org = Edit
-dashboard.edit.info = If you don't see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
+dashboard.edit.info = If you don''t see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
 dashboard.orgs.unavailable = There are no available organizations!
 dashboard.leave.org = Leave Organization
 dashboard.audited.street = Audited Street
@@ -269,6 +277,7 @@ dashboard.label.icon.alt = Minimalist map icon with large destination marker
 dashboard.validation.icon.alt = Checklist next to a pencil
 dashboard.accuracy.icon.alt = Target with an arrow in the bullseye
 dashboard.accuracy.icon.tooltip = Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users.
+dashboard.achievements = Achievements
 dashboard.first = first
 dashboard.second = second
 dashboard.third = third
@@ -290,10 +299,11 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
+leaderboard.inter.org.title = Teams Leaderboard
 leaderboard.org.title = {0} Leaderboard
 leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
-leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
-leaderboard.org.detail = Top 10 overall contributers to {0}
+leaderboard.org.detail = Top 10 overall contributors to {0}
+leaderboard.header.team = Team
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
@@ -310,5 +320,5 @@ gallery.filter.by = Filter By
 gallery.severity = Severity
 gallery.tags = Tags
 gallery.all = All
-gallery.occlusion = Can't See Sidewalk
+gallery.occlusion = Can''t See Sidewalk
 gallery.labels.not.found = No matches. <a href="/audit">Start exploring</a> to contribute more data!

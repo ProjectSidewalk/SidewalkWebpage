@@ -3,32 +3,20 @@
  */
 function InitializeMapLayerContainer() {
     var mapData = {};
-    mapData.markerLayer = null;
-    mapData.curbRampLayers = [];
-    mapData.missingCurbRampLayers = [];
-    mapData.obstacleLayers = [];
-    mapData.surfaceProblemLayers = [];
-    mapData.cantSeeSidewalkLayers = [];
-    mapData.noSidewalkLayers = [];
-    mapData.otherLayers = [];
-    // Make arrays to hold labels split by severity (null and 1 through 5).
-    for (var i = 0; i < 6; i++) {
-        mapData.curbRampLayers[i] = [];
-        mapData.missingCurbRampLayers[i] = [];
-        mapData.obstacleLayers[i] = [];
-        mapData.surfaceProblemLayers[i] = [];
-        mapData.cantSeeSidewalkLayers[i] = [];
-        mapData.noSidewalkLayers[i] = [];
-        mapData.otherLayers[i] = [];
+    mapData.correct = true;
+    mapData.incorrect = false;
+    mapData.unvalidated = true;
+    mapData.lowQualityUsers = false;
+
+    // Make arrays to hold labels split by label type and severity (null and 1 through 5).
+    mapData.labelLayers = {};
+    let labelTypes = ['CurbRamp','NoCurbRamp','Obstacle','SurfaceProblem','Occlusion','NoSidewalk','Crosswalk','Signal','Other']
+    for (let i = 0; i < labelTypes.length; i++) {
+        let labelType = labelTypes[i];
+        mapData.labelLayers[labelType] = [];
+        for (let j = 0; j < 6; j++) {
+            mapData.labelLayers[labelType][j] = [];
+        }
     }
-    mapData.allLayers = {
-        'CurbRamp': mapData.curbRampLayers,
-        'NoCurbRamp': mapData.missingCurbRampLayers,
-        'Obstacle': mapData.obstacleLayers,
-        'SurfaceProblem': mapData.surfaceProblemLayers,
-        'Occlusion': mapData.cantSeeSidewalkLayers,
-        'NoSidewalk': mapData.noSidewalkLayers,
-        'Other': mapData.otherLayers
-    };
     return mapData;
 }

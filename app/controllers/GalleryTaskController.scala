@@ -5,7 +5,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.GalleryTaskSubmissionFormats._
+import formats.json.GalleryFormats._
 import models.user.User
 import models.gallery._
 import play.api.libs.json._
@@ -27,17 +27,17 @@ class GalleryTaskController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, identity: Option[User]) = {
-    val userOption = identity
+    val userId: Option[String] = identity.map(_.userId.toString)
     for (data <- submission) yield {
       GalleryTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
-        GalleryTaskInteraction(0, interaction.action, interaction.panoId, interaction.note, new Timestamp(interaction.timestamp))
+        GalleryTaskInteraction(0, interaction.action, interaction.panoId, interaction.note, new Timestamp(interaction.timestamp), userId)
       })
 
       // Insert Environment.
       val env: GalleryEnvironmentSubmission = data.environment
       val taskEnv: GalleryTaskEnvironment = GalleryTaskEnvironment(0, env.browser,
         env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-        env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language)
+        env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, userId)
       GalleryTaskEnvironmentTable.save(taskEnv)
     }
     

@@ -107,8 +107,14 @@
 }
 
 .gallery-modal-info-tags {
+<<<<<<< HEAD
     width: 40%;
     height: 40%;
+=======
+    width: 60%;
+    height: 5.5vw;
+    overflow-y: auto;
+>>>>>>> 51f55dfc37268625e376b0525ee6394aa6c7df8c
 }
 
 .gallery-modal-info-temporary {
