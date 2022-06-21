@@ -214,14 +214,14 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.zoom());
             featureBuilder.add(l.canvasXY()._1);
             featureBuilder.add(l.canvasXY()._2);
-            featureBuilder.add(l.canvasWidth());
-            featureBuilder.add(l.canvasHeight());
+            featureBuilder.add(l.canvasWidthHeight()._1);
+            featureBuilder.add(l.canvasWidthHeight()._2);
             featureBuilder.add(l.gsvUrl());
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
-            featureBuilder.add(l.labelTagsStr());
-            featureBuilder.add(l.labelDescription());
+            featureBuilder.add(l.labelTagsAndDescription()._1);
+            featureBuilder.add(l.labelTagsAndDescription()._2);
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }

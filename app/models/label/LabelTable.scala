@@ -1212,16 +1212,4 @@ object LabelTable {
       _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _l.photographerHeading, _l.photographerPitch
     )).list.map(LabelCVMetadata.tupled)
   }
-
-  /**
-    * Get the description for the given labelId.
-    */
-  def selectDescriptionForLabelId(labelId: Int): String = db.withTransaction { implicit session =>
-    val label = for {
-      _l <- labels if _l.labelId === labelId
-    } yield (
-      _l
-    )
-    label.first.description.getOrElse("")
-  }
 }

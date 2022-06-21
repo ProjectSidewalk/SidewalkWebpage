@@ -32,19 +32,6 @@ object LabelTagTable {
   }
 
   /**
-    * Get all tags for the given label_id.
-    */
-  def selectTagsForLabelId(labelId: Int): List[String] = db.withTransaction { implicit session =>
-    val selectedTags = for {
-      _lt <- labelTagTable if _lt.labelId === labelId
-      _tags <- TagTable.tagTable if _tags.tagId === _lt.tagId
-    } yield (
-      _tags.tag
-    )
-    selectedTags.list
-  }
-
-  /**
     * Delete a record with the given label_id and tag_id.
     *
     * @return Number of deleted rows.
