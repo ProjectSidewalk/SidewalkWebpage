@@ -1,7 +1,7 @@
 {
   "devDependencies": {
     "eslint": "^7.26.0",
-    "grunt": "^1.5.3",
+    "grunt": "^1.4.0",
     "grunt-concat-css": "*",
     "grunt-contrib-concat": "*",
     "grunt-contrib-watch": "*",
