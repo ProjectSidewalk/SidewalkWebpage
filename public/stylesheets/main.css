@@ -634,14 +634,11 @@ p#conditional-text {
     margin-bottom: 20px;
 }
 
-.newslink {
-    font-family: adelle-regular, sans-serif;
-    letter-spacing: 0.1em;
-    font-size: 16px;
-    font-style: normal;
-    font-variant: normal;
-    line-height: 1.8em;
-    color: #2d2a3f;
+#collaborators-container {
+    position: relative;
+    max-width: 900px;
+    top: -20px;
+    min-height: 300px;
 }
 
 #mini-footer-audit {
