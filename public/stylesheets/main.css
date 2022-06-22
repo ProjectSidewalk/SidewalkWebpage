@@ -519,22 +519,6 @@ p#conditional-text {
     letter-spacing: 0.1em;
 }
 
-#quotebox-container {
-    position: relative;
-    width: 100%;
-    background-image: url("/assets/assets/bw-background.png");
-    min-height: 100%;
-    background-attachment: fixed;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-}
-
-#quotearea {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
 #content-text-4 {
     font-family: adelle-regular, sans-serif;
     font-size: 15px;
