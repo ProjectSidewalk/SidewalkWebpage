@@ -1,0 +1,123 @@
+.gif-container {
+    position: relative;
+    text-align: left;
+    max-width: 340px;
+    margin: auto;
+  }
+  
+  .you {
+    position: absolute;
+    text-align:center;
+    bottom: -470px;
+    left: -285px;
+    font-size: 35px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 50px;
+    transform: translate(-50%, 0);
+  }
+  
+  .ml {
+    position: absolute;
+    text-align: center;
+    bottom: -470px;
+    left: -20px;
+    font-size: 35px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 500px;
+    transform: translate(-50%, 0); 
+  }
+  
+  .oc {
+    position: absolute;
+    text-align: center;
+    bottom: -470px;
+    left: 395px;
+    font-size: 35px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 200px;
+    transform: translate(-50%, 0);
+  }
+  
+  .uLabels {
+    position: absolute;
+    bottom: -145px;
+    left: -275px;
+    font-size: 23px;
+    max-width: 50px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 75px;
+    line-height: 0.8;
+    transform: translate(-50%, 0);
+  }
+
+  .mLabels {
+    position: absolute;
+    text-align: center;
+    bottom: -20px;
+    left: -20px;
+    font-size: 23px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 250px;
+    transform: translate(-50%, 0);
+  }
+
+  .bcp {
+    position: absolute;
+    bottom: -230px;
+    left: 258px;
+    font-size: 18px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 100px;
+    line-height: 0.8;
+    transform: translate(-50%, 0);
+  }
+
+  .btt {
+    position: absolute;
+    bottom: -200px;
+    left: 388px;
+    font-size: 18px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 100px;
+    line-height: 0.8;
+    transform: translate(-50%, 0);
+  }
+
+  .ivt {
+    position: absolute;
+    bottom: -215px;
+    left: 527px;
+    font-size: 18px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 100px;
+    line-height: 0.8;
+    transform: translate(-50%, 0);
+  }
+
+  .sr {
+    position: absolute;
+    bottom: -310px;
+    left: 500px;
+    font-size: 18px;
+    font-weight: bold;
+    font-variant: small-caps;
+    margin: auto;
+    max-width: 100px;
+    line-height: 0.8;
+  }

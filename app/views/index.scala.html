@@ -178,8 +178,19 @@
             <div class="im-centered3">
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
-                <br>
+            </div>
+            <br>
+            <div class="gif-container">
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
+                <p class="you">@Messages("landing.ml.gif.you")</p>
+                <p class="ml">@Messages("landing.ml.gif.ml")</p>
+                <p class="oc">@Messages("landing.ml.gif.outcomes")</p>
+                <p class="uLabels">@Messages("landing.ml.gif.uLabels")</p>
+                <p class="mLabels">@Messages("landing.ml.gif.mLabels")</p>
+                <p class="bcp">@Messages("landing.ml.gif.bcp")</p>
+                <p class="btt">@Messages("landing.ml.gif.btt")</p>
+                <p class="ivt">@Messages("landing.ml.gif.ivt")</p>
+                <p class="sr">@Messages("landing.ml.gif.sr")</p>
             </div>
     </div>
 
@@ -196,8 +207,6 @@
                         Using machine learning, big data, & civic kindness, <a href="https://twitter.com/projsidewalk" target="_blank" id="microsoftdesign-author-twitter">@@projsidewalk</a> is making D.C. more accessible one mile at a time
                         <br>
                         <span class="quoteauthor">@@microsoftdesign</span>
-
-
                     </div>
                 </div>
                 <div class="col-sm-6">
@@ -316,6 +325,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+<link href='@routes.Assets.at("stylesheets/mlGIF.css")' rel='stylesheet'/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
 
 <script>
