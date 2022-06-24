@@ -179,18 +179,17 @@
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
             </div>
-            <br>
             <div class="gif-container">
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
-                <p class="you">@Messages("landing.ml.gif.you")</p>
-                <p class="ml">@Messages("landing.ml.gif.ml")</p>
-                <p class="oc">@Messages("landing.ml.gif.outcomes")</p>
-                <p class="uLabels">@Messages("landing.ml.gif.uLabels")</p>
-                <p class="mLabels">@Messages("landing.ml.gif.mLabels")</p>
-                <p class="bcp">@Messages("landing.ml.gif.bcp")</p>
-                <p class="btt">@Messages("landing.ml.gif.btt")</p>
-                <p class="ivt">@Messages("landing.ml.gif.ivt")</p>
-                <p class="sr">@Messages("landing.ml.gif.sr")</p>
+                <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
+                <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
+                <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
+                <p id="mlgif-label-text-1" class="ml-gif-header-2">@Messages("landing.ml.gif.user.labels")</p>
+                <p id="mlgif-label-text-2" class="ml-gif-header-2">@Messages("landing.ml.gif.machine.labels")</p>
+                <p id="mlgif-semicircle-text-1"  class="ml-gif-header-3">@Messages("landing.ml.gif.better.city.planning")</p>
+                <p id="mlgif-semicircle-text-2" class="ml-gif-header-3">@Messages("landing.ml.gif.better.temporal.tracking")</p>
+                <p id="mlgif-semicircle-text-3"  class="ml-gif-header-3">@Messages("landing.ml.gif.interactive.visualization.tools")</p>
+                <p id="mlgif-semicircle-text-4" class="ml-gif-header-3">@Messages("landing.ml.gif.smarter.routing")</p>
             </div>
     </div>
 
@@ -325,7 +324,6 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-<link href='@routes.Assets.at("stylesheets/mlGIF.css")' rel='stylesheet'/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
 
 <script>

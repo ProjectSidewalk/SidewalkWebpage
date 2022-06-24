@@ -1275,6 +1275,89 @@ kbd {
     vertical-align: middle;
 }
 
+.gif-container {
+    position: relative;
+    text-align: left;
+    max-width: 340px;
+    margin: auto;
+    font-weight: bold;
+    font-variant: small-caps;
+    line-height: 0.8;
+    top: 30px;
+}
+  
+.ml-gif-header-1 {
+    position: absolute;
+    text-align:center;
+    font-size: 35px;
+    transform: translate(-50%, 0);
+    bottom:-450px;
+}
+
+.ml-gif-header-2 {
+    position: absolute;
+    font-size: 21px;
+    transform: translate(-50%, 0);
+}
+
+.ml-gif-header-3 {
+    position: absolute;
+    font-size: 18px;
+    max-width: 100px;
+    transform: translate(-50%, 0);
+}
+
+#mlgif-bottom-text-1 {
+    left:-285px; 
+    max-width: 50px;
+} 
+
+#mlgif-bottom-text-2 {
+    left:-20px; 
+    max-width: 500px;
+} 
+
+#mlgif-bottom-text-3 {
+    left:395px; 
+    max-width: 200px;
+} 
+
+#mlgif-label-text-1 {
+    text-align: center;
+    bottom:-170px; 
+    left:-285px; 
+    max-width: 160px;
+} 
+
+#mlgif-label-text-2 {
+    bottom:-30px; 
+    left:-20px; 
+    max-width: 250px;
+} 
+
+#mlgif-semicircle-text-1 {
+    bottom:-240px; 
+    left:258px;
+} 
+
+#mlgif-semicircle-text-2 {
+    bottom:-210px; 
+    left:388px;
+} 
+
+#mlgif-semicircle-text-3 {
+    bottom:-225px; 
+    left:527px;
+} 
+
+#mlgif-semicircle-text-4  {
+    bottom:-320px;
+    left:500px;
+    transform: translate(0, 0);
+} 
+
+  
+
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
