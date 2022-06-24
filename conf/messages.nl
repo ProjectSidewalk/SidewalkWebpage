@@ -67,8 +67,6 @@ landing.stats.labels = labels
 landing.stats.validations = validaties
 landing.ml.title = Wat we doen met je labels
 landing.ml.content = Je labels worden gebruikt om stedelijke planning te verbeteren, toegankelijkheidsbewuste kaart-tools te bouwen, en machine learning algorithmes te trainen om automatisch toegankelijkheidsproblemen te vinden.
-landing.what.people.are.saying = Wat anderen<br>vinden
-landing.press.title = Pers
 landing.collaborators.title = Partners
 
 footer.about = Over ons

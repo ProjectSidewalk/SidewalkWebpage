@@ -67,8 +67,6 @@ landing.stats.labels = etiquetas
 landing.stats.validations = validaciones
 landing.ml.title = Qué hacemos con tus etiquetas
 landing.ml.content = Utilizamos tus etiquetas para mejorar planificación urbana, crear herramientas de mapeo consciente de accesibilidad y entrenar algoritmos de aprendizaje de máquinas para encontrar problemas de accesibilidad urbana.
-landing.what.people.are.saying = Lo que la gente<br>está diciendo
-landing.press.title = Prensa
 landing.collaborators.title = Colaboradores
 
 footer.about = Sobre nosotros
