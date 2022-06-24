@@ -76,8 +76,6 @@ landing.ml.gif.ivt = interactieve visualisatietools
 landing.ml.gif.sr = slimmere routering
 landing.ml.gif.ml = machine learning
 landing.ml.gif.outcomes = resultaten
-landing.what.people.are.saying = Wat anderen<br>vinden
-landing.press.title = Pers
 landing.collaborators.title = Partners
 
 footer.about = Over ons
