@@ -93,10 +93,10 @@ function CardContainer(uiCardContainer) {
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
-            const cardId = event.target.id;
 
             // Set share preview image to image of modal that is currently active
-            var newImageUrl = $('.static-gallery-image').prop('src')
+            let newImageUrl = event.target.src;
+            console.log(newImageUrl)
             document.querySelector('meta[property="og:image"]').setAttribute("content", newImageUrl);
             document.querySelector('meta[name="twitter:image"]').setAttribute("content", newImageUrl);
 

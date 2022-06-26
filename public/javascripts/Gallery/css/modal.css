@@ -144,79 +144,70 @@
     background-color: gray;
 }
 
-.modal-share-button {
+.gallery-modal-share {
+    display: flex;
     flex-direction: column;
-    cursor: pointer;
+}
+
+.share-button-image {
+    width: 45%;
+    height: auto;
+}
+
+.modal-share-button {
+    flex-direction: row;
+    width: 10%;
+    padding: 8px 0px;
     position: absolute;
-    bottom: 8%;
+    border-radius: 14px;
+    flex-wrap: wrap;
+    border: none;
+    background-color: Transparent;
+    transition: 0.6s;
+    bottom: 7%;
     right: 6%;
 }
 
-.modal-share-text {
-    text-align: center;
+.modal-share-button:hover {
+    transition: 0.6s;
+    background-color: #e5e5e5;
 }
 
-.popup-header {
-    font-weight: bold;
-    font-family: 'raleway-bold';
-    font-size: 1.3vw;
-}
-
-.divider {
-  border-top: 1px solid #bbb;
-  margin-top: 0px;
-  margin-bottom: 5px;
-  width: 95%;
-}
-
-.modal-share-button .share-popup {
-    visibility: hidden;
-    width: 300px;
+#share-popup {
+    display: none;
+    position: absolute;
+    bottom: 20%;
+    right: 6%;
+    border-radius: 6px;
     -webkit-box-shadow: 1px 1px 10px black;
     -moz-box-shadow: 1px 1px 10px black;
     box-shadow: 1px 1px 10px black;
     background-color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 8px 0;
-    position: absolute;
     z-index: 10;
-    bottom: 125%;
-    left: 10%;
-    margin-left: -220px;
+    width: 32%;
+    height: 8%;
 }
 
-.twitter-share-button {
-    visibility: hidden !important;
-    margin-left: 5px;
-}
-
-.fb-share-button {
+.share-arrow {
     display: none;
-    margin-left: 5px;
-}
-
-.share-button-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    vertical-align: center;
-}
-
-.modal-share-button .share-popup::after {
-    content: "";
     position: absolute;
-    top: 100%;
+    animation: fadeIn 1s;
+    top: 85%;
     left: 80%;
-    margin-left: -5px;
-    border-width: 5px;
+    border-width: 10px;
+    border-radius: 2px;
     border-style: solid;
-    border-color: #fff transparent transparent transparent;
-    filter: drop-shadow(1px, 1px, 10px, black);
+    transform: rotate(45deg);
+    border-color: transparent #fff #fff transparent;
+    -webkit-box-shadow: 10px 10px 10px -8px black;
+    -moz-box-shadow: 10px 10px 10px -8px black;
+    box-shadow: 10px 10px 10px -8px black;
 }
 
-.modal-share-button .show {
-    visibility: visible !important;
+
+.twitter-share-button, .twitter-share-button {
+    display: inherit;
+    margin-left: 5px;
 }
 
 .modal-top-holder {

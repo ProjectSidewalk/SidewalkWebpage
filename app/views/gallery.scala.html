@@ -10,9 +10,6 @@
         <meta property="og:description" content="Checkout this accesabilty issue I saw">
     </head>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
-    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-    <div id="fb-root"></div>
-    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v12.0&appId=392608974842590&autoLogAppEvents=1" nonce="nC6Y9FJL"></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("/javascripts/common/Utilities.js")'></script>
@@ -86,19 +83,14 @@
                     <div class="gallery-modal-info-tags"></div>
                     <div class="gallery-modal-info-temporary"></div>
                     <div class="gallery-modal-info-description"></div>
-                    <div class="modal-share-button">
-                        <img onclick="openPopup()" src="/assets/javascripts/SVLabel/img/icons/share_icon.svg">
-                        <div class="modal-share-text">Share</div>
-                        <div class="share-popup" id="share-popup">
-                            <span class="popup-header">Share</span>
-                            <hr class="divider">
-                            <div class="share-button-container">
-                                <a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-show-count="false">Tweet</a>
-                                <div class="fb-share-button" data-href="https://sidewalk-sea.cs.washington.edu/gallery" data-layout="button" data-size="small">
-                                    <a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fsidewalk-sea.cs.washington.edu%2Fgallery&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Share</a>
-                                </div>
-                            </div>
+                    <div class="gallery-modal-share">
+                        <div id="share-popup">
+                            <div class="share-arrow"></div>
                         </div>
+                        <button class="modal-share-button">
+                            <img class="share-button-image" src="/assets/javascripts/SVLabel/img/icons/share_icon.svg">
+                            Share
+                        </button>
                     </div>
                 </div>
             </div>
@@ -127,18 +119,18 @@
             sg.main = new Main(params);
     </script>
     <script type="text/javascript">
-        function openPopup(text) {
-            //Show all popup elements
-            var popup = document.getElementById("share-popup");
-            popup.classList.toggle("show");
-            var twitter = document.getElementsByClassName("twitter-share-button")[0];
-            twitter.classList.toggle("show");
-            var facebookDiv = document.getElementsByClassName("fb-share-button")[0];
-            facebookDiv.display = "inline";
+            $(document).click(function(event) {
+                var $target = $(event.target);
+                if(!$target.closest('.gallery-modal-share').length && $('#share-popup').is(":visible")) {
+                    $('#share-popup').hide("fast");
+                    $('.share-arrow').hide("fast");
+                }
+            });
 
-            //Change Facebook Sharing Url
-            facebookDiv.href = window.location.href;
-        }
+            $('.modal-share-button').click(function(event) {
+                $('#share-popup').toggle("fast");
+                $('.share-arrow').toggle("fast");
+            });
     </script>
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/Gallery/build/Gallery.css")'/>
