@@ -26,6 +26,21 @@
                             <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
                             <li class="topic"><a href='@routes.ApplicationController.labelingGuideCurbRamps'><strong>Curb Ramps</strong></a>
                                 <span class="plusminus">+</span></li>
+                                <script language="javascript"> 
+                                    $(document).ready(function(){
+                                        $(".labeling-heading").click(function(){  
+                                              if($(".labeling-body").is(':visible')){  /* check the condition accordion-body is visible or not */
+                                                  $(".labeling-body").slideUp(600);  /*if content is visible then close accordion-body with specific time duration */
+                                                $(".plusminus").text('+')    /* add plus sign */
+                                            }
+                                            else{
+                                                $(this).next(".labeling-body").slideDown(600); /*if content not visible then 
+                                                                                                                                            show the accordion-body */
+                                                $(this).children(".plusminus").text('-');  /* add minus sign */
+                                            }
+                                        });
+                                    });
+                                </script>
                             <div id="subtopics">
                             </div>
                             <li><a href='@routes.ApplicationController.labelingGuideSurfaceProblems'>Surface Problems</a></li>
