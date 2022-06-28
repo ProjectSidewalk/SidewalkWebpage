@@ -24,7 +24,6 @@ loading.encouragement = Let''s do this!
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
-comment.submitted = Comment submitted
 
 navbar.explore = Start Exploring
 navbar.validate = Start Validating
@@ -77,8 +76,6 @@ landing.ml.gif.interactive.visualization.tools = interactive visualization tools
 landing.ml.gif.smarter.routing = smarter routing
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = outcomes
-landing.what.people.are.saying = What people<br>are saying
-landing.press.title = Press
 landing.collaborators.title = Collaborators
 
 footer.about = About Us

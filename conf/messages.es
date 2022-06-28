@@ -76,8 +76,6 @@ landing.ml.gif.interactive.visualization.tools = herramientas de visualización 
 landing.ml.gif.smarter.routing = enrutamiento inteligente
 landing.ml.gif.machine.learning = aprendizaje de máquinas
 landing.ml.gif.outcomes = resultados
-landing.what.people.are.saying = Lo que la gente<br>está diciendo
-landing.press.title = Prensa
 landing.collaborators.title = Colaboradores
 
 footer.about = Sobre nosotros
