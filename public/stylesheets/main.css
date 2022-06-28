@@ -1205,7 +1205,7 @@ kbd {
   
 .ml-gif-header-1 {
     position: absolute;
-    text-align:center;
+    text-align: center;
     font-size: 35px;
     transform: translate(-50%, 0);
     bottom:-450px;
@@ -1225,36 +1225,36 @@ kbd {
 }
 
 #mlgif-bottom-text-1 {
-    left:-285px; 
+    left: -285px;
     max-width: 50px;
 } 
 
 #mlgif-bottom-text-2 {
-    left:-20px; 
+    left: -20px;
     max-width: 500px;
 } 
 
 #mlgif-bottom-text-3 {
-    left:395px; 
+    left: 395px;
     max-width: 200px;
 } 
 
 #mlgif-label-text-1 {
     text-align: center;
-    bottom:-170px; 
-    left:-285px; 
+    bottom: -170px;
+    left: -285px;
     max-width: 160px;
 } 
 
 #mlgif-label-text-2 {
-    bottom:-30px; 
-    left:-20px; 
+    bottom: -30px;
+    left: -20px;
     max-width: 250px;
 } 
 
 #mlgif-semicircle-text-1 {
-    bottom:-240px; 
-    left:258px;
+    bottom: -240px;
+    left: 258px;
 } 
 
 #mlgif-semicircle-text-2 {
@@ -1263,17 +1263,15 @@ kbd {
 } 
 
 #mlgif-semicircle-text-3 {
-    bottom:-225px; 
-    left:527px;
+    bottom: -225px;
+    left: 527px;
 } 
 
 #mlgif-semicircle-text-4  {
-    bottom:-320px;
-    left:500px;
+    bottom: -320px;
+    left: 500px;
     transform: translate(0, 0);
-} 
-
-  
+}
 
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
