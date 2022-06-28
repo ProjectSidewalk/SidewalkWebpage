@@ -281,7 +281,7 @@ $(document).ready(function () {
     });
 
     // The buttons in the City drop down menu. Log clicks to any of them but the current city.
-    for (cityLink of $('#nav-city-menu').children().children()) {
+    for (cityLink of $('#nav-city-menu')) {
         $(cityLink).on('click', function(e) {
             if (!e.currentTarget.className.includes('current-city')) {
                 logWebpageActivity(`Click_module=NavbarCityDropdown_city=${e.currentTarget.id}`);
