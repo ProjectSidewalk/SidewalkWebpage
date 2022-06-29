@@ -43,9 +43,12 @@ function AdminGSVLabelView(admin) {
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                 '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button">' +
-                                    i18next.t('common:label-map.submit') +
-                                '</button>' +
+                                '<div class ="popup">' +
+                                    '<button id="comment-button" class="submit-button">' +
+                                        i18next.t('common:label-map.submit') +
+                                    '</button>' +
+                                    '<span class="popuptext" id="submitPopup">' + 'Comment Submitted' + '</span>' +
+                                '</div>' +
                             '</div>' +
                         '</div>' +
                         '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
@@ -233,6 +236,7 @@ function AdminGSVLabelView(admin) {
         var userPov = self.panorama.panorama.getPov();
         var zoom = self.panorama.panorama.getZoom();
         var pos = self.panorama.panorama.getPosition();
+        document.getElementById("comment-button").style.cursor = "wait";
 
         let data = {
             label_id: self.panorama.label.labelId,
@@ -255,9 +259,16 @@ function AdminGSVLabelView(admin) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
+                var button = document.getElementById("comment-button");
+                button.style.cursor = "pointer"
                 self.commentTextArea.val('');
+                var popup = document.getElementById("submitPopup");
+                popup.classList.toggle("show");
+                button.disabled = true;
+                setTimeout(function(){popup.classList.toggle("show"); button.disabled = false; }, 2000);
             },
             error: function(xhr, textStatus, error){
+                document.getElementById("comment-button").style.cursor = "pointer"
                 console.error(xhr.statusText);
                 console.error(textStatus);
                 console.error(error);

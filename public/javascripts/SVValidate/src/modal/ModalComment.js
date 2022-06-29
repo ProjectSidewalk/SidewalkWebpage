@@ -129,7 +129,11 @@ function ModalComment (modalUI) {
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function (result) {},
+            success: function (result) {
+                var popup = document.getElementById("feedbackPopup");
+                popup.classList.toggle("show");
+                setTimeout(function(){popup.classList.toggle("show"); }, 2000);
+            },
             error: function(xhr, textStatus, error){
                 console.error(xhr.statusText);
                 console.error(textStatus);

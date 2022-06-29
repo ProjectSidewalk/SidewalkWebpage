@@ -20,6 +20,7 @@
     </div>
 
     @if(Some(User)) {
+        <link rel="stylesheet" href='@routes.Assets.at("stylesheets/message-popup.css")'/>
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content" id="survey-modal">
@@ -174,9 +175,12 @@
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
                         @Html(Messages("audit.left.ui.stuck"))
                     </div>
-                    <div id="left-column-feedback-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
-                        @Html(Messages("audit.left.ui.feedback"))
+                    <div class="popup">
+                        <div id="left-column-feedback-button" class="button">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
+                            @Html(Messages("audit.left.ui.feedback"))
+                        </div>
+                        <span class="popuptext" id="feedbackPopup">@Messages("feedback.submitted")</span>
                     </div>
                 </div>
             </div>
@@ -1024,7 +1028,6 @@
             e.preventDefault();
         });
         }
-
     </script>
 
 <!-- now we will start the logging behaviour -->
@@ -1049,5 +1052,5 @@
             }
         });
     });
-    </script>
+</script>
 }

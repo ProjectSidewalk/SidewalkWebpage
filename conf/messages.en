@@ -24,7 +24,8 @@ loading.encouragement = Let''s do this!
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
-comment.submitted = Comment submitted
+comment.submitted = Comment Submitted
+feedback.submitted = Feedback Submitted
 
 navbar.explore = Start Exploring
 navbar.validate = Start Validating

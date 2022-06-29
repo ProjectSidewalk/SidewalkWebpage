@@ -10,6 +10,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/message-popup.css")'/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
@@ -35,9 +36,12 @@
                         <br>@Messages("validate.left.ui.skip")
                     </div>
                     <div class="spacer10"></div>
-                    <div id="left-column-feedback-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
-                        @Html(Messages("validate.left.ui.feedback"))
+                    <div class="popup">
+                        <div id="left-column-feedback-button" class="button">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                            @Html(Messages("validate.left.ui.feedback"))
+                        </div>
+                        <span class="popuptext" id="feedbackPopup">@Messages("feedback.submitted")</span>
                     </div>
                 </div>
             </div>
