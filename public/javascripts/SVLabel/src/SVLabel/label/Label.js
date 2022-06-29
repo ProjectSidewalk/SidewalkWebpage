@@ -425,7 +425,7 @@ function Label (svl, pathIn, params) {
 
             // Only render severity warning if there's a severity option.
             if (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal') {
-                if (properties.severity === undefined) {
+                if (properties.severity == undefined) {
                     showSeverityAlert(ctx);
                 }
             }
