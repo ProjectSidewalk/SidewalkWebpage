@@ -1,5 +1,6 @@
 package models.attribute
 
+import java.sql.Timestamp
 import models.gsv.GSVDataTable
 import controllers.helper.GoogleMapsHelper
 import models.label._
@@ -33,9 +34,9 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val notsureCount: Int,
                                  val streetEdgeId: Int,
                                  val osmStreetId: Int,
-                                 val neighborhoodName: String) {
-  val imageDate = GSVDataTable.getImageDate(LabelTable.getPanoramaIdFromGlobalAttributeId(globalAttributeId))
-  val labelDate = LabelTable.getLabelDateFromPanoramaId(LabelTable.getPanoramaIdFromGlobalAttributeId(globalAttributeId))
+                                 val neighborhoodName: String,
+                                 val avgImageDate: String,
+                                 val avgLabelDate: Timestamp) {
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -46,8 +47,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "street_edge_id" -> streetEdgeId,
         "osm_street_id" -> osmStreetId,
         "neighborhood" -> neighborhoodName,
-        "image_date" -> imageDate,
-        "label_date" -> labelDate,
+        "image_date" -> avgImageDate,
+        "label_date" -> avgLabelDate.toString(),
         "severity" -> severity,
         "is_temporary" -> temporary,
         "agree_count" -> agreeCount,
@@ -57,7 +58,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
     )
   }
   val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
-                                lng.toString, imageDate, labelDate, severity.getOrElse("NA").toString, temporary.toString,
+                                lng.toString, avgImageDate, avgLabelDate.toString, severity.getOrElse("NA").toString, temporary.toString,
                                 agreeCount.toString, disagreeCount.toString, notsureCount.toString)
 }
 
@@ -76,22 +77,21 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val pitch: Float,
                                           val zoom: Int,
                                           val canvasXY: (Int, Int),
-                                          val canvasWidth: Int, val canvasHeight: Int,
+                                          val canvasWidthHeight: (Int, Int),
                                           val agreeCount: Int,
                                           val disagreeCount: Int,
                                           val notsureCount: Int,
                                           val labelSeverity: Option[Int],
-                                          val labelTemporary: Boolean) {
+                                          val labelTemporary: Boolean,
+                                          val imageLabelDates: (String, Timestamp)) {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
-                  |size=${canvasWidth}x${canvasHeight}
+                  |size=${canvasWidthHeight._1}x${canvasWidthHeight._2}
                   |&pano=${gsvPanoramaId}
                   |&heading=${heading}
                   |&pitch=${pitch}
                   |&fov=${GoogleMapsHelper.getFov(zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  val imageDate = GSVDataTable.getImageDate(gsvPanoramaId)
-  val labelDate = LabelTable.getLabelDate(labelId)
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -112,11 +112,11 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "zoom" -> zoom,
         "canvas_x" -> canvasXY._1,
         "canvas_y" -> canvasXY._2,
-        "canvas_width" -> canvasWidth,
-        "canvas_height" -> canvasHeight,
+        "canvas_width" -> canvasWidthHeight._1,
+        "canvas_height" -> canvasWidthHeight._2,
         "gsv_url" -> gsvUrl,
-        "image_date" -> imageDate,
-        "label_date" -> labelDate,
+        "image_date" -> imageLabelDates._1,
+        "label_date" -> imageLabelDates._2.toString(),
         "label_severity" -> labelSeverity,
         "label_is_temporary" -> labelTemporary,
         "agree_count" -> agreeCount,
@@ -130,8 +130,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 neighborhoodName, labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
                                 heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
-                                canvasXY._2.toString, canvasWidth.toString, canvasHeight.toString, "\"" + gsvUrl + "\"",
-                                imageDate, labelDate, labelSeverity.getOrElse("NA").toString, labelTemporary.toString,
+                                canvasXY._2.toString, canvasWidthHeight._1.toString, canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"",
+                                imageLabelDates._1, imageLabelDates._2.toString, labelSeverity.getOrElse("NA").toString, labelTemporary.toString,
                                 agreeCount.toString, disagreeCount.toString, notsureCount.toString)
 }
 
@@ -197,10 +197,10 @@ object GlobalAttributeTable {
       _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId
       _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
       _l <- LabelTable.labels if _ual.labelId === _l.labelId
-    } yield (_ga.globalAttributeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount))
+      _gsv <- GSVDataTable.gsvDataRecords if _gsv.gsvPanoramaId === _l.gsvPanoramaId
+    } yield (_ga.globalAttributeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount, _gsv.imageDate, _l.timeCreated))
       .groupBy(_._1)
-      .map { case (attrId, group) => (attrId, group.map(_._2).sum, group.map(_._3).sum, group.map(_._4).sum) }
-
+      .map { case (attrId, group) => (attrId, group.map(_._2).sum, group.map(_._3).sum, group.map(_._4).sum, group.map(_._6).avg) }
     val attributes = for {
       _ga <- globalAttributes if _ga.lat > minLat && _ga.lat < maxLat && _ga.lng > minLng && _ga.lng < maxLng &&
         (_ga.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _ga.severity === toInt(severity))
@@ -213,7 +213,8 @@ object GlobalAttributeTable {
       if _lt.labelType =!= "Problem"
     } yield (
       _ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary,
-      _vc._2.getOrElse(0), _vc._3.getOrElse(0), _vc._4.getOrElse(0), _ga.streetEdgeId, _osm.osmWayId, _r.description
+      _vc._2.getOrElse(0), _vc._3.getOrElse(0), _vc._4.getOrElse(0), _ga.streetEdgeId, _osm.osmWayId, _r.description,
+      "", _vc._5.getOrElse(new Timestamp(0))
     )
     attributes.list.map(GlobalAttributeForAPI.tupled)
   }
@@ -232,12 +233,13 @@ object GlobalAttributeTable {
       _l <- LabelTable.labels if _ual.labelId === _l.labelId
       _lp <- LabelTable.labelPoints if _l.labelId === _lp.labelId
       _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
+      _gsv <- GSVDataTable.gsvDataRecords if _gsv.gsvPanoramaId === _l.gsvPanoramaId
       if _lt.labelType =!= "Problem"
     } yield (
       _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId,
       _osm.osmWayId, _r.description, _l.labelId, (_lp.lat.get, _lp.lng.get), _l.gsvPanoramaId, _lp.heading, _lp.pitch,
-      _lp.zoom, (_lp.canvasX, _lp.canvasY), _lp.canvasWidth, _lp.canvasHeight, _l.agreeCount, _l.disagreeCount,
-      _l.notsureCount, _l.severity, _l.temporary
+      _lp.zoom, (_lp.canvasX, _lp.canvasY), (_lp.canvasWidth, _lp.canvasHeight), _l.agreeCount, _l.disagreeCount,
+      _l.notsureCount, _l.severity, _l.temporary, (_gsv.imageDate, (_l.timeCreated.getOrElse(new Timestamp(0))))
     )
 
     attributesWithLabels.list.map(GlobalAttributeWithLabelForAPI.tupled)
