@@ -7,7 +7,6 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
-
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
     <script src='@routes.Assets.at("javascripts/lib/jquery.magnific-popup.js")'></script>
 
@@ -15,15 +14,14 @@
 
     <div class="container help">
         <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-3" id="sidebar">
                 <div id="help-panel" class="panel panel-default">
                     <div class="panel-heading">
                         Labeling Guide
                     </div>
                     <div class="panel-body">
                         <ul id="questions-list">
-                            <!--This list will be automatically filled-->
-                            <li><a href="#introduction">Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuide'><strong>Introduction</strong></a></li>
                             <li><a href='@routes.ApplicationController.labelingGuideCurbRamps'>Curb Ramps</a></li>
                             <li><a href='@routes.ApplicationController.labelingGuideSurfaceProblems'>Surface Problems</a></li>
                             <li><a href='@routes.ApplicationController.labelingGuideObstacles'>Obstacles</a></li>
