@@ -7,7 +7,7 @@
  * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
  * @returns {SeverityDisplay} the generated object
  */
-function SeverityDisplay(container, severity, isModal=false) {
+function SeverityDisplay(container, severity, isModal=false, noSeverity=false) {
     let self = this;
     self.severity = severity;
     self.severityContainer = container;
@@ -29,6 +29,10 @@ function SeverityDisplay(container, severity, isModal=false) {
         }
 
         title.innerText = `${i18next.t("severity")}`;
+        // if no severity rating, gray out title
+        if (noSeverity) {
+            title.classList.add('no-severity-header')
+        }
         container.append(title);
 
         // Creates all of the circles for the severities.
@@ -38,6 +42,10 @@ function SeverityDisplay(container, severity, isModal=false) {
             if (isModal) {
                 // Set the src of our smiley icon to default black-outlined, white-filled smileys.
                 severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+            }
+            // if no severity rating, gray out circles
+            if (noSeverity) {
+                severityCircle.classList.add('no-severity-circle')
             }
 
             circles.push(severityCircle);
@@ -63,6 +71,18 @@ function SeverityDisplay(container, severity, isModal=false) {
             holder.appendChild(circles[i]);
         }
         container.append(holder);
+
+        // add tooltip if severity is grayed out
+        if (noSeverity) {
+            let tooltip = document.createElement('img');
+            tooltip.src = '/assets/javascripts/SVLabel/img/misc/tooltip-img.png';
+            tooltip.classList.add('card-tooltip');
+            tooltip.setAttribute('data-toggle', 'tooltip');
+            tooltip.setAttribute('data-placement', 'top');
+            tooltip.setAttribute('title', `${i18next.t("unsupported")}`);
+            container.append(tooltip);
+            $(tooltip).tooltip('hide')
+        }
     }
 
     _init()

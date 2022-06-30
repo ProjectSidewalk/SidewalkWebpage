@@ -28,6 +28,7 @@
     "submit": "Voeg opmerking toe"
   },
   "severity": "Ernst",
+  "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
   "tags": "Tags",
   "temporary": "Tijdelijk",
   "description": "Beschrijving",
