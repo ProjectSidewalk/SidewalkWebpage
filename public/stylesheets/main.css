@@ -1,4 +1,5 @@
-/*
+@import "homepage.css";
+/* 
 * Style tweaks
 * --------------------------------------------------
 */
@@ -51,25 +52,9 @@
     src: url(../fonts/Raleway/Raleway-ExtraBold.ttf);
 }
 
-
-html,
-body {
-    padding-top: 35px;
-    font-family:'Open Sans', 'Noto Sans', sans-serif;
-    overflow-x: hidden; /* Prevent scroll on narrow devices */
-}
-footer {
-    padding: 30px 0;
-}
-
-#sign-in-modal-container .modal-dialog {
-    width: 400px;
-}
-
-
 /*
  * Custom styles
- */
+*/
 
 .stats-grid{
     display: flex;
@@ -278,12 +263,12 @@ video#bgvid {
     justify-content: center;
     height:100%;
 }
-
+/* 
 #text {
     padding-top:70px;
     max-width: 500px;
     margin: 0 auto;
-}
+} */
 
 p#conditional-text {
     margin: 5px;
@@ -319,7 +304,7 @@ p#conditional-text {
     color: #2D2A3F;
 }
 
-.im-centered3 {
+/* .im-centered3 {
     position: relative;
     top: 0px;
     margin: auto; max-width: 340px;
@@ -333,14 +318,14 @@ p#conditional-text {
     line-height: 1.1em;
     color: #2D2A3F;
 
-}
+} */
 
 .ps-skyline {
     position: relative;
     padding: 15px;
 }
 
-.ps-skyline-overlay {
+/* .ps-skyline-overlay {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -348,7 +333,7 @@ p#conditional-text {
     right: 0;
     display: flex;
     flex-direction: column;
-}
+} */
 
 .ps-skyline-overlay > * {
     align-self: center;
@@ -519,7 +504,7 @@ p#conditional-text {
     letter-spacing: 0.1em;
 }
 
-#content-text-4 {
+/* #content-text-4 {
     font-family: adelle-regular, sans-serif;
     font-size: 15px;
     font-style: normal;
@@ -531,7 +516,7 @@ p#conditional-text {
     margin: 0 auto;
     position: relative;
     top: 25px;
-}
+} */
 
 #mlgif {
     position: absolute;
@@ -580,9 +565,9 @@ p#conditional-text {
 #mapcolumn {
     height: 100%;
 }
-#choropleth {
+/* #choropleth {
     height: 100%;
-}
+} */
 #map-chart {
     background-color: white;
     position: relative;
@@ -603,7 +588,6 @@ p#conditional-text {
     width: 250px;
 }
 
-
 .collaborator-images-container {
     display: grid;
     grid-auto-flow: column;
@@ -619,17 +603,34 @@ p#conditional-text {
     width: 100%;
 }
 
-#collaborators-row {
+/* #collaborators-row {
     padding-bottom: 10px;
     width: 100%;
     text-align: center;
     display: inline-block;
     vertical-align: middle;
-}
+} */
 
 #collaborators-title {
     font-size: 40px;
     margin-bottom: 20px;
+}
+
+#collaborators-container {
+    position: relative;
+    max-width: 900px;
+    top: -20px;
+    min-height: 300px;
+}
+
+.newslink {
+    font-family: adelle-regular, sans-serif;
+    letter-spacing: 0.1em;
+    font-size: 16px;
+    font-style: normal;
+    font-variant: normal;
+    line-height: 1.8em;
+    color: #2d2a3f;
 }
 
 #collaborators-container {
@@ -741,9 +742,9 @@ p#conditional-text {
     margin-left: auto;
     margin-right: auto;
 }
-#banner2 {
+/* #banner2 {
     min-height: 900px;
-}
+} */
 #header {
     background-color: #fff;
     -webkit-box-shadow: 0 8px 6px -6px #999;
