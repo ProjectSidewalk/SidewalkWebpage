@@ -15,9 +15,7 @@ function SeverityDisplay(container, severity, isModal=false) {
     let circles = [];
     function _init() {
         // Set the different classes and ids depending on whether the severity display is in a Modal or in a card.
-        // Severity circles are ONLY smileys if modal AND the label has a severity rating,
-        // otherwise they stay as circles
-        let severityCircleClass = (isModal && severity) ? 'modal-severity-circle' : 'severity-circle';
+        let severityCircleClass = isModal ? 'modal-severity-circle' : 'severity-circle';
         let selectedCircleID = /*isModal ? 'modal-current-severity' : */'current-severity';
 
         let holder = document.createElement('div');
@@ -40,11 +38,11 @@ function SeverityDisplay(container, severity, isModal=false) {
         // Highlight the correct severity.
         // We do so by darkening a number of circles from the left equal to the severity. For example, if the severity
         // is 3, we will darken the left 3 circles.
-        if (severity) {
-            for (let i = 1; i <= 5; i++) {
-                let severityCircle = isModal ? new Image() : document.createElement('div');
-                severityCircle.className = severityCircleClass;
+        for (let i = 1; i <= 5; i++) {
+            let severityCircle = isModal ? new Image() : document.createElement('div');
+            severityCircle.className = severityCircleClass;
 
+            if (severity) {
                 // create severity circle elements
                 if (isModal) {
                     if (i <= severity) { // Filled in smileys
@@ -57,16 +55,20 @@ function SeverityDisplay(container, severity, isModal=false) {
                         severityCircle.id = selectedCircleID
                     }
                 }
+            } else {
+                // create grayed out empty circles/smileys
+                if (isModal) {
+                    severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+                    severityCircle.classList.add('modal-no-severity');
+                } else {
+                    severityCircle.classList.add(severityCircleClass, 'no-severity-circle');
+                }
                 circles.push(severityCircle);
             }
-        } else {
-            // create grayed out, empty circles
-            for (let i = 0; i < 5; i++) {
-                let severityCircle = document.createElement('div');
-                severityCircle.classList.add(severityCircleClass, 'no-severity-circle');
-                circles.push(severityCircle);
-            }
+            circles.push(severityCircle);
+        }
 
+        if (!severity) {
             // add tooltip if no severity level
             holder.setAttribute('data-toggle', 'tooltip');
             holder.setAttribute('data-placement', 'top');

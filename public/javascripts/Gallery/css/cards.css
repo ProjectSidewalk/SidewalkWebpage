@@ -185,6 +185,10 @@ with respect to the image holder. This allows the validation menu to be placed o
     opacity: 50%;
 }
 
+.modal-no-severity {
+    filter: opacity(0.2);
+}
+
 .severity-circle {
     color: white;
     border: 1px solid #2d2a3f;
