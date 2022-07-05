@@ -263,12 +263,6 @@ video#bgvid {
     justify-content: center;
     height:100%;
 }
-/* 
-#text {
-    padding-top:70px;
-    max-width: 500px;
-    margin: 0 auto;
-} */
 
 p#conditional-text {
     margin: 5px;
@@ -304,36 +298,10 @@ p#conditional-text {
     color: #2D2A3F;
 }
 
-/* .im-centered3 {
-    position: relative;
-    top: 0px;
-    margin: auto; max-width: 340px;
-    text-align: center;
-    padding-top: 50px;
-    font-family: raleway, sans-serif;
-    letter-spacing: 0em;
-    font-size: 45px;
-    font-style: normal;
-    font-variant: normal;
-    line-height: 1.1em;
-    color: #2D2A3F;
-
-} */
-
 .ps-skyline {
     position: relative;
     padding: 15px;
 }
-
-/* .ps-skyline-overlay {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-} */
 
 .ps-skyline-overlay > * {
     align-self: center;
@@ -504,20 +472,6 @@ p#conditional-text {
     letter-spacing: 0.1em;
 }
 
-/* #content-text-4 {
-    font-family: adelle-regular, sans-serif;
-    font-size: 15px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-    width: 450px;
-    margin: 0 auto;
-    position: relative;
-    top: 25px;
-} */
-
 #mlgif {
     position: absolute;
     left: 50%;
@@ -602,14 +556,6 @@ p#conditional-text {
 .collaborator-image img {
     width: 100%;
 }
-
-/* #collaborators-row {
-    padding-bottom: 10px;
-    width: 100%;
-    text-align: center;
-    display: inline-block;
-    vertical-align: middle;
-} */
 
 #collaborators-title {
     font-size: 40px;
