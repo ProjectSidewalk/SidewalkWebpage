@@ -121,12 +121,7 @@ function Card (params, imageUrl, modal) {
         if (getLabelType() !== 'Occlusion') {
             let cardSeverity = document.createElement('div');
             cardSeverity.className = 'card-severity';
-            // if signal label, then gray out severity labels
-            if (getLabelType() === 'Signal') {
-                let severityHolder = new SeverityDisplay(cardSeverity, properties.severity, false, true);
-            } else {
-                let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);
-            }
+            let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);
             cardData.appendChild(cardSeverity);
         }
 
