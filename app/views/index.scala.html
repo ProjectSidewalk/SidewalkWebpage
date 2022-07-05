@@ -10,6 +10,7 @@
 
 @main(title) {
     @navbar(user, Some("/"))
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/homepage.css")'/>
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
