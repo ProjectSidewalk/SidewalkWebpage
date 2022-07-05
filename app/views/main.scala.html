@@ -12,6 +12,7 @@
 @import play.api.Play.current
 
 <!DOCTYPE html>
+<link rel="stylesheet" href='@routes.Assets.at("stylesheets/homepage.css")'/>
 <head>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@{Play.configuration.getString("city-params.google-analytics-4-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}"></script>
