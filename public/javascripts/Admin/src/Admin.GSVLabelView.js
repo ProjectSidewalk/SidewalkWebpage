@@ -43,12 +43,9 @@ function AdminGSVLabelView(admin) {
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                 '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<div class ="popup">' +
-                                    '<button id="comment-button" class="submit-button">' +
-                                        i18next.t('common:label-map.submit') +
-                                    '</button>' +
-                                    '<span class="popuptext" id="submitPopup">' + 'Comment Submitted' + '</span>' +
-                                '</div>' +
+                                '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="comment submitted" data-trigger="manual">' +
+                                    i18next.t('common:label-map.submit') +
+                                '</button>' +
                             '</div>' +
                         '</div>' +
                         '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
@@ -154,6 +151,7 @@ function AdminGSVLabelView(admin) {
         self.modalTask = self.modal.find("#task");
         self.modalLabelId = self.modal.find("#label-id");
         self.modalPanoId = self.modal.find('#pano-id');
+
     }
 
     /**
@@ -259,13 +257,13 @@ function AdminGSVLabelView(admin) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
+                // Initializing comment popover 
+                $('#comment-button').popover();
                 var button = document.getElementById("comment-button");
                 button.style.cursor = "pointer"
                 self.commentTextArea.val('');
-                var popup = document.getElementById("submitPopup");
-                popup.classList.toggle("show");
-                button.disabled = true;
-                setTimeout(function(){popup.classList.toggle("show"); button.disabled = false; }, 2000);
+                $('#comment-button').popover('show');
+                setTimeout(function(){$('#comment-button').popover('show'); }, 1000);
             },
             error: function(xhr, textStatus, error){
                 document.getElementById("comment-button").style.cursor = "pointer"
