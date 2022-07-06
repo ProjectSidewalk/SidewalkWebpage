@@ -4,7 +4,7 @@
 @import views.html.bootstrap._
 
 @main("Project Sidewalk - Sign In") {
-    @navbar(None, Some(url))
+    @navbar(None, Some("/signIn"))
     @request.flash.get("success").map { msg =>
         <div class="col-md-6 col-md-offset-3 alert alert-success"
         style="float:none;margin-top:20px;margin-bottom:0px">

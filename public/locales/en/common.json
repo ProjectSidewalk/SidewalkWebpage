@@ -85,8 +85,10 @@
     "uneven surface": "uneven surface",
     "no pedestrian priority": "no pedestrian priority",
     "very long crossing": "very long crossing",
+    "level with sidewalk": "level with sidewalk",
     "has button": "has button",
     "button waist height": "button waist height",
+    "APS": "APS",
     "missing crosswalk": "missing crosswalk",
     "no bus stop access": "no bus stop access"
   },

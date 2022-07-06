@@ -67,8 +67,15 @@ landing.stats.labels = labels
 landing.stats.validations = validaties
 landing.ml.title = Wat we doen met je labels
 landing.ml.content = Je labels worden gebruikt om stedelijke planning te verbeteren, toegankelijkheidsbewuste kaart-tools te bouwen, en machine learning algorithmes te trainen om automatisch toegankelijkheidsproblemen te vinden.
-landing.what.people.are.saying = Wat anderen<br>vinden
-landing.press.title = Pers
+landing.ml.gif.machine.labels = machine-etiketten
+landing.ml.gif.you = jij
+landing.ml.gif.user.labels = gebruikerslabels
+landing.ml.gif.better.city.planning = betere stadsplanning
+landing.ml.gif.better.temporal.tracking = betere temporele tracking
+landing.ml.gif.interactive.visualization.tools = interactieve visualisatietools
+landing.ml.gif.smarter.routing = slimmere routering
+landing.ml.gif.machine.learning = machine learning
+landing.ml.gif.outcomes = resultaten
 landing.collaborators.title = Partners
 
 footer.about = Over ons
@@ -80,6 +87,7 @@ footer.api = Sidewalk API
 footer.connect = Contact
 footer.email = Email ons
 footer.funding = MET TROTS GESPONSORD DOOR
+footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 

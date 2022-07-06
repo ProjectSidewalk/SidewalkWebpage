@@ -66,6 +66,22 @@ object StreetEdgePriorityTable {
     }
   }
 
+  /**
+   * Checks if all streets have been audited by a high quality user (if all have priority < 1).
+   *
+   * @param regionId
+   * @return
+   */
+  def allStreetsInARegionAuditedUsingPriority(regionId: Int): Boolean = db.withSession { implicit session =>
+    val streetsToAudit = for {
+      ser <- StreetEdgeTable.streetEdgeRegion
+      sep <- streetEdgePriorities if ser.streetEdgeId === sep.streetEdgeId
+      if ser.regionId === regionId
+      if sep.priority === 1.0
+    } yield sep
+    streetsToAudit.length.run == 0
+  }
+
   def streetDistanceCompletionRateUsingPriority: Float = db.withSession { implicit session =>
     val auditedDistance: Float = auditedStreetDistanceUsingPriority
     val totalDistance: Float = StreetEdgeTable.totalStreetDistance()

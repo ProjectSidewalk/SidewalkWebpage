@@ -67,8 +67,15 @@ landing.stats.labels = etiquetas
 landing.stats.validations = validaciones
 landing.ml.title = Qué hacemos con tus etiquetas
 landing.ml.content = Utilizamos tus etiquetas para mejorar planificación urbana, crear herramientas de mapeo consciente de accesibilidad y entrenar algoritmos de aprendizaje de máquinas para encontrar problemas de accesibilidad urbana.
-landing.what.people.are.saying = Lo que la gente<br>está diciendo
-landing.press.title = Prensa
+landing.ml.gif.machine.labels = etiquetas automatizadas
+landing.ml.gif.you = tú
+landing.ml.gif.user.labels = etiquetas de usuarias
+landing.ml.gif.better.city.planning = mejor planificación urbana
+landing.ml.gif.better.temporal.tracking = mejor seguimiento temporal
+landing.ml.gif.interactive.visualization.tools = herramientas de visualización interactiva
+landing.ml.gif.smarter.routing = enrutamiento inteligente
+landing.ml.gif.machine.learning = aprendizaje de máquinas
+landing.ml.gif.outcomes = resultados
 landing.collaborators.title = Colaboradores
 
 footer.about = Sobre nosotros
@@ -80,6 +87,7 @@ footer.api = Sidewalk API
 footer.connect = CONECTA
 footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
+footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> y <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 

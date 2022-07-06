@@ -16,7 +16,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{OsmWayStreetEdge, OsmWayStreetEdgeTable}
 import models.street.{StreetEdge, StreetEdgeTable}
-import models.user.{User, WebpageActivity, WebpageActivityTable}
+import models.user.{User, UserStatTable, WebpageActivity, WebpageActivityTable}
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
@@ -100,7 +100,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * Returns all the global attributes within the bounding box and the labels that make up those attributes in geojson.
+    * Returns all global attributes within bounding box and the labels that make up those attributes.
     *
     * @param lat1
     * @param lng1
@@ -155,7 +155,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * Returns all the global attributes within the bounding box in geoJson.
+    * Returns all the global attributes within the bounding box in given file format.
     *
     * @param lat1
     * @param lng1
@@ -174,12 +174,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
     // In CSV format.
-    if (filetype != None && filetype.get == "csv") {
+    if (filetype.isDefined && filetype.get == "csv") {
       val accessAttributesfile = new java.io.File("access_attributes.csv")
       val writer = new java.io.PrintStream(accessAttributesfile)
       // Write column headers.
       writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count")
-      // Write each rown in the CSV.
+      // Write each row in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         writer.println(current.attributesToArray.mkString(","))
       }
@@ -190,7 +190,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("accessAttributes", Array("attributes"));
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-    } else {  // In GeoJSON format.
+    } else { // In GeoJSON format.
       val features: List[JsObject] =
         GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
       Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
@@ -720,4 +720,44 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     */
   def makeALatLngGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double): List[JsonLatLng] =
     makeALatLngGrid(JsonLatLng(lat1, lng1), JsonLatLng(lat2, lng2), stepSize)
+
+  /**
+   * Returns some statistics for all registered users in either JSON or CSV.
+   *
+   * @param filetype
+   * @return
+   */
+  def getUsersAPIStats(filetype: Option[String]) = UserAwareAction.async { implicit request =>
+    apiLogging(request.remoteAddress, request.identity, request.toString)
+    // In CSV format.
+    if (filetype.isDefined && filetype.get == "csv") {
+      val userStatsFile = new java.io.File("user_stats.csv")
+      val writer = new java.io.PrintStream(userStatsFile)
+      // Write column headers.
+      val header: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
+        "Label Accuracy,Validated Labels,Validations Received,Labels Validated Correct,Labels Validated Incorrect," +
+        "Labels Not Validated,Validations Given,Dissenting Validations Given,Agree Validations Given," +
+        "Disagree Validations Given,Not Sure Validations Given,Curb Ramp Labels,Curb Ramps Validated Correct," +
+        "Curb Ramps Validated Incorrect,Curb Ramps Not Validated,No Curb Ramp Labels,No Curb Ramps Validated Correct," +
+        "No Curb Ramps Validated Incorrect,No Curb Ramps Not Validated,Obstacle Labels,Obstacles Validated Correct," +
+        "Obstacles Validated Incorrect,Obstacles Not Validated,Surface Problem Labels," +
+        "Surface Problems Validated Correct,Surface Problems Validated Incorrect,Surface Problems Not Validated," +
+        "No Sidewalk Labels,No Sidewalks Validated Correct,No Sidewalks Validated Incorrect," +
+        "No Sidewalks Not Validated,Crosswalk Labels,Crosswalks Validated Correct,Crosswalks Validated Incorrect," +
+        "Crosswalks Not Validated,Pedestrian Signal Labels,Pedestrian Signals Validated Correct," +
+        "Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated,Cant See Sidewalk Labels," +
+        "Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect," +
+        "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
+        "Others Not Validated"
+      writer.println(header)
+      // Write each row in the CSV.
+      for (current <- UserStatTable.getStatsForAPI) {
+        writer.println(current.toArray.mkString(","))
+      }
+      writer.close()
+      Future.successful(Ok.sendFile(content = userStatsFile, onClose = () => userStatsFile.delete()))
+    } else { // In JSON format.
+      Future.successful(Ok(Json.toJson(UserStatTable.getStatsForAPI.map(_.toJSON))))
+    }
+  }
 }
