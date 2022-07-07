@@ -175,12 +175,9 @@
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
                         @Html(Messages("audit.left.ui.stuck"))
                     </div>
-                    <div class="popup">
-                        <div id="left-column-feedback-button" class="button">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
-                            @Html(Messages("audit.left.ui.feedback"))
-                        </div>
-                        <span class="popuptext" id="feedbackPopup">@Messages("feedback.submitted")</span>
+                    <div id="left-column-feedback-button" class="button" data-container="body" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger = "manual">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
+                        @Html(Messages("audit.left.ui.feedback"))
                     </div>
                 </div>
             </div>
@@ -804,6 +801,11 @@
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 
     <script type="text/javascript">
+        // Initializing feedback popover 
+        $(function () {
+            $('#left-column-feedback-button').popover();
+        });
+
         // Todo. Try to move the following code to Main.js
         var svl = svl || {};
         var mainParam = {};

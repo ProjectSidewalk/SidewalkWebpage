@@ -43,7 +43,7 @@ function AdminGSVLabelView(admin) {
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                 '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="comment submitted" data-trigger="manual">' +
+                                '<button type="button" id="comment-button" class="submit-button active" data-loading-text="Submitting..." data-complete-text="Submitted" autocomplete="off">' +
                                     i18next.t('common:label-map.submit') +
                                 '</button>' +
                             '</div>' +
@@ -234,7 +234,10 @@ function AdminGSVLabelView(admin) {
         var userPov = self.panorama.panorama.getPov();
         var zoom = self.panorama.panorama.getZoom();
         var pos = self.panorama.panorama.getPosition();
-        document.getElementById("comment-button").style.cursor = "wait";
+        var button = document.getElementById("comment-button");
+
+        button.style.cursor = "wait";
+        $('#comment-button').button('loading');
 
         let data = {
             label_id: self.panorama.label.labelId,
@@ -257,14 +260,11 @@ function AdminGSVLabelView(admin) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                // Initializing comment popover 
-                $('#comment-button').popover();
-                var button = document.getElementById("comment-button");
                 button.style.cursor = "pointer"
                 self.commentTextArea.val('');
-                $('#comment-button').popover('show');
-                setTimeout(function(){$('#comment-button').popover('show'); }, 1000);
-            },
+                $('#comment-button').button('complete');
+                setTimeout(function() {$('#comment-button').button('reset');}, 1000)
+            },  
             error: function(xhr, textStatus, error){
                 document.getElementById("comment-button").style.cursor = "pointer"
                 console.error(xhr.statusText);

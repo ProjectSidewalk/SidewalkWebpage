@@ -13,7 +13,6 @@
                 <div id="map-legend-title-holder">
                     <label id="map-legend-title">Legend</label>
                     <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
-                    <button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="comment submitted" data-trigger="hover">test</button>
                 </div>
                 <table class="table filter" id="legend-table">
                     <tr>
@@ -136,8 +135,6 @@
 
 
     <script>
-            // Initializing comment popover 
-            $('#comment-button').popover();
             var labelArr = ["N/A", 1, 2, 3, 4, 5];
             var sliderToLabelMap = {};
             sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";

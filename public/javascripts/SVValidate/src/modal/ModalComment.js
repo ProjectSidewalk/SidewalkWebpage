@@ -127,12 +127,11 @@ function ModalComment (modalUI) {
             contentType: 'application/json; charset=utf-8',
             url: url,
             type: 'post',
-            data: JSON.stringify(data),
+            data: JSON.stringify(data), 
             dataType: 'json',
             success: function (result) {
-                var popup = document.getElementById("feedbackPopup");
-                popup.classList.toggle("show");
-                setTimeout(function(){popup.classList.toggle("show"); }, 2000);
+                $('#left-column-feedback-button').popover('toggle');
+                setTimeout(function(){$('#left-column-feedback-button').popover('toggle'); }, 1000);
             },
             error: function(xhr, textStatus, error){
                 console.error(xhr.statusText);

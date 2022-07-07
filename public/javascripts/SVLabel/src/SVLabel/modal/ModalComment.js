@@ -148,9 +148,8 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                var popup = document.getElementById("feedbackPopup");
-                popup.classList.toggle("show");
-                setTimeout(function(){popup.classList.toggle("show"); }, 2000);
+                $('#left-column-feedback-button').popover('toggle');
+                setTimeout(function(){$('#left-column-feedback-button').popover('toggle'); }, 1000);
             },
             error: function (result) {
                 console.error(result);
