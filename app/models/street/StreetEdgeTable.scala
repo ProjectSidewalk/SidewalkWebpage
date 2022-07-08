@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.user.UserRoleTable
+import models.user.{User, UserStatTable, UserRoleTable}
 import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -118,8 +118,8 @@ object StreetEdgeTable {
     * @param auditCount
     * @return Float between 0 and 1
     */
-  def streetDistanceCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
-    val auditedDistance: Float = auditedStreetDistance(auditCount, userType)
+  def streetDistanceCompletionRate(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = db.withSession { implicit session =>
+    val auditedDistance: Float = auditedStreetDistance(auditCount, userType, highQualityOnly)
     val totalDistance: Float = totalStreetDistance()
     auditedDistance / totalDistance
   }
@@ -146,7 +146,7 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
+  def auditedStreetDistance(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = true): Float = db.withSession { implicit session =>
     val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
     Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
@@ -157,6 +157,16 @@ object StreetEdgeTable {
         case "Registered" => regUserCompletedAuditTasks
         case "Anonymous" => anonCompletedAuditTasks
         case _ => completedAuditTasks
+      }
+
+      val highQualityTasks = if (highQualityOnly) {
+        for {
+            tasks <- auditTaskQuery
+            stats <- UserStatTable.userStats if tasks.userId === stats.userId
+            if stats.highQuality && !stats.excludeManual
+        } yield tasks
+      } else {
+          auditTaskQuery
       }
 
       val edges = for {
@@ -271,7 +281,7 @@ object StreetEdgeTable {
   /**
     * Returns a list of street edges that are audited at least auditCount times.
     */
-  def selectAuditedStreets(auditCount: Int = 1, userType: String = "All"): List[StreetEdge] = db.withSession { implicit session =>
+  def selectAuditedStreets(auditCount: Int = 1, userType: String = "All", highQualityOnly: Boolean = false): List[StreetEdge] = db.withSession { implicit session =>
     val auditTasksQuery = userType match {
       case "All" => completedAuditTasks
       case "Researcher" => researcherCompletedAuditTasks
@@ -280,6 +290,14 @@ object StreetEdgeTable {
       case "Anonymous" => anonCompletedAuditTasks
       case _ => completedAuditTasks
     }
+
+    val highQualityTasks = if (highQualityOnly) {
+        for {
+            tasks <- auditTasksQuery
+            stats <- UserStatTable.userStats if tasks.userId === stats.userId
+            if stats.highQuality && !stats.excludeManual
+        } yield tasks
+    } 
 
     val edges = for {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
@@ -300,8 +318,8 @@ object StreetEdgeTable {
   /**
     * Count the number of streets that have been audited at least a given number of times.
     */
-  def countAuditedStreets(auditCount: Int = 1, userType: String = "All"): Int = db.withSession { implicit session =>
-    selectAuditedStreets(auditCount, userType).size
+  def countAuditedStreets(auditCount: Int = 1, userType: String = "All", highQualityOnly: Boolean = false): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount, userType, highQualityOnly).size
   }
 
   /** Returns the sum of the lengths of all streets in the region. */
