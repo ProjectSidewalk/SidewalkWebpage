@@ -291,14 +291,14 @@
                                     <td style="padding-left: 30px">Turker</td>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("dist.metric.abbr") 
                                         (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%)</td>
-                                    <td></td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker", true)))) @Messages("dist.metric.abbr")</td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researcher</td>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("dist.metric.abbr") 
                                         (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%)</td>
-                                    <td></td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)))) @Messages("dist.metric.abbr")</td>
                                     <td></td>
                                 </tr>
                             </table>

@@ -146,7 +146,7 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def auditedStreetDistance(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = true): Float = db.withSession { implicit session =>
+  def auditedStreetDistance(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = db.withSession { implicit session =>
     val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
     Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
@@ -159,7 +159,7 @@ object StreetEdgeTable {
         case _ => completedAuditTasks
       }
 
-      val highQualityTasks = if (highQualityOnly) {
+      val filteredTasks = if (highQualityOnly) {
         for {
             tasks <- auditTaskQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
@@ -171,7 +171,7 @@ object StreetEdgeTable {
 
       val edges = for {
         _edges <- streetEdgesWithoutDeleted
-        _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
+        _tasks <- filteredTasks if _tasks.streetEdgeId === _edges.streetEdgeId
       } yield _edges
 
       // Gets tuple of (street_edge_id, num_completed_audits).
@@ -291,16 +291,18 @@ object StreetEdgeTable {
       case _ => completedAuditTasks
     }
 
-    val highQualityTasks = if (highQualityOnly) {
+    val filteredTasks = if (highQualityOnly) {
         for {
             tasks <- auditTasksQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
             if stats.highQuality && !stats.excludeManual
         } yield tasks
-    } 
+      } else {
+          auditTasksQuery
+    }
 
     val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(filteredTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
     val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
