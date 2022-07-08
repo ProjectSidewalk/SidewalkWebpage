@@ -151,7 +151,6 @@ function AdminGSVLabelView(admin) {
         self.modalTask = self.modal.find("#task");
         self.modalLabelId = self.modal.find("#label-id");
         self.modalPanoId = self.modal.find('#pano-id');
-
     }
 
     /**
@@ -260,10 +259,12 @@ function AdminGSVLabelView(admin) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                button.style.cursor = "pointer"
+                button.style.cursor = "pointer";
                 self.commentTextArea.val('');
                 $('#comment-button').button('complete');
-                setTimeout(function() {$('#comment-button').button('reset');}, 1000)
+                setTimeout(function() {
+                    $('#comment-button').button('reset'); 
+                }, 1000);
             },  
             error: function(xhr, textStatus, error){
                 document.getElementById("comment-button").style.cursor = "pointer"

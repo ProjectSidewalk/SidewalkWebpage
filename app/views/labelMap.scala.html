@@ -178,7 +178,6 @@
                     }
                 });
             });
-
     </script>
     <script>
         $(document).ready(function () {
@@ -253,5 +252,16 @@
             $('.loader').fadeOut('slow');
         })
     });
+
+    // Deletes labelModal when closed
+    $(window).on('click', function(e) {
+        if (document.getElementById("labelModal") != null && !($('#labelModal').hasClass('in'))) {
+            $("#labelModal").modal('hide');
+            setTimeout(function() {
+                $("#labelModal").remove();
+                $('.modal-backdrop').remove();
+            }, 200)
+        }
+    })
     </script>
 }
