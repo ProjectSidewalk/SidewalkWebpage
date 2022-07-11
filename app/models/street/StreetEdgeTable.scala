@@ -301,6 +301,8 @@ object StreetEdgeTable {
           auditTasksQuery
     }
 
+    println(filteredTasks.length.run)
+
     val edges = for {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(filteredTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
