@@ -156,6 +156,8 @@ with respect to the image holder. This allows the validation menu to be placed o
     position: absolute;
     width: 1.1vw;
     z-index: 1;
+    border: 1px solid black;
+    border-radius: 80%;
 }
 
 .validation-button, .validation-button-selected {
