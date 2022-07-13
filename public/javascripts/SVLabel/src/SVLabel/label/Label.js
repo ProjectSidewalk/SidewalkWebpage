@@ -424,14 +424,14 @@ function Label (svl, pathIn, params) {
             path.render2(ctx, pov);
 
             // Draws an outline around the label icon.
-            ctx.lineWidth = .5;
+            ctx.lineWidth = .7;
             ctx.beginPath();
             ctx.arc(getCoordinate().x, getCoordinate().y, 15.3, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'white';
+            ctx.strokeStyle = 'black';
             ctx.stroke();
             ctx.beginPath();
             ctx.arc(getCoordinate().x, getCoordinate().y, 16.2, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'black';
+            ctx.strokeStyle = 'white';
             ctx.stroke();
 
             // Only render severity warning if there's a severity option.
