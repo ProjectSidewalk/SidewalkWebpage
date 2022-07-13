@@ -9,6 +9,7 @@ import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.language.postfixOps
 
@@ -170,6 +171,16 @@ object GlobalAttributeTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalAttributes: TableQuery[GlobalAttributeTable] = TableQuery[GlobalAttributeTable]
 
+  implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
+    GlobalAttributeWithLabelForAPI(
+      r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt, r.nextString,
+      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, r.nextFloat, r.nextFloat, r.nextInt, (r.nextInt,
+      r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
+      (r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
+      r.nextString())
+    )
+  )
+
   def getAllGlobalAttributes: List[GlobalAttribute] = db.withTransaction { implicit session =>
     globalAttributes.list
   }
@@ -217,32 +228,40 @@ object GlobalAttributeTable {
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
     */
   def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
-    val attributesWithLabels = (for {
-      _ga <- globalAttributes if _ga.lat > minLat && _ga.lat < maxLat && _ga.lng > minLng && _ga.lng < maxLng &&
-        (_ga.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _ga.severity === toInt(severity))
-      _lt <- LabelTypeTable.labelTypes if _ga.labelTypeId === _lt.labelTypeId
-      _r <- RegionTable.regions if _ga.regionId === _r.regionId
-      _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId
-      _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
-      _l <- LabelTable.labels if _ual.labelId === _l.labelId
-      _lp <- LabelTable.labelPoints if _l.labelId === _lp.labelId
-      _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
-      _ltags <- LabelTagTable.labelTagTable if _ltags.labelId === _l.labelId
-      _tags <- TagTable.tagTable if _tags.tagId === _ltags.tagId
-      if _lt.labelType =!= "Problem"
-    } yield (
-      _ga.globalAttributeId, _lt.labelType, (_ga.lat, _ga.lng), _ga.severity, _ga.temporary, _ga.streetEdgeId,
-      _osm.osmWayId, _r.description, _l.labelId, (_lp.lat.get, _lp.lng.get), _l.gsvPanoramaId, _lp.heading, _lp.pitch,
-      _lp.zoom, (_lp.canvasX, _lp.canvasY), (_lp.canvasWidth, _lp.canvasHeight), _l.agreeCount, _l.disagreeCount,
-      _l.notsureCount, _l.severity, _l.temporary, (_tags.tag, _l.description.getOrElse(""))
-    ))
-      .groupBy(_._1)
-      .map { case (attrId, group) => (attrId, group.map(_._2).first, (group.map(_._3).first._1, group.map(_._3).first._2), group.map(_._4).first,
-        group.map(_._5).first, group.map(_._6).first, group.map(_._7).first, group.map(_._8).first, group.map(_._9).first, (group.map(_._10).first._1, group.map(_._10).first._2),
-        group.map(_._11).first, group.map(_._12).first, group.map(_._13).first, group.map(_._14).first, (group.map(_._15).first._1, group.map(_._15).first._2),
-        (group.map(_._16).first._1, group.map(_._16).first._2), group.map(_._17).first, group.map(_._18).first, group.map(_._19).first, group.map(_._20).first,
-        group.map(_._21).first, (group.map(_._22._1).list, group.map(_._22).first._2)) }
-    attributesWithLabels.list.map(GlobalAttributeWithLabelForAPI.tupled)
+    val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
+          s"""SELECT global_attribute.global_attribute_id, label_type.label_type, global_attribute.lat,
+          |        global_attribute.lng, global_attribute.severity, global_attribute.temporary,
+          |        global_attribute.street_edge_id, osm_way_street_edge.osm_way_id, region.description, label.label_id,
+          |        label_point.lat, label_point.lng, label.gsv_panorama_id, label_point.heading,
+          |        label_point.pitch, label_point.zoom, label_point.canvas_x, label_point.canvas_y,
+          |        label_point.canvas_width, label_point.canvas_height, label.agree_count, label.disagree_count,
+          |        label.notsure_count, label.severity, label.temporary, the_tags.tag_list, label.description
+          |FROM global_attribute
+          |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
+          |INNER JOIN region ON global_attribute.region_id = region.region_id
+          |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+          |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+          |INNER JOIN label ON user_attribute_label.label_id = label.label_id
+          |INNER JOIN label_point ON label.label_id = label_point.label_id
+          |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
+          |LEFT JOIN (
+          |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
+          |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
+          |    FROM label_tag
+          |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
+          |    GROUP BY label_id
+          |) the_tags ON label.label_id = the_tags.label_id
+          |WHERE label_type.label_type <> 'Problem'
+          |    AND global_attribute.lat > $minLat
+          |    AND global_attribute.lat < $maxLat
+          |    AND global_attribute.lng > $minLng
+          |    AND global_attribute.lng < $maxLng
+          |    AND (global_attribute.severity IS NOT NULL
+          |    AND ${severity.getOrElse("") == "none"}
+          |    OR ${severity.isEmpty}
+          |    OR global_attribute.severity = ${toInt(severity).get})""".stripMargin
+      )
+    attributesWithLabels.list  // .map(GlobalAttributeWithLabelForAPI.tupled)
   }
 
   /**

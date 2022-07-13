@@ -220,7 +220,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
-            featureBuilder.add(l.labelTagsAndDescription()._1);
+            featureBuilder.add("[" + l.labelTagsAndDescription()._1.mkString(",") + "]");
             featureBuilder.add(l.labelTagsAndDescription()._2);
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
