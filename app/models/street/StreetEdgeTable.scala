@@ -179,6 +179,8 @@ object StreetEdgeTable {
         case (edge, group) => (edge.geom.transform(26918).length, group.length)
       }
 
+      println(edgesWithAuditCounts.length.run)
+
       // Get length of each street segment, sum the lengths, and convert from meters to miles.
       edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
     }
@@ -295,7 +297,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTasksQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && !stats.excludeManual
+            if stats.highQuality && (stats.excludeManual.isEmpty || !stats.excludeManual)
         } yield tasks
       } else {
           auditTasksQuery
