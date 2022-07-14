@@ -31,6 +31,11 @@ function LabelVisibilityControl () {
      */
     function unhideLabel () {
         let panomarker = svv.panorama.getPanomarker();
+        panomarker.marker_.style.border = 'solid black';
+        panomarker.marker_.style.borderWidth = '1px';
+        panomarker.marker_.style.borderRadius = '25px';
+        panomarker.marker_.style.outline = 'solid white';
+        panomarker.marker_.style.outlineWidth = '0.5px';
         let label = svv.panorama.getCurrentLabel();
         panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
@@ -47,6 +52,8 @@ function LabelVisibilityControl () {
      */
     function hideLabel () {
         let panomarker = svv.panorama.getPanomarker();
+        panomarker.marker_.style.border = 'none';
+        panomarker.marker_.style.outline = 'none';
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
         visible = false;
