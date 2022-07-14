@@ -247,7 +247,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).size.run
+    users.groupBy(x => x).map(_._1).length.run
   }
 
   /**
@@ -361,7 +361,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).size.run
+    users.groupBy(x => x).map(_._1).length.run
   }
 
   /**

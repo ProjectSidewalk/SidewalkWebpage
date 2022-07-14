@@ -290,7 +290,7 @@ object LabelValidationTable {
 
     validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
       .filter(_._2.labelTypeId === typeID)
-      .size.run
+      .length.run
   }
 
   /**
@@ -302,7 +302,7 @@ object LabelValidationTable {
     validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
       .filter(_._2.labelTypeId === typeID)
       .filter(_._1.validationResult === result)
-      .size.run
+      .length.run
   }
 
   /**
@@ -311,7 +311,7 @@ object LabelValidationTable {
    * @returns the number of validations performed by this user
    */
   def countValidations(userId: UUID): Int = db.withSession { implicit session =>
-    validationLabels.filter(_.userId === userId.toString).size.run
+    validationLabels.filter(_.userId === userId.toString).length.run
   }
 
   /**

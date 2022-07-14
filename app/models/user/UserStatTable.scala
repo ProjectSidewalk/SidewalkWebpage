@@ -1,7 +1,7 @@
 package models.user
 
+import formats.json.UserFormats.labelTypeStatWrites
 import models.attribute.UserClusteringSessionTable
-
 import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelValidationTable}
@@ -9,15 +9,68 @@ import models.mission.MissionTable
 import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
+import play.api.libs.json.{JsObject, Json}
 import java.sql.Timestamp
 import java.time.Instant
 import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.{StaticQuery => Q}
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
                     accuracy: Option[Float], excludeManual: Option[Boolean])
+
+case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int) {
+  def toArray = Array(labels, validatedCorrect, validatedIncorrect, notValidated)
+}
+case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, labelsPerMeter: Option[Float],
+                       highQuality: Boolean, highQualityManual: Option[Boolean], labelAccuracy: Option[Float],
+                       validatedLabels: Int, validationsReceived: Int, labelsValidatedCorrect: Int,
+                       labelsValidatedIncorrect: Int, labelsNotValidated: Int, validationsGiven: Int,
+                       dissentingValidationsGiven: Int, agreeValidationsGiven: Int, disagreeValidationsGiven: Int,
+                       notsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat]) {
+  def toJSON: JsObject = {
+    Json.obj(
+      "user_id" -> userId,
+      "labels" -> labels,
+      "meters_explored" -> metersExplored,
+      "labels_per_meter" -> labelsPerMeter,
+      "high_quality" -> highQuality,
+      "high_quality_manual" -> highQualityManual,
+      "label_accuracy" -> labelAccuracy,
+      "validated_labels" -> validatedLabels,
+      "validations_received" -> validationsReceived,
+      "labels_validated_correct" -> labelsValidatedCorrect,
+      "labels_validated_incorrect" -> labelsValidatedIncorrect,
+      "labels_not_validated" -> labelsNotValidated,
+      "validations_given" -> validationsGiven,
+      "dissenting_validations_given" -> dissentingValidationsGiven,
+      "agree_validations_given" -> agreeValidationsGiven,
+      "disagree_validations_given" -> disagreeValidationsGiven,
+      "notsure_validations_given" -> notsureValidationsGiven,
+      "stats_by_label_type" -> Json.obj(
+        "curb_ramp" -> Json.toJson(statsByLabelType("CurbRamp")),
+        "no_curb_ramp" -> Json.toJson(statsByLabelType("NoCurbRamp")),
+        "obstacle" -> Json.toJson(statsByLabelType("Obstacle")),
+        "surface_problem" -> Json.toJson(statsByLabelType("SurfaceProblem")),
+        "no_sidewalk" -> Json.toJson(statsByLabelType("NoSidewalk")),
+        "crosswalk" -> Json.toJson(statsByLabelType("Crosswalk")),
+        "pedestrian_signal" -> Json.toJson(statsByLabelType("Signal")),
+        "cant_see_sidewalk" -> Json.toJson(statsByLabelType("Occlusion")),
+        "other" -> Json.toJson(statsByLabelType("Other"))
+      )
+    )
+  }
+  def toArray = Array(
+    userId, labels, metersExplored, labelsPerMeter.map(_.toString).getOrElse("NA"), highQuality,
+    highQualityManual.map(_.toString).getOrElse("NA"), labelAccuracy.map(_.toString).getOrElse("NA"), validatedLabels,
+    validationsReceived, labelsValidatedCorrect, labelsValidatedIncorrect, labelsNotValidated, validationsGiven,
+    dissentingValidationsGiven, agreeValidationsGiven, disagreeValidationsGiven, notsureValidationsGiven
+  ) ++ statsByLabelType("CurbRamp").toArray ++ statsByLabelType("NoCurbRamp").toArray ++
+    statsByLabelType("Obstacle").toArray ++ statsByLabelType("SurfaceProblem").toArray ++
+    statsByLabelType("NoSidewalk").toArray ++ statsByLabelType("Crosswalk").toArray ++
+    statsByLabelType("Signal").toArray ++ statsByLabelType("Occlusion").toArray ++
+    statsByLabelType("Other").toArray
+}
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
@@ -44,6 +97,22 @@ object UserStatTable {
   val userTable = TableQuery[UserTable]
 
   val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
+
+  implicit val userStatAPIConverter = GetResult[UserStatAPI](r => UserStatAPI(
+    r.nextString, r.nextInt, r.nextFloat, r.nextFloatOption, r.nextBoolean, r.nextBooleanOption, r.nextFloatOption,
+    r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+    Map(
+      "CurbRamp" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "NoCurbRamp" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "Obstacle" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "SurfaceProblem" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "NoSidewalk" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "Crosswalk" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "Signal" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "Occlusion" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
+      "Other" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt)
+    )
+  ))
 
   /**
     * Return query with user_id and high_quality columns.
@@ -360,6 +429,139 @@ object UserStatTable {
       if (!byOrg && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
       else LeaderboardStat.tupled(stat)
     )
+  }
+
+  /**
+   * Computes some stats on users that will be served through a public API.
+   */
+  def getStatsForAPI: List[UserStatAPI] = db.withSession { implicit session =>
+    val statsQuery = Q.queryNA[UserStatAPI](
+      s"""SELECT user_stat.user_id,
+         |       COALESCE(label_counts.labels, 0) AS labels,
+         |       user_stat.meters_audited AS meters_explored,
+         |       user_stat.labels_per_meter,
+         |       user_stat.high_quality,
+         |       user_stat.high_quality_manual,
+         |       user_stat.accuracy AS label_accuracy,
+         |       COALESCE(label_counts.validated_labels, 0) AS validated_labels,
+         |       COALESCE(label_counts.validations_received, 0) AS validations_received,
+         |       COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
+         |       COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
+         |       COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
+         |       COALESCE(validations.validations_given, 0) AS validations_given,
+         |       COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
+         |       COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
+         |       COALESCE(validations.notsure_validations_given, 0) AS notsure_validations_given,
+         |       COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
+         |       COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
+         |       COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
+         |       COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
+         |       COALESCE(label_counts.curb_ramp_not_validated, 0) AS curb_ramp_not_validated,
+         |       COALESCE(label_counts.no_curb_ramp_labels, 0) AS no_curb_ramp_labels,
+         |       COALESCE(label_counts.no_curb_ramp_validated_correct, 0) AS no_curb_ramp_validated_correct,
+         |       COALESCE(label_counts.no_curb_ramp_validated_incorrect, 0) AS no_curb_ramp_validated_incorrect,
+         |       COALESCE(label_counts.no_curb_ramp_not_validated, 0) AS no_curb_ramp_not_validated,
+         |       COALESCE(label_counts.obstacle_labels, 0) AS obstacle_labels,
+         |       COALESCE(label_counts.obstacle_validated_correct, 0) AS obstacle_validated_correct,
+         |       COALESCE(label_counts.obstacle_validated_incorrect, 0) AS obstacle_validated_incorrect,
+         |       COALESCE(label_counts.obstacle_not_validated, 0) AS obstacle_not_validated,
+         |       COALESCE(label_counts.surface_problem_labels, 0) AS surface_problem_labels,
+         |       COALESCE(label_counts.surface_problem_validated_correct, 0) AS surface_problem_validated_correct,
+         |       COALESCE(label_counts.surface_problem_validated_incorrect, 0) AS surface_problem_validated_incorrect,
+         |       COALESCE(label_counts.surface_problem_not_validated, 0) AS surface_problem_not_validated,
+         |       COALESCE(label_counts.no_sidewalk_labels, 0) AS no_sidewalk_labels,
+         |       COALESCE(label_counts.no_sidewalk_validated_correct, 0) AS no_sidewalk_validated_correct,
+         |       COALESCE(label_counts.no_sidewalk_validated_incorrect, 0) AS no_sidewalk_validated_incorrect,
+         |       COALESCE(label_counts.no_sidewalk_not_validated, 0) AS no_sidewalk_not_validated,
+         |       COALESCE(label_counts.crosswalk_labels, 0) AS crosswalk_labels,
+         |       COALESCE(label_counts.crosswalk_validated_correct, 0) AS crosswalk_validated_correct,
+         |       COALESCE(label_counts.crosswalk_validated_incorrect, 0) AS crosswalk_validated_incorrect,
+         |       COALESCE(label_counts.crosswalk_not_validated, 0) AS crosswalk_not_validated,
+         |       COALESCE(label_counts.pedestrian_signal_labels, 0) AS pedestrian_signal_labels,
+         |       COALESCE(label_counts.pedestrian_signal_validated_correct, 0) AS pedestrian_signal_validated_correct,
+         |       COALESCE(label_counts.pedestrian_signal_validated_incorrect, 0) AS pedestrian_signal_validated_incorrect,
+         |       COALESCE(label_counts.pedestrian_signal_not_validated, 0) AS pedestrian_signal_not_validated,
+         |       COALESCE(label_counts.cant_see_sidewalk_labels, 0) AS cant_see_sidewalk_labels,
+         |       COALESCE(label_counts.cant_see_sidewalk_validated_correct, 0) AS cant_see_sidewalk_validated_correct,
+         |       COALESCE(label_counts.cant_see_sidewalk_validated_incorrect, 0) AS cant_see_sidewalk_validated_incorrect,
+         |       COALESCE(label_counts.cant_see_sidewalk_not_validated, 0) AS cant_see_sidewalk_not_validated,
+         |       COALESCE(label_counts.other_labels, 0) AS other_labels,
+         |       COALESCE(label_counts.other_validated_correct, 0) AS other_validated_correct,
+         |       COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
+         |       COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
+         |FROM user_stat
+         |INNER JOIN user_role ON user_stat.user_id = user_role.user_id
+         |INNER JOIN role ON user_role.role_id = role.role_id
+         |-- Validations given.
+         |LEFT JOIN (
+         |    SELECT user_id,
+         |           COUNT(*) AS validations_given,
+         |           COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS agree_validations_given,
+         |           COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS disagree_validations_given,
+         |           COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS notsure_validations_given,
+         |           COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
+         |                           OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given
+         |    FROM label_validation
+         |    INNER JOIN label ON label_validation.label_id = label.label_id
+         |    GROUP BY user_id
+         |) AS validations ON user_stat.user_id = validations.user_id
+         |-- Label and validation counts
+         |LEFT JOIN (
+         |    SELECT user_id,
+         |           COUNT(*) AS labels,
+         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
+         |           SUM(agree_count) + SUM(disagree_count) + SUM(notsure_count) AS validations_received,
+         |           COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
+         |           COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
+         |           COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' THEN 1 END) AS curb_ramp_labels,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS curb_ramp_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS curb_ramp_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NULL THEN 1 END) AS curb_ramp_not_validated,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' THEN 1 END) AS no_curb_ramp_labels,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS no_curb_ramp_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS no_curb_ramp_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NULL THEN 1 END) AS no_curb_ramp_not_validated,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' THEN 1 END) AS obstacle_labels,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS obstacle_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS obstacle_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NULL THEN 1 END) AS obstacle_not_validated,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' THEN 1 END) AS surface_problem_labels,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS surface_problem_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS surface_problem_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NULL THEN 1 END) AS surface_problem_not_validated,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' THEN 1 END) AS no_sidewalk_labels,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS no_sidewalk_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS no_sidewalk_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NULL THEN 1 END) AS no_sidewalk_not_validated,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS crosswalk_labels,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS crosswalk_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS crosswalk_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS crosswalk_not_validated,
+         |           COUNT(CASE WHEN label_type = 'Signal' THEN 1 END) AS pedestrian_signal_labels,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS pedestrian_signal_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS pedestrian_signal_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND correct IS NULL THEN 1 END) AS pedestrian_signal_not_validated,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' THEN 1 END) AS cant_see_sidewalk_labels,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS cant_see_sidewalk_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS cant_see_sidewalk_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NULL THEN 1 END) AS cant_see_sidewalk_not_validated,
+         |           COUNT(CASE WHEN label_type = 'Other' THEN 1 END) AS other_labels,
+         |           COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS other_validated_correct,
+         |           COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS other_validated_incorrect,
+         |           COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
+         |    FROM audit_task
+         |    INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
+         |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |    WHERE deleted = FALSE
+         |        AND tutorial = FALSE
+         |        AND label.street_edge_id <> ${LabelTable.tutorialStreetId}
+         |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId}
+         |    GROUP BY user_id
+         |) label_counts ON user_stat.user_id = label_counts.user_id
+         |WHERE role.role <> 'Anonymous';""".stripMargin
+    )
+    statsQuery.list
   }
 
   /**
