@@ -25,7 +25,8 @@
   },
   "label-map": {
     "add-comment": "Add comment here...",
-    "submit": "Submit comment"
+    "submit": "Submit comment",
+    "comment-submitted" : "Comment Submitted"
   },
   "severity": "Severity",
   "tags": "Tags",

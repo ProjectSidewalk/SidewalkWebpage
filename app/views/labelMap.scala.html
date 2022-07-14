@@ -253,12 +253,13 @@
         })
     });
 
-    // Deletes labelModal when closed
+    // Fully destroy label modal when it's closed to prevent weird behavior when opening another
     $(window).on('click', function(e) {
-        if (document.getElementById("labelModal") != null && !($('#labelModal').hasClass('in'))) {
-            $("#labelModal").modal('hide');
+        var modal = $("#labelModal");
+        if (modal != null && !(modal.hasClass('in'))) {
+            modal.modal('hide');
             setTimeout(function() {
-                $("#labelModal").remove();
+                modal.remove();
                 $('.modal-backdrop').remove();
             }, 200)
         }

@@ -43,7 +43,7 @@ function AdminGSVLabelView(admin) {
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                 '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="Comment Submitted" data-trigger="manual">' +
+                                '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
                                     i18next.t('common:label-map.submit') +
                                 '</button>' +
                             '</div>' +
@@ -263,11 +263,11 @@ function AdminGSVLabelView(admin) {
             success: function (result) {
                 button.style.cursor = "pointer";
                 self.commentTextArea.val('');
-                $('#comment-button').popover('toggle');
-                setTimeout(function(){$('#comment-button').popover('toggle'); }, 1000);
+                self.commentButton.popover('toggle');
+                setTimeout(function(){self.commentButton.popover('toggle'); }, 1500);
             },  
             error: function(xhr, textStatus, error){
-                document.getElementById("comment-button").style.cursor = "pointer"
+                button.style.cursor = "pointer";
                 console.error(xhr.statusText);
                 console.error(textStatus);
                 console.error(error);

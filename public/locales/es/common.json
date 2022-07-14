@@ -25,7 +25,8 @@
   },
   "label-map": {
     "add-comment": "Agrega un comentario aquí...",
-    "submit": "Enviar comentario"
+    "submit": "Enviar comentario",
+    "comment-submitted" : "Comentario Enviado"
   },
   "severity": "Calificación ",
   "tags": "Etiquitas ",

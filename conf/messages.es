@@ -24,6 +24,7 @@ loading.encouragement = ¡Hagámoslo!
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
+feedback.submitted = Comentarios Enviados
 
 navbar.explore = Comienza a explorar
 navbar.validate = Comienza a validar

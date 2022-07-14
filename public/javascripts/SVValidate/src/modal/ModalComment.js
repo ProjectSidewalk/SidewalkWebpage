@@ -11,6 +11,11 @@ function ModalComment (modalUI) {
         disableClickOk: true
     };
 
+    // Initializing feedback popover 
+    $(function () {
+        modalUI.feedbackButton.popover();
+    });
+
     /**
      * Disables the ok button (makes button unclickable).
      */
@@ -127,11 +132,11 @@ function ModalComment (modalUI) {
             contentType: 'application/json; charset=utf-8',
             url: url,
             type: 'post',
-            data: JSON.stringify(data), 
+            data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                $('#left-column-feedback-button').popover('toggle');
-                setTimeout(function(){$('#left-column-feedback-button').popover('toggle'); }, 1000);
+                modalUI.feedbackButton.popover('toggle');
+                setTimeout(function(){modalUI.feedbackButton.popover('toggle'); }, 1500);
             },
             error: function(xhr, textStatus, error){
                 console.error(xhr.statusText);

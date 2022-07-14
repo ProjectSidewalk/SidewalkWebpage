@@ -25,7 +25,8 @@
   },
   "label-map": {
     "add-comment": "Voeg opmerking hier toe...",
-    "submit": "Voeg opmerking toe"
+    "submit": "Voeg opmerking toe",
+    "comment-submitted" : "Commentaar ingediend"
   },
   "severity": "Ernst",
   "tags": "Tags",
