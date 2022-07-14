@@ -212,10 +212,10 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.heading());
             featureBuilder.add(l.pitch());
             featureBuilder.add(l.zoom());
-            featureBuilder.add(l.canvasXY()._1);
-            featureBuilder.add(l.canvasXY()._2);
-            featureBuilder.add(l.canvasWidthHeight()._1);
-            featureBuilder.add(l.canvasWidthHeight()._2);
+            featureBuilder.add(l.canvasXY()._1());
+            featureBuilder.add(l.canvasXY()._2());
+            featureBuilder.add(l.canvasWidthHeight()._1());
+            featureBuilder.add(l.canvasWidthHeight()._2());
             featureBuilder.add(l.gsvUrl());
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
