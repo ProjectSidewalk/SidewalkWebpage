@@ -261,7 +261,7 @@ object GlobalAttributeTable {
           |    OR ${severity.isEmpty}
           |    OR global_attribute.severity = ${toInt(severity).get})""".stripMargin
       )
-    attributesWithLabels.list  // .map(GlobalAttributeWithLabelForAPI.tupled)
+    attributesWithLabels.list
   }
 
   /**
