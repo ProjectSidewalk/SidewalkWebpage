@@ -317,10 +317,10 @@ function Admin(_, $, difficultRegionIds) {
                 }
                 var curbRamps = data.features.filter(function(label) {return label.properties.label_type === "CurbRamp"});
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
-                var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
-                var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+                var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
+                var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
                 var pedestrianSignals = data.features.filter(function(label) {return label.properties.label_type === "Signal"});
                 
                 var curbRampStats = getSummaryStats(curbRamps, "severity");
@@ -331,22 +331,22 @@ function Admin(_, $, difficultRegionIds) {
                 $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
                 $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
                 
-                var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
-                $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
-                $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
-                
-                var crosswalkStats = getSummaryStats(crosswalks, "severity");
-                $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
-                $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
-
                 var obstacleStats = getSummaryStats(obstacles, "severity");
                 $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
                 $("#obstacle-std").html((obstacleStats.std).toFixed(2));
+
+                var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
+                $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
+                $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
                 
                 var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
                 $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
                 $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
                 
+                var crosswalkStats = getSummaryStats(crosswalks, "severity");
+                $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
+                $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
+
                 var pedestrianSignalStats = getSummaryStats(pedestrianSignals, "severity");
                 $("#signal-mean").html((pedestrianSignalStats.mean).toFixed(2));
                 $("#signal-std").html((pedestrianSignalStats.std).toFixed(2));
@@ -355,9 +355,10 @@ function Admin(_, $, difficultRegionIds) {
                 var allDataStats = getSummaryStats(allData, "severity");
                 $("#labels-mean").html((allDataStats.mean).toFixed(2));
                 $("#labels-std").html((allDataStats.std).toFixed(2));
-                
-                var subPlotHeight = 150;
-                var subPlotWidth = 149;
+
+                var subPlotHeight = 150; // Before, it was 150
+                var subPlotWidth = 130; // Before, it was 149
+
                 var chart = {
                     "hconcat": [
                         {
@@ -369,28 +370,6 @@ function Admin(_, $, difficultRegionIds) {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "Curb Ramp Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
-                            }
-                        },
-                        {
-                            "height": subPlotHeight,
-                            "width": subPlotWidth,
-                            "data": {"values": noCurbRamps},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Missing Curb Ramp Severity", "labelAngle": 0}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
-                            }
-                        },
-                        {
-                            "height": subPlotHeight,
-                            "width": subPlotWidth,
-                            "data": {"values": surfaceProblems},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Surface Problem Severity", "labelAngle": 0}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                         {
@@ -414,15 +393,71 @@ function Admin(_, $, difficultRegionIds) {
                                     "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
-                        }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": pedestrianSignals},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Pedestrian Signal Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
                     ],
                     "config": {
                         "axis": {
-                            "titleFontSize": 14
+                            "titleFontSize": 10
                         }
                     }
                 };
+
+                var chart2 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noCurbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Missing Curb Ramp Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": surfaceProblems},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Surface Problem Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": crosswalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Crosswalk Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 10
+                        }
+                    }
+                };
+
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
+                vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Create a choropleth.
