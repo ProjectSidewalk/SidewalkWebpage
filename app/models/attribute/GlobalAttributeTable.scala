@@ -78,7 +78,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val notsureCount: Int,
                                           val labelSeverity: Option[Int],
                                           val labelTemporary: Boolean,
-                                          val labelTagsAndDescription: (List[String], String)) {
+                                          val labelTagsAndDescription: (List[String], Option[String])) {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${canvasWidthHeight._1}x${canvasWidthHeight._2}
                   |&pano=${gsvPanoramaId}
@@ -128,7 +128,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 canvasXY._2.toString, canvasWidthHeight._1.toString, canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"",
                                 labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
                                 disagreeCount.toString, notsureCount.toString, "\"[" + labelTagsAndDescription._1.mkString(",") + "]\"",
-                                "\"" + labelTagsAndDescription._2 + "\"")
+                                "\"" + labelTagsAndDescription._2.getOrElse("NA") + "\"")
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
@@ -177,7 +177,7 @@ object GlobalAttributeTable {
       r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, r.nextFloat, r.nextFloat, r.nextInt, (r.nextInt,
       r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
       (r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
-      r.nextString())
+      r.nextStringOption())
     )
   )
 

@@ -221,7 +221,12 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
             featureBuilder.add("[" + l.labelTagsAndDescription()._1.mkString(",") + "]");
-            featureBuilder.add(l.labelTagsAndDescription()._2);
+            featureBuilder.add(l.labelTagsAndDescription()._2.getOrElse(new AbstractFunction0<Integer>() {
+                @Override
+                public Integer apply() {
+                    return null;
+                }
+            }));
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
