@@ -71,6 +71,12 @@ footer {
  * Custom styles
  */
 
+.icon-outline {
+    border: 1px solid black;
+    border-radius: 25px;
+    outline: .5px solid white;
+}
+
 .stats-grid{
     display: flex;
 }

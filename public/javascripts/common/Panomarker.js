@@ -400,6 +400,7 @@
         }
 
         var marker = document.createElement('div');
+        marker.className = 'icon-outline';
 
         // Basic style attributes for every marker
         marker.style.position = 'absolute';
@@ -408,11 +409,6 @@
         marker.style.height = this.size_.height + 'px';
         marker.style.display = this.visible_ ? 'block' : 'none';
         marker.style.zIndex = this.zIndex_;
-        marker.style.border = 'solid black';
-        marker.style.borderWidth = '1px';
-        marker.style.borderRadius = '25px';
-        marker.style.outline = 'solid white';
-        marker.style.outlineWidth = '0.5px';
 
         // Set other css attributes based on the given parameters
         if (this.id_) { marker.id = this.id_; }
