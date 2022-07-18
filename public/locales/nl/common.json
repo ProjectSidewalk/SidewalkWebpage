@@ -68,7 +68,7 @@
     "cracks": "scheuren",
     "grass": "gras",
     "narrow sidewalk": "smal trottoir",
-    "brick": "steen",
+    "brick/cobblestone": "steen",
     "very broken": "erg beschadigd",
     "rail/tram track": "spoor/trambaan",
     "sand/gravel": "zand/grind",
