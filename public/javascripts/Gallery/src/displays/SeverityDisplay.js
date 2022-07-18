@@ -7,10 +7,16 @@
  * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
  * @returns {SeverityDisplay} the generated object
  */
-function SeverityDisplay(container, severity, isModal=false) {
+function SeverityDisplay(container, severity, labelType, isModal=false) {
     let self = this;
     self.severity = severity;
     self.severityContainer = container;
+
+    // list of label types where severity ratings are not supported
+    // if more unsupported label types are made, add them here!
+    const unsupported = ['Occlusion', 'Signal'];
+
+    let noSeverity = unsupported.includes(labelType);
 
     let circles = [];
     function _init() {
@@ -30,7 +36,7 @@ function SeverityDisplay(container, severity, isModal=false) {
 
         title.innerText = `${i18next.t("severity")}`;
         // if no severity rating, gray out title
-        if (!severity) {
+        if (noSeverity) {
             title.classList.add('no-severity-header')
         }
         container.append(title);
@@ -42,7 +48,7 @@ function SeverityDisplay(container, severity, isModal=false) {
             let severityCircle = isModal ? new Image() : document.createElement('div');
             severityCircle.className = severityCircleClass;
 
-            if (severity) {
+            if (!noSeverity) {
                 // create severity circle elements
                 if (isModal) {
                     if (i <= severity) { // Filled in smileys
@@ -68,7 +74,7 @@ function SeverityDisplay(container, severity, isModal=false) {
             circles.push(severityCircle);
         }
 
-        if (!severity) {
+        if (noSeverity) {
             // add tooltip if no severity level
             holder.setAttribute('data-toggle', 'tooltip');
             holder.setAttribute('data-placement', 'top');
