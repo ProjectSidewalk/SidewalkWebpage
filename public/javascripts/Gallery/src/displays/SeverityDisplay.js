@@ -14,9 +14,9 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
 
     // list of label types where severity ratings are not supported
     // if more unsupported label types are made, add them here!
-    const unsupported = ['Occlusion', 'Signal'];
+    const unsupportedLabels = ['Occlusion', 'Signal'];
 
-    let noSeverity = unsupported.includes(labelType);
+    let unsupported = unsupportedLabels.includes(labelType);
 
     let circles = [];
     function _init() {
@@ -36,7 +36,7 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
 
         title.innerText = `${i18next.t("severity")}`;
         // if no severity rating, gray out title
-        if (noSeverity) {
+        if (unsupported || !severity) {
             title.classList.add('no-severity-header')
         }
         container.append(title);
@@ -48,7 +48,16 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
             let severityCircle = isModal ? new Image() : document.createElement('div');
             severityCircle.className = severityCircleClass;
 
-            if (!noSeverity) {
+            if (unsupported || !severity) {
+                // create grayed out empty circles/smileys
+                if (isModal) {
+                    severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+                    severityCircle.classList.add('modal-no-severity');
+                } else {
+                    severityCircle.classList.add(severityCircleClass, 'no-severity-circle');
+                }
+                circles.push(severityCircle);
+            } else {
                 // create severity circle elements
                 if (isModal) {
                     if (i <= severity) { // Filled in smileys
@@ -61,24 +70,21 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
                         severityCircle.id = selectedCircleID
                     }
                 }
-            } else {
-                // create grayed out empty circles/smileys
-                if (isModal) {
-                    severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
-                    severityCircle.classList.add('modal-no-severity');
-                } else {
-                    severityCircle.classList.add(severityCircleClass, 'no-severity-circle');
-                }
-                circles.push(severityCircle);
             }
             circles.push(severityCircle);
         }
 
-        if (noSeverity) {
+        if (!severity) {
             // add tooltip if no severity level
             holder.setAttribute('data-toggle', 'tooltip');
             holder.setAttribute('data-placement', 'top');
-            holder.setAttribute('title', `${i18next.t("unsupported")}`);
+
+            // change tooltip message depending on if the label is unsupported or user did not add severity rating
+            if (unsupported){
+                holder.setAttribute('title', `${i18next.t("unsupported")}`);
+            } else {
+                holder.setAttribute('title', `${i18next.t("no-severity")}`);
+            }
             $(holder).tooltip('hide');
         }
 

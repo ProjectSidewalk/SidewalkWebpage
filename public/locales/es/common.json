@@ -28,6 +28,7 @@
     "submit": "Enviar comentario"
   },
   "severity": "Calificación ",
+  "no-severity": "Un usuario no proporcionó una calificación de gravedad para esta etiqueta",
   "unsupported": "Este tipo de etiqueta no tiene niveles de gravedad significativos",
   "tags": "Etiquitas ",
   "temporary": "Temporal",
