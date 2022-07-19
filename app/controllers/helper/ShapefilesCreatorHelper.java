@@ -209,9 +209,9 @@ public class ShapefilesCreatorHelper {
             }));
             featureBuilder.add(l.labelTemporary());
             featureBuilder.add(l.gsvPanoramaId());
-            featureBuilder.add(l.heading());
-            featureBuilder.add(l.pitch());
-            featureBuilder.add(l.zoom());
+            featureBuilder.add(l.headingPitchZoom()._1());
+            featureBuilder.add(l.headingPitchZoom()._2());
+            featureBuilder.add(l.headingPitchZoom()._3());
             featureBuilder.add(l.canvasXY()._1());
             featureBuilder.add(l.canvasXY()._2());
             featureBuilder.add(l.canvasWidthHeight()._1());
@@ -220,10 +220,10 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
-            featureBuilder.add("[" + l.labelTagsAndDescription()._1.mkString(",") + "]");
-            featureBuilder.add(l.labelTagsAndDescription()._2.getOrElse(new AbstractFunction0<Integer>() {
+            featureBuilder.add("[" + l.labelTags().mkString(",") + "]");
+            featureBuilder.add(l.labelDescription().getOrElse(new AbstractFunction0<String>() {
                 @Override
-                public Integer apply() {
+                public String apply() {
                     return null;
                 }
             }));

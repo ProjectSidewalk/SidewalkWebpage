@@ -68,9 +68,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val labelId: Int,
                                           val labelLatLng: (Float, Float),
                                           val gsvPanoramaId: String,
-                                          val heading: Float,
-                                          val pitch: Float,
-                                          val zoom: Int,
+                                          val headingPitchZoom: (Float, Float, Int),
                                           val canvasXY: (Int, Int),
                                           val canvasWidthHeight: (Int, Int),
                                           val agreeCount: Int,
@@ -78,13 +76,14 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val notsureCount: Int,
                                           val labelSeverity: Option[Int],
                                           val labelTemporary: Boolean,
-                                          val labelTagsAndDescription: (List[String], Option[String])) {
+                                          val labelTags: List[String],
+                                          val labelDescription: Option[String]) {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${canvasWidthHeight._1}x${canvasWidthHeight._2}
                   |&pano=${gsvPanoramaId}
-                  |&heading=${heading}
-                  |&pitch=${pitch}
-                  |&fov=${GoogleMapsHelper.getFov(zoom)}
+                  |&heading=${headingPitchZoom._1}
+                  |&pitch=${headingPitchZoom._2}
+                  |&fov=${GoogleMapsHelper.getFov(headingPitchZoom._3)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
   def toJSON: JsObject = {
@@ -102,9 +101,9 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "is_temporary" -> attributeTemporary,
         "label_id" -> labelId,
         "gsv_panorama_id" -> gsvPanoramaId,
-        "heading" -> heading,
-        "pitch" -> pitch,
-        "zoom" -> zoom,
+        "heading" -> headingPitchZoom._1,
+        "pitch" -> headingPitchZoom._2,
+        "zoom" -> headingPitchZoom._3,
         "canvas_x" -> canvasXY._1,
         "canvas_y" -> canvasXY._2,
         "canvas_width" -> canvasWidthHeight._1,
@@ -115,8 +114,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
         "notsure_count" -> notsureCount,
-        "label_tags" -> labelTagsAndDescription._1,
-        "label_description" -> labelTagsAndDescription._2
+        "label_tags" -> labelTags,
+        "label_description" -> labelDescription
       )
     )
   }
@@ -124,11 +123,11 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 attributeTemporary.toString, streetEdgeId.toString, osmStreetId.toString,
                                 neighborhoodName, labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
-                                heading.toString, pitch.toString, zoom.toString, canvasXY._1.toString,
-                                canvasXY._2.toString, canvasWidthHeight._1.toString, canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"",
-                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
-                                disagreeCount.toString, notsureCount.toString, "\"[" + labelTagsAndDescription._1.mkString(",") + "]\"",
-                                "\"" + labelTagsAndDescription._2.getOrElse("NA") + "\"")
+                                headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
+                                canvasXY._1.toString, canvasXY._2.toString, canvasWidthHeight._1.toString,
+                                canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"", labelSeverity.getOrElse("NA").toString,
+                                labelTemporary.toString, agreeCount.toString, disagreeCount.toString, notsureCount.toString,
+                                "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"")
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
@@ -174,10 +173,9 @@ object GlobalAttributeTable {
   implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
     GlobalAttributeWithLabelForAPI(
       r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt, r.nextString,
-      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, r.nextFloat, r.nextFloat, r.nextInt, (r.nextInt,
+      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, (r.nextFloat, r.nextFloat, r.nextInt), (r.nextInt,
       r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
-      (r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
-      r.nextStringOption())
+      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption()
     )
   )
 
@@ -229,13 +227,33 @@ object GlobalAttributeTable {
     */
   def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
-          s"""SELECT global_attribute.global_attribute_id, label_type.label_type, global_attribute.lat,
-          |        global_attribute.lng, global_attribute.severity, global_attribute.temporary,
-          |        global_attribute.street_edge_id, osm_way_street_edge.osm_way_id, region.description, label.label_id,
-          |        label_point.lat, label_point.lng, label.gsv_panorama_id, label_point.heading,
-          |        label_point.pitch, label_point.zoom, label_point.canvas_x, label_point.canvas_y,
-          |        label_point.canvas_width, label_point.canvas_height, label.agree_count, label.disagree_count,
-          |        label.notsure_count, label.severity, label.temporary, the_tags.tag_list, label.description
+          s"""SELECT global_attribute.global_attribute_id,
+          |        label_type.label_type,
+          |        global_attribute.lat,
+          |        global_attribute.lng,
+          |        global_attribute.severity,
+          |        global_attribute.temporary,
+          |        global_attribute.street_edge_id,
+          |        osm_way_street_edge.osm_way_id,
+          |        region.description,
+          |        label.label_id,
+          |        label_point.lat,
+          |        label_point.lng,
+          |        label.gsv_panorama_id,
+          |        label_point.heading,
+          |        label_point.pitch,
+          |        label_point.zoom,
+          |        label_point.canvas_x,
+          |        label_point.canvas_y,
+          |        label_point.canvas_width,
+          |        label_point.canvas_height,
+          |        label.agree_count,
+          |        label.disagree_count,
+          |        label.notsure_count,
+          |        label.severity,
+          |        label.temporary,
+          |        the_tags.tag_list,
+          |        label.description
           |FROM global_attribute
           |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
           |INNER JOIN region ON global_attribute.region_id = region.region_id
@@ -256,10 +274,11 @@ object GlobalAttributeTable {
           |    AND global_attribute.lat < $maxLat
           |    AND global_attribute.lng > $minLng
           |    AND global_attribute.lng < $maxLng
-          |    AND (global_attribute.severity IS NOT NULL
-          |    AND ${severity.getOrElse("") == "none"}
-          |    OR ${severity.isEmpty}
-          |    OR global_attribute.severity = ${toInt(severity).get})""".stripMargin
+          |    AND (global_attribute.severity IS NULL
+          |         AND ${severity.getOrElse("") == "none"}
+          |         OR ${severity.isEmpty}
+          |         OR global_attribute.severity = ${toInt(severity).getOrElse(-1)}
+          |        )""".stripMargin
       )
     attributesWithLabels.list
   }
