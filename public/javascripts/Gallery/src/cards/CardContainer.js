@@ -96,7 +96,6 @@ function CardContainer(uiCardContainer) {
 
             // Set share preview image to image of modal that is currently active
             let newImageUrl = event.target.src;
-            console.log(newImageUrl)
             document.querySelector('meta[property="og:image"]').setAttribute("content", newImageUrl);
             document.querySelector('meta[name="twitter:image"]').setAttribute("content", newImageUrl);
 

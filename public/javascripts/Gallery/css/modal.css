@@ -186,21 +186,8 @@
     border-style: solid;
     border-width: 2px;
     background-color: #fff;
-    width: 45%;
-    height: 10%;
-}
-
-.share-arrow {
-    display: none;
-    position: absolute;
-    width: .45vw;
-    height: .45vw;
-    bottom: -30%;
-    right: 10%;
-    animation: fadeIn 1s;
-    border-width: .8vw;
-    border-color: black transparent transparent transparent;
-    border-style: solid;
+    width: 40%;
+    height: 8%;
 }
 
 .share-button {
@@ -230,7 +217,7 @@
 
 .copy {
     height: 50%;
-    width: auto;
+    width: 40%;
     aspect-ratio: initial;
 }
 
