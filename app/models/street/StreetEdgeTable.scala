@@ -147,7 +147,7 @@ object StreetEdgeTable {
     * @return
     */
   def auditedStreetDistance(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = db.withSession { implicit session =>
-    val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
+    val cacheKey = s"auditedStreetDistance($auditCount, $userType, $highQualityOnly)"
 
     Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
       val auditTaskQuery = userType match {
@@ -178,8 +178,6 @@ object StreetEdgeTable {
       val edgesWithAuditCounts = edges.groupBy(x => x).map{
         case (edge, group) => (edge.geom.transform(26918).length, group.length)
       }
-
-      println(edgesWithAuditCounts.length.run)
 
       // Get length of each street segment, sum the lengths, and convert from meters to miles.
       edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
