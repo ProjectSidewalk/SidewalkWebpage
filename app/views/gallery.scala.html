@@ -85,6 +85,26 @@
                     <div class="gallery-modal-info-description"></div>
                     <div class="gallery-modal-share">
                         <div id="share-popup">
+                            <button class="facebook share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/facebook_share_icon.svg">
+                            </button>
+                            <button class="twitter share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/twitter_share_icon.svg">
+                            </button>
+                            <button class="email share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/email_share_icon.svg">
+                            </button>
+                            <button class="pintrest share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/pinterest_share_icon.svg">
+                            </button>
+                            <button class="instagram share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/instagram_share_icon.svg">
+                            </button>
+                            <div class="vertical-divider"></div>
+                            <button class="copy share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/copy_icon.svg">
+                                <div class="copy-text">copy link</div>
+                            </button>
                             <div class="share-arrow"></div>
                         </div>
                         <button class="modal-share-button">
@@ -122,14 +142,16 @@
             $(document).click(function(event) {
                 var $target = $(event.target);
                 if(!$target.closest('.gallery-modal-share').length && $('#share-popup').is(":visible")) {
+                    $('.share-arrow').css("display", "none");
                     $('#share-popup').hide("fast");
-                    $('.share-arrow').hide("fast");
                 }
             });
 
             $('.modal-share-button').click(function(event) {
-                $('#share-popup').toggle("fast");
-                $('.share-arrow').toggle("fast");
+                $('#share-popup').show("fast", function() {
+                    $('#share-popup').css("display", "flex");
+                    $('.share-arrow').css("display", "block");
+                });
             });
     </script>
 

@@ -174,40 +174,77 @@
 }
 
 #share-popup {
+    z-index: 10;
     display: none;
+    align-content: center;
+    justify-content: space-evenly;
     position: absolute;
     bottom: 20%;
-    right: 6%;
+    right: 5%;
     border-radius: 6px;
-    -webkit-box-shadow: 1px 1px 10px black;
-    -moz-box-shadow: 1px 1px 10px black;
-    box-shadow: 1px 1px 10px black;
+    border-color: black;
+    border-style: solid;
+    border-width: 2px;
     background-color: #fff;
-    z-index: 10;
-    width: 32%;
-    height: 8%;
+    width: 45%;
+    height: 10%;
 }
 
 .share-arrow {
     display: none;
     position: absolute;
+    width: .45vw;
+    height: .45vw;
+    bottom: -30%;
+    right: 10%;
     animation: fadeIn 1s;
-    top: 85%;
-    left: 80%;
-    border-width: 10px;
-    border-radius: 2px;
+    border-width: .8vw;
+    border-color: black transparent transparent transparent;
     border-style: solid;
-    transform: rotate(45deg);
-    border-color: transparent #fff #fff transparent;
-    -webkit-box-shadow: 10px 10px 10px -8px black;
-    -moz-box-shadow: 10px 10px 10px -8px black;
-    box-shadow: 10px 10px 10px -8px black;
+}
+
+.share-button {
+    width: 10%;
+    background: none;
+    aspect-ratio: 1/1;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    align-self: center;
+    justify-self: center;
+    border-radius: 25px;
+    border-style: none;
+    transition: 0.6s;
+}
+
+.share-button:hover {
+    transition: 0.6s;
+    background-color: #e5e5e5;
 }
 
 
-.twitter-share-button, .twitter-share-button {
-    display: inherit;
+.share-icon {
+    height: 100%;
+    width: auto;
+}
+
+.copy {
+    height: 50%;
+    width: auto;
+    aspect-ratio: initial;
+}
+
+.copy-text {
     margin-left: 5px;
+    align-self: center;
+    font-size: 115%;
+}
+
+.vertical-divider {
+    align-self: center;
+    background: black;
+    height: 80%;
+    width: 2px;
 }
 
 .modal-top-holder {
