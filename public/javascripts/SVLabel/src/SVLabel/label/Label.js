@@ -423,9 +423,7 @@ function Label (svl, pathIn, params) {
             // Renders the label image.
             path.render2(ctx, pov);
 
-            // Draws an outline around the label icon.
-            //reference icon-outline
-            /*ctx.lineWidth = .7;
+            ctx.lineWidth = .7;
             ctx.beginPath();
             ctx.arc(getCoordinate().x, getCoordinate().y, 15.3, 0, 2 * Math.PI);
             ctx.strokeStyle = 'black';
@@ -433,7 +431,7 @@ function Label (svl, pathIn, params) {
             ctx.beginPath();
             ctx.arc(getCoordinate().x, getCoordinate().y, 16.2, 0, 2 * Math.PI);
             ctx.strokeStyle = 'white';
-            ctx.stroke();*/
+            ctx.stroke();
 
             // Only render severity warning if there's a severity option.
             if (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal') {
