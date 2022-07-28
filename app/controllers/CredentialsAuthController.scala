@@ -5,6 +5,7 @@ import java.time.Instant
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.exceptions.{ConfigurationException, ProviderException}
+import com.mohiva.play.silhouette.api.util.Credentials
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
@@ -38,7 +39,7 @@ class CredentialsAuthController @Inject() (
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
-        case Some(p: CredentialsProvider) => p.authenticate(credentials)
+        case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase, credentials.password))
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
@@ -66,7 +67,7 @@ class CredentialsAuthController @Inject() (
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
-        case Some(p: CredentialsProvider) => p.authenticate(credentials)
+        case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase, credentials.password))
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
