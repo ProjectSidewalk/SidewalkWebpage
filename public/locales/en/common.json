@@ -28,7 +28,7 @@
     "submit": "Submit comment"
   },
   "severity": "Severity",
-  "no-severity": "A user did not provide a severity rating for this label",
+  "no-severity": "A severity rating was not provided for this label",
   "unsupported": "This label type does not have meaningful severity levels",
   "tags": "Tags",
   "temporary": "Temporary",

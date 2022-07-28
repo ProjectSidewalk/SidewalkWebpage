@@ -121,7 +121,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .no-severity-header {
-    color: lightgrey;
+    opacity: 60%;
 }
 
 .label-severity-content {
@@ -189,6 +189,10 @@ with respect to the image holder. This allows the validation menu to be placed o
     filter: opacity(0.2);
 }
 
+.modal-no-severity-box {
+    width: 50%;
+}
+
 .severity-circle {
     color: white;
     border: 1px solid #2d2a3f;
@@ -201,7 +205,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .no-severity-circle {
-    border: 1px solid lightgray;
+    opacity: 40%;
 }
 
 #current-severity {

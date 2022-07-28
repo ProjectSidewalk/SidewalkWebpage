@@ -28,7 +28,7 @@
     "submit": "Voeg opmerking toe"
   },
   "severity": "Ernst",
-  "no-severity": "Een gebruiker heeft geen prioriteitsclassificatie opgegeven voor dit label",
+  "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
   "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
   "tags": "Tags",
   "temporary": "Tijdelijk",

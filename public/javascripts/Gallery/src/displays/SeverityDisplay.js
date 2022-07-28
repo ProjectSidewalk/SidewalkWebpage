@@ -32,6 +32,8 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
         if (isModal) {
             // Add bold weight. Find better way to do this.
             title.classList.add('modal-severity-header');
+            // centers tooltip
+            holder.classList.add('modal-no-severity-box')
         }
 
         title.innerText = `${i18next.t("severity")}`;
