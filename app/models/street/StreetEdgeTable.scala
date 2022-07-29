@@ -106,8 +106,8 @@ object StreetEdgeTable {
     * @param userType
     * @return
     */
-  def auditCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
-    val auditedStreetCount = countAuditedStreets(1, userType).toFloat
+  def auditCompletionRate(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = db.withSession { implicit session =>
+    val auditedStreetCount = countAuditedStreets(1, userType, highQualityOnly).toFloat
     val allEdgesCount: Int = streetEdgesWithoutDeleted.length.run
     auditedStreetCount / allEdgesCount
   }
@@ -163,7 +163,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTaskQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && !stats.excludeManual
+            if stats.highQuality && stats.excludeManual.isEmpty
         } yield tasks
       } else {
           auditTaskQuery

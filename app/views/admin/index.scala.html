@@ -235,70 +235,80 @@
                                     <th>Audited Streets</th>
                                     <td>@StreetEdgeTable.countAuditedStreets() 
                                         (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "All", true)</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "All", true)
+                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "All", true) * 100))%)</td>
                                     <td>@StreetEdgeTable.countTotalStreets()</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
                                     <td>@StreetEdgeTable.countAuditedStreets(1, "Registered") 
                                         (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Registered", true)</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Registered", true)
+                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
                                     <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous") 
                                         (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous", true)</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous", true)
+                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turker</td>
                                     <td>@StreetEdgeTable.countAuditedStreets(1, "Turker") 
                                         (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Turker", true)</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Turker", true)
+                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researcher</td>
                                     <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher") 
                                         (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher", true)</td>
+                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher", true)
+                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                                 <tr>
                                     <th>Distance</th>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr") 
                                         (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "All", true)))) @Messages("dist.metric.abbr")</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "All", true)))) @Messages("dist.metric.abbr")
+                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "All", true) * 100))%)</td>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("dist.metric.abbr")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("dist.metric.abbr") 
                                         (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered", true)))) @Messages("dist.metric.abbr")</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered", true)))) @Messages("dist.metric.abbr")
+                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("dist.metric.abbr") 
                                         (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true)))) @Messages("dist.metric.abbr")</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true)))) @Messages("dist.metric.abbr")
+                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turker</td>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("dist.metric.abbr") 
                                         (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker", true)))) @Messages("dist.metric.abbr")</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker", true)))) @Messages("dist.metric.abbr")
+                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researcher</td>
                                     <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("dist.metric.abbr") 
                                         (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)))) @Messages("dist.metric.abbr")</td>
+                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)))) @Messages("dist.metric.abbr")
+                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher", true) * 100))%)</td>
                                     <td></td>
                                 </tr>
                             </table>
