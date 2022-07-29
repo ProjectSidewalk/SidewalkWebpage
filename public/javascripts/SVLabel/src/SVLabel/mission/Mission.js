@@ -135,6 +135,33 @@ function Mission(parameters) {
     }
 
     /**
+     * Get tasks in mission and push task to _tasksForTheMission
+     * @param missionId
+     * @param callback
+     * @param async
+     */
+     function getMissionTasks(missionId, callback, async) {
+        if (typeof async == "undefined") async = true;
+        $.ajax({
+            url: "/tasks/mission/" + missionId,
+            type: 'get',
+            success: function (result) {
+                var task;
+                for (var i = 0; i < result.length; i++) {
+                    var lat = result[i].features[0].properties.current_lat,
+                    lng = result[i].features[0].properties.current_lng;
+                    task = svl.taskFactory.create(result[i], false, lat, lng, false);
+                    pushATaskToTheRoute(task);
+                }
+                if (callback) callback();
+            },
+            error: function (result) {
+                throw result;
+            }
+        });
+    }
+
+    /**
      * Get an array of tasks for this mission
      * @returns {Array}
      */
@@ -200,6 +227,7 @@ function Mission(parameters) {
     }
 
     _init(parameters);
+    getMissionTasks(getProperty("missionId"), null, false);
 
     self.complete = complete;
     self.getLabelCount = getLabelCount;

@@ -10,7 +10,7 @@ import play.api.libs.functional.syntax._
 
 object TaskFormats {
 
-  // case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float)\
+  // case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, missionId: Int)\
   implicit val auditTaskWrites: Writes[AuditTask] = (
     (__ \ "audit_task_id").write[Int] and
       (__ \ "amt_assignment_id").writeNullable[Int] and
@@ -21,7 +21,8 @@ object TaskFormats {
       (__ \ "completed").write[Boolean] and
       (__ \ "current_lat").write[Float] and
       (__ \ "current_lng").write[Float] and
-      (__ \ "start_point_reversed").write[Boolean]
+      (__ \ "start_point_reversed").write[Boolean] and
+      (__ \ "mission_id").write[Int]
     )(unlift(AuditTask.unapply _))
 
   // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, mission_id: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],

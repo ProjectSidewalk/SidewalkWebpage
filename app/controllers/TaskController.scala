@@ -19,6 +19,7 @@ import models.region._
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
+import models.mission.MissionTable
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -70,6 +71,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+   * Get the audit tasks in the given mission
+   */
+  def getTasksInAMission(missionId: Int) = UserAwareAction.async { implicit request =>
+    val tasks: List[JsObject] = AuditTaskTable.selectTasksInAMission(missionId).map(_.toJSON)
+    Future.successful(Ok(JsArray(tasks)))
+  }
+
+  /**
    * Insert or update the submitted audit task in the database.
    */
   def updateAuditTaskTable(user: Option[User], auditTask: TaskSubmission, missionId: Int, amtAssignmentId: Option[Int]): Int = {
@@ -78,7 +87,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val id = auditTask.auditTaskId.get
       if (MissionTable.getMissionType(missionId) == Some("audit")) {
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng)
+        AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng, missionId)
       }
       id
     } else {
@@ -87,12 +96,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskObj = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
           Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-          auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed)
+          auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
           AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId,
             Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-            auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed)
+            auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId)
       }
       AuditTaskTable.save(auditTaskObj)
     }
