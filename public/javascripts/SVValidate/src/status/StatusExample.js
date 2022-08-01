@@ -11,6 +11,9 @@ function StatusExample (statusUI) {
     let examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
     let counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
+    // This object holds the translations for all the correct/incorrect example descriptions.
+    let descriptionTranslations = i18next.t('right-ui', { returnObjects: true });
+
     let exampleImage = $(".example-image");
     exampleImage.on('mouseover', _showExamplePopup);
     exampleImage.on('mouseout', _hideExamplePopup);
@@ -32,28 +35,21 @@ function StatusExample (statusUI) {
         statusUI.popup.css('visibility', 'hidden');
     }
 
+    /**
+     * Set the description for the popup at the given HTML id by building the key for the correct translation.
+     *
+     * HTML IDs look like '{example,counterexample}-image-{1,2,3,4}', and we use this ID to build the key to translate
+     * that looks like 'right-ui.{correct,incorrect}.example-{list of dash-separated numbers}'. So if we have the same
+     * text for 'example-image-{1,3, and 4}', then the translation key will be 'right-ui.correct.example-1-3-4'.
+     * @param id
+     * @private
+     */
     function _setPopupDescription (id) {
-        let description = undefined;
-
-        switch (labelType) {
-            case "CurbRamp":
-                description = svv.statusPopupDescriptions.getCurbRampDescription(id);
-                break;
-            case "NoCurbRamp":
-                description = svv.statusPopupDescriptions.getMissingCurbRampDescription(id);
-                break;
-            case "Obstacle":
-                description = svv.statusPopupDescriptions.getObstacleDescription(id);
-                break;
-            case "SurfaceProblem":
-                description = svv.statusPopupDescriptions.getSurfaceProblemDescription(id);
-                break;
-            case "NoSidewalk":
-                description = svv.statusPopupDescriptions.getNoSidewalkDescription(id);
-                break;
-        }
-
-        statusUI.popupDescription.html(description);
+        let correctness = id.startsWith('example') ? 'correct' : 'incorrect';
+        let exampleNum = id.charAt(id.length - 1);
+        let translations = descriptionTranslations[correctness][util.camelToKebab(labelType)];
+        let key = Object.keys(translations).filter(k => k.startsWith('example') && k.includes(exampleNum));
+        statusUI.popupDescription.html(translations[key]);
     }
 
     /**
@@ -64,26 +60,26 @@ function StatusExample (statusUI) {
     function _setPopupLocation (id) {
         // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
 
-        // Horizontal positioning.
+        // Positioning within the group of 4 examples (correct or incorrect).
         if (id.includes("1")) {
-            statusUI.popup.css('left', '480px');
+            statusUI.popup.css('left', '490px');
             statusUI.popupPointer.css('top', '50px');
         } else if (id.includes("2")) {
-            statusUI.popup.css('left', '580px');
+            statusUI.popup.css('left', '590px');
             statusUI.popupPointer.css('top', '50px');
         } else if (id.includes("3")) {
-            statusUI.popup.css('left', '480px');
+            statusUI.popup.css('left', '490px');
             statusUI.popupPointer.css('top', '135px');
         } else if(id.includes("4")) {
-            statusUI.popup.css('left', '580px');
+            statusUI.popup.css('left', '590px');
             statusUI.popupPointer.css('top', '135px');
         }
 
-        // Vertical Positioning.
+        // Position based on the correct v incorrect group.
         if (id.includes("counterexample")) {
-            statusUI.popup.css('top', '108px');
+            statusUI.popup.css('top', '196px');
         } else {
-            statusUI.popup.css('top', '-108px');
+            statusUI.popup.css('top', '-10px');
         }
     }
 

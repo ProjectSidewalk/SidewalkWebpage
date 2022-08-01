@@ -96,7 +96,7 @@ object StreetEdgeTable {
     * @return
     */
   def countTotalStreets(): Int = db.withSession { implicit session =>
-    streetEdgesWithoutDeleted.size.run
+    streetEdgesWithoutDeleted.length.run
   }
 
   /**
@@ -108,7 +108,7 @@ object StreetEdgeTable {
     */
   def auditCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
     val auditedStreetCount = countAuditedStreets(1, userType).toFloat
-    val allEdgesCount: Int = streetEdgesWithoutDeleted.size.run
+    val allEdgesCount: Int = streetEdgesWithoutDeleted.length.run
     auditedStreetCount / allEdgesCount
   }
 
@@ -119,8 +119,8 @@ object StreetEdgeTable {
     * @return Float between 0 and 1
     */
   def streetDistanceCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
-    val auditedDistance = auditedStreetDistance(auditCount, userType)
-    val totalDistance = totalStreetDistance()
+    val auditedDistance: Float = auditedStreetDistance(auditCount, userType)
+    val totalDistance: Float = totalStreetDistance()
     auditedDistance / totalDistance
   }
 
@@ -149,7 +149,7 @@ object StreetEdgeTable {
   def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
     val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
-    Cache.getOrElse(cacheKey, 1.hour.toSeconds.toInt) {
+    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
       val auditTaskQuery = userType match {
         case "All" => completedAuditTasks
         case "Researcher" => researcherCompletedAuditTasks
@@ -302,21 +302,6 @@ object StreetEdgeTable {
     */
   def countAuditedStreets(auditCount: Int = 1, userType: String = "All"): Int = db.withSession { implicit session =>
     selectAuditedStreets(auditCount, userType).size
-  }
-
-  /** Returns the sum of the lengths of all streets in the region that have been audited. */
-  def getDistanceAuditedInARegion(regionId: Int): Float = db.withSession { implicit session =>
-    val streetsInRegion = for {
-      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === regionId
-      _edges <- streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _edges
-
-    val auditedStreetsInARegion = for {
-      (_edges, _tasks) <- streetsInRegion.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _edges
-
-    // Select distinct and sum the lengths of the streets.
-    auditedStreetsInARegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
   }
 
   /** Returns the sum of the lengths of all streets in the region. */

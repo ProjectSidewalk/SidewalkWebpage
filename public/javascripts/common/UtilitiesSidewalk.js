@@ -82,9 +82,13 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
-                    'missing friction strip': {
-                        keyChar: 'F',
-                        text: i18next.t('center-ui.context-menu.tag.missing-friction-strip')
+                    'missing tactile warning': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.missing-tactile-warning')
+                    },
+                    'tactile warning': {
+                        keyChar: 'H',
+                        text: i18next.t('center-ui.context-menu.tag.tactile-warning')
                     },
                     'steep': {
                         keyChar: 'T',
@@ -101,6 +105,10 @@ function UtilitiesMisc (JSON) {
                     'surface problem': {
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.surface-problem')
+                    },
+                    'pooled water': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.pooled-water')
                     }
                 }
             },
@@ -219,9 +227,9 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
-                    'brick': {
+                    'brick/cobblestone': {
                         keyChar: 'I',
-                        text: i18next.t('center-ui.context-menu.tag.brick')
+                        text: i18next.t('center-ui.context-menu.tag.brick-cobblestone')
                     },
                     'construction': {
                         keyChar: 'T',
@@ -242,6 +250,10 @@ function UtilitiesMisc (JSON) {
                     'sand/gravel': {
                         keyChar: 'V',
                         text: i18next.t('center-ui.context-menu.tag.sand-gravel')
+                    },
+                    'uncovered manhole': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     }
                 }
             },
@@ -289,9 +301,9 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.uneven-surface')
                     },
-                    'brick': {
+                    'brick/cobblestone': {
                         keyChar: 'I',
-                        text: i18next.t('center-ui.context-menu.tag.brick')
+                        text: i18next.t('center-ui.context-menu.tag.brick-cobblestone')
                     },
                     'bumpy': {
                         keyChar: 'Y',
@@ -300,6 +312,18 @@ function UtilitiesMisc (JSON) {
                     'rail/tram track': {
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.rail-tram-track')
+                    },
+                    'no pedestrian priority': {
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.no-pedestrian-priority')
+                    },
+                    'very long crossing': {
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.very-long-crossing')
+                    },
+                    'level with sidewalk': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk')
                     }
                 }
             },
@@ -315,6 +339,10 @@ function UtilitiesMisc (JSON) {
                     'button waist height': {
                         keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.button-waist-height')
+                    },
+                    'APS': {
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.APS')
                     }
                 }
             },

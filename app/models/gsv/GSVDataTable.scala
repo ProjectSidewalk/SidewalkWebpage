@@ -5,8 +5,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 case class GSVData(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int],
-                   tileHeight: Option[Int], centerHeading: Option[Float], originHeading: Option[Float],
-                   originPitch: Option[Float], imageDate: String, copyright: String, expired: Boolean,
+                   tileHeight: Option[Int], imageDate: String, copyright: String, expired: Boolean,
                    lastViewed: Option[java.sql.Timestamp])
 
 class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_data") {
@@ -15,16 +14,12 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_
   def imageHeight = column[Option[Int]]("image_height")
   def tileWidth = column[Option[Int]]("tile_width")
   def tileHeight = column[Option[Int]]("tile_height")
-  def centerHeading = column[Option[Float]]("center_heading")
-  def originHeading = column[Option[Float]]("origin_heading")
-  def originPitch = column[Option[Float]]("origin_pitch")
   def imageDate = column[String]("image_date", O.NotNull)
   def copyright = column[String]("copyright", O.NotNull)
   def expired = column[Boolean]("expired", O.NotNull)
   def lastViewed = column[Option[java.sql.Timestamp]]("last_viewed", O.Nullable)
 
-  def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, centerHeading,
-    originHeading, originPitch, imageDate, copyright, expired, lastViewed) <>
+  def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, imageDate, copyright, expired, lastViewed) <>
     ((GSVData.apply _).tupled, GSVData.unapply)
 }
 

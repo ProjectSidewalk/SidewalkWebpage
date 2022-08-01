@@ -27,7 +27,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         isOnboarding: false,
         shiftDown: false,
         disableKeyboard: false,
-        moving: false
+        moving: false,
+        disableMovement: false
     };
 
     this.disableKeyboard = function (){
@@ -50,8 +51,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         var maxIndex = cosines.indexOf(maxVal);
         if(cosines[maxIndex] > 0.5){
             var panoramaId = svl.panorama.links[maxIndex].pano;
-
             googleMap.setPano(panoramaId);
+            return true;
+        } else {
+            return false;
         }
     };
 
@@ -59,21 +62,23 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
        Move user in specific angle relative to current view for a specific moveTime.
      */
     function timedMove(angle, moveTime){
-        if (status.moving || svl.isOnboarding() || svl.popUpMessage.getStatus("isVisible")){
+        if (status.moving || svl.popUpMessage.getStatus("isVisible")){
             svl.panorama.set("linksControl", false);
             return;
         }
         svl.contextMenu.hide();
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        self._movePano(angle);
-        //prevent user input of walking commands
-        svl.map.timeoutWalking();
-        //restore user ability to walk after param moveTime
-        setTimeout(svl.map.resetWalking, moveTime);
-        //additional check to hide arrows after the fact
-        //pop-up may become visible during timeout period
-        if (svl.popUpMessage.getStatus('isVisible')){
-            svl.panorama.set('linksControl', false);//disable arrows
+        var moveSuccess = self._movePano(angle);
+        if (moveSuccess) {
+            //prevent user input of walking commands
+            svl.map.timeoutWalking();
+            //restore user ability to walk after param moveTime
+            setTimeout(svl.map.resetWalking, moveTime);
+            //additional check to hide arrows after the fact
+            //pop-up may become visible during timeout period
+            if (svl.popUpMessage.getStatus('isVisible')){
+                svl.panorama.set('linksControl', false);//disable arrows
+            }
         }
     }
 
@@ -154,12 +159,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     case 39:  // "Right"
                         self._rotatePov(2);
                         break;
-                    case 38:
-                        self._moveForward();
-                        break;
-                    case 40:  // "down"
-                        self._moveBackward();
-                        break;
+                }
+                if (!status.disableMovement) {
+                    switch (e.keyCode) {
+                        case 38: // "up"
+                            self._moveForward();
+                            break;
+                        case 40:  // "down"
+                            self._moveBackward();
+                            break;
+                    }
                 }
                 if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                     e.preventDefault();

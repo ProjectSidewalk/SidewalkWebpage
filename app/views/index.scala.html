@@ -1,9 +1,11 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.label._
-@import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
 @import scala.util.Random
+@import play.api.Play
+@import play.api.Play.current
+@import models.street.StreetEdgePriorityTable
 @(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
@@ -126,9 +128,9 @@
     <div class="ps-skyline">
         <div class="ps-skyline-container">
             @if(cityName == "Washington" || cityName == "Seattle") {
-                <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+                <img src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
             } else {
-                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
             }
             <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay">
         </div>
@@ -137,7 +139,11 @@
             <span class="ps-skyline-stats-holder-stat-number" id="distance">NA</span>
             <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
             <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
-            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent", cityShortName)</span>
+            @if(Play.configuration.getString("city-params.open-status." + cityId).get == "partially") {
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
+            } else {
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", cityShortName)</span>
+            }
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
             <span class="ps-skyline-stats-holder-stat-label" >@Messages("landing.stats.validations")</span>
@@ -152,12 +158,16 @@
             </a>
         </div>
         <script language="javascript">
-            if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
+            if ("@Play.configuration.getString("city-params.open-status." + cityId).get" === "partially" && @("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) >= 100) {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+            } else if ("@Play.configuration.getString("city-params.open-status." + cityId).get" === "partially") {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+            } else if (@("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) < 100) {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
             }
-            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
+            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)),1,2.5,{suffix:'%'});
             var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
             var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
             var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
@@ -168,37 +178,19 @@
             <div class="im-centered3">
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
-                <br>
+            </div>
+            <div class="gif-container">
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
+                <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
+                <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
+                <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
+                <p id="mlgif-label-text-1" class="ml-gif-header-2">@Messages("landing.ml.gif.user.labels")</p>
+                <p id="mlgif-label-text-2" class="ml-gif-header-2">@Messages("landing.ml.gif.machine.labels")</p>
+                <p id="mlgif-semicircle-text-1"  class="ml-gif-header-3">@Messages("landing.ml.gif.better.city.planning")</p>
+                <p id="mlgif-semicircle-text-2" class="ml-gif-header-3">@Messages("landing.ml.gif.better.temporal.tracking")</p>
+                <p id="mlgif-semicircle-text-3"  class="ml-gif-header-3">@Messages("landing.ml.gif.interactive.visualization.tools")</p>
+                <p id="mlgif-semicircle-text-4" class="ml-gif-header-3">@Messages("landing.ml.gif.smarter.routing")</p>
             </div>
-    </div>
-
-
-
-    <div class="container" id="quotebox-container" style="min-height: 500px;">
-        <div id="quotearea">
-            <div class="im-centered3">
-                <div class="row">@Html(Messages("landing.what.people.are.saying"))</div>
-            </div>
-            <div class="row" style="padding-top: 40px;">
-                <div class="col-sm-6">
-                    <div class="quotebox">
-                        Using machine learning, big data, & civic kindness, <a href="https://twitter.com/projsidewalk" target="_blank" id="microsoftdesign-author-twitter">@@projsidewalk</a> is making D.C. more accessible one mile at a time
-                        <br>
-                        <span class="quoteauthor">@@microsoftdesign</span>
-
-
-                    </div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="quotebox">
-                        <a href="https://twitter.com/projsidewalk" target="_blank" id="kpkindc-author-twitter">@@projsidewalk</a> is mapping accessibility in DC. Looks like C St NE and Oklahoma Ave need work!
-                        <br>
-                        <span class="quoteauthor">@@kpkindc</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class= "container" id="collaborators-container">
@@ -250,50 +242,6 @@
                 }
             </section>
         </div>
-    </div>
-
-    <div class="container" id="press-header">
-        <div class="im-centered3">
-            <div class="row"><br>@Messages("landing.press.title")<br></div>
-        </div>
-    </div>
-    <div class="container" id="press-container">
-        <div class="row" id="press-image-row">
-            <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-img-link">
-                    <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-img-link">
-                    <img style="position: relative; left:10px; top: -30px;" src='@routes.Assets.at("assets/curbed.jpg")' height="100" alt="Curbed DC Logo">
-
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="https://dbknews.com/2016/10/13/university-of-maryland-app-washington-disability-access/" id="diamondback-img-link">
-                    <img src='@routes.Assets.at("assets/diamondback.png")' height="70" alt="Diamondback Logo">
-                </a>
-            </div>
-        </div>
-        <div class="row" id="press-blurb-row">
-            <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-text-link">
-                    How Project Sidewalk is making DC more accessible
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-text-link">
-                    Make D.C.'s sidewalks more accessible with this crowd-sourced map
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="https://dbknews.com/2016/10/13/university-of-maryland-app-washington-disability-access/" id="diamondback-text-link">
-                    A UMD team made an app highlighting D.C. areas inaccessible to people with disabilities
-                </a>
-            </div>
-        </div>
-    </div>
     </div>
 
 

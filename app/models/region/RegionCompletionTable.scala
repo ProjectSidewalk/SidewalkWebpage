@@ -1,10 +1,10 @@
 package models.region
 
-import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
+import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.GetResult
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: String, totalDistance: Double, auditedDistance: Double)
@@ -73,7 +73,7 @@ object RegionCompletionTable {
           // audited in that neighborhood; this has never been observed, but it could theoretically be an issue if there
           // is a sizable error, while there is a single (very very short) street segment left to be audited. That case
           // shouldn't happen, but we are just being safe, and setting audited_distance to be less than total_distance.
-          if (StreetEdgeRegionTable.allStreetsInARegionAudited(regionId)) {
+          if (StreetEdgePriorityTable.allStreetsInARegionAuditedUsingPriority(regionId)) {
             q.map(_.auditedDistance).update(rC.totalDistance)
           } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
             q.map(_.auditedDistance).update(rC.totalDistance * 0.995)
@@ -89,22 +89,26 @@ object RegionCompletionTable {
 
     if (regionCompletions.length.run == 0) {
 
-      val neighborhoods = RegionTable.selectAllNamedNeighborhoods
+      val neighborhoods: List[NamedRegion] = RegionTable.selectAllNamedNeighborhoods
       for (neighborhood <- neighborhoods) yield {
 
         // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
         // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
-        if (StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId)) {
+        if (StreetEdgePriorityTable.allStreetsInARegionAuditedUsingPriority(neighborhood.regionId)) {
           val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
           regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
         } else {
-          val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
+          val auditedDistance: Double = StreetEdgePriorityTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
           val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
           regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
         }
       }
     }
+  }
+
+  def truncateTable(): Unit = db.withTransaction { implicit session =>
+    Q.updateNA("TRUNCATE TABLE region_completion").execute
   }
 }

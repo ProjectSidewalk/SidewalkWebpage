@@ -9,7 +9,6 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
-import models.mission.MissionProgressCVGroundtruthTable
 import models.street.StreetEdgePriorityTable
 import models.user.{User, UserRoleTable, UserStatTable}
 import play.api.libs.json._
@@ -297,13 +296,6 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns true if there is a completed audit task for the given street edge, false otherwise.
-    */
-  def anyoneHasAuditedStreet(streetEdgeId: Int): Boolean = db.withSession { implicit session =>
-    completedTasks.filter(_.streetEdgeId === streetEdgeId).list.nonEmpty
-  }
-
-  /**
     * Return audited street edges.
     */
   def selectStreetsAudited(filterLowQuality: Boolean): List[StreetEdge] = db.withSession { implicit session =>
@@ -377,38 +369,6 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, userCompleted)
 
     NewTask.tupled(edges.first)
-  }
-
-  /**
-    * Helper method for creating a task for computer vision ground truth auditing.
-    *
-    * In CV ground truth auditing, we create a task for *each* pano that needs to be audited, corresponding to the
-    * street segment closest to the pano. This method fetches the id of the pano closest to the provided panoid. This
-    * panoid *must* be part of an active CV groundtruth mission for the provided user.
-    * @param user the user performing a CV ground truth audit
-    * @param panoid panoId to query
-    * @return street segment id closest to pano
-    */
-  def getStreetEdgeIdClosestToCVPanoId(user: User, panoid:String): Option[Int] = {
-    val (panoLat, panoLng): (Option[Float], Option[Float]) = MissionProgressCVGroundtruthTable.getPanoLatLng(user.userId, panoid)
-    (panoLat, panoLng) match {
-      case (Some(lat), Some(lng)) =>
-        LabelTable.getStreetEdgeIdClosestToLatLng(lat, lng)
-      case _ =>  None
-    }
-  }
-
-  /**
-    * Creates a computer vision ground truth audit task and inserts it into the database.
-    * @param user user performing the CV ground truth audit
-    * @param panoid panoId that corresponds to the task
-    */
-  def createCVGroundTruthTaskByPanoId(user: User, panoid:String): Option[NewTask] = {
-    val closestStreetEdgeId: Option[Int] = getStreetEdgeIdClosestToCVPanoId(user, panoid)
-    closestStreetEdgeId match {
-      case Some(id) => Some(AuditTaskTable.selectANewTask(id, None))
-      case None => None
-    }
   }
 
   /**

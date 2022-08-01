@@ -56,16 +56,26 @@ landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = You are automatically assigned a neighborhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
-landing.stats.content.unfinished = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the city!
-landing.stats.content.finished = We did it! Users like you have mapped all {0} kilometers of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
-landing.stats.percent = of {0} mapped
+landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the target area in the city!
+landing.stats.content.unfinished.full = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the city!
+landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} kilometers of the target area in {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometers of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.percent.partial = of target area mapped
+landing.stats.percent.full = of {0} mapped
 landing.stats.distance = kilometers covered
 landing.stats.labels = labels
 landing.stats.validations = validations
 landing.ml.title = What we do with your labels
 landing.ml.content = Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.
-landing.what.people.are.saying = What people<br>are saying
-landing.press.title = Press
+landing.ml.gif.machine.labels = machine labels
+landing.ml.gif.you = you
+landing.ml.gif.user.labels = user labels
+landing.ml.gif.better.city.planning = better city planning
+landing.ml.gif.better.temporal.tracking = better temporal tracking
+landing.ml.gif.interactive.visualization.tools = interactive visualization tools
+landing.ml.gif.smarter.routing = smarter routing
+landing.ml.gif.machine.learning = machine learning
+landing.ml.gif.outcomes = outcomes
 landing.collaborators.title = Collaborators
 
 footer.about = About Us
@@ -77,6 +87,7 @@ footer.api = Sidewalk API
 footer.connect = CONNECT
 footer.email = Email Us
 footer.funding = WE ARE PROUDLY FUNDED BY
+footer.award = Award <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> and <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk is designed and operated by the <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Version {0} | Last Updated: <span class = "timestamp date">{1}</span>
 
@@ -273,6 +284,7 @@ dashboard.label.icon.alt = Minimalist map icon with large destination marker
 dashboard.validation.icon.alt = Checklist next to a pencil
 dashboard.accuracy.icon.alt = Target with an arrow in the bullseye
 dashboard.accuracy.icon.tooltip = Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users.
+dashboard.achievements = Achievements
 dashboard.first = first
 dashboard.second = second
 dashboard.third = third
