@@ -449,10 +449,10 @@ object UserStatTable {
          |       COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
          |       COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
          |       COALESCE(validations.validations_given, 0) AS validations_given,
+         |       COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
          |       COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
          |       COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
          |       COALESCE(validations.notsure_validations_given, 0) AS notsure_validations_given,
-         |       COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
          |       COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
          |       COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
          |       COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
@@ -496,11 +496,11 @@ object UserStatTable {
          |LEFT JOIN (
          |    SELECT user_id,
          |           COUNT(*) AS validations_given,
+         |           COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
+         |                           OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
          |           COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS agree_validations_given,
          |           COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS disagree_validations_given,
-         |           COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS notsure_validations_given,
-         |           COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
-         |                           OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given
+         |           COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS notsure_validations_given
          |    FROM label_validation
          |    INNER JOIN label ON label_validation.label_id = label.label_id
          |    GROUP BY user_id
