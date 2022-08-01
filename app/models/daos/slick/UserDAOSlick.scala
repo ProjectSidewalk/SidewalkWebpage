@@ -510,10 +510,10 @@ object UserDAOSlick {
     }.toMap
 
     val userHighQuality =
-      UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.toMap
+      UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    usersMinusAnonUsersWithNoLabels.list.map{ u =>
+    usersMinusAnonUsersWithNoLabels.list.map { u =>
       val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
