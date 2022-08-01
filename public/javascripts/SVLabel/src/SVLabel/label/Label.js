@@ -435,7 +435,7 @@ function Label (svl, pathIn, params) {
 
             // Only render severity warning if there's a severity option.
             if (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal') {
-                if (properties.severity === undefined) {
+                if (properties.severity === null) {
                     showSeverityAlert(ctx);
                 }
             }
@@ -469,7 +469,7 @@ function Label (svl, pathIn, params) {
         // labelCoordinate represents the upper left corner of the tag.
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
-            hasSeverity = (properties.labelType !== 'Occlusion'),
+            hasSeverity = (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal'),
             i, height,
             width = 0,
             labelRows = 1,
@@ -482,7 +482,7 @@ function Label (svl, pathIn, params) {
 
         if (hasSeverity) {
             labelRows = 2;
-            if (properties.severity != undefined) {
+            if (properties.severity !== null) {
                 severityImagePath = tagProperties[properties.severity].severityImage;
                 severityImage.src = severityImagePath;
                 severityMessage = tagProperties[properties.severity].message;
@@ -545,7 +545,7 @@ function Label (svl, pathIn, params) {
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
-            if (properties.severity != undefined) {
+            if (properties.severity !== null) {
               ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
             }
         }

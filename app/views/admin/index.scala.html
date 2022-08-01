@@ -745,13 +745,14 @@
                     <div class="row">
                         <h1>Users</h1>
                         <div id="user-table-container" class="col-lg-12">
-                            <table id="user-table" data-order='[[ 4, "desc" ]]' class="table table-striped table-condensed">
+                            <table id="user-table" data-order='[[ 5, "desc" ]]' class="table table-striped table-condensed">
                                 <thead>
                                     <tr>
                                         <th class="col-md-1">Username</th>
                                         <th class="col-md-2">User Id</th>
                                         <th class="col-md-1">Email</th>
                                         <th class="col-md-1">Role</th>
+                                        <th class="col-md-1">High Quality</th>
                                         <th class="col-md-1">Mission Count</th>
                                         <th class="col-md-1">Audit Count</th>
                                         <th class="col-md-1">Label Count</th>
@@ -790,6 +791,7 @@
                                         } else {
                                             @u.role
                                         }</td>
+                                    <td>@u.highQuality</td>
                                     <td>@u.completedMissions</td>
                                     <td>@u.completedAudits</td>
                                     <td>@u.labels</td>
