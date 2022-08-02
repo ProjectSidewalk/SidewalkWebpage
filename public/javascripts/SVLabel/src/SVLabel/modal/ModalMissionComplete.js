@@ -60,6 +60,8 @@ var neighborhoodName = neighborhood.getProperty("name");
 self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
 uiModalMissionComplete.closeButtonPrimary.css('font-size', "8pt");
 uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
+uiModalMissionComplete.closeButtonSecondary.css('font-size', "8pt");
+uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
 self._canShowContinueButton = true;
 if (self.showingMissionCompleteScreen) {
 self._enableContinueButton();
@@ -173,9 +175,6 @@ uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
 var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
 // window.print(isTurker);
 var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
-// document.write(isTurker);
-// document.write(firstMission);
-// document.write(svl.missionsCompleted);
 if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0) {
 uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
 
@@ -186,9 +185,6 @@ uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
 uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
 uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
 uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
-// document.write(isTurker);
-// document.write(firstMission);
-// document.write(svl.missionsCompleted);
 uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
 }
 } else {
