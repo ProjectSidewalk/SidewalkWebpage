@@ -173,7 +173,9 @@ public class ShapefilesCreatorHelper {
                         + "gsvUrl:String," // GSV URL
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
-                        + "nNotsure:Integer" // Notsure validations
+                        + "nNotsure:Integer," // Notsure validations
+                        + "labelTags:String," // Label Tags
+                        + "labelDescr:String" // Label Description
                 );
 
 
@@ -207,17 +209,24 @@ public class ShapefilesCreatorHelper {
             }));
             featureBuilder.add(l.labelTemporary());
             featureBuilder.add(l.gsvPanoramaId());
-            featureBuilder.add(l.heading());
-            featureBuilder.add(l.pitch());
-            featureBuilder.add(l.zoom());
-            featureBuilder.add(l.canvasXY()._1);
-            featureBuilder.add(l.canvasXY()._2);
-            featureBuilder.add(l.canvasWidth());
-            featureBuilder.add(l.canvasHeight());
+            featureBuilder.add(l.headingPitchZoom()._1());
+            featureBuilder.add(l.headingPitchZoom()._2());
+            featureBuilder.add(l.headingPitchZoom()._3());
+            featureBuilder.add(l.canvasXY()._1());
+            featureBuilder.add(l.canvasXY()._2());
+            featureBuilder.add(l.canvasWidthHeight()._1());
+            featureBuilder.add(l.canvasWidthHeight()._2());
             featureBuilder.add(l.gsvUrl());
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
+            featureBuilder.add("[" + l.labelTags().mkString(",") + "]");
+            featureBuilder.add(l.labelDescription().getOrElse(new AbstractFunction0<String>() {
+                @Override
+                public String apply() {
+                    return null;
+                }
+            }));
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }

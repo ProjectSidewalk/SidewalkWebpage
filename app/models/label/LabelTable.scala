@@ -483,7 +483,7 @@ object LabelTable {
           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
           |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
           |    SELECT mission.user_id,
-          |           COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
+          |           CASE WHEN COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 THEN 100 ELSE 0 END AS needs_validations
           |    FROM mission
           |    INNER JOIN label ON label.mission_id = mission.mission_id
           |    WHERE label.deleted = FALSE
@@ -511,15 +511,19 @@ object LabelTable {
           |    AND audit_task.street_edge_id <> $tutorialStreetId
           |    AND gsv_data.expired = FALSE
           |    AND mission.user_id <> '$userIdStr'
-          |    AND user_stat.high_quality = TRUE
           |    AND label.label_id NOT IN (
           |        SELECT label_id
           |        FROM label_validation
           |        WHERE user_id = '$userIdStr'
           |    )
-          |-- Prioritize labels that have been validated fewer times and from users who have had less than 50
-          |-- validations of this label type, then randomize it.
-          |ORDER BY label.agree_count + label.disagree_count + label.notsure_count, COALESCE(needs_validations, TRUE) DESC, RANDOM()
+          |-- Generate a priority value for each label that we sort by, between 0 and 251. A label gets 100 points if
+          |-- the labeler has fewer than 50 of their labels validated. Another 50 points if the labeler was marked as
+          |-- high quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
+          |-- validations for the label. Then add a random number so that the max score for each label is 251.
+          |ORDER BY COALESCE(needs_validations,  100) +
+          |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
+          |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+          |    RANDOM() * (251 - (COALESCE(needs_validations,  100) + CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END + 100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count))) DESC
           |LIMIT ${n * 5}""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery.list
