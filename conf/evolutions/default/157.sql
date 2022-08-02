@@ -1,5 +1,6 @@
 # --- !Ups
--- Remove severity for Pedestrian Signal labels.
-UPDATE label SET severity = NULL WHERE label_type_id = 10;
+INSERT INTO version VALUES ('7.7.0', now(), 'Adds label tags to the /attributesWithLabels API.');
 
 # --- !Downs
+DELETE FROM version WHERE version_id = '7.7.0';
+
