@@ -32,8 +32,6 @@ function LabelVisibilityControl () {
     function unhideLabel () {
         let panomarker = svv.panorama.getPanomarker();
         let label = svv.panorama.getCurrentLabel();
-        var marker = document.getElementById('validate-pano-marker');
-        marker.classList.add('icon-outline');
         panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
@@ -42,6 +40,8 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         labelVisibilityControlButton.html(htmlString);
+        let marker = document.getElementById('validate-pano-marker');
+        marker.classList.add('icon-outline');
     }
 
     /**
@@ -49,8 +49,6 @@ function LabelVisibilityControl () {
      */
     function hideLabel () {
         let panomarker = svv.panorama.getPanomarker();
-        var marker = document.getElementById('validate-pano-marker');
-        marker.classList.remove('icon-outline');
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
         visible = false;
@@ -59,6 +57,8 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
         labelVisibilityControlButton.html(htmlString);
+        let marker = document.getElementById('validate-pano-marker');
+        marker.classList.remove('icon-outline');
     }
 
     /**
