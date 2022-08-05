@@ -514,9 +514,9 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     /**
-     * Call when the user takes a step. Resets the user's angle and appends the user's new position to 'observedAreas'.
+     * Resets the user's angle and appends the user's new position to 'observedAreas'. Called when the user takes a step. 
      */
-    this.observedAreaStep = function() {
+    this.observedAreaStep = function () {
         fogOfWarProperties.angle = null;
         fogOfWarProperties.leftAngle = null;
         fogOfWarProperties.rightAngle = null;
@@ -638,8 +638,8 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         document.getElementById("google-maps-percent-observed").innerText = observedPercentage;
         if (fogOfWarProperties.fractionObserved == 1) {
             // If 100% observed, turn progress bar and text green.
-            document.getElementById("google-maps-percent-observed").style.color = "#00cc00";
-            fogOfWarProperties.fovCtx.strokeStyle = "#00cc00";
+            document.getElementById("google-maps-percent-observed").style.color = "#00dd00";
+            fogOfWarProperties.fovCtx.strokeStyle = "#00dd00";
         } else {
             document.getElementById("google-maps-percent-observed").style.color = "#404040";
             fogOfWarProperties.fovCtx.strokeStyle = "#808080";
@@ -659,7 +659,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     /**
      * Updates everything relevant to the user's observed area.
      */
-    this.updateObservedArea = function() {
+    this.updateObservedArea = function () {
         if (fogOfWarProperties.observedAreas.length > 0) {
             updateAngles();
             renderFogOfWar();
@@ -671,7 +671,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     /**
      * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
      */
-    this.reverseCoordinates = function (){
+    this.reverseCoordinates = function () {
         _geojson.features[0].geometry.coordinates.reverse();
     };
 
