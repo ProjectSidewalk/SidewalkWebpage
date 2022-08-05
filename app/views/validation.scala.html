@@ -2,7 +2,7 @@
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -63,8 +63,14 @@
                 <div id="svv-panorama-outline">
                     <div id="svv-panorama">
                         <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
-                            <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
-                            <div id="label-description-box"></div>
+                            @if("Amsterdam" == cityName){
+                                <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano amsterdam" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
+                                <div id="label-description-box" class="label-description-box amsterdam"></div>
+                            }
+                            @if("Amsterdam" != cityName){
+                                <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
+                                <div id="label-description-box" class="label-description-box"></div>
+                            }
                         </div>
                     </div>
                     <div id="svv-panorama-date-holder">

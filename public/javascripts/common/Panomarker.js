@@ -468,13 +468,15 @@
                     }
                 }.bind(this), false);
             } else {
-                marker.addEventListener("mouseover", function () {
-                    svv.labelVisibilityControl.showTagsAndDeleteButton();
-                });
-
-                marker.addEventListener("mouseout", function () {
-                    svv.labelVisibilityControl.hideTagsAndDeleteButton();
-                });
+                // Amsterdam keeps description box and delete button shown, so no need to have hover event if city is Amsterdam
+                if (!($("#label-description-box").attr('class') === "label-description-box amsterdam")) {
+                    marker.addEventListener("mouseover", function () {
+                        svv.labelVisibilityControl.showTagsAndDeleteButton();
+                    });
+                    marker.addEventListener("mouseout", function () {
+                        svv.labelVisibilityControl.hideTagsAndDeleteButton();
+                    });
+                }
             }
         }
 
@@ -514,6 +516,11 @@
                 // therefore we position the marker outside of the viewport
                 this.marker_.style.left = -(9999 + this.size_.width) + 'px';
                 this.marker_.style.top = '0';
+            }
+
+            // Setting label description positions if city is Amsterdam
+            if ($("#label-description-box").attr('class') === "label-description-box amsterdam") {
+                svv.labelVisibilityControl.setPositions();
             }
         }
     };

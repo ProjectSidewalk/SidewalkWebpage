@@ -54,7 +54,11 @@
     width: 65px;
 }
 
-#label-description-box {
+.button.label-visibility-button-on-pano.amsterdam {
+    visibility: visible;
+}
+
+.label-description-box {
     display: block;
     visibility: hidden;
     min-width: 165px;
@@ -67,4 +71,8 @@
     border: white solid 2px;
     font-size: 12px;
     z-index: 1;
+}
+
+.label-description-box.amsterdam {
+    visibility: visible;
 }

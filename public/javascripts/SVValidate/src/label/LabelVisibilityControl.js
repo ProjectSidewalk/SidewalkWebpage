@@ -12,6 +12,10 @@ function LabelVisibilityControl () {
     let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");
     let labelDescriptionBox = $("#label-description-box");
 
+    let isAmsterdam = false;
+    if (labelDescriptionBox.attr('class') === "label-description-box amsterdam") {
+        isAmsterdam = true;
+    }
     /**
      * Logs interaction when the hide label button is clicked.
      */
@@ -40,6 +44,10 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         labelVisibilityControlButton.html(htmlString);
+        if (isAmsterdam) {
+            let desBox = labelDescriptionBox[0];
+            desBox.style.visibility = 'visible';
+        }
     }
 
     /**
@@ -55,6 +63,10 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
         labelVisibilityControlButton.html(htmlString);
+        if (isAmsterdam) {
+            let desBox = labelDescriptionBox[0];
+            desBox.style.visibility = 'hidden';
+        }
     }
 
     /**
@@ -82,6 +94,11 @@ function LabelVisibilityControl () {
     function showTagsAndDeleteButton () {
         svv.tracker.push("MouseOver_Label");
 
+        setPositions();
+    }
+
+    // Positions delete button and description box relative to label
+    function setPositions () {
         let button = document.getElementById("label-visibility-button-on-pano");
         let marker = document.getElementById("validate-pano-marker");
 
@@ -110,10 +127,16 @@ function LabelVisibilityControl () {
     labelVisibilityControlButton.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('mouseover', function (e) {
-        showTagsAndDeleteButton();
-        e.stopPropagation();
+        if (!isAmsterdam) {
+            showTagsAndDeleteButton();
+            e.stopPropagation();
+        }
     });
-    labelVisibilityButtonOnPano.on('mouseout', hideTagsAndDeleteButton);
+    labelVisibilityButtonOnPano.on('mouseout', function() {
+        if (!isAmsterdam) {
+            hideTagsAndDeleteButton;
+        }
+    });
 
     self.hideLabel = hideLabel;
     self.unhideLabel = unhideLabel;
@@ -121,6 +144,7 @@ function LabelVisibilityControl () {
     self.isVisible = isVisible;
     self.showTagsAndDeleteButton = showTagsAndDeleteButton;
     self.hideTagsAndDeleteButton = hideTagsAndDeleteButton;
+    self.setPositions = setPositions;
 
     return this;
 }
