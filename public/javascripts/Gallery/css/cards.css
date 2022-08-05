@@ -189,7 +189,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     filter: opacity(0.2);
 }
 
-.modal-no-severity-box {
+.modal-severity-content {
     width: 50%;
 }
 
