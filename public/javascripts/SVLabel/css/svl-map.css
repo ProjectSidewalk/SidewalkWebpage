@@ -16,21 +16,19 @@
 }
 
 #google-maps-overlay {
-    color: #444;
     font-size: 12px;
     z-index: 1;
 }
 
-#google-maps-observed-area-canvas {
+#google-maps-fog-of-war-canvas {
     opacity: 0.4;
 }
 
-#google-maps-fov-area-canvas {
+#google-maps-fov-canvas {
     opacity: 0.6;
 }
 
-#google-maps-fraction-observed {
-    color: #444;
+#google-maps-percent-observed {
     font-size: 11px;
     z-index: 1;
     text-align: center;

@@ -30,26 +30,18 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         tutorialTask: tutorialTask
     };
 
-    // Observed area radius.
-    const radius = 50;
-    // User's angle.
-    var angle;
-    // Left-most angle of the user's fov.
-    var leftAngle;
-    // Right-most angle of the user's fov.
-    var rightAngle;
-    // List of observed areas (latLng, minAngle, maxAngle).
-    var observedAreas;
-    // User's current fraction of observed area.
-    var fractionObserved;
-    // Canvas context for observed areas.
-    var observedAreaCtx;
-    // Canvas context for fov.
-    var fovAreaCtx;
-    // Canvas width.
-    var width;
-    // Canvas height.
-    var height;
+    var fogOfWarProperties = {
+        radius: 40,  // FOV radius in pixels.
+        angle: null,  // User's angle.
+        leftAngle: null,  // Left-most angle of the user's FOV.
+        rightAngle: null,  // Right-most angle of the user's FOV.
+        observedAreas: [],  // List of observed areas (latLng, minAngle, maxAngle).
+        fractionObserved: 0,  // User's current fraction of 360 degrees observed.
+        fogOfWarCtx: null,  // Canvas context for the fog of war.
+        fovCtx: null,  // Canvas context for user's FOV.
+        width: 0,  // Canvas width.
+        height: 0,  // Canvas height.
+    }
 
     /**
      * This method takes a task parameters and set up the current task.
@@ -74,25 +66,15 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
 
         paths = null;
 
-        angle = null;
-        leftAngle = null;
-        rightAngle = null;
-        observedAreas = [];
-        fractionObserved = 0;
-        let observedAreaCanvas = document.getElementById("google-maps-observed-area-canvas");
-        observedAreaCtx = observedAreaCanvas.getContext("2d");
-        observedAreaCtx.filter = "blur(5px)";
-        let fovAreaCanvas = document.getElementById("google-maps-fov-area-canvas");
-        fovAreaCtx = fovAreaCanvas.getContext("2d");
-        width = observedAreaCanvas.width;
-        height = observedAreaCanvas.height;
-
-        // Background color.
-        observedAreaCtx.fillStyle = "#888888";
-        // Fov color.
-        fovAreaCtx.fillStyle = "#8080ff";
-        // Progress bar color.
-        fovAreaCtx.strokeStyle = "#404040";
+        // Get canvas context for the fog of war.
+        let fogOfWarCanvas = document.getElementById("google-maps-fog-of-war-canvas");
+        fogOfWarProperties.fogOfWarCtx = fogOfWarCanvas.getContext("2d");
+        // Get canvas context for user's FOV.
+        let fovCanvas = document.getElementById("google-maps-fov-canvas");
+        fogOfWarProperties.fovCtx = fovCanvas.getContext("2d");
+        // Get canvas width and height.
+        fogOfWarProperties.width = fogOfWarCanvas.width;
+        fogOfWarProperties.height = fogOfWarCanvas.height;
     };
 
     this.setStreetEdgeDirection = function (currentLat, currentLng) {
@@ -532,20 +514,22 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     /**
-     * Reset the user's angle and append the user's new position to 'observedAreas'.
+     * Call when the user takes a step. Resets the user's angle and appends the user's new position to 'observedAreas'.
      */
-    this.resetObservedArea = function() {
-        angle = null;
-        leftAngle = null;
-        rightAngle = null;
+    this.observedAreaStep = function() {
+        fogOfWarProperties.angle = null;
+        fogOfWarProperties.leftAngle = null;
+        fogOfWarProperties.rightAngle = null;
         let latLng = svl.map.getPosition();
-        for (let i = 0; i < observedAreas.length; i++) {
-            if (observedAreas[i].latLng.lat == latLng.lat && observedAreas[i].latLng.lng == latLng.lng) {
-                observedAreas.push(observedAreas.splice(i, 1)[0]);
+        for (let i = 0; i < fogOfWarProperties.observedAreas.length; i++) {
+            // If we have observed the new position before, move it to the end of the 'observedAreas' list.
+            if (fogOfWarProperties.observedAreas[i].latLng.lat == latLng.lat
+                    && fogOfWarProperties.observedAreas[i].latLng.lng == latLng.lng) {
+                fogOfWarProperties.observedAreas.push(fogOfWarProperties.observedAreas.splice(i, 1)[0]);
                 return;
             }
         }
-        observedAreas.push({latLng: latLng, minAngle: null, maxAngle: null});
+        fogOfWarProperties.observedAreas.push({latLng: latLng, minAngle: null, maxAngle: null});
     }
 
     /**
@@ -583,92 +567,104 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     }
 
     /**
-     * Updates all of the angle variables necessary for observed area.
+     * Updates all of the angle variables necessary to keep track of the user's observed area.
      */
     function updateAngles() {
         let pov = svl.map.getPov();
         let heading = pov.heading;
         let fov = get3dFov(pov.zoom);
-        if (angle) {
-            if (heading - angle > 180) {
+        if (fogOfWarProperties.angle) {
+            if (heading - fogOfWarProperties.angle > 180) {
                 heading -= 360;
             }
-            if (heading - angle < -180) {
+            if (heading - fogOfWarProperties.angle < -180) {
                 heading += 360;
             }
         }
-        angle = heading;
-        leftAngle = angle - fov / 2;
-        rightAngle = angle + fov / 2;
-        let current = observedAreas[observedAreas.length - 1];
-        if (!current.minAngle || leftAngle < current.minAngle) {
-            current.minAngle = leftAngle;
+        fogOfWarProperties.angle = heading;
+        fogOfWarProperties.leftAngle = fogOfWarProperties.angle - fov / 2;
+        fogOfWarProperties.rightAngle = fogOfWarProperties.angle + fov / 2;
+        let current = fogOfWarProperties.observedAreas[fogOfWarProperties.observedAreas.length - 1];
+        if (!current.minAngle || fogOfWarProperties.leftAngle < current.minAngle) {
+            current.minAngle = fogOfWarProperties.leftAngle;
         }
-        if (!current.maxAngle || rightAngle > current.maxAngle) {
-            current.maxAngle = rightAngle;
+        if (!current.maxAngle || fogOfWarProperties.rightAngle > current.maxAngle) {
+            current.maxAngle = fogOfWarProperties.rightAngle;
         }
-        fractionObserved = Math.min(current.maxAngle - current.minAngle, 360) / 360;
+        fogOfWarProperties.fractionObserved = Math.min(current.maxAngle - current.minAngle, 360) / 360;
     }
 
     /**
-     * Renders the observed area fog.
+     * Renders the fog of war.
      */
-    function renderObservedAreas() {
-        observedAreaCtx.fillRect(0, 0, width, height);
-        observedAreaCtx.globalCompositeOperation = "destination-out";
-        for (let area of observedAreas) {
-            let center = latLngToPixel(area.latLng);
-            observedAreaCtx.beginPath();
-            if (area.maxAngle - area.minAngle < 360) {
-                observedAreaCtx.moveTo(center.x, center.y);
+    function renderFogOfWar() {
+        fogOfWarProperties.fogOfWarCtx.fillStyle = "#888888";
+        fogOfWarProperties.fogOfWarCtx.filter = "blur(5px)";
+        fogOfWarProperties.fogOfWarCtx.fillRect(0, 0, fogOfWarProperties.width, fogOfWarProperties.height);
+        fogOfWarProperties.fogOfWarCtx.globalCompositeOperation = "destination-out";
+        for (let observedArea of fogOfWarProperties.observedAreas) {
+            let center = latLngToPixel(observedArea.latLng);
+            fogOfWarProperties.fogOfWarCtx.beginPath();
+            if (observedArea.maxAngle - observedArea.minAngle < 360) {
+                fogOfWarProperties.fogOfWarCtx.moveTo(center.x, center.y);
             }
-            observedAreaCtx.arc(center.x, center.y, radius, toRadians(area.minAngle - 90), toRadians(area.maxAngle - 90));
-            observedAreaCtx.fill();
+            fogOfWarProperties.fogOfWarCtx.arc(center.x, center.y, fogOfWarProperties.radius,
+                toRadians(observedArea.minAngle - 90), toRadians(observedArea.maxAngle - 90));
+                fogOfWarProperties.fogOfWarCtx.fill();
         }
-        observedAreaCtx.globalCompositeOperation = "source-over";
+        fogOfWarProperties.fogOfWarCtx.globalCompositeOperation = "source-over";
     }
 
     /**
-     * Renders the the user's fov.
+     * Renders the the user's FOV.
      */
-    function renderFovArea() {
-        fovAreaCtx.clearRect(0, 0, width, height);
-        let current = observedAreas[observedAreas.length - 1];
+    function renderFov() {
+        fogOfWarProperties.fovCtx.fillStyle = "#8080ff";
+        fogOfWarProperties.fovCtx.clearRect(0, 0, fogOfWarProperties.width, fogOfWarProperties.height);
+        let current = fogOfWarProperties.observedAreas[fogOfWarProperties.observedAreas.length - 1];
         let center = latLngToPixel(current.latLng);
-        fovAreaCtx.beginPath();
-        fovAreaCtx.moveTo(center.x, center.y);
-        fovAreaCtx.arc(center.x, center.y, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
-        fovAreaCtx.fill();
+        fogOfWarProperties.fovCtx.beginPath();
+        fogOfWarProperties.fovCtx.moveTo(center.x, center.y);
+        fogOfWarProperties.fovCtx.arc(center.x, center.y, fogOfWarProperties.radius,
+            toRadians(fogOfWarProperties.leftAngle - 90), toRadians(fogOfWarProperties.rightAngle - 90));
+        fogOfWarProperties.fovCtx.fill();
     }
 
     /**
-     * Renders the user's current fraction of observed area.
+     * Renders the user's percentage of 360 degrees observed progress bar.
      */
-    function renderFractionObserved() {
-        let observedPercentage = Math.floor(100 * fractionObserved) + "%";
-        document.getElementById("google-maps-fraction-observed").innerText = observedPercentage;
-        let progressBarColor = fovAreaCtx.strokeStyle;
-        fovAreaCtx.strokeStyle = "#808080";
-        fovAreaCtx.lineWidth = 3;
-        fovAreaCtx.beginPath();
-        fovAreaCtx.arc(width - 20, 20, 16, 0, 2 * Math.PI);
-        fovAreaCtx.stroke();
-        fovAreaCtx.strokeStyle = progressBarColor;
-        fovAreaCtx.lineCap = 'round';
-        fovAreaCtx.beginPath();
-        fovAreaCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
-        fovAreaCtx.stroke();
+    function renderPercentObserved() {
+        let observedPercentage = Math.floor(100 * fogOfWarProperties.fractionObserved) + "%";
+        document.getElementById("google-maps-percent-observed").innerText = observedPercentage;
+        if (fogOfWarProperties.fractionObserved == 1) {
+            // If 100% observed, turn progress bar and text green.
+            document.getElementById("google-maps-percent-observed").style.color = "#00cc00";
+            fogOfWarProperties.fovCtx.strokeStyle = "#00cc00";
+        } else {
+            document.getElementById("google-maps-percent-observed").style.color = "#404040";
+            fogOfWarProperties.fovCtx.strokeStyle = "#808080";
+            fogOfWarProperties.fovCtx.lineWidth = 3;
+            fogOfWarProperties.fovCtx.beginPath();
+            fogOfWarProperties.fovCtx.arc(fogOfWarProperties.width - 20, 20, 16, 0, 2 * Math.PI);
+            fogOfWarProperties.fovCtx.stroke();
+            fogOfWarProperties.fovCtx.strokeStyle = "#404040";
+        }
+        fogOfWarProperties.fovCtx.lineCap = "round";
+        fogOfWarProperties.fovCtx.beginPath();
+        fogOfWarProperties.fovCtx.arc(fogOfWarProperties.width - 20, 20, 16,
+            toRadians(-90), toRadians(fogOfWarProperties.fractionObserved * 360 - 90));
+        fogOfWarProperties.fovCtx.stroke();
     }
 
     /**
-     * Updates everything relevant to observed area.
+     * Updates everything relevant to the user's observed area.
      */
     this.updateObservedArea = function() {
-        if (observedAreas.length > 0) {
+        if (fogOfWarProperties.observedAreas.length > 0) {
             updateAngles();
-            renderObservedAreas();
-            renderFovArea();
-            renderFractionObserved();
+            renderFogOfWar();
+            renderFov();
+            renderPercentObserved();
         }
     }
 

@@ -611,7 +611,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
 
-        currentTask.resetObservedArea();
+        currentTask.observedAreaStep();
     }
 
     /**

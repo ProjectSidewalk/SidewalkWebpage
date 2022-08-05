@@ -858,7 +858,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // This is a callback function that is fired when zoom is changed
         if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(); }
         
-        svl.tracker.push("ZOOM_Changed");
+        svl.tracker.push("Zoom_Changed");
     }
     
     /**
