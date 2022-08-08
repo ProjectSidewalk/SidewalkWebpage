@@ -66,9 +66,17 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             'padding-bottom': '15px'
         })[0];
 
+        self.panoNotAvailableAuditSuggestion = 
+            //replace href link with function
+            $("<div id='pano-not-avail-audit'>We suggest that you " + '<a href="/audit">explore the street</a>' + " again! </div>").css({
+            'font-size': '85%',
+            'padding-bottom': '15px'
+        })[0];
+
         self.svHolder.append($(self.panoCanvas));
         self.svHolder.append($(self.panoNotAvailable));
         self.svHolder.append($(self.panoNotAvailableDetails));
+        self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
 
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
         self.panorama.addListener('pano_changed', function() {
@@ -102,6 +110,10 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         }
 
         return this;
+    }
+
+    function test() {
+        console.log("hi");
     }
 
     function setPov(heading, pitch, zoom) {
