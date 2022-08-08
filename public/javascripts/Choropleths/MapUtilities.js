@@ -72,7 +72,7 @@ function setRegionFocus(map, layers) {
     if (regionId && layers) {
         let len = layers.length;
         for (let i = 0; i < len; i++) {
-            if ('feature' in layers[i] && 'properties' in layers[i].feature && regionId === layers[i].feature.properties.region_id) {
+            if ('feature' in layers[i] && 'properties' in layers[i].feature && regionId == layers[i].feature.properties.region_id) {
                 let center = turf.center(layers[i].feature);
                 let coordinates = center.geometry.coordinates;
                 let latlng = L.latLng(coordinates[1], coordinates[0]);
