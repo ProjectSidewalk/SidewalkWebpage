@@ -360,18 +360,19 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                    @text(forms.SignUpForm.form("username"), Messages("username"), icon = "person")
-                    @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
-                    @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
-                    @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
-                    <div class="form-group">
-                        <div class="checkbox">
-                            <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
+                        @text(forms.SignUpForm.form("username"), Messages("username"), icon = "person")
+                        @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
+                        @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
+                        @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
+                        @serviceHours(forms.SignUpForm.form("serviceHours"), Messages("authenticate.service.hours.title"), List(Messages("yes.caps"), Messages("no.caps")))
+                        <div class="form-group">
+                            <div class="checkbox">
+                                <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
+                            </div>
                         </div>
                         <div>
                             <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>@Messages("authenticate.signup")</button>
                         </div>
-                    </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -479,9 +480,8 @@ $(document).ready(function () {
 
         // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
         $('#sign-in-form').submit(function () {
-            var formData = $('#sign-in-form :input');
-            var email = formData[0].value;
-            var password = formData[1].value;
+            var email = $('#sign-in-form #identifier')[0].value;
+            var password = $('#sign-in-form #passwordSignIn')[0].value;
 
             //if not a valid email address, do not submit form
             if(!email){
@@ -511,13 +511,14 @@ $(document).ready(function () {
 
         // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
         $('#sign-up-form').submit(function () {
-            var formData = $('#sign-up-form :input');
-            var username = formData[0].value;
-            var email = formData[1].value;
-            var password = formData[2].value;
-            var passwordConfirm = formData[3].value;
+            var username = $('#sign-up-form #username')[0].value;
+            var email = $('#sign-up-form #email')[0].value;
+            var password = $('#sign-up-form #password')[0].value;
+            var passwordConfirm = $('#sign-up-form #passwordConfirm')[0].value;
+            var serviceHoursYes = $('#navbar-service-hours-Yes');
+            var serviceHoursNo = $('#navbar-service-hours-No');
 
-            // If not a valid username/email/password, do not submit form.
+            // If not a valid username / email / password / service hours response, do not submit form.
             if(!username){
                 invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
                 return false;
@@ -530,14 +531,16 @@ $(document).ready(function () {
                 invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
                 return false;
             }
-
             if (password !== passwordConfirm) {
                 invalidSignInUpAlert(false, "@Messages("authenticate.error.password.mismatch")");
                 return false;
             }
-
             if (password.length < 6) {
                 invalidSignInUpAlert(false, "@Messages("authenticate.error.password.length")");
+                return false;
+            }
+            if (!serviceHoursYes.is(':checked') && !serviceHoursNo.is(':checked')) {
+                invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.service.hours")");
                 return false;
             }
 

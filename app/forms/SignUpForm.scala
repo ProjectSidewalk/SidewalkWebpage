@@ -9,7 +9,8 @@ object SignUpForm {
       "username" -> nonEmptyText,
       "email" -> email,
       "password" -> nonEmptyText,
-      "passwordConfirm" -> nonEmptyText
+      "passwordConfirm" -> nonEmptyText,
+      "serviceHours" -> nonEmptyText
    )(Data.apply)(Data.unapply)
   )
 
@@ -20,5 +21,5 @@ object SignUpForm {
    * @param email The email of the user.
    * @param password The password of the user.
    */
-  case class Data(username: String, email: String, password: String, passwordConfirm: String)
+  case class Data(username: String, email: String, password: String, passwordConfirm: String, serviceHours: String)
 }
