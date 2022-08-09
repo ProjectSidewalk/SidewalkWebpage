@@ -12,9 +12,7 @@ function ModalComment (modalUI) {
     };
 
     // Initializing feedback popover 
-    $(function () {
-        modalUI.feedbackButton.popover();
-    });
+    modalUI.feedbackButton.popover();
 
     /**
      * Disables the ok button (makes button unclickable).
@@ -136,7 +134,7 @@ function ModalComment (modalUI) {
             dataType: 'json',
             success: function (result) {
                 modalUI.feedbackButton.popover('toggle');
-                setTimeout(function(){modalUI.feedbackButton.popover('toggle'); }, 1500);
+                setTimeout(function(){ modalUI.feedbackButton.popover('toggle'); }, 1500);
             },
             error: function(xhr, textStatus, error){
                 console.error(xhr.statusText);

@@ -1260,12 +1260,12 @@ kbd {
 }
 .feedback-popover > .arrow:after {
   content: "";
-  border-width: 10px;
+  border-width: 9px;
 }
 .feedback-popover.top > .arrow {
   bottom: -10px;
-  left: 50%;
-  margin-left: -11px;
+  left: 75px;
+  margin-left: -10px;
   border-top-color:rgba(58,58,58, 0.9);
   border-bottom-width: 0;
 }
