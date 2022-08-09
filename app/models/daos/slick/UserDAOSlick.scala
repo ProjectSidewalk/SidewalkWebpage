@@ -9,7 +9,7 @@ import models.daos.UserDAO
 import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
-import models.user.{RoleTable, WebpageActivityTable}
+import models.user.{RoleTable, WebpageActivityTable, UserStatTable}
 import models.user.{UserRoleTable, User}
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
@@ -22,7 +22,7 @@ case class UserStatsForAdminPage(userId: String, username: String, email: String
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
                                  completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
                                  ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedNotsurePct: Double,
-                                 othersValidated: Int, othersValidatedAgreedPct: Double)
+                                 othersValidated: Int, othersValidatedAgreedPct: Double, highQuality: Boolean)
 
 class UserDAOSlick extends UserDAO {
   /**
@@ -509,8 +509,11 @@ object UserDAOSlick {
       (valCount._1, (valCount._2, valCount._3))
     }.toMap
 
+    val userHighQuality =
+      UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    usersMinusAnonUsersWithNoLabels.list.map{ u =>
+    usersMinusAnonUsersWithNoLabels.list.map { u =>
       val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
@@ -550,7 +553,8 @@ object UserDAOSlick {
         ownValidatedDisagreedPct,
         ownValidatedNotsurePct,
         otherValidatedTotal,
-        otherValidatedAgreedPct
+        otherValidatedAgreedPct,
+        userHighQuality.getOrElse(u.userId, true)
       )
     }
   }
