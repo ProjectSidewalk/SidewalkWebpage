@@ -25,7 +25,8 @@
   },
   "label-map": {
     "add-comment": "Voeg opmerking hier toe...",
-    "submit": "Voeg opmerking toe"
+    "submit": "Voeg opmerking toe",
+    "comment-submitted" : "Commentaar ingediend"
   },
   "severity": "Ernst",
   "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
