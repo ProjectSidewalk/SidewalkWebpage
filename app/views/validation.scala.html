@@ -35,7 +35,7 @@
                         <br>@Messages("validate.left.ui.skip")
                     </div>
                     <div class="spacer10"></div>
-                    <div id="left-column-feedback-button" class="button">
+                    <div id="left-column-feedback-button" class="button" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-toggle="popover" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
                         @Html(Messages("validate.left.ui.feedback"))
                     </div>
@@ -43,11 +43,11 @@
             </div>
             <div id="upper-menu-holder">
                 <div id="upper-menu-title-bar"></div>
-
                 <div id="label-visibility-control-holder">
                     <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
-                        <br/>@Html(Messages("validate.top.ui.hide.label"))</button>
+                        <br/>@Html(Messages("validate.top.ui.hide.label"))
+                    </button>
                 </div>
 
                 <div id="zoom-control-holder">
