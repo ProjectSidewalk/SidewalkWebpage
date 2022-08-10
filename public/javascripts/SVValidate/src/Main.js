@@ -152,7 +152,6 @@ function Main (param) {
         if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
-            //svv.labelVisibilityControl = new LabelVisibilityControl();
             svv.zoomControl = new ZoomControl();
         }
 
