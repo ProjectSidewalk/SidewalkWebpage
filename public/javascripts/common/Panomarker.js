@@ -398,7 +398,7 @@
             // has already been created.
             return;
         }
-
+        
         var marker = document.createElement('div');
         marker.classList.add('icon-outline');
 

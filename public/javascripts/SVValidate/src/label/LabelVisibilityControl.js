@@ -21,7 +21,7 @@ function LabelVisibilityControl () {
             hideLabel();
         } else {
             svv.tracker.push("Click_UnhideLabel");
-            unhideLabel();
+            unhideLabel(false);
         }
     }
 
@@ -29,7 +29,7 @@ function LabelVisibilityControl () {
      * Unhides label in Google StreetView Panorama
      * depending on current state.
      */
-    function unhideLabel () {
+    function unhideLabel (newLabel) {
         let panomarker = svv.panorama.getPanomarker();
         let label = svv.panorama.getCurrentLabel();
         panomarker.setIcon(label.getIconUrl());
@@ -40,8 +40,9 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         labelVisibilityControlButton.html(htmlString);
-        let marker = document.getElementById('validate-pano-marker');
-        marker.classList.add('icon-outline');
+        if (!newLabel) {
+            panomarker.marker_.classList.add('icon-outline');
+        }
     }
 
     /**
@@ -57,8 +58,7 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
         labelVisibilityControlButton.html(htmlString);
-        let marker = document.getElementById('validate-pano-marker');
-        marker.classList.remove('icon-outline');
+        panomarker.marker_.classList.remove('icon-outline');
     }
 
     /**
