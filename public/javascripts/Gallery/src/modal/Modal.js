@@ -138,7 +138,7 @@ function Modal(uiModal) {
         self.timestamps.append(panoTimestampData);
 
         // Add severity and tag display to the modal.
-        new SeverityDisplay(self.severity, properties.severity, true);
+        new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
         new TagDisplay(self.tags, properties.tags, true);
 
         // Add the information about the temporary property to the Modal.
