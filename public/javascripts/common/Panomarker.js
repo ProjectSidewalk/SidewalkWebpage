@@ -453,20 +453,23 @@
         // for popped up hide/show label.
         if (this.id_ === "validate-pano-marker") {
             if (isMobile()) {
-                marker.addEventListener('touchstart', function () {
-                    let labelDescriptionBox = $("#label-description-box");
-                    let desBox = labelDescriptionBox[0];
-                    if (!this.toggleDescription_) {
-                        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
-                        desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
-                        desBox.style.zIndex = 2;
-                        desBox.style.visibility = 'visible';
-                        this.toggleDescription_ = true;
-                    } else {
-                        desBox.style.visibility = 'hidden';
-                        this.toggleDescription_ = false;
-                    }
-                }.bind(this), false);
+                // Amsterdam keeps description box shown, so no need to have hover event if city is Amsterdam.
+                if (!($("#label-description-box").attr('class') === "label-description-box amsterdam")) {
+                    marker.addEventListener('touchstart', function () {
+                        let labelDescriptionBox = $("#label-description-box");
+                        let desBox = labelDescriptionBox[0];
+                        if (!this.toggleDescription_) {
+                            desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
+                            desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
+                            desBox.style.zIndex = 2;
+                            desBox.style.visibility = 'visible';
+                            this.toggleDescription_ = true;
+                        } else {
+                            desBox.style.visibility = 'hidden';
+                            this.toggleDescription_ = false;
+                        }
+                    }.bind(this), false);
+                }
             } else {
                 // Amsterdam keeps description box and delete button shown, so no need to have hover event if city is Amsterdam.
                 if (!($("#label-description-box").attr('class') === "label-description-box amsterdam")) {

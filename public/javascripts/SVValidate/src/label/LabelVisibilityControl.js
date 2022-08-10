@@ -102,21 +102,28 @@ function LabelVisibilityControl () {
         let button = document.getElementById("label-visibility-button-on-pano");
         let marker = document.getElementById("validate-pano-marker");
 
-        // Mobile does not have a button.
-        if (!isMobile()) {
+        if (isMobile()) {
+            // Position the box to the lower left corner of the label.
+            let desBox = labelDescriptionBox[0];
+            desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
+            desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
+            desBox.style.zIndex = 2;
+            desBox.style.visibility = 'visible';
+        }
+        else {
             // Position the button to the top right corner of the label, 10px right and
             // 15px up from center of the label.
             button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
             button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
             button.style.visibility = 'visible';
+
+            // Position the box to the lower left corner of the label, 10px left and
+            // 10px down from center of the label.
+            let desBox = labelDescriptionBox[0];
+            desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
+            desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
+            desBox.style.visibility = 'visible';
         }
-        
-        // Position the box to the lower left corner of the label, 10px left and
-        // 10px down from center of the label.
-        let desBox = labelDescriptionBox[0];
-        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
-        desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
-        desBox.style.visibility = 'visible';
     }
 
     /**
