@@ -146,12 +146,13 @@ function Main (param) {
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
         svv.validationContainer = new ValidationContainer(param.labelList);
+        svv.labelVisibilityControl = new LabelVisibilityControl();
 
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
-            svv.labelVisibilityControl = new LabelVisibilityControl();
+            //svv.labelVisibilityControl = new LabelVisibilityControl();
             svv.zoomControl = new ZoomControl();
         }
 

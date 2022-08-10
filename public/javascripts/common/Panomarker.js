@@ -468,7 +468,7 @@
                     }
                 }.bind(this), false);
             } else {
-                // Amsterdam keeps description box and delete button shown, so no need to have hover event if city is Amsterdam
+                // Amsterdam keeps description box and delete button shown, so no need to have hover event if city is Amsterdam.
                 if (!($("#label-description-box").attr('class') === "label-description-box amsterdam")) {
                     marker.addEventListener("mouseover", function () {
                         svv.labelVisibilityControl.showTagsAndDeleteButton();
@@ -518,7 +518,7 @@
                 this.marker_.style.top = '0';
             }
 
-            // Setting label description positions if city is Amsterdam
+            // Setting label description positions if city is Amsterdam.
             if ($("#label-description-box").attr('class') === "label-description-box amsterdam") {
                 svv.labelVisibilityControl.setPositions();
             }

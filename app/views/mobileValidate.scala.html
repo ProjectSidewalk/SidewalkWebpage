@@ -9,7 +9,7 @@
 @import play.api.Play.current
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @currentCity =@{Play.configuration.getString("city-id").get}
 
@@ -41,7 +41,12 @@
             <div id="svv-panorama-outline">
                 <div id="svv-panorama">
                     <div id="view-control-layer-mobile" style="z-index: 2">
-                        <div id="label-description-box"></div>
+                        @if("Amsterdam" == cityName){
+                            <div id="label-description-box" class="label-description-box amsterdam"></div>
+                        }
+                        @if("Amsterdam" != cityName){
+                            <div id="label-description-box" class="label-description-box"></div>
+                        }
                     </div>
                 </div>
             </div>

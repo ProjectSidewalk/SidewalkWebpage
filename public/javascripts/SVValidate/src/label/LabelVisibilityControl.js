@@ -97,16 +97,19 @@ function LabelVisibilityControl () {
         setPositions();
     }
 
-    // Positions delete button and description box relative to label
+    // Positions delete button and description box relative to label.
     function setPositions () {
         let button = document.getElementById("label-visibility-button-on-pano");
         let marker = document.getElementById("validate-pano-marker");
 
-        // Position the button to the top right corner of the label, 10px right and
-        // 15px up from center of the label.
-        button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
-        button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
-        button.style.visibility = 'visible';
+        // Mobile does not have a button.
+        if (!isMobile()) {
+            // Position the button to the top right corner of the label, 10px right and
+            // 15px up from center of the label.
+            button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
+            button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
+            button.style.visibility = 'visible';
+        }
         
         // Position the box to the lower left corner of the label, 10px left and
         // 10px down from center of the label.
