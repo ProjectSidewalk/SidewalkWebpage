@@ -60,6 +60,14 @@ function toggleAuditedStreetLayer(map, auditedStreetLayer) {
     }
 }
 
+function toggleNotAuditedStreetLayer(map, notAuditedStreetLayer) {
+    if (document.getElementById('notauditedstreet').checked) {
+        map.addLayer(notAuditedStreetLayer);
+    } else {
+        map.removeLayer(notAuditedStreetLayer);
+    }
+}
+
 // Functionality for the legend's minimize button.
 function toggleLegend() {
     $('#legend-table').slideToggle(0);

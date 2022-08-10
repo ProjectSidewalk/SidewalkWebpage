@@ -318,6 +318,20 @@ object AuditTaskTable {
   }
 
   /**
+   * Return non-audited/incomplete audit street edges
+   */
+  def selectStreetsNotAudited(): List[StreetEdge] = db.withSession { implicit session =>
+    // All streets without a completed audit.
+    val notAuditedStreets = streetEdges
+      .leftJoin(completedTasks).on(_.streetEdgeId === _.streetEdgeId)
+      .filter(_._2.auditTaskId.?.isEmpty)
+      .map(_._1)
+
+    // Filter out the duplicated street edges.
+    notAuditedStreets.list.groupBy(_.streetEdgeId).map(_._2.head).toList
+  }
+
+  /**
    * Get the streets that have been audited, with the time they were audited, and metadata about the user who audited.
    */
   def getAuditedStreetsWithTimestamps: List[AuditedStreetWithTimestamp] = db.withSession { implicit session =>

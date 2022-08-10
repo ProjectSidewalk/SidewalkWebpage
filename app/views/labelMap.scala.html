@@ -95,9 +95,18 @@
                         <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.mapData)"></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-audited-street"></td>
+                        <td id="map-legend-audited-street">
+                            <svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>
+                        </td>
                         <td>Audited Street</td>
                         <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="toggleAuditedStreetLayer(map.map, map.auditedStreetLayer)"></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-not-audited-street">
+                            <svg width='20' height='20'><path stroke='gray' stroke-width='3' d='M 2 10 L 18 10 z'></svg>
+                        </td>
+                        <td>Not Audited Street</td>
+                        <td><input type="checkbox" value="displaylabel" id="notauditedstreet" checked="true" onclick="toggleNotAuditedStreetLayer(map.map, map.notAuditedStreetLayer)"></td>
                     </tr>
                 </table>
             </div>
@@ -219,39 +228,47 @@
                 mapName: 'label-map',
                 mapStyle: 'mapbox://styles/mapbox/streets-v11'
             };
-            var streetParams = {
-                labelPopup: true,
-                includeLabelColor: true,
-                streetColor: 'black'
-            };
+
+            // Returns street parameters but with chosen color.
+            function streetParams(color) {
+                return {
+                    labelPopup: true,
+                    includeLabelColor: true,
+                    streetColor: color
+                };
+            }
+
             var self = {};
             var map;
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
             var loadMapParams = $.getJSON('/cityMapParams');
-            var loadAuditedStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
+            var loadAuditedStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true&notAudited=false');
+            var loadNotAuditedStreets = $.getJSON('/contribution/streets/notall?filterLowQuality=true&notAudited=true');
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
                 map = Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
                 self.map = map;
             });
-            // When polygons have rendered and audited streets have loaded, audited streets can be rendered.
-            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-                self.auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
+            // When polygons have rendered and audited streets have loaded, audited and non-audited streets can be rendered.
+            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets, loadNotAuditedStreets).done(function(data1, data2, data3) {
+                self.auditedStreetLayer = InitializeAuditedStreets(map, streetParams('black'), data2[0]);
+                self.notAuditedStreetLayer = InitializeAuditedStreets(map, streetParams('gray'), data3[0]);
             });
+
             // When audited streets have rendered and submitted labels have loaded, submitted labels can be rendered.
             $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-                self.mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(false), InitializeMapLayerContainer(), data2[0])
+                self.mapData = InitializeSubmittedLabels(map, streetParams('black'), AdminGSVLabelView(false), InitializeMapLayerContainer(), data2[0])
             })
             window.map = self;
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("map.mapData.lowQualityUsers = true;");
             console.log("filterLayers('',map.mapData);");
         });
-        $(window).load(function() {
+        $(window).load(function () {
             $('.loader').fadeOut('slow');
-        })
+        });
     });
     </script>
 }
