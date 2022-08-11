@@ -8,11 +8,12 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
+import controllers.helper.GoogleMapsHelper
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
 import models.user.UserOrgTable
 import models.label.{LabelTable, LabelValidationTable}
-import models.user.{User, WebpageActivityTable, WebpageActivity}
+import models.user.{User, WebpageActivity, WebpageActivityTable}
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
@@ -35,14 +36,21 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       Future.successful(Redirect(s"/signIn?url=/"))
     } else {
       val user: User = request.identity.get
-      // Get distance audited by the user. If using metric units, convert from miles to kilometers.
-      val auditedDistance: Float =
-        if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
-        else MissionTable.getDistanceAudited(user.userId)
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = request.remoteAddress
       WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
-      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
+      // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+      val auditedDistance: Float = {
+        if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
+        else MissionTable.getDistanceAudited(user.userId)
+      }
+      val lTypes = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
+      val validations: Seq[(String, List[(LabelTable.LabelMetadataUserDash, String)])] = lTypes.map { t =>
+        t -> LabelTable.getValidatedLabelsForUser(user.userId, 5, lTypes)
+          .filter(_.labelType == t)
+          .map(l => (l, GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)))
+      }
+      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance, validations)))
     }
   }
 

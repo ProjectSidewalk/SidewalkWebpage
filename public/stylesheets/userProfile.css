@@ -175,3 +175,25 @@ svg {
     font-size: 30px;
     font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif
 }
+
+.mistakes-holder {
+    display: grid;
+    grid-template-columns: 6fr 6fr;
+    grid-gap: 15px;
+    text-align: center;
+}
+
+.carousel-control.right, .carousel-control.left {
+    background-image: none;
+}
+
+.carousel-caption {
+    position: relative;
+    left: 0;
+    top: 0;
+    color: black;
+}
+
+.carousel-indicators {
+    bottom: 85px;
+}

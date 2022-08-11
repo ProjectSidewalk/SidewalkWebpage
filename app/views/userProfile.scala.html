@@ -6,7 +6,7 @@
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, auditedDistance: Float, validations: Seq[(String, List[(LabelTable.LabelMetadataUserDash, String)])])(implicit lang: Lang)
 
 @main(title) {
     @navbar(user, user.map(u=> "/dashboard"))
@@ -160,6 +160,57 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <div class="row">
+            <h2>Ya messed up a bit</h2>
+            <div class="mistakes-holder">
+
+                @for(((labelType, list), index) <- validations.zip(0 until 6)) {
+                    <h4 style="grid-column: @{1 + (index % 2)}; grid-row: @{(1 + index / 2) * 2 - 1};">@labelType</h4>
+                    <!-- Replace data-interval="false" with data-ride="carousel" to auto scroll through images. -->
+                    <div id="carousel-example-@labelType" class="carousel slide" style="grid-column: @{1 + (index % 2)}; grid-row: @{(1 + index / 2) * 2};" data-interval="false">
+                            <!-- Indicators -->
+                        <ol class="carousel-indicators">
+                            @for(n <- List(0, 1, 2)) {
+                                @if(n == 0) {
+                                    <li data-target="#carousel-example-@labelType" data-slide-to="@n" class="active"></li>
+                                } else {
+                                    <li data-target="#carousel-example-@labelType" data-slide-to="@n"></li>
+                                }
+                            }
+                        </ol>
+
+                        <!-- Wrapper for slides -->
+                        <div class="carousel-inner" role="listbox">
+                            @for((label, n) <- list.zipWithIndex) {
+                                @if(n == 0) {
+                                    <div class="item active">
+                                        <img class="mistake-carousel" src=@label._2>
+                                        <div class="validation-comment carousel-caption mb-4">@label._1.validatorComment</div>
+                                    </div>
+                                } else {
+                                    <div class="item">
+                                        <img class="mistake-carousel" src=@label._2>
+                                        <div class="validation-comment carousel-caption">@label._1.validatorComment</div>
+                                    </div>
+                                }
+
+                            }
+                        </div>
+
+                            <!-- Controls -->
+                        <a class="left carousel-control" href="#carousel-example-@labelType" role="button" data-slide="prev">
+                            <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                            <span class="sr-only">Previous</span>
+                        </a>
+                        <a class="right carousel-control" href="#carousel-example-@labelType" role="button" data-slide="next">
+                            <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                            <span class="sr-only">Next</span>
+                        </a>
+                    </div>
+                }
             </div>
         </div>
     </div>

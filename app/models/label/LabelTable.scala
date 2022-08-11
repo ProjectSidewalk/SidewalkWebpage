@@ -1,8 +1,9 @@
 package models.label
 
 import com.vividsolutions.jts.geom.Point
+//import controllers.helper.GoogleMapsHelper
 import java.net.{ConnectException, SocketException, URL}
-import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
 import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
@@ -13,10 +14,12 @@ import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
+import models.validation.ValidationTaskCommentTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
+//import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
@@ -110,6 +113,10 @@ object LabelTable {
                            labelTypeKey: String, labelTypeValue: String, severity: Option[Int], temporary: Boolean,
                            description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
                            tags: List[String])
+
+  case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
+                                   canvasWidth: Int, canvasHeight: Int, labelType: String,
+                                   timeValidated: Option[java.sql.Timestamp], validatorComment: Option[String])
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
@@ -821,6 +828,57 @@ object LabelTable {
     selectedLabels
   }
 
+  implicit def ordered: Ordering[Timestamp] = new Ordering[Timestamp] {
+    def compare(x: Timestamp, y: Timestamp): Int = x compareTo y
+  }
+  def getValidatedLabelsForUser(userId: UUID, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = db.withSession { implicit session =>
+
+    // sort by recency? prefer those with comments?
+
+    val _validationsWithComments = labelValidations
+      .leftJoin(ValidationTaskCommentTable.validationTaskComments)
+      .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId)
+      .map(x => (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp.?, x._2.comment.?))
+
+    // Grab labels and associated information if severity and tags satisfy query conditions.
+    val _validations = for {
+      _lb <- labelsWithoutDeletedOrOnboarding
+      _m <- missions if _lb.missionId === _m.missionId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _vc <- _validationsWithComments if _lb.labelId === _vc._1
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      if _lb.streetEdgeId =!= tutorialStreetId &&
+        _m.userId === userId.toString &&
+        _vc._3 =!= userId.toString &&
+        _vc._2 === 2 && // Only times where users validated as incorrect.
+        _gd.expired === false &&
+        (_lt.labelType inSet labTypes) // TODO make sure this works
+    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasWidth, _lp.canvasHeight,
+    _lt.labelType, _vc._5, _vc._6)
+
+    // Randomize and convert to LabelValidationMetadataWithoutTags.
+    val newRandomLabelsList = _validations.list.map(LabelMetadataUserDash.tupled)
+
+    val smallLabelList: List[LabelMetadataUserDash] = newRandomLabelsList.groupBy(_.labelType).flatMap(_._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse).take(nPerType)).toList
+
+    // TODO parallelize like function above.
+    val labelsWithImagery: List[LabelMetadataUserDash] = smallLabelList.flatMap { currLabel =>
+      // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+      if (panoExists(currLabel.gsvPanoramaId)) {
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+        Some(currLabel)
+      } else {
+        GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+        None
+      }
+    }
+    labelsWithImagery
+  }
+
   /**
    * A query to get all validations by the given user.
    *
@@ -965,6 +1023,22 @@ object LabelTable {
       "tags" -> labelMetadata.tags
     )
   }
+
+//  def labelMetadataUserDashToJson(label: LabelMetadataUserDash): JsObject = {
+//    Json.obj(
+//      "label_id" -> label.labelId,
+//      "gsv_panorama_id" -> label.gsvPanoramaId,
+//      "heading" -> label.heading,
+//      "pitch" -> label.pitch,
+//      "zoom" -> label.zoom,
+//      "canvas_width" -> label.canvasWidth,
+//      "canvas_height" -> label.canvasHeight,
+//      "label_type" -> label.labelType,
+//      "time_validated" -> label.timeValidated,
+//      "validator_comment" -> label.validatorComment,
+//      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.canvasWidth, label.canvasHeight, label.heading, label.pitch, label.zoom)
+//    )
+//  }
 
   /**
     * This method returns a list of strings with all the tags associated with a label
