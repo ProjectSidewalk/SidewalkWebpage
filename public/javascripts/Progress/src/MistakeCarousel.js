@@ -73,8 +73,13 @@ function MistakeCarousel() {
 
                 // Add any comment from the validator if there is one.
                 let validatorComment = document.createElement('div');
-                validatorComment.textContent = label.validator_comment;
-                validatorComment.classList.add('validation-comment', 'carousel-caption', 'mb-4');
+                validatorComment.classList.add('validation-comment', 'carousel-caption');
+                if (label.validator_comment) {
+                    validatorComment.textContent = `Comment from validator: ${label.validator_comment}`;
+                } else {
+                    validatorComment.textContent = 'No comment supplied by validator.';
+                    validatorComment.style.fontStyle = 'italic';
+                }
                 slide.appendChild(validatorComment);
 
                 slideWrapper.append(slide);

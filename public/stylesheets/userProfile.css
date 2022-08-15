@@ -192,6 +192,11 @@ svg {
     left: 0;
     top: 0;
     color: black;
+    text-shadow: none;
+}
+
+.validation-comment {
+    text-align: left;
 }
 
 .carousel-indicators {
