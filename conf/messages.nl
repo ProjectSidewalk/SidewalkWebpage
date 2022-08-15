@@ -24,6 +24,7 @@ loading.encouragement = Let''s go!
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
+feedback.submitted = Feedback Ingediend
 
 navbar.explore = Start met Verkennen
 navbar.validate = Start met Valideren

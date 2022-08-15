@@ -174,7 +174,7 @@
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
                         @Html(Messages("audit.left.ui.stuck"))
                     </div>
-                    <div id="left-column-feedback-button" class="button">
+                    <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
                         @Html(Messages("audit.left.ui.feedback"))
                     </div>
@@ -1024,7 +1024,6 @@
             e.preventDefault();
         });
         }
-
     </script>
 
 <!-- now we will start the logging behaviour -->
@@ -1049,5 +1048,5 @@
             }
         });
     });
-    </script>
+</script>
 }
