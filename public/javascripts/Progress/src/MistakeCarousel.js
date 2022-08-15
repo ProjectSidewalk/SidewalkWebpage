@@ -51,10 +51,14 @@ function MistakeCarousel() {
                     slide.classList.add('item');
                 }
 
+                // Add another wrapper div to help position label on image using proportions that exclude comments.
+                let imageWrapper = document.createElement('div');
+                imageWrapper.style.position = 'relative';
+
                 // Add the actual GSV image using the URL provided by the backend.
                 let gsvImage = document.createElement('img');
                 gsvImage.src = label.image_url;
-                slide.appendChild(gsvImage);
+                imageWrapper.appendChild(gsvImage);
 
                 // Add the label icon onto the GSV image.
                 let labelIcon = document.createElement('img');
@@ -64,7 +68,8 @@ function MistakeCarousel() {
                     left: `${100 * label.canvas_x / label.canvas_width}%`,
                     top: `${100 * label.canvas_y / label.canvas_height}%`
                 });
-                slide.appendChild(labelIcon);
+                imageWrapper.appendChild(labelIcon);
+                slide.appendChild(imageWrapper);
 
                 // Add any comment from the validator if there is one.
                 let validatorComment = document.createElement('div');
