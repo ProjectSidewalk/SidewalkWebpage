@@ -67,7 +67,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         })[0];
 
         self.panoNotAvailableAuditSuggestion = 
-            //replace href link with function
+        // /audit is temporary
             $("<div id='pano-not-avail-audit'>We suggest that you " + '<a href="/audit">explore the street</a>' + " again! </div>").css({
             'font-size': '85%',
             'padding-bottom': '15px'
@@ -111,11 +111,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
         return this;
     }
-
-    function test() {
-        console.log("hi");
-    }
-
+    
     function setPov(heading, pitch, zoom) {
         self.panorama.set('pov', {heading: heading, pitch: pitch});
         self.panorama.set('zoom', zoomLevel[zoom]);
