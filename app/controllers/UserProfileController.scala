@@ -8,13 +8,12 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import controllers.helper.GoogleMapsHelper
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
 import models.user.UserOrgTable
 import models.label.{LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
 import scala.concurrent.Future
@@ -44,13 +43,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
         else MissionTable.getDistanceAudited(user.userId)
       }
-      val lTypes = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
-      val validations: Seq[(String, List[(LabelTable.LabelMetadataUserDash, String)])] = lTypes.map { t =>
-        t -> LabelTable.getValidatedLabelsForUser(user.userId, 5, lTypes)
-          .filter(_.labelType == t)
-          .map(l => (l, GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)))
-      }
-      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance, validations)))
+      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
     }
   }
 
@@ -160,6 +153,20 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       "date" -> x.date, "count" -> x.count
     )))
     Future.successful(Ok(json))
+  }
+
+  /**
+   * Get up `n` recent mistakes for each label type, using validations provided by other users.
+   * @param n
+   * @return
+   */
+  def getRecentMistakes(n: Int) = UserAwareAction.async {implicit request =>
+    val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
+    val validations = LabelTable.getValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
+    val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
+      t -> validations.filter(_.labelType == t).map(LabelTable.labelMetadataUserDashToJson)
+    }.toMap)
+    Future.successful(Ok(validationJson))
   }
 
   /**

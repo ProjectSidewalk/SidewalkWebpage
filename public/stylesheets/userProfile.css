@@ -176,7 +176,7 @@ svg {
     font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif
 }
 
-.mistakes-holder {
+#mistake-carousels-holder {
     display: grid;
     grid-template-columns: 6fr 6fr;
     grid-gap: 15px;

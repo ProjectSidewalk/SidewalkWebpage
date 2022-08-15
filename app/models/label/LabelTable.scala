@@ -1,6 +1,7 @@
 package models.label
 
 import com.vividsolutions.jts.geom.Point
+import controllers.helper.GoogleMapsHelper
 //import controllers.helper.GoogleMapsHelper
 import java.net.{ConnectException, SocketException, URL}
 import javax.net.ssl.HttpsURLConnection
@@ -115,7 +116,7 @@ object LabelTable {
                            tags: List[String])
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-                                   canvasWidth: Int, canvasHeight: Int, labelType: String,
+                                   canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, labelType: String,
                                    timeValidated: Option[java.sql.Timestamp], validatorComment: Option[String])
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
@@ -855,8 +856,8 @@ object LabelTable {
         _vc._2 === 2 && // Only times where users validated as incorrect.
         _gd.expired === false &&
         (_lt.labelType inSet labTypes) // TODO make sure this works
-    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasWidth, _lp.canvasHeight,
-    _lt.labelType, _vc._5, _vc._6)
+    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
+      _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = _validations.list.map(LabelMetadataUserDash.tupled)
@@ -1024,21 +1025,23 @@ object LabelTable {
     )
   }
 
-//  def labelMetadataUserDashToJson(label: LabelMetadataUserDash): JsObject = {
-//    Json.obj(
-//      "label_id" -> label.labelId,
-//      "gsv_panorama_id" -> label.gsvPanoramaId,
-//      "heading" -> label.heading,
-//      "pitch" -> label.pitch,
-//      "zoom" -> label.zoom,
-//      "canvas_width" -> label.canvasWidth,
-//      "canvas_height" -> label.canvasHeight,
-//      "label_type" -> label.labelType,
-//      "time_validated" -> label.timeValidated,
-//      "validator_comment" -> label.validatorComment,
-//      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.canvasWidth, label.canvasHeight, label.heading, label.pitch, label.zoom)
-//    )
-//  }
+  def labelMetadataUserDashToJson(label: LabelMetadataUserDash): JsObject = {
+    Json.obj(
+      "label_id" -> label.labelId,
+      "gsv_panorama_id" -> label.gsvPanoramaId,
+      "heading" -> label.heading,
+      "pitch" -> label.pitch,
+      "zoom" -> label.zoom,
+      "canvas_x" -> label.canvasX,
+      "canvas_y" -> label.canvasY,
+      "canvas_width" -> label.canvasWidth,
+      "canvas_height" -> label.canvasHeight,
+      "label_type" -> label.labelType,
+      "time_validated" -> label.timeValidated,
+      "validator_comment" -> label.validatorComment,
+      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.canvasWidth, label.canvasHeight, label.heading, label.pitch, label.zoom)
+    )
+  }
 
   /**
     * This method returns a list of strings with all the tags associated with a label
