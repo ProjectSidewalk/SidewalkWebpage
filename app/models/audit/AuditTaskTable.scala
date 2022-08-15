@@ -318,7 +318,7 @@ object AuditTaskTable {
   }
 
   /**
-   * Return non-audited/incomplete audit street edges
+   * Return non-audited/incomplete audit street edges.
    */
   def selectStreetsNotAudited(): List[StreetEdge] = db.withSession { implicit session =>
     // All streets without a completed audit.
