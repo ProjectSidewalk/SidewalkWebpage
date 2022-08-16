@@ -191,16 +191,21 @@ svg {
     background-image: none;
 }
 
+/* This is mostly undoing some of the default CSS From the Bootstrap carousel-caption class. */
 .carousel-caption {
     position: relative;
     left: 0;
     top: 0;
+    padding-top: 10px;
+    padding-bottom: 0;
     color: black;
     text-shadow: none;
 }
 
 .validation-comment {
     text-align: left;
+    height: 70px;
+    overflow-y: auto;
 }
 
 .carousel-indicators {
