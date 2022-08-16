@@ -202,3 +202,18 @@ svg {
 .carousel-indicators {
     bottom: 85px;
 }
+
+.mistake-img {
+    max-width: 100%;
+}
+
+.no-mistakes-img {
+    height: 50%;
+    opacity: 65%;
+    transform: translateY(30%);
+}
+
+.no-mistakes-text {
+    position: relative;
+    top: 20%;
+}
