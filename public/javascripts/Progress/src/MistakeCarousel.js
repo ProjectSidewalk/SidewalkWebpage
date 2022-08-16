@@ -19,10 +19,9 @@ function MistakeCarousel() {
                 // Add placeholder image and some text if there are no labels to show for a given label type.
                 if (data[labelType].length === 0) {
                     let noLabelsDiv = document.createElement('div');
-                    let noLabelsImg = document.createElement('img');
-                    noLabelsImg.src = '/assets/images/icons/noun_target_3485590_cropped.png';
-                    noLabelsImg.classList.add('no-mistakes-img');
-                    noLabelsDiv.appendChild(noLabelsImg);
+                    let noLabelsBackgroundImg = document.createElement('div');
+                    noLabelsBackgroundImg.classList.add('no-mistakes-img');
+                    noLabelsDiv.appendChild(noLabelsBackgroundImg);
 
                     let noLabelsText = document.createElement('div');
                     noLabelsText.textContent = i18next.t('no-mistakes');

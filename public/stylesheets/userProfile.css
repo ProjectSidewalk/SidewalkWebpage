@@ -226,12 +226,16 @@ svg {
 }
 
 .no-mistakes-img {
-    height: 50%;
     opacity: 65%;
-    transform: translateY(30%);
+    padding-bottom: 50%;
+    background-image: url(/assets/images/icons/noun_target_3485590_cropped.png);
+    background-size: contain;
+    width: 50%;
+    transform: translateX(50%);
+    margin-top: 12.5%;
 }
 
 .no-mistakes-text {
     position: relative;
-    top: 20%;
+    margin-top: 15%;
 }
