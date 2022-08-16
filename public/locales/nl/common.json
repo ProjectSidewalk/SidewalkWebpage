@@ -4,6 +4,15 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "curb-ramp": "Trottoir oprit",
+  "no-curb-ramp": "Ontbrekende trottoir oprit",
+  "obstacle": "Obstakel op het pad",
+  "surface-problem": "Oppervlakte probleem",
+  "occlusion": "Trottoir niet zichtbaar",
+  "no-sidewalk" : "Geen trottoir",
+  "crosswalk": "Oversteekplaats",
+  "signal": "Verkeerslicht",
+  "other": "Anders",
   "missing-sidewalks": "Ontbrekende trottoirs",
   "missing-ramps": "Ontbrekende Opritten",
   "surface-problems": "Oppervlakte problemen",
@@ -93,14 +102,5 @@
     "APS": "APS",
     "missing crosswalk": "missend zebrapad",
     "no bus stop access": "geen bushalte toegang"
-  },
-  "gallery": {
-    "curb-ramp": "Trottoir oprit",
-    "no-curb-ramp": "Ontbrekende trottoir oprit",
-    "obstacle": "Obstakel op het pad",
-    "surface-problem": "Oppervlakte probleem",
-    "occlusion": "Trottoir niet zichtbaar",
-    "no-sidewalk" : "Geen trottoir",
-    "other": "Anders"
   }
 }

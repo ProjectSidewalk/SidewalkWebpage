@@ -11,7 +11,7 @@ function MistakeCarousel() {
             for (const [typeIndex, labelType] of labelTypes.entries()) {
                 // Add the header for this label type.
                 let labelTypeHeader = document.createElement('h3');
-                labelTypeHeader.textContent = labelType;
+                labelTypeHeader.textContent = i18next.t(`common:${util.camelToKebab(labelType)}`);
                 labelTypeHeader.style.gridColumn = 1 + (typeIndex % 2);
                 labelTypeHeader.style.gridRow = (1 + Math.floor(typeIndex / 2)) * 2 - 1;
                 mistakesHolder.appendChild(labelTypeHeader);
