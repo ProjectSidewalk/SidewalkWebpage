@@ -7,6 +7,7 @@ import formats.json.GalleryFormats._
 import models.user._
 import models.label.{LabelTable, LabelTypeTable}
 import models.label.LabelTable._
+import scala.language.postfixOps
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.Play
@@ -14,6 +15,9 @@ import play.api.Play.current
 import play.api.mvc._
 import play.api.libs.json.{JsObject, Json, JsError}
 import scala.concurrent.Future
+import java.net.URL
+import java.io.File
+import sys.process._
 
 
 /**
@@ -80,5 +84,14 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
         }
       }
     )
-  }  
+  }
+
+  def saveShareImage(url: String) = UserAwareAction.async { implicit request =>
+    val filename = java.util.UUID.randomUUID.toString + ".jpg"
+    val file_path = "public/assets/share-images/" + filename
+    Future.successful{
+      new URL(url) #> new File(file_path) !!
+    }
+    Future.successful(Ok(Json.obj("filename" -> filename)))
+  }
 }

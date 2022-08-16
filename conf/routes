@@ -170,3 +170,6 @@ GET     /userLabelsToCluster                                 @controllers.Attrib
 GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
 POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)
 POST    /multiUserClusteringResults                          @controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)
+
+# Saving gallery image for open graph sharing
+GET     /saveShareImage                             @controllers.GalleryController.saveShareImage(url: String)
