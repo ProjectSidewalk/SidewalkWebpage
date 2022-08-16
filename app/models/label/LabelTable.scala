@@ -2,7 +2,6 @@ package models.label
 
 import com.vividsolutions.jts.geom.Point
 import controllers.helper.GoogleMapsHelper
-//import controllers.helper.GoogleMapsHelper
 import java.net.{ConnectException, SocketException, URL}
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
@@ -15,12 +14,12 @@ import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
+import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
-//import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
@@ -829,12 +828,7 @@ object LabelTable {
     selectedLabels
   }
 
-  implicit def ordered: Ordering[Timestamp] = new Ordering[Timestamp] {
-    def compare(x: Timestamp, y: Timestamp): Int = x compareTo y
-  }
   def getValidatedLabelsForUser(userId: UUID, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = db.withSession { implicit session =>
-
-    // sort by recency? prefer those with comments?
 
     val _validationsWithComments = labelValidations
       .leftJoin(ValidationTaskCommentTable.validationTaskComments)

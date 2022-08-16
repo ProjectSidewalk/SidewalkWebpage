@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
+import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
@@ -79,11 +80,5 @@ object AuditTaskCommentTable {
     } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId)).take(n).list.map(c => GenericComment(c._1, c._2, Some(c._3), c._4, c._5, Some(c._6), Some(c._7), Some(c._8), Some(c._9)))
 
     (auditComments ++ validationComments).sortBy(_.timestamp).reverse.take(n)
-  }
-
-  // Defining ordered method for Timestamp so they can be used in sortBy.
-  // https://stackoverflow.com/questions/29985911/sort-scala-arraybuffer-of-timestamp
-  implicit def ordered: Ordering[Timestamp] = new Ordering[Timestamp] {
-    def compare(x: Timestamp, y: Timestamp): Int = x compareTo y
   }
 }
