@@ -294,6 +294,10 @@ dashboard.mission.badge = {0} insignia de misión
 dashboard.distance.badge = {0} insignia de distancia
 dashboard.label.badge = {0} insignia de etiqueta
 dashboard.validation.badge = {0} insignia de validación
+dashboard.mistakes.header = Sus errores de etiquetado recientes
+dashboard.mistakes.text = A continuación, mostramos las etiquetas que otros usuarios de Project Sidewalk han marcado como incorrectas.
+dashboard.mistakes.tooltip = Estos son errores determinados por otros usuarios desde la página Validar. A veces ocurren errores durante la validación y, a menudo, hay matices en estas evaluaciones.
+dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para información sobre herramientas útil.
 
 labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.

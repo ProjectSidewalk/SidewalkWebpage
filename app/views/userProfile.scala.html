@@ -163,9 +163,9 @@
         </div>
 
         <div id="mistakes-row" class="row">
-            <h2>Your recent labeling mistakes</h2>
-            <span>Below, we are showing labels that have been marked as incorrect by other Project Sidewalk users.</span>
-            <img src="@routes.Assets.at("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations." alt="Question mark icon for helpful tooltip.">
+            <h2>@Messages("dashboard.mistakes.header")</h2>
+            <span>@Messages("dashboard.mistakes.text")</span>
+            <img src="@routes.Assets.at("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
             <div id="mistake-carousels-holder"></div>
         </div>
     </div>

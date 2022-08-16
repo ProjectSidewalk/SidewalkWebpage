@@ -25,7 +25,7 @@ function MistakeCarousel() {
                     noLabelsDiv.appendChild(noLabelsImg);
 
                     let noLabelsText = document.createElement('div');
-                    noLabelsText.textContent = 'Users haven\'t found any mistakes from you for this label type. Nice work!';
+                    noLabelsText.textContent = i18next.t('no-mistakes');
                     noLabelsText.classList.add('no-mistakes-text');
                     noLabelsDiv.appendChild(noLabelsText);
                     mistakesHolder.appendChild(noLabelsDiv);
@@ -90,9 +90,9 @@ function MistakeCarousel() {
                         let validatorComment = document.createElement('div');
                         validatorComment.classList.add('validation-comment', 'carousel-caption');
                         if (label.validator_comment) {
-                            validatorComment.textContent = `Comment from validator: ${label.validator_comment}`;
+                            validatorComment.textContent = i18next.t('validator-comment', {c: label.validator_comment});
                         } else {
-                            validatorComment.textContent = 'No comment supplied by validator.';
+                            validatorComment.textContent = i18next.t('validator-no-comment');
                             validatorComment.style.fontStyle = 'italic';
                         }
                         slide.appendChild(validatorComment);
@@ -114,7 +114,7 @@ function MistakeCarousel() {
                     leftControl.appendChild(leftControlIcon);
 
                     let leftControlScreenReading = document.createElement('span');
-                    leftControlScreenReading.textContent = 'Previous';
+                    leftControlScreenReading.textContent = i18next.t('previous');
                     leftControlScreenReading.classList.add('sr-only');
                     leftControl.appendChild(leftControlScreenReading);
                     carousel.appendChild(leftControl);
@@ -131,7 +131,7 @@ function MistakeCarousel() {
                     rightControl.appendChild(rightControlIcon);
 
                     let rightControlScreenReading = document.createElement('span');
-                    rightControlScreenReading.textContent = 'Next';
+                    rightControlScreenReading.textContent = i18next.t('next');
                     rightControlScreenReading.classList.add('sr-only');
                     rightControl.appendChild(rightControlScreenReading);
                     carousel.appendChild(rightControl);

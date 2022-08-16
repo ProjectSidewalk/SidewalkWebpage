@@ -13,6 +13,7 @@
   "great-job": "Geweldig werk!",
   "first": "eerste",
   "next": "volgende",
+  "previous": "vorig",
   "just": "net",
   "badge-type-missions": "missies",
   "badge-type-distance": "afstand",
@@ -30,5 +31,8 @@
   "badge-missions-earned-all": "Gefeliciteerd, je hebt alle missiebadges behaald!",
   "badge-distance-earned-all": "Gefeliciteerd, je hebt alle afstandbadges behaald!",
   "badge-labels-earned-all": "Gefeliciteerd, je hebt alle labelingbadges behaald!",
-  "badge-validations-earned-all": "Gefeliciteerd, je hebt alle validatiebadges behaald!"
+  "badge-validations-earned-all": "Gefeliciteerd, je hebt alle validatiebadges behaald!",
+  "validator-comment": "Commentaar van validator: {{c}}",
+  "validator-no-comment": "Geen commentaar geleverd door validator.",
+  "no-mistakes": "Gebruikers hebben geen fouten van u gevonden voor dit labeltype. Goed werk!"
 }

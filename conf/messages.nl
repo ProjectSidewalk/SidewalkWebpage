@@ -294,6 +294,10 @@ dashboard.mission.badge = {0} missiebadge
 dashboard.distance.badge = {0} afstandsbadge
 dashboard.label.badge = {0} labelbadge
 dashboard.validation.badge = {0} validatiebadge
+dashboard.mistakes.header = Uw recente etiketteringsfouten
+dashboard.mistakes.text = Hieronder tonen we labels die door andere Project Sidewalk-gebruikers als onjuist zijn gemarkeerd.
+dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
+dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 
 labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.
