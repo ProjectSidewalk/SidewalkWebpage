@@ -20,6 +20,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
+import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
@@ -861,26 +862,47 @@ object LabelTable {
     } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
       _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
 
-    // Run query and get most recent `nPerType` of each label type.
-    val smallLabelList: List[LabelMetadataUserDash] =
+    // Run query, group by label type, and order by recency.
+    val potentialLabels: Map[String, List[LabelMetadataUserDash]] =
       _validations.list.map(LabelMetadataUserDash.tupled)
-        .groupBy(_.labelType).flatMap(_._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse)
-        .take(nPerType)).toList
+        .groupBy(_.labelType).map(l => l._1 -> l._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse))
 
-    // TODO parallelize like function above.
-    val labelsWithImagery: List[LabelMetadataUserDash] = smallLabelList.flatMap { currLabel =>
-      // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-      if (panoExists(currLabel.gsvPanoramaId)) {
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
-        GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-        Some(currLabel)
-      } else {
-        GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-        None
-      }
+    // Prepare to check for GSV imagery in parallel by making mappings from label type to the number of labels needed
+    // for that type and index we're at in the `potentialLabels` list.
+    val numNeeded: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> nPerType): _*)
+    val startIndex: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> 0): _*)
+
+    // Initialize list of labels to check for imagery by taking first `nPerType` for each label type.
+    var labelsToTry: List[LabelMetadataUserDash] = potentialLabels.flatMap{ case (labelType, labelList) =>
+      labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
+    }.toList
+
+    // While there are still label types with fewer than `nPerType` labels and there are labels that might have valid
+    // imagery remaining, check for GSV imagery in parallel.
+    val selectedLabels: ListBuffer[LabelMetadataUserDash] = new ListBuffer[LabelMetadataUserDash]()
+    while (labelsToTry.nonEmpty) {
+      val newLabels: Seq[LabelMetadataUserDash] = labelsToTry.par.flatMap { currLabel =>
+        // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+        if (panoExists(currLabel.gsvPanoramaId)) {
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+          Some(currLabel)
+        } else {
+          GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+          None
+        }
+      }.seq
+      selectedLabels ++= newLabels
+
+      // Update the `startIndex`, `numNeeded`, and `labelsToTry` maps for next round.
+      labelsToTry.groupBy(_.labelType).foreach(t => startIndex(t._1) += t._2.length)
+      newLabels.groupBy(_.labelType).foreach(t => numNeeded(t._1) -= t._2.length)
+      labelsToTry = potentialLabels.flatMap { case (labelType, labelList) =>
+        labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
+      }.toList
     }
-    labelsWithImagery
+    selectedLabels.toList
   }
 
   /**
