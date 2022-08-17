@@ -858,6 +858,7 @@ object LabelTable {
         _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
         _vc._2 === 2 && // Only times where users validated as incorrect.
         _gd.expired === false && // Only include those with non-expired GSV imagery.
+        _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
         (_lt.labelType inSet labTypes) // Only include given label types.
     } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
       _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
