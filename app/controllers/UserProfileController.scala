@@ -157,12 +157,12 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Get up `n` recent mistakes for each label type, using validations provided by other users.
-   * @param n
+   * @param n Number of mistakes to retrieve for each label type.
    * @return
    */
   def getRecentMistakes(n: Int) = UserAwareAction.async {implicit request =>
     val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
-    val validations = LabelTable.getValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
+    val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
     val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
       t -> validations.filter(_.labelType == t).map(LabelTable.labelMetadataUserDashToJson)
     }.toMap)

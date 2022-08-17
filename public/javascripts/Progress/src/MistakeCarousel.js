@@ -1,3 +1,6 @@
+/**
+ * Query for labels most recently validated as incorrect by other users. Build a set of image carousels using that info.
+ */
 function MistakeCarousel() {
     fetch('/userapi/mistakes?n=2')
         .then(response => {

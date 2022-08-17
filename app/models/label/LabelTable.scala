@@ -828,14 +828,22 @@ object LabelTable {
     selectedLabels
   }
 
-  def getValidatedLabelsForUser(userId: UUID, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = db.withSession { implicit session =>
-
+  /**
+   * Get user's labels most recently validated as incorrect. Up to `nPerType` per label type.
+   *
+   * @param userId Id of the user who made these mistakes.
+   * @param nPerType Number of mistakes to acquire of each label type.
+   * @param labTypes List of label types where we are looking for mistakes.
+   * @return
+   */
+  def getRecentValidatedLabelsForUser(userId: UUID, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = db.withSession { implicit session =>
+    // Attach comments to validations using a left join.
     val _validationsWithComments = labelValidations
       .leftJoin(ValidationTaskCommentTable.validationTaskComments)
       .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId)
       .map(x => (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp.?, x._2.comment.?))
 
-    // Grab labels and associated information if severity and tags satisfy query conditions.
+    // Grab validations and associated label information for the given user's labels.
     val _validations = for {
       _lb <- labelsWithoutDeletedOrOnboarding
       _m <- missions if _lb.missionId === _m.missionId
@@ -844,19 +852,20 @@ object LabelTable {
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
       _vc <- _validationsWithComments if _lb.labelId === _vc._1
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-      if _lb.streetEdgeId =!= tutorialStreetId &&
-        _m.userId === userId.toString &&
-        _vc._3 =!= userId.toString &&
+      if _lb.streetEdgeId =!= tutorialStreetId && // Exclude tutorial labels.
+        _m.userId === userId.toString && // Only include the given user's labels.
+        _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
         _vc._2 === 2 && // Only times where users validated as incorrect.
-        _gd.expired === false &&
-        (_lt.labelType inSet labTypes) // TODO make sure this works
+        _gd.expired === false && // Only include those with non-expired GSV imagery.
+        (_lt.labelType inSet labTypes) // Only include given label types.
     } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
       _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
 
-    // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = _validations.list.map(LabelMetadataUserDash.tupled)
-
-    val smallLabelList: List[LabelMetadataUserDash] = newRandomLabelsList.groupBy(_.labelType).flatMap(_._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse).take(nPerType)).toList
+    // Run query and get most recent `nPerType` of each label type.
+    val smallLabelList: List[LabelMetadataUserDash] =
+      _validations.list.map(LabelMetadataUserDash.tupled)
+        .groupBy(_.labelType).flatMap(_._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse)
+        .take(nPerType)).toList
 
     // TODO parallelize like function above.
     val labelsWithImagery: List[LabelMetadataUserDash] = smallLabelList.flatMap { currLabel =>
