@@ -2,7 +2,7 @@
  * Query for labels most recently validated as incorrect by other users. Build a set of image carousels using that info.
  */
 function MistakeCarousel() {
-    fetch('/userapi/mistakes?n=2').then(response => {
+    fetch('/userapi/mistakes?n=7').then(response => {
         if (response.status === 404) throw new Error('URL not found');
         else if (!response.ok) throw new Error('Other network error');
         return response.json();
