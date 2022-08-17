@@ -295,7 +295,6 @@ dashboard.distance.badge = {0} afstandsbadge
 dashboard.label.badge = {0} labelbadge
 dashboard.validation.badge = {0} validatiebadge
 dashboard.mistakes.header = Uw recente etiketteringsfouten
-dashboard.mistakes.text = Hieronder tonen we labels die door andere Project Sidewalk-gebruikers als onjuist zijn gemarkeerd.
 dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
 dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 

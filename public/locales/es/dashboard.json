@@ -32,7 +32,7 @@
   "badge-distance-earned-all": "¡Felicitaciones, has ganado todas las insignias de distancia!",
   "badge-labels-earned-all": "¡Felicitaciones, ganó todas las insignias de etiquetas!",
   "badge-validations-earned-all": "¡Felicitaciones, ha ganado todas las insignias de validación!",
+  "mistakes-subheader": "A continuación, mostramos las etiquetas que otros usuarios de Project Sidewalk han marcado como incorrectas. No mostramos etiquetas para {{labelTypes, list}} porque ninguna se marcó como incorrecta.",
   "validator-comment": "Comentario del validador: {{c}}",
-  "validator-no-comment": "Ningún comentario proporcionado por el validador.",
-  "no-mistakes": "Los usuarios no han encontrado ningún error tuyo para este tipo de etiqueta. ¡Buen trabajo!"
+  "validator-no-comment": "Ningún comentario proporcionado por el validador."
 }

@@ -295,7 +295,6 @@ dashboard.distance.badge = {0} insignia de distancia
 dashboard.label.badge = {0} insignia de etiqueta
 dashboard.validation.badge = {0} insignia de validación
 dashboard.mistakes.header = Sus errores de etiquetado recientes
-dashboard.mistakes.text = A continuación, mostramos las etiquetas que otros usuarios de Project Sidewalk han marcado como incorrectas.
 dashboard.mistakes.tooltip = Estos son errores determinados por otros usuarios desde la página Validar. A veces ocurren errores durante la validación y, a menudo, hay matices en estas evaluaciones.
 dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para información sobre herramientas útil.
 

@@ -296,7 +296,6 @@ dashboard.distance.badge = {0} distance badge
 dashboard.label.badge = {0} label badge
 dashboard.validation.badge = {0} validation badge
 dashboard.mistakes.header = Your recent labeling mistakes
-dashboard.mistakes.text = Below, we are showing labels that have been marked as incorrect by other Project Sidewalk users.
 dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
 dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
 
