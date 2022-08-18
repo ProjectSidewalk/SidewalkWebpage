@@ -44,7 +44,7 @@ svg {
 
 #org-name {
     display: flex;
-    font-size: 30px;
+    font-size: 24px;
     font-family: raleway, sans-serif;
     margin-right: 15px;
 }
@@ -59,9 +59,9 @@ svg {
     border: 1px solid #2D2A3F;
     color: #2D2A3F;
     background-color: white;
-    font: normal normal normal 14px/1.4em 'Raleway', sans-serif;
+    font: normal normal normal 13px/1.3em 'Raleway', sans-serif;
     text-align: center;
-    padding: 5px 25px;
+    padding: 5px 20px;
     cursor: pointer;
     display: inline-block;
     position: relative;
