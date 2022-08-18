@@ -131,6 +131,7 @@ GET     /contribution/streets                                @controllers.UserPr
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets(filterLowQuality: Boolean ?= false)
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
+GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
