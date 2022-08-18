@@ -18,7 +18,6 @@ import models.validation.ValidationTaskCommentTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
-import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
