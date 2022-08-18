@@ -35,10 +35,6 @@ object VersionTable {
   // Get an HMAC-SHA1 signing key from the raw key bytes.
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
 
-  // Get an HMAC-SHA1 Mac instance and initialize it with the HMAC-SHA1 key.
-  val mac: Mac = Mac.getInstance("HmacSHA1")
-  mac.init(sha1Key)
-
   /**
     * Returns current version ID.
     */
@@ -63,6 +59,10 @@ object VersionTable {
 
     // Gets everything but URL protocol and host that we want to sign.
     val resource: String = url.getPath() + '?' + url.getQuery()
+
+    // Get an HMAC-SHA1 Mac instance and initialize it with the HMAC-SHA1 key.
+    val mac: Mac = Mac.getInstance("HmacSHA1")
+    mac.init(sha1Key)
 
     // Compute the binary signature for the request.
     val sigBytes: Array[Byte] = mac.doFinal(resource.getBytes())
