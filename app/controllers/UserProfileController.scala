@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
+import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
 import models.user.UserOrgTable
@@ -164,7 +165,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
     val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
     val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
-      t -> validations.filter(_.labelType == t).map(LabelTable.labelMetadataUserDashToJson)
+      t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
     }.toMap)
     Future.successful(Ok(validationJson))
   }

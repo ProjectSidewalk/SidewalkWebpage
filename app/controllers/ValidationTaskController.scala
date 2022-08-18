@@ -16,11 +16,10 @@ import models.validation._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
-
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 import formats.json.CommentSubmissionFormats._
-
+import formats.json.LabelFormat
 import java.time.Instant
 
 /**
@@ -259,7 +258,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     */
   def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int): JsValue = {
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, skippedLabelId = None)
-    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(LabelTable.validationLabelMetadataToJson)
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(LabelFormat.validationLabelMetadataToJson)
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
   }
@@ -288,7 +287,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
           val userId: UUID = request.identity.get.userId
           val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId, Some(skippedLabelId)).head
-          LabelTable.validationLabelMetadataToJson(labelMetadata)
+          LabelFormat.validationLabelMetadataToJson(labelMetadata)
         }
         Future.successful(Ok(labelMetadataJson.head))
       }
