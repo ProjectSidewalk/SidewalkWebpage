@@ -105,6 +105,16 @@ object LabelTable {
   // Onboarding labels have to be filtered out before a user's labeling frequency is computed
   val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filter(_.tutorial === false)
 
+    // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
+  trait BasicLabelMetadata {
+    val labelId: Int
+    val labelType: String
+    val gsvPanoramaId: String
+    val heading: Float
+    val pitch: Float
+    val zoom: Int
+  }
+
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String, heading: Float,
@@ -116,21 +126,21 @@ object LabelTable {
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                                    canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, labelType: String,
-                                   timeValidated: Option[java.sql.Timestamp], validatorComment: Option[String])
+                                   timeValidated: Option[java.sql.Timestamp], validatorComment: Option[String]) extends BasicLabelMetadata
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
                                      timestamp: Option[java.sql.Timestamp], heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                                      severity: Option[Int], temporary: Boolean, description: Option[String],
-                                     userValidation: Option[Int], tags: List[String])
+                                     userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageDate: String, timestamp: Option[java.sql.Timestamp],
                                                 heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
                                                 canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
                                                 temporary: Boolean, description: Option[String],
-                                                userValidation: Option[Int])
+                                                userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, tagIds: List[Int])
@@ -675,12 +685,6 @@ object LabelTable {
    * @return Seq[LabelValidationMetadata]
    */
   def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // List to return.
-    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-
-    // Init random function.
-    val rand = SimpleFunction.nullary[Double]("random")
-
     // Get deprioritized labels.
     val deprioritized = deprioritizedLabels()
 
@@ -724,47 +728,11 @@ object LabelTable {
     val potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
       addValidations.list.map(LabelValidationMetadataWithoutTags.tupled)
         .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
+    val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
-    // Prepare to check for GSV imagery in parallel by making mappings from label type to the number of labels needed
-    // for that type and index we're at in the `potentialLabels` list.
-    val labelTypesAsStrings: List[String] = LabelTypeTable.primaryLabelTypes.toList
-    val nPerType: Int = n / labelTypesAsStrings.size
-    val numNeeded: collection.mutable.Map[String, Int] = collection.mutable.Map(labelTypesAsStrings.map(l => l -> nPerType): _*)
-    val startIndex: collection.mutable.Map[String, Int] = collection.mutable.Map(labelTypesAsStrings.map(l => l -> 0): _*)
-    //
-    // Initialize list of labels to check for imagery by taking first `nPerType` for each label type.
-    var labelsToTry: List[LabelValidationMetadataWithoutTags] = potentialLabels.flatMap { case (labelType, labelList) =>
-      labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
-    }.toList
-
-
-    // While there are still label types with fewer than `nPerType` labels and there are labels that might have valid
-    // imagery remaining, check for GSV imagery in parallel.
-    while (labelsToTry.nonEmpty) {
-      val newLabels: Seq[LabelValidationMetadata] = labelsToTry.par.flatMap { currLabel =>
-        // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-        panoExists(currLabel.gsvPanoramaId) match {
-          case Some(true) =>
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
-            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-            Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
-          case Some(false) =>
-            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-            None
-          case None => None
-        }
-      }.seq
-      selectedLabels ++= newLabels
-
-      // Update the `startIndex`, `numNeeded`, and `labelsToTry` maps for next round.
-      labelsToTry.groupBy(_.labelType).foreach(t => startIndex(t._1) += t._2.length)
-      newLabels.groupBy(_.labelType).foreach(t => numNeeded(t._1) -= t._2.length)
-      labelsToTry = potentialLabels.flatMap { case (labelType, labelList) =>
-        labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
-      }.toList
-    }
-    selectedLabels
+    // Get final label list by checking for GSV imagery, then add tags to the selected labels.
+    checkForImageryByLabelType(potentialLabels, nPerType)
+      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
   }
 
   /**
@@ -886,21 +854,37 @@ object LabelTable {
       _validations.list.map(LabelMetadataUserDash.tupled)
         .groupBy(_.labelType).map(l => l._1 -> l._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse))
 
+    // Get final label list by checking for GSV imagery.
+    checkForImageryByLabelType(potentialLabels, nPerType)
+  }
+
+  /**
+   * Searches for `n` labels per label type with non-expired GSV imagery.
+   *
+   * @param potentialLabels A mapping from label type to a list of labels to check for GSV imagery.
+   * @param n The number of labels to find for each label type.
+   * @tparam A
+   * @return
+   */
+  def checkForImageryByLabelType[A <: BasicLabelMetadata](potentialLabels: Map[String, List[A]], n: Int): List[A] = {
+    // Get list of possible label types.
+    val labTypes: List[String] = potentialLabels.keySet.toList
+
     // Prepare to check for GSV imagery in parallel by making mappings from label type to the number of labels needed
     // for that type and index we're at in the `potentialLabels` list.
-    val numNeeded: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> nPerType): _*)
+    val numNeeded: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> n): _*)
     val startIndex: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> 0): _*)
 
     // Initialize list of labels to check for imagery by taking first `nPerType` for each label type.
-    var labelsToTry: List[LabelMetadataUserDash] = potentialLabels.flatMap{ case (labelType, labelList) =>
+    var labelsToTry: List[A] = potentialLabels.flatMap { case (labelType, labelList) =>
       labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
     }.toList
 
     // While there are still label types with fewer than `nPerType` labels and there are labels that might have valid
     // imagery remaining, check for GSV imagery in parallel.
-    val selectedLabels: ListBuffer[LabelMetadataUserDash] = new ListBuffer[LabelMetadataUserDash]()
+    val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
     while (labelsToTry.nonEmpty) {
-      val newLabels: Seq[LabelMetadataUserDash] = labelsToTry.par.flatMap { currLabel =>
+      val newLabels: Seq[A] = labelsToTry.par.flatMap { currLabel =>
         // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
         panoExists(currLabel.gsvPanoramaId) match {
           case Some(true) =>
