@@ -553,33 +553,8 @@ object LabelTable {
       // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
       potentialLabels = scala.util.Random.shuffle(potentialLabels)
 
-      var potentialStartIdx: Int = 0
-
-      // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
-      // need to query for some more (which we don't expect to happen in a typical use case).
-      while (selectedLabels.length < n && potentialStartIdx < potentialLabels.length) {
-
-        val labelsNeeded: Int = n - selectedLabels.length
-        val newLabels: Seq[LabelValidationMetadata] =
-          potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-
-            // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-            panoExists(currLabel.gsvPanoramaId) match {
-              case Some(true) =>
-                val now = new DateTime(DateTimeZone.UTC)
-                val timestamp: Timestamp = new Timestamp(now.getMillis)
-                GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-                Some(currLabel)
-              case Some(false) =>
-                GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-                None
-              case None => None
-            }
-          }.seq
-
-        potentialStartIdx += labelsNeeded
-        selectedLabels ++= newLabels
-      }
+      // Take the first `n` labels with non-expired GSV imagery.
+      selectedLabels ++= checkForGsvImagery(potentialLabels, n)
     }
     selectedLabels
   }
@@ -643,37 +618,9 @@ object LabelTable {
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
-    var potentialStartIdx: Int = 0
-
-    // While the desired query size has not been met and there are still possibly valid labels to consider, traverse
-    // through the list incrementally and see if a potentially valid label has pano data for viewability.
-    while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
-      val labelsNeeded: Int = n - selectedLabels.length
-      val newLabels: Seq[LabelValidationMetadata] =
-        newRandomLabelsList.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-
-          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-          panoExists(currLabel.gsvPanoramaId) match {
-            case Some(true) =>
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
-              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-              val tagsToCheck: List[String] = getTagsFromLabelId(currLabel.labelId)
-              if (tagsToCheck.exists(tags.contains(_)) || tags.isEmpty) {
-                Some(labelAndTagsToLabelValidationMetadata(currLabel, tagsToCheck))
-              } else {
-                None
-              }
-            case Some(false) =>
-              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-              None
-            case None => None
-          }
-        }.seq
-      potentialStartIdx += labelsNeeded
-      selectedLabels ++= newLabels
-    }
-    selectedLabels
+    // Take the first `n` labels with non-expired GSV imagery.
+    checkForGsvImagery(newRandomLabelsList, n)
+      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
   }
 
   /**
@@ -786,33 +733,9 @@ object LabelTable {
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
-    var potentialStartIdx: Int = 0
-
-    // While the desired query size has not been met and there are still possibly valid labels to consider, traverse
-    // through the list incrementally and see if a potentially valid label has pano data for viewability.
-    while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
-      val labelsNeeded: Int = n - selectedLabels.length
-      val newLabels: Seq[LabelValidationMetadata] =
-        newRandomLabelsList.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-
-          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-          panoExists(currLabel.gsvPanoramaId) match {
-            case Some(true) =>
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
-              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-              Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
-            case Some(false) =>
-              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-              None
-            case None => None
-          }
-        }.seq
-
-      potentialStartIdx += labelsNeeded
-      selectedLabels ++= newLabels
-    }
-    selectedLabels
+    // Take the first `n` labels with non-expired GSV imagery.
+    checkForGsvImagery(newRandomLabelsList, n)
+      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
   }
 
   /**
@@ -859,7 +782,46 @@ object LabelTable {
   }
 
   /**
-   * Searches for `n` labels per label type with non-expired GSV imagery.
+   * Searches in parallel for `n` labels with non-expired GSV imagery.
+   *
+   * @param potentialLabels A list of labels to check for non-expired GSV imagery.
+   * @param n The number of to find.
+   * @tparam A
+   * @return
+   */
+  def checkForGsvImagery[A <: BasicLabelMetadata](potentialLabels: List[A], n: Int): List[A] = {
+    var potentialStartIdx: Int = 0
+    val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
+
+    // While the desired query size has not been met and there are still possibly valid labels to consider, traverse
+    // through the list incrementally and see if a potentially valid label has pano data for viewability.
+    while (selectedLabels.length < n && potentialStartIdx < potentialLabels.size) {
+      val labelsNeeded: Int = n - selectedLabels.length
+      val newLabels: Seq[A] =
+        potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
+
+          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+          panoExists(currLabel.gsvPanoramaId) match {
+            case Some(true) =>
+              val now = new DateTime(DateTimeZone.UTC)
+              val timestamp: Timestamp = new Timestamp(now.getMillis)
+              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+              Some(currLabel)
+            case Some(false) =>
+              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+              None
+            case None => None
+          }
+        }.seq
+
+      potentialStartIdx += labelsNeeded
+      selectedLabels ++= newLabels
+    }
+    selectedLabels.toList
+  }
+
+  /**
+   * Searches in parallel for `n` labels per label type with non-expired GSV imagery.
    *
    * @param potentialLabels A mapping from label type to a list of labels to check for GSV imagery.
    * @param n The number of labels to find for each label type.
