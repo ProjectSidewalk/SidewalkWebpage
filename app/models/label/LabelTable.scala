@@ -720,38 +720,49 @@ object LabelTable {
       l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity, l._1.temporary,
       l._1.description, v._2.?)
 
-    // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+    // Run query, group by label type, and randomize order.
+    val potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
+      addValidations.list.map(LabelValidationMetadataWithoutTags.tupled)
+        .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
 
-    val labelTypesAsStrings = LabelTypeTable.primaryLabelTypes
+    // Prepare to check for GSV imagery in parallel by making mappings from label type to the number of labels needed
+    // for that type and index we're at in the `potentialLabels` list.
+    val labelTypesAsStrings: List[String] = LabelTypeTable.primaryLabelTypes.toList
+    val nPerType: Int = n / labelTypesAsStrings.size
+    val numNeeded: collection.mutable.Map[String, Int] = collection.mutable.Map(labelTypesAsStrings.map(l => l -> nPerType): _*)
+    val startIndex: collection.mutable.Map[String, Int] = collection.mutable.Map(labelTypesAsStrings.map(l => l -> 0): _*)
+    //
+    // Initialize list of labels to check for imagery by taking first `nPerType` for each label type.
+    var labelsToTry: List[LabelValidationMetadataWithoutTags] = potentialLabels.flatMap { case (labelType, labelList) =>
+      labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
+    }.toList
 
-    for (labelType <- labelTypesAsStrings) {
-      val labelsFilteredByType = newRandomLabelsList.filter(label => label.labelType == labelType)
-      val selectedLabelsOfType: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-      var potentialStartIdx: Int = 0
 
-      while (selectedLabelsOfType.length < (n / labelTypesAsStrings.size) + 1 && potentialStartIdx < labelsFilteredByType.size) {
-        val labelsNeeded: Int = (n / labelTypesAsStrings.size) + 1 - selectedLabelsOfType.length
-        val newLabels: Seq[LabelValidationMetadata] =
-          labelsFilteredByType.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
+    // While there are still label types with fewer than `nPerType` labels and there are labels that might have valid
+    // imagery remaining, check for GSV imagery in parallel.
+    while (labelsToTry.nonEmpty) {
+      val newLabels: Seq[LabelValidationMetadata] = labelsToTry.par.flatMap { currLabel =>
+        // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+        panoExists(currLabel.gsvPanoramaId) match {
+          case Some(true) =>
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
+            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+            Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
+          case Some(false) =>
+            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+            None
+          case None => None
+        }
+      }.seq
+      selectedLabels ++= newLabels
 
-            // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-            panoExists(currLabel.gsvPanoramaId) match {
-              case Some(true) =>
-                val now = new DateTime(DateTimeZone.UTC)
-                val timestamp: Timestamp = new Timestamp(now.getMillis)
-                GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-                Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
-              case Some(false) =>
-                GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-                None
-              case None => None
-            }
-          }.seq
-        potentialStartIdx += labelsNeeded
-        selectedLabelsOfType ++= newLabels
-      }
-      selectedLabels ++= selectedLabelsOfType
+      // Update the `startIndex`, `numNeeded`, and `labelsToTry` maps for next round.
+      labelsToTry.groupBy(_.labelType).foreach(t => startIndex(t._1) += t._2.length)
+      newLabels.groupBy(_.labelType).foreach(t => numNeeded(t._1) -= t._2.length)
+      labelsToTry = potentialLabels.flatMap { case (labelType, labelList) =>
+        labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
+      }.toList
     }
     selectedLabels
   }
