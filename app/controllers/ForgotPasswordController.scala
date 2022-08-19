@@ -44,7 +44,7 @@ class ForgotPasswordController @Inject() (
     ForgotPasswordForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.forgotPassword(form))),
       email => {
-        val loginInfo = LoginInfo(CredentialsProvider.ID, email)
+        val loginInfo = LoginInfo(CredentialsProvider.ID, email.toLowerCase)
         val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
         userService.retrieve(loginInfo).flatMap {
           case Some(user) =>

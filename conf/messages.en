@@ -24,6 +24,7 @@ loading.encouragement = Let''s do this!
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
+feedback.submitted = Feedback Submitted
 
 navbar.explore = Start Exploring
 navbar.validate = Start Validating
@@ -294,6 +295,9 @@ dashboard.mission.badge = {0} mission badge
 dashboard.distance.badge = {0} distance badge
 dashboard.label.badge = {0} label badge
 dashboard.validation.badge = {0} validation badge
+dashboard.mistakes.header = Your recent labeling mistakes
+dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
+dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
