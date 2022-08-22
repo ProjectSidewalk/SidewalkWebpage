@@ -239,7 +239,7 @@ function Panorama (label) {
                 pano: panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
                 icon: url,
-                size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
+                size: new google.maps.Size(currentLabel.getRadius() * 2 + 2, currentLabel.getRadius() * 2 + 2),
                 anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
                 zIndex: 2
             });

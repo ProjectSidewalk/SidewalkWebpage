@@ -84,7 +84,7 @@ function Card (params, imageUrl, modal) {
 
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
-        labelIcon.className = "label-icon";
+        labelIcon.classList.add("label-icon", "label-icon-gallery");
         let iconCoords = getIconPercent();
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
