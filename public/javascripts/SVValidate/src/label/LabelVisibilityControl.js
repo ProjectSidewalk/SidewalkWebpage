@@ -28,6 +28,7 @@ function LabelVisibilityControl () {
     /**
      * Unhides label in Google StreetView Panorama
      * depending on current state.
+     * @param {boolean} newLabel Indicates whether we unhide due to showing a new label vs. clicking the unhide button.
      */
     function unhideLabel (newLabel) {
         let panomarker = svv.panorama.getPanomarker();
@@ -40,6 +41,7 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         labelVisibilityControlButton.html(htmlString);
+        // If we are unhiding because the user is moving on to their next label, then Panomarker.js adds the outline.
         if (!newLabel) {
             panomarker.marker_.classList.add('icon-outline');
         }
