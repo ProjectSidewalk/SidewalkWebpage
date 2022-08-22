@@ -1284,6 +1284,13 @@ kbd {
   border-bottom-width: 0;
 }
 
+.label-icon {
+    position: absolute;
+    border: 1px solid black;
+    border-radius: 100%;
+    outline: 0.5px solid white;
+}
+
 .gif-container {
     position: relative;
     text-align: left;

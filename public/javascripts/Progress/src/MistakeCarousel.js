@@ -75,8 +75,8 @@ function MistakeCarousel() {
                 // Add the label icon onto the GSV image.
                 let labelIcon = document.createElement('img');
                 labelIcon.src = `/assets/images/icons/AdminTool_${labelType}.png`;
+                labelIcon.classList.add('label-icon');
                 Object.assign(labelIcon.style, {
-                    position: 'absolute',
                     left: `${100 * label.canvas_x / label.canvas_width}%`,
                     top: `${100 * label.canvas_y / label.canvas_height}%`
                 });

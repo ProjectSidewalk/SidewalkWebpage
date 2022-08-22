@@ -156,13 +156,9 @@ with respect to the image holder. This allows the validation menu to be placed o
     color: black;
 }
 
-.label-icon {
-    position: absolute;
+.label-icon-gallery {
     width: 1.1vw;
     z-index: 1;
-    border: 1px solid black;
-    border-radius: 100%;
-    outline: 0.5px solid white;
 }
 
 .validation-button, .validation-button-selected {
