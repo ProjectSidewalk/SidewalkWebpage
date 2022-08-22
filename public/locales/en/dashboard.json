@@ -13,6 +13,7 @@
   "great-job": "Great job!",
   "first": "first",
   "next": "next",
+  "previous": "previous",
   "just": "Just",
   "badge-type-missions": "missions",
   "badge-type-distance": "distance",
@@ -30,5 +31,8 @@
   "badge-missions-earned-all": "Congratulations, you've earned all mission badges!",
   "badge-distance-earned-all": "Congratulations, you've earned all distance badges!",
   "badge-labels-earned-all": "Congratulations, you've earned all labeling badges!",
-  "badge-validations-earned-all": "Congratulations, you've earned all validation badges!"
+  "badge-validations-earned-all": "Congratulations, you've earned all validation badges!",
+  "mistakes-subheader": "Below, we are showing labels that have been marked as incorrect by other Project Sidewalk users. We are not showing labels for {{labelTypes, list}} because none were marked as incorrect.",
+  "validator-comment": "Comment from validator: {{c}}",
+  "validator-no-comment": "No comment supplied by validator."
 }

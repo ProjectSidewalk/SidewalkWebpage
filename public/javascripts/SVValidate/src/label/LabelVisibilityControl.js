@@ -25,15 +25,16 @@ function LabelVisibilityControl () {
             hideLabel();
         } else {
             svv.tracker.push("Click_UnhideLabel");
-            unhideLabel();
+            unhideLabel(false);
         }
     }
 
     /**
      * Unhides label in Google StreetView Panorama
      * depending on current state.
+     * @param {boolean} newLabel Indicates whether we unhide due to showing a new label vs. clicking the unhide button.
      */
-    function unhideLabel () {
+    function unhideLabel (newLabel) {
         let panomarker = svv.panorama.getPanomarker();
         let label = svv.panorama.getCurrentLabel();
         panomarker.setIcon(label.getIconUrl());
@@ -47,6 +48,10 @@ function LabelVisibilityControl () {
         if (isAmsterdam) {
             let desBox = labelDescriptionBox[0];
             desBox.style.visibility = 'visible';
+        }
+        // If we are unhiding because the user is moving on to their next label, then Panomarker.js adds the outline.
+        if (!newLabel) {
+            panomarker.marker_.classList.add('icon-outline');
         }
     }
 
@@ -63,6 +68,7 @@ function LabelVisibilityControl () {
         htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
         labelVisibilityControlButton.html(htmlString);
+        panomarker.marker_.classList.remove('icon-outline');
         if (isAmsterdam) {
             let desBox = labelDescriptionBox[0];
             desBox.style.visibility = 'hidden';

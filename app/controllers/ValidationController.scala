@@ -9,12 +9,13 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.CommentSubmissionFormats._
+import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.label.LabelTable.LabelValidationMetadata
 import models.label.LabelValidationTable
-import models.mission.{Mission, MissionTable, MissionSetProgress}
+import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.validation._
 import models.user._
 import play.api.libs.json._
@@ -144,7 +145,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val labelsToRetrieve: Int = labelsToValidate - labelsProgress
 
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType, skippedLabelId = None)
-    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelFormat.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
   }

@@ -400,6 +400,7 @@
         }
 
         var marker = document.createElement('div');
+        marker.classList.add('icon-outline');
 
         // Basic style attributes for every marker
         marker.style.position = 'absolute';

@@ -84,7 +84,7 @@ function Card (params, imageUrl, modal) {
 
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
-        labelIcon.className = "label-icon";
+        labelIcon.classList.add("label-icon", "label-icon-gallery");
         let iconCoords = getIconPercent();
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
@@ -109,7 +109,7 @@ function Card (params, imageUrl, modal) {
         // Create the div to store the label type.
         let cardHeader = document.createElement('div');
         cardHeader.className = 'card-header';
-        cardHeader.innerHTML = `<div>${i18next.t(`gallery.${util.camelToKebab(getLabelType())}`)}</div>`;
+        cardHeader.innerHTML = `<div>${i18next.t(util.camelToKebab(getLabelType()))}</div>`;
         cardInfo.appendChild(cardHeader);
 
         // Create the div that will hold the severity and tags.
