@@ -120,6 +120,10 @@ with respect to the image holder. This allows the validation menu to be placed o
     padding-right: .25vw;
 }
 
+.no-severity-header {
+    opacity: 60%;
+}
+
 .label-severity-content {
     display: flex;
     flex-direction: row;
@@ -184,6 +188,14 @@ with respect to the image holder. This allows the validation menu to be placed o
     opacity: 50%;
 }
 
+.modal-no-severity {
+    filter: opacity(0.2);
+}
+
+.modal-severity-content {
+    width: 50%;
+}
+
 .severity-circle {
     color: white;
     border: 1px solid #2d2a3f;
@@ -193,6 +205,10 @@ with respect to the image holder. This allows the validation menu to be placed o
     text-align: center;
     margin: 2px;
     font-size: 0.9vw;
+}
+
+.no-severity-circle {
+    opacity: 40%;
 }
 
 #current-severity {

@@ -1,8 +1,8 @@
 package models.label
 
 import com.vividsolutions.jts.geom.Point
-import java.net.{ConnectException, SocketException, URL}
-import javax.net.ssl.HttpsURLConnection;
+import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
 import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
@@ -10,13 +10,16 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
-import models.user.{RoleTable, UserRoleTable, UserStatTable}
+import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
+import models.utils.CommonUtils.ordered
+import models.validation.ValidationTaskCommentTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
+import java.io.InputStream
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
@@ -102,6 +105,16 @@ object LabelTable {
   // Onboarding labels have to be filtered out before a user's labeling frequency is computed
   val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filter(_.tutorial === false)
 
+    // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
+  trait BasicLabelMetadata {
+    val labelId: Int
+    val labelType: String
+    val gsvPanoramaId: String
+    val heading: Float
+    val pitch: Float
+    val zoom: Int
+  }
+
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String, heading: Float,
@@ -111,19 +124,23 @@ object LabelTable {
                            description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
                            tags: List[String])
 
+  case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
+                                   canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, labelType: String,
+                                   timeValidated: Option[java.sql.Timestamp], validatorComment: Option[String]) extends BasicLabelMetadata
+
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
                                      timestamp: Option[java.sql.Timestamp], heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                                      severity: Option[Int], temporary: Boolean, description: Option[String],
-                                     userValidation: Option[Int], tags: List[String])
+                                     userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageDate: String, timestamp: Option[java.sql.Timestamp],
                                                 heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
                                                 canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
                                                 temporary: Boolean, description: Option[String],
-                                                userValidation: Option[Int])
+                                                userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, tagIds: List[Int])
@@ -536,31 +553,8 @@ object LabelTable {
       // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
       potentialLabels = scala.util.Random.shuffle(potentialLabels)
 
-      var potentialStartIdx: Int = 0
-
-      // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
-      // need to query for some more (which we don't expect to happen in a typical use case).
-      while (selectedLabels.length < n && potentialStartIdx < potentialLabels.length) {
-
-        val labelsNeeded: Int = n - selectedLabels.length
-        val newLabels: Seq[LabelValidationMetadata] =
-          potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-
-            // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-            if (panoExists(currLabel.gsvPanoramaId)) {
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
-              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-              Some(currLabel)
-            } else {
-              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-              None
-            }
-          }.seq
-
-        potentialStartIdx += labelsNeeded
-        selectedLabels ++= newLabels
-      }
+      // Take the first `n` labels with non-expired GSV imagery.
+      selectedLabels ++= checkForGsvImagery(potentialLabels, n)
     }
     selectedLabels
   }
@@ -624,35 +618,9 @@ object LabelTable {
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
-    var potentialStartIdx: Int = 0
-
-    // While the desired query size has not been met and there are still possibly valid labels to consider, traverse
-    // through the list incrementally and see if a potentially valid label has pano data for viewability.
-    while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
-      val labelsNeeded: Int = n - selectedLabels.length
-      val newLabels: Seq[LabelValidationMetadata] =
-        newRandomLabelsList.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-
-          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-          if (panoExists(currLabel.gsvPanoramaId)) {
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
-            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-            val tagsToCheck: List[String] = getTagsFromLabelId(currLabel.labelId)
-            if (tagsToCheck.exists(tags.contains(_)) || tags.isEmpty) {
-              Some(labelAndTagsToLabelValidationMetadata(currLabel, tagsToCheck))
-            } else {
-              None
-            }
-          } else {
-            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-            None
-          }
-        }.seq
-      potentialStartIdx += labelsNeeded
-      selectedLabels ++= newLabels
-    }
-    selectedLabels
+    // Take the first `n` labels with non-expired GSV imagery.
+    checkForGsvImagery(newRandomLabelsList, n)
+      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
   }
 
   /**
@@ -664,12 +632,6 @@ object LabelTable {
    * @return Seq[LabelValidationMetadata]
    */
   def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // List to return.
-    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-
-    // Init random function.
-    val rand = SimpleFunction.nullary[Double]("random")
-
     // Get deprioritized labels.
     val deprioritized = deprioritizedLabels()
 
@@ -709,38 +671,15 @@ object LabelTable {
       l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity, l._1.temporary,
       l._1.description, v._2.?)
 
-    // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+    // Run query, group by label type, and randomize order.
+    val potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
+      addValidations.list.map(LabelValidationMetadataWithoutTags.tupled)
+        .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
+    val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
-    val labelTypesAsStrings = LabelTypeTable.primaryLabelTypes
-
-    for (labelType <- labelTypesAsStrings) {
-      val labelsFilteredByType = newRandomLabelsList.filter(label => label.labelType == labelType)
-      val selectedLabelsOfType: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-      var potentialStartIdx: Int = 0
-
-      while (selectedLabelsOfType.length < (n / labelTypesAsStrings.size) + 1 && potentialStartIdx < labelsFilteredByType.size) {
-        val labelsNeeded: Int = (n / labelTypesAsStrings.size) + 1 - selectedLabelsOfType.length
-        val newLabels: Seq[LabelValidationMetadata] =
-          labelsFilteredByType.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-
-            // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-            if (panoExists(currLabel.gsvPanoramaId)) {
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
-              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-              Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
-            } else {
-              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-              None
-            }
-          }.seq
-        potentialStartIdx += labelsNeeded
-        selectedLabelsOfType ++= newLabels
-      }
-      selectedLabels ++= selectedLabelsOfType
-    }
-    selectedLabels
+    // Get final label list by checking for GSV imagery, then add tags to the selected labels.
+    checkForImageryByLabelType(potentialLabels, nPerType)
+      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
   }
 
   /**
@@ -794,31 +733,143 @@ object LabelTable {
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
+    // Take the first `n` labels with non-expired GSV imagery.
+    checkForGsvImagery(newRandomLabelsList, n)
+      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
+  }
+
+  /**
+   * Get user's labels most recently validated as incorrect. Up to `nPerType` per label type.
+   *
+   * @param userId Id of the user who made these mistakes.
+   * @param nPerType Number of mistakes to acquire of each label type.
+   * @param labTypes List of label types where we are looking for mistakes.
+   * @return
+   */
+  def getRecentValidatedLabelsForUser(userId: UUID, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = db.withSession { implicit session =>
+    // Attach comments to validations using a left join.
+    val _validationsWithComments = labelValidations
+      .leftJoin(ValidationTaskCommentTable.validationTaskComments)
+      .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId)
+      .map(x => (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp.?, x._2.comment.?))
+
+    // Grab validations and associated label information for the given user's labels.
+    val _validations = for {
+      _lb <- labelsWithoutDeletedOrOnboarding
+      _m <- missions if _lb.missionId === _m.missionId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _vc <- _validationsWithComments if _lb.labelId === _vc._1
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      if _lb.streetEdgeId =!= tutorialStreetId && // Exclude tutorial labels.
+        _m.userId === userId.toString && // Only include the given user's labels.
+        _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
+        _vc._2 === 2 && // Only times where users validated as incorrect.
+        _gd.expired === false && // Only include those with non-expired GSV imagery.
+        _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
+        (_lt.labelType inSet labTypes) // Only include given label types.
+    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
+      _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
+
+    // Run query, group by label type, and order by recency.
+    val potentialLabels: Map[String, List[LabelMetadataUserDash]] =
+      _validations.list.map(LabelMetadataUserDash.tupled)
+        .groupBy(_.labelType).map(l => l._1 -> l._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse))
+
+    // Get final label list by checking for GSV imagery.
+    checkForImageryByLabelType(potentialLabels, nPerType)
+  }
+
+  /**
+   * Searches in parallel for `n` labels with non-expired GSV imagery.
+   *
+   * @param potentialLabels A list of labels to check for non-expired GSV imagery.
+   * @param n The number of to find.
+   * @tparam A
+   * @return
+   */
+  def checkForGsvImagery[A <: BasicLabelMetadata](potentialLabels: List[A], n: Int): List[A] = {
     var potentialStartIdx: Int = 0
+    val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
 
     // While the desired query size has not been met and there are still possibly valid labels to consider, traverse
     // through the list incrementally and see if a potentially valid label has pano data for viewability.
-    while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
+    while (selectedLabels.length < n && potentialStartIdx < potentialLabels.size) {
       val labelsNeeded: Int = n - selectedLabels.length
-      val newLabels: Seq[LabelValidationMetadata] =
-        newRandomLabelsList.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
+      val newLabels: Seq[A] =
+        potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
 
           // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-          if (panoExists(currLabel.gsvPanoramaId)) {
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
-            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-            Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
-          } else {
-            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-            None
+          panoExists(currLabel.gsvPanoramaId) match {
+            case Some(true) =>
+              val now = new DateTime(DateTimeZone.UTC)
+              val timestamp: Timestamp = new Timestamp(now.getMillis)
+              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+              Some(currLabel)
+            case Some(false) =>
+              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+              None
+            case None => None
           }
         }.seq
 
       potentialStartIdx += labelsNeeded
       selectedLabels ++= newLabels
     }
-    selectedLabels
+    selectedLabels.toList
+  }
+
+  /**
+   * Searches in parallel for `n` labels per label type with non-expired GSV imagery.
+   *
+   * @param potentialLabels A mapping from label type to a list of labels to check for GSV imagery.
+   * @param n The number of labels to find for each label type.
+   * @tparam A
+   * @return
+   */
+  def checkForImageryByLabelType[A <: BasicLabelMetadata](potentialLabels: Map[String, List[A]], n: Int): List[A] = {
+    // Get list of possible label types.
+    val labTypes: List[String] = potentialLabels.keySet.toList
+
+    // Prepare to check for GSV imagery in parallel by making mappings from label type to the number of labels needed
+    // for that type and index we're at in the `potentialLabels` list.
+    val numNeeded: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> n): _*)
+    val startIndex: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> 0): _*)
+
+    // Initialize list of labels to check for imagery by taking first `nPerType` for each label type.
+    var labelsToTry: List[A] = potentialLabels.flatMap { case (labelType, labelList) =>
+      labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
+    }.toList
+
+    // While there are still label types with fewer than `nPerType` labels and there are labels that might have valid
+    // imagery remaining, check for GSV imagery in parallel.
+    val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
+    while (labelsToTry.nonEmpty) {
+      val newLabels: Seq[A] = labelsToTry.par.flatMap { currLabel =>
+        // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+        panoExists(currLabel.gsvPanoramaId) match {
+          case Some(true) =>
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
+            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+            Some(currLabel)
+          case Some(false) =>
+            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+            None
+          case None => None
+        }
+      }.seq
+      selectedLabels ++= newLabels
+
+      // Update the `startIndex`, `numNeeded`, and `labelsToTry` maps for next round.
+      labelsToTry.groupBy(_.labelType).foreach(t => startIndex(t._1) += t._2.length)
+      newLabels.groupBy(_.labelType).foreach(t => numNeeded(t._1) -= t._2.length)
+      labelsToTry = potentialLabels.flatMap { case (labelType, labelList) =>
+        labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
+      }.toList
+    }
+    selectedLabels.toList
   }
 
   /**
@@ -867,103 +918,24 @@ object LabelTable {
     * @param gsvPanoId  Panorama ID
     * @return           True if the panorama exists, false otherwise
     */
-  def panoExists(gsvPanoId: String): Boolean = {
+  def panoExists(gsvPanoId: String): Option[Boolean] = {
+    val url: String = s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${Play.configuration.getString("google-maps-api-key").get}"
+    val signedUrl: String = VersionTable.signUrl(url)
     try {
-      val now = new DateTime(DateTimeZone.UTC)
-      val urlString : String = "https://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
-      val panoURL : URL = new java.net.URL(urlString)
-      val connection : HttpsURLConnection = panoURL.openConnection.asInstanceOf[HttpsURLConnection]
+      val connection: HttpsURLConnection = new URL(signedUrl).openConnection.asInstanceOf[HttpsURLConnection]
       connection.setConnectTimeout(5000)
       connection.setReadTimeout(5000)
-      connection.setRequestMethod("GET")
-      val responseCode: Int = connection.getResponseCode
+      val inputStream: InputStream = connection.getInputStream
+      val content: String = io.Source.fromInputStream(inputStream).mkString
+      if (inputStream != null) inputStream.close()
 
-      // URL is only valid if the response code is between 200 and 399.
-      200 <= responseCode && responseCode <= 399
-    } catch {
-      case e: ConnectException => false
-      case e: SocketException => false
-      case e: Exception => false
+      val imageStatus: String = (Json.parse(content) \ "status").as[String]
+      Some(imageStatus == "OK")
+    } catch { // If there was an exception, don't assume it means a lack of GSV imagery.
+      case ste: java.net.SocketTimeoutException => None
+      case ioe: java.io.IOException => None
+      case e: Exception => None
     }
-  }
-
-  def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
-    Json.obj(
-      "label_id" -> labelMetadata.labelId,
-      "label_type" -> labelMetadata.labelType,
-      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
-      "image_date" -> labelMetadata.imageDate,
-      "label_timestamp" -> labelMetadata.timestamp,
-      "heading" -> labelMetadata.heading,
-      "pitch" -> labelMetadata.pitch,
-      "zoom" -> labelMetadata.zoom,
-      "canvas_x" -> labelMetadata.canvasX,
-      "canvas_y" -> labelMetadata.canvasY,
-      "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight,
-      "severity" -> labelMetadata.severity,
-      "temporary" -> labelMetadata.temporary,
-      "description" -> labelMetadata.description,
-      "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "tags" -> labelMetadata.tags
-    )
-  }
-
-  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata): JsObject = {
-    Json.obj(
-      "label_id" -> labelMetadata.labelId,
-      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
-      "tutorial" -> labelMetadata.tutorial,
-      "image_date" -> labelMetadata.imageDate,
-      "heading" -> labelMetadata.heading,
-      "pitch" -> labelMetadata.pitch,
-      "zoom" -> labelMetadata.zoom,
-      "canvas_x" -> labelMetadata.canvasXY._1,
-      "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight,
-      "audit_task_id" -> labelMetadata.auditTaskId,
-      "user_id" -> labelMetadata.userId,
-      "username" -> labelMetadata.username,
-      "timestamp" -> labelMetadata.timestamp,
-      "label_type_key" -> labelMetadata.labelTypeKey,
-      "label_type_value" -> labelMetadata.labelTypeValue,
-      "severity" -> labelMetadata.severity,
-      "temporary" -> labelMetadata.temporary,
-      "description" -> labelMetadata.description,
-      "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "num_agree" -> labelMetadata.validations("agree"),
-      "num_disagree" -> labelMetadata.validations("disagree"),
-      "num_notsure" -> labelMetadata.validations("notsure"),
-      "tags" -> labelMetadata.tags
-    )
-  }
-  // Has the label metadata excluding username, user_id, and audit_task_id.
-  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata): JsObject = {
-    Json.obj(
-      "label_id" -> labelMetadata.labelId,
-      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
-      "tutorial" -> labelMetadata.tutorial,
-      "image_date" -> labelMetadata.imageDate,
-      "heading" -> labelMetadata.heading,
-      "pitch" -> labelMetadata.pitch,
-      "zoom" -> labelMetadata.zoom,
-      "canvas_x" -> labelMetadata.canvasXY._1,
-      "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight,
-      "timestamp" -> labelMetadata.timestamp,
-      "label_type_key" -> labelMetadata.labelTypeKey,
-      "label_type_value" -> labelMetadata.labelTypeValue,
-      "severity" -> labelMetadata.severity,
-      "temporary" -> labelMetadata.temporary,
-      "description" -> labelMetadata.description,
-      "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "num_agree" -> labelMetadata.validations("agree"),
-      "num_disagree" -> labelMetadata.validations("disagree"),
-      "num_notsure" -> labelMetadata.validations("notsure"),
-      "tags" -> labelMetadata.tags
-    )
   }
 
   /**

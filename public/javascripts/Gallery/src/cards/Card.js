@@ -109,7 +109,7 @@ function Card (params, imageUrl, modal) {
         // Create the div to store the label type.
         let cardHeader = document.createElement('div');
         cardHeader.className = 'card-header';
-        cardHeader.innerHTML = `<div>${i18next.t(`gallery.${util.camelToKebab(getLabelType())}`)}</div>`;
+        cardHeader.innerHTML = `<div>${i18next.t(util.camelToKebab(getLabelType()))}</div>`;
         cardInfo.appendChild(cardHeader);
 
         // Create the div that will hold the severity and tags.
@@ -118,12 +118,10 @@ function Card (params, imageUrl, modal) {
         cardInfo.appendChild(cardData);
 
         // Create the div to store the severity of the label.
-        if (getLabelType() !== 'Occlusion' && getLabelType() !== 'Signal') {
-            let cardSeverity = document.createElement('div');
-            cardSeverity.className = 'card-severity';
-            let severityHolder = new SeverityDisplay(cardSeverity, properties.severity);
-            cardData.appendChild(cardSeverity);
-        }
+        let cardSeverity = document.createElement('div');
+        cardSeverity.className = 'card-severity';
+        new SeverityDisplay(cardSeverity, properties.severity, getLabelType());
+        cardData.appendChild(cardSeverity);
 
         // Create the div to store the tags related to a card. Tags won't be populated until card is added to the DOM.
         let cardTags = document.createElement('div');
