@@ -90,7 +90,7 @@
                         <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="filterLayers('incorrect', map.mapData)"></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
                         <td>Unvalidated</td>
                         <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.mapData)"></td>
                     </tr>
@@ -116,7 +116,7 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
@@ -187,7 +187,6 @@
                     }
                 });
             });
-
     </script>
     <script>
         $(document).ready(function () {
@@ -270,5 +269,17 @@
             $('.loader').fadeOut('slow');
         });
     });
+
+    // Fully destroy label modal when it's closed to prevent weird behavior when opening another.
+    $(window).on('click', function(e) {
+        var modal = $("#labelModal");
+        if (modal != null && !(modal.hasClass('in'))) {
+            modal.modal('hide');
+            setTimeout(function() {
+                modal.remove();
+                $('.modal-backdrop').remove();
+            }, 200)
+        }
+    })
     </script>
 }

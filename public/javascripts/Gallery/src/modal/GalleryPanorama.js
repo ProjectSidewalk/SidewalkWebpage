@@ -176,7 +176,7 @@
                     pano: self.panorama,
                     position: {heading: pos.heading, pitch: pos.pitch},
                     icon: url,
-                    size: new google.maps.Size(20, 20),
+                    size: new google.maps.Size(22, 22),
                     anchor: new google.maps.Point(10, 10)
                 })
             };

@@ -70,6 +70,18 @@ footer {
 /*
  * Custom styles
  */
+.label-icon {
+    position: absolute;
+    border: 1px solid black;
+    border-radius: 100%;
+    outline: 0.5px solid white;
+}
+
+.icon-outline {
+    border: 1px solid black;
+    border-radius: 25px;
+    outline: .5px solid white;
+}
 
 .stats-grid{
     display: flex;
@@ -1190,6 +1202,92 @@ kbd {
     border-width: 2px;
     border-color: lightgrey;
     vertical-align: middle;
+}
+
+.mobile-popover {
+    background-color:rgba(58,58,58, 0.9);
+    color: white;
+    width: 600px;
+    z-index: 1151 !important;
+    text-align: center;
+    border-radius: 15px;
+    font-size: 48px;
+    left: 20px;
+}
+
+.mobile-popover > .arrow,
+.mobile-popover > .arrow:after {
+  position: absolute;
+  display: block;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+}
+.mobile-popover > .arrow {
+  border-width: 22px;
+}
+.mobile-popover > .arrow:after {
+  content: "";
+  border-width: 22px;
+}
+.mobile-popover.top > .arrow {
+  bottom: -10px;
+  left: 50%;
+  margin-left: -11px;
+  border-top-color:rgba(79, 79, 79, 0.9);
+  border-bottom-width: 0;
+}
+
+.mobile-popover.top > .arrow:after {
+  bottom: 0px;
+  margin-left: -20px;
+  content: " ";
+  border-top-color: rgba(79, 79, 79, 0.9);
+  border-bottom-width: 0;
+}
+
+.feedback-popover {
+    background-color:rgba(58,58,58, 0.9);
+    color: white;
+    width: 150px;
+    z-index: 1151 !important;
+    text-align: center;
+    border-radius: 15px;
+    font-size: 12px;
+    left: 20px;
+}
+
+.feedback-popover > .arrow,
+.feedback-popover > .arrow:after {
+  position: absolute;
+  display: block;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+}
+.feedback-popover > .arrow {
+  border-width: 11px;
+}
+.feedback-popover > .arrow:after {
+  content: "";
+  border-width: 9px;
+}
+.feedback-popover.top > .arrow {
+  bottom: -10px;
+  left: 75px;
+  margin-left: -10px;
+  border-top-color:rgba(58,58,58, 0.9);
+  border-bottom-width: 0;
+}
+
+.feedback-popover.top > .arrow:after {
+  bottom: 2px;
+  margin-left: -10px;
+  content: " ";
+  border-top-color: rgba(58,58,58, 0.9);
+  border-bottom-width: 0;
 }
 
 .gif-container {

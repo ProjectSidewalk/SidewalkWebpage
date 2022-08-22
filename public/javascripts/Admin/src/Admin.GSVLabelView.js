@@ -43,7 +43,7 @@ function AdminGSVLabelView(admin) {
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                 '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button">' +
+                                '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
                                     i18next.t('common:label-map.submit') +
                                 '</button>' +
                             '</div>' +
@@ -132,6 +132,9 @@ function AdminGSVLabelView(admin) {
 
         self.commentButton = self.modal.find("#comment-button");
         self.commentTextArea = self.modal.find("#comment-textarea");
+        self.commentButton.popover({
+            template : '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
+        });
         self.commentButton.click(function() {
             var comment = self.commentTextArea.val();
             if (comment) {
@@ -233,6 +236,9 @@ function AdminGSVLabelView(admin) {
         var userPov = self.panorama.panorama.getPov();
         var zoom = self.panorama.panorama.getZoom();
         var pos = self.panorama.panorama.getPosition();
+        var button = document.getElementById("comment-button");
+
+        button.style.cursor = "wait";
 
         let data = {
             label_id: self.panorama.label.labelId,
@@ -255,9 +261,13 @@ function AdminGSVLabelView(admin) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
+                button.style.cursor = "pointer";
                 self.commentTextArea.val('');
-            },
+                self.commentButton.popover('toggle');
+                setTimeout(function(){ self.commentButton.popover('toggle'); }, 1500);
+            },  
             error: function(xhr, textStatus, error){
+                button.style.cursor = "pointer";
                 console.error(xhr.statusText);
                 console.error(textStatus);
                 console.error(error);
