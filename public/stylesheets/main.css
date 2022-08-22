@@ -70,6 +70,12 @@ footer {
 /*
  * Custom styles
  */
+.label-icon {
+    position: absolute;
+    border: 1px solid black;
+    border-radius: 100%;
+    outline: 0.5px solid white;
+}
 
 .icon-outline {
     border: 1px solid black;
@@ -1282,13 +1288,6 @@ kbd {
   content: " ";
   border-top-color: rgba(58,58,58, 0.9);
   border-bottom-width: 0;
-}
-
-.label-icon {
-    position: absolute;
-    border: 1px solid black;
-    border-radius: 100%;
-    outline: 0.5px solid white;
 }
 
 .gif-container {
