@@ -301,6 +301,7 @@ function AdminGSVLabelView(admin) {
         var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
         $.getJSON(adminLabelUrl, function (data) {
             _handleData(data, admin);
+            console.log(data);
         });
     }
 
