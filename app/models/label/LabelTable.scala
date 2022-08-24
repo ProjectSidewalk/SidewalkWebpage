@@ -1,6 +1,7 @@
 package models.label
 
 import com.vividsolutions.jts.geom.Point
+
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
@@ -19,6 +20,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.Json
+
 import java.io.InputStream
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -772,10 +774,12 @@ object LabelTable {
     } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
       _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
 
-    // Run query, group by label type, and order by recency.
+    // Run query, group by label type, get most recent validation for each label, and order by recency.
     val potentialLabels: Map[String, List[LabelMetadataUserDash]] =
-      _validations.list.map(LabelMetadataUserDash.tupled)
-        .groupBy(_.labelType).map(l => l._1 -> l._2.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse))
+      _validations.list.map(LabelMetadataUserDash.tupled).groupBy(_.labelType).map { case (labType, labs) =>
+        val distinctLabs: List[LabelMetadataUserDash] = labs.groupBy(_.labelId).map(_._2.maxBy(_.timeValidated)).toList
+        labType -> distinctLabs.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse)
+      }
 
     // Get final label list by checking for GSV imagery.
     checkForImageryByLabelType(potentialLabels, nPerType)
