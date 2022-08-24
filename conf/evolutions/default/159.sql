@@ -1,8 +1,5 @@
 # --- !Ups
-ALTER TABLE audit_task
-    ADD COLUMN mission_id INT,
-    ADD FOREIGN KEY (mission_id) REFERENCES mission(mission_id);
+INSERT INTO version VALUES ('7.8.0', now(), 'Adds a section to the User Dashboard showing recent labeling mistakes.');
 
 # --- !Downs
-ALTER TABLE audit_task
-    DROP COLUMN mission_id;
+DELETE FROM version WHERE version_id = '7.8.0';

@@ -9,10 +9,11 @@ import models.label.{LabelTable, LabelTypeTable}
 import models.label.LabelTable._
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import formats.json.LabelFormat
 import play.api.Play
 import play.api.Play.current
 import play.api.mvc._
-import play.api.libs.json.{JsObject, Json, JsError}
+import play.api.libs.json.{JsError, JsObject, Json}
 import scala.concurrent.Future
 
 
@@ -65,7 +66,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
               } else labels
 
             val jsonList: Seq[JsObject] = realLabels.map(l => Json.obj(
-                "label" -> LabelTable.validationLabelMetadataToJson(l),
+                "label" -> LabelFormat.validationLabelMetadataToJson(l),
                 "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
               )
             )
