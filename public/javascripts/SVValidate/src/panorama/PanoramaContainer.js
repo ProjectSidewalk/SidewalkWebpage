@@ -99,7 +99,7 @@ function PanoramaContainer (labelList) {
         svv.panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
         if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
-            svv.labelVisibilityControl.unhideLabel();
+            svv.labelVisibilityControl.unhideLabel(true);
         }
 
         // Update zoom availability on desktop.

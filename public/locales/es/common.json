@@ -4,6 +4,15 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "curb-ramp": "Rampa peatonal",
+  "no-curb-ramp": "Rampa peatonal ausente",
+  "obstacle": "Obstáculo en la banqueta",
+  "surface-problem": "Problema en superficie",
+  "occlusion": "No puedo ver la banqueta",
+  "no-sidewalk" : "No hay banqueta",
+  "crosswalk": "Cruce peatonal",
+  "signal": "Semáforo peatonal",
+  "other": "Otro",
   "missing-sidewalks": "Banqueta ausente",
   "missing-ramps": "Rampa peatonal ausente",
   "surface-problems": "Problemas en superficie",
@@ -25,9 +34,12 @@
   },
   "label-map": {
     "add-comment": "Agrega un comentario aquí...",
-    "submit": "Enviar comentario"
+    "submit": "Enviar comentario",
+    "comment-submitted" : "Comentario Enviado"
   },
   "severity": "Calificación ",
+  "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
+  "unsupported": "Este tipo de etiqueta no tiene niveles de gravedad significativos",
   "tags": "Etiquitas ",
   "temporary": "Temporal",
   "description": "Descripción",
@@ -90,14 +102,5 @@
     "APS": "APS",
     "missing crosswalk": "paso peatonal ausente (i)",
     "no bus stop access": "No hay acceso a la parada de autobús"
-  },
-  "gallery": {
-    "curb-ramp": "Rampa peatonal",
-    "no-curb-ramp": "Rampa peatonal ausente",
-    "obstacle": "Obstáculo en la banqueta",
-    "surface-problem": "Problema en superficie",
-    "occlusion": "No puedo ver la banqueta",
-    "noSidewalk" : "No hay banqueta",
-    "other": "Otro"
   }
 }

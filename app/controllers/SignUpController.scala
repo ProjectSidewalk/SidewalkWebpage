@@ -66,7 +66,7 @@ class SignUpController @Inject() (
           case None =>
 
             // Check presence of user by email.
-            UserTable.findEmail(data.email) match {
+            UserTable.findEmail(data.email.toLowerCase) match {
               case Some(user) =>
                 WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
 //                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
@@ -81,9 +81,9 @@ class SignUpController @Inject() (
                   val authInfo = passwordHasher.hash(data.password)
                   val user = User(
                     userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
-                    loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
+                    loginInfo = LoginInfo(CredentialsProvider.ID, data.email.toLowerCase),
                     username = data.username,
-                    email = data.email,
+                    email = data.email.toLowerCase,
                     role = None
                   )
 
@@ -193,11 +193,11 @@ class SignUpController @Inject() (
         val ipAddress: String = request.remoteAddress
 
         // Generate random strings for anonymous username/email/password (keep trying if we make a duplicate).
-        var randomUsername: String = Random.alphanumeric take 16 mkString ""
-        while (UserTable.find(randomUsername).isDefined) randomUsername = Random.alphanumeric take 16 mkString ""
-        var randomEmail: String = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+        var randomUsername: String = Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""
+        while (UserTable.find(randomUsername).isDefined) randomUsername = Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""
+        var randomEmail: String = "anonymous@" + s"${Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""}" + ".com"
         while (UserTable.findEmail(randomEmail).isDefined)
-          randomEmail = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+          randomEmail = "anonymous@" + s"${Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""}" + ".com"
         val randomPassword: String = Random.alphanumeric take 16 mkString ""
 
         val loginInfo = LoginInfo(CredentialsProvider.ID, randomEmail)
@@ -249,7 +249,7 @@ class SignUpController @Inject() (
         activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
 
-        val turkerEmail: String = workerId + "@sidewalk.mturker.umd.edu"
+        val turkerEmail: String = workerId.toLowerCase + "@sidewalk.mturker.umd.edu"
         val loginInfo = LoginInfo(CredentialsProvider.ID, turkerEmail)
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
@@ -265,7 +265,7 @@ class SignUpController @Inject() (
 
       case None =>
         // Create a dummy email and password. Keep the username as the workerId.
-        val turkerEmail: String = workerId + "@sidewalk.mturker.umd.edu"
+        val turkerEmail: String = workerId.toLowerCase + "@sidewalk.mturker.umd.edu"
         val turkerPassword: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
 
         val loginInfo = LoginInfo(CredentialsProvider.ID, turkerEmail)
