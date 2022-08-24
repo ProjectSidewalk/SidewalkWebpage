@@ -70,6 +70,7 @@ function MistakeCarousel() {
                 let gsvImage = document.createElement('img');
                 gsvImage.src = label.image_url;
                 gsvImage.classList.add('mistake-img');
+                gsvImage.id = `label_id_${label.label_id}`;
                 imageWrapper.appendChild(gsvImage);
 
                 // Add the label icon onto the GSV image.
