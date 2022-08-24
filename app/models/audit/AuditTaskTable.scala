@@ -1,6 +1,6 @@
 package models.audit
 
-import com.vividsolutions.jts.geom.{Coordinate, LineString}
+import com.vividsolutions.jts.geom.{Coordinate, LineString, Point}
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -18,7 +18,7 @@ import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, startPointReversed: Boolean, missionId: Int)
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, startPointReversed: Boolean, missionId: Int, missionStart: Point)
 case class NewTask(edgeId: Int, geom: LineString,
                    currentLng: Float, currentLat: Float, x1: Float, y1: Float, x2: Float, y2: Float,
                    startPointReversed: Boolean, // Did we start at x1,y1 instead of x2,y2?
@@ -87,8 +87,9 @@ class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("
   def currentLng = column[Float]("current_lng", O.NotNull)
   def startPointReversed = column[Boolean]("start_point_reversed", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
+  def missionStart = column[Point]("mission_start", O.Nullable)
 
-  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng, startPointReversed, missionId) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
+  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng, startPointReversed, missionId, missionStart) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -107,7 +108,7 @@ object AuditTaskTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val auditTaskConverter = GetResult[AuditTask](r => {
-    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean, r.nextFloat, r.nextFloat, r.nextBoolean, r.nextInt)
+    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean, r.nextFloat, r.nextFloat, r.nextBoolean, r.nextInt, r.nextGeometry[Point])
   })
 
   implicit val newTaskConverter = GetResult[NewTask](r => {
@@ -341,6 +342,20 @@ object AuditTaskTable {
   }
 
   /**
+    * Get a task's 'mission_start' value.
+    * Used if a mission starts with a partially complete task to find starting position of mission.
+    */
+  def find(auditTaskId: Int, missionId: Int): Option[Point] = db.withSession { implicit session =>
+    val missionTaskList = auditTasks.filter(_.missionId === missionId).list
+    val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
+    val startPoints = for {
+      mt <- missionTaskList
+      at <- auditTaskList if at.missionId == at.missionId
+    } yield at.missionStart
+    startPoints.headOption
+  }
+
+  /**
    * Return street edges audited by the given user.
    */
   def getAuditedStreets(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
@@ -482,6 +497,14 @@ object AuditTaskTable {
     val auditTaskId: Int =
       (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
     auditTaskId
+  }
+
+  /**
+    * Update the `mission_start` column of the specified audit task row.
+    */
+  def updateMissionStart(auditTaskId: Int, missionStart: Point): Int = db.withTransaction { implicit session =>
+    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.missionStart
+    q.update(missionStart)
   }
 
   /**

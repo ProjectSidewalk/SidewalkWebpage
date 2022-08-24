@@ -1,6 +1,7 @@
 package formats.json
 
 import java.sql.Timestamp
+import com.vividsolutions.jts.geom.Point
 
 import models.audit.AuditTaskTable.AuditTaskWithALabel
 import models.audit.{AuditTask, AuditTaskInteraction}
@@ -9,7 +10,6 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object TaskFormats {
-
   // case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, missionId: Int)\
   implicit val auditTaskWrites: Writes[AuditTask] = (
     (__ \ "audit_task_id").write[Int] and
@@ -22,7 +22,8 @@ object TaskFormats {
       (__ \ "current_lat").write[Float] and
       (__ \ "current_lng").write[Float] and
       (__ \ "start_point_reversed").write[Boolean] and
-      (__ \ "mission_id").write[Int]
+      (__ \ "mission_id").write[Int] and
+      (__ \ "mission_start").writeNullable[Point]
     )(unlift(AuditTask.unapply _))
 
   // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, mission_id: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],
