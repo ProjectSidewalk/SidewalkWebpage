@@ -133,7 +133,8 @@ object UserStatTable {
       _stat <- userStats if _stat.highQuality
       _mission <- MissionTable.auditMissions if _mission.userId === _stat.userId
       _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
-      if _label.timeCreated > cutoffTime
+      if (_label.correct.isEmpty || _label.correct === true) && // Filter out labels validated as incorrect.
+        _label.timeCreated > cutoffTime
     } yield _stat.userId
 
     // SELECT DISTINCT on the user_ids.
