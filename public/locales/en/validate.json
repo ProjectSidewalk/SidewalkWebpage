@@ -142,5 +142,9 @@
     "info-title-no-sidewalk": "What is a \"No Sidewalk\"",
     "info-title-crosswalk": "What is a Crosswalk?",
     "info-title-signal": "What is a Pedestrian Signal?"
+  },
+  "button-ui": {
+    "visibility-control-hide": "Hide Label",
+    "visibility-control-show": "Show Label"
   }
 }

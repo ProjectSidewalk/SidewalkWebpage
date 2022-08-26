@@ -11,6 +11,8 @@ function LabelVisibilityControl () {
     let labelVisibilityControlButton = $("#label-visibility-control-button");
     let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");
     let labelDescriptionBox = $("#label-description-box");
+    let buttonUiVisibilityControlHide = i18next.t('button-ui.visibility-control-hide');
+    let buttonUiVisibilityControlShow = i18next.t('button-ui.visibility-control-show');
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -36,10 +38,10 @@ function LabelVisibilityControl () {
         panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
-        let htmlString = `<u>H</u>ide Label</button>`;
+        let htmlString = `${buttonUiVisibilityControlHide}</button>`;
         labelVisibilityButtonOnPano.html(htmlString);
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-        <br /><u>H</u>ide Label</button>`;
+        <br />${buttonUiVisibilityControlHide}</button>`;
         labelVisibilityControlButton.html(htmlString);
         // If we are unhiding because the user is moving on to their next label, then Panomarker.js adds the outline.
         if (!newLabel) {
@@ -55,10 +57,10 @@ function LabelVisibilityControl () {
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
         visible = false;
-        let htmlString = `S<u>h</u>ow Label</button>`;
+        let htmlString = `${buttonUiVisibilityControlShow}</button>`;
         labelVisibilityButtonOnPano.html(htmlString);
         htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-        <br />S<u>h</u>ow Label</button>`;
+        <br />${buttonUiVisibilityControlShow}</button>`;
         labelVisibilityControlButton.html(htmlString);
         panomarker.marker_.classList.remove('icon-outline');
     }
