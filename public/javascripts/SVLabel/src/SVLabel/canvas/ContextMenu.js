@@ -188,6 +188,7 @@ function ContextMenu (uiContextMenu) {
             type: 'get',
             success: function (json) {
                 self.labelTags = json;
+                self.labelTags.push({tag_id: 54, label_type: 'Crosswalk', tag: 'missing crosswalk'});
             },
             error: function (result) {
                 throw result;
@@ -447,7 +448,6 @@ function ContextMenu (uiContextMenu) {
             if (labelTags) {
                 var count = 0;
                 var tagHolder = getContextMenuUI().tagHolder;
-
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {

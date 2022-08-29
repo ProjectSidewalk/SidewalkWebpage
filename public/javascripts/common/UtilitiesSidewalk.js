@@ -324,6 +324,10 @@ function UtilitiesMisc (JSON) {
                     'level with sidewalk': {
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk')
+                    },
+                    'missing crosswalk': {
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.missing-crosswalk')
                     }
                 }
             },
