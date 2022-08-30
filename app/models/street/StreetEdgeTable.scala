@@ -402,7 +402,7 @@ object StreetEdgeTable {
         |           WHEN (SUM(CASE WHEN (audit_task.completed = TRUE) THEN 1 ELSE 0 END) > 0) THEN TRUE ELSE FALSE
         |       END) AS completed
         |FROM street_edge
-        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE street_edge.deleted = FALSE
         |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
         |GROUP BY street_edge.street_edge_id""".stripMargin
