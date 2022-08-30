@@ -74,7 +74,8 @@ object UserClusteringSessionTable {
       _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.missionId === _mission.missionId
       _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
       _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
-      if _region.deleted === false
+      if _region.deleted === false &&
+        (_lab.correct.isEmpty || _lab.correct === true) // Filter out labels validated as incorrect.
     } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng, _lab.severity, _lab.temporary)
 
     labels.list.map(LabelToCluster.tupled)
