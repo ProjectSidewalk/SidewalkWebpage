@@ -19,7 +19,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 
 <details><summary>Mac</summary>
 
-1. [Install  Docker Desktop](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Make sure to select "Download for Mac—Apple Chip" if you have an Apple M1, M2, etc. or "Download for Mac—Intel Chip" if you have an Intel chip (older Mac models).
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 </details>
 
