@@ -71,7 +71,7 @@ object UserClusteringSessionTable {
     val labels = for {
       _mission <- MissionTable.missions if _mission.userId === userId
       _region <- RegionTable.regions if _mission.regionId === _region.regionId
-      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.missionId === _mission.missionId
+      _lab <- LabelTable.labels if _lab.missionId === _mission.missionId
       _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
       _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
       if _region.deleted === false &&

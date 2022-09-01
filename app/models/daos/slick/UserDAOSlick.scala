@@ -159,7 +159,7 @@ object UserDAOSlick {
       _userRole <- userRoleTable if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
       _mission <- MissionTable.missions if _user.userId === _mission.userId
-      _label <- LabelTable.labelsWithoutDeleted if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _mission.missionId === _label.missionId
       if _role.role === "Anonymous"
     } yield _user).groupBy(x => x).map(_._1)
 
@@ -496,7 +496,7 @@ object UserDAOSlick {
 
     // Map(user_id: String -> label_count: Int).
     val labelCounts =
-      AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+      AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithTutorialAndExcludedUsers).on(_.auditTaskId === _.auditTaskId)
         .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).

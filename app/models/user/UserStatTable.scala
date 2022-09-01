@@ -133,7 +133,7 @@ object UserStatTable {
     val usersWithLabels = for {
       _stat <- userStats if _stat.highQuality
       _mission <- MissionTable.auditMissions if _mission.userId === _stat.userId
-      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
+      _label <- LabelTable.labels if _mission.missionId === _label.missionId
       if (_label.correct.isEmpty || _label.correct === true) && // Filter out labels validated as incorrect.
         _label.timeCreated > cutoffTime
     } yield _stat.userId
@@ -202,7 +202,7 @@ object UserStatTable {
     // Compute label counts for each of those users.
     val labelCounts = (for {
       _mission <- MissionTable.auditMissions
-      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
       if _mission.userId inSet usersStatsToUpdate
     } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
@@ -587,7 +587,7 @@ object UserStatTable {
     */
   def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
     if (userStats.filter(_.userId === userId.toString).length.run == 0)
-      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, None))
+      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, false))
     else
       0
   }

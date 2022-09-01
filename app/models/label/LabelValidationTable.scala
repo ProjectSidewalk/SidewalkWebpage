@@ -236,7 +236,7 @@ object LabelValidationTable {
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
     val labels = for {
-      _label <- LabelTable.labelsWithoutDeletedOrOnboarding
+      _label <- LabelTable.labelsWithExcludedUsers
       _mission <- MissionTable.missions if _label.missionId === _mission.missionId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
       _userRole <- userRoles if _user.userId === _userRole.userId
