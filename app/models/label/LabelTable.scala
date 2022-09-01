@@ -451,12 +451,14 @@ object LabelTable {
 
     // Get labels the given user has not placed that have non-expired GSV imagery.
     val labelsToValidate =  for {
-      _lb <- labels if _lb.deleted === false && _lb.tutorial === false
-      _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
-      _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
-      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.streetEdgeId =!= tutorialStreetId
+      _lb <- labels
+      _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId
+      _ms <- missions if _ms.missionId === _lb.missionId
+      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _ms.userId === _us.userId
-      if _us.highQuality
+      if _lb.deleted === false && _lb.tutorial === false && _us.highQuality && !_us.excludeManual &&
+        _lb.streetEdgeId =!= tutorialStreetId && _a.streetEdgeId =!= tutorialStreetId && _gd.expired === false &&
+        _ms.userId =!= userIdString
     } yield (_lb.labelId, _lb.labelTypeId)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -526,6 +528,7 @@ object LabelTable {
           |WHERE label.label_type_id = $labelTypeId
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
+          |    AND user_stat.exclude_manual = FALSE
           |    AND label.street_edge_id <> $tutorialStreetId
           |    AND audit_task.street_edge_id <> $tutorialStreetId
           |    AND gsv_data.expired = FALSE
