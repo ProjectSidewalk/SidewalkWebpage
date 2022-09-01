@@ -1020,8 +1020,12 @@ object LabelTable {
         |FROM label
         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
         |INNER JOIN label_point ON label.label_id = label_point.label_id
-        |WHERE label.deleted = false
+        |INNER JOIN mission ON label.mission_id = mission.mission_id
+        |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+        |WHERE label.deleted = FALSE
+        |    AND label.tutorial = FALSE
         |    AND label_point.lat IS NOT NULL
+        |    AND user_stat.exclude_manual = FALSE
         |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
     selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list

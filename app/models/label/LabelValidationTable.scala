@@ -210,7 +210,7 @@ object LabelValidationTable {
 
   /**
    * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
-   * if the 10 of the user's labels have been validated. A label is considered validated if it has either more agree
+   * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree
    * votes than disagree votes, or more disagree votes than agree votes.
    */
   def getUserAccuracy(userId: UUID): Option[Float] = db.withSession { implicit session =>

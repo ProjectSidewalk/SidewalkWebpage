@@ -561,7 +561,8 @@ object UserStatTable {
          |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId}
          |    GROUP BY user_id
          |) label_counts ON user_stat.user_id = label_counts.user_id
-         |WHERE role.role <> 'Anonymous';""".stripMargin
+         |WHERE role.role <> 'Anonymous'
+         |    AND user_stat.exclude_manual = FALSE;""".stripMargin
     )
     statsQuery.list
   }
