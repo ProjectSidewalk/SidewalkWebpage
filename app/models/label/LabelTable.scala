@@ -791,11 +791,14 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
-      _vc <- _validationsWithComments if _lb.labelId === _vc._1
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      _vc <- _validationsWithComments if _lb.labelId === _vc._1
+      _us <- UserStatTable.userStats if _vc._3 === _us.userId
       if _m.userId === userId.toString && // Only include the given user's labels.
         _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
         _vc._2 === 2 && // Only times where users validated as incorrect.
+        _us.excludeManual === false && // Don't use validations from excluded users
+        _us.highQuality === true && // For now we only include validations from high quality users.
         _gd.expired === false && // Only include those with non-expired GSV imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
         (_lt.labelType inSet labTypes) // Only include given label types.
