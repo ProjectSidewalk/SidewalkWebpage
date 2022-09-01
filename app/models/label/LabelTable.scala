@@ -535,14 +535,21 @@ object LabelTable {
           |        FROM label_validation
           |        WHERE user_id = '$userIdStr'
           |    )
-          |-- Generate a priority value for each label that we sort by, between 0 and 251. A label gets 100 points if
+          |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
           |-- the labeler has fewer than 50 of their labels validated. Another 50 points if the labeler was marked as
           |-- high quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
-          |-- validations for the label. Then add a random number so that the max score for each label is 251.
+          |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
+          |-- number so that the max score for each label is 276.
           |ORDER BY COALESCE(needs_validations,  100) +
           |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
           |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
-          |    RANDOM() * (251 - (COALESCE(needs_validations,  100) + CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END + 100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count))) DESC
+          |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
+          |    RANDOM() * (276 - (
+          |        COALESCE(needs_validations,  100) +
+          |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
+          |            100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+          |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
+          |        )) DESC
           |LIMIT ${n * 5}""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery.list
