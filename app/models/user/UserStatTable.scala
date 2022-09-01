@@ -17,7 +17,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
-                    accuracy: Option[Float], excludeManual: Option[Boolean])
+                    accuracy: Option[Float], excludeManual: Boolean)
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int) {
   def toArray = Array(labels, validatedCorrect, validatedIncorrect, notValidated)
@@ -83,7 +83,7 @@ class UserStatTable(tag: Tag) extends Table[UserStat](tag, Some("sidewalk"), "us
   def highQualityManual = column[Option[Boolean]]("high_quality_manual")
   def ownLabelsValidated = column[Int]("own_labels_validated", O.NotNull)
   def accuracy = column[Option[Float]]("accuracy")
-  def excludeManual = column[Option[Boolean]]("exclude_manual")
+  def excludeManual = column[Boolean]("exclude_manual")
 
   def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excludeManual) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
@@ -117,7 +117,7 @@ object UserStatTable {
   /**
     * Return query with user_id and high_quality columns.
     */
-  def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Option[Boolean]]), (String, Boolean, Option[Boolean]), Seq] = db.withSession { implicit session =>
+  def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Boolean]), (String, Boolean, Boolean), Seq] = db.withSession { implicit session =>
     userStats.map(x => (x.userId, x.highQuality, x.excludeManual))
   }
 
@@ -128,6 +128,7 @@ object UserStatTable {
    * @param cutoffTime Only get users who have placed a label since this time. Defaults to all time.
    */
   def getIdsOfGoodUsersWithLabels(cutoffTime: Timestamp = new Timestamp(Instant.EPOCH.toEpochMilli)): List[String] = db.withSession { implicit session =>
+    // TODO include users who have received new validations too? A la usersValidatedSinceCutoffTime() or similar?
     // Get the list of users who have placed a label by joining with the label table.
     val usersWithLabels = for {
       _stat <- userStats if _stat.highQuality
@@ -273,7 +274,7 @@ object UserStatTable {
 
     // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsers: List[(String, Boolean)] =
-      userStats.filter(u => u.excludeManual.getOrElse(false) || !u.highQualityManual.getOrElse(true))
+      userStats.filter(u => u.excludeManual || !u.highQualityManual.getOrElse(true))
         .map(x => (x.userId, x.highQualityManual.get)).list
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
@@ -397,7 +398,7 @@ object UserStatTable {
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
-        |        AND (user_stat.exclude_manual = FALSE OR user_stat.exclude_manual IS NULL)
+        |        AND user_stat.exclude_manual = FALSE
         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |        $orgFilter
         |    GROUP BY $groupingCol
