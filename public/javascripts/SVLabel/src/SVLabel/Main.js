@@ -156,6 +156,8 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
+        var infoPopOver = new GSVInfoPopOver(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId);
+
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);
 
@@ -424,6 +426,7 @@ function Main (params) {
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
         svl.ui.googleMaps.overlay = $("#google-maps-overlay");
+        svl.ui.dateHolder = $("#svl-panorama-date-holder")
 
         // Status holder
         svl.ui.status = {};

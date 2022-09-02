@@ -1,0 +1,18 @@
+#info-button {
+    margin-left: 5px;
+    max-height: 100%;
+}
+
+.info-key {
+    font-weight: bold;
+}
+
+.info-list-item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.popover {
+    width: 350px;
+    max-width: 350px;
+}
