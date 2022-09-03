@@ -17,6 +17,8 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
+case class StreetEdgeInformation(val streetEdge: StreetEdge, val audited: Boolean)
+
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
@@ -50,6 +52,20 @@ object StreetEdgeTable {
     val deleted = r.nextBoolean
     val timestamp = r.nextTimestampOption
     StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp)
+  })
+
+  implicit val streetEdgeInformationConverter = GetResult[StreetEdgeInformation](r => {
+    val streetEdgeId = r.nextInt
+    val geometry = r.nextGeometry[LineString]
+    val x1 = r.nextFloat
+    val y1 = r.nextFloat
+    val x2 = r.nextFloat
+    val y2 = r.nextFloat
+    val wayType = r.nextString
+    val deleted = r.nextBoolean
+    val timestamp = r.nextTimestampOption
+    val audited = r.nextBoolean
+    StreetEdgeInformation(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), audited)
   })
 
   val db = play.api.db.slick.DB
@@ -362,33 +378,10 @@ object StreetEdgeTable {
     edges
   }
 
-  def selectAuditedStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[(StreetEdge, Boolean)] = db.withSession { implicit session =>
+  def selectAuditedStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInformation] = db.withSession { implicit session =>
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), (StreetEdge, Boolean)](
-      """SELECT DISTINCT(street_edge.street_edge_id),
-        |       street_edge.geom,
-        |       street_edge.x1,
-        |       street_edge.y1,
-        |       street_edge.x2,
-        |       street_edge.y2,
-        |       street_edge.way_type,
-        |       street_edge.deleted,
-        |       street_edge.timestamp,
-        |       audit_task.completed
-        |FROM street_edge
-        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-        |WHERE street_edge.deleted = FALSE
-        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |    AND audit_task.completed = TRUE""".stripMargin
-    )
-
-    val edges: List[(StreetEdge, Boolean)] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
-  }
-
-  def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[(StreetEdge, Boolean)] = db.withSession { implicit session =>
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), (StreetEdge, Boolean)](
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInformation](
       """SELECT DISTINCT(street_edge.street_edge_id),
         |       street_edge.geom,
         |       street_edge.x1,
@@ -399,21 +392,21 @@ object StreetEdgeTable {
         |       street_edge.deleted,
         |       street_edge.timestamp,
         |       (CASE
-        |           WHEN (SUM(CASE WHEN (audit_task.completed = TRUE) THEN 1 ELSE 0 END) > 0) THEN TRUE ELSE FALSE
+        |           WHEN street_edge_priority.priority = 1 THEN FALSE ELSE TRUE
         |       END) AS completed
         |FROM street_edge
-        |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |INNER JOIN street_edge_priority ON street_edge.street_edge_id = street_edge_priority.street_edge_id
         |WHERE street_edge.deleted = FALSE
-        |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |GROUP BY street_edge.street_edge_id""".stripMargin
+        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |    AND street_edge_priority.priority < 1""".stripMargin
     )
 
-    val edges: List[(StreetEdge, Boolean)] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    val edges: List[StreetEdgeInformation] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
     edges
   }
 
-  def selectAuditedStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
+  def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInformation] = db.withSession { implicit session =>
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInformation](
       """SELECT DISTINCT(street_edge.street_edge_id),
         |       street_edge.geom,
         |       street_edge.x1,
@@ -422,15 +415,17 @@ object StreetEdgeTable {
         |       street_edge.y2,
         |       street_edge.way_type,
         |       street_edge.deleted,
-        |       street_edge.timestamp
+        |       street_edge.timestamp,
+        |       (CASE
+        |           WHEN street_edge_priority.priority = 1 THEN FALSE ELSE TRUE
+        |       END) AS completed
         |FROM street_edge
-        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |INNER JOIN street_edge_priority ON street_edge.street_edge_id = street_edge_priority.street_edge_id
         |WHERE street_edge.deleted = FALSE
-        |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |    AND audit_task.completed = TRUE""".stripMargin
+        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
 
-    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    val edges: List[StreetEdgeInformation] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
     edges
   }
 }

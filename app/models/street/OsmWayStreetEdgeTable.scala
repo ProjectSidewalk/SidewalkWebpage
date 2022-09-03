@@ -25,14 +25,14 @@ object OsmWayStreetEdgeTable {
     * @return a list of (streetEdge, OsmWayStreetEdge) pairs where each list element represents a
     *         streetEdge and its corresponding OsmWayStreetEdge.
     */
-  def selectOsmWayIdsForStreets(streetEdges: List[(StreetEdge, Boolean)]): List[(StreetEdge, Boolean, OsmWayStreetEdge)] = db.withSession { implicit session =>
-    val streetEdgeIds: List[Int] = streetEdges.map(_._1.streetEdgeId)
+  def selectOsmWayIdsForStreets(streetEdges: List[StreetEdgeInformation]): List[(StreetEdgeInformation, OsmWayStreetEdge)] = db.withSession { implicit session =>
+    val streetEdgeIds: List[Int] = streetEdges.map(_.streetEdge.streetEdgeId)
     val streetEdgesWithOsmIds = for {
       _osm <- osmStreetTable if _osm.streetEdgeId inSetBind streetEdgeIds
     } yield (
       _osm
     )
 
-    (streetEdges zip streetEdgesWithOsmIds.list).map(x => (x._1._1, x._1._2, x._2))
+    (streetEdges zip streetEdgesWithOsmIds.list)
   }
 }
