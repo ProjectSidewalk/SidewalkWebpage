@@ -78,6 +78,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     Future.successful(Ok(JsArray(tasks)))
   }
 
+  // /**
+  //  * Get ending completion point of a partially complete task
+  //  */
+  // def getMissionStartPoint(auditTaskId: Int, missionId: Int) = UserAwareAction.async { implicit request =>
+  //   val tasks: List[JsObject] = AuditTaskTable.findMissionStartPoint(auditTaskId, missionId)
+  //   Future.successful(Ok(JsArray(tasks)))
+  // }
+
+  /**
+   * Save completion end point of a partially complete task
+   */
+  def updateMissionStart(auditTaskId: Int, missionStart: Point) = {
+    AuditTaskTable.updateMissionStart(auditTaskId, missionStart);
+  }
+
   /**
    * Insert or update the submitted audit task in the database.
    */
@@ -93,15 +108,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     } else {
       // Insert audit task.
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+      val point: Point = new GeometryFactory().createPoint(new Coordinate(0, 0))
       val auditTaskObj = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
           Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-          auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId, null)
+          auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId, point)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
           AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId,
             Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-            auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId, null)
+            auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId, point)
       }
       AuditTaskTable.save(auditTaskObj)
     }
@@ -225,6 +241,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       // Set the task to be completed and increment task completion count.
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
+
+      // Update MissionStart
+      updateMissionStart(auditTaskId, data.auditTask.missionStart)
 
       // Update the MissionTable.
       val possibleNewMission: Option[Mission] = updateMissionTable(userOption, data.missionProgress)
