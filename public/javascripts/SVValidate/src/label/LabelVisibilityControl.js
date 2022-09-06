@@ -31,33 +31,16 @@ function LabelVisibilityControl () {
      * @param {boolean} newLabel Indicates whether we unhide due to showing a new label vs. clicking the unhide button.
      */
     function unhideLabel (newLabel) {
-        let htmlString;
         let panomarker = svv.panorama.getPanomarker();
         let label = svv.panorama.getCurrentLabel();
         panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
-        if (labelVisibilityButtonOnPano.text() === 'Toon Label') {
-            htmlString = `Verberg Label</button>`;
-            labelVisibilityButtonOnPano.html(htmlString);
-            htmlString = `< img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-            <br />Verberg Label</button>`;
-            labelVisibilityControlButton.html(htmlString);
-        }
-        else if (labelVisibilityButtonOnPano.text() === 'Mostrar Label') {
-            htmlString = `Ocultar (<u>H</u>)</button>`;
-            labelVisibilityButtonOnPano.html(htmlString);
-            htmlString = `< img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-            <br />Ocultar (<u>H</u>)</button>`;
-            labelVisibilityControlButton.html(htmlString);
-        }
-        else {
-            htmlString = `<u>H</u>ide Label</button>`;
-            labelVisibilityButtonOnPano.html(htmlString);
-            htmlString = `< img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-            <br /><u>H</u>ide Label</button>`;
-            labelVisibilityControlButton.html(htmlString);
-        }
+        let htmlString = `<u>H</u>ide Label</button>`;
+        labelVisibilityButtonOnPano.html(htmlString);
+        htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        <br /><u>H</u>ide Label</button>`;
+        labelVisibilityControlButton.html(htmlString);
         // If we are unhiding because the user is moving on to their next label, then Panomarker.js adds the outline.
         if (!newLabel) {
             panomarker.marker_.classList.add('icon-outline');
@@ -68,33 +51,15 @@ function LabelVisibilityControl () {
      * Hides label in Google StreetView Panorama.
      */
     function hideLabel () {
-        let htmlString;
         let panomarker = svv.panorama.getPanomarker();
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
         visible = false;
-        console.log(labelVisibilityButtonOnPano.text());
-        if (labelVisibilityButtonOnPano.text() === 'Verberg Label') {
-            htmlString = `Toon Label</button>`;
-            labelVisibilityButtonOnPano.html(htmlString);
-            htmlString = `< img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-            <br />Toon Label</button>`;
-            labelVisibilityControlButton.html(htmlString);
-        }
-        else if (labelVisibilityButtonOnPano.text() === 'Ocultar (H)') {
-            htmlString = `Mostrar Label</button>`;
-            labelVisibilityButtonOnPano.html(htmlString);
-            htmlString = `< img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-            <br />Mostrar Label</button>`;
-            labelVisibilityControlButton.html(htmlString);
-        }
-        else {
-            htmlString = `S<u>h</u>ow Label</button>`;
-            labelVisibilityButtonOnPano.html(htmlString);
-            htmlString = `< img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
-            <br />S<u>h</u>ow Label</button>`;
-            labelVisibilityControlButton.html(htmlString);
-        }
+        let htmlString = `S<u>h</u>ow Label</button>`;
+        labelVisibilityButtonOnPano.html(htmlString);
+        htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        <br />S<u>h</u>ow Label</button>`;
+        labelVisibilityControlButton.html(htmlString);
         panomarker.marker_.classList.remove('icon-outline');
     }
 
@@ -165,3 +130,4 @@ function LabelVisibilityControl () {
 
     return this;
 }
+
