@@ -167,8 +167,8 @@
                 "has-button": "tiene botón (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "botón a la altura de la cintura (<tag-underline>h</tag-underline>)",
                 "APS": "<tag-underline>A</tag-underline>PS",
-                "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
-                "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús",
+                "missing-crosswalk": "paso de peatones perdido (<tag-underline>a</tag-underline>)",
+                "no-bus-stop-access": "sin acceso a la parada de autobús (<tag-underline>u</tag-underline>)",
                 "height-difference": "<tag-underline>d</tag-underline>esnivel"
             },
             "tooltip": {

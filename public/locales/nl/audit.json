@@ -169,8 +169,8 @@
                 "has-button": "heeft een knop (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "knop op <tag-underline>h</tag-underline>euphoogte",
                 "APS": "<tag-underline>A</tag-underline>PS",
-                "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
-                "no-bus-stop-access": "geen bush<tag-underline>a</tag-underline>lte toegang",
+                "missing-crosswalk": "ontbrekende zebrapad (<tag-underline>a</tag-underline>)",
+                "no-bus-stop-access": "geen toegang tot de bushalte (<tag-underline>u</tag-underline>)",
                 "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)"
             },
             "tooltip": {

@@ -355,11 +355,11 @@ function UtilitiesMisc (JSON) {
                 text: 'Other',
                 tagInfo: {
                     'missing crosswalk': {
-                        keyChar: 'I',
+                        keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.missing-crosswalk')
                     },
                     'no bus stop access': {
-                        keyChar: 'A',
+                        keyChar: 'U',
                         text: i18next.t('center-ui.context-menu.tag.no-bus-stop-access')
                     }
                 }
