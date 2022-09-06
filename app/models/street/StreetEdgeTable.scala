@@ -382,7 +382,7 @@ object StreetEdgeTable {
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInformation](
-      """SELECT DISTINCT(street_edge.street_edge_id),
+      """SELECT street_edge.street_edge_id,
         |       street_edge.geom,
         |       street_edge.x1,
         |       street_edge.y1,
@@ -391,9 +391,7 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp,
-        |       (CASE
-        |           WHEN street_edge_priority.priority = 1 THEN FALSE ELSE TRUE
-        |       END) AS completed
+        |       TRUE AS completed
         |FROM street_edge
         |INNER JOIN street_edge_priority ON street_edge.street_edge_id = street_edge_priority.street_edge_id
         |WHERE street_edge.deleted = FALSE
@@ -407,7 +405,7 @@ object StreetEdgeTable {
 
   def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInformation] = db.withSession { implicit session =>
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInformation](
-      """SELECT DISTINCT(street_edge.street_edge_id),
+      """SELECT street_edge.street_edge_id,
         |       street_edge.geom,
         |       street_edge.x1,
         |       street_edge.y1,
@@ -416,9 +414,7 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp,
-        |       (CASE
-        |           WHEN street_edge_priority.priority = 1 THEN FALSE ELSE TRUE
-        |       END) AS completed
+        |       street_edge_priority.priority < 1 AS completed
         |FROM street_edge
         |INNER JOIN street_edge_priority ON street_edge.street_edge_id = street_edge_priority.street_edge_id
         |WHERE street_edge.deleted = FALSE
