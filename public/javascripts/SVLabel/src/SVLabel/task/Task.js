@@ -233,6 +233,36 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         }
     }
 
+    // function updateMissionStart(point) {
+    //     var data = {
+    //         streetEdgeId: self.getProperty("streetEdgeId"),
+    //         taskStart: self.getProperty(""),
+    //         auditTaskId: self,
+    //         completed: Option[Boolean],
+    //         currentLat: Float,
+    //         currentLng: Float,
+    //         startPointReversed: Boolean,
+    //         lastPriorityUpdateTime: Long,
+    //         requestUpdatedStreetPriority: Boolean,
+    //         missionStart: point
+    //     };
+
+    //     // Submit the new Point via POST request.
+    //     $.ajax({
+    //         async: true,
+    //         contentType: 'application/json; charset=utf-8',
+    //         url: "/task",
+    //         type: 'post',
+    //         data: JSON.stringify(data),
+    //         dataType: 'json',
+    //         success: function (result) {},
+    //         error: function (result) {
+    //             console.error(result);
+    //         }
+    //     });
+    // }
+    // }
+
     this._hasAdvanced = function (currentLat, currentLng) {
         if (typeof _furthestPoint === "undefined") return false;
         var latFurthest = _furthestPoint.geometry.coordinates[1];

@@ -345,7 +345,7 @@ object AuditTaskTable {
     * Get a task's 'mission_start' value.
     * Used if a mission starts with a partially complete task to find starting position of mission.
     */
-  def find(auditTaskId: Int, missionId: Int): Option[Point] = db.withSession { implicit session =>
+  def findMissionStartPoint(auditTaskId: Int, missionId: Int): Option[Point] = db.withSession { implicit session =>
     val missionTaskList = auditTasks.filter(_.missionId === missionId).list
     val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
     val startPoints = for {

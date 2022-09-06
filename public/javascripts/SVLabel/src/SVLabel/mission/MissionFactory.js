@@ -47,9 +47,10 @@ function MissionFactory (missionModel) {
  * @param distance
  * @param distanceProgress
  * @param skipped
+ * @param started
  * @returns {svl.Mission}
  */
-MissionFactory.prototype.create = function (missionId, missionType, regionId, isComplete, pay, paid, distance, distanceProgress, skipped) {
+MissionFactory.prototype.create = function (missionId, missionType, regionId, isComplete, pay, paid, distance, distanceProgress, skipped, started) {
     return new Mission({
         missionId: missionId,
         missionType: missionType,
@@ -59,6 +60,7 @@ MissionFactory.prototype.create = function (missionId, missionType, regionId, is
         paid: paid,
         distance: distance,
         distanceProgress: distanceProgress,
-        skipped: skipped
+        skipped: skipped,
+        started: started
     });
 };

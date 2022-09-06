@@ -17,7 +17,8 @@ function Mission(parameters) {
             paid: null,
             distance: null,
             distanceProgress: null,
-            skipped: false
+            skipped: false,
+            started: false
         },
         _tasksForTheMission = [],
         labelCountsAtCompletion;

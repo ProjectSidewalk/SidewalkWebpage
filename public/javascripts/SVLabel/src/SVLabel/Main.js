@@ -122,6 +122,10 @@ function Main (params) {
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
             currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
+            if (svl.mission.getProperty("started") == false) {
+                svl.mission.setProperty("started", true);
+                currTask.setProperty("missionStart", currTask.missionStart)
+            }
         } else {
             svl.tracker.initTaskId();
         }

@@ -10,7 +10,14 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object TaskFormats {
-  // case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, missionId: Int)\
+  // case class Point(lat: float, lng: float)
+  implicit val pointWrites: Writes[Point] = Writes { point =>
+    Json.obj(
+      "lat" -> point.getX,
+      "lng" -> point.getY
+    )
+  }
+  // case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, missionId: Int, missionStart: Point)\
   implicit val auditTaskWrites: Writes[AuditTask] = (
     (__ \ "audit_task_id").write[Int] and
       (__ \ "amt_assignment_id").writeNullable[Int] and
@@ -23,7 +30,7 @@ object TaskFormats {
       (__ \ "current_lng").write[Float] and
       (__ \ "start_point_reversed").write[Boolean] and
       (__ \ "mission_id").write[Int] and
-      (__ \ "mission_start").writeNullable[Point]
+      (__ \ "mission_start").write[Point]
     )(unlift(AuditTask.unapply _))
 
   // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, mission_id: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],
