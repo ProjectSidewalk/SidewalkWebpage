@@ -448,12 +448,11 @@ function ContextMenu (uiContextMenu) {
             if (labelTags) {
                 var count = 0;
                 var tagHolder = getContextMenuUI().tagHolder;
-                
+
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
                         var buttonIndex = count; // Save index in a separate var b/c tooltips are added asynchronously.
-
                         // Remove all leftover tags from last labeling.
                         // Warning to future devs: will remove any other classes you add to the tags.
                         tagHolder.find("button[id=" + buttonIndex + "]").attr('class', 'context-menu-tag');
