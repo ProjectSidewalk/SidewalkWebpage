@@ -188,7 +188,6 @@ function ContextMenu (uiContextMenu) {
             type: 'get',
             success: function (json) {
                 self.labelTags = json;
-                self.labelTags.push({tag_id: 54, label_type: 'Crosswalk', tag: 'missing crosswalk'});
             },
             error: function (result) {
                 throw result;
@@ -453,6 +452,7 @@ function ContextMenu (uiContextMenu) {
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
                         var buttonIndex = count; // Save index in a separate var b/c tooltips are added asynchronously.
+
                         // Remove all leftover tags from last labeling.
                         // Warning to future devs: will remove any other classes you add to the tags.
                         tagHolder.find("button[id=" + buttonIndex + "]").attr('class', 'context-menu-tag');

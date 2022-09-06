@@ -169,8 +169,8 @@
                 "has-button": "has b<tag-underline>u</tag-underline>tton",
                 "button-waist-height": "button waist <tag-underline>h</tag-underline>eight",
                 "APS": "<tag-underline>A</tag-underline>PS",
-                "missing-crosswalk": "missing crosswalk (<tag-underline>a</tag-underline>)",
-                "no-bus-stop-access": "no bus stop access (<tag-underline>u</tag-underline>)",
+                "missing-crosswalk": "missing crossw<tag-underline>a</tag-underline>lk",
+                "no-bus-stop-access": "no b<tag-underline>u</tag-underline>s stop access",
                 "height-difference": "height <tag-underline>d</tag-underline>ifference"
             },
             "tooltip": {
