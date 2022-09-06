@@ -67,8 +67,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         })[0];
 
         self.panoNotAvailableAuditSuggestion = 
-        // /audit is temporary
-            $("<div id='pano-not-avail-audit'>We suggest that you " + '<a href="/audit">explore the street</a>' + " again! </div>").css({
+            $("<div id='pano-not-avail-audit'>We suggest that you " + '<a href="">explore the street</a>' + " again! </div>").css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
@@ -158,6 +157,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'block');
                     $(self.panoNotAvailable).css('display', 'none');
                     $(self.panoNotAvailableDetails).css('display', 'none');
+                    $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
                     $(self.buttonHolder).css('display', 'block');
                     if (self.label) renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
@@ -166,6 +166,10 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');
+                    // Route used in AuditController.scala  -->  /audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId
+                    // The below line currently works and directs to the correct street, but it's missing the 'location' parameter
+                    $("a").attr("href", "/audit/street/" + self.label['streetEdgeId']); // Last code tried --> "/location?lat=" + self.label['lat'] + "%lng=" + self.label['lng'] + "?panoId=" + self.label['panoId']);
+                    $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
                     $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
                     $(self.svHolder).css('height', '');
@@ -173,6 +177,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'none');
+                    $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
                     $(self.buttonHolder).css('display', 'none');
                 } else {
                     setTimeout(callback, 200, n - 1);
@@ -196,7 +201,6 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         var url = icons[label['label_type']];
         var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
-
         self.labelMarkers.push({
             panoId: self.panorama.getPano(),
             marker: new PanoMarker({

@@ -9,11 +9,15 @@
  * @param heading
  * @param pitch
  * @param zoom
+ * @param streetEdgeId
+ * @param lat
+ * @param lng
+ * @param panoId
  * @returns {{className: string}}
  * @constructor
  */
 function AdminPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight,
-                            heading, pitch, zoom) {
+                            heading, pitch, zoom, streetEdgeId, lat, lng, panoId) {
     var self = { className: "AdminPanoramaLabel" };
 
     /**
@@ -29,6 +33,10 @@ function AdminPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvas
         self.heading = heading;
         self.pitch = pitch;
         self.zoom = zoom;
+        self.streetEdgeId = streetEdgeId;
+        self.lat = lat;
+        self.lng = lng;
+        self.panoId = panoId;
         return this;
     }
 
