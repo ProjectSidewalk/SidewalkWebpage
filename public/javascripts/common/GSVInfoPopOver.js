@@ -29,7 +29,7 @@ function GSVInfoPopOver (container, panorama, map) {
         clipboard.setAttribute('data-placement', 'top');
         clipboard.setAttribute('trigger', 'click');
         clipboard.setAttribute('tabindex', 0);
-        clipboard.setAttribute('title', 'Copied!');
+        clipboard.setAttribute('title', 'Details copied to clipboard!');
 
         self.titleBox.appendChild(clipboard);
 
@@ -60,7 +60,7 @@ function GSVInfoPopOver (container, panorama, map) {
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'info-button';
-        self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/info_button.png';
+        self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/gsv_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
         self.infoButton.setAttribute('data-placement', 'top');
         self.infoButton.setAttribute('title', self.titleBox.innerHTML);
@@ -85,7 +85,7 @@ function GSVInfoPopOver (container, panorama, map) {
             $('.popover-title').addClass('popover-element');
             $('.popover-content').addClass('popover-element');
         });
-        $('html').on('click', (e) => {
+        $('html').on('mousedown', (e) => {
             let tar = $(e.target);
             console.log(tar[0]);
             if (tar[0].className.indexOf('popover-element') === -1) {
@@ -135,7 +135,7 @@ function GSVInfoPopOver (container, panorama, map) {
 
         // Fixes Bootstrap popover positioning issues, has to be done AFTER popover loads,
         // thus cannot be put into css file
-        $('.popover').css('left', '-10px');
+        $('.popover').css('left', '-17px');
     }
 
     /**
