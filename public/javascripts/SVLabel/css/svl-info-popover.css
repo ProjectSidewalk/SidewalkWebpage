@@ -16,3 +16,23 @@
     width: 350px;
     max-width: 350px;
 }
+
+.popover-title {
+    display: flex;
+    justify-content: space-between;
+    height: 36px;
+}
+
+.popover-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+#gsv-link {
+    text-align: center;
+}
+
+#clipboard {
+    max-height: 100%;
+    cursor: pointer;
+}

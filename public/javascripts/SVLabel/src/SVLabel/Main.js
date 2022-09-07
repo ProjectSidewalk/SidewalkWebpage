@@ -156,7 +156,7 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
-        var infoPopOver = new GSVInfoPopOver(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId);
+        var infoPopOver = new GSVInfoPopOver(svl.ui.dateHolder, svl.panorama, svl.map);
 
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);
