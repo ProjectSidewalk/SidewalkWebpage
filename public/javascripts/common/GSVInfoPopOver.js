@@ -1,25 +1,27 @@
 /**
- * An object for displaying additional locational info on any GSV pane.
+ * An object for creating a popover which displays additional locational info on any GSV pane.
  *
- * @param svl SVL object
  * @param {HTMLElement} container Element where the info button will be displayed
- * @returns {GSVInfoPopOver} The info button and popover object
- * @constructor
+ * @param {StreetViewPanorama} panorama Panorama object
+ * @param {svl.map} map Map object
+ * @returns {GSVInfoPopOver} Popover object, which holds the popover title html, content html, info button html, and
+ * update values method
  */
 function GSVInfoPopOver (container, panorama, map) {
     let self = this;
 
     function _init() {
-        let popoverContent = document.createElement('div');
 
         // Create popover title bar
-        let titleBox = document.createElement('div');
+        self.titleBox = document.createElement('div');
 
         let title = document.createElement('span');
+        title.classList.add('popover-element');
         title.textContent = 'Details'
-        titleBox.appendChild(title);
+        self.titleBox.appendChild(title);
 
         let clipboard = document.createElement('img');
+        clipboard.classList.add('popover-element');
         clipboard.src = '/assets/javascripts/SVLabel/img/misc/clipboard_copy.png';
         clipboard.id = 'clipboard';
 
@@ -29,52 +31,73 @@ function GSVInfoPopOver (container, panorama, map) {
         clipboard.setAttribute('tabindex', 0);
         clipboard.setAttribute('title', 'Copied!');
 
-        titleBox.appendChild(clipboard);
+        self.titleBox.appendChild(clipboard);
 
 
         // Create popover content
+        self.popoverContent = document.createElement('div');
+
+        // Add in container for each info type to the popover
         let dataList = document.createElement('ul');
         dataList.classList.add('list-group', 'list-group-flush');
 
-        // Add in container for each info type to the popover
         addListElement('Latitude', dataList);
         addListElement('Longitude', dataList);
         addListElement('PanoID', dataList);
         // TODO: add street edge ID and region ID
-        popoverContent.appendChild(dataList);
+
+        self.popoverContent.appendChild(dataList);
 
         // Create link to separate GSV
         let linkGSV = document.createElement('a');
+        linkGSV.classList.add('popover-element');
         linkGSV.id = 'gsv-link'
         linkGSV.textContent = 'View in Google Street View';
-        popoverContent.appendChild(linkGSV);
+        self.popoverContent.appendChild(linkGSV);
+
 
         // Create info button and add popover attributes
-        let infoButton = document.createElement('img');
-        infoButton.id = 'info-button';
-        infoButton.src = '/assets/javascripts/SVLabel/img/misc/info_button.png';
-        infoButton.setAttribute('data-toggle', 'popover');
-        infoButton.setAttribute('data-placement', 'top');
-        infoButton.setAttribute('title', titleBox.innerHTML);
-        infoButton.setAttribute('data-content', popoverContent.innerHTML);
+        self.infoButton = document.createElement('img');
+        self.infoButton.classList.add('popover-element');
+        self.infoButton.id = 'info-button';
+        self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/info_button.png';
+        self.infoButton.setAttribute('data-toggle', 'popover');
+        self.infoButton.setAttribute('data-placement', 'top');
+        self.infoButton.setAttribute('title', self.titleBox.innerHTML);
+        self.infoButton.setAttribute('data-content', self.popoverContent.innerHTML);
 
-        // Makes the popover a dismissable popover
-        // infoButton.setAttribute('tabindex', 0);
-        // infoButton.setAttribute('data-trigger', 'focus');
+        container.append(self.infoButton);
 
-        container.append(infoButton);
 
         // Enable popovers/tooltips and set options
         $('#info-button').popover({
             html: true,
             container: $('#view-control-layer'),
-            // trigger: 'focus'
         });
         $('#clipboard').tooltip();
 
-        // Open popover on click
+        // Update popover everytime it opens
         $('#info-button').on('click', updateVals);
+
+        // Dismiss popover on clicking outside of popover
+        $('#info-button').on('shown.bs.popover', () => {
+            console.log('popover shown!');
+            $('.popover-title').addClass('popover-element');
+            $('.popover-content').addClass('popover-element');
+        });
+        $('html').on('click', (e) => {
+            let tar = $(e.target);
+            console.log(tar[0]);
+            if (tar[0].className.indexOf('popover-element') === -1) {
+                $('#info-button').popover('hide');
+            }
+        });
+        // Dismiss popover whenver panorama changes
+        panorama.addListener('pano_changed', () => {
+            $('#info-button').popover('hide');
+        })
     }
+
 
     /**
      * Update the values within the popover
@@ -117,19 +140,20 @@ function GSVInfoPopOver (container, panorama, map) {
 
     /**
      * Creates a key-value pair display within the popover
-     * @param key Key name of the key-value pair
+     * @param {String} key Key name of the key-value pair
+     * @param {HTMLElement} dataList List element container to add list item to
      */
     function addListElement(key, dataList) {
         let listElement = document.createElement('li');
-        listElement.classList.add('list-group-item', 'info-list-item');
+        listElement.classList.add('list-group-item', 'info-list-item', 'popover-element');
 
         let keySpan = document.createElement('span');
-        keySpan.classList.add('info-key');
+        keySpan.classList.add('info-key', 'popover-element');
         keySpan.textContent = key;
         listElement.appendChild(keySpan);
 
         let valSpan = document.createElement('span');
-        valSpan.classList.add('info-val');
+        valSpan.classList.add('info-val', 'popover-element');
         valSpan.textContent = '-';
         valSpan.id = `${key}-value`
 
