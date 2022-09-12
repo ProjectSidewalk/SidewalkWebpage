@@ -130,7 +130,7 @@ object LabelValidationTable {
     val oldValidation: Option[LabelValidation] =
       validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
-    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excludeManual).first
+    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
     val userThatAppliedLabel: String =
     labels.filter(_.labelId === label.labelId)
       .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)

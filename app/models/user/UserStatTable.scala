@@ -17,7 +17,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
-                    accuracy: Option[Float], excludeManual: Boolean)
+                    accuracy: Option[Float], excluded: Boolean)
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int) {
   def toArray = Array(labels, validatedCorrect, validatedIncorrect, notValidated)
@@ -83,9 +83,9 @@ class UserStatTable(tag: Tag) extends Table[UserStat](tag, Some("sidewalk"), "us
   def highQualityManual = column[Option[Boolean]]("high_quality_manual")
   def ownLabelsValidated = column[Int]("own_labels_validated", O.NotNull)
   def accuracy = column[Option[Float]]("accuracy")
-  def excludeManual = column[Boolean]("exclude_manual")
+  def excluded = column[Boolean]("excluded")
 
-  def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excludeManual) <> ((UserStat.apply _).tupled, UserStat.unapply)
+  def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
   def user: ForeignKeyQuery[UserTable, DBUser] =
     foreignKey("user_stat_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
@@ -118,7 +118,7 @@ object UserStatTable {
     * Return query with user_id and high_quality columns.
     */
   def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Boolean]), (String, Boolean, Boolean), Seq] = db.withSession { implicit session =>
-    userStats.map(x => (x.userId, x.highQuality, x.excludeManual))
+    userStats.map(x => (x.userId, x.highQuality, x.excluded))
   }
 
 
@@ -274,7 +274,7 @@ object UserStatTable {
 
     // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsers: List[(String, Boolean)] =
-      userStats.filter(u => u.excludeManual || !u.highQualityManual.getOrElse(true))
+      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
         .map(x => (x.userId, x.highQualityManual.get)).list
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
@@ -398,7 +398,7 @@ object UserStatTable {
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
-        |        AND user_stat.exclude_manual = FALSE
+        |        AND user_stat.excluded = FALSE
         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |        $orgFilter
         |    GROUP BY $groupingCol
@@ -562,7 +562,7 @@ object UserStatTable {
          |    GROUP BY user_id
          |) label_counts ON user_stat.user_id = label_counts.user_id
          |WHERE role.role <> 'Anonymous'
-         |    AND user_stat.exclude_manual = FALSE;""".stripMargin
+         |    AND user_stat.excluded = FALSE;""".stripMargin
     )
     statsQuery.list
   }

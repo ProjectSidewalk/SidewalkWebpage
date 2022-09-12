@@ -25,7 +25,11 @@ FROM (
 WHERE label.label_id = validation_count.label_id
     AND user_stat.exclude_manual = TRUE;
 
+ALTER TABLE user_stat RENAME COLUMN exclude_manual TO excluded;
+
 # --- !Downs
+ALTER TABLE user_stat RENAME COLUMN excluded TO exclude_manual;
+
 UPDATE label
 SET (agree_count, disagree_count, notsure_count, correct) = (n_agree, n_disagree, n_notsure, is_correct)
 FROM (

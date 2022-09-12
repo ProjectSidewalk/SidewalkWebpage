@@ -103,13 +103,13 @@ object LabelTable {
   val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
 
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
-  // the tutorial, and labels from users where `exclude_manual=TRUE` in the `user_stat` table.
+  // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table.
   val labels = labelsUnfiltered
     .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
     .innerJoin(UserStatTable.userStats).on(_._2.userId === _.userId)
     .filterNot { case ((_l, _at), _us) =>
       _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId ||
-        _us.excludeManual
+        _us.excluded
     }.map(_._1._1)
 
   // Subquery for labels without deleted or tutorial ones, but includes "excluded" users. You might need to include
@@ -128,7 +128,7 @@ object LabelTable {
   val labelsWithTutorial = labelsUnfiltered
     .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
     .innerJoin(UserStatTable.userStats).on(_._2.userId === _.userId)
-    .filterNot { case ((_l, _at), _us) => _l.deleted || _us.excludeManual }
+    .filterNot { case ((_l, _at), _us) => _l.deleted || _us.excluded }
     .map(_._1._1)
 
   // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
@@ -549,7 +549,7 @@ object LabelTable {
           |WHERE label.label_type_id = $labelTypeId
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
-          |    AND user_stat.exclude_manual = FALSE
+          |    AND user_stat.excluded = FALSE
           |    AND label.street_edge_id <> $tutorialStreetId
           |    AND audit_task.street_edge_id <> $tutorialStreetId
           |    AND gsv_data.expired = FALSE
@@ -797,7 +797,7 @@ object LabelTable {
       if _m.userId === userId.toString && // Only include the given user's labels.
         _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
         _vc._2 === 2 && // Only times where users validated as incorrect.
-        _us.excludeManual === false && // Don't use validations from excluded users
+        _us.excluded === false && // Don't use validations from excluded users
         _us.highQuality === true && // For now we only include validations from high quality users.
         _gd.expired === false && // Only include those with non-expired GSV imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
@@ -1028,7 +1028,7 @@ object LabelTable {
         |WHERE label.deleted = FALSE
         |    AND label.tutorial = FALSE
         |    AND label_point.lat IS NOT NULL
-        |    AND user_stat.exclude_manual = FALSE
+        |    AND user_stat.excluded = FALSE
         |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
     selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
