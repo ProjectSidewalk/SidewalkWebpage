@@ -130,11 +130,11 @@ object LabelValidationTable {
     val oldValidation: Option[LabelValidation] =
       validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
-    val (userThatAppliedLabel, excludedUser): (String, Boolean) =
+    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excludeManual).first
+    val userThatAppliedLabel: String =
     labels.filter(_.labelId === label.labelId)
       .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
-      .innerJoin(UserStatTable.userStats).on(_._2.userId === _.userId)
-      .map(x => (x._2.userId, x._2.excludeManual))
+      .map(_._2.userId)
       .list.head
 
     // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
