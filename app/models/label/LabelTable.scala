@@ -607,38 +607,29 @@ object LabelTable {
     val rand = SimpleFunction.nullary[Double]("random")
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
-    val _labelsUnfiltered = for {
-      _lb <- labels
+    val _galleryLabels = for {
+      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _labelTags <- labelTags if _lb.labelId === _labelTags.labelId
       _tags <- tagTable if _labelTags.tagId === _tags.tagId && ((_tags.tag inSet tags) || tags.isEmpty)
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId
+      if _gd.expired === false
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
       if _lb.severity.isEmpty || (_lb.severity inSet severity)
-    } yield (_lb, _lp, _lt.labelType)
-
-    // Filter out labels already grabbed before.
-    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
-
-    // Join with gsvData to add gsv data.
-    val addGSVData = for {
-      (l, e) <- _labels.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, e.imageDate, e.expired)
-
-    // Remove labels with expired panos.
-    val removeExpiredPanos = addGSVData.filter(_._5 === false)
+    } yield (_lb, _lp, _lt, _gd)
 
     // Join with the validations that the user has given.
     val userValidations = validationsFromUser(userId)
     val addValidations = for {
-      (l, v) <- removeExpiredPanos.leftJoin(userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._4, l._1.timeCreated, l._2.heading, l._2.pitch, l._2.zoom,
-      l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity, l._1.temporary, l._1.description,
-      v._2.?)
+      (l, v) <- _galleryLabels.leftJoin(userValidations).on(_._1.labelId === _._1)
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
+      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
+      l._1.temporary, l._1.description, v._2.?)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val uniqueLabels = addValidations.groupBy(x => x).map(_._1)
@@ -662,39 +653,30 @@ object LabelTable {
   def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labels
+      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId && (_lt.labelTypeId inSet LabelTypeTable.primaryLabelTypeIds)
       _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
+      if _gd.expired === false
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _lt.labelType)
+    } yield (_lb, _lp, _lt, _gd)
 
     // If severities are specified, filter by whether a label has a valid severity.
-    val _labelsPartiallyFiltered = if (severity.isDefined && severity.get.nonEmpty)
+    val _labels = if (severity.isDefined && severity.get.nonEmpty)
       _labelsUnfiltered.filter(_._1.severity inSet severity.get)
     else
       _labelsUnfiltered
 
-    // Filter out labels already grabbed before.
-    val _labels = _labelsPartiallyFiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
-
-    // Join with gsvData to add gsv data.
-    val addGSVData = for {
-      (l, e) <- _labels.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, e.imageDate, e.expired)
-
-    // Remove labels with expired panos.
-    val removeExpiredPanos = addGSVData.filter(_._5 === false)
-
     // Join with the validations that the user has given.
     val userValidations = validationsFromUser(userId)
     val addValidations = for {
-      (l, v) <- removeExpiredPanos.leftJoin(userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._4, l._1.timeCreated, l._2.heading, l._2.pitch,
-      l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity, l._1.temporary,
-      l._1.description, v._2.?)
+      (l, v) <- _labels.leftJoin(userValidations).on(_._1.labelId === _._1)
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
+      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
+      l._1.temporary, l._1.description, v._2.?)
 
     // Run query, group by label type, and randomize order.
     val potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
@@ -720,35 +702,26 @@ object LabelTable {
     val rand = SimpleFunction.nullary[Double]("random")
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
-    val _labelsUnfiltered = for {
-      _lb <- labels
+    val _labels = for {
+      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId
+      if _gd.expired === false
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _lt.labelType)
-
-    // Filter out labels already grabbed before.
-    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
-
-    // Join with gsvData to add gsv data.
-    val addGSVData = for {
-      (l, e) <- _labels.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, e.imageDate, e.expired)
-
-    // Remove labels with expired panos.
-    val removeExpiredPanos = addGSVData.filter(_._5 === false)
+    } yield (_lb, _lp, _lt, _gd)
 
     // Join with the validations that the user has given.
     val userValidations = validationsFromUser(userId)
     val addValidations = for {
-      (l, v) <- removeExpiredPanos.leftJoin(userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._4, l._1.timeCreated, l._2.heading, l._2.pitch,
-      l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity, l._1.temporary,
-      l._1.description, v._2.?)
+      (l, v) <- _labels.leftJoin(userValidations).on(_._1.labelId === _._1)
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
+      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
+      l._1.temporary, l._1.description, v._2.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
