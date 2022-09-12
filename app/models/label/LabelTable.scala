@@ -603,18 +603,12 @@ object LabelTable {
    * @return Seq[LabelValidationMetadata]
    */
   def getLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // List to return.
-    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-
     // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Get deprioritized labels.
-    val deprioritized = deprioritizedLabels()
-
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labels if !(_lb.labelId inSet deprioritized)
+      _lb <- labels
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _labelTags <- labelTags if _lb.labelId === _labelTags.labelId
@@ -623,6 +617,7 @@ object LabelTable {
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
+      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
       if _lb.severity.isEmpty || (_lb.severity inSet severity)
     } yield (_lb, _lp, _lt.labelType)
 
@@ -665,17 +660,15 @@ object LabelTable {
    * @return Seq[LabelValidationMetadata]
    */
   def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // Get deprioritized labels.
-    val deprioritized = deprioritizedLabels()
-
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labels if !(_lb.labelId inSet deprioritized)
+      _lb <- labels
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId && (_lt.labelTypeId inSet LabelTypeTable.primaryLabelTypeIds)
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
+      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _lt.labelType)
 
     // If severities are specified, filter by whether a label has a valid severity.
@@ -723,24 +716,19 @@ object LabelTable {
    * @return Seq[LabelValidationMetadata]
    */
   def getLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // List to return.
-    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-
     // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
-    // Get deprioritized labels.
-    val deprioritized = deprioritizedLabels()
-
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labels if !(_lb.labelId inSet deprioritized)
+      _lb <- labels
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
+      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _lt.labelType)
 
     // Filter out labels already grabbed before.
@@ -1195,16 +1183,6 @@ object LabelTable {
         l <- labelsUnfiltered if l.missionId === m.missionId
       } yield l.temporaryLabelId
       userLabels.max.run.map(x => x + 1).getOrElse(1)
-  }
-
-  def deprioritizedLabels(): Set[Int] = db.withSession { implicit session =>
-    // Get set of deprioritized labels (to not show) by filtering out those that have been validated as "disagree" 3 or
-    // more times and have twice as many disagrees as agrees.
-    Q.queryNA[(Int)](
-      """SELECT label_id
-        |FROM label
-        |WHERE disagree_count > 2 AND disagree_count >= 2 * agree_count""".stripMargin
-    ).list.toSet
   }
 
   /**
