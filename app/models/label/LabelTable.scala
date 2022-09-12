@@ -616,16 +616,13 @@ object LabelTable {
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId
-      if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
+      if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
       if _lb.severity.isEmpty || (_lb.severity inSet severity)
     } yield (_lb, _lp, _lt.labelType)
 
-    // Could be optimized by grouping on fewer columns.
-    val _labelsGrouped = _labelsUnfiltered.groupBy(x => x).map(_._1)
-
     // Filter out labels already grabbed before.
-    val _labels = _labelsGrouped.filter(label => !(label._1.labelId inSet loadedLabelIds))
+    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
 
     // Join with gsvData to add gsv data.
     val addGSVData = for {
@@ -643,8 +640,11 @@ object LabelTable {
       l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity, l._1.temporary, l._1.description,
       v._2.?)
 
+    // Remove duplicates that we got from joining with the `label_tag` table.
+    val uniqueLabels = addValidations.groupBy(x => x).map(_._1)
+
     // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+    val newRandomLabelsList = uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
     // Take the first `n` labels with non-expired GSV imagery.
     checkForGsvImagery(newRandomLabelsList, n)
@@ -667,7 +667,7 @@ object LabelTable {
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
-      if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
+      if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _lt.labelType)
 
@@ -727,7 +727,7 @@ object LabelTable {
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId
-      if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
+      if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _lt.labelType)
 
