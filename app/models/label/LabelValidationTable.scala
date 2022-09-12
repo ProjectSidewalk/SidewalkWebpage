@@ -4,7 +4,7 @@ import java.util.UUID
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
-import models.user.{RoleTable, UserRoleTable}
+import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
@@ -130,17 +130,18 @@ object LabelValidationTable {
     val oldValidation: Option[LabelValidation] =
       validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
-    val userThatAppliedLabel: String =
+    val (userThatAppliedLabel, excludedUser): (String, Boolean) =
     labels.filter(_.labelId === label.labelId)
       .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
-      .map(_._2.userId)
+      .innerJoin(UserStatTable.userStats).on(_._2.userId === _.userId)
+      .map(x => (x._2.userId, x._2.excludeManual))
       .list.head
 
     // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
     oldValidation match {
       case Some(oldLabel) =>
-        // Update validation counts in the label table if this is not someone validating their own label.
-        if (userThatAppliedLabel != label.userId)
+        // Update val counts in label table if they're not validating their own label and aren't an excluded user.
+        if (userThatAppliedLabel != label.userId & !excludedUser)
           updateValidationCounts(label.labelId, label.validationResult, Some(oldLabel.validationResult))
 
         // Update relevant columns in the label_validation table.
@@ -155,8 +156,8 @@ object LabelValidationTable {
           label.startTimestamp, label.endTimestamp, label.isMobile
         ))
       case None =>
-        // Update validation counts in the label table if this is not someone validating their own label.
-        if (userThatAppliedLabel != label.userId)
+        // Update val counts in label table if they're not validating their own label and aren't an excluded user.
+        if (userThatAppliedLabel != label.userId & !excludedUser)
           updateValidationCounts(label.labelId, label.validationResult, None)
 
         // Insert a new validation into the label_validation table.
