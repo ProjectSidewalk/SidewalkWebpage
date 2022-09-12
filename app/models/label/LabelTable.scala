@@ -622,7 +622,7 @@ object LabelTable {
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       if _lb.labelTypeId === labelTypeId
-      if _us.highQuality
+      if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
       if _lb.severity.isEmpty || (_lb.severity inSet severity)
     } yield (_lb, _lp, _lt.labelType)
 
@@ -675,7 +675,7 @@ object LabelTable {
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
-      if _us.highQuality
+      if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
     } yield (_lb, _lp, _lt.labelType)
 
     // If severities are specified, filter by whether a label has a valid severity.
@@ -739,7 +739,8 @@ object LabelTable {
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
-      if _lb.labelTypeId === labelTypeId && _us.highQuality
+      if _lb.labelTypeId === labelTypeId
+      if _us.highQuality || (_lb.correct.isDefined && _lb.correct.get === true)
     } yield (_lb, _lp, _lt.labelType)
 
     // Filter out labels already grabbed before.
