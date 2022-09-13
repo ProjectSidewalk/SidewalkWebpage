@@ -1,7 +1,7 @@
 package models.user
 
 import formats.json.UserFormats.labelTypeStatWrites
-import models.attribute.UserClusteringSessionTable
+import models.attribute.UserAttributeLabelTable.userAttributeLabels
 import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelValidationTable}
@@ -11,7 +11,6 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import java.sql.Timestamp
-import java.time.Instant
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
@@ -123,36 +122,34 @@ object UserStatTable {
 
 
   /**
-   * Get list of users where `high_quality` column is marked as `TRUE` and they have placed a label since `cutoffTime`.
+   * Get list of users whose data needs to be re-clustered.
    *
-   * @param cutoffTime Only get users who have placed a label since this time. Defaults to all time.
+   * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
+   * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
    */
-  def getIdsOfGoodUsersWithLabels(cutoffTime: Timestamp = new Timestamp(Instant.EPOCH.toEpochMilli)): List[String] = db.withSession { implicit session =>
-    // TODO include users who have received new validations too? A la usersValidatedSinceCutoffTime() or similar?
-    // Get the list of users who have placed a label by joining with the label table.
-    val usersWithLabels = for {
-      _stat <- userStats if _stat.highQuality
-      _mission <- MissionTable.auditMissions if _mission.userId === _stat.userId
-      _label <- LabelTable.labels if _mission.missionId === _label.missionId
-      if (_label.correct.isEmpty || _label.correct === true) && // Filter out labels validated as incorrect.
-        _label.timeCreated > cutoffTime
-    } yield _stat.userId
+  def usersToUpdateInAPI(): List[String] = db.withSession { implicit session =>
+    // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
+    // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
+    val labelsThatShouldBeInAPI = for {
+      _l <- LabelTable.labels
+      _m <- MissionTable.missions if _l.missionId === _m.missionId
+      _us <- userStats if _m.userId === _us.userId
+      if _l.correct || (_us.highQuality && _l.correct.isEmpty)
+    } yield (_l.labelId, _m.userId)
 
-    // SELECT DISTINCT on the user_ids.
-    usersWithLabels.groupBy(x => x).map(_._1).list
-  }
+    // Get the labels that are currently present in the API.
+    val labelsInAPI = for {
+      _ual <- userAttributeLabels
+      _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
+      _m <- MissionTable.missions if _l.missionId === _m.missionId
+    } yield (_l.labelId, _m.userId)
 
-  /**
-   * Get list of users where their data was included in clustering but they have since been marked as low quality.
-   */
-  def getIdsOfNewlyLowQualityUsers: List[String] = db.withSession { implicit session =>
-    val newLowQualityUsers = for {
-      _stat <- userStats if _stat.highQuality === false
-      _clustSession <- UserClusteringSessionTable.userClusteringSessions if _stat.userId === _clustSession.userId
-    } yield _stat.userId
-
-    // SELECT DISTINCT on the user_ids.
-    newLowQualityUsers.groupBy(x => x).map(_._1).list
+    // Find all mismatches between the list of labels above using an outer join.
+    labelsThatShouldBeInAPI
+      .outerJoin(labelsInAPI).on(_._1 === _._1)            // FULL OUTER JOIN.
+      .filter(x => x._1._1.?.isEmpty || x._2._1.?.isEmpty) // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
+      .map(x => (x._1._2.?, x._2._2.?))                    // SELECT no_api.user_id, in_api.user_id.
+      .list.map(x => x._1.getOrElse(x._2.get)).distinct    // Combine the two and do a SELECT DISTINCT.
   }
 
   /**
