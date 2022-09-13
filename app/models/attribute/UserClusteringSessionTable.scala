@@ -16,8 +16,8 @@ import scala.language.postfixOps
 case class LabelToCluster(userId: String,
                           labelId: Int,
                           labelType: String,
-                          lat: Option[Float],
-                          lng: Option[Float],
+                          lat: Float,
+                          lng: Float,
                           severity: Option[Int],
                           temporary: Boolean) {
   /**
@@ -60,7 +60,7 @@ object UserClusteringSessionTable {
   val userClusteringSessions: TableQuery[UserClusteringSessionTable] = TableQuery[UserClusteringSessionTable]
 
   implicit val labelToClusterConverter = GetResult[LabelToCluster](r => {
-    LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
+    LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean)
   })
 
   /**
@@ -78,7 +78,8 @@ object UserClusteringSessionTable {
       _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
       if _region.deleted === false
       if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty)
-    } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng, _lab.severity, _lab.temporary)
+      if _latlng.lat.isDefined && _latlng.lng.isDefined
+    } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.get, _latlng.lng.get, _lab.severity, _lab.temporary)
 
     labels.list.map(LabelToCluster.tupled)
   }
@@ -96,8 +97,8 @@ object UserClusteringSessionTable {
       _sess.userId,
       _att.userAttributeId,
       _type.labelType,
-      _att.lat.?,
-      _att.lng.?,
+      _att.lat,
+      _att.lng,
       _att.severity,
       _att.temporary
     )
