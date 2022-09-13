@@ -144,7 +144,7 @@
     "info-title-signal": "Wat is een Verkeerslicht?"
   },
   "button-ui": {
-    "visibility-control-hide": "Verberg Label",
-    "visibility-control-show": "Toon Label"
+    "visibility-control-hide": "Verberg Label (<u>H</u>)",
+    "visibility-control-show": "Toon Label (<u>H</u>)"
   }
 }

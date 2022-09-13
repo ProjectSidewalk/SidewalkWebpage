@@ -129,7 +129,7 @@ function LabelVisibilityControl () {
     self.isVisible = isVisible;
     self.showTagsAndDeleteButton = showTagsAndDeleteButton;
     self.hideTagsAndDeleteButton = hideTagsAndDeleteButton;
-
+    self.unhideLabel(true);
     return this;
 }
 

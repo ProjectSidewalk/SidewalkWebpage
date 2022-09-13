@@ -145,6 +145,6 @@
   },
   "button-ui": {
     "visibility-control-hide": "Ocultar (<u>H</u>)",
-    "visibility-control-show": "Mostrar"
+    "visibility-control-show": "Mostrar (<u>H</u>)"
   }
 }

@@ -144,7 +144,7 @@
     "info-title-signal": "What is a Pedestrian Signal?"
   },
   "button-ui": {
-    "visibility-control-hide": "Hide Label",
-    "visibility-control-show": "Show Label"
+    "visibility-control-hide": "<u>H</u>ide Label",
+    "visibility-control-show": "S<u>h</u>ow Label"
   }
 }
