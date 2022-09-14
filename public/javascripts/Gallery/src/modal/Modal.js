@@ -138,7 +138,7 @@ function Modal(uiModal) {
         self.timestamps.append(panoTimestampData);
 
         // Add severity and tag display to the modal.
-        new SeverityDisplay(self.severity, properties.severity, true);
+        new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
         new TagDisplay(self.tags, properties.tags, true);
 
         // Add the information about the temporary property to the Modal.
@@ -170,7 +170,7 @@ function Modal(uiModal) {
         populateModalDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
-        self.header.text(i18next.t(`gallery.${util.camelToKebab(properties.label_type)}`));
+        self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
 
         // Highlight selected card thumbnail.
         highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));

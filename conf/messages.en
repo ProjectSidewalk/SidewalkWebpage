@@ -24,6 +24,7 @@ loading.encouragement = Let''s do this!
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
+feedback.submitted = Feedback Submitted
 
 navbar.explore = Start Exploring
 navbar.validate = Start Validating
@@ -67,8 +68,15 @@ landing.stats.labels = labels
 landing.stats.validations = validations
 landing.ml.title = What we do with your labels
 landing.ml.content = Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.
-landing.what.people.are.saying = What people<br>are saying
-landing.press.title = Press
+landing.ml.gif.machine.labels = machine labels
+landing.ml.gif.you = you
+landing.ml.gif.user.labels = user labels
+landing.ml.gif.better.city.planning = better city planning
+landing.ml.gif.better.temporal.tracking = better temporal tracking
+landing.ml.gif.interactive.visualization.tools = interactive visualization tools
+landing.ml.gif.smarter.routing = smarter routing
+landing.ml.gif.machine.learning = machine learning
+landing.ml.gif.outcomes = outcomes
 landing.collaborators.title = Collaborators
 
 footer.about = About Us
@@ -287,6 +295,9 @@ dashboard.mission.badge = {0} mission badge
 dashboard.distance.badge = {0} distance badge
 dashboard.label.badge = {0} label badge
 dashboard.validation.badge = {0} validation badge
+dashboard.mistakes.header = Your recent labeling mistakes
+dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
+dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.

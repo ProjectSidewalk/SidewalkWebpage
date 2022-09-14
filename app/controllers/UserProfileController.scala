@@ -8,12 +8,13 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
+import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
 import models.user.UserOrgTable
 import models.label.{LabelTable, LabelValidationTable}
-import models.user.{User, WebpageActivityTable, WebpageActivity}
-import play.api.libs.json.{JsObject, Json}
+import models.user.{User, WebpageActivity, WebpageActivityTable}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
 import scala.concurrent.Future
@@ -35,13 +36,14 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       Future.successful(Redirect(s"/signIn?url=/"))
     } else {
       val user: User = request.identity.get
-      // Get distance audited by the user. If using metric units, convert from miles to kilometers.
-      val auditedDistance: Float =
-        if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
-        else MissionTable.getDistanceAudited(user.userId)
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = request.remoteAddress
       WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
+      // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+      val auditedDistance: Float = {
+        if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
+        else MissionTable.getDistanceAudited(user.userId)
+      }
       Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
     }
   }
@@ -152,6 +154,20 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       "date" -> x.date, "count" -> x.count
     )))
     Future.successful(Ok(json))
+  }
+
+  /**
+   * Get up `n` recent mistakes for each label type, using validations provided by other users.
+   * @param n Number of mistakes to retrieve for each label type.
+   * @return
+   */
+  def getRecentMistakes(n: Int) = UserAwareAction.async {implicit request =>
+    val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
+    val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
+    val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
+      t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
+    }.toMap)
+    Future.successful(Ok(validationJson))
   }
 
   /**

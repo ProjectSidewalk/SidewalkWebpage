@@ -44,7 +44,7 @@ svg {
 
 #org-name {
     display: flex;
-    font-size: 30px;
+    font-size: 24px;
     font-family: raleway, sans-serif;
     margin-right: 15px;
 }
@@ -59,9 +59,9 @@ svg {
     border: 1px solid #2D2A3F;
     color: #2D2A3F;
     background-color: white;
-    font: normal normal normal 14px/1.4em 'Raleway', sans-serif;
+    font: normal normal normal 13px/1.3em 'Raleway', sans-serif;
     text-align: center;
-    padding: 5px 25px;
+    padding: 5px 20px;
     cursor: pointer;
     display: inline-block;
     position: relative;
@@ -174,4 +174,53 @@ svg {
 .user-stats-stat {
     font-size: 30px;
     font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif
+}
+
+#mistakes-row {
+    margin-top: 40px;
+}
+
+#mistake-carousels-holder {
+    display: grid;
+    grid-template-columns: 6fr 6fr;
+    grid-column-gap: 15px;
+    text-align: center;
+}
+
+.mistakes-help-tooltip {
+    margin-bottom: 4px;
+    border: 1px solid black;
+    border-radius: 10px;
+    padding: 3px;
+    width: 17px;
+    height: 18px;
+}
+
+.carousel-control.right, .carousel-control.left {
+    background-image: none;
+}
+
+/* This is mostly undoing some of the default CSS From the Bootstrap carousel-caption class. */
+.carousel-caption {
+    position: relative;
+    left: 0;
+    top: 0;
+    padding-top: 10px;
+    padding-bottom: 0;
+    color: black;
+    text-shadow: none;
+}
+
+.validation-comment {
+    text-align: left;
+    height: 70px;
+    overflow-y: auto;
+}
+
+.carousel-indicators {
+    bottom: 85px;
+}
+
+.mistake-img {
+    max-width: 100%;
 }

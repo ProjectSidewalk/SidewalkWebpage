@@ -25,4 +25,10 @@ object UserFormats {
       (__ \ "role").writeNullable[String]
     )(unlift(User.unapply _))
 
+  implicit val labelTypeStatWrites: Writes[LabelTypeStat] = (
+    (__ \ "labels").write[Int] and
+      (__ \ "validated_correct").write[Int] and
+      (__ \ "validated_incorrect").write[Int] and
+      (__ \ "not_validated").write[Int]
+  )(unlift(LabelTypeStat.unapply _))
 }

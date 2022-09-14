@@ -4,6 +4,15 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "curb-ramp": "Curb Ramp",
+  "no-curb-ramp": "Missing Curb Ramp",
+  "obstacle": "Obstacle in Path",
+  "surface-problem": "Surface Problem",
+  "occlusion": "Can't See Sidewalk",
+  "no-sidewalk" : "No Sidewalk",
+  "crosswalk" : "Crosswalk",
+  "signal" : "Pedestrian Signal",
+  "other": "Other",
   "missing-sidewalks": "Missing Sidewalks",
   "missing-ramps": "Missing Ramps",
   "surface-problems": "Surface Problems",
@@ -25,9 +34,12 @@
   },
   "label-map": {
     "add-comment": "Add comment here...",
-    "submit": "Submit comment"
+    "submit": "Submit comment",
+    "comment-submitted" : "Comment Submitted"
   },
   "severity": "Severity",
+  "no-severity": "A severity rating was not provided for this label",
+  "unsupported": "This label type does not have meaningful severity levels",
   "tags": "Tags",
   "temporary": "Temporary",
   "description": "Description",
@@ -84,20 +96,11 @@
     "uneven surface": "uneven surface",
     "no pedestrian priority": "no pedestrian priority",
     "very long crossing": "very long crossing",
+    "level with sidewalk": "level with sidewalk",
     "has button": "has button",
     "button waist height": "button waist height",
+    "APS": "APS",
     "missing crosswalk": "missing crosswalk",
     "no bus stop access": "no bus stop access"
-  },
-  "gallery": {
-    "curb-ramp": "Curb Ramp",
-    "no-curb-ramp": "Missing Curb Ramp",
-    "obstacle": "Obstacle in Path",
-    "surface-problem": "Surface Problem",
-    "occlusion": "Can't See Sidewalk",
-    "no-sidewalk" : "No Sidewalk",
-    "crosswalk" : "Crosswalk",
-    "signal" : "Pedestrian Signal",
-    "other": "Other"
   }
 }

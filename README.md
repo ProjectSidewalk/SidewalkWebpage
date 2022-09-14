@@ -19,7 +19,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 
 <details><summary>Mac</summary>
 
-1. [Install  Docker Desktop](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Make sure to select "Download for Mac—Apple Chip" if you have an Apple M1, M2, etc. or "Download for Mac—Intel Chip" if you have an Intel chip (older Mac models). 
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 </details>
 
@@ -47,14 +47,16 @@ One issue you may encounter when setting up your dev environment within the Linu
 </details>
 
 ### Running the application locally
-Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine, but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebpage directory. 
+Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine, but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebpage directory.
+
+Make sure Docker is running on your machine. You should see a Docker whale in your Mac or Windows tray. You can also configure Docker to run at startup (see Preferences).
 
 On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7) (built in to Win10). On Mac, use the basic terminal or, even better, [iTerm2](https://www.iterm2.com/). On Linux (or if you're using WSL2 on Windows), the default Linux Shell (such as [Bash](https://www.gnu.org/software/bash/)) is a great choice.
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for a database dump and a Google Maps API key & secret (if you are not part of our team, you'll have to [create a Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) yourself). Rename the database dump `sidewalk-dump` and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
 1. Modify the `GOOGLE_MAPS_API_KEY` and `GOOGLE_MAPS_SECRET` lines in the `docker-compose.yml` using the key and secret you've acquired.
 1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
-1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
+1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container in that same terminal. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
     Successfully built [container-id]
@@ -71,8 +73,8 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE sidewalk_<city-name> SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
     ```
 
-1. Run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
-1. Run `npm start` from inside the Docker shell. If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
+1. Run `make import-dump db=sidewalk` from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
+1. Run `npm start` from inside the Docker shell (the terminal where you ran `make dev`). If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
 
     The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Successful output of this command will look like:
 

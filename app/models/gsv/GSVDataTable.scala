@@ -32,41 +32,6 @@ object GSVDataTable {
   }
 
   /**
-    * This method gets the image date associated with the given panorama Id.
-    *
-    * @param panoramaId GSV Panorama ID.
-    * @return           String representing the image date in form "yyyy-MM". If panoramaId is not
-                        in the GSV Data, return is an empty string.
-    */
-  def getImageDate(panoramaId: String): String = db.withSession { implicit session =>
-    val imagesWithGivenPanoId = for {
-      _gsv <- gsvDataRecords if _gsv.gsvPanoramaId === panoramaId
-    } yield (
-      _gsv
-    )
-    if (imagesWithGivenPanoId.length.run == 0) "" else imagesWithGivenPanoId.first.imageDate
-  }
-
-  /**
-    * This method gets the age of the image associated with the given panorama Id.
-    *
-    * @param panoramaId GSV Panorama ID.
-    * @return           Long representing the image age in seconds. If panoramaId is not in the
-                        GSV Data, return is 0.
-    */
-  def getImageAge(panoramaId: String): Long = {
-    val imageDateString: String = getImageDate(panoramaId)
-    if (!imageDateString.isEmpty) {
-      val format = new java.text.SimpleDateFormat("yyyy-MM")
-      val now: Long = System.currentTimeMillis();
-      val imageDate: Long = format.parse(imageDateString).getTime()
-      now - imageDate
-    } else {
-      0
-    }
-  }
-
-  /**
     * This method marks the expired column of a panorama to be true.
     *
     * @param gsvPanoramaId GSV Panorama ID.
