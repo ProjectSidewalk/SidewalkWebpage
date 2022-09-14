@@ -6,7 +6,6 @@ import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
 import java.util.UUID
-import models.attribute.{GlobalAttributeUserAttributeTable, UserAttributeLabelTable}
 import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
@@ -201,7 +200,7 @@ object LabelTable {
   val valLabelTypeIds: List[Int] = List(1, 2, 3, 4, 7, 9, 10)
 
   /**
-    * Find all labels with given regionId and userId.
+    * Find a label based on temp_label_id and user_id.
     */
   def find(tempLabelId: Int, userId: UUID): Option[Int] = db.withSession { implicit session =>
     (for {
