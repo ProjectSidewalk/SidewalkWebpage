@@ -200,7 +200,7 @@ object GlobalAttributeTable {
       _ga <- globalAttributes
       _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId
       _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
-      _l <- LabelTable.labels if _ual.labelId === _l.labelId
+      _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
     } yield (_ga.globalAttributeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount))
       .groupBy(_._1)
       .map { case (attrId, group) => (attrId, group.map(_._2).sum, group.map(_._3).sum, group.map(_._4).sum) }
