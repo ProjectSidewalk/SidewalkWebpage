@@ -67,22 +67,22 @@ object UserClusteringSessionTable {
     * Returns labels that were placed by the specified user in the format needed for clustering.
     */
   def getUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
-    // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
-    // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
-    val labels = for {
-      _mission <- MissionTable.missions if _mission.userId === userId
-      _region <- RegionTable.regions if _mission.regionId === _region.regionId
-      _userStat <- UserStatTable.userStats if _mission.userId === _userStat.userId
-      _lab <- LabelTable.labels if _lab.missionId === _mission.missionId
-      _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
-      _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
-      if _region.deleted === false
-      if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty)
-      if _latlng.lat.isDefined && _latlng.lng.isDefined
-    } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.get, _latlng.lng.get, _lab.severity, _lab.temporary)
-
-    labels.list.map(LabelToCluster.tupled)
+    labelsForAPIQuery.filter(_._1 === userId).list.map(LabelToCluster.tupled)
   }
+
+  // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
+  // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
+  def labelsForAPIQuery = for {
+    _mission <- MissionTable.missions
+    _region <- RegionTable.regions if _mission.regionId === _region.regionId
+    _userStat <- UserStatTable.userStats if _mission.userId === _userStat.userId
+    _lab <- LabelTable.labels if _lab.missionId === _mission.missionId
+    _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
+    _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
+    if _region.deleted === false
+    if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty)
+    if _latlng.lat.isDefined && _latlng.lng.isDefined
+  } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.get, _latlng.lng.get, _lab.severity, _lab.temporary)
 
   /**
     * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
