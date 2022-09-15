@@ -179,7 +179,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTaskQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && (stats.excludeManual.isEmpty || !stats.excludeManual)
+            if stats.highQuality && !stats.excluded
         } yield tasks
       } else {
           auditTaskQuery
@@ -311,7 +311,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTasksQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && (stats.excludeManual.isEmpty || !stats.excludeManual)
+            if stats.highQuality && !stats.excluded
         } yield tasks
       } else {
           auditTasksQuery

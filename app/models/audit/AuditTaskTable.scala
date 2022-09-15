@@ -278,7 +278,7 @@ object AuditTaskTable {
     } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
 
     val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithoutDeletedOrOnboarding).on(_._3 === _.auditTaskId)
+      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithExcludedUsers).on(_._3 === _.auditTaskId)
     } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val tasksWithLabels = for {
