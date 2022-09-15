@@ -58,8 +58,11 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-    case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, avgImageDate: Timestamp, avgLabelDate: Timestamp, imageCount: Int, labelCount: Int)
-  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Int, score: Double, audited: Boolean, attributes: Array[Double], significance: Array[Double], avgImageDate: Timestamp, avgLabelDate: Timestamp, imageCount: Int, labelCount: Int) {
+  case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, avgImageDate: Timestamp,
+                                     avgLabelDate: Timestamp, imageCount: Int, labelCount: Int)
+  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Int, score: Double, audited: Boolean,
+                               attributes: Array[Double], significance: Array[Double], avgImageDate: Timestamp,
+                               avgLabelDate: Timestamp, imageCount: Int, labelCount: Int) {
     def toJSON: JsObject  = {
       val latlngs: List[JsonLatLng] = streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
       val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
@@ -90,9 +93,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *
-    * @param remoteAddress  The remote address that made the API call
-    * @param identity       The user that made the API call, if the user is signed in. If no user is signed in, the value is None
-    * @param requestStr     The full request sent by the API call
+    * @param remoteAddress  The remote address that made the API call.
+    * @param identity       The user that made the API call. If no user is signed in, the value is None.
+    * @param requestStr     The full request sent by the API call.
     */
   def apiLogging(remoteAddress: String, identity: Option[User], requestStr: String) = {
     if (remoteAddress != "0:0:0:0:0:0:0:1") {
