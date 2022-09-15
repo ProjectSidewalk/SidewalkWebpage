@@ -50,8 +50,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "street_edge_id" -> streetEdgeId,
         "osm_street_id" -> osmStreetId,
         "neighborhood" -> neighborhoodName,
-        "image_date" -> avgImageDate.toString(),
-        "label_date" -> avgLabelDate.toString(),
+        "avg_image_date" -> avgImageDate.toString(),
+        "avg_label_date" -> avgLabelDate.toString(),
         "severity" -> severity,
         "is_temporary" -> temporary,
         "agree_count" -> agreeCount,
@@ -214,7 +214,7 @@ object GlobalAttributeTable {
     * Gets global attributes within a bounding box for the public API.
     */
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
-    // Sum the validations counts, average date, and of the labels that make up each global attribute.
+    // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
     val validationCounts = """SELECT global_attribute.global_attribute_id AS global_attribute_id,
           |        SUM(label.agree_count) AS agree_count,
           |        SUM(label.disagree_count) AS disagree_count,
@@ -232,7 +232,7 @@ object GlobalAttributeTable {
           |        TO_TIMESTAMP(AVG(EXTRACT(epoch from panorama_dates.panorama_date))) AS avg_img_date,
           |        COUNT(panorama_dates.panorama_date) AS image_count
           |FROM (
-          |    SELECT global_attribute.global_attribute_id AS global_attribute_id,
+          |    SELECT global_attribute.global_attribute_id,
           |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.image_date || '-01' AS DATE)))) AS panorama_date
           |    FROM global_attribute
           |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
