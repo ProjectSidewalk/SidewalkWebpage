@@ -1,5 +1,7 @@
 package models.attribute
 
+import java.sql.Timestamp
+import models.gsv.GSVDataTable
 import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
@@ -33,7 +35,11 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val notsureCount: Int,
                                  val streetEdgeId: Int,
                                  val osmStreetId: Int,
-                                 val neighborhoodName: String) {
+                                 val neighborhoodName: String,
+                                 val avgImageDate: Timestamp,
+                                 val avgLabelDate: Timestamp,
+                                 val imageCount: Int,
+                                 val labelCount: Int) {
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -44,6 +50,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "street_edge_id" -> streetEdgeId,
         "osm_street_id" -> osmStreetId,
         "neighborhood" -> neighborhoodName,
+        "avg_image_date" -> avgImageDate.toString(),
+        "avg_label_date" -> avgLabelDate.toString(),
         "severity" -> severity,
         "is_temporary" -> temporary,
         "agree_count" -> agreeCount,
@@ -53,7 +61,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
     )
   }
   val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
-                                lng.toString, severity.getOrElse("NA").toString, temporary.toString,
+                                lng.toString, avgImageDate, avgLabelDate.toString, severity.getOrElse("NA").toString, temporary.toString,
                                 agreeCount.toString, disagreeCount.toString, notsureCount.toString)
 }
 
@@ -76,6 +84,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val notsureCount: Int,
                                           val labelSeverity: Option[Int],
                                           val labelTemporary: Boolean,
+                                          val imageLabelDates: (String, Timestamp),
                                           val labelTags: List[String],
                                           val labelDescription: Option[String]) {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
@@ -109,6 +118,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "canvas_width" -> canvasWidthHeight._1,
         "canvas_height" -> canvasWidthHeight._2,
         "gsv_url" -> gsvUrl,
+        "image_date" -> imageLabelDates._1,
+        "label_date" -> imageLabelDates._2.toString(),
         "label_severity" -> labelSeverity,
         "label_is_temporary" -> labelTemporary,
         "agree_count" -> agreeCount,
@@ -125,9 +136,10 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
                                 headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
                                 canvasXY._1.toString, canvasXY._2.toString, canvasWidthHeight._1.toString,
-                                canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"", labelSeverity.getOrElse("NA").toString,
-                                labelTemporary.toString, agreeCount.toString, disagreeCount.toString, notsureCount.toString,
-                                "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"")
+                                canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"", imageLabelDates._1, imageLabelDates._2.toString,
+                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
+                                disagreeCount.toString, notsureCount.toString, "\"[" + labelTags.mkString(",") + "]\"",
+                                "\"" + labelDescription.getOrElse("NA") + "\"")
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
@@ -170,12 +182,19 @@ object GlobalAttributeTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalAttributes: TableQuery[GlobalAttributeTable] = TableQuery[GlobalAttributeTable]
 
+  implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
+    GlobalAttributeForAPI(
+      r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
+      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt
+    )
+  )
+
   implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
     GlobalAttributeWithLabelForAPI(
       r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt, r.nextString,
       r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, (r.nextFloat, r.nextFloat, r.nextInt), (r.nextInt,
-      r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
-      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption()
+      r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, (r.nextString,
+      r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption()
     )
   )
 
@@ -195,31 +214,73 @@ object GlobalAttributeTable {
     * Gets global attributes within a bounding box for the public API.
     */
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
-    // Sums the validations counts of the labels that make up each global attribute.
-    val validationCounts = (for {
-      _ga <- globalAttributes
-      _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _ga.globalAttributeId === _gaua.globalAttributeId
-      _ual <- UserAttributeLabelTable.userAttributeLabels if _gaua.userAttributeId === _ual.userAttributeId
-      _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
-    } yield (_ga.globalAttributeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount))
-      .groupBy(_._1)
-      .map { case (attrId, group) => (attrId, group.map(_._2).sum, group.map(_._3).sum, group.map(_._4).sum) }
-
-    val attributes = for {
-      _ga <- globalAttributes if _ga.lat > minLat && _ga.lat < maxLat && _ga.lng > minLng && _ga.lng < maxLng &&
-        (_ga.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _ga.severity === toInt(severity))
-      // The line above gets attributes with null severity if severity = "none", all attributes if severity is unspecified,
-      // and attributes with the specified severity (e.g. severity = 3) otherwise.
-      _vc <- validationCounts if _ga.globalAttributeId === _vc._1
-      _lt <- LabelTypeTable.labelTypes if _ga.labelTypeId === _lt.labelTypeId
-      _r <- RegionTable.regions if _ga.regionId === _r.regionId
-      _osm <- OsmWayStreetEdgeTable.osmStreetTable if _ga.streetEdgeId === _osm.streetEdgeId
-      if _lt.labelType =!= "Problem"
-    } yield (
-      _ga.globalAttributeId, _lt.labelType, _ga.lat, _ga.lng, _ga.severity, _ga.temporary,
-      _vc._2.getOrElse(0), _vc._3.getOrElse(0), _vc._4.getOrElse(0), _ga.streetEdgeId, _osm.osmWayId, _r.description
+    // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
+    val validationCounts = """SELECT global_attribute.global_attribute_id AS global_attribute_id,
+          |        SUM(label.agree_count) AS agree_count,
+          |        SUM(label.disagree_count) AS disagree_count,
+          |        SUM(label.notsure_count) AS notsure_count,
+          |        TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
+          |        COUNT(label.time_created) AS label_count
+          |FROM global_attribute
+          |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+          |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+          |INNER JOIN label ON user_attribute_label.label_id = label.label_id
+          |GROUP BY global_attribute.global_attribute_id"""
+    // Select the average image date and number of images for each attribute.
+    // Subquery selects the dates of all images of interest, once per attribute.
+    val imageDates = """SELECT panorama_dates.global_attribute_id AS global_attribute_id,
+          |        TO_TIMESTAMP(AVG(EXTRACT(epoch from panorama_dates.panorama_date))) AS avg_img_date,
+          |        COUNT(panorama_dates.panorama_date) AS image_count
+          |FROM (
+          |    SELECT global_attribute.global_attribute_id,
+          |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.image_date || '-01' AS DATE)))) AS panorama_date
+          |    FROM global_attribute
+          |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+          |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+          |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
+          |    INNER JOIN sidewalk.gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+          |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
+          |) panorama_dates
+          |GROUP BY panorama_dates.global_attribute_id"""
+    val attributes = Q.queryNA[GlobalAttributeForAPI](
+          s"""SELECT global_attribute.global_attribute_id,
+          |          label_type.label_type,
+          |          global_attribute.lat,
+          |          global_attribute.lng,
+          |          label.severity,
+          |          label.temporary,
+          |          validation_counts.agree_count,
+          |          validation_counts.disagree_count,
+          |          validation_counts.notsure_count,
+          |          global_attribute.street_edge_id,
+          |          osm_way_street_edge.osm_way_id,
+          |          region.description,
+          |          image_dates.avg_img_date,
+          |          validation_counts.avg_label_date,
+          |          validation_counts.label_count,
+          |          image_dates.image_count
+          |FROM global_attribute
+          |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
+          |INNER JOIN region ON global_attribute.region_id = region.region_id
+          |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+          |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+          |INNER JOIN label ON user_attribute_label.label_id = label.label_id
+          |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
+          |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
+          |INNER JOIN ($imageDates) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
+          |WHERE label_type.label_type <> 'Problem'
+          |    AND global_attribute.lat > $minLat
+          |    AND global_attribute.lat < $maxLat
+          |    AND global_attribute.lng > $minLng
+          |    AND global_attribute.lng < $maxLng
+          |    AND (
+          |        global_attribute.severity IS NULL
+          |        AND ${severity.getOrElse("") == "none"}
+          |        OR ${severity.isEmpty}
+          |        OR global_attribute.severity = ${toInt(severity).getOrElse(-1)}
+          |    )""".stripMargin
     )
-    attributes.list.map(GlobalAttributeForAPI.tupled)
+    attributes.list
   }
 
   /**
@@ -252,6 +313,8 @@ object GlobalAttributeTable {
           |        label.notsure_count,
           |        label.severity,
           |        label.temporary,
+          |        gsv_data.image_date,
+          |        label.time_created,
           |        the_tags.tag_list,
           |        label.description
           |FROM global_attribute
@@ -262,6 +325,7 @@ object GlobalAttributeTable {
           |INNER JOIN label ON user_attribute_label.label_id = label.label_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
           |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
+          |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
           |LEFT JOIN (
           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
           |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
