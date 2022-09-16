@@ -100,6 +100,8 @@ public class ShapefilesCreatorHelper {
                         + "streetId:Integer," // Street edge ID of the nearest street
                         + "osmWayId:Integer," // Street OSM ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
+                        + "avgImgDate:String," // Image date
+                        + "avgLblDate:String," // Label date
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
                         + "nAgree:Integer," // Agree validations
@@ -127,6 +129,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.streetEdgeId());
             featureBuilder.add(a.osmStreetId());
             featureBuilder.add(a.neighborhoodName());
+            featureBuilder.add(a.avgImageDate());
+            featureBuilder.add(a.avgLabelDate());
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
                 public Integer apply() {
@@ -171,6 +175,8 @@ public class ShapefilesCreatorHelper {
                         + "canvasWdth:Integer," // width of source viewfinder
                         + "canvasHght:Integer," // height of source viewfinder
                         + "gsvUrl:String," // GSV URL
+                        + "imageDate," // Image date
+                        + "labelDate," // Label date
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer," // Notsure validations
@@ -217,6 +223,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.canvasWidthHeight()._1());
             featureBuilder.add(l.canvasWidthHeight()._2());
             featureBuilder.add(l.gsvUrl());
+            featureBuilder.add(l.imageLabelDates()._1);
+            featureBuilder.add(l.imageLabelDates()._2);
             featureBuilder.add(l.agreeCount());
             featureBuilder.add(l.disagreeCount());
             featureBuilder.add(l.notsureCount());
@@ -247,6 +255,7 @@ public class ShapefilesCreatorHelper {
                         + "streetId:Integer," // StreetId
                         + "osmWayId:Integer," // osmWayId
                         + "score:Double," // street score
+                        + "audited:Boolean," // boolean representing whether the street is audited
                         + "sigRamp:Double," // curb ramp significance score
                         + "sigNoRamp:Double," // no Curb ramp significance score
                         + "sigObs:Double," // obstacle significance score
@@ -254,7 +263,9 @@ public class ShapefilesCreatorHelper {
                         + "nRamp:Double," // curb ramp feature score
                         + "nNoRamp:Double," // no Curb ramp feature score
                         + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double" // Surface problem feature score
+                        + "nSurfce:Double," // Surface problem feature score
+                        + "avgImgDate:String," // average image age in milliseconds
+                        + "avgLblDate:String" // average label age in milliseconds
                 );
 
         /*
@@ -275,6 +286,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.streetID());
             featureBuilder.add(s.osmID());
             featureBuilder.add(s.score());
+            featureBuilder.add(s.audited());
             featureBuilder.add(s.significanceScores()[0]);
             featureBuilder.add(s.significanceScores()[1]);
             featureBuilder.add(s.significanceScores()[2]);
@@ -283,6 +295,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.attributeScores()[1]);
             featureBuilder.add(s.attributeScores()[2]);
             featureBuilder.add(s.attributeScores()[3]);
+            featureBuilder.add(s.avgImageDate());
+            featureBuilder.add(s.avgLabelDate());
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
@@ -312,7 +326,9 @@ public class ShapefilesCreatorHelper {
                         + "nRamp:Double," // curb ramp feature score
                         + "nNoRamp:Double," // no Curb ramp feature score
                         + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double" // Surface problem feature score
+                        + "nSurfce:Double," // Surface problem feature score
+                        + "avgImgDate:String," // average image age in milliseconds
+                        + "avgLblDate:String" // average label age in milliseconds
                 );
 
         /*
@@ -342,6 +358,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(n.attributeScores()[1]);
             featureBuilder.add(n.attributeScores()[2]);
             featureBuilder.add(n.attributeScores()[3]);
+            featureBuilder.add(n.avgImageDate());
+            featureBuilder.add(n.avgLabelDate());
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);

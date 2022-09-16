@@ -5,8 +5,6 @@ import models.user.UserStatTable
 import play.api.{Logger, Play}
 import play.api.Play.current
 import play.api.libs.json.Json
-import java.sql.Timestamp
-import java.time.Instant
 import scala.collection.immutable.Seq
 import scala.sys.process._
 
@@ -15,12 +13,11 @@ object AttributeControllerHelper {
    * Calls the appropriate clustering function(s); either single-user clustering, multi-user clustering, or both.
    *
    * @param clusteringType One of "singleUser", "multiUser", or "both".
-   * @param cutoffTime Only cluster users who have placed a label since this time. Defaults to all time.
    * @return Counts of attributes and the labels that were clustered into those attributes in JSON.
    */
-  def runClustering(clusteringType: String, cutoffTime: Timestamp = new Timestamp(Instant.EPOCH.toEpochMilli)) = {
+  def runClustering(clusteringType: String) = {
     if (clusteringType == "singleUser" || clusteringType == "both") {
-      runSingleUserClustering(cutoffTime)
+      runSingleUserClustering()
     }
     if (clusteringType == "multiUser" || clusteringType == "both") {
       runMultiUserClustering()
@@ -49,22 +46,20 @@ object AttributeControllerHelper {
   /**
    * Runs single user clustering for each high quality user who has placed a label since `cutoffTime`.
    */
-  def runSingleUserClustering(cutoffTime: Timestamp) = {
+  def runSingleUserClustering() = {
     val key: String = Play.configuration.getString("internal-api-key").get
 
     // Get list of users who's data we want to delete or re-cluster (or cluster for the first time).
-    val goodUsersToUpdate: List[String] = UserStatTable.getIdsOfGoodUsersWithLabels(cutoffTime)
-    val newBadUsers: List[String] = UserStatTable.getIdsOfNewlyLowQualityUsers
-    val usersToDelete: List[String] = (goodUsersToUpdate ++ newBadUsers).distinct
+    val usersToUpdate: List[String] = UserStatTable.usersToUpdateInAPI()
 
-    // Delete data from users we want to delete or re-cluster.
-    UserClusteringSessionTable.deleteUsersClusteringSessions(usersToDelete)
+    // Delete data from users we want to re-cluster.
+    UserClusteringSessionTable.deleteUsersClusteringSessions(usersToUpdate)
 
-    val nUsers = goodUsersToUpdate.length
+    val nUsers = usersToUpdate.length
     Logger.info("N users = " + nUsers)
 
     // Run clustering for each user that we are re-clustering.
-    for ((userId, i) <- goodUsersToUpdate.view.zipWithIndex) {
+    for ((userId, i) <- usersToUpdate.view.zipWithIndex) {
       Logger.info(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
       val clusteringOutput =
         Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
