@@ -4,7 +4,7 @@
  * @constructor
  * @memberof svl
  */
-function Tracker () {
+function Tracker() {
     var self = this;
     var actions = [];
     var prevActions = [];
@@ -13,11 +13,11 @@ function Tracker () {
     var updatedLabels = [];
     var currentAuditTask = null;
 
-    this.init = function () {
+    this.init = function() {
         this.trackWindowEvents();
     };
 
-    this.getCurrentLabel = function(){
+    this.getCurrentLabel = function() {
         return currentLabel;
     };
 
@@ -50,35 +50,35 @@ function Tracker () {
         });
     };
 
-    this._isCanvasInteraction = function (action) {
+    this._isCanvasInteraction = function(action) {
         return action.indexOf("LabelingCanvas") >= 0;
     };
 
-    this._isContextMenuAction = function (action) {
+    this._isContextMenuAction = function(action) {
         return action.indexOf("ContextMenu") >= 0;
     };
 
-    this._isContextMenuClose = function (action) {
+    this._isContextMenuClose = function(action) {
         return action === "ContextMenu_Close";
     };
 
-    this._isDeleteLabelAction = function (action) {
+    this._isDeleteLabelAction = function(action) {
         return action.indexOf("RemoveLabel") >= 0;
     };
 
-    this._isClickLabelDeleteAction = function (action) {
+    this._isClickLabelDeleteAction = function(action) {
         return action.indexOf("Click_LabelDelete") >= 0;
     };
 
-    this._isTaskStartAction = function (action) {
+    this._isTaskStartAction = function(action) {
         return action.indexOf("TaskStart") >= 0;
     };
 
-    this._isSeverityShortcutAction = function (action) {
+    this._isSeverityShortcutAction = function(action) {
         return action.indexOf("KeyboardShortcut_Severity") >= 0;
     };
 
-    this._isFinishLabelingAction = function (action) {
+    this._isFinishLabelingAction = function(action) {
         return action.indexOf("LabelingCanvas_FinishLabeling") >= 0;
     };
 
@@ -87,9 +87,8 @@ function Tracker () {
         return actions;
     };
 
-    this._notesToString = function (param) {
-        if (!param)
-            return "";
+    this._notesToString = function(param) {
+        if (!param) return "";
 
         var note = "";
         for (var key in param) {
@@ -97,7 +96,6 @@ function Tracker () {
                 note += ",";
             note += key + ':' + param[key];
         }
-
         return note;
     };
 
@@ -105,25 +103,22 @@ function Tracker () {
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
 
-    this.create = function (action, notes, extraData) {
-        if (!notes)
-            notes = {};
-
-        if (!extraData)
-            extraData = {};
+    this.create = function(action, notes, extraData) {
+        if (!notes) notes = {};
+        if (!extraData) extraData = {};
 
         var pov, latlng, panoId, audit_task_id;
 
         var note = this._notesToString(notes);
 
-        if ('canvas' in svl && svl.canvas.getCurrentLabel()){
+        if ('canvas' in svl && svl.canvas.getCurrentLabel()) {
             audit_task_id = svl.canvas.getCurrentLabel().getProperties().audit_task_id;
         } else {
             audit_task_id = currentAuditTask;
         }
 
         if ('temporaryLabelId' in extraData) {
-            if(currentLabel !== null){
+            if (currentLabel !== null) {
                 updatedLabels.push(currentLabel);
                 svl.labelContainer.addUpdatedLabel(currentLabel);
             }
@@ -186,11 +181,9 @@ function Tracker () {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
-        if(self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
+        if (self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
-            updatedLabels.push(currentLabel);
-            svl.labelContainer.addUpdatedLabel(currentLabel);
 
             if (notes === null || typeof (notes) === 'undefined') {
                 notes = {'auditTaskId': labelProperties.audit_task_id};
@@ -198,30 +191,37 @@ function Tracker () {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
 
-        } else if (self._isClickLabelDeleteAction(action)){
+            // Reset currentLabel to null if this is a context menu event that fired after the menu already closed.
+            if (svl.contextMenu.isOpen()) {
+                updatedLabels.push(currentLabel);
+                svl.labelContainer.addUpdatedLabel(currentLabel);
+            } else {
+                currentLabel = null;
+            }
+
+        } else if (self._isClickLabelDeleteAction(action)) {
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
 
-            if(notes === null || typeof(notes) === 'undefined') {
+            if (notes === null || typeof(notes) === 'undefined') {
                 notes = {'auditTaskId' : labelProperties.audit_task_id};
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
-
         }
 
         var item = self.create(action, notes, extraData);
         actions.push(item);
         var contextMenuLabel = true;
 
-        if(self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')){
+        if (self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')) {
             contextMenuLabel = false;
         }
 
         //we are no longer interacting with a label, set currentLabel to null
-        if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel){
+        if (self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel) {
             currentLabel = null;
         }
 
@@ -248,12 +248,12 @@ function Tracker () {
     /**
      * Put the previous labeling actions into prevActions. Then refresh the current actions.
      */
-    this.refresh = function () {
+    this.refresh = function() {
         prevActions = prevActions.concat(actions);
         actions = [];
 
         updatedLabels = [];
-        if(currentLabel !== null){
+        if (currentLabel !== null) {
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
         }

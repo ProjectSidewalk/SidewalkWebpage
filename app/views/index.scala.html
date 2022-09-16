@@ -178,37 +178,19 @@
             <div class="im-centered3">
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
-                <br>
+            </div>
+            <div class="gif-container">
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
+                <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
+                <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
+                <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
+                <p id="mlgif-label-text-1" class="ml-gif-header-2">@Messages("landing.ml.gif.user.labels")</p>
+                <p id="mlgif-label-text-2" class="ml-gif-header-2">@Messages("landing.ml.gif.machine.labels")</p>
+                <p id="mlgif-semicircle-text-1"  class="ml-gif-header-3">@Messages("landing.ml.gif.better.city.planning")</p>
+                <p id="mlgif-semicircle-text-2" class="ml-gif-header-3">@Messages("landing.ml.gif.better.temporal.tracking")</p>
+                <p id="mlgif-semicircle-text-3"  class="ml-gif-header-3">@Messages("landing.ml.gif.interactive.visualization.tools")</p>
+                <p id="mlgif-semicircle-text-4" class="ml-gif-header-3">@Messages("landing.ml.gif.smarter.routing")</p>
             </div>
-    </div>
-
-
-
-    <div class="container" id="quotebox-container" style="min-height: 500px;">
-        <div id="quotearea">
-            <div class="im-centered3">
-                <div class="row">@Html(Messages("landing.what.people.are.saying"))</div>
-            </div>
-            <div class="row" style="padding-top: 40px;">
-                <div class="col-sm-6">
-                    <div class="quotebox">
-                        Using machine learning, big data, & civic kindness, <a href="https://twitter.com/projsidewalk" target="_blank" id="microsoftdesign-author-twitter">@@projsidewalk</a> is making D.C. more accessible one mile at a time
-                        <br>
-                        <span class="quoteauthor">@@microsoftdesign</span>
-
-
-                    </div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="quotebox">
-                        <a href="https://twitter.com/projsidewalk" target="_blank" id="kpkindc-author-twitter">@@projsidewalk</a> is mapping accessibility in DC. Looks like C St NE and Oklahoma Ave need work!
-                        <br>
-                        <span class="quoteauthor">@@kpkindc</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class= "container" id="collaborators-container">
@@ -262,50 +244,6 @@
         </div>
     </div>
 
-    <div class="container" id="press-header">
-        <div class="im-centered3">
-            <div class="row"><br>@Messages("landing.press.title")<br></div>
-        </div>
-    </div>
-    <div class="container" id="press-container">
-        <div class="row" id="press-image-row">
-            <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-img-link">
-                    <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-img-link">
-                    <img style="position: relative; left:10px; top: -30px;" src='@routes.Assets.at("assets/curbed.jpg")' height="100" alt="Curbed DC Logo">
-
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="https://dbknews.com/2016/10/13/university-of-maryland-app-washington-disability-access/" id="diamondback-img-link">
-                    <img src='@routes.Assets.at("assets/diamondback.png")' height="70" alt="Diamondback Logo">
-                </a>
-            </div>
-        </div>
-        <div class="row" id="press-blurb-row">
-            <div class="col-sm-4">
-                <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-text-link">
-                    How Project Sidewalk is making DC more accessible
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-text-link">
-                    Make D.C.'s sidewalks more accessible with this crowd-sourced map
-                </a>
-            </div>
-            <div class="col-sm-4">
-                <a class="newslink" href="https://dbknews.com/2016/10/13/university-of-maryland-app-washington-disability-access/" id="diamondback-text-link">
-                    A UMD team made an app highlighting D.C. areas inaccessible to people with disabilities
-                </a>
-            </div>
-        </div>
-    </div>
-    </div>
-
 
 <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
 <script src='@routes.Assets.at("javascripts/homepage.js")'></script>
@@ -313,7 +251,7 @@
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>

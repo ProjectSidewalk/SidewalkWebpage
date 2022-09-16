@@ -19,6 +19,8 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     var _uiModalComment = uiModalComment;
     var _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
 
+    // Initializing feedback popover 
+    _uiLeftColumn.feedback.popover();
 
     onboardingModel.on("Onboarding:startOnboarding", function () {
         self.hide();
@@ -148,6 +150,8 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
+                _uiLeftColumn.feedback.popover('toggle');
+                setTimeout(function(){ _uiLeftColumn.feedback.popover('toggle'); }, 1500);
             },
             error: function (result) {
                 console.error(result);

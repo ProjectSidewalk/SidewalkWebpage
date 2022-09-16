@@ -181,21 +181,6 @@ $( document ).ready(function() {
         logWebpageActivity("Click_module=Collaborator_type=" + type + "_source=" + source);
     });
 
-    // Triggered when links in Press section are clicked.
-    // Logs "Click_module=Press_type=<"img" or "text">_source=<"technically," "curbed," or "diamondback">"
-    $("#press-container").on('click', '.newslink', function(e){
-        var type = e.currentTarget.id.split('-')[1];
-        var source = e.currentTarget.id.split('-')[0];
-        logWebpageActivity("Click_module=Press_type=" + type + "_source=" + source);
-    });
-
-    // Triggered when twitter links are clicked.
-    // Logs "Click_module=Quotes_author=<"microsoftdesign" or "kpkindc">"
-    $("#quotebox-container").on('click', 'a', function(e){
-        var author = e.currentTarget.id.split('-')[0];
-        logWebpageActivity("Click_module=Quotes_author=" + author);
-    });
-
     // Triggered when 'Start Exploring' in video container is clicked.
     // Logs "Click_module=StartExploring_location=Index"
     $(".body-start-btn").on("click", function(){

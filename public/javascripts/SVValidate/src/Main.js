@@ -19,7 +19,9 @@ function Main (param) {
             NoCurbRamp: i18next.t('missing-curb-ramp-caps'),
             Obstacle: i18next.t('obstacle-caps'),
             SurfaceProblem: i18next.t('surface-problem-caps'),
-            NoSidewalk: i18next.t('no-sidewalk-caps')
+            NoSidewalk: i18next.t('no-sidewalk-caps'),
+            Crosswalk: i18next.t('crosswalk-caps'),
+            Signal: i18next.t('signal-caps')
         };
 
         svv.labelTypeNames = {
@@ -27,7 +29,9 @@ function Main (param) {
             2: i18next.t('missing-curb-ramp-caps'),
             3: i18next.t('obstacle-caps'),
             4: i18next.t('surface-problem-caps'),
-            7: i18next.t('no-sidewalk-caps')
+            7: i18next.t('no-sidewalk-caps'),
+            9: i18next.t('crosswalk-caps'),
+            10: i18next.t('signal-caps')
         };
 
         svv.labelTypes = {
@@ -35,7 +39,9 @@ function Main (param) {
             2: 'NoCurbRamp',
             3: 'Obstacle',
             4: 'SurfaceProblem',
-            7: 'NoSidewalk'
+            7: 'NoSidewalk',
+            9: 'Crosswalk',
+            10: 'Signal'
         };
         svv.ui = {};
 
@@ -137,7 +143,6 @@ function Main (param) {
         };
         svv.statusField = new StatusField(statusFieldParam);
         svv.statusExample = new StatusExample(svv.ui.status.examples);
-        svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
         svv.validationContainer = new ValidationContainer(param.labelList);

@@ -24,6 +24,7 @@ loading.encouragement = ¡Hagámoslo!
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
+feedback.submitted = Comentarios Enviados
 
 navbar.explore = Comienza a explorar
 navbar.validate = Comienza a validar
@@ -67,8 +68,15 @@ landing.stats.labels = etiquetas
 landing.stats.validations = validaciones
 landing.ml.title = Qué hacemos con tus etiquetas
 landing.ml.content = Utilizamos tus etiquetas para mejorar planificación urbana, crear herramientas de mapeo consciente de accesibilidad y entrenar algoritmos de aprendizaje de máquinas para encontrar problemas de accesibilidad urbana.
-landing.what.people.are.saying = Lo que la gente<br>está diciendo
-landing.press.title = Prensa
+landing.ml.gif.machine.labels = etiquetas automatizadas
+landing.ml.gif.you = tú
+landing.ml.gif.user.labels = etiquetas de usuarias
+landing.ml.gif.better.city.planning = mejor planificación urbana
+landing.ml.gif.better.temporal.tracking = mejor seguimiento temporal
+landing.ml.gif.interactive.visualization.tools = herramientas de visualización interactiva
+landing.ml.gif.smarter.routing = enrutamiento inteligente
+landing.ml.gif.machine.learning = aprendizaje de máquinas
+landing.ml.gif.outcomes = resultados
 landing.collaborators.title = Colaboradores
 
 footer.about = Sobre nosotros
@@ -80,6 +88,7 @@ footer.api = Sidewalk API
 footer.connect = CONECTA
 footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
+footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> y <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 
@@ -181,7 +190,6 @@ audit.help.surface.problem.1 = Banqueta parcialmente dañada. Debido a que hay s
 audit.help.surface.problem.3 = Las personas usuarias de sillas de ruedas tendrían dificultades para navegar en las aceras y cruces de adoquines.
 audit.help.surface.problem.5 = Las personas usuarias de sillas de ruedas no pueden pasar por las superficies de las banquetas severamente deterioradas debido a la vegetación sobrecrecida.
 
-validate.top.ui.hide.label = Ocultar (<u>H</u>)
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar
@@ -285,6 +293,9 @@ dashboard.mission.badge = {0} insignia de misión
 dashboard.distance.badge = {0} insignia de distancia
 dashboard.label.badge = {0} insignia de etiqueta
 dashboard.validation.badge = {0} insignia de validación
+dashboard.mistakes.header = Sus errores de etiquetado recientes
+dashboard.mistakes.tooltip = Estos son errores determinados por otros usuarios desde la página Validar. A veces ocurren errores durante la validación y, a menudo, hay matices en estas evaluaciones.
+dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para información sobre herramientas útil.
 
 labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.

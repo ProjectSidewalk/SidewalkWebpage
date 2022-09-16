@@ -72,7 +72,7 @@ function Label (svl, pathIn, params) {
         severity: null,
         tutorial: null,
         temporary_label_id: null,
-        temporaryLabel: null,
+        temporaryLabel: false,
         description: null
     };
 
@@ -423,9 +423,20 @@ function Label (svl, pathIn, params) {
             // Renders the label image.
             path.render2(ctx, pov);
 
+            // Draws label outline.
+            ctx.lineWidth = .7;
+            ctx.beginPath();
+            ctx.arc(getCoordinate().x, getCoordinate().y, 15.3, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'black';
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(getCoordinate().x, getCoordinate().y, 16.2, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+
             // Only render severity warning if there's a severity option.
             if (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal') {
-                if (properties.severity === undefined) {
+                if (properties.severity === null) {
                     showSeverityAlert(ctx);
                 }
             }
@@ -459,7 +470,7 @@ function Label (svl, pathIn, params) {
         // labelCoordinate represents the upper left corner of the tag.
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
-            hasSeverity = (properties.labelType !== 'Occlusion'),
+            hasSeverity = (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal'),
             i, height,
             width = 0,
             labelRows = 1,
@@ -472,7 +483,7 @@ function Label (svl, pathIn, params) {
 
         if (hasSeverity) {
             labelRows = 2;
-            if (properties.severity != undefined) {
+            if (properties.severity !== null) {
                 severityImagePath = tagProperties[properties.severity].severityImage;
                 severityImage.src = severityImagePath;
                 severityMessage = tagProperties[properties.severity].message;
@@ -535,7 +546,7 @@ function Label (svl, pathIn, params) {
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
-            if (properties.severity != undefined) {
+            if (properties.severity !== null) {
               ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
             }
         }

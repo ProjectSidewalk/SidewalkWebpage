@@ -24,6 +24,7 @@ loading.encouragement = Let''s go!
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
+feedback.submitted = Feedback Ingediend
 
 navbar.explore = Start met Verkennen
 navbar.validate = Start met Valideren
@@ -67,8 +68,15 @@ landing.stats.labels = labels
 landing.stats.validations = validaties
 landing.ml.title = Wat we doen met je labels
 landing.ml.content = Je labels worden gebruikt om stedelijke planning te verbeteren, toegankelijkheidsbewuste kaart-tools te bouwen, en machine learning algorithmes te trainen om automatisch toegankelijkheidsproblemen te vinden.
-landing.what.people.are.saying = Wat anderen<br>vinden
-landing.press.title = Pers
+landing.ml.gif.machine.labels = machine-etiketten
+landing.ml.gif.you = jij
+landing.ml.gif.user.labels = gebruikerslabels
+landing.ml.gif.better.city.planning = betere stadsplanning
+landing.ml.gif.better.temporal.tracking = betere temporele tracking
+landing.ml.gif.interactive.visualization.tools = interactieve visualisatietools
+landing.ml.gif.smarter.routing = slimmere routering
+landing.ml.gif.machine.learning = machine learning
+landing.ml.gif.outcomes = resultaten
 landing.collaborators.title = Partners
 
 footer.about = Over ons
@@ -80,6 +88,7 @@ footer.api = Sidewalk API
 footer.connect = Contact
 footer.email = Email ons
 footer.funding = MET TROTS GESPONSORD DOOR
+footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 
@@ -180,7 +189,6 @@ audit.help.obstacle.5 = De boom blokkeert het pad volledig, waardoor deze niet b
 audit.help.surface.problem.1 = Gedeeltelijk beschadigd trottoir. Omdat er voldoende ruimte is naast het beschadigde deel van het trottoir, zouden rolstoelgebruikers kunnen passeren.
 audit.help.surface.problem.3 = Rolstoelgebruikers zouden moeite hebben met het navigeren op de geplaveide trottoirs en zebrapaden.
 audit.help.surface.problem.5 = Rolstoelgebruikers kunnen ernstig aangetaste stoepoppervlakken niet passeren vanwege de overgroeide vegetatie.
-validate.top.ui.hide.label = Verberg Label
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
@@ -285,6 +293,9 @@ dashboard.mission.badge = {0} missiebadge
 dashboard.distance.badge = {0} afstandsbadge
 dashboard.label.badge = {0} labelbadge
 dashboard.validation.badge = {0} validatiebadge
+dashboard.mistakes.header = Uw recente etiketteringsfouten
+dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
+dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 
 labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.

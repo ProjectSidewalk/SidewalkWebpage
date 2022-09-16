@@ -230,18 +230,17 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       for (label: LabelSubmission <- data.labels) {
         val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
 
-        val existingLabelId: Option[Int] = label.temporaryLabelId match {
-          case Some(tempLabelId) =>
-            LabelTable.find(tempLabelId, label.auditTaskId)
-          case None =>
-            Logger.error("Received label with Null temporary_label_id")
-            None
+        val existingLabelId: Option[Int] = if (label.temporaryLabelId.isDefined && userOption.isDefined) {
+          LabelTable.find(label.temporaryLabelId.get, userOption.get.userId)
+        } else {
+          Logger.error("Received label with Null temporary_label_id or user_id")
+          None
         }
 
-        // If the label already exists, update deleted field, o/w insert the new label.
+        // If the label already exists, update deleted, severity, temporary, and description cols, o/w insert new label.
         val labelId: Int = existingLabelId match {
           case Some(labId) =>
-            LabelTable.updateDeleted(labId, label.deleted.value)
+            LabelTable.update(labId, label.deleted, label.severity, label.temporary, label.description)
             labId
           case None =>
             // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
@@ -263,9 +262,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
 
             LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
-              label.photographerHeading, label.photographerPitch, label.panoramaLat,
-              label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated,
-              label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None))
+              label.photographerHeading, label.photographerPitch, label.panoramaLat, label.panoramaLng, label.deleted,
+              label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
+              label.severity, label.temporary, label.description))
         }
 
         // Insert label points.
@@ -282,29 +281,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               point.canvasY, point.heading, point.pitch, point.zoom,
               point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
               point.lat, point.lng, pointGeom, point.computationMethod))
-          }
-        }
-
-        // If temporariness/severity/description they are set, update/insert them.
-        if (label.severity.isDefined) {
-          LabelSeverityTable.find(labelId) match {
-            case Some(ls) => LabelSeverityTable.updateSeverity(ls.labelSeverityId, label.severity.get)
-            case None => LabelSeverityTable.save(LabelSeverity(0, labelId, label.severity.get))
-          }
-        }
-
-        if (label.temporaryLabel.isDefined) {
-          val tempLabel: Boolean = label.temporaryLabel.get.value
-          LabelTemporarinessTable.find(labelId) match {
-            case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
-            case None => LabelTemporarinessTable.save(LabelTemporariness(0, labelId, tempLabel))
-          }
-        }
-
-        if (label.description.isDefined) {
-          LabelDescriptionTable.find(labelId) match {
-            case Some(pd) => LabelDescriptionTable.updateDescription(pd.labelDescriptionId, label.description.get)
-            case None => LabelDescriptionTable.save(LabelDescription(0, labelId, label.description.get))
           }
         }
 
@@ -337,8 +313,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, panorama.imageWidth, panorama.imageHeight,
-            panorama.tileWidth, panorama.tileHeight, panorama.centerHeading, panorama.originHeading,
-            panorama.originPitch, panorama.imageDate, panorama.copyright, false, Some(timestamp))
+            panorama.tileWidth, panorama.tileHeight, panorama.imageDate, panorama.copyright, false, Some(timestamp))
           GSVDataTable.save(gsvData)
 
           for (link <- panorama.links) {

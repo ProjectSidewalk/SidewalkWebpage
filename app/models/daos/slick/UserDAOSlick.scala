@@ -9,7 +9,7 @@ import models.daos.UserDAO
 import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
-import models.user.{RoleTable, WebpageActivityTable}
+import models.user.{RoleTable, WebpageActivityTable, UserStatTable}
 import models.user.{UserRoleTable, User}
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
@@ -22,7 +22,7 @@ case class UserStatsForAdminPage(userId: String, username: String, email: String
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
                                  completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
                                  ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedNotsurePct: Double,
-                                 othersValidated: Int, othersValidatedAgreedPct: Double)
+                                 othersValidated: Int, othersValidatedAgreedPct: Double, highQuality: Boolean)
 
 class UserDAOSlick extends UserDAO {
   /**
@@ -159,7 +159,7 @@ object UserDAOSlick {
       _userRole <- userRoleTable if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
       _mission <- MissionTable.missions if _user.userId === _mission.userId
-      _label <- LabelTable.labelsWithoutDeleted if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _mission.missionId === _label.missionId
       if _role.role === "Anonymous"
     } yield _user).groupBy(x => x).map(_._1)
 
@@ -247,7 +247,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).size.run
+    users.groupBy(x => x).map(_._1).length.run
   }
 
   /**
@@ -361,7 +361,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).size.run
+    users.groupBy(x => x).map(_._1).length.run
   }
 
   /**
@@ -496,7 +496,7 @@ object UserDAOSlick {
 
     // Map(user_id: String -> label_count: Int).
     val labelCounts =
-      AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+      AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithTutorialAndExcludedUsers).on(_.auditTaskId === _.auditTaskId)
         .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).
@@ -509,8 +509,11 @@ object UserDAOSlick {
       (valCount._1, (valCount._2, valCount._3))
     }.toMap
 
+    val userHighQuality =
+      UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    usersMinusAnonUsersWithNoLabels.list.map{ u =>
+    usersMinusAnonUsersWithNoLabels.list.map { u =>
       val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
@@ -550,7 +553,8 @@ object UserDAOSlick {
         ownValidatedDisagreedPct,
         ownValidatedNotsurePct,
         otherValidatedTotal,
-        otherValidatedAgreedPct
+        otherValidatedAgreedPct,
+        userHighQuality.getOrElse(u.userId, true)
       )
     }
   }

@@ -4,6 +4,8 @@
   "obstacle-caps": "Obstáculo",
   "surface-problem-caps": "Problema en superficie",
   "no-sidewalk-caps": "No hay banqueta",
+  "crosswalk-caps": "Cruce peatonal",
+  "signal-caps": "Semáforo peatonal",
   "user-description": "Descripción de usuario: ",
   "temporary": "Temporal",
   "top-ui": {
@@ -12,8 +14,12 @@
       "no-curb-ramp": "¿Es esta una <b>Rampa Peatonal Ausente</b>?",
       "obstacle": "¿Es este un <b>Obstáculo</b>?",
       "surface-problem": "¿Es este un <b>Problema en Superficie</b>?",
-      "no-sidewalk": "¿Debería haber una etiqueta de <b>No Hay Banqueta</b> aquí?"
-    }
+      "no-sidewalk": "¿Debería haber una etiqueta de <b>No Hay Banqueta</b> aquí?",
+      "crosswalk": "¿Es este un <b>Cruce Peatonal</b>?",
+      "signal": "¿Es este un <b>Semáforo Peatonal</b>?"
+    },
+    "visibility-control-hide": "Ocultar (<u>H</u>)",
+    "visibility-control-show": "Mostrar (<u>H</u>)"
   },
   "right-ui": {
     "current-mission": {
@@ -22,11 +28,11 @@
     "correct": {
       "curb-ramp": {
         "title": "Rampa peatonal <strong>correcta</strong>",
-        "example-1-to-4": "Esta etiqueta está colocada correctamente en la parte inferior de una rampa peatonal"
+        "example-1-2-3-4": "Esta etiqueta está colocada correctamente en la parte inferior de una rampa peatonal"
       },
       "no-curb-ramp": {
         "title": "Rampa peatonal ausente <strong>correcta</strong>",
-        "example-1-to-3": "Esta intersección carece de una rampa peatonal",
+        "example-1-2-3": "Esta intersección carece de una rampa peatonal",
         "example-4": "Este cruce peatonal indica que debería haber una rampa peatonal aquí"
       },
       "obstacle": {
@@ -45,21 +51,31 @@
       },
       "no-sidewalk": {
         "title": "No hay banqueta <strong>correcto</strong>",
-        "example-1-to-2": "Esta es una banqueta que termina abruptamente",
+        "example-1-2": "Esta es una banqueta que termina abruptamente",
         "example-3": "Esta calle no tiene banqueta",
         "example-4": "Esta intersección no tiene banqueta"
+      },
+      "crosswalk": {
+        "title": "Cruce peatonal <strong>correcto</strong>",
+        "example-1-2-3": "Esta etiqueta está colocada correctamente en un cruce peatonal pintado",
+        "example-4": "Esta etiqueta está colocada correctamente en un cruce peatonal con pintura descolorida"
+      },
+      "signal": {
+        "title": "Semáforo peatonal <strong>correcto</strong>",
+        "example-1-2-3": "Esta etiqueta está correctamente colocada en la base de un poste con un botón para un semáforo peatonal",
+        "example-4": "Este poste tiene la luz y el botón para un semáforo peatonal"
       }
     },
     "incorrect": {
       "curb-ramp": {
         "title": "Rampa peatonal <strong>incorrecta</strong>",
-        "example-1-to-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
-        "example-3-to-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
+        "example-1-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
+        "example-3-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
       },
       "no-curb-ramp": {
         "title": "Rampa peatonal ausente <strong>incorrecta</strong>",
         "example-1": "Los caminos de las entradas residenciales no deben marcarse como una rampa peatonal ausente",
-        "example-2-and-4": "Esto no está ubicado en un camino peatonal",
+        "example-2-4": "Esto no está ubicado en un camino peatonal",
         "example-3": "Esta no es una intersección en la que las personas peatonas deben cruzar"
       },
       "obstacle": {
@@ -82,6 +98,18 @@
         "example-2": "Los caminos de las entradas residenciales no deben etiquetarse como \"no hay banqueta\"",
         "example-3": "Los camellones no deben etiquetarse como \"no hay banqueta\"",
         "example-4": "Los callejones no deben etiquetarse como \"no hay banqueta\""
+      },
+      "crosswalk": {
+        "title": "Cruce peatonal <strong>incorrecto</strong>",
+        "example-1": "Los cruces sin indicador visual no deben etiquetarse como cruces peatonales",
+        "example-2": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales",
+        "example-3-4": "Los topes de velocidad no deben etiquetarse como cruces peatonales"
+      },
+      "signal": {
+        "title": "Semáforo peatonal <strong>Incorrect</strong>",
+        "example-1-2": "Esta señal no indica cuándo los peatones pueden cruzar la calle",
+        "example-3": "Este semáforo es solo para vehículos, no para peatones",
+        "example-4": "Este poste no tiene un botón de semáforo peatonal"
       }
     }
   },
@@ -99,6 +127,8 @@
     "body-3": "Acabas de validar {{n}} etiquetas de Obstáculos.",
     "body-4": "Acabas de validar {{n}} etiquetas de Problemas en Superficie.",
     "body-7": "Acabas de validar {{n}} etiquetas de que No Hay Banqueta.",
+    "body-9": "Acabas de validar {{n}} etiquetas de Cruce Peatonal.",
+    "body-10": "Acabas de validar {{n}} etiquetas de Semáforo Peatonal.",
     "validate-more": "Validar más etiquetas",
     "continue": "Continuar validando",
     "explore": "Comienza una misión de exploración",
@@ -111,6 +141,8 @@
     "info-title-no-curb-ramp": "¿Qué es una Rampa Peatonal Ausente?",
     "info-title-obstacle": "¿Qué es un Obstáculo?",
     "info-title-surface-problem": "¿Qué es un Problema en Superficie?",
-    "info-title-no-sidewalk": "¿Qué es un \"No Hay Banqueta\"?"
+    "info-title-no-sidewalk": "¿Qué es un \"No Hay Banqueta\"?",
+    "info-title-crosswalk": "¿Qué es un Cruce Peatonal?",
+    "info-title-signal": "¿Qué es un Semáforo Peatonal?"
   }
 }

@@ -9,6 +9,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
+import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import formats.json.LabelFormat._
@@ -16,7 +17,7 @@ import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
-import models.label.LabelTable.{LabelMetadata, LabelCVMetadata}
+import models.label.LabelTable.{LabelCVMetadata, LabelMetadata}
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -165,7 +166,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * Get audit coverage of each neighborhood.
     */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
-    RegionCompletionTable.initializeRegionCompletionTable()
+    RegionCompletionTable.initializeRegionCompletionTable
 
     val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
     val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
@@ -355,7 +356,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case Some(labelPointObj) =>
           val userId: String = request.identity.get.userId.toString
           val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-          val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJsonAdmin(labelMetadata)
+          val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
       }
@@ -372,7 +373,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       case Some(labelPointObj) =>
         val userId: String = request.identity.map(_.userId.toString).getOrElse("")
         val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-        val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJson(labelMetadata)
+        val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }

@@ -66,6 +66,22 @@ object StreetEdgePriorityTable {
     }
   }
 
+  /**
+   * Checks if all streets have been audited by a high quality user (if all have priority < 1).
+   *
+   * @param regionId
+   * @return
+   */
+  def allStreetsInARegionAuditedUsingPriority(regionId: Int): Boolean = db.withSession { implicit session =>
+    val streetsToAudit = for {
+      ser <- StreetEdgeTable.streetEdgeRegion
+      sep <- streetEdgePriorities if ser.streetEdgeId === sep.streetEdgeId
+      if ser.regionId === regionId
+      if sep.priority === 1.0
+    } yield sep
+    streetsToAudit.length.run == 0
+  }
+
   def streetDistanceCompletionRateUsingPriority: Float = db.withSession { implicit session =>
     val auditedDistance: Float = auditedStreetDistanceUsingPriority
     val totalDistance: Float = StreetEdgeTable.totalStreetDistance()
@@ -189,7 +205,7 @@ object StreetEdgePriorityTable {
     val completions = AuditTaskTable.completedTasks
       .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
       .innerJoin(UserStatTable.getQualityOfUsers).on(_._2 === _._1)  // join on user_id
-      .filterNot(_._2._3.getOrElse(false)) // filter out users marked with exclude_manual = TRUE
+      .filterNot(_._2._3) // filter out users marked with excluded = TRUE
       .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
 
     /********** Compute Audit Counts **********/
