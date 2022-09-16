@@ -17,7 +17,9 @@
       "no-sidewalk": "Should there be a <b>No Sidewalk</b> label here?",
       "crosswalk": "Is this a <b>Crosswalk</b>?",
       "signal": "Is this a <b>Pedestrian Signal</b>?"
-    }
+    },
+    "visibility-control-hide": "<u>H</u>ide Label",
+    "visibility-control-show": "S<u>h</u>ow Label"
   },
   "right-ui": {
     "current-mission": {
@@ -142,9 +144,5 @@
     "info-title-no-sidewalk": "What is a \"No Sidewalk\"",
     "info-title-crosswalk": "What is a Crosswalk?",
     "info-title-signal": "What is a Pedestrian Signal?"
-  },
-  "button-ui": {
-    "visibility-control-hide": "<u>H</u>ide Label",
-    "visibility-control-show": "S<u>h</u>ow Label"
   }
 }

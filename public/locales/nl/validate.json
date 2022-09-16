@@ -17,7 +17,9 @@
       "no-sidewalk": "Zou er een <b>Geen Trottoir</b> label moeten zijn hier?",
       "crosswalk": "Is dit een <b>Oversteekplaats</b>?",
       "signal": "is dit een <b>Verkeerslicht</b>?"
-    }
+    },
+    "visibility-control-hide": "Verberg Label (<u>H</u>)",
+    "visibility-control-show": "Toon Label (<u>H</u>)"
   },
   "right-ui": {
     "current-mission": {
@@ -142,9 +144,5 @@
     "info-title-no-sidewalk": "Wat is \"Geen Trottoir\"?",
     "info-title-crosswalk": "Wat is een Oversteekplaats?",
     "info-title-signal": "Wat is een Verkeerslicht?"
-  },
-  "button-ui": {
-    "visibility-control-hide": "Verberg Label (<u>H</u>)",
-    "visibility-control-show": "Toon Label (<u>H</u>)"
   }
 }

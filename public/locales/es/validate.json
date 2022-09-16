@@ -17,7 +17,9 @@
       "no-sidewalk": "¿Debería haber una etiqueta de <b>No Hay Banqueta</b> aquí?",
       "crosswalk": "¿Es este un <b>Cruce Peatonal</b>?",
       "signal": "¿Es este un <b>Semáforo Peatonal</b>?"
-    }
+    },
+    "visibility-control-hide": "Ocultar (<u>H</u>)",
+    "visibility-control-show": "Mostrar (<u>H</u>)"
   },
   "right-ui": {
     "current-mission": {
@@ -142,9 +144,5 @@
     "info-title-no-sidewalk": "¿Qué es un \"No Hay Banqueta\"?",
     "info-title-crosswalk": "¿Qué es un Cruce Peatonal?",
     "info-title-signal": "¿Qué es un Semáforo Peatonal?"
-  },
-  "button-ui": {
-    "visibility-control-hide": "Ocultar (<u>H</u>)",
-    "visibility-control-show": "Mostrar (<u>H</u>)"
   }
 }

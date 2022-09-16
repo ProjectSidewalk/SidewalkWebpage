@@ -11,8 +11,8 @@ function LabelVisibilityControl () {
     let labelVisibilityControlButton = $("#label-visibility-control-button");
     let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");
     let labelDescriptionBox = $("#label-description-box");
-    let buttonUiVisibilityControlHide = i18next.t('button-ui.visibility-control-hide');
-    let buttonUiVisibilityControlShow = i18next.t('button-ui.visibility-control-show');
+    let buttonUiVisibilityControlHide = i18next.t('top-ui.visibility-control-hide');
+    let buttonUiVisibilityControlShow = i18next.t('top-ui.visibility-control-show');
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -129,6 +129,8 @@ function LabelVisibilityControl () {
     self.isVisible = isVisible;
     self.showTagsAndDeleteButton = showTagsAndDeleteButton;
     self.hideTagsAndDeleteButton = hideTagsAndDeleteButton;
+
+    // Call unhideLabel() to start the page with showing the 'hide label' button.
     self.unhideLabel(true);
     return this;
 }
