@@ -189,7 +189,6 @@ audit.help.obstacle.5 = De boom blokkeert het pad volledig, waardoor deze niet b
 audit.help.surface.problem.1 = Gedeeltelijk beschadigd trottoir. Omdat er voldoende ruimte is naast het beschadigde deel van het trottoir, zouden rolstoelgebruikers kunnen passeren.
 audit.help.surface.problem.3 = Rolstoelgebruikers zouden moeite hebben met het navigeren op de geplaveide trottoirs en zebrapaden.
 audit.help.surface.problem.5 = Rolstoelgebruikers kunnen ernstig aangetaste stoepoppervlakken niet passeren vanwege de overgroeide vegetatie.
-validate.top.ui.hide.label = Verberg Label
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
