@@ -220,7 +220,7 @@ object GlobalAttributeTable {
           |        SUM(label.disagree_count) AS disagree_count,
           |        SUM(label.notsure_count) AS notsure_count,
           |        TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
-          |        COUNT(label.time_created) AS label_count
+          |        COUNT(label.label_id) AS label_count
           |FROM global_attribute
           |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
           |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id

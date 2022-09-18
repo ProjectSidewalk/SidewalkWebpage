@@ -28,7 +28,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
                  photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float,
-                 deleted: Boolean, temporaryLabelId: Option[Int], timeCreated: Option[Timestamp], tutorial: Boolean,
+                 deleted: Boolean, temporaryLabelId: Option[Int], timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String])
 
@@ -50,7 +50,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def panoramaLng = column[Float]("panorama_lng", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
-  def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
+  def timeCreated = column[Timestamp]("time_created", O.NotNull)
   def tutorial = column[Boolean]("tutorial", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def agreeCount = column[Int]("agree_count", O.NotNull)
@@ -145,7 +145,7 @@ object LabelTable {
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String, heading: Float,
                            pitch: Float, zoom: Int, canvasXY: (Int, Int), canvasWidth: Int, canvasHeight: Int,
-                           auditTaskId: Int, userId: String, username: String, timestamp: Option[java.sql.Timestamp],
+                           auditTaskId: Int, userId: String, username: String, timestamp: java.sql.Timestamp,
                            labelTypeKey: String, labelTypeValue: String, severity: Option[Int], temporary: Boolean,
                            description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
                            tags: List[String])
@@ -156,17 +156,16 @@ object LabelTable {
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
-                                     timestamp: Option[java.sql.Timestamp], heading: Float, pitch: Float, zoom: Int,
+                                     timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                                      severity: Option[Int], temporary: Boolean, description: Option[String],
                                      userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                                imageDate: String, timestamp: Option[java.sql.Timestamp],
-                                                heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
-                                                canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
-                                                temporary: Boolean, description: Option[String],
-                                                userValidation: Option[Int]) extends BasicLabelMetadata
+                                                imageDate: String, timestamp: java.sql.Timestamp, heading: Float,
+                                                pitch: Float, zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int,
+                                                canvasHeight: Int, severity: Option[Int], temporary: Boolean,
+                                                description: Option[String], userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, tagIds: List[Int])
@@ -179,7 +178,7 @@ object LabelTable {
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
       r.nextInt, r.nextString, r.nextBoolean, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, (r.nextInt, r.nextInt),
-      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestampOption, r.nextString, r.nextString,
+      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp, r.nextString, r.nextString,
       r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
@@ -188,16 +187,17 @@ object LabelTable {
 
   implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
     LabelValidationMetadataWithoutTags(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestampOption, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat,
+      r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
+      r.nextStringOption, r.nextIntOption
     )
   )
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestampOption, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption,
-      r.nextIntOption, r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
+      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
+      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
 
@@ -210,8 +210,8 @@ object LabelTable {
   implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
     ResumeLabelMetadata(
       Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat,
-        r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextTimestampOption, r.nextBoolean, r.nextInt, r.nextInt,
-        r.nextInt, r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean, r.nextStringOption),
+        r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextTimestamp, r.nextBoolean, r.nextInt, r.nextInt, r.nextInt,
+        r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean, r.nextStringOption),
       r.nextString,
       LabelPoint(r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextInt,
         r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
