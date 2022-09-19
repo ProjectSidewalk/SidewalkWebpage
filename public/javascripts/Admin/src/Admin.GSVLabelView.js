@@ -43,10 +43,13 @@ function AdminGSVLabelView(admin) {
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                 '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
+                                '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual" onclick="myFunction()">' +
                                     i18next.t('common:label-map.submit') +
                                 '</button>' +
                             '</div>' +
+                            '<script>'+
+                                'function myFunction() {document.getElementById("label-comments").innerHTML = document.getElementById("comment-textarea").value; }'+
+                            '</script>'+
                         '</div>' +
                         '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
                             '<table class="table table-striped" style="font-size:small;>' +
@@ -73,6 +76,10 @@ function AdminGSVLabelView(admin) {
                                 '<tr>' +
                                     '<th>Validations</th>' +
                                     '<td colspan="3" id="label-validations"></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<th>Validator Comments</th>' +
+                                    '<td colspan="3" id="label-comments"></td>' +
                                 '</tr>' +
                                 '<tr>' +
                                     '<th>' + i18next.t('common:labeled') + '</th>' +
