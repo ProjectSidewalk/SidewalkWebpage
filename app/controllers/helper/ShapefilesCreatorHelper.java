@@ -181,7 +181,8 @@ public class ShapefilesCreatorHelper {
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer," // Notsure validations
                         + "labelTags:String," // Label Tags
-                        + "labelDescr:String" // Label Description
+                        + "labelDescr:String," // Label Description
+                        + "userId:String," // User Id
                 );
 
 
@@ -225,9 +226,9 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.gsvUrl());
             featureBuilder.add(l.imageLabelDates()._1);
             featureBuilder.add(l.imageLabelDates()._2);
-            featureBuilder.add(l.agreeCount());
-            featureBuilder.add(l.disagreeCount());
-            featureBuilder.add(l.notsureCount());
+            featureBuilder.add(l.agreeDisagreeNotsureCount()._1());
+            featureBuilder.add(l.agreeDisagreeNotsureCount()._2());
+            featureBuilder.add(l.agreeDisagreeNotsureCount()._3());
             featureBuilder.add("[" + l.labelTags().mkString(",") + "]");
             featureBuilder.add(l.labelDescription().getOrElse(new AbstractFunction0<String>() {
                 @Override
@@ -235,6 +236,7 @@ public class ShapefilesCreatorHelper {
                     return null;
                 }
             }));
+            featureBuilder.add(l.userId());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }

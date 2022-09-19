@@ -138,7 +138,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude," +
         "Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Date," +
         "Label Date,Label Severity,Label Temporary,Agree Count,Disagree Count,Not Sure Count,Label Tags," +
-        "Label Description"
+        "Label Description,User Id"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
