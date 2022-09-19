@@ -16,7 +16,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.GSVDataTable
 import models.label.{LabelLocation, LabelTable}
 import models.street.{OsmWayStreetEdge, OsmWayStreetEdgeTable}
-import models.street.{StreetEdge, StreetEdgeInformation, StreetEdgeTable}
+import models.street.{StreetEdge, StreetEdgeInfo, StreetEdgeTable}
 import models.user.{User, UserStatTable, WebpageActivity, WebpageActivityTable}
 import play.api.Play.current
 import play.api.libs.json._
@@ -298,8 +298,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreNeighborhoodsShapefile(coordinates: Array[Double]): java.io.File = {
     // Gather all of the data that will be written to the Shapefile.
     val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version = 2, coordinates)
-    val streets: List[StreetEdgeInformation] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
-    val auditedStreets: List[StreetEdgeInformation] = streets.filter(_.audited)
+    val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+    val auditedStreets: List[StreetEdgeInfo] = streets.filter(_.audited)
     val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
     // Create a list of NeighborhoodAttributeSignificance objects to pass to the helper class.
@@ -307,7 +307,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     // Populate every object in the list.
     for (neighborhood <- neighborhoods) {
       val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
-      val auditedStreetsIntersecting = auditedStreets.filter(_.streetEdge.geom.intersects(neighborhood.geom))
+      val auditedStreetsIntersecting = auditedStreets.filter(_.street.geom.intersects(neighborhood.geom))
       // set default values for everything to 0, so null values will be 0 as well.
       var coverage: Double = 0.0
       var accessScore: Double = 0.0
@@ -329,7 +329,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         avgImageDate = avgImageAge.map(age => new Timestamp(age))
         avgLabelDate = avgLabelAge.map(age => new Timestamp(age))
         accessScore = computeAccessScore(averagedStreetFeatures, significance)
-        val streetsIntersecting = streets.filter(_.streetEdge.geom.intersects(neighborhood.geom))
+        val streetsIntersecting = streets.filter(_.street.geom.intersects(neighborhood.geom))
         coverage = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
 
         assert(coverage <= 1.0)
@@ -367,14 +367,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     // Write the column headers.
     writer.println(header)
     val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version, coordinates)
-    val streets: List[StreetEdgeInformation] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
-    val auditedStreets: List[StreetEdgeInformation] = streets.filter(_.audited)
+    val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+    val auditedStreets: List[StreetEdgeInfo] = streets.filter(_.audited)
     val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val significance = Array(0.75, -1.0, -1.0, -1.0)
     // Write each row in the CSV.
     for (neighborhood <- neighborhoods) {
       val coordinates: Array[Coordinate] = neighborhood.geom.getCoordinates
-      val auditedStreetsIntersecting = auditedStreets.filter(_.streetEdge.geom.intersects(neighborhood.geom))
+      val auditedStreetsIntersecting = auditedStreets.filter(_.street.geom.intersects(neighborhood.geom))
       val coordStr: String = "\"[" + coordinates.map(c => "(" + c.x + "," + c.y + ")").mkString(",") + "]\""
       if (auditedStreetsIntersecting.nonEmpty) {
         val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersecting, labelsForScore)
@@ -391,7 +391,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         val avgImageDate: Option[Timestamp] = avgImageAge.map(age => new Timestamp(age))
         val avgLabelDate: Option[Timestamp] = avgLabelAge.map(age => new Timestamp(age))
         val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
-        val streetsIntersecting = streets.filter(_.streetEdge.geom.intersects(neighborhood.geom))
+        val streetsIntersecting = streets.filter(_.street.geom.intersects(neighborhood.geom))
         val coverage: Double = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
 
         assert(coverage <= 1.0)
@@ -443,15 +443,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     // Retrieve data and cluster them by location and label type.
     def featureCollection = {
       val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version, coordinates)
-      val streets: List[StreetEdgeInformation] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
-      val auditedStreets: List[StreetEdgeInformation] = streets.filter(_.audited)
+      val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+      val auditedStreets: List[StreetEdgeInfo] = streets.filter(_.audited)
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
       val neighborhoodsJson: List[JsObject] = for (neighborhood <- neighborhoods) yield {
         val neighborhoodJson: JsonMultiPolygon[JsonLatLng] = neighborhood.geom.toJSON
 
         // Get access score
         // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
-        val auditedStreetsIntersecting = auditedStreets.filter(_.streetEdge.geom.intersects(neighborhood.geom))
+        val auditedStreetsIntersecting = auditedStreets.filter(_.street.geom.intersects(neighborhood.geom))
         if (auditedStreetsIntersecting.nonEmpty) {
           val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersecting, labelsForScore)
           val averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
@@ -469,7 +469,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           val significance = Array(0.75, -1.0, -1.0, -1.0)
           val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
 
-          val streetsIntersecting = streets.filter(_.streetEdge.geom.intersects(neighborhood.geom))
+          val streetsIntersecting = streets.filter(_.street.geom.intersects(neighborhood.geom))
           val coverage: Double = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
 
           assert(coverage <= 1.0)
@@ -609,7 +609,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreStreetsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int): List[AccessScoreStreet]  = {
     val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
     // Retrieve data and cluster them by location and label type.
-    val streetEdges: List[StreetEdgeInformation] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+    val streetEdges: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     computeAccessScoresForStreets(streetEdges, getLabelsForScore(version, coordinates))
   }
 
@@ -666,18 +666,18 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param labelLocations List of AttributeForAccessScore
     *
     */
-  def computeAccessScoresForStreets(streets: List[StreetEdgeInformation], labelLocations: List[AttributeForAccessScore]): List[AccessScoreStreet] = {
+  def computeAccessScoresForStreets(streets: List[StreetEdgeInfo], labelLocations: List[AttributeForAccessScore]): List[AccessScoreStreet] = {
     val radius = 3.0E-4  // Approximately 10 meters
     val pm = new PrecisionModel()
     val srid = 4326
     val factory: GeometryFactory = new GeometryFactory(pm, srid)
 
-    val streetsWithOsmWayIds: List[(StreetEdgeInformation, OsmWayStreetEdge)] = OsmWayStreetEdgeTable.selectOsmWayIdsForStreets(streets)
+    val streetsWithOsmWayIds: List[(StreetEdgeInfo, OsmWayStreetEdge)] = OsmWayStreetEdgeTable.selectOsmWayIdsForStreets(streets)
 
     val streetAccessScores = streetsWithOsmWayIds.map { item =>
-      val (edge: StreetEdgeInformation, osmStreetId: OsmWayStreetEdge) = item;
+      val (edge: StreetEdgeInfo, osmStreetId: OsmWayStreetEdge) = item;
       // Expand each edge a little bit and count the number of accessibility attributes.
-      val buffer: Geometry = edge.streetEdge.geom.buffer(radius)
+      val buffer: Geometry = edge.street.geom.buffer(radius)
 
       //  Increment a value in Map: http://stackoverflow.com/questions/15505048/access-initialize-and-update-values-in-a-mutable-map
       val labelCounter = collection.mutable.Map[String, Int](
@@ -709,7 +709,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val attributes = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
       val significance = Array(0.75, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(attributes, significance)
-      AccessScoreStreet(edge.streetEdge, osmStreetId.osmWayId, accessScore, edge.audited, attributes, significance, avgImageDate, avgLabelDate, nImages, nLabels)
+      AccessScoreStreet(edge.street, osmStreetId.osmWayId, accessScore, edge.audited, attributes, significance, avgImageDate, avgLabelDate, nImages, nLabels)
     }
     streetAccessScores
   }

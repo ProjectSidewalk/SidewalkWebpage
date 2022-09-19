@@ -17,7 +17,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
-case class StreetEdgeInformation(val streetEdge: StreetEdge, val audited: Boolean)
+case class StreetEdgeInfo(val street: StreetEdge, val audited: Boolean)
 
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
@@ -54,7 +54,7 @@ object StreetEdgeTable {
     StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp)
   })
 
-  implicit val streetEdgeInformationConverter = GetResult[StreetEdgeInformation](r => {
+  implicit val streetEdgeInformationConverter = GetResult[StreetEdgeInfo](r => {
     val streetEdgeId = r.nextInt
     val geometry = r.nextGeometry[LineString]
     val x1 = r.nextFloat
@@ -65,7 +65,7 @@ object StreetEdgeTable {
     val deleted = r.nextBoolean
     val timestamp = r.nextTimestampOption
     val audited = r.nextBoolean
-    StreetEdgeInformation(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), audited)
+    StreetEdgeInfo(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), audited)
   })
 
   val db = play.api.db.slick.DB
@@ -202,7 +202,7 @@ object StreetEdgeTable {
 
   /**
     * Calculates the distance audited today by all users.
-    * 
+    *
     * @return The distance audited today by all users in miles.
     */
   def auditedStreetDistanceToday(): Float = db.withSession { implicit session =>
@@ -356,10 +356,10 @@ object StreetEdgeTable {
     streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
   }
 
-  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInformation] = db.withSession { implicit session =>
+  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInfo] = db.withSession { implicit session =>
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInformation](
+    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInfo](
       """SELECT street_edge.street_edge_id,
         |       street_edge.geom,
         |       street_edge.x1,
@@ -376,7 +376,7 @@ object StreetEdgeTable {
         |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
 
-    val edges: List[StreetEdgeInformation] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    val edges: List[StreetEdgeInfo] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
     edges
   }
 }
