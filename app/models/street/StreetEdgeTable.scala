@@ -356,54 +356,9 @@ object StreetEdgeTable {
     streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
   }
 
-  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInformation] = db.withSession { implicit session =>
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT st_e.street_edge_id,
-        |       st_e.geom,
-        |       st_e.x1,
-        |       st_e.y1,
-        |       st_e.x2,
-        |       st_e.y2,
-        |       st_e.way_type,
-        |       st_e.deleted,
-        |       st_e.timestamp
-        |FROM street_edge AS st_e
-        |WHERE st_e.deleted = FALSE
-        |    AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
-    )
-
-    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
-  }
-
-  def selectAuditedStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInformation] = db.withSession { implicit session =>
-    // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
-    // http://postgis.net/docs/ST_MakeEnvelope.html
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInformation](
-      """SELECT street_edge.street_edge_id,
-        |       street_edge.geom,
-        |       street_edge.x1,
-        |       street_edge.y1,
-        |       street_edge.x2,
-        |       street_edge.y2,
-        |       street_edge.way_type,
-        |       street_edge.deleted,
-        |       street_edge.timestamp,
-        |       TRUE AS completed
-        |FROM street_edge
-        |INNER JOIN street_edge_priority ON street_edge.street_edge_id = street_edge_priority.street_edge_id
-        |WHERE street_edge.deleted = FALSE
-        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |    AND street_edge_priority.priority < 1""".stripMargin
-    )
-
-    val edges: List[StreetEdgeInformation] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
-  }
-
-  def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInformation] = db.withSession { implicit session =>
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInformation](
       """SELECT street_edge.street_edge_id,
         |       street_edge.geom,
