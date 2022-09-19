@@ -255,7 +255,7 @@ public class ShapefilesCreatorHelper {
                         + "streetId:Integer," // StreetId
                         + "osmWayId:Integer," // osmWayId
                         + "score:Double," // street score
-                        + "audited:Boolean," // boolean representing whether the street is audited
+                        + "auditCount:Integer," // boolean representing whether the street is audited
                         + "sigRamp:Double," // curb ramp significance score
                         + "sigNoRamp:Double," // no Curb ramp significance score
                         + "sigObs:Double," // obstacle significance score
@@ -286,7 +286,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.streetID());
             featureBuilder.add(s.osmID());
             featureBuilder.add(s.score());
-            featureBuilder.add(s.audited());
+            featureBuilder.add(s.auditCount());
             featureBuilder.add(s.significanceScores()[0]);
             featureBuilder.add(s.significanceScores()[1]);
             featureBuilder.add(s.significanceScores()[2]);

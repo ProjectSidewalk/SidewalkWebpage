@@ -17,7 +17,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
-case class StreetEdgeInfo(val street: StreetEdge, val audited: Boolean)
+case class StreetEdgeInfo(val street: StreetEdge, val auditCount: Int)
 
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
@@ -64,8 +64,8 @@ object StreetEdgeTable {
     val wayType = r.nextString
     val deleted = r.nextBoolean
     val timestamp = r.nextTimestampOption
-    val audited = r.nextBoolean
-    StreetEdgeInfo(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), audited)
+    val auditCount = r.nextInt
+    StreetEdgeInfo(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), auditCount)
   })
 
   val db = play.api.db.slick.DB
@@ -369,14 +369,14 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp,
-        |       street_edge_priority.priority < 1 AS completed
+        |       SUM(CASE WHEN user_stat.high_quality = TRUE THEN 1 ELSE 0 END) AS audit_count
         |FROM street_edge
-        |INNER JOIN street_edge_priority ON street_edge.street_edge_id = street_edge_priority.street_edge_id
+        |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
         |WHERE street_edge.deleted = FALSE
-        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |GROUP BY street_edge.street_edge_id""".stripMargin
     )
-
-    val edges: List[StreetEdgeInfo] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
+    selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
   }
 }
