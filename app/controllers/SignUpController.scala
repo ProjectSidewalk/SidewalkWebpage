@@ -57,6 +57,7 @@ class SignUpController @Inject() (
     SignUpForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
+        println(data.serviceHours)
         // Check presence of user by username.
         UserTable.find(data.username) match {
           case Some(user) =>
@@ -93,7 +94,7 @@ class SignUpController @Inject() (
                     authenticator <- env.authenticatorService.create(user.loginInfo)
                   } yield {
                     // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-                    UserRoleTable.setRole(user.userId, "Registered")
+                    UserRoleTable.setRole(user.userId, "Registered", Some(true))
                     UserCurrentRegionTable.assignEasyRegion(user.userId)
                     UserStatTable.addUserStatIfNew(user.userId)
 
@@ -220,7 +221,7 @@ class SignUpController @Inject() (
           ))
         } yield {
           // Set the user role and add to the user_stat table.
-          UserRoleTable.setRole(user.userId, "Anonymous")
+          UserRoleTable.setRole(user.userId, "Anonymous", Some(false))
           UserStatTable.addUserStatIfNew(user.userId)
 
           // Add Timestamp
@@ -288,7 +289,7 @@ class SignUpController @Inject() (
           ))
         } yield {
           // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-          UserRoleTable.setRole(user.userId, "Turker")
+          UserRoleTable.setRole(user.userId, "Turker", Some(false))
           UserCurrentRegionTable.assignEasyRegion(user.userId)
           UserStatTable.addUserStatIfNew(user.userId)
 
