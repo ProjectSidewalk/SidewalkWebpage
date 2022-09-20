@@ -369,7 +369,7 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp,
-        |       SUM(CASE WHEN user_stat.high_quality = TRUE THEN 1 ELSE 0 END) AS audit_count
+        |       SUM(CASE WHEN user_stat.high_quality = TRUE AND audit_task.completed = TRUE THEN 1 ELSE 0 END) AS audit_count
         |FROM street_edge
         |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
