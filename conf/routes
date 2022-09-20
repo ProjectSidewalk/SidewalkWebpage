@@ -131,6 +131,7 @@ GET     /contribution/streets                                @controllers.UserPr
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets(filterLowQuality: Boolean ?= false)
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
+GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
@@ -165,7 +166,7 @@ POST    /amtAssignment                                       @controllers.Missio
 
 # Clustering and Attributes
 GET     /clustering                                          @controllers.AttributeController.index
-GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both", hoursCutoff: Option[Int])
+GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both")
 GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
 GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
 POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)

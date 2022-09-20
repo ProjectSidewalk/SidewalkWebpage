@@ -135,6 +135,18 @@
                                     <td>@LabelTable.countPastWeekLabels("NoSidewalk")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Crosswalk</td>
+                                    <td>@LabelTable.countLabels("Crosswalk")</td>
+                                    <td>@LabelTable.countTodayLabels("Crosswalk")</td>
+                                    <td>@LabelTable.countPastWeekLabels("Crosswalk")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
+                                    <td style="padding-left: 30px">Pedestrian Signal</td>
+                                    <td>@LabelTable.countLabels("Signal")</td>
+                                    <td>@LabelTable.countTodayLabels("Signal")</td>
+                                    <td>@LabelTable.countPastWeekLabels("Signal")</td>
+                                </tr>
+                                <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Other</td>
                                     <td>@LabelTable.countLabels("Other")</td>
                                     <td>@LabelTable.countTodayLabels("Other")</td>
@@ -440,7 +452,7 @@
                                             <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="admin.filterLayers('incorrect')"></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
                                             <td>Unvalidated</td>
                                             <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="admin.filterLayers('unvalidated')"></td>
                                         </tr>
@@ -530,22 +542,27 @@
                                 <p>
                                     <span>Average (curb ramp): </span><span id="curb-ramp-mean"></span><br>
                                     <span>Average (missing curb ramp): </span><span id="missing-ramp-mean"></span><br>
-                                    <span>Average (surface problem): </span><span id="surface-mean"></span><br>
                                     <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
+                                    <span>Average (surface problem): </span><span id="surface-mean"></span><br>
                                     <span>Average (no sidewalk): </span><span id="no-sidewalk-mean"></span><br>
+                                    <span>Average (crosswalk): </span><span id="crosswalk-mean"></span><br>
+                                    <span>Average (pedestrian signal): </span><span id="signal-mean"></span><br>
                                     <span>Average (all label types): </span><span id="labels-mean"></span><br>
                                 </p>
                                 <p>
                                     <span>Standard Deviation (curb ramp): </span><span id="curb-ramp-std"></span><br>
                                     <span>Standard Deviation (missing curb ramp): </span><span id="missing-ramp-std"></span><br>
-                                    <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
                                     <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
+                                    <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
                                     <span>Standard Deviation (no sidewalk): </span><span id="no-sidewalk-std"></span><br>
+                                    <span>Standard Deviation (crosswalk): </span><span id="crosswalk-std"></span><br>
+                                    <span>Standard Deviation (pedestrian signal): </span><span id="signal-std"></span><br>
                                     <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
                                 </p>
                             </div>
 
                             <div id="severity-histograms"></div>
+                            <div id="severity-histograms2"></div>
                         </div>
 
                         <h2>Missions Completed By Users</h2>
@@ -709,6 +726,20 @@
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
+                                    </tr>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Crosswalk</td>
+                                        <td>@LabelValidationTable.countValidations("Crosswalk")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                    </tr>
+                                    <tr style="font-size: 90%;">
+                                        <td style="padding-left: 30px">Pedestrian Signal</td>
+                                        <td>@LabelValidationTable.countValidations("Signal")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
                                     </tr>
                                 </table>
                             </div>
@@ -880,7 +911,7 @@
 
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
     <script>

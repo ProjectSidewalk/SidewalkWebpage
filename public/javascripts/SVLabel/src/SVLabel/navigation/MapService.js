@@ -38,6 +38,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             lockDisablePanning: false,
             lockDisableWalking : false,
             panoLinkListenerSet: false,
+            bottomLinksClickable: false,
             svLinkArrowsLoaded : false,
             labelBeforeJumpListenerSet: false,
             jumpMsgShown: false,
@@ -498,14 +499,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function getNavArrowsLayer() {
         return uiMap.pano.find('svg').parent();
-    }
-
-    /**
-     * Get layer of bottom terms/report a problem links.
-     * @returns {*}
-     */
-    function getBottomLinkLayer() {
-        return $('.gm-style-cc').slice(1, 3);
     }
 
     self.getStatus = function (key) {
@@ -1001,11 +994,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * This method brings the links (<, >) to the view control layer so that a user can click them to walk around.
      */
     function makeArrowsAndLinksClickable() {
-        // Bring the layer with arrows and bottom links forward.
+        // Bring the links on the bottom of GSV and the mini map to the top layer so they are clickable.
+        var bottomLinks = $('.gm-style-cc');
+        if (!status.bottomLinksClickable && bottomLinks.length > 7) {
+            status.bottomLinksClickable = true;
+            bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
+            bottomLinks[4].remove(); // Remove mini map keyboard shortcuts link.
+            bottomLinks[5].remove(); // Remove mini map copyright text (duplicate of GSV).
+            bottomLinks[7].remove(); // Remove mini map terms of use link (duplicate of GSV).
+            uiMap.viewControlLayer.append($(bottomLinks[1]).parent().parent());
+            svl.ui.googleMaps.overlay.append($(bottomLinks[8]).parent().parent());
+        }
+
+        // Bring the layer with arrows forward.
         var $navArrows = getNavArrowsLayer();
-        var $bottomlinks = getBottomLinkLayer();
         uiMap.viewControlLayer.append($navArrows);
-        uiMap.viewControlLayer.append($bottomlinks);
 
         // Add an event listener to the nav arrows to log their clicks.
         if (!status.panoLinkListenerSet) {
