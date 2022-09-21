@@ -515,8 +515,8 @@ $(document).ready(function () {
             var email = $('#sign-up-form #email')[0].value;
             var password = $('#sign-up-form #password')[0].value;
             var passwordConfirm = $('#sign-up-form #passwordConfirm')[0].value;
-            var serviceHoursYes = $('#navbar-service-hours-Yes');
-            var serviceHoursNo = $('#navbar-service-hours-No');
+            var serviceHoursYes = $('#navbar-service-hours-@Messages("yes.caps")');
+            var serviceHoursNo = $('#navbar-service-hours-@Messages("no.caps")');
 
             // If not a valid username / email / password / service hours response, do not submit form.
             if(!username){

@@ -94,7 +94,8 @@ class SignUpController @Inject() (
                     authenticator <- env.authenticatorService.create(user.loginInfo)
                   } yield {
                     // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-                    UserRoleTable.setRole(user.userId, "Registered", Some(true))
+                    val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")
+                    UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
                     UserCurrentRegionTable.assignEasyRegion(user.userId)
                     UserStatTable.addUserStatIfNew(user.userId)
 
