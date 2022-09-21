@@ -1,13 +1,46 @@
+
 /**
- * An object for creating a popover which displays additional locational info on any GSV pane.
  *
  * @param {HTMLElement} container Element where the info button will be displayed
  * @param {StreetViewPanorama} panorama Panorama object
- * @param {svl.map} map Map object
+ * @param {function} coords Function that returns curreent longitude and latitude coordinates
+ * @param {function} panoId Function that returns current panorama ID
+ * @param {function} streetEdgeId Function that returns current Street Edge ID
+ * @param {function} regionId Function that returns current Region ID
+ * @param {function} pov Function that returns current POV
  * @returns {GSVInfoPopOver} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopOver (container, panorama, map) {
+function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov) {
+    /*
+    Back-end API TODO:
+
+    Audit: DONE
+        Panorama: svl.panorama
+        Coords: svl.map.getPosition()
+        PanoId: svl.map.getPanoId()
+        StreetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId()
+        RegionId: svl.taskContainer.getCurrentTask().getRegionId()
+        POV: svl.map.getPov()
+    Gallery:
+        Coords: sg.modal().pano.getPosition()
+        PanoId: sg.modal().pano.panoId
+        StreetEdgeId:
+        RegionId:
+        POV:sg.modal().pano.getPov()
+    Validate:
+        Coords:
+        PanoId:
+        StreetEdgeId:
+        RegionId:
+        POV:
+    LabelMap:
+        Coords:
+        PanoId:
+        StreetEdgeId:
+        RegionId:
+        POV:
+     */
     let self = this;
 
     function _init() {
@@ -43,8 +76,9 @@ function GSVInfoPopOver (container, panorama, map) {
 
         addListElement('Latitude', dataList);
         addListElement('Longitude', dataList);
-        addListElement('PanoID', dataList);
-        // TODO: add street edge ID and region ID
+        addListElement('Pano ID', dataList);
+        addListElement('Street Edge ID', dataList);
+        addListElement('Region ID', dataList)
 
         self.popoverContent.appendChild(dataList);
 
@@ -81,13 +115,11 @@ function GSVInfoPopOver (container, panorama, map) {
 
         // Dismiss popover on clicking outside of popover
         $('#info-button').on('shown.bs.popover', () => {
-            console.log('popover shown!');
             $('.popover-title').addClass('popover-element');
             $('.popover-content').addClass('popover-element');
         });
         $('html').on('mousedown', (e) => {
             let tar = $(e.target);
-            console.log(tar[0]);
             if (tar[0].className.indexOf('popover-element') === -1) {
                 $('#info-button').popover('hide');
             }
@@ -103,22 +135,25 @@ function GSVInfoPopOver (container, panorama, map) {
      * Update the values within the popover
      */
     function updateVals() {
-        const coords = map.getPosition();
-        const panoId = map.getPanoId();
-        const pov = map.getPov();
+        const currCoords = coords();
+        const currPanoId = panoId();
+        const currStreetEdgeId = streetEdgeId();
+        const currRegionId = regionId();
+        const currPov = pov();
 
         function changeVals(key, val) {
             let valSpan = document.getElementById(`${key}-value`)
             valSpan.textContent = val;
         }
 
-        changeVals('Latitude', coords.lat + '°');
-        changeVals('Longitude', coords.lng + '°');
-        changeVals('PanoID', panoId);
-        // TODO: add streetEdgeId, regionId
+        changeVals('Latitude', currCoords.lat + '°');
+        changeVals('Longitude', currCoords.lng + '°');
+        changeVals('Pano ID', currPanoId);
+        changeVals('Street Edge ID', currStreetEdgeId);
+        changeVals('Region ID', currRegionId)
 
         // Create GSV link
-        $('#gsv-link').attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${coords.lat}%2C${coords.lng}&heading=${pov.heading}&pitch=${pov.pitch}`);
+        $('#gsv-link').attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${pov.pitch}`);
         $('#gsv-link').attr('target', '_blank');
 
         // Copy to clipboard
@@ -126,7 +161,7 @@ function GSVInfoPopOver (container, panorama, map) {
             $('#clipboard').tooltip('enable');
             $('#clipboard').tooltip('show');
             navigator.clipboard.writeText(
-                `Latitude: ${coords.lat}°\nLongitude: ${coords.lng}°\nPanoID: ${panoId}`
+                `Latitude: ${currCoords.lat}°\nLongitude: ${currCoords.lng}°\nPano ID: ${currPanoId}\nStreet Edge ID: ${currStreetEdgeId}\nRegion ID: ${currRegionId}`
             );
         });
         $('#clipboard').on('mouseout', () => {
