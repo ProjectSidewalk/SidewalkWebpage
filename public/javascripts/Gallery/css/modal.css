@@ -25,6 +25,19 @@
     color: #2d2a3f;
 }
 
+.label-timestamp {
+    display: flex;
+}
+
+#info-button {
+    width: 15px;
+    margin: 0 3px 3px 7px;
+}
+
+#clipboard:active {
+    opacity: 50%;
+}
+
 .modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
     font-weight: bold;
     color: #2d2a3f;

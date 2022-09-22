@@ -31,6 +31,11 @@
     padding: 5px;
 }
 
+#info-button {
+    margin: 5px;
+    max-height: 100%;
+}
+
 #clipboard:active {
     opacity: 50%;
 }

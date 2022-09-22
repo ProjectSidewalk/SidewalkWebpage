@@ -1,5 +1,5 @@
-
 /**
+ * Displays info about the current GSV pane
  *
  * @param {HTMLElement} container Element where the info button will be displayed
  * @param {StreetViewPanorama} panorama Panorama object
@@ -28,7 +28,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         PanoId: sg.modal().pano.getPanoId()
         StreetEdgeId:
         RegionId:
-        POV:sg.modal().pano.getPov()
+        POV: sg.modal().pano.getPov()
     Validate:
         Panorama:
         Coords:
@@ -48,6 +48,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
     function _init() {
 
+        console.log('Creating popover!');
         // Create popover title bar
         self.titleBox = document.createElement('div');
 
@@ -107,9 +108,6 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
         // Info button styling
         $(container).css('z-index', 2);
-        $('#info-button').css('margin', '5px');
-        $('#info-button').css('max-height', '100%');
-
 
         // Enable popovers/tooltips and set options
         $('#info-button').popover({
@@ -144,7 +142,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
      */
     function updateVals() {
         // Position and style popover
-        let xpos = self.infoButton.getBoundingClientRect().x + (19 / 2) - 175
+        let xpos = self.infoButton.getBoundingClientRect().x + (self.infoButton.getBoundingClientRect().width / 2) - 175
         $('.popover').css('left', `${xpos}px`);
 
         $('.info-key').css('font-weight', 'bold');

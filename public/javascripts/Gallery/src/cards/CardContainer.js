@@ -450,6 +450,14 @@ function CardContainer(uiCardContainer) {
         return lastPage;
     }
 
+    /**
+     * Returns the modal object
+     * @returns {Modal} Gallery modal object
+     */
+    function getModal() {
+        return modal;
+    }
+
     self.fetchLabels = fetchLabels;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
@@ -465,6 +473,7 @@ function CardContainer(uiCardContainer) {
     self.getCardByIndex = getCardByIndex;
     self.getCurrentPage = getCurrentPage;
     self.getCurrentPageCards = getCurrentPageCards;
+    self.getModal = getModal;
 
     _init();
     return this;

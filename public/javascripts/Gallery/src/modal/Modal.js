@@ -128,13 +128,13 @@ function Modal(uiModal) {
      */
     function populateModalDescriptionFields() {
         // Add timestamp data for when label was placed and when pano was created.
-        let labelTimestampData = document.createElement('div');
-        labelTimestampData.className = 'label-timestamp';
-        labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
+        self.labelTimestampData = document.createElement('div');
+        self.labelTimestampData.className = 'label-timestamp';
+        self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
         panoTimestampData.innerHTML = `<div>${i18next.t('image-date')}: ${moment(properties.image_date).format('MMM YYYY')}</div>`;
-        self.timestamps.append(labelTimestampData);
+        self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
         // Add severity and tag display to the modal.
@@ -168,6 +168,7 @@ function Modal(uiModal) {
     function openModal() {
         resetModal();
         populateModalDescriptionFields();
+        sg.infoPopover = new GSVInfoPopOver(self.labelTimestampData, sg.modal().pano.panorama, sg.modal().pano.getPosition, sg.modal().pano.getPanoId, null, null, sg.modal().pano.getPov);
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t(`gallery.${util.camelToKebab(properties.label_type)}`));

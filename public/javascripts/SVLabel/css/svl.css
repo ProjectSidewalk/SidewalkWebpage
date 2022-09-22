@@ -153,3 +153,8 @@ input[type="radio"] {
 #clipboard:active {
     opacity: 50%;
 }
+
+#info-button {
+    margin: 5px;
+    max-height: 100%;
+}
