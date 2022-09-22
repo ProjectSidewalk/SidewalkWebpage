@@ -3,7 +3,7 @@
  *
  * @param {HTMLElement} container Element where the info button will be displayed
  * @param {StreetViewPanorama} panorama Panorama object
- * @param {function} coords Function that returns curreent longitude and latitude coordinates
+ * @param {function} coords Function that returns current longitude and latitude coordinates
  * @param {function} panoId Function that returns current panorama ID
  * @param {function} streetEdgeId Function that returns current Street Edge ID
  * @param {function} regionId Function that returns current Region ID
@@ -23,18 +23,21 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         RegionId: svl.taskContainer.getCurrentTask().getRegionId()
         POV: svl.map.getPov()
     Gallery:
+        Panorama: sg.modal().pano.panorama
         Coords: sg.modal().pano.getPosition()
-        PanoId: sg.modal().pano.panoId
+        PanoId: sg.modal().pano.getPanoId()
         StreetEdgeId:
         RegionId:
         POV:sg.modal().pano.getPov()
     Validate:
+        Panorama:
         Coords:
-        PanoId:
+        PanoId: svv.panorama.getPanoId()
         StreetEdgeId:
         RegionId:
         POV:
     LabelMap:
+        Panorama:
         Coords:
         PanoId:
         StreetEdgeId:
@@ -102,11 +105,16 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
         container.append(self.infoButton);
 
+        // Info button styling
+        $(container).css('z-index', 2);
+        $('#info-button').css('margin', '5px');
+        $('#info-button').css('max-height', '100%');
+
 
         // Enable popovers/tooltips and set options
         $('#info-button').popover({
             html: true,
-            container: $('#view-control-layer'),
+            container: $('body'),
         });
         $('#clipboard').tooltip();
 
@@ -135,25 +143,59 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
      * Update the values within the popover
      */
     function updateVals() {
-        const currCoords = coords();
-        const currPanoId = panoId();
-        const currStreetEdgeId = streetEdgeId();
-        const currRegionId = regionId();
-        const currPov = pov();
+        // Position and style popover
+        let xpos = self.infoButton.getBoundingClientRect().x + (19 / 2) - 175
+        $('.popover').css('left', `${xpos}px`);
+
+        $('.info-key').css('font-weight', 'bold');
+
+        $('.info-list-item').css('display', 'flex');
+        $('.info-list-item').css('justify-content', 'space-between');
+
+        $('.popover').css('width', '350px');
+        $('.popover').css('max-width', '350px');
+
+        $('.popover-title').css('display', 'flex');
+        $('.popover-title').css('justify-content', 'space-between');
+        $('.popover-title').css('height', '36px');
+
+        $('.popover-content').css('display', 'flex');
+        $('.popover-content').css('flex-direction', 'column');
+        $('.popover-content').css('justify-content', 'center');
+
+        $('#gsv-link').css('text-align', 'center');
+        $('#gsv-link').css('width', 'fit-content');
+        $('#gsv-link').css('margin-left', 'auto');
+        $('#gsv-link').css('margin-right', 'auto');
+
+        $('#clipboard').css('max-height', '100%');
+        $('#clipboard').css('cursor', 'pointer');
+
+        // Get info values
+        const currCoords = coords ? coords() : {lat: null, lng: null};
+        const currPanoId = panoId ? panoId() : null;
+        const currStreetEdgeId = streetEdgeId ? streetEdgeId() : null;
+        const currRegionId = regionId ? regionId() : null;
+        const currPov = pov ? pov() : {heading: 0, pitch: 0};
 
         function changeVals(key, val) {
-            let valSpan = document.getElementById(`${key}-value`)
+            if (!val) {
+                val = 'No Info';
+            } else if (key === "Latitude" || key === 'Longitude') {
+                val += '°';
+            }
+            let valSpan = document.getElementById(`${key}-value`);
             valSpan.textContent = val;
         }
 
-        changeVals('Latitude', currCoords.lat + '°');
-        changeVals('Longitude', currCoords.lng + '°');
+        changeVals('Latitude', currCoords.lat);
+        changeVals('Longitude', currCoords.lng);
         changeVals('Pano ID', currPanoId);
         changeVals('Street Edge ID', currStreetEdgeId);
         changeVals('Region ID', currRegionId)
 
         // Create GSV link
-        $('#gsv-link').attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${pov.pitch}`);
+        $('#gsv-link').attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
         $('#gsv-link').attr('target', '_blank');
 
         // Copy to clipboard
@@ -167,10 +209,6 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         $('#clipboard').on('mouseout', () => {
             $('#clipboard').tooltip('disable');
         });
-
-        // Fixes Bootstrap popover positioning issues, has to be done AFTER popover loads,
-        // thus cannot be put into css file
-        $('.popover').css('left', '-17px');
     }
 
     /**

@@ -205,7 +205,7 @@ function Panorama (label) {
                         } 
                     } else {
                         console.error("Error retrieving Panoramas: " + status);
-                        svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                        svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }
                 });
         }

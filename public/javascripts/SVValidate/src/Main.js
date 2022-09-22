@@ -129,6 +129,8 @@ function Main (param) {
         svv.ui.status.examples.popupImage = $("#example-image-popup");
         svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
         svv.ui.status.examples.popupTitle = $("#example-image-popup-title");
+
+        svv.ui.dateHolder = $("#svv-panorama-date-holder");
     }
 
     function _init() {
@@ -168,6 +170,7 @@ function Main (param) {
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+        svv.infoPopover = new GSVInfoPopOver(svv.ui.dateHolder, svv.panorama.getPanorama(), null, svv.panorama.getPanoId, null, null, null);
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
