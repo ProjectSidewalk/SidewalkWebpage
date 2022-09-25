@@ -13,42 +13,46 @@
  */
 function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov) {
     /*
+    DELETE ONCE FINISHED
     Back-end API TODO:
+    Here's the list of all the references to parameters (coords, panoId, etc.) I've found/created on each page.
+    The blank ones are the ones that need changes to the backend API to grab that info from the database.
 
-    Audit: DONE
+    LabelMap was configured differently so I couldn't figure out how to get the bootstrap popover to function on
+    that page?
+
+    Audit: (located in public/javascripts/SVLabel/src/Main.js) DONE
         Panorama: svl.panorama
-        Coords: svl.map.getPosition()
-        PanoId: svl.map.getPanoId()
-        StreetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId()
-        RegionId: svl.taskContainer.getCurrentTask().getRegionId()
-        POV: svl.map.getPov()
-    Gallery:
+        Coords: svl.map.getPosition
+        PanoId: svl.map.getPanoId
+        StreetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId
+        RegionId: svl.taskContainer.getCurrentTask().getRegionId
+        POV: svl.map.getPov
+    Gallery: (located in public/javascripts/Gallery/src/Main.js)
         Panorama: sg.modal().pano.panorama
-        Coords: sg.modal().pano.getPosition()
-        PanoId: sg.modal().pano.getPanoId()
+        Coords: sg.modal().pano.getPosition
+        PanoId: sg.modal().pano.getPanoId
         StreetEdgeId:
         RegionId:
-        POV: sg.modal().pano.getPov()
-    Validate:
-        Panorama:
-        Coords:
-        PanoId: svv.panorama.getPanoId()
+        POV: sg.modal().pano.getPov
+    Validate: (located in public/javascripts/SVValidate/src/Main.js)
+        Panorama: svv.panorama.getPanorama()
+        Coords: svv.panorama.getPosition
+        PanoId: svv.panorama.getPanoId
         StreetEdgeId:
         RegionId:
-        POV:
-    LabelMap:
-        Panorama:
-        Coords:
-        PanoId:
+        POV: svv.panorama.getPov
+    LabelMap: (located in public/javascripts/Admin/src/Admin.GSVLabelView.js)
+        Panorama: self.panorama.panorama
+        Coords: self.panorama.getPosition
+        PanoId: self.panorama.getPanoId
         StreetEdgeId:
         RegionId:
-        POV:
+        POV: self.panorama.getPov
      */
     let self = this;
 
     function _init() {
-
-        console.log('Creating popover!');
         // Create popover title bar
         self.titleBox = document.createElement('div');
 
@@ -106,9 +110,6 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
         container.append(self.infoButton);
 
-        // Info button styling
-        $(container).css('z-index', 2);
-
         // Enable popovers/tooltips and set options
         $('#info-button').popover({
             html: true,
@@ -141,33 +142,9 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
      * Update the values within the popover
      */
     function updateVals() {
-        // Position and style popover
+        // Position popover
         let xpos = self.infoButton.getBoundingClientRect().x + (self.infoButton.getBoundingClientRect().width / 2) - 175
         $('.popover').css('left', `${xpos}px`);
-
-        $('.info-key').css('font-weight', 'bold');
-
-        $('.info-list-item').css('display', 'flex');
-        $('.info-list-item').css('justify-content', 'space-between');
-
-        $('.popover').css('width', '350px');
-        $('.popover').css('max-width', '350px');
-
-        $('.popover-title').css('display', 'flex');
-        $('.popover-title').css('justify-content', 'space-between');
-        $('.popover-title').css('height', '36px');
-
-        $('.popover-content').css('display', 'flex');
-        $('.popover-content').css('flex-direction', 'column');
-        $('.popover-content').css('justify-content', 'center');
-
-        $('#gsv-link').css('text-align', 'center');
-        $('#gsv-link').css('width', 'fit-content');
-        $('#gsv-link').css('margin-left', 'auto');
-        $('#gsv-link').css('margin-right', 'auto');
-
-        $('#clipboard').css('max-height', '100%');
-        $('#clipboard').css('cursor', 'pointer');
 
         // Get info values
         const currCoords = coords ? coords() : {lat: null, lng: null};

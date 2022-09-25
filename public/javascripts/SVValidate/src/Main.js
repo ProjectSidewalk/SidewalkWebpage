@@ -170,7 +170,7 @@ function Main (param) {
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-        svv.infoPopover = new GSVInfoPopOver(svv.ui.dateHolder, svv.panorama.getPanorama(), null, svv.panorama.getPanoId, null, null, null);
+        svv.infoPopover = new GSVInfoPopOver(svv.ui.dateHolder, svv.panorama.getPanorama(), svv.panorama.getPosition, svv.panorama.getPanoId, null, null, svv.panorama.getPov);
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);

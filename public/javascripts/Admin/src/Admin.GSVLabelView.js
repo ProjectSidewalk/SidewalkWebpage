@@ -24,89 +24,87 @@ function AdminGSVLabelView(admin) {
                         '</div>' +
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px">' +
-                        '</div>' +
-                        '<div id="validation-input-holder">' +
-                            '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
-                            '<div id="validation-button-holder" style="padding-top: 10px;">' +
-                                '<button id="validation-agree-button" class="validation-button"' +
-                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                    'Agree' +
-                                '</button>' +
-                                '<button id="validation-disagree-button" class="validation-button"' +
-                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                    'Disagree' +
-                                '</button>' +
-                                '<button id="validation-not-sure-button" class="validation-button"' +
-                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                    'Not sure' +
-                                '</button>' +
+                                '<div id="info-popover-holder"></div>' +
                             '</div>' +
-                            '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
-                                '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
-                                    i18next.t('common:label-map.submit') +
-                                '</button>' +
+                            '<div id="validation-input-holder">' +
+                                '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
+                                '<div id="validation-button-holder" style="padding-top: 10px;">' +
+                                    '<button id="validation-agree-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        'Agree' +
+                                    '</button>' +
+                                    '<button id="validation-disagree-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        'Disagree' +
+                                    '</button>' +
+                                    '<button id="validation-not-sure-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        'Not sure' +
+                                    '</button>' +
+                                '</div>' +
+                                '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
+                                    '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                                    '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
+                                        i18next.t('common:label-map.submit') +
+                                    '</button>' +
+                                '</div>' +
                             '</div>' +
-                        '</div>' +
-                        '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
-                            '<table class="table table-striped" style="font-size:small;>' +
-                                '<tr>' +
-                                    '<th>Label Type</th>' +
-                                    '<td id="label-type-value"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:severity') + '</th>' +
-                                    '<td id="severity"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:temporary') + '</th>' +
-                                    '<td id="temporary"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:tags') + '</th>' +
-                                    '<td colspan="3" id="tags"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:description') + '</th>' +
-                                    '<td colspan="3" id="label-description"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>Validations</th>' +
-                                    '<td colspan="3" id="label-validations"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:labeled') + '</th>' +
-                                    '<td id="timestamp" colspan="3"></td>' +
-                                '</tr>' +
-                                    '<th>' + i18next.t('common:image-date') + '</th>' +
-                                    '<td id="image-date" colspan="3"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>Pano ID</th>' +
-                                    '<td id="pano-id" colspan="3"></td>' +
-                                '</tr>';
+                            '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
+                                '<table class="table table-striped" style="font-size:small;>' +
+                                    '<tr>' +
+                                        '<th>Label Type</th>' +
+                                        '<td id="label-type-value"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>' + i18next.t('common:severity') + '</th>' +
+                                        '<td id="severity"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>' + i18next.t('common:temporary') + '</th>' +
+                                        '<td id="temporary"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>' + i18next.t('common:tags') + '</th>' +
+                                        '<td colspan="3" id="tags"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>' + i18next.t('common:description') + '</th>' +
+                                        '<td colspan="3" id="label-description"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Validations</th>' +
+                                        '<td colspan="3" id="label-validations"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>' + i18next.t('common:labeled') + '</th>' +
+                                        '<td id="timestamp" colspan="3"></td>' +
+                                    '</tr>' +
+                                        '<th>' + i18next.t('common:image-date') + '</th>' +
+                                        '<td id="image-date" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Pano ID</th>' +
+                                        '<td id="pano-id" colspan="3"></td>' +
+                                    '</tr>';
         if (self.admin) {
             modalText +=
-                                '<tr>' +
-                                    '<th>Label ID</th>' +
-                                    '<td id="label-id" colspan="3"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>Task ID</th>' +
-                                    '<td id="task"></td>' +
-                                '</tr>' +
-                            '</table>' +
+                                    '<tr>' +
+                                        '<th>Label ID</th>' +
+                                        '<td id="label-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Task ID</th>' +
+                                        '<td id="task"></td>' +
+                                    '</tr>'
+        }
+        modalText +=
+                                '</table>' +
+                            '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                '</div>'
-        } else {
-            modalText += '</table>' +
-                '</div>' +
-                '</div>' +
-                '</div>' +
-                '</div>'
-        }
+            '</div>'
+
         self.modal = $(modalText);
 
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
@@ -154,6 +152,9 @@ function AdminGSVLabelView(admin) {
         self.modalTask = self.modal.find("#task");
         self.modalLabelId = self.modal.find("#label-id");
         self.modalPanoId = self.modal.find('#pano-id');
+        self.modalInfoHolder = self.modal.find('#info-popover-holder');
+
+        self.infoPopover = new GSVInfoPopOver(self.modalInfoHolder, self.panorama.panorama, self.panorama.getPosition, self.panorama.getPanoId, null, null, self.panorama.getPov);
     }
 
     /**

@@ -20,7 +20,7 @@
     position: absolute;
     bottom: 0px;
     left: 69px;
-    z-index: 1;
+    z-index: 2;
     font-family: sans-serif;
     font-size: 15px;
     text-shadow: 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5);
@@ -34,10 +34,6 @@
 #info-button {
     margin: 5px;
     max-height: 100%;
-}
-
-#clipboard:active {
-    opacity: 50%;
 }
 
 /* Black outline around GSV panorama. */

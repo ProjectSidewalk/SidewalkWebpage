@@ -150,9 +150,6 @@ input[type="radio"] {
     padding: 5px;
 }
 
-#clipboard:active {
-    opacity: 50%;
-}
 
 #info-button {
     margin: 5px;
