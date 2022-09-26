@@ -190,7 +190,6 @@ audit.help.surface.problem.1 = Banqueta parcialmente dañada. Debido a que hay s
 audit.help.surface.problem.3 = Las personas usuarias de sillas de ruedas tendrían dificultades para navegar en las aceras y cruces de adoquines.
 audit.help.surface.problem.5 = Las personas usuarias de sillas de ruedas no pueden pasar por las superficies de las banquetas severamente deterioradas debido a la vegetación sobrecrecida.
 
-validate.top.ui.hide.label = Ocultar (<u>H</u>)
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar

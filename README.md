@@ -19,7 +19,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 
 <details><summary>Mac</summary>
 
-1. [Install  Docker Desktop](https://www.docker.com/get-started).
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Make sure to select "Download for Mac—Apple Chip" if you have an Apple M1, M2, etc. or "Download for Mac—Intel Chip" if you have an Intel chip (older Mac models). 
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
 </details>
 
@@ -47,7 +47,9 @@ One issue you may encounter when setting up your dev environment within the Linu
 </details>
 
 ### Running the application locally
-Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine, but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebpage directory. 
+Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine, but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebpage directory.
+
+Make sure Docker is running on your machine. You should see a Docker whale in your Mac or Windows tray. You can also configure Docker to run at startup (see Preferences).
 
 On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7) (built in to Win10). On Mac, use the basic terminal or, even better, [iTerm2](https://www.iterm2.com/). On Linux (or if you're using WSL2 on Windows), the default Linux Shell (such as [Bash](https://www.gnu.org/software/bash/)) is a great choice.
 
