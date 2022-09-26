@@ -72,6 +72,8 @@ case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
   }
 }
 
+case class StreetEdgeAudits(streetEdgeId: Int, geom: LineString, wayType: String, audited: Boolean)
+
 class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
   def amtAssignmentId = column[Option[Int]]("amt_assignment_id", O.Nullable)
@@ -296,9 +298,9 @@ object AuditTaskTable {
   }
 
   /**
-    * Return audited street edges.
+    * Return all street edges and whether they have been audited or not.
     */
-  def selectStreetsAudited(filterLowQuality: Boolean): List[StreetEdge] = db.withSession { implicit session =>
+  def selectStreetsAudited(filterLowQuality: Boolean): List[StreetEdgeAudits] = db.withSession { implicit session =>
     // Optionally filter out data marked as low quality.
     val _filteredTasks = if (filterLowQuality) {
       for {
@@ -310,25 +312,15 @@ object AuditTaskTable {
       completedTasks
     }
 
-    val _streetEdges = for {
-      (_tasks, _edges) <- _filteredTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _edges
-
-    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edges.
-  }
-
-  /**
-   * Return non-audited/incomplete audit street edges.
-   */
-  def selectStreetsNotAudited(): List[StreetEdge] = db.withSession { implicit session =>
-    // All streets without a completed audit.
-    val notAuditedStreets = streetEdges
-      .leftJoin(completedTasks).on(_.streetEdgeId === _.streetEdgeId)
-      .filter(_._2.auditTaskId.?.isEmpty)
-      .map(_._1)
-
     // Filter out the duplicated street edges.
-    notAuditedStreets.list.groupBy(_.streetEdgeId).map(_._2.head).toList
+    val _distinctCompleted = _filteredTasks.groupBy(_.streetEdgeId).map(_._1)
+
+    // Left join list of streets with list of audited streets to record whether each street has been audited.
+    val streetsWithAuditedStatus = streetEdgesWithoutDeleted
+      .leftJoin(_distinctCompleted).on(_.streetEdgeId === _)
+      .map(s => (s._1.streetEdgeId, s._1.geom, s._1.wayType, !s._2.?.isEmpty))
+
+    streetsWithAuditedStatus.list.map(StreetEdgeAudits.tupled)
   }
 
   /**

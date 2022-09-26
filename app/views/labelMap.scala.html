@@ -242,8 +242,7 @@
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
             var loadMapParams = $.getJSON('/cityMapParams');
-            var loadAuditedStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true&notAudited=false');
-            var loadNotAuditedStreets = $.getJSON('/contribution/streets/notall?filterLowQuality=true&notAudited=true');
+            var loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
@@ -251,9 +250,11 @@
                 self.map = map;
             });
             // When polygons have rendered and audited streets have loaded, audited and non-audited streets can be rendered.
-            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets, loadNotAuditedStreets).done(function(data1, data2, data3) {
-                self.auditedStreetLayer = InitializeAuditedStreets(map, streetParams('black'), data2[0]);
-                self.notAuditedStreetLayer = InitializeAuditedStreets(map, streetParams('gray'), data3[0]);
+            var renderAuditedStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
+                var auditedStreets = {features: data2[0].features.filter(edges => edges.properties.audited)};
+                var notAuditedStreets = {features: data2[0].features.filter(edges => !edges.properties.audited)};
+                self.auditedStreetLayer = InitializeAuditedStreets(map, streetParams('black'), auditedStreets);
+                self.notAuditedStreetLayer = InitializeAuditedStreets(map, streetParams('gray'), notAuditedStreets);
             });
 
             // When audited streets have rendered and submitted labels have loaded, submitted labels can be rendered.

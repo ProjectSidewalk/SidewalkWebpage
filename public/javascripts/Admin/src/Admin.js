@@ -229,7 +229,7 @@ function Admin(_, $, difficultRegionIds) {
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
             var loadMapParams = $.getJSON('/cityMapParams');
-            var loadAuditedStreets = $.getJSON('/contribution/streets/all');
+            var loadStreets = $.getJSON('/contribution/streets/all');
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
@@ -237,8 +237,9 @@ function Admin(_, $, difficultRegionIds) {
             });
             // When the polygons have been rendered and the audited streets have loaded,
             // the audited streets can be rendered.
-            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-                auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
+            var renderAuditedStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
+                var auditedStreets = {features: data2[0].features.filter(edges => edges.properties.audited)};
+                auditedStreetLayer = InitializeAuditedStreets(map, streetParams, auditedStreets);
             });
             // When the audited streets have been rendered and the submitted labels have loaded,
             // the submitted labels can be rendered.
