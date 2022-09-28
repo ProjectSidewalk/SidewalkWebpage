@@ -1,0 +1,7 @@
+@import models.user.User
+@(user: Option[User] = None)(implicit lang: Lang)
+
+@main("Sidewalk - Service Hours") {
+    @navbar(user, Some("/serviceHoursInstructions"))
+    Please follow the link above, create an account, click 'Start Exploring', and work for one hour. Then email Mikey Saugstad (michaelssaugstad@@gmail.com) with your username and email address. Mikey will review your work, give you advice on how to improve, and then you can continue to work through their website. You can list Mikey as your supervisor when verifying your community service hours.
+}

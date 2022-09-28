@@ -57,7 +57,9 @@ class SignUpController @Inject() (
     SignUpForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
-        println(data.serviceHours)
+        // If they are getting community service hours, make sure they redirect to the instructions page.
+        val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")
+        val nextUrl: Option[String] = if (serviceHoursUser && url.isDefined) Some("/serviceHoursInstructions") else url
         // Check presence of user by username.
         UserTable.find(data.username) match {
           case Some(user) =>
@@ -94,12 +96,11 @@ class SignUpController @Inject() (
                     authenticator <- env.authenticatorService.create(user.loginInfo)
                   } yield {
                     // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-                    val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")
                     UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
                     UserCurrentRegionTable.assignEasyRegion(user.userId)
                     UserStatTable.addUserStatIfNew(user.userId)
 
-                    // Add Timestamp.
+                    // Log the sign up/in.
                     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
@@ -116,7 +117,7 @@ class SignUpController @Inject() (
                       // sending the new authenticator info in a temp element in the session cookie. The "/finishSignUp"
                       // endpoint will then move authenticator we put in "temp-authenticator" over to "authenticator"
                       // where it belongs, finally completing the sign up.
-                      val redirectURL: String = url match {
+                      val redirectURL: String = nextUrl match {
                         case Some(u) => "/finishSignUp?url=" + u
                         case None => "/finishSignUp"
                       }
@@ -132,7 +133,7 @@ class SignUpController @Inject() (
                       // If no account was signed in before, we can skip the "/finishSignUp" endpoint step. Instead, we
                       // embed the authenticator into the session cookie in the normal way and either forward to the
                       // new URL or simply send the newly authenticated user object.
-                      val result = url match {
+                      val result = nextUrl match {
                         case Some(u) => Future.successful(Redirect(u))
                         case None => Future.successful(Ok(Json.toJson(user)))
                       }
@@ -294,7 +295,7 @@ class SignUpController @Inject() (
           UserCurrentRegionTable.assignEasyRegion(user.userId)
           UserStatTable.addUserStatIfNew(user.userId)
 
-          // Add Timestamp.
+          // Log the sign up/in.
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))

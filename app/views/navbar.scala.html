@@ -413,6 +413,12 @@ $(document).ready(function () {
                 return;
             }
 
+            // If the user checked the box for getting community service hours, redirect them to that page.
+            var serviceHoursUser = $('#navbar-service-hours-@Messages("yes.caps")').is(':checked');
+            if (serviceHoursUser) {
+                location.replace('/serviceHoursInstructions');
+            }
+
             //otherwise, reflect login changes on user's end
             var htmlString = $("#navbar-user-dropdown-list-signed-in").html();
             htmlString = htmlString.replace(/__USERNAME__/g, data.username);

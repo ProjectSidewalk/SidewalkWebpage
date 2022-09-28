@@ -392,6 +392,21 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns a page with instructions for users who want to receive community service hours.
+   */
+  def serviceHoursInstructions = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_ServiceHourInstructions", timestamp))
+        Future.successful(Ok(views.html.serviceHoursInstructions(Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/serviceHoursInstructions"))
+    }
+  }
+
+  /**
     * Returns the demo page that contains a cool visualization that is a work-in-progress.
     */
   def demo = UserAwareAction.async { implicit request =>
