@@ -5,6 +5,7 @@ import java.time.Instant
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
@@ -413,11 +414,15 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def timeCheck = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_TimeCheck", timestamp))
-        val timeSpent: Float = AuditTaskInteractionTable.getHoursAuditingAndValidating(user.userId.toString)
-        Future.successful(Ok(views.html.timeCheck(Some(user), timeSpent)))
+        if (user.role.getOrElse("") == "Anonymous") {
+          Future.failed(new IdentityNotFoundException("Please log in before trying to access this page."))
+        } else {
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+          val ipAddress: String = request.remoteAddress
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_TimeCheck", timestamp))
+          val timeSpent: Float = AuditTaskInteractionTable.getHoursAuditingAndValidating(user.userId.toString)
+          Future.successful(Ok(views.html.timeCheck(Some(user), timeSpent)))
+        }
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/timeCheck"))
     }
