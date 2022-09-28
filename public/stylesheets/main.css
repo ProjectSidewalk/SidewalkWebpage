@@ -578,7 +578,6 @@ p#conditional-text {
 }
 
 #wrap {
-    min-height: calc(100vh - 552px);
     height: auto;
 }
 
