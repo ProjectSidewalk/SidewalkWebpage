@@ -239,6 +239,7 @@ authenticate.error.username.exists = Gebruikersnaam bestaat al
 authenticate.error.password.length = Wachtwoord moet minimaal 6 tekens lang zijn
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
 authenticate.error.invalid.credentials = Ongeldige inloggegevens!
+authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
 reset.pw.forgot.title = Wachtwoord vergeten?
 reset.pw.forgot.submit.email = Geen zorgen, typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.

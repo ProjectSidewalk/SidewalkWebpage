@@ -242,6 +242,7 @@ authenticate.error.password.length = Password must be at least 6 characters
 authenticate.error.password.mismatch = Passwords do not match
 authenticate.error.missing.service.hours = Please respond to every question
 authenticate.error.invalid.credentials = Invalid credentials!
+authenticate.error.generic = Something went wrong processing your request. Please make sure all your information is correct and then try again
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = No worries, type in your email and we’ll send you a link to reset your password.

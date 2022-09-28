@@ -239,6 +239,7 @@ authenticate.error.username.exists = El nombre de usuario ya existe
 authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
 authenticate.error.invalid.credentials = Credenciales inválidas
+authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.

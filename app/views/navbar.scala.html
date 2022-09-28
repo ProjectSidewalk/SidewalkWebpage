@@ -491,12 +491,12 @@ $(document).ready(function () {
 
             //if not a valid email address, do not submit form
             if(!email){
-                invalidSignInUpAlert(true, 'Please enter a valid email address.');
+                invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.email")');
                 return false;
             }
 
             if(!password){
-                invalidSignInUpAlert(true, 'Please enter your password.');
+                invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.password")');
                 return false;
             }
 
@@ -510,7 +510,7 @@ $(document).ready(function () {
                     document.location.reload();
                 },
                 error: function() {
-                    invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+                    invalidSignInUpAlert(true, '@Messages("authenticate.error.generic")');
                 }
             });
         });
@@ -563,7 +563,7 @@ $(document).ready(function () {
                     }
                 }
                 else{ // Some other Bad Request
-                    errorMessage = "Something went wrong processing your request. Please make sure all your information is correct and then try again."
+                    errorMessage = '@Messages("authenticate.error.generic")'
                 }
                 $('#incorrect-signup-alert').hide();
                 $('#invalid-signup-alert').show();
