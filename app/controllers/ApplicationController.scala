@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
+import models.audit.AuditTaskInteractionTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.street.StreetEdgePriorityTable
 import models.utils.Configs
@@ -403,6 +404,22 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(views.html.serviceHoursInstructions(Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/serviceHoursInstructions"))
+    }
+  }
+
+  /**
+   * Returns a page that simply shows how long the sign in user has spent using Project Sidewalk.
+   */
+  def timeCheck = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_TimeCheck", timestamp))
+        val timeSpent: Float = AuditTaskInteractionTable.getHoursAuditingAndValidating(user.userId.toString)
+        Future.successful(Ok(views.html.timeCheck(Some(user), timeSpent)))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/timeCheck"))
     }
   }
 

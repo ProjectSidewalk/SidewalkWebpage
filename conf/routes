@@ -26,6 +26,7 @@ GET     /mobile                                              @controllers.Valida
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                            @controllers.ApplicationController.serviceHoursInstructions
+GET     /timeCheck                                           @controllers.ApplicationController.timeCheck
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")

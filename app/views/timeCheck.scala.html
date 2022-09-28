@@ -1,0 +1,24 @@
+@import models.user.User
+@(user: Option[User] = None, timeSpent: Float)(implicit lang: Lang)
+
+@main("Sidewalk - Time Check") {
+    @navbar(user, Some("/timeCheck"))
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <h3>Time check!</h3>
+                <p>
+                    This page simply shows you how long our system has logged you working on Project Sidewalk. Crunching
+                    the numbers can take a while, so please be patient if the page take a long time to load!
+                </p>
+                <p>
+                    If you see a large discrepancy between the time below and how long you estimate that you've worked
+                    on the website, you can email volunteer.sidewalk@@gmail.com to try and sort out the issue. The most
+                    common reason is that you forgot to log in while working. Try to include as much info you can about
+                    when you worked on Project Sidewalk and which pages you were using on the website at those times.
+                </p>
+                <p>You've worked for <b>@timeSpent hours</b>!</p>
+            </div>
+        </div>
+    </div>
+}
