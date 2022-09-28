@@ -203,6 +203,15 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       }
     )
   }
+  /**
+    * Returns the comments for the panoId
+    *
+    * @param panoId             The panorama id for one image
+    */
+  def getLabelMapComment(panoId: String) =  Action.async { implicit request =>
+    val task: List[String] = ValidationTaskCommentTable.getCommentsFromPanoId(panoId)
+    Future.successful(Ok(Json.obj("commend" -> task)))
+  }
 
   /**
     * Returns the label type id for the next validation mission.

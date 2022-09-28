@@ -45,6 +45,8 @@
                 <div id="upper-menu-title-bar"></div>
                 <div id="label-visibility-control-holder">
                     <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
+                        <br/>@Html(Messages("validate.top.ui.hide.label"))
                     </button>
                 </div>
 
@@ -83,6 +85,33 @@
                         </button>
                     </div>
                     <textarea id="validation-label-comment" placeholder="@Messages("validate.bottom.ui.add.comment")" class="validation-comment-box"></textarea>
+                    <button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content=i18next.t('common:label-map.comment-submitted') data-trigger="manual" onclick="submitComment(document.getElementById('validation-label-comment').value);">
+                        Submit
+                    </button>
+                    <script>
+                        submitComment = (comment) => {
+                            let data = {
+                                label_id: svv.panorama.getCurrentLabel().getAuditProperty('labelId'),
+                                label_type: svv.panorama.getCurrentLabel().getAuditProperty('labelType'),
+                                comment: comment,
+                                gsv_panorama_id: svv.panorama.getPanoId(),
+                                heading: svv.panorama.getCurrentLabel().getAuditProperty('heading'),
+                                pitch: svv.panorama.getCurrentLabel().getAuditProperty('pitch'),
+                                zoom: svv.panorama.getCurrentLabel().getAuditProperty('zoom'),
+                                lat: svv.panorama.getPosition().lat,
+                                lng: svv.panorama.getPosition().lng
+                            };
+                            // Submit the comment via POST request.
+                            $.ajax({
+                                async: true,
+                                contentType: 'application/json; charset=utf-8',
+                                url: "/labelmap/comment",
+                                type: 'POST',
+                                data: JSON.stringify(data),
+                                dataType: 'json',
+                            });
+                        }
+                    </script>
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">

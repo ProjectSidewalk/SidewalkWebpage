@@ -109,6 +109,7 @@ POST    /galleryTask                                         @controllers.Galler
 POST    /galleryTaskBeacon                                   @controllers.GalleryTaskController.postBeacon
 POST    /labelmap/validate                                   @controllers.ValidationTaskController.postLabelMapValidation
 POST    /labelmap/comment                                    @controllers.ValidationTaskController.postLabelMapComment
+GET     /labelmap/getcomment                                 @controllers.ValidationTaskController.getLabelMapComment(gsv_panorama_id: String)
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()

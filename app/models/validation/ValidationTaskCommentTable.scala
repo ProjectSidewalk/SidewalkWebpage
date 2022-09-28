@@ -3,6 +3,7 @@ package models.validation
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
                                  userId: String, ipAddress: String, gsvPanoramaId: String,
@@ -40,5 +41,15 @@ object ValidationTaskCommentTable {
     val validationTaskCommentId: Int =
       (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
     validationTaskCommentId
+  }
+
+  def getCommentsFromPanoId(gsv_panorama_id: String): List[String] = db.withSession { implicit session =>
+      val getCommentsQuery = Q.query[String, (String)](
+        """SELECT comment
+          |FROM validation_task_comment
+          |WHERE validation_task_comment.gsv_panorama_id = ?
+          """.stripMargin
+      )
+      getCommentsQuery(gsv_panorama_id).list
   }
 }

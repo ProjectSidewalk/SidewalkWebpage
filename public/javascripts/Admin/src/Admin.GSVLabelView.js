@@ -43,15 +43,36 @@ function AdminGSVLabelView(admin) {
                             '</div>' +
                             '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                 '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual" onclick="myFunction()">' +
+                                '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
                                     i18next.t('common:label-map.submit') +
                                 '</button>' +
                             '</div>' +
                             '<script>'+
-                                'function myFunction() {document.getElementById("label-comments").innerHTML = document.getElementById("comment-textarea").value; }'+
+                                'var userComments;'+
+                                    '$.ajax({'+
+                                        'async: false,'+
+                                        'type: "GET",'+
+                                        'contentType: "application/json; charset=utf-8",'+
+                                        'url: "/labelmap/getcomment",'+
+                                        'data: {'+
+                                            'gsv_panorama_id: document.getElementById("pano-id").innerHTML'+
+                                        '},'+
+                                        'dataType: "json",'+
+                                        'success: function(data){'+
+                                            'userComments = data;'+
+                                        '}'+
+                                    '});'+
+                                'document.getElementById("label-comments").innerHTML = userComments["commend"];' +
                             '</script>'+
                         '</div>' +
                         '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
+                        '<style>'+
+                            'td {'+
+                                'white-space:nowrap;'+
+                                'max-width: 350px;'+
+                                'overflow-y:hidden;'+
+                            '}'+
+                        '</style>'+
                             '<table class="table table-striped" style="font-size:small;>' +
                                 '<tr>' +
                                     '<th>Label Type</th>' +
@@ -261,7 +282,7 @@ function AdminGSVLabelView(admin) {
 
         // Submit the comment via POST request.
         $.ajax({
-            async: true,
+            async: false,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/comment",
             type: 'POST',
@@ -280,6 +301,21 @@ function AdminGSVLabelView(admin) {
                 console.error(error);
             }
         });
+        var userComments;
+        $.ajax({
+            async: false,
+            type: "GET",
+            contentType: "application/json; charset=utf-8",
+            url: "/labelmap/getcomment",
+            data: {
+                gsv_panorama_id: document.getElementById("pano-id").innerHTML
+            },
+            dataType: "json",
+            success: function(data){
+                userComments = data;
+            }
+        });
+        document.getElementById("label-comments").innerHTML = userComments["commend"];
     }
 
     /**
