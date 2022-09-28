@@ -223,6 +223,7 @@ authenticate.submit = Dien in
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
 authenticate.non.member = Nog geen account? <a href="{0}">Maak er een</a>
 authenticate.confirm.password = Bevestig wachtwoord
+authenticate.service.hours.title = Bent u van plan om te verzoeken dat uw werk via Project Sidewalk wordt meegeteld voor de gemeenschaps-/vrijwilligersdiensturen?
 authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">Gebruiksvoorwaarden en Privacybeleid</a>
 authenticate.signup = Een account maken
 authenticate.signup.new.account = Maak een nieuw account

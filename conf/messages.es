@@ -223,6 +223,7 @@ authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>
 authenticate.confirm.password = Confirmar contraseña
+authenticate.service.hours.title = ¿Planea solicitar que su trabajo a través de Project Sidewalk se cuente como horas de servicio comunitario/voluntario?
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
