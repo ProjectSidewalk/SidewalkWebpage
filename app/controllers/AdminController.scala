@@ -514,7 +514,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
               } else if (!RoleTable.getRoleNames.contains(newRole)) {
                 Future.successful(BadRequest("Invalid role"))
               } else {
-                UserRoleTable.setRole(userId, newRole)
+                UserRoleTable.setRole(userId, newRole, communityService = None)
                 Future.successful(Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole)))
               }
             case None =>

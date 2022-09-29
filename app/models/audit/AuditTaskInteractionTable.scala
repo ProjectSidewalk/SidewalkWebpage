@@ -222,8 +222,14 @@ object AuditTaskInteractionTable {
          |        UNION
          |        SELECT user_id, timestamp
          |        FROM webpage_activity
-         |        WHERE activity LIKE 'Visit_Labeling_Guide%'
-         |            AND user_id = '$userId'
+         |        WHERE user_id = '$userId'
+         |            AND (
+         |                activity LIKE 'Visit_Labeling_Guide%'
+         |                OR activity = 'Visit_ServiceHourInstructions'
+         |                OR activity = 'Visit_TimeCheck'
+         |                OR activity = 'Visit_UserDashboard'
+         |                OR activity = 'Visit_Help'
+         |            )
          |    )"timestamps"
          |) "time_diffs"
          |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
