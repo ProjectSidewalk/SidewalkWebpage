@@ -1,13 +1,8 @@
 @import models.user.User
-@import models.mission.{MissionTable, Mission}
-@import models.label.LabelTable
-@import models.label.LabelTable.LabelValidationMetadata
 @import models.amt.AMTAssignmentTable
-@import play.api.libs.json.Json
 @import play.api.libs.json.JsValue
 @import play.api.Play
 @import play.api.Play.current
-@import views.html.bootstrap._
 
 @(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 

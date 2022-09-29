@@ -22,6 +22,8 @@ thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
+test.server.warning.message = <strong>¡ADVERTENCIA!</strong> ¡Estás en un servidor de prueba! ¡Tus datos no se guardarán! Si desea que sus datos se guarden, utilice el sitio principal
+dont.show.again = No mostrar de nuevo
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -142,7 +144,6 @@ audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
 audit.center.ui.add.tags = Agregar etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
-audit.center.ui.show.again = No mostrar de nuevo
 
 audit.mission.complete.labels.title = Etiquetas de la misión
 audit.mission.complete.progress.title = Progreso del barrio

@@ -22,6 +22,8 @@ thanks = Dank je wel!
 username = Gebruikersnaam
 loading = Laden...
 loading.encouragement = Let''s go!
+test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
+dont.show.again = Laat niet opnieuw zien
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
@@ -142,7 +144,6 @@ audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
 audit.center.ui.add.tags = Voeg<br>Tags toe:
 audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
-audit.center.ui.show.again = Laat niet opnieuw zien
 
 audit.mission.complete.labels.title = Missie labels
 audit.mission.complete.progress.title = Wijk voortgang
