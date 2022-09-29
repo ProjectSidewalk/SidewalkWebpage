@@ -69,7 +69,7 @@
                         <td>@AuditTaskTable.countCompletedAudits(UUID.fromString(user.get.userId))</td>
                         <td>@LabelTable.countLabels(UUID.fromString(user.get.userId))</td>
                         <td id="td-total-distance-audited-admin"></td>
-                        <td>@AuditTaskInteractionTable.getHoursAuditingAndValidating(user.get.userId) hours</td>
+                        <td>@{"%.2f".format(AuditTaskInteractionTable.getHoursAuditingAndValidating(user.get.userId))} hours</td>
                     </tr>
                 </table>
             </div>
