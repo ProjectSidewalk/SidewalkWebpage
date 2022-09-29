@@ -16,6 +16,8 @@ dist.metric.abbr = km
 ok = OK
 cancel = Cancelar
 error = ¡Error!
+yes.caps = Sí
+no.caps = No
 thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
@@ -221,6 +223,7 @@ authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>
 authenticate.confirm.password = Confirmar contraseña
+authenticate.service.hours.title = ¿Planea solicitar que su trabajo a través de Project Sidewalk se cuente como horas de servicio comunitario/voluntario?
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
@@ -236,7 +239,9 @@ authenticate.error.email.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
 authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
+authenticate.error.missing.service.hours = Por favor responda a cada pregunta
 authenticate.error.invalid.credentials = Credenciales inválidas
+authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.

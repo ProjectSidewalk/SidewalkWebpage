@@ -1,7 +1,7 @@
 package controllers.helper
 
 import models.user._
-import play.api.{Logger, Play}
+import play.api.Play
 import play.api.Play.current
 
 object GoogleMapsHelper {

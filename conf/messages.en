@@ -16,6 +16,8 @@ dist.metric.abbr = mi
 ok = OK
 cancel = Cancel
 error = Error!
+yes.caps = Yes
+no.caps = No
 thanks = Thanks!
 username = Username
 loading = Loading...
@@ -222,6 +224,7 @@ authenticate.submit = Submit
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password
+authenticate.service.hours.title = Are planning to request that your work through Project Sidewalk be counted for community/volunteer service hours?
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
 authenticate.signup.new.account = Sign up for a new account
@@ -237,7 +240,9 @@ authenticate.error.email.exists = Email already exists
 authenticate.error.username.exists = Username already exists
 authenticate.error.password.length = Password must be at least 6 characters
 authenticate.error.password.mismatch = Passwords do not match
+authenticate.error.missing.service.hours = Please respond to every question
 authenticate.error.invalid.credentials = Invalid credentials!
+authenticate.error.generic = Something went wrong processing your request. Please make sure all your information is correct and then try again
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = No worries, type in your email and we’ll send you a link to reset your password.
