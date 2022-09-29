@@ -4,7 +4,7 @@ import java.util.UUID
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
-import models.user.{RoleTable, UserRoleTable}
+import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
@@ -130,6 +130,7 @@ object LabelValidationTable {
     val oldValidation: Option[LabelValidation] =
       validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
 
+    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
     val userThatAppliedLabel: String =
     labels.filter(_.labelId === label.labelId)
       .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
@@ -139,8 +140,8 @@ object LabelValidationTable {
     // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
     oldValidation match {
       case Some(oldLabel) =>
-        // Update validation counts in the label table if this is not someone validating their own label.
-        if (userThatAppliedLabel != label.userId)
+        // Update val counts in label table if they're not validating their own label and aren't an excluded user.
+        if (userThatAppliedLabel != label.userId & !excludedUser)
           updateValidationCounts(label.labelId, label.validationResult, Some(oldLabel.validationResult))
 
         // Update relevant columns in the label_validation table.
@@ -155,8 +156,8 @@ object LabelValidationTable {
           label.startTimestamp, label.endTimestamp, label.isMobile
         ))
       case None =>
-        // Update validation counts in the label table if this is not someone validating their own label.
-        if (userThatAppliedLabel != label.userId)
+        // Update val counts in label table if they're not validating their own label and aren't an excluded user.
+        if (userThatAppliedLabel != label.userId & !excludedUser)
           updateValidationCounts(label.labelId, label.validationResult, None)
 
         // Insert a new validation into the label_validation table.
@@ -210,7 +211,7 @@ object LabelValidationTable {
 
   /**
    * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
-   * if the 10 of the user's labels have been validated. A label is considered validated if it has either more agree
+   * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree
    * votes than disagree votes, or more disagree votes than agree votes.
    */
   def getUserAccuracy(userId: UUID): Option[Float] = db.withSession { implicit session =>
@@ -236,7 +237,7 @@ object LabelValidationTable {
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
     val labels = for {
-      _label <- LabelTable.labelsWithoutDeletedOrOnboarding
+      _label <- LabelTable.labelsWithExcludedUsers
       _mission <- MissionTable.missions if _label.missionId === _mission.missionId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
       _userRole <- userRoles if _user.userId === _userRole.userId
@@ -290,7 +291,7 @@ object LabelValidationTable {
 
     validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
       .filter(_._2.labelTypeId === typeID)
-      .size.run
+      .length.run
   }
 
   /**
@@ -302,7 +303,7 @@ object LabelValidationTable {
     validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
       .filter(_._2.labelTypeId === typeID)
       .filter(_._1.validationResult === result)
-      .size.run
+      .length.run
   }
 
   /**
@@ -311,7 +312,7 @@ object LabelValidationTable {
    * @returns the number of validations performed by this user
    */
   def countValidations(userId: UUID): Int = db.withSession { implicit session =>
-    validationLabels.filter(_.userId === userId.toString).size.run
+    validationLabels.filter(_.userId === userId.toString).length.run
   }
 
   /**

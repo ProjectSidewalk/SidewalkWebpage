@@ -57,6 +57,9 @@ class SignUpController @Inject() (
     SignUpForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
+        // If they are getting community service hours, make sure they redirect to the instructions page.
+        val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")
+        val nextUrl: Option[String] = if (serviceHoursUser && url.isDefined) Some("/serviceHoursInstructions") else url
         // Check presence of user by username.
         UserTable.find(data.username) match {
           case Some(user) =>
@@ -66,7 +69,7 @@ class SignUpController @Inject() (
           case None =>
 
             // Check presence of user by email.
-            UserTable.findEmail(data.email) match {
+            UserTable.findEmail(data.email.toLowerCase) match {
               case Some(user) =>
                 WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
 //                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
@@ -81,9 +84,9 @@ class SignUpController @Inject() (
                   val authInfo = passwordHasher.hash(data.password)
                   val user = User(
                     userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
-                    loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
+                    loginInfo = LoginInfo(CredentialsProvider.ID, data.email.toLowerCase),
                     username = data.username,
-                    email = data.email,
+                    email = data.email.toLowerCase,
                     role = None
                   )
 
@@ -93,11 +96,11 @@ class SignUpController @Inject() (
                     authenticator <- env.authenticatorService.create(user.loginInfo)
                   } yield {
                     // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-                    UserRoleTable.setRole(user.userId, "Registered")
+                    UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
                     UserCurrentRegionTable.assignEasyRegion(user.userId)
                     UserStatTable.addUserStatIfNew(user.userId)
 
-                    // Add Timestamp.
+                    // Log the sign up/in.
                     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
@@ -114,7 +117,7 @@ class SignUpController @Inject() (
                       // sending the new authenticator info in a temp element in the session cookie. The "/finishSignUp"
                       // endpoint will then move authenticator we put in "temp-authenticator" over to "authenticator"
                       // where it belongs, finally completing the sign up.
-                      val redirectURL: String = url match {
+                      val redirectURL: String = nextUrl match {
                         case Some(u) => "/finishSignUp?url=" + u
                         case None => "/finishSignUp"
                       }
@@ -130,7 +133,7 @@ class SignUpController @Inject() (
                       // If no account was signed in before, we can skip the "/finishSignUp" endpoint step. Instead, we
                       // embed the authenticator into the session cookie in the normal way and either forward to the
                       // new URL or simply send the newly authenticated user object.
-                      val result = url match {
+                      val result = nextUrl match {
                         case Some(u) => Future.successful(Redirect(u))
                         case None => Future.successful(Ok(Json.toJson(user)))
                       }
@@ -193,11 +196,11 @@ class SignUpController @Inject() (
         val ipAddress: String = request.remoteAddress
 
         // Generate random strings for anonymous username/email/password (keep trying if we make a duplicate).
-        var randomUsername: String = Random.alphanumeric take 16 mkString ""
-        while (UserTable.find(randomUsername).isDefined) randomUsername = Random.alphanumeric take 16 mkString ""
-        var randomEmail: String = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+        var randomUsername: String = Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""
+        while (UserTable.find(randomUsername).isDefined) randomUsername = Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""
+        var randomEmail: String = "anonymous@" + s"${Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""}" + ".com"
         while (UserTable.findEmail(randomEmail).isDefined)
-          randomEmail = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+          randomEmail = "anonymous@" + s"${Random.alphanumeric.filter(!_.isUpper) take 16 mkString ""}" + ".com"
         val randomPassword: String = Random.alphanumeric take 16 mkString ""
 
         val loginInfo = LoginInfo(CredentialsProvider.ID, randomEmail)
@@ -220,7 +223,7 @@ class SignUpController @Inject() (
           ))
         } yield {
           // Set the user role and add to the user_stat table.
-          UserRoleTable.setRole(user.userId, "Anonymous")
+          UserRoleTable.setRole(user.userId, "Anonymous", Some(false))
           UserStatTable.addUserStatIfNew(user.userId)
 
           // Add Timestamp
@@ -249,7 +252,7 @@ class SignUpController @Inject() (
         activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
 
-        val turkerEmail: String = workerId + "@sidewalk.mturker.umd.edu"
+        val turkerEmail: String = workerId.toLowerCase + "@sidewalk.mturker.umd.edu"
         val loginInfo = LoginInfo(CredentialsProvider.ID, turkerEmail)
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
@@ -265,7 +268,7 @@ class SignUpController @Inject() (
 
       case None =>
         // Create a dummy email and password. Keep the username as the workerId.
-        val turkerEmail: String = workerId + "@sidewalk.mturker.umd.edu"
+        val turkerEmail: String = workerId.toLowerCase + "@sidewalk.mturker.umd.edu"
         val turkerPassword: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
 
         val loginInfo = LoginInfo(CredentialsProvider.ID, turkerEmail)
@@ -288,11 +291,11 @@ class SignUpController @Inject() (
           ))
         } yield {
           // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-          UserRoleTable.setRole(user.userId, "Turker")
+          UserRoleTable.setRole(user.userId, "Turker", Some(false))
           UserCurrentRegionTable.assignEasyRegion(user.userId)
           UserStatTable.addUserStatIfNew(user.userId)
 
-          // Add Timestamp.
+          // Log the sign up/in.
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))

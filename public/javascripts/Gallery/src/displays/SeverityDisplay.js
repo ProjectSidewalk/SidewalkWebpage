@@ -7,10 +7,16 @@
  * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
  * @returns {SeverityDisplay} the generated object
  */
-function SeverityDisplay(container, severity, isModal=false) {
+function SeverityDisplay(container, severity, labelType, isModal=false) {
     let self = this;
     self.severity = severity;
     self.severityContainer = container;
+
+    // List of label types where severity ratings are not supported.
+    // If more unsupported label types are made, add them here!
+    const unsupportedLabels = ['Occlusion', 'Signal'];
+
+    let unsupported = unsupportedLabels.includes(labelType);
 
     let circles = [];
     function _init() {
@@ -26,36 +32,62 @@ function SeverityDisplay(container, severity, isModal=false) {
         if (isModal) {
             // Add bold weight. Find better way to do this.
             title.classList.add('modal-severity-header');
+            // Centers tooltip.
+            holder.classList.add('modal-severity-content')
         }
 
         title.innerText = `${i18next.t("severity")}`;
-        container.append(title);
-
-        // Creates all of the circles for the severities.
-        for (let i = 1; i <= 5; i++) {
-            let severityCircle = isModal ? new Image() : document.createElement('div');
-            severityCircle.className = severityCircleClass;
-            if (isModal) {
-                // Set the src of our smiley icon to default black-outlined, white-filled smileys.
-                severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
-            }
-
-            circles.push(severityCircle);
+        // If no severity rating, gray out title.
+        if (unsupported || severity == null) {
+            title.classList.add('no-severity-header')
         }
+        container.append(title);
 
         // Highlight the correct severity.
         // We do so by darkening a number of circles from the left equal to the severity. For example, if the severity
         // is 3, we will darken the left 3 circles.
-        // TODO: rename these once confirmed. also, we can probably move this to the upper loop.
-        if (severity) {
-            for (let i = 0; i < severity; i++) {
+        for (let i = 1; i <= 5; i++) {
+            let severityCircle = isModal ? new Image() : document.createElement('div');
+            severityCircle.className = severityCircleClass;
+
+            if (unsupported || severity == null) {
+                // Create grayed out empty circles/smileys.
                 if (isModal) {
-                    // If we are dealing with the modal, we want to change the png to the inverted smiley.
-                    $(circles[i]).attr('src', `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i + 1}_inverted.png`)
+                    severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+                    severityCircle.classList.add('modal-no-severity');
                 } else {
-                    $(circles[i]).attr('id', selectedCircleID);
+                    severityCircle.classList.add(severityCircleClass, 'no-severity-circle');
+                }
+                circles.push(severityCircle);
+            } else {
+                // Create severity circle elements.
+                if (isModal) {
+                    if (i <= severity) { // Filled in smileys.
+                        severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_inverted.png`;
+                    } else { // Empty smileys.
+                        severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+                    }
+                } else {
+                    if (i <= severity) { // Fills in circles.
+                        severityCircle.id = selectedCircleID
+                    }
                 }
             }
+            circles.push(severityCircle);
+        }
+
+        if (severity == null) {
+            // Add tooltip if no severity level.
+            holder.setAttribute('data-toggle', 'tooltip');
+            holder.setAttribute('data-placement', 'top');
+
+            // Change tooltip message depending on if the label is unsupported or user did not add severity rating.
+            if (unsupported) {
+                holder.setAttribute('title', `${i18next.t("unsupported")}`);
+            } else {
+                holder.setAttribute('title', `${i18next.t("no-severity")}`);
+            }
+            $(holder).tooltip('hide');
         }
 
         // Add all of the severity circles to the DOM.

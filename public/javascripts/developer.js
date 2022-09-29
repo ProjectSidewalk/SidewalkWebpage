@@ -113,8 +113,8 @@ $(document).ready(function () {
                 return {
                     weight: 5,
                     opacity:0.7,
-                    color: getColor(feature.properties.score),
-                    dashArray: '3'
+                    color: feature.properties.audit_count ? getColor(feature.properties.score) : 'gray',
+                    dashArray: '1'
                 }
             }
 

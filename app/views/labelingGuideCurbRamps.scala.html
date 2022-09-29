@@ -7,9 +7,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
-
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src='@routes.Assets.at("javascripts/lib/jquery.magnific-popup.js")'></script>
 
     <div class="spacer20"></div>
@@ -37,13 +35,13 @@
                 </div>
             </div>
             <div class="col-md-9 maincontent">
-                <div class="help-item" id="corners-with-only-one-curb-ramp">
+                <div class="help-item">
                     <h2>Curb Ramps</h2>
                     <p>
                         @Html(Messages("labeling.guide.curb.ramp.summary"))
                         (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>).
                     </p>
-                    <h3 class="question">How should I label corners with only one curb ramp?
+                    <h3 class="question" id="corners-with-only-one-curb-ramp">How should I label corners with only one curb ramp?
                         <a href="#corners-with-only-one-curb-ramp" title="Permalink to this sub-section" class="permalink-anchor">
                             <img src='@routes.Assets.at("assets/link.png")' alt="A link" class="permalink-icon">
                         </a>
@@ -555,8 +553,8 @@
                         <div class="col-sm-12">
                             <p>
                                 If a curb ramp has a large amount of dead leaves or other debris on it, the severity
-                                should be >1 (<a href="https://safety.fhwa.dot.gov/ped_bike/tools_solve/fhwasa13037/chap3.cfm">FHWA Guide for Maintaining Pedestrian Facilities for Enhanced Safety 3.2.2</a>).
-                                In general, this should not result in severity >3 if the debris is the only issue. Debris could cause
+                                should be >1 (<a href="https://safety.fhwa.dot.gov/ped_bike/tools_solve/fhwasa13037/chap3.cfm">FHWA Guide for Maintaining Pedestrian Facilities for Enhanced Safety 3.2.2</a>),
+                                and you can add the "surface problem" tag. In general, this should not result in severity >3 if the debris is the only issue. Debris could cause
                                 slippery conditions or could slow down wheelchair users in extreme cases. You should not
                                 place a <i>Surface Problem</i> label along with the <i>Curb Ramp</i> label. You should
                                 only place <i>Surface Problem</i> labels on the sidewalk, not on curb ramps.
