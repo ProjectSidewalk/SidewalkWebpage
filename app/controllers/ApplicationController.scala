@@ -37,6 +37,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def index = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
+    val isMobile: Boolean = ControllerUtils.isMobile(request)
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
     val referrer: Option[String] = qString.get("referrer") match {
@@ -45,7 +46,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
 
     referrer match {
-      // If someone is coming to the site from a custom URL, log it, and send them to the correct location
+      // If someone is coming to the site from a custom URL, log it, and send them to the correct location.
       case Some(ref) =>
         ref match {
           case "mturk" =>
@@ -116,7 +117,12 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val activityLogText: String = "/?"+qString.keys.map(i => i.toString +"="+ qString(i).toString).mkString("&")
         request.identity match {
           case Some(user) =>
-            if(qString.isEmpty){
+            if(qString.nonEmpty) {
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+              Future.successful(Redirect("/"))
+            } else if (isMobile) {
+              Future.successful(Redirect("/mobile"))
+            } else {
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               // Get city configs.
               val cityStr: String = Play.configuration.getString("city-id").get
@@ -125,15 +131,12 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
               val mapathonLink: Option[String] = Play.configuration.getString("city-params.mapathon-event-link." + cityStr)
               // Get names and URLs for other cities so we can link to them on landing page.
-              val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity=cityStr)
+              val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity = cityStr)
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgePriorityTable.auditedStreetDistanceUsingPriority * 1.60934.toFloat
                 else StreetEdgePriorityTable.auditedStreetDistanceUsingPriority
               Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
-            } else{
-              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-              Future.successful(Redirect("/"))
             }
           case None =>
             if(qString.isEmpty){
