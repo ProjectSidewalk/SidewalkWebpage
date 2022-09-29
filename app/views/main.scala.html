@@ -48,15 +48,15 @@
     <div id="wrap">
         <!-- Banner is only visible if user is on test server-->
         @if(environmentType == "test") {
-            <div class = "test-server-banner">
-                <div class = "test-server-banner-content">
-                    <div class = "test-server-banner-text">
+            <div class="test-server-banner">
+                <div class="test-server-banner-content">
+                    <div class="test-server-banner-text">
                         @Html(Messages("test.server.warning.message")): <a href="@prodURL">@prodURL</a>
                     </div>
                     <button class="test-server-banner-dont-show-again" type="button">
                         <span>@Messages("dont.show.again")</span>
                     </button>
-                    <button class = "test-server-banner-close" type = "button">
+                    <button class="test-server-banner-close" type="button">
                         <span class="glyphicon glyphicon-remove"></span>
                     </button>
                 </div>
