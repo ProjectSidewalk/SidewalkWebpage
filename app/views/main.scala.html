@@ -57,10 +57,22 @@
                     <button class = "test-server-banner-close" type = "button">
                         <span class = "material-icons">close</span>
                     </button>
+                    <button class="test-server-banner-dont-show-again" type="button">
+                        <span>Don't show again</span>
+                    </button>
                 </div>
             </div>
 
             <script>
+                // Hide the warning banner if the user has clicked the "don't show again" button in the past.
+                if (JSON.parse(window.localStorage.getItem('hideTestServerWarningBanner'))) {
+                    document.getElementsByClassName('test-server-banner')[0].style.display = 'none';
+                }
+                // If they click the "don't show again" button, save that info in local storage.
+                document.querySelector(".test-server-banner-dont-show-again").addEventListener("click", function() {
+                    this.closest(".test-server-banner").style.display = "none";
+                    window.localStorage.setItem('hideTestServerWarningBanner', true);
+                });
                 document.querySelector(".test-server-banner-close").addEventListener("click", function() {
                     this.closest(".test-server-banner").style.display = "none";
                 });

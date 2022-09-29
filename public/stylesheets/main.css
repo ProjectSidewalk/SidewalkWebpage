@@ -1371,48 +1371,39 @@ kbd {
     transform: translate(0, 0);
 }
 
-/*
-* Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
-* https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
-*/
-
-/*Formatting the banner at the top which is only visible if
-person is on test server*/
-
+/* Formatting the test server warning banner. */
 .test-server-banner {
     background-color: rgb(251,215,139);
-    border-radius: 20px;
 }
 
 .test-server-banner-content {
-    padding: 0.2%;
-    max-width: 400px;
+    padding: 0.5%;
+    max-width: 70%;
     margin: 0 auto;
     display: flex;
-    align-items: center;
+    font-size: medium;
 }
 
 .test-server-banner-text {
     flex-grow: 1;
-    font-size: medium;
-    line-height: 1.4;
     font-family: raleway-bold, sans-serif;
+    text-align: center;
+}
+.test-server-banner-text > strong {
+    color: red;
 }
 
 .test-server-banner-close {
     background: none;
     border: none;
-    cursor: pointer;
 }
 
-.test-server-banner-close > span {
-    color: black;
+.test-server-banner-dont-show-again {
+    background: none;
+    border: none;
+    text-decoration: underline;
+    min-width: fit-content;
 }
-
-.test-server-banner-text > strong {
-    color: red;
-}
-
 @media only screen and (max-width: 500px) {
     .test-server-banner {
         border-radius: 5px;
@@ -1420,13 +1411,16 @@ person is on test server*/
 
     .test-server-banner-content {
         max-width: 300px;
-    }
-
-    .test-server-banner-text {
+        flex-wrap: wrap;
         font-size: small;
     }
 }
 
+
+/*
+* Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
+* https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
+*/
 @media only screen and (max-width: 1275px) {
     .navbar-header {
         float: none;
