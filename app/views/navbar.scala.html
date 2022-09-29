@@ -14,27 +14,6 @@
 <!-- Fixed navbar -->
 <nav id="header" class="navbar navbar-default navbar-fixed-top">
     <div id="header-container" class="navbar-container container-fluid">
-        <!-- Banner is only visible if user is on test server-->
-        @if(Play.configuration.getString("environment-type").get == "test") {
-            <link href = "https://fonts.googleapis.com/icon?family=Material+Icons" rel = "stylesheet">
-            <div class = "test-server-banner">
-                <div class = "test-server-banner-content">
-                    <div class = "test-server-banner-text">
-                        <strong>WARNING!</strong> You are on the Test Server!
-                    </div>
-                    <button class = "test-server-banner-close" type = "button">
-                        <span class = "material-icons">close</span>
-                    </button>
-                </div>
-            </div>
-
-            <script>
-                document.querySelector(".test-server-banner-close").addEventListener("click", function() {
-                    this.closest(".test-server-banner").style.display = "none";
-                });
-            </script>
-        }
-
         <div class="navbar-header">
             <div class="navbar-logo">
                 <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)'></a>

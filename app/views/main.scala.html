@@ -48,8 +48,27 @@
 </head>
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
-        @content
+        <!-- Banner is only visible if user is on test server-->
+        @if(Play.configuration.getString("environment-type").get == "test") {
+            <link href = "https://fonts.googleapis.com/icon?family=Material+Icons" rel = "stylesheet">
+            <div class = "test-server-banner">
+                <div class = "test-server-banner-content">
+                    <div class = "test-server-banner-text">
+                        <strong>WARNING!</strong> You are on the Test Server!
+                    </div>
+                    <button class = "test-server-banner-close" type = "button">
+                        <span class = "material-icons">close</span>
+                    </button>
+                </div>
+            </div>
 
+            <script>
+                document.querySelector(".test-server-banner-close").addEventListener("click", function() {
+                    this.closest(".test-server-banner").style.display = "none";
+                });
+            </script>
+        }
+        @content
     </div>
     @if(url.getOrElse("") != "/mobile") {
         <head>
@@ -66,7 +85,6 @@
         <!-- footer code found in app/views/footer.scala.html -->
         @footer()
     } else {
-
         <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
         <div class="container" id="footer-container">
