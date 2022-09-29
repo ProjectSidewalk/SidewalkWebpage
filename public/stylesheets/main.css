@@ -578,6 +578,7 @@ p#conditional-text {
 }
 
 #wrap {
+    min-height: 100%;
     height: auto;
 }
 
