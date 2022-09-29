@@ -7,6 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskInteractionTable
@@ -402,7 +403,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_ServiceHourInstructions", timestamp))
-        Future.successful(Ok(views.html.serviceHoursInstructions(Some(user))))
+        val isMobile: Boolean = ControllerUtils.isMobile(request)
+        Future.successful(Ok(views.html.serviceHoursInstructions(Some(user), isMobile)))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/serviceHoursInstructions"))
     }
@@ -421,7 +423,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           val ipAddress: String = request.remoteAddress
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_TimeCheck", timestamp))
           val timeSpent: Float = AuditTaskInteractionTable.getHoursAuditingAndValidating(user.userId.toString)
-          Future.successful(Ok(views.html.timeCheck(Some(user), timeSpent)))
+          val isMobile: Boolean = ControllerUtils.isMobile(request)
+          Future.successful(Ok(views.html.timeCheck(Some(user), isMobile, timeSpent)))
         }
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/timeCheck"))

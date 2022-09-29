@@ -1,8 +1,10 @@
 @import models.user.User
-@(user: Option[User] = None, timeSpent: Float)(implicit lang: Lang)
+@(user: Option[User] = None, isMobile: Boolean, timeSpent: Float)(implicit lang: Lang)
 
 @main("Sidewalk - Time Check") {
-    @navbar(user, Some("/timeCheck"))
+    @if(!isMobile) {
+        @navbar(user, Some("/timeCheck"))
+    }
     <div class="container">
         <div class="row">
             <div class="col-lg-8">
