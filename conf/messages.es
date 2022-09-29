@@ -239,6 +239,7 @@ authenticate.error.email.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
 authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
+authenticate.error.missing.service.hours = Por favor responda a cada pregunta
 authenticate.error.invalid.credentials = Credenciales inválidas
 authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 

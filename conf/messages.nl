@@ -239,6 +239,7 @@ authenticate.error.email.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al
 authenticate.error.password.length = Wachtwoord moet minimaal 6 tekens lang zijn
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
+authenticate.error.missing.service.hours = Gelieve te reageren op elke vraag
 authenticate.error.invalid.credentials = Ongeldige inloggegevens!
 authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
