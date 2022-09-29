@@ -1376,6 +1376,57 @@ kbd {
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
 
+/*Formatting the banner at the top which is only visible if
+person is on test server*/
+
+.test-server-banner {
+    background-color: rgb(251,215,139);
+    border-radius: 20px;
+}
+
+.test-server-banner-content {
+    padding: 0.2%;
+    max-width: 400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+}
+
+.test-server-banner-text {
+    flex-grow: 1;
+    font-size: medium;
+    line-height: 1.4;
+    font-family: raleway-bold, sans-serif;
+}
+
+.test-server-banner-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.test-server-banner-close > span {
+    color: black;
+}
+
+.test-server-banner-text > strong {
+    color: red;
+}
+
+@media only screen and (max-width: 500px) {
+    .test-server-banner {
+        border-radius: 5px;
+    }
+
+    .test-server-banner-content {
+        max-width: 300px;
+    }
+
+    .test-server-banner-text {
+        font-size: small;
+    }
+}
+
 @media only screen and (max-width: 1275px) {
     .navbar-header {
         float: none;

@@ -1,7 +1,3 @@
-html {
-    padding: 0;
-}
-
 /* Prevents small phones from zooming in when tapping a text field. */
 .form-control {
     font-size: 24pt;
@@ -17,21 +13,4 @@ html {
     float: none;
     margin-top: 20px;
     margin-bottom: 0px
-}
-
-/* Formatting the banner at the top which is only visible if
-person is on test server */
-
-.test-server-banner {
-    background-color: rgb(218, 86, 86);
-    margin-bottom: 2%;
-    text-align: center;
-}
-
-.test-server-banner-content {
-    padding: 0.7% 0;
-    font-size: 1.8rem;
-    color: white;
-    line-height: 1.4;
-    font-family: raleway, sans-serif;
 }

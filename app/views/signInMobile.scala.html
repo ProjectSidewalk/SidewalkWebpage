@@ -2,20 +2,8 @@
 @(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, lang: Lang)
 
 @import views.html.bootstrap._
-@import play.api.Play
-@import play.api.Play.current
 
 @main("Project Sidewalk - Sign In", Some("/signInMobile")) {
-    @if(Play.configuration.getString("environment-type").get == "test") {
-        <!-- Banner is only visible if user is on test server-->
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-        <div class="test-server-banner">
-            <div class="test-server-banner-content">
-                <p><strong>WARNING:</strong> You are on a test server!</p>
-            </div>
-        </div>
-    }
-
     @request.flash.get("success").map { msg =>
         <div class="col-md-6 col-md-offset-3 alert alert-success alert-mobile">
             <a href="#" class="close" data-dismiss="alert">&times;</a>
