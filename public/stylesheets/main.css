@@ -1406,6 +1406,10 @@ kbd {
     margin-top: 2px;
 }
 
+/*
+ * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
+ * for some reason. So CSS for that page is in mobileValidate.css.
+ */
 @media only screen and (max-width: 500px) {
     .test-server-banner {
         border-radius: 5px;

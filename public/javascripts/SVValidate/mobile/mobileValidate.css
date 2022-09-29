@@ -314,3 +314,15 @@ html {
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
+
+/* Styling for the test server warning banner that is specific to only the mobile validate page. */
+.test-server-banner {
+    position: absolute;
+    top: 125px;
+    width: 99%;
+    left: 0.5%;
+    z-index: 2;
+}
+.test-server-banner-content {
+    font-size: xx-large;
+}
