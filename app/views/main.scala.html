@@ -2,6 +2,10 @@
 @import models.user.VersionTable
 @(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
 
+@cityId = @{Play.configuration.getString("city-id").get}
+@environmentType = @{Play.configuration.getString("environment-type").get}
+@googleAnalytics4Id = @{Play.configuration.getString(s"city-params.google-analytics-4-id.${environmentType}.${cityId}")}
+@prodURL = @{Play.configuration.getString(s"city-params.landing-page-url.prod.${cityId}")}
 
 @import views.html.bootstrap._
 @import com.mohiva.play.silhouette.impl.providers._
@@ -14,12 +18,12 @@
 <!DOCTYPE html>
 <head>
     <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=@{Play.configuration.getString("city-params.google-analytics-4-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=@googleAnalytics4Id"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', '@{Play.configuration.getString("city-params.google-analytics-4-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}');
+        gtag('config', '@googleAnalytics4Id');
     </script>
     <meta charset="utf-8" />
     <title>@title</title>
@@ -49,12 +53,12 @@
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
         <!-- Banner is only visible if user is on test server-->
-        @if(Play.configuration.getString("environment-type").get == "test") {
+        @if(environmentType == "test") {
             <link href = "https://fonts.googleapis.com/icon?family=Material+Icons" rel = "stylesheet">
             <div class = "test-server-banner">
                 <div class = "test-server-banner-content">
                     <div class = "test-server-banner-text">
-                        <strong>WARNING!</strong> You are on the Test Server!
+                        <strong>WARNING!</strong> You are on a test server! Your data will not be saved! If you would like your data to be saved, please use the main site: <a href="@prodURL">@prodURL</a>
                     </div>
                     <button class = "test-server-banner-close" type = "button">
                         <span class = "material-icons">close</span>
@@ -151,7 +155,7 @@
     }
 
     <script>
-        var oldAnalyticsStr = "@{Play.configuration.getString("city-params.old-google-analytics-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}";
+        var oldAnalyticsStr = "@{Play.configuration.getString(s"city-params.old-google-analytics-id.${environmentType}.${cityId}")}";
         if (oldAnalyticsStr) {
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
                 (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
