@@ -1,19 +1,13 @@
-@import models.user.User
 @import models.user.VersionTable
+@import play.api.Play
+@import play.api.Play.current
+
 @(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
 
 @cityId = @{Play.configuration.getString("city-id").get}
 @environmentType = @{Play.configuration.getString("environment-type").get}
 @googleAnalytics4Id = @{Play.configuration.getString(s"city-params.google-analytics-4-id.${environmentType}.${cityId}")}
 @prodURL = @{Play.configuration.getString(s"city-params.landing-page-url.prod.${cityId}")}
-
-@import views.html.bootstrap._
-@import com.mohiva.play.silhouette.impl.providers._
-@import views.html.bootstrap._
-@import forms.SignInForm
-
-@import play.api.Play
-@import play.api.Play.current
 
 <!DOCTYPE html>
 <head>
