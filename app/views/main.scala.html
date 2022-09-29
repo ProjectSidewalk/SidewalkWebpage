@@ -48,17 +48,16 @@
     <div id="wrap">
         <!-- Banner is only visible if user is on test server-->
         @if(environmentType == "test") {
-            <link href = "https://fonts.googleapis.com/icon?family=Material+Icons" rel = "stylesheet">
             <div class = "test-server-banner">
                 <div class = "test-server-banner-content">
                     <div class = "test-server-banner-text">
                         <strong>WARNING!</strong> You are on a test server! Your data will not be saved! If you would like your data to be saved, please use the main site: <a href="@prodURL">@prodURL</a>
                     </div>
-                    <button class = "test-server-banner-close" type = "button">
-                        <span class = "material-icons">close</span>
-                    </button>
                     <button class="test-server-banner-dont-show-again" type="button">
                         <span>Don't show again</span>
+                    </button>
+                    <button class = "test-server-banner-close" type = "button">
+                        <span class="glyphicon glyphicon-remove"></span>
                     </button>
                 </div>
             </div>

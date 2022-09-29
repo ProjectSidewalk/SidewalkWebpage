@@ -1385,7 +1385,6 @@ kbd {
 }
 
 .test-server-banner-text {
-    flex-grow: 1;
     font-family: raleway-bold, sans-serif;
     text-align: center;
 }
@@ -1393,17 +1392,20 @@ kbd {
     color: red;
 }
 
-.test-server-banner-close {
-    background: none;
-    border: none;
-}
-
 .test-server-banner-dont-show-again {
     background: none;
     border: none;
     text-decoration: underline;
     min-width: fit-content;
+    padding: 0 20px;
 }
+
+.test-server-banner-close {
+    background: none;
+    border: none;
+    margin-top: 2px;
+}
+
 @media only screen and (max-width: 500px) {
     .test-server-banner {
         border-radius: 5px;
