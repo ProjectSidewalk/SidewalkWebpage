@@ -404,10 +404,10 @@ $(document).ready(function () {
             }
         });
 
-        // Callback function for checking sign-in results
+        // Callback function for checking sign-in results.
         function handleSignIn(data) {
-            //this means that logging in failed, alert user of failure
-            if(typeof data == 'string'){
+            // This means that logging in failed, alert user of failure.
+            if (typeof data == 'string'){
                 $('#incorrect-signin-alert').hide();
                 $('#incorrect-login-modal-alert').show();
                 return;
@@ -419,32 +419,31 @@ $(document).ready(function () {
                 location.replace('/serviceHoursInstructions');
             }
 
-            //otherwise, reflect login changes on user's end
+            // Otherwise, reflect login changes on user's end.
             var htmlString = $("#navbar-user-dropdown-list-signed-in").html();
             htmlString = htmlString.replace(/__USERNAME__/g, data.username);
-
             $("#navbar-user-dropdown-list").html(htmlString);
             var path = window.location.pathname;
 
-            // Toggle the sign-in modal
+            // Toggle the sign-in modal.
             $('#sign-in-modal-container').modal('toggle');
 
-            if(path.includes("/audit") && svl) {
+            if (path.includes("/audit") && svl) {
                 svl.user.setProperty('username', data.username);
 
-                // Turn neighborhood name into a link
+                // Turn neighborhood name into a link.
                 svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
                 svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
                 var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
                 var href = "/dashboard" + "?regionId=" + neighborhood.getProperty("regionId");
                 svl.statusFieldNeighborhood.setHref(href);
 
-                // init: noInit is a flag that prevents the init functions in main from running
-                // Need root directory to prevent cursor icons from disappearing
+                // init: noInit is a flag that prevents the init functions in main from running.
+                // Need root directory to prevent cursor icons from disappearing.
                 Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
                     .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
 
-                // Prevent first-mission popups
+                // Prevent first-mission popups.
                 if (!svl.initialMissionInstruction) {
                     svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
                         svl.popUpMessage, svl.taskContainer, svl.labelContainer,  svl.tracker
@@ -454,7 +453,7 @@ $(document).ready(function () {
                 svl.map.unbindPositionUpdate(svl.initialMissionInstruction._instructForGSVLabelDisappearing);
             }
 
-            // Append the link to the admin interface if it the user is admin
+            // Append the link to the admin interface if the user is an admin.
             if (data.role === "Administrator" || data.role === "Owner") {
                 var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
                 $('#nav-user-menu').children('#dashboard-link').after(adminLi);
@@ -462,7 +461,7 @@ $(document).ready(function () {
         }
 
         function invalidSignInUpAlert(signIn, message){
-            if(signIn){
+            if (signIn) {
                 $('#incorrect-login-modal-alert').hide();
                 $('#incorrect-signin-alert').html(
                     '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
@@ -472,7 +471,7 @@ $(document).ready(function () {
                 );
                 $('#incorrect-signin-alert').show();
             }
-            else{
+            else {
                 $('#invalid-signup-alert').hide();
                 $('#incorrect-signup-alert').html(
                     '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
@@ -489,13 +488,13 @@ $(document).ready(function () {
             var email = $('#sign-in-form #identifier')[0].value;
             var password = $('#sign-in-form #passwordSignIn')[0].value;
 
-            //if not a valid email address, do not submit form
-            if(!email){
+            // If not a valid email address, do not submit form.
+            if (!email) {
                 invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.email")');
                 return false;
             }
 
-            if(!password){
+            if (!password) {
                 invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.password")');
                 return false;
             }
@@ -525,15 +524,15 @@ $(document).ready(function () {
             var serviceHoursNo = $('#navbar-service-hours-@Messages("no.caps")');
 
             // If not a valid username / email / password / service hours response, do not submit form.
-            if(!username){
+            if (!username) {
                 invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
                 return false;
             }
-            if(!email){
+            if (!email) {
                 invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
                 return false;
             }
-            if(!password){
+            if (!password) {
                 invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
                 return false;
             }
@@ -552,17 +551,17 @@ $(document).ready(function () {
 
             var data = $(this).serialize();
             var url = '/signUp';
-            $.post(url, data, handleSignIn).fail(function(e){
+            $.post(url, data, handleSignIn).fail(function(e) {
                 var errorMessage = "";
                 if(e.status === 409){
-                    if(e.responseText.toLowerCase().includes("email")){
+                    if (e.responseText.toLowerCase().includes("email")) {
                         errorMessage = "@Messages("authenticate.error.email.exists")"
                     }
-                    else{
+                    else {
                         errorMessage = "@Messages("authenticate.error.username.exists")"
                     }
                 }
-                else{ // Some other Bad Request
+                else { // Some other Bad Request.
                     errorMessage = '@Messages("authenticate.error.generic")'
                 }
                 $('#incorrect-signup-alert').hide();
