@@ -51,10 +51,10 @@
             <div class = "test-server-banner">
                 <div class = "test-server-banner-content">
                     <div class = "test-server-banner-text">
-                        <strong>WARNING!</strong> You are on a test server! Your data will not be saved! If you would like your data to be saved, please use the main site: <a href="@prodURL">@prodURL</a>
+                        @Html(Messages("test.server.warning.message")): <a href="@prodURL">@prodURL</a>
                     </div>
                     <button class="test-server-banner-dont-show-again" type="button">
-                        <span>Don't show again</span>
+                        <span>@Messages("dont.show.again")</span>
                     </button>
                     <button class = "test-server-banner-close" type = "button">
                         <span class="glyphicon glyphicon-remove"></span>

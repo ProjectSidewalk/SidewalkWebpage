@@ -22,6 +22,8 @@ thanks = Thanks!
 username = Username
 loading = Loading...
 loading.encouragement = Let''s do this!
+test.server.warning.message = <strong>WARNING!</strong> You are on a test server! Your data will not be saved! If you would like your data to be saved, please use the main site
+dont.show.again = Don''t show again
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -142,7 +144,6 @@ audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable
 audit.center.ui.add.tags = Add Tags:
 audit.center.ui.temporary = Temporary (e.g., construction)
-audit.center.ui.show.again = Don''t show again
 
 audit.mission.complete.labels.title = Mission Labels
 audit.mission.complete.progress.title = Neighborhood Progress
