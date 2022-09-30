@@ -2,7 +2,8 @@
  * Initializes labels onto map/choropleth, returns information about label layers on map.
  * @param map Map that labels are rendered onto.
  * @param params Object that include properties that can change the process of label rendering.
- * @param params.streetColor {string} color to use for streets on the map.
+ * @param params.auditedStreetColor {string} color to use for audited streets on the map.
+ * @param params.unauditedStreetColor {string} optional color to use for unaudited streets on the map.
  * @param params.includeLabelCounts {boolean} whether to include label counts for each type in the legend.
  * @param params.labelPopup {boolean} whether to include a validation popup on labels on the map.
  * @param params.includeLabelColor {boolean} whether to color the labels.
@@ -21,9 +22,9 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             fillOpacity: 0.5,
             'stroke-width': 1
         };
+    let hasUnauditedStreets = params.unauditedStreetColor != null;
 
-    let auditedStreetColor = params.streetColor;
-
+    // Set icons in the legend.
     document.getElementById('map-legend-curb-ramp').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.CurbRamp.fillStyle + "'></svg>";
     document.getElementById('map-legend-no-curb-ramp').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.NoCurbRamp.fillStyle + "'></svg>";
     document.getElementById('map-legend-obstacle').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Obstacle.fillStyle + "'></svg>";
@@ -31,6 +32,10 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
     document.getElementById('map-legend-no-sidewalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.NoSidewalk.fillStyle + "' stroke='" + colorMapping.NoSidewalk.strokeStyle + "'></svg>";
     document.getElementById('map-legend-crosswalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Crosswalk.fillStyle + "'></svg>";
     document.getElementById('map-legend-signal').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Signal.fillStyle + "'></svg>";
+    document.getElementById('map-legend-audited-street').innerHTML = "<svg width='20' height='20'><path stroke='" + params.auditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
+    if (hasUnauditedStreets) {
+        document.getElementById('map-legend-unaudited-street').innerHTML = "<svg width='20' height='20'><path stroke='" + params.unauditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
+    }
     if (params.includeLabelCounts) {
         // Count the number of each label type and fill in the legend with those counts.
         let labelCounter = {

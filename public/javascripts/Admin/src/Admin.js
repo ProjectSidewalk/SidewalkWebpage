@@ -5,6 +5,7 @@ function Admin(_, $, difficultRegionIds) {
     var mapData = InitializeMapLayerContainer();
     var map;
     var auditedStreetLayer;
+    var unauditedStreetLayer;
     var analyticsTabMapParams = {
         popupType: 'completionRate',
         regionColors: [
@@ -62,7 +63,8 @@ function Admin(_, $, difficultRegionIds) {
     var streetParams = {
         labelPopup: true,
         includeLabelColor: true,
-        streetColor: 'black'
+        auditedStreetColor: 'black',
+        unauditedStreetColor: 'gray'
     };
 
     function initializeAdminGSVLabelView() {
@@ -109,6 +111,10 @@ function Admin(_, $, difficultRegionIds) {
 
     function toggleAuditedStreetLayerAdmin() {
         toggleAuditedStreetLayer(map, auditedStreetLayer);
+    }
+
+    function toggleUnauditedStreetLayerAdmin() {
+        toggleUnauditedStreetLayer(map, unauditedStreetLayer);
     }
 
     // Takes an array of objects and the name of a property of the objects, returns summary stats for that property.
@@ -235,11 +241,12 @@ function Admin(_, $, difficultRegionIds) {
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
                 map = Choropleth(_, $, difficultRegionIds, mapTabMapParams, [], data1[0], data2[0], data3[0]);
             });
-            // When the polygons have been rendered and the audited streets have loaded,
-            // the audited streets can be rendered.
+            // When the polygons have been rendered and the audited streets have loaded, the streets can be rendered.
             var renderAuditedStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
-                var auditedStreets = {features: data2[0].features.filter(edges => edges.properties.audited)};
-                auditedStreetLayer = InitializeAuditedStreets(map, streetParams, auditedStreets);
+                var auditedStreets = { features: data2[0].features.filter(edges => edges.properties.audited) };
+                var unauditedStreets = { features: data2[0].features.filter(edges => !edges.properties.audited) };
+                auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets);
+                unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets);
             });
             // When the audited streets have been rendered and the submitted labels have loaded,
             // the submitted labels can be rendered.
@@ -1164,6 +1171,7 @@ function Admin(_, $, difficultRegionIds) {
     self.toggleLayers = toggleLayersAdmin;
     self.filterLayers = filterLayersAdmin;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
+    self.toggleUnauditedStreetLayer = toggleUnauditedStreetLayerAdmin;
 
     $('.change-role').on('click', changeRole);
 

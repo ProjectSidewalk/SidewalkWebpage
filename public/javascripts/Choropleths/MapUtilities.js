@@ -60,11 +60,11 @@ function toggleAuditedStreetLayer(map, auditedStreetLayer) {
     }
 }
 
-function toggleNotAuditedStreetLayer(map, notAuditedStreetLayer) {
-    if (document.getElementById('notauditedstreet').checked) {
-        map.addLayer(notAuditedStreetLayer);
+function toggleUnauditedStreetLayer(map, unauditedStreetLayer) {
+    if (document.getElementById('unauditedstreet').checked) {
+        map.addLayer(unauditedStreetLayer);
     } else {
-        map.removeLayer(notAuditedStreetLayer);
+        map.removeLayer(unauditedStreetLayer);
     }
 }
 
