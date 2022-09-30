@@ -39,7 +39,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val avgImageDate: Timestamp,
                                  val avgLabelDate: Timestamp,
                                  val imageCount: Int,
-                                 val labelCount: Int) {
+                                 val labelCount: Int,
+                                 val usersList: List[String]) {
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -57,12 +58,15 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
         "notsure_count" -> notsureCount
+      ),
+      "users" -> Json.obj(
+        "user_ids" -> usersList
       )
     )
   }
   val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
                                 lng.toString, avgImageDate, avgLabelDate.toString, severity.getOrElse("NA").toString, temporary.toString,
-                                agreeCount.toString, disagreeCount.toString, notsureCount.toString)
+                                agreeCount.toString, disagreeCount.toString, notsureCount.toString, "\"[" + usersList.mkString(",") + "]\"")
 }
 
 case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
@@ -185,7 +189,8 @@ object GlobalAttributeTable {
   implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
     GlobalAttributeForAPI(
       r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt
+      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt,
+      r.nextString.split(",").toList
     )
   )
 
@@ -258,7 +263,8 @@ object GlobalAttributeTable {
           |          image_dates.avg_img_date,
           |          validation_counts.avg_label_date,
           |          validation_counts.label_count,
-          |          image_dates.image_count
+          |          image_dates.image_count,
+          |          users_list.users_list
           |FROM global_attribute
           |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
           |INNER JOIN region ON global_attribute.region_id = region.region_id
@@ -268,6 +274,16 @@ object GlobalAttributeTable {
           |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
           |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
           |INNER JOIN ($imageDates) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
+          |LEFT JOIN (
+          |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
+          |    SELECT global_attribute.global_attribute_id, array_to_string(array_agg(audit_task.user_id), ',') AS users_list
+          |    FROM global_attribute
+          |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+          |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+          |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
+          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+          |    GROUP BY global_attribute.global_attribute_id
+          |) users_list ON global_attribute.global_attribute_id = users_list.global_attribute_id
           |WHERE label_type.label_type <> 'Problem'
           |    AND global_attribute.lat > $minLat
           |    AND global_attribute.lat < $maxLat

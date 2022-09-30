@@ -106,7 +106,8 @@ public class ShapefilesCreatorHelper {
                         + "temporary:Boolean," // Temporary flag
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
-                        + "nNotsure:Integer" // Notsure validations
+                        + "nNotsure:Integer," // Notsure validations
+                        + "userIds:String," // List of User Ids
                 );
 
         /*
@@ -141,6 +142,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.agreeCount());
             featureBuilder.add(a.disagreeCount());
             featureBuilder.add(a.notsureCount());
+            featureBuilder.add("[" + a.usersList().mkString(",") + "]");
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
