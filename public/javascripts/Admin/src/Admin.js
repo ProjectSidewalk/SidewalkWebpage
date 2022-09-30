@@ -242,7 +242,7 @@ function Admin(_, $, difficultRegionIds) {
                 map = Choropleth(_, $, difficultRegionIds, mapTabMapParams, [], data1[0], data2[0], data3[0]);
             });
             // When the polygons have been rendered and the audited streets have loaded, the streets can be rendered.
-            var renderAuditedStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
+            var renderStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
                 var auditedStreets = { features: data2[0].features.filter(edges => edges.properties.audited) };
                 var unauditedStreets = { features: data2[0].features.filter(edges => !edges.properties.audited) };
                 auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets);
@@ -250,7 +250,7 @@ function Admin(_, $, difficultRegionIds) {
             });
             // When the audited streets have been rendered and the submitted labels have loaded,
             // the submitted labels can be rendered.
-            $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+            $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
                 mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), mapData, data2[0])
             })
             mapLoaded = true;

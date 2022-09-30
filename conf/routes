@@ -130,7 +130,7 @@ GET     /neighborhoods/difficult                             @controllers.Region
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
-GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets(filterLowQuality: Boolean ?= false)
+GET     /contribution/streets/all                            @controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false)
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
 GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
