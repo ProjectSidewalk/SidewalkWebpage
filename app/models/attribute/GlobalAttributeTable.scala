@@ -273,7 +273,7 @@ object GlobalAttributeTable {
           |INNER JOIN ($imageDates) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
           |LEFT JOIN (
           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-          |    SELECT global_attribute.global_attribute_id, array_to_string(array_agg(audit_task.user_id), ',') AS users_list
+          |    SELECT global_attribute.global_attribute_id, array_to_string(array_agg(DISTINCT audit_task.user_id), ',') AS users_list
           |    FROM global_attribute
           |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
           |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
