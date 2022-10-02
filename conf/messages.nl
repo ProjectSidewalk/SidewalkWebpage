@@ -16,10 +16,14 @@ dist.metric.abbr = km
 ok = OK
 cancel = Annuleer
 error = Error!
+yes.caps = Ja
+no.caps = Nee
 thanks = Dank je wel!
 username = Gebruikersnaam
 loading = Laden...
 loading.encouragement = Let''s go!
+test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
+dont.show.again = Laat niet opnieuw zien
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
@@ -140,7 +144,6 @@ audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
 audit.center.ui.add.tags = Voeg<br>Tags toe:
 audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
-audit.center.ui.show.again = Laat niet opnieuw zien
 
 audit.mission.complete.labels.title = Missie labels
 audit.mission.complete.progress.title = Wijk voortgang
@@ -221,6 +224,7 @@ authenticate.submit = Dien in
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
 authenticate.non.member = Nog geen account? <a href="{0}">Maak er een</a>
 authenticate.confirm.password = Bevestig wachtwoord
+authenticate.service.hours.title = Bent u van plan om te verzoeken dat uw werk via Project Sidewalk wordt meegeteld voor de gemeenschaps-/vrijwilligersdiensturen?
 authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">Gebruiksvoorwaarden en Privacybeleid</a>
 authenticate.signup = Een account maken
 authenticate.signup.new.account = Maak een nieuw account
@@ -236,7 +240,9 @@ authenticate.error.email.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al
 authenticate.error.password.length = Wachtwoord moet minimaal 6 tekens lang zijn
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
+authenticate.error.missing.service.hours = Gelieve te reageren op elke vraag
 authenticate.error.invalid.credentials = Ongeldige inloggegevens!
+authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
 reset.pw.forgot.title = Wachtwoord vergeten?
 reset.pw.forgot.submit.email = Geen zorgen, typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.

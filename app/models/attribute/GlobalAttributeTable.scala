@@ -225,7 +225,7 @@ object GlobalAttributeTable {
           |        SUM(label.disagree_count) AS disagree_count,
           |        SUM(label.notsure_count) AS notsure_count,
           |        TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
-          |        COUNT(label.time_created) AS label_count
+          |        COUNT(label.label_id) AS label_count
           |FROM global_attribute
           |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
           |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
@@ -252,8 +252,8 @@ object GlobalAttributeTable {
           |          label_type.label_type,
           |          global_attribute.lat,
           |          global_attribute.lng,
-          |          label.severity,
-          |          label.temporary,
+          |          global_attribute.severity,
+          |          global_attribute.temporary,
           |          validation_counts.agree_count,
           |          validation_counts.disagree_count,
           |          validation_counts.notsure_count,
@@ -268,9 +268,6 @@ object GlobalAttributeTable {
           |FROM global_attribute
           |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
           |INNER JOIN region ON global_attribute.region_id = region.region_id
-          |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
-          |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
-          |INNER JOIN label ON user_attribute_label.label_id = label.label_id
           |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
           |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
           |INNER JOIN ($imageDates) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id

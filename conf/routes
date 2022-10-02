@@ -25,6 +25,8 @@ GET     /labelingGuide/occlusion                             @controllers.Applic
 GET     /mobile                                              @controllers.ValidationController.mobileValidate
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
+GET     /serviceHoursInstructions                            @controllers.ApplicationController.serviceHoursInstructions
+GET     /timeCheck                                           @controllers.ApplicationController.timeCheck
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
@@ -128,7 +130,7 @@ GET     /neighborhoods/difficult                             @controllers.Region
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
-GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets(filterLowQuality: Boolean ?= false)
+GET     /contribution/streets/all                            @controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false)
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
 GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
@@ -140,8 +142,6 @@ GET     /userapi/validationCounts/all                        @controllers.UserPr
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
 PUT    /userapi/setUserOrg/:orgId                            @controllers.UserProfileController.setUserOrg(orgId: Int)
-
-# Geometry API
 
 # Access Feature and Access Score APIs
 GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String])

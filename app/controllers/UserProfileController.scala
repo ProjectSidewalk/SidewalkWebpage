@@ -9,7 +9,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.LabelFormat.labelMetadataUserDashToJson
-import models.audit.AuditTaskTable
+import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
 import models.mission.MissionTable
 import models.user.UserOrgTable
 import models.label.{LabelTable, LabelValidationTable}
@@ -75,17 +75,18 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Get the list of streets that have been audited by any user.
+   * Get the list of all streets and whether they have been audited or not, regardless of user.
    */
-  def getAllAuditedStreets(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
-    val streets = AuditTaskTable.selectStreetsAudited(filterLowQuality)
+  def getAllStreets(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
+    val streets: List[StreetEdgeWithAuditStatus] = AuditTaskTable.selectStreetsWithAuditStatus(filterLowQuality)
     val features: List[JsObject] = streets.map { edge =>
       val coordinates: Array[Coordinate] = edge.geom.getCoordinates
       val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
       val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
       val properties = Json.obj(
         "street_edge_id" -> edge.streetEdgeId,
-        "way_type" -> edge.wayType
+        "way_type" -> edge.wayType,
+        "audited" -> edge.audited
       )
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     }

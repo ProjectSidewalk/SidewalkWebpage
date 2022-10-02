@@ -1,6 +1,7 @@
 package controllers.helper;
 
 import java.io.*;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.zip.*;
 import org.geotools.data.*;
@@ -12,7 +13,6 @@ import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.locationtech.jts.geom.GeometryFactory;
-import scala.Option;
 import scala.runtime.AbstractFunction0;
 
 import models.attribute.GlobalAttributeForAPI;
@@ -259,7 +259,7 @@ public class ShapefilesCreatorHelper {
                         + "streetId:Integer," // StreetId
                         + "osmWayId:Integer," // osmWayId
                         + "score:Double," // street score
-                        + "audited:Boolean," // boolean representing whether the street is audited
+                        + "auditCount:Integer," // boolean representing whether the street is audited
                         + "sigRamp:Double," // curb ramp significance score
                         + "sigNoRamp:Double," // no Curb ramp significance score
                         + "sigObs:Double," // obstacle significance score
@@ -290,7 +290,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.streetID());
             featureBuilder.add(s.osmID());
             featureBuilder.add(s.score());
-            featureBuilder.add(s.audited());
+            featureBuilder.add(s.auditCount());
             featureBuilder.add(s.significanceScores()[0]);
             featureBuilder.add(s.significanceScores()[1]);
             featureBuilder.add(s.significanceScores()[2]);
@@ -299,8 +299,18 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.attributeScores()[1]);
             featureBuilder.add(s.attributeScores()[2]);
             featureBuilder.add(s.attributeScores()[3]);
-            featureBuilder.add(s.avgImageDate());
-            featureBuilder.add(s.avgLabelDate());
+            featureBuilder.add(s.avgImageDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
+            featureBuilder.add(s.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
@@ -362,8 +372,18 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(n.attributeScores()[1]);
             featureBuilder.add(n.attributeScores()[2]);
             featureBuilder.add(n.attributeScores()[3]);
-            featureBuilder.add(n.avgImageDate());
-            featureBuilder.add(n.avgLabelDate());
+            featureBuilder.add(n.avgImageDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
+            featureBuilder.add(n.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);

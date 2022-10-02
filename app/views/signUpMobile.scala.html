@@ -16,6 +16,7 @@
             @text(signInForm("email"), Messages("authenticate.email"), icon = "at")
             @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
             @password(signInForm("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
+            @serviceHours(signInForm("serviceHours"), Messages("authenticate.service.hours.title"), List(Messages("yes.caps"), Messages("no.caps")))
             <div class="form-group">
                 <div class="checkbox">
                     <label><input type="checkbox" id="sign-up-page-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
