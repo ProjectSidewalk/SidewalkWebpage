@@ -1,18 +1,16 @@
 /**
- * Queries the streets that the user audited and visualizes them as segments on the map.
- * @param map Map on which the audited streets are rendered.
+ * Takes a map and a set of streets, and visualizes them as segments on the map.
+ * @param map Map on which the streets are rendered.
  * @param params Object that includes properties that can change the process of street rendering.
  * @param params.labelPopup {boolean} whether to include a validation popup on labels on the map.
- * @param params.streetColor {string} color to use for streets on the map.
- * @param streetData Data about streets that have been audited.
+ * @param params.auditedStreetColor {string} color to use for audited streets on the map.
+ * @param params.unauditedStreetColor {string} optional color to use for unaudited streets on the map.
+ * @param streetData Data about streets to visualize.
 */
-function InitializeAuditedStreets(map, params, streetData) {
-    let auditedStreetLayer;
-    let distanceAudited = 0,  // Distance audited in km.
-    streetLinestringStyle = {
-        color: 'black',
-        opacity: 0.75
-    };
+function InitializeStreets(map, params, streetData) {
+    let streetLayer;
+    let distanceAudited = 0;  // Distance audited in km.
+    let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
         if (feature.properties && feature.properties.type) {
@@ -24,12 +22,12 @@ function InitializeAuditedStreets(map, params, streetData) {
             }
         })
     }
-    // Render audited street segments.
-    auditedStreetLayer = L.geoJson(streetData, {
+    // Render street segments.
+    streetLayer = L.geoJson(streetData, {
         pointToLayer: L.mapbox.marker.style,
         style: function (feature) {
             let style = {
-                color: params.streetColor,
+                color: !hasUnauditedStreets || feature.properties.audited ? params.auditedStreetColor : params.unauditedStreetColor,
                 opacity: 0.75,
                 'stroke-width': 3,
                 weight: 3
@@ -40,9 +38,11 @@ function InitializeAuditedStreets(map, params, streetData) {
     })
         .addTo(map);
     if (params.useTotalAuditedDistance) {
-        // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
+        // Calculate total distance audited in km/miles depending on the measurement system used in the user's country.
         for (let i = streetData.features.length - 1; i >= 0; i--) {
-            distanceAudited += turf.length(streetData.features[i], {units: i18next.t('common:unit-distance')});
+            if (!hasUnauditedStreets || streetData.features[i].properties.audited) {
+                distanceAudited += turf.length(streetData.features[i], {units: i18next.t('common:unit-distance')});
+            }
         }
         document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + ' ' + i18next.t('common:unit-distance-abbreviation');
         // Get total reward if a turker.
@@ -60,5 +60,5 @@ function InitializeAuditedStreets(map, params, streetData) {
             })
         }
     }
-    return auditedStreetLayer;
+    return streetLayer;
 }

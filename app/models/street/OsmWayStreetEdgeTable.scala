@@ -25,8 +25,8 @@ object OsmWayStreetEdgeTable {
     * @return a list of (streetEdge, OsmWayStreetEdge) pairs where each list element represents a
     *         streetEdge and its corresponding OsmWayStreetEdge.
     */
-  def selectOsmWayIdsForStreets(streetEdges: List[StreetEdgeInformation]): List[(StreetEdgeInformation, OsmWayStreetEdge)] = db.withSession { implicit session =>
-    val streetEdgeIds: List[Int] = streetEdges.map(_.streetEdge.streetEdgeId)
+  def selectOsmWayIdsForStreets(streetEdges: List[StreetEdgeInfo]): List[(StreetEdgeInfo, OsmWayStreetEdge)] = db.withSession { implicit session =>
+    val streetEdgeIds: List[Int] = streetEdges.map(_.street.streetEdgeId)
     val streetEdgesWithOsmIds = for {
       _osm <- osmStreetTable if _osm.streetEdgeId inSetBind streetEdgeIds
     } yield (

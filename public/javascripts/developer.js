@@ -113,7 +113,7 @@ $(document).ready(function () {
                 return {
                     weight: 5,
                     opacity:0.7,
-                    color: feature.properties.audited ? getColor(feature.properties.score) : 'gray',
+                    color: feature.properties.audit_count ? getColor(feature.properties.score) : 'gray',
                     dashArray: '1'
                 }
             }
