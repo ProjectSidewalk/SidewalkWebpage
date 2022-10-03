@@ -387,6 +387,7 @@ object LabelTable {
       s"""SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
+        |       comm.comment,
         |       gsv_data.image_date,
         |       lp.heading,
         |       lp.pitch,
@@ -408,6 +409,7 @@ object LabelTable {
         |       val.val_counts,
         |       lb_big.tag_list
         |FROM label AS lb1,
+        |     validation_task_comment AS comm,
         |     gsv_data,
         |     audit_task AS at,
         |     sidewalk_user AS u,
@@ -446,6 +448,7 @@ object LabelTable {
         |    AND at.user_id = u.user_id
         |    AND lb1.label_id = lp.label_id
         |    AND lb1.label_id = val.label_id
+        |    AND lb1.label_id = comm.label_id
         |    $labelFilter
         |    $labelerFilter
         |ORDER BY lb1.label_id DESC

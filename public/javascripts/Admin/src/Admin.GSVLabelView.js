@@ -47,32 +47,8 @@ function AdminGSVLabelView(admin) {
                                     i18next.t('common:label-map.submit') +
                                 '</button>' +
                             '</div>' +
-                            '<script>'+
-                                'var userComments;'+
-                                    '$.ajax({'+
-                                        'async: false,'+
-                                        'type: "GET",'+
-                                        'contentType: "application/json; charset=utf-8",'+
-                                        'url: "/labelmap/getcomment",'+
-                                        'data: {'+
-                                            'gsv_panorama_id: document.getElementById("pano-id").innerHTML'+
-                                        '},'+
-                                        'dataType: "json",'+
-                                        'success: function(data){'+
-                                            'userComments = data;'+
-                                        '}'+
-                                    '});'+
-                                'document.getElementById("label-comments").innerHTML = userComments["commend"];' +
-                            '</script>'+
                         '</div>' +
                         '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
-                        '<style>'+
-                            'td {'+
-                                'white-space:nowrap;'+
-                                'max-width: 350px;'+
-                                'overflow-y:hidden;'+
-                            '}'+
-                        '</style>'+
                             '<table class="table table-striped" style="font-size:small;>' +
                                 '<tr>' +
                                     '<th>Label Type</th>' +
@@ -99,8 +75,8 @@ function AdminGSVLabelView(admin) {
                                     '<td colspan="3" id="label-validations"></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                    '<th>Validator Comments</th>' +
-                                    '<td colspan="3" id="label-comments"></td>' +
+                                    '<th>' + i18next.t('common:comments') + '</th>' +
+                                    '<td id="validator-comments" colspan="3"></td>' +
                                 '</tr>' +
                                 '<tr>' +
                                     '<th>' + i18next.t('common:labeled') + '</th>' +
@@ -179,6 +155,7 @@ function AdminGSVLabelView(admin) {
         self.modalDescription = self.modal.find("#label-description");
         self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-date");
+        self.modalComments = self.modal.find("#validator-comments");
         self.modalTask = self.modal.find("#task");
         self.modalLabelId = self.modal.find("#label-id");
         self.modalPanoId = self.modal.find('#pano-id');
@@ -282,7 +259,7 @@ function AdminGSVLabelView(admin) {
 
         // Submit the comment via POST request.
         $.ajax({
-            async: false,
+            async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/comment",
             type: 'POST',
@@ -301,21 +278,6 @@ function AdminGSVLabelView(admin) {
                 console.error(error);
             }
         });
-        var userComments;
-        $.ajax({
-            async: false,
-            type: "GET",
-            contentType: "application/json; charset=utf-8",
-            url: "/labelmap/getcomment",
-            data: {
-                gsv_panorama_id: document.getElementById("pano-id").innerHTML
-            },
-            dataType: "json",
-            success: function(data){
-                userComments = data;
-            }
-        });
-        document.getElementById("label-comments").innerHTML = userComments["commend"];
     }
 
     /**
@@ -372,6 +334,7 @@ function AdminGSVLabelView(admin) {
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
+        self.modalComments.html(labelMetadata['comment']);
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
         if (self.admin) {
             self.modalLabelId.html(labelMetadata['label_id']);
