@@ -247,6 +247,14 @@ object GlobalAttributeTable {
           |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
           |) panorama_dates
           |GROUP BY panorama_dates.global_attribute_id"""
+    // Puts set of user_ids associated with the attribute in a comma-separated list in a string
+    val userIds = """SELECT global_attribute.global_attribute_id, array_to_string(array_agg(DISTINCT audit_task.user_id), ',') AS users_list
+          |    FROM global_attribute
+          |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+          |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+          |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
+          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+          |    GROUP BY global_attribute.global_attribute_id"""
     val attributes = Q.queryNA[GlobalAttributeForAPI](
           s"""SELECT global_attribute.global_attribute_id,
           |          label_type.label_type,
@@ -271,16 +279,7 @@ object GlobalAttributeTable {
           |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
           |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
           |INNER JOIN ($imageDates) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
-          |LEFT JOIN (
-          |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-          |    SELECT global_attribute.global_attribute_id, array_to_string(array_agg(DISTINCT audit_task.user_id), ',') AS users_list
-          |    FROM global_attribute
-          |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
-          |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
-          |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
-          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-          |    GROUP BY global_attribute.global_attribute_id
-          |) users_list ON global_attribute.global_attribute_id = users_list.global_attribute_id
+          |LEFT JOIN ($userIds) users_list ON global_attribute.global_attribute_id = users_list.global_attribute_id
           |WHERE label_type.label_type <> 'Problem'
           |    AND global_attribute.lat > $minLat
           |    AND global_attribute.lat < $maxLat
