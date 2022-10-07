@@ -13,10 +13,10 @@ function LabelCounter (d3) {
     var margin = {top: 10, right: 10, bottom: 10, left: 0};
     var padding = {left: 5, top: 15};
     var width = 200 - margin.left - margin.right;
-    var height = 40 - margin.top - margin.bottom;
+    var height = 34 - margin.top - margin.bottom;
     var colorScheme = util.misc.getLabelColors();
-    var imageWidth = 21;
-    var imageHeight = 21;
+    var imageWidth = 18;
+    var imageHeight = 18;
     var rightColumn = 1.8;
 
     // Prepare a group to store svg elements, and declare a text

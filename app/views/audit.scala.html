@@ -244,21 +244,34 @@
             </div>
             <div id="action-stack-control-holder"></div>
             <div id="status-holder">
-                <div class="status-box">
+                <div id="user-stats-status-box" class="status-box">
+                    <h1 class="status-holder-header-1">Overall Stats</h1>
+                    <div class="status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("dashboard.distance.icon.alt")"/>
+                        <span><strong>123</strong> <small>@Messages("audit.right.ui.distance")</small></span>
+                    </div>
+                    <div class="status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("dashboard.label.icon.alt")"/>
+                        <span><strong>12,378</strong> <small>@Messages("labels")</small></span>
+                    </div>
+                    <div class="status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' class="status-icon" alt="@Messages("dashboard.accuracy.icon.alt")"/>
+                        <span><strong>88.9%</strong> <small>accuracy</small></span>
+                    </div>
+                </div>
+                <div id="neighborhood-stats-status-box" class="status-box">
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
                     <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
                     <div class="status-row" id="neighborhood-status-row">
-                        <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet.png")' class="status-icon" alt="Map icon" align="">
-                            <span><span class="bold" id="status-audited-distance">0.00</span> <small>@Messages("audit.right.ui.distance")</small></span>
-                        </span>
-                        <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="status-icon" alt="Total label count" align="">
-                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
-                        </span>
+                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("dashboard.distance.icon.alt")" align="">
+                        <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
+                    </div>
+                    <div class="status-row" id="neighborhood-status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("dashboard.label.icon.alt")" align="">
+                        <span><strong id="status-neighborhood-label-count">0</strong> <small>@Messages("labels")</small></span>
                     </div>
                 </div>
-                <div class="status-box">
+                <div id="mission-completion-status-box" class="status-box">
                     <h1>@Messages("audit.right.ui.current.mission")</h1>
                     <h2 id="current-mission-description">Let's make this neighborhood accessible</h2>
                     <div id='status-current-mission-completion-bar'>
@@ -270,7 +283,7 @@
                     <h2 id="current-mission-reward" style="display:none"></h2>
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
-                <div class="status-box">
+                <div id="label-counter-status-box" class="status-box">
                     <div id="label-counter"></div>
                 </div>
             </div>

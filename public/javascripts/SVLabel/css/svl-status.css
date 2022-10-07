@@ -4,15 +4,15 @@
     padding: 0;
     position: absolute;
     left: 735px;
-    top: 31px;
+    top: 5px;
     width: 200px;
     color: rgb(127, 127, 127);
 }
 
 .status-box {
     border-bottom: 1px dotted #ccc;
-    margin: 3px 0 15px 0;
-    padding: 0 0 10px 0;
+    margin: 3px 0 5px 0;
+    padding: 0 0 5px 0;
     text-align: left;
 }
 
@@ -32,11 +32,18 @@
     margin: 1px 0 5px 1px;
 }
 
-.status-column-half {
-    white-space: nowrap;    
-    padding: 5px 5px 5px 5px;
-    margin: 5px 0 5px 0;
-    width: 50%;
+.status-box span {
+    font-size: 9pt;
+}
+
+#label-counter-status-box {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.status-row {
+    margin-bottom: 1px;
 }
 
 .status-icon {

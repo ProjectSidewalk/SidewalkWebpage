@@ -435,7 +435,6 @@ function Main (params) {
         svl.ui.status.currentMissionReward = $("#current-mission-reward");
         svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
-        svl.ui.status.statusRow = $("#neighborhood-status-row");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
