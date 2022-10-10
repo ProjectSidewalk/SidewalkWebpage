@@ -192,10 +192,30 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           }
         }
         Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
+      case None =>
+        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
+    }
+  }
+
+  /**
+   * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.
+   */
+  def getBasicUserStats = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val userId: UUID = user.userId
+        // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+        val auditedDistance: Float = {
+          if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(userId) * 1.60934.toFloat
+          else MissionTable.getDistanceAudited(userId)
+        }
+        Future.successful(Ok(Json.obj(
+          "distance_audited" -> auditedDistance,
+          "label_count" -> LabelTable.countLabels(userId),
+          "accuracy" -> LabelValidationTable.getUserAccuracy(userId)
+        )))
+      case None =>
+        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }
   }
 }

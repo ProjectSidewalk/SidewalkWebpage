@@ -615,22 +615,19 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
      * the current session.
-     * TODO Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood.
      * @param unit {string} Distance unit
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance (unit) {
         if (!unit) unit = {units: 'kilometers'};
         var distance = 0;
-        var sessionDistance = 0;
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
 
         if (neighborhood) {
-            sessionDistance = getCompletedTaskDistance(unit);
+            distance = getCompletedTaskDistance(unit);
         }
-
-        distance += sessionDistance;
-        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1));
+        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(2));
+        svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
         return this;
     }
 

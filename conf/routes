@@ -135,6 +135,7 @@ GET     /contribution/auditCounts/all                        @controllers.UserPr
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
 GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
 
+GET     /userapi/basicStats                                  @controllers.UserProfileController.getBasicUserStats
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
 GET     /userapi/validationCounts/all                        @controllers.UserProfileController.getAllValidationCounts

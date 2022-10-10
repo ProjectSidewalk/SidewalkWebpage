@@ -4,10 +4,6 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
     this._statusModel = statusModel;
     this._userModel = userModel;
 
-    this._statusModel.on("StatusFieldNeighborhood:setHref", function (href) {
-        self.setHref(href);
-    });
-
     this._neighborhoodModel.on("NeighborhoodContainer:neighborhoodChanged", function (parameters) {
         var newNeighborhood = parameters.newNeighborhood;
         self.setNeighborhoodName(newNeighborhood.getProperty("name"));
