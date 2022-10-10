@@ -16,11 +16,11 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
     });
 
     this.setAuditedDistance = function (distance) {
-        uiStatus.auditedDistance.html(distance.toFixed(2));
+        uiStatus.auditedDistance.html(i18next.t('common:format-number', { val: distance.toFixed(2) }));
     };
 
     this.setLabelCount = function (count) {
-        uiStatus.neighborhoodLabelCount.html(count);
+        uiStatus.neighborhoodLabelCount.html(i18next.t('common:format-number', { val: count }));
     };
 
     /**

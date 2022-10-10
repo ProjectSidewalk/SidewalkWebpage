@@ -4,6 +4,7 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "format-number": "{{val, number}}",
   "curb-ramp": "Trottoir oprit",
   "no-curb-ramp": "Ontbrekende trottoir oprit",
   "obstacle": "Obstakel op het pad",

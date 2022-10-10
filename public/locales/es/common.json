@@ -4,6 +4,7 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "format-number": "{{val, number}}",
   "curb-ramp": "Rampa peatonal",
   "no-curb-ramp": "Rampa peatonal ausente",
   "obstacle": "Obstáculo en la banqueta",
