@@ -88,8 +88,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         if (svl.isOnboarding()) return;
 
         // Update audited distance in both Overall and Neighborhood stats in right sidebar.
-        var unit = {units: i18next.t('common:unit-distance')};
-        var distance = svl.taskContainer.getCompletedTaskDistance(unit);
+        var distance = svl.taskContainer.getCompletedTaskDistance();
         svl.statusFieldNeighborhood.setAuditedDistance(distance);
         svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
 
