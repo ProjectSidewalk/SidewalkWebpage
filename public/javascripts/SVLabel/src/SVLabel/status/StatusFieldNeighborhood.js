@@ -16,7 +16,7 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
     });
 
     this.setAuditedDistance = function (distance) {
-        uiStatus.auditedDistance.html(distance);
+        uiStatus.auditedDistance.html(distance.toFixed(2));
     };
 
     this.setLabelCount = function (count) {

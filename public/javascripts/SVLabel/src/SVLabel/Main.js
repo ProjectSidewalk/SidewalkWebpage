@@ -358,7 +358,7 @@ function Main (params) {
         svl.taskContainer.renderTasksFromPreviousSessions();
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
-        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(2), unit);
+        svl.statusFieldNeighborhood.setAuditedDistance(distance, unit);
         svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
     }
 

@@ -626,7 +626,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (neighborhood) {
             distance = getCompletedTaskDistance(unit);
         }
-        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(2));
+        svl.statusFieldNeighborhood.setAuditedDistance(distance);
         svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
         return this;
     }
