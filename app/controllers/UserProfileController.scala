@@ -101,7 +101,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         val labels = regionId match {
-          case Some(rid) => LabelTable.getLabelLocations(user.userId, rid)
+          case Some(rid) => LabelTable.getLabelLocations(user.userId, Some(rid))
           case None => LabelTable.getLabelLocations(user.userId)
         }
 

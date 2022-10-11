@@ -1,7 +1,6 @@
 package models.label
 
 import com.vividsolutions.jts.geom.Point
-
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
@@ -11,6 +10,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
+import models.street.StreetEdgeRegionTable
 import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -20,7 +20,6 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.Json
-
 import java.io.InputStream
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -997,41 +996,20 @@ object LabelTable {
   }
 
   /**
-   * Returns a list of labels submitted by the given user.
+   * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
    */
-  def getLabelLocations(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+  def getLabelLocations(userId: UUID, regionId: Option[Int] = None): List[LabelLocation] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labelsWithExcludedUsers
-      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _lt <- labelTypes if _l.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _l.labelId === _lp.labelId
+      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
+      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _at.streetEdgeId === _ser.streetEdgeId
       if _at.userId === userId.toString
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.getOrElse(0F), _lp.lng.getOrElse(0F))
+      if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
+      if _lp.lat.isDefined && _lp.lng.isDefined
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.get, _lp.lng.get)
     _labels.list.map(LabelLocation.tupled)
-  }
-
-  def getLabelLocations(userId: UUID, regionId: Int): List[LabelLocation] = db.withSession { implicit session =>
-    val selectQuery = Q.query[(String, Int), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng,
-        |       region.region_id
-        |FROM label
-        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN label_point ON label.label_id = label_point.label_id
-        |INNER JOIN audit_task ON audit_task.audit_task_id = label.audit_task_id
-        |INNER JOIN street_edge_region ON street_edge_region.street_edge_id = audit_task.street_edge_id
-        |INNER JOIN region ON street_edge_region.region_id = region.region_id
-        |WHERE label.deleted = FALSE
-        |    AND label_point.lat IS NOT NULL
-        |    AND region.deleted = FALSE
-        |    AND audit_task.user_id = ?
-        |    AND region.region_id = ?""".stripMargin
-    )
-    selectQuery((userId.toString, regionId)).list
   }
 
   /**
