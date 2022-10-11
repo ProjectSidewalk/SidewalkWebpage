@@ -60,6 +60,12 @@ function StatusFieldOverall(uiStatus) {
             $('.popover').on('mouseleave', function() {
                 $(_this).popover('hide');
             });
+            // Log clicks to the link on to the User Dashboard.
+            if (result.accuracy !== null) {
+                $('#tooltip-dashboard-link').on('click', function() {
+                    svl.tracker.push('Click_AccuracyTooltipToDashboard');
+                });
+            }
         }).on('mouseleave', function() {
             var _this = this;
             setTimeout(function() {
