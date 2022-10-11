@@ -35,30 +35,39 @@ function StatusFieldOverall(uiStatus) {
         uiStatus.overallDistance.html(i18next.t('common:format-number', { val: sessionStartTotalDist.toFixed(2) }));
         stats.labelCount += result.label_count;
         uiStatus.overallLabelCount.html(i18next.t('common:format-number', { val: stats.labelCount }));
-        stats.accuracy = 100 * result.accuracy;
-        uiStatus.overallAccuracy.html(`${i18next.t('common:format-number', { val: stats.accuracy.toFixed(2) })}%`);
+
+        var tooltipText;
+        if (result.accuracy !== null) {
+            stats.accuracy = 100 * result.accuracy;
+            uiStatus.overallAccuracy.html(`${i18next.t('common:format-number', {val: stats.accuracy.toFixed(2)})}%`);
+            tooltipText = i18next.t('right-ui.accuracy-tooltip');
+        } else {
+            uiStatus.overallAccuracy.html('N/A');
+            tooltipText = i18next.t('right-ui.no-accuracy-tooltip');
+        }
+
+        // Initialize the tooltip popover on the accuracy rating. It should remain open when hovering over the tooltip.
+        // https://stackoverflow.com/a/19684440/9409728
+        uiStatus.overallAccuracyRow.popover({
+            trigger: 'manual',
+            html: true,
+            placement: 'top',
+            template: "<div class='popover' id='accuracy-rating-tooltip' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>",
+            content: tooltipText
+        }).on('mouseenter', function() {
+            var _this = this;
+            $(this).popover('show');
+            $('.popover').on('mouseleave', function() {
+                $(_this).popover('hide');
+            });
+        }).on('mouseleave', function() {
+            var _this = this;
+            setTimeout(function() {
+                if (!$(".popover:hover").length) {
+                    $(_this).popover('hide');
+                }
+            }, 400);
+        });
     });
 
-    // Initialize the tooltip popover on the accuracy rating. It should remain open when hovering over the tooltip.
-    // https://stackoverflow.com/a/19684440/9409728
-    uiStatus.overallAccuracyRow.popover({
-        trigger: 'manual',
-        html: true,
-        placement: 'top',
-        template: "<div class='popover' id='accuracy-rating-tooltip' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>",
-        content: i18next.t('right-ui.accuracy-tooltip')
-    }).on('mouseenter', function() {
-        var _this = this;
-        $(this).popover('show');
-        $('.popover').on('mouseleave', function() {
-            $(_this).popover('hide');
-        });
-    }).on('mouseleave', function() {
-        var _this = this;
-        setTimeout(function() {
-            if (!$(".popover:hover").length) {
-                $(_this).popover('hide');
-            }
-        }, 500);
-    });
 }
