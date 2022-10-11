@@ -1,7 +1,6 @@
-function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiStatus) {
+function StatusFieldNeighborhood (neighborhoodModel, userModel, uiStatus) {
     var self = this;
     this._neighborhoodModel = neighborhoodModel;
-    this._statusModel = statusModel;
     this._userModel = userModel;
 
     this._neighborhoodModel.on("NeighborhoodContainer:neighborhoodChanged", function (parameters) {
