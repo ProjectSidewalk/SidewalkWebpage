@@ -245,29 +245,29 @@
             <div id="action-stack-control-holder"></div>
             <div id="status-holder">
                 <div id="user-stats-status-box" class="status-box">
-                    <h1 class="status-holder-header-1">Overall Stats</h1>
+                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.overall.stats")</h1>
                     <div class="status-row">
-                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("dashboard.distance.icon.alt")"/>
+                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")"/>
                         <span><strong id="status-overall-audited-distance"></strong> <small>@Messages("audit.right.ui.distance")</small></span>
                     </div>
                     <div class="status-row">
-                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("dashboard.label.icon.alt")"/>
+                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")"/>
                         <span><strong id="status-overall-label-count"></strong> <small>@Messages("labels")</small></span>
                     </div>
                     <div id="accuracy-status-row" class="status-row" data-toggle="popover">
-                        <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' class="status-icon" alt="@Messages("dashboard.accuracy.icon.alt")"/>
-                        <span><strong id="status-overall-accuracy"></strong> <small>accuracy</small></span>
+                        <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' class="status-icon" alt="@Messages("accuracy.icon.alt")"/>
+                        <span><strong id="status-overall-accuracy"></strong> <small>@Messages("accuracy")</small></span>
                     </div>
                 </div>
                 <div id="neighborhood-stats-status-box" class="status-box">
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
                     <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@cityShortName</span>
                     <div class="status-row" id="neighborhood-status-row">
-                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("dashboard.distance.icon.alt")" align="">
+                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")" align="">
                         <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
                     </div>
                     <div class="status-row" id="neighborhood-status-row">
-                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("dashboard.label.icon.alt")" align="">
+                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")" align="">
                         <span><strong id="status-neighborhood-label-count">0</strong> <small>@Messages("labels")</small></span>
                     </div>
                 </div>
