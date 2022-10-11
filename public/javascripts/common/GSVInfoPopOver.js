@@ -157,7 +157,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
             if (!val) {
                 val = 'No Info';
             } else if (key === "Latitude" || key === 'Longitude') {
-                val += '°';
+                val = val.toFixed(8) + '°';
             }
             let valSpan = document.getElementById(`${key}-value`);
             valSpan.textContent = val;
