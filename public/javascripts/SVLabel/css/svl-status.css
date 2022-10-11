@@ -27,13 +27,18 @@
 }
 
 .status-box h2 {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: normal;
     margin: 1px 0 5px 1px;
 }
 
 .status-box span {
-    font-size: 9pt;
+    font-size: 10pt;
+    vertical-align: middle;
+}
+
+#status-neighborhood-name {
+    vertical-align: text-bottom;
 }
 
 #label-counter-status-box {
@@ -42,14 +47,33 @@
     padding-bottom: 0;
 }
 
-.status-row {
-    margin-bottom: 1px;
-}
-
 .status-icon {
-    width: 25px;
+    width: 20px;
 }
 
-#status-holder-neighborhood-name {
-    display: inline;
+#accuracy-rating-tooltip {
+    background-color:rgba(58,58,58, 0.9);
+    color: white;
+    width: 400px;
+    top: 18px;
+    border-radius: 15px;
+    font-size: 10px;
+}
+
+#accuracy-rating-tooltip a {
+    color: white;
+}
+
+.popover-content {
+    padding: 6px 10px;
+}
+
+#accuracy-rating-tooltip.top > .arrow {
+    left: 75px;
+    border-top-color:rgba(58,58,58, 0.9);
+}
+
+#accuracy-rating-tooltip.top > .arrow:after {
+    bottom: 2px;
+    border-top-color: rgba(58, 58, 58, 0.9);
 }

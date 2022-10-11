@@ -105,6 +105,7 @@
         }
     },
     "right-ui": {
+        "accuracy-tooltip": "La precisión se basa en validaciones de otros usuarios. Si su precisión es baja, consulte algunos errores recientes en <a href=\"/dashboard\" target=\"_blank\">su panel de usuario</a> para ayudarlo a mejorar.",
         "current-mission": {
             "message-first-mission": "Explora __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
             "message": "Explora __PLACEHOLDER__ de este barrio"

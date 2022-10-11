@@ -37,4 +37,27 @@ function StatusFieldOverall(uiStatus) {
         stats.accuracy = 100 * result.accuracy;
         uiStatus.overallAccuracy.html(`${i18next.t('common:format-number', { val: stats.accuracy.toFixed(2) })}%`);
     });
+
+    // Initialize the tooltip popover on the accuracy rating. It should remain open when hovering over the tooltip.
+    // https://stackoverflow.com/a/19684440/9409728
+    uiStatus.overallAccuracyRow.popover({
+        trigger: 'manual',
+        html: true,
+        placement: 'top',
+        template: "<div class='popover' id='accuracy-rating-tooltip' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>",
+        content: i18next.t('right-ui.accuracy-tooltip')
+    }).on('mouseenter', function() {
+        var _this = this;
+        $(this).popover('show');
+        $('.popover').on('mouseleave', function() {
+            $(_this).popover('hide');
+        });
+    }).on('mouseleave', function() {
+        var _this = this;
+        setTimeout(function() {
+            if (!$(".popover:hover").length) {
+                $(_this).popover('hide');
+            }
+        }, 500);
+    });
 }

@@ -432,6 +432,7 @@ function Main (params) {
         svl.ui.status.holder = $("#status-holder");
         svl.ui.status.overallDistance = $("#status-overall-audited-distance");
         svl.ui.status.overallLabelCount = $("#status-overall-label-count");
+        svl.ui.status.overallAccuracyRow = $('#accuracy-status-row');
         svl.ui.status.overallAccuracy = $("#status-overall-accuracy");
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");

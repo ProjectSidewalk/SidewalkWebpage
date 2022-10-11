@@ -254,14 +254,14 @@
                         <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("dashboard.label.icon.alt")"/>
                         <span><strong id="status-overall-label-count"></strong> <small>@Messages("labels")</small></span>
                     </div>
-                    <div class="status-row">
+                    <div id="accuracy-status-row" class="status-row" data-toggle="popover">
                         <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' class="status-icon" alt="@Messages("dashboard.accuracy.icon.alt")"/>
                         <span><strong id="status-overall-accuracy"></strong> <small>accuracy</small></span>
                     </div>
                 </div>
                 <div id="neighborhood-stats-status-box" class="status-box">
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
-                    <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
+                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@cityShortName</span>
                     <div class="status-row" id="neighborhood-status-row">
                         <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("dashboard.distance.icon.alt")" align="">
                         <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
