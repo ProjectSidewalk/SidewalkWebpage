@@ -295,12 +295,13 @@ function LabelCounter (d3) {
             $(document).trigger('RemoveLabel');
         }
 
-        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (keys.indexOf(key) === -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
         update(key);
 
+        svl.statusFieldOverall.decrementLabelCount();
         if ("labelContainer" in svl) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
             var count = svl.labelContainer.countLabels(regionId) - 1;
@@ -314,12 +315,13 @@ function LabelCounter (d3) {
      * @param key {string} Label type
      */
     this.increment = function (key) {
-        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (keys.indexOf(key) === -1) { key = "Other"; }
         if (key in dotPlots) {
             dotPlots[key].count += 1;
             update(key);
         }
 
+        svl.statusFieldOverall.incrementLabelCount();
         if ("labelContainer" in svl) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
             var count = svl.labelContainer.countLabels(regionId) + 1;
