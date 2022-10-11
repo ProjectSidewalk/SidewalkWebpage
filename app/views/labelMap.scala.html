@@ -90,7 +90,7 @@
                         <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="filterLayers('incorrect', map.mapData)"></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
                         <td>Unvalidated</td>
                         <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.mapData)"></td>
                     </tr>
@@ -98,6 +98,11 @@
                         <td id="map-legend-audited-street"></td>
                         <td>Audited Street</td>
                         <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="toggleAuditedStreetLayer(map.map, map.auditedStreetLayer)"></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-unaudited-street"></td>
+                        <td>Unaudited Street</td>
+                        <td><input type="checkbox" value="displaylabel" id="unauditedstreet" checked="true" onclick="toggleUnauditedStreetLayer(map.map, map.unauditedStreetLayer)"></td>
                     </tr>
                 </table>
             </div>
@@ -107,7 +112,7 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
@@ -119,7 +124,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeStreets.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
@@ -221,36 +226,42 @@
             var streetParams = {
                 labelPopup: true,
                 includeLabelColor: true,
-                streetColor: 'black'
+                auditedStreetColor: 'black',
+                unauditedStreetColor: 'gray'
             };
+
             var self = {};
             var map;
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
             var loadMapParams = $.getJSON('/cityMapParams');
-            var loadAuditedStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
+            var loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
                 map = Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
                 self.map = map;
             });
-            // When polygons have rendered and audited streets have loaded, audited streets can be rendered.
-            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-                self.auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
+            // When polygons have rendered and audited streets have loaded, streets can be rendered.
+            var renderStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
+                var auditedStreets = { features: data2[0].features.filter(edges => edges.properties.audited) };
+                var unauditedStreets = { features: data2[0].features.filter(edges => !edges.properties.audited) };
+                self.auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets);
+                self.unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets);
             });
-            // When audited streets have rendered and submitted labels have loaded, submitted labels can be rendered.
-            $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+
+            // When streets have rendered and submitted labels have loaded, submitted labels can be rendered.
+            $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
                 self.mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(false), InitializeMapLayerContainer(), data2[0]);
-            })
+            });
             window.map = self;
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("map.mapData.lowQualityUsers = true;");
             console.log("filterLayers('',map.mapData);");
         });
-        $(window).load(function() {
+        $(window).load(function () {
             $('.loader').fadeOut('slow');
-        })
+        });
     });
 
     // Fully destroy label modal when it's closed to prevent weird behavior when opening another.

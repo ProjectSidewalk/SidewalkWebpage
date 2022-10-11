@@ -10,8 +10,8 @@ import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.street.StreetEdgePriorityTable
-import models.user.{User, UserRoleTable, UserStatTable}
 import models.region.RegionTable
+import models.user.{UserRoleTable, UserStatTable}
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -73,6 +73,8 @@ case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
     Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
   }
 }
+
+case class StreetEdgeWithAuditStatus(streetEdgeId: Int, geom: LineString, wayType: String, audited: Boolean)
 
 class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
@@ -282,7 +284,7 @@ object AuditTaskTable {
     } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
 
     val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithoutDeletedOrOnboarding).on(_._3 === _.auditTaskId)
+      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithExcludedUsers).on(_._3 === _.auditTaskId)
     } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val tasksWithLabels = for {
@@ -300,9 +302,9 @@ object AuditTaskTable {
   }
 
   /**
-    * Return audited street edges.
+    * Return all street edges and whether they have been audited or not.
     */
-  def selectStreetsAudited(filterLowQuality: Boolean): List[StreetEdge] = db.withSession { implicit session =>
+  def selectStreetsWithAuditStatus(filterLowQuality: Boolean): List[StreetEdgeWithAuditStatus] = db.withSession { implicit session =>
     // Optionally filter out data marked as low quality.
     val _filteredTasks = if (filterLowQuality) {
       for {
@@ -314,11 +316,15 @@ object AuditTaskTable {
       completedTasks
     }
 
-    val _streetEdges = for {
-      (_tasks, _edges) <- _filteredTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _edges
+    // Filter out the duplicated street edges.
+    val _distinctCompleted = _filteredTasks.groupBy(_.streetEdgeId).map(_._1)
 
-    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edges.
+    // Left join list of streets with list of audited streets to record whether each street has been audited.
+    val streetsWithAuditedStatus = streetEdgesWithoutDeleted
+      .leftJoin(_distinctCompleted).on(_.streetEdgeId === _)
+      .map(s => (s._1.streetEdgeId, s._1.geom, s._1.wayType, !s._2.?.isEmpty))
+
+    streetsWithAuditedStatus.list.map(StreetEdgeWithAuditStatus.tupled)
   }
 
   /**

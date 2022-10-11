@@ -244,21 +244,34 @@
             </div>
             <div id="action-stack-control-holder"></div>
             <div id="status-holder">
-                <div class="status-box">
-                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
-                    <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
-                    <div class="status-row" id="neighborhood-status-row">
-                        <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet.png")' class="status-icon" alt="Map icon" align="">
-                            <span><span class="bold" id="status-audited-distance">0.00</span> <small>@Messages("audit.right.ui.distance")</small></span>
-                        </span>
-                        <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="status-icon" alt="Total label count" align="">
-                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
-                        </span>
+                <div id="user-stats-status-box" class="status-box">
+                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.overall.stats")</h1>
+                    <div class="status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")"/>
+                        <span><strong id="status-overall-audited-distance"></strong> <small>@Messages("audit.right.ui.distance")</small></span>
+                    </div>
+                    <div class="status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")"/>
+                        <span><strong id="status-overall-label-count"></strong> <small>@Messages("labels")</small></span>
+                    </div>
+                    <div id="accuracy-status-row" class="status-row" data-toggle="popover">
+                        <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' class="status-icon" alt="@Messages("accuracy.icon.alt")"/>
+                        <span><strong id="status-overall-accuracy"></strong> <small>@Messages("accuracy")</small></span>
                     </div>
                 </div>
-                <div class="status-box">
+                <div id="neighborhood-stats-status-box" class="status-box">
+                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
+                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@cityShortName</span>
+                    <div class="status-row" id="neighborhood-status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")" align="">
+                        <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
+                    </div>
+                    <div class="status-row" id="neighborhood-status-row">
+                        <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")" align="">
+                        <span><strong id="status-neighborhood-label-count">0</strong> <small>@Messages("labels")</small></span>
+                    </div>
+                </div>
+                <div id="mission-completion-status-box" class="status-box">
                     <h1>@Messages("audit.right.ui.current.mission")</h1>
                     <h2 id="current-mission-description">Let's make this neighborhood accessible</h2>
                     <div id='status-current-mission-completion-bar'>
@@ -270,7 +283,7 @@
                     <h2 id="current-mission-reward" style="display:none"></h2>
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
-                <div class="status-box">
+                <div id="label-counter-status-box" class="status-box">
                     <div id="label-counter"></div>
                 </div>
             </div>
@@ -278,7 +291,7 @@
                 <div id="alert-holder" style="display: none">
                     <div id="alert">
                         <span id="alert-message"></span>
-                        <a id="alert-dont-show" href="#">@Messages("audit.center.ui.show.again")</a>
+                        <a id="alert-dont-show" href="#">@Messages("dont.show.again")</a>
                         <a id="alert-close" href="#"><span class="glyphicon glyphicon-remove"></span></a>
                     </div>
                 </div>
@@ -792,7 +805,7 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>

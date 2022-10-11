@@ -29,7 +29,7 @@ function AdminUser(user) {
     var streetParams = {
         labelPopup: true,
         includeLabelCounts: true,
-        streetColor: '#000000',
+        auditedStreetColor: 'black',
         useTotalAuditedDistance: true,
         progressElement: 'td-total-distance-audited-admin'
     };
@@ -47,7 +47,7 @@ function AdminUser(user) {
     // When the polygons have been rendered and the audited streets have loaded,
     // the audited streets can be rendered.
     var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-        InitializeAuditedStreets(map, streetParams, data2[0]);
+        InitializeStreets(map, streetParams, data2[0]);
     });
     // When the audited streets have been rendered and the submitted labels have loaded,
     // the submitted labels can be rendered.

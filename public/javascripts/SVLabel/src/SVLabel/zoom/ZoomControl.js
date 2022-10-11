@@ -173,7 +173,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         var pov = mapService.getPov();
 
-        if (pov.zoom < properties.maxZoomLevel && zoomBlink.isBlinking == false) {
+        if (pov.zoom < properties.maxZoomLevel && zoomBlink.isBlinking === false) {
           svl.zoomShortcutAlert.zoomClicked();
         }
 
@@ -196,7 +196,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         var pov = mapService.getPov();
 
-        if (pov.zoom > properties.minZoomLevel && zoomBlink.isBlinking == false) {
+        if (pov.zoom > properties.minZoomLevel && zoomBlink.isBlinking === false) {
           svl.zoomShortcutAlert.zoomClicked();
         }
 

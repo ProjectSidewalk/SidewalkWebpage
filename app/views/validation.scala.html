@@ -11,7 +11,7 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <div class="container tool-ui" style = "visibility: visible;">
@@ -45,8 +45,6 @@
                 <div id="upper-menu-title-bar"></div>
                 <div id="label-visibility-control-holder">
                     <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
-                        <br/>@Html(Messages("validate.top.ui.hide.label"))
                     </button>
                 </div>
 
@@ -80,7 +78,7 @@
                             @Html(Messages("validate.bottom.ui.disagree"))
                         </button>
                         <button id="validation-not-sure-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
+                            <img src='@routes.Assets.at("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
                             @Html(Messages("validate.bottom.ui.not.sure"))
                         </button>
                     </div>

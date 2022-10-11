@@ -1,25 +1,23 @@
-@import models.user.User
 @import models.user.VersionTable
-@(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
-
-
-@import views.html.bootstrap._
-@import com.mohiva.play.silhouette.impl.providers._
-@import views.html.bootstrap._
-@import forms.SignInForm
-
 @import play.api.Play
 @import play.api.Play.current
+
+@(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
+
+@cityId = @{Play.configuration.getString("city-id").get}
+@environmentType = @{Play.configuration.getString("environment-type").get}
+@googleAnalytics4Id = @{Play.configuration.getString(s"city-params.google-analytics-4-id.${environmentType}.${cityId}")}
+@prodURL = @{Play.configuration.getString(s"city-params.landing-page-url.prod.${cityId}")}
 
 <!DOCTYPE html>
 <head>
     <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=@{Play.configuration.getString("city-params.google-analytics-4-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=@googleAnalytics4Id"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', '@{Play.configuration.getString("city-params.google-analytics-4-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}');
+        gtag('config', '@googleAnalytics4Id');
     </script>
     <meta charset="utf-8" />
     <title>@title</title>
@@ -48,8 +46,38 @@
 </head>
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
-        @content
+        <!-- Banner is only visible if user is on test server-->
+        @if(environmentType == "test") {
+            <div class="test-server-banner">
+                <div class="test-server-banner-content">
+                    <div class="test-server-banner-text">
+                        @Html(Messages("test.server.warning.message")): <a href="@prodURL">@prodURL</a>
+                    </div>
+                    <button class="test-server-banner-dont-show-again" type="button">
+                        <span>@Messages("dont.show.again")</span>
+                    </button>
+                    <button class="test-server-banner-close" type="button">
+                        <span class="glyphicon glyphicon-remove"></span>
+                    </button>
+                </div>
+            </div>
 
+            <script>
+                // Hide the warning banner if the user has clicked the "don't show again" button in the past.
+                if (JSON.parse(window.localStorage.getItem('hideTestServerWarningBanner'))) {
+                    document.getElementsByClassName('test-server-banner')[0].style.display = 'none';
+                }
+                // If they click the "don't show again" button, save that info in local storage.
+                document.querySelector(".test-server-banner-dont-show-again").addEventListener("click", function() {
+                    this.closest(".test-server-banner").style.display = "none";
+                    window.localStorage.setItem('hideTestServerWarningBanner', true);
+                });
+                document.querySelector(".test-server-banner-close").addEventListener("click", function() {
+                    this.closest(".test-server-banner").style.display = "none";
+                });
+            </script>
+        }
+        @content
     </div>
     @if(url.getOrElse("") != "/mobile") {
         <head>
@@ -66,7 +94,6 @@
         <!-- footer code found in app/views/footer.scala.html -->
         @footer()
     } else {
-
         <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
         <div class="container" id="footer-container">
@@ -133,7 +160,7 @@
     }
 
     <script>
-        var oldAnalyticsStr = "@{Play.configuration.getString("city-params.old-google-analytics-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}";
+        var oldAnalyticsStr = "@{Play.configuration.getString(s"city-params.old-google-analytics-id.${environmentType}.${cityId}")}";
         if (oldAnalyticsStr) {
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
                 (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

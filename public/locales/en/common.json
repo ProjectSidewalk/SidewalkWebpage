@@ -4,6 +4,16 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "format-number": "{{val, number}}",
+  "curb-ramp": "Curb Ramp",
+  "no-curb-ramp": "Missing Curb Ramp",
+  "obstacle": "Obstacle in Path",
+  "surface-problem": "Surface Problem",
+  "occlusion": "Can't See Sidewalk",
+  "no-sidewalk" : "No Sidewalk",
+  "crosswalk" : "Crosswalk",
+  "signal" : "Pedestrian Signal",
+  "other": "Other",
   "missing-sidewalks": "Missing Sidewalks",
   "missing-ramps": "Missing Ramps",
   "surface-problems": "Surface Problems",
@@ -93,16 +103,5 @@
     "APS": "APS",
     "missing crosswalk": "missing crosswalk",
     "no bus stop access": "no bus stop access"
-  },
-  "gallery": {
-    "curb-ramp": "Curb Ramp",
-    "no-curb-ramp": "Missing Curb Ramp",
-    "obstacle": "Obstacle in Path",
-    "surface-problem": "Surface Problem",
-    "occlusion": "Can't See Sidewalk",
-    "no-sidewalk" : "No Sidewalk",
-    "crosswalk" : "Crosswalk",
-    "signal" : "Pedestrian Signal",
-    "other": "Other"
   }
 }

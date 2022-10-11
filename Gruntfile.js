@@ -39,7 +39,8 @@ module.exports = function(grunt) {
             },
             dist_progress: {
                 src: [
-                    'public/javascripts/Progress/src/*.js'
+                    'public/javascripts/Progress/src/*.js',
+                    'public/javascripts/common/Utilities.js'
                 ],
                 dest: 'public/javascripts/Progress/build/Progress.js'
             },

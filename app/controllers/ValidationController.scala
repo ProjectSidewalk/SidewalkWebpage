@@ -1,6 +1,5 @@
 package controllers
 
-import scala.util.matching.Regex
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -8,13 +7,15 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils
 import formats.json.CommentSubmissionFormats._
+import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.label.LabelTable.LabelValidationMetadata
 import models.label.LabelValidationTable
-import models.mission.{Mission, MissionTable, MissionSetProgress}
+import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.validation._
 import models.user._
 import play.api.libs.json._
@@ -30,19 +31,6 @@ import scala.concurrent.Future
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val validationMissionStr: String = "validation"
-
-  /**
-    * Returns true if the user is on mobile, false if the user is not on mobile.
-    */
-    def isMobile[A](implicit request: Request[A]): Boolean = {
-      val mobileOS: Regex = "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
-      request.headers.get("User-Agent").exists(agent => {
-        agent match{
-          case mobileOS(a) => true
-          case _ => false
-        }
-      })
-    }
 
   /**
     * Returns the validation page.
@@ -72,7 +60,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     request.identity match {
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_MobileValidate")
-        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
+        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !ControllerUtils.isMobile(request)) {
           Future.successful(Redirect("/audit"))
         } else {
           Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
@@ -138,7 +126,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val labelsToRetrieve: Int = labelsToValidate - labelsProgress
 
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType, skippedLabelId = None)
-    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelFormat.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
   }

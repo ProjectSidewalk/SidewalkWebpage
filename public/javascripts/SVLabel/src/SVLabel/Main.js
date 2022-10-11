@@ -82,7 +82,8 @@ function Main (params) {
         svl.navigationModel._mapService = svl.map;
 
         svl.statusField = new StatusField(svl.ui.status);
-        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
+        svl.statusFieldOverall = new StatusFieldOverall(svl.ui.status);
+        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
@@ -358,8 +359,9 @@ function Main (params) {
 
         svl.taskContainer.renderTasksFromPreviousSessions();
         var unit = {units: i18next.t('common:unit-distance')};
-        var distance = svl.taskContainer.getCompletedTaskDistance(unit);
-        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
+        var distance = svl.taskContainer.getCompletedTaskDistance();
+        svl.statusFieldNeighborhood.setAuditedDistance(distance, unit);
+        svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
     }
 
     // This is a callback function that is executed after every loading process is done.
@@ -431,6 +433,10 @@ function Main (params) {
         // Status holder
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
+        svl.ui.status.overallDistance = $("#status-overall-audited-distance");
+        svl.ui.status.overallLabelCount = $("#status-overall-label-count");
+        svl.ui.status.overallAccuracyRow = $('#accuracy-status-row');
+        svl.ui.status.overallAccuracy = $("#status-overall-accuracy");
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
@@ -438,7 +444,6 @@ function Main (params) {
         svl.ui.status.currentMissionReward = $("#current-mission-reward");
         svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
-        svl.ui.status.statusRow = $("#neighborhood-status-row");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
