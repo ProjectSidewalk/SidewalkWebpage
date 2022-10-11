@@ -4,6 +4,7 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "format-number": "{{val, number}}",
   "curb-ramp": "Curb Ramp",
   "no-curb-ramp": "Missing Curb Ramp",
   "obstacle": "Obstacle in Path",

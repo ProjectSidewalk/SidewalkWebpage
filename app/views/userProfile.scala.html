@@ -69,13 +69,13 @@
                 <span class="user-stats-header">@Messages("dashboard.distance")</span>
                 <span class="user-stats-header">@Messages("dashboard.labels")</span>
                 <span class="user-stats-header">@Messages("dashboard.validations")</span>
-                <span class="user-stats-header">@Messages("dashboard.accuracy")</span>
+                <span class="user-stats-header">@Messages("accuracy.caps")</span>
 
                 <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("dashboard.distance.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("dashboard.label.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
                 <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("dashboard.accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
+                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
                 <span class="user-stats-stat">@MissionTable.countCompletedMissions(user.get.userId, true, false)</span>
                 <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
