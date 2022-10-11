@@ -5,8 +5,8 @@
  */
 function StatusFieldOverall(uiStatus) {
     var self = this;
-    var sessionStartTotalDistance = null;
-    var sessionStartNeighborhoodDistance = null;
+    var sessionStartTotalDist = null;
+    var sessionStartNeighborhoodDist = null;
     var stats = {
         distance: 0.0,
         labelCount: 0,
@@ -24,14 +24,15 @@ function StatusFieldOverall(uiStatus) {
     }
 
     this.setNeighborhoodAuditedDistance = function (neighborhoodDistance) {
-        if (!sessionStartNeighborhoodDistance) sessionStartNeighborhoodDistance = neighborhoodDistance;
-        stats.distance = sessionStartTotalDistance - sessionStartNeighborhoodDistance + neighborhoodDistance;
+        if (!sessionStartNeighborhoodDist) sessionStartNeighborhoodDist = neighborhoodDistance;
+        stats.distance = sessionStartTotalDist - sessionStartNeighborhoodDist + neighborhoodDistance;
         uiStatus.overallDistance.html(i18next.t('common:format-number', { val: stats.distance.toFixed(2) }));
     }
 
     // Query backend for user stats, store in HTML elements.
     $.getJSON('/userapi/basicStats', function (result) {
-        sessionStartTotalDistance = result.distance_audited;
+        sessionStartTotalDist = result.distance_audited;
+        uiStatus.overallDistance.html(i18next.t('common:format-number', { val: sessionStartTotalDist.toFixed(2) }));
         stats.labelCount += result.label_count;
         uiStatus.overallLabelCount.html(i18next.t('common:format-number', { val: stats.labelCount }));
         stats.accuracy = 100 * result.accuracy;
