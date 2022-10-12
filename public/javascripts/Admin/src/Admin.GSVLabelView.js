@@ -329,11 +329,11 @@ function AdminGSVLabelView(admin) {
     }
 
     function _handleData(labelMetadata) {
-        // Pass a callback function that fills in the pano lat/lng
+        // Pass a callback function that fills in the pano lat/lng.
         var panoCallback = function () {
             var lat = self.panorama.getPosition().lat;
             var lng = self.panorama.getPosition().lng;
-            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}">View in Google Street View</a>`);
+            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}" target="_blank">View in Google Street View</a>`);
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
         }
@@ -363,8 +363,8 @@ function AdminGSVLabelView(admin) {
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
         self.modalLabelId.html(labelMetadata['label_id']);
-        self.modalStreetId.html(labelMetadata['label_id']);
-        self.modalRegionId.html(labelMetadata['label_id']);
+        self.modalStreetId.html(labelMetadata['street_edge_id']);
+        self.modalRegionId.html(labelMetadata['region_id']);
         if (self.admin) {
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
                 labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +

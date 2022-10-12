@@ -142,12 +142,12 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
-  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String, heading: Float,
-                           pitch: Float, zoom: Int, canvasXY: (Int, Int), canvasWidth: Int, canvasHeight: Int,
-                           auditTaskId: Int, userId: String, username: String, timestamp: java.sql.Timestamp,
-                           labelTypeKey: String, labelTypeValue: String, severity: Option[Int], temporary: Boolean,
-                           description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
-                           tags: List[String])
+  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String,
+                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), canvasWidthHeight: (Int, Int),
+                           auditTaskId: Int, streetEdgeId: Int, regionId: Int, userId: String, username: String,
+                           timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
+                           severity: Option[Int], temporary: Boolean, description: Option[String],
+                           userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                                    canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, labelType: String,
@@ -176,9 +176,9 @@ object LabelTable {
 
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
-      r.nextInt, r.nextString, r.nextBoolean, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, (r.nextInt, r.nextInt),
-      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp, r.nextString, r.nextString,
-      r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
+      r.nextInt, r.nextString, r.nextBoolean, r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
+      (r.nextInt, r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
+      r.nextTimestamp, r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
@@ -395,6 +395,8 @@ object LabelTable {
         |       lp.canvas_width,
         |       lp.canvas_height,
         |       lb1.audit_task_id,
+        |       lb1.street_edge_id,
+        |       ser.region_id,
         |       u.user_id,
         |       u.username,
         |       lb1.time_created,
@@ -409,6 +411,7 @@ object LabelTable {
         |FROM label AS lb1,
         |     gsv_data,
         |     audit_task AS at,
+        |     street_edge_region AS ser,
         |     sidewalk_user AS u,
         |     label_point AS lp,
         |     (
@@ -443,6 +446,7 @@ object LabelTable {
         |    AND lb1.audit_task_id = at.audit_task_id
         |    AND lb1.label_id = lb_big.label_id
         |    AND at.user_id = u.user_id
+        |    AND lb1.street_edge_id = ser.street_edge_id
         |    AND lb1.label_id = lp.label_id
         |    AND lb1.label_id = val.label_id
         |    $labelFilter
