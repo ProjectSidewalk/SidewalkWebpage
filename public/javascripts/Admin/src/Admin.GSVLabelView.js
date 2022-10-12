@@ -153,8 +153,6 @@ function AdminGSVLabelView(admin) {
         self.modalLabelId = self.modal.find("#label-id");
         self.modalPanoId = self.modal.find('#pano-id');
         self.modalInfoHolder = self.modal.find('#info-popover-holder');
-
-        self.infoPopover = new GSVInfoPopOver(self.modalInfoHolder, self.panorama.panorama, self.panorama.getPosition, self.panorama.getPanoId, null, null, self.panorama.getPov);
     }
 
     /**
