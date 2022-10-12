@@ -85,13 +85,33 @@ function AdminGSVLabelView(admin) {
                                     '<tr>' +
                                         '<th>Pano ID</th>' +
                                         '<td id="pano-id" colspan="3"></td>' +
-                                    '</tr>';
-        if (self.admin) {
-            modalText +=
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Google Street View</th>' +
+                                        '<td id="view-in-gsv" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Latitude</th>' +
+                                        '<td id="lat" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Longitude</th>' +
+                                        '<td id="lng" colspan="3"></td>' +
+                                    '</tr>' +
                                     '<tr>' +
                                         '<th>Label ID</th>' +
                                         '<td id="label-id" colspan="3"></td>' +
                                     '</tr>' +
+                                    '<tr>' +
+                                        '<th>Street ID</th>' +
+                                        '<td id="street-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Region ID</th>' +
+                                        '<td id="region-id" colspan="3"></td>' +
+                                    '</tr>';
+        if (self.admin) {
+            modalText +=
                                     '<tr>' +
                                         '<th>Task ID</th>' +
                                         '<td id="task"></td>' +
@@ -150,8 +170,13 @@ function AdminGSVLabelView(admin) {
         self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-date");
         self.modalTask = self.modal.find("#task");
-        self.modalLabelId = self.modal.find("#label-id");
         self.modalPanoId = self.modal.find('#pano-id');
+        self.modalGsvLink = self.modal.find('#view-in-gsv');
+        self.modalLat = self.modal.find('#lat');
+        self.modalLng = self.modal.find('#lng');
+        self.modalLabelId = self.modal.find("#label-id");
+        self.modalStreetId = self.modal.find('#street-id');
+        self.modalRegionId = self.modal.find('#region-id');
         self.modalInfoHolder = self.modal.find('#info-popover-holder');
     }
 
@@ -304,8 +329,16 @@ function AdminGSVLabelView(admin) {
     }
 
     function _handleData(labelMetadata) {
+        // Pass a callback function that fills in the pano lat/lng
+        var panoCallback = function () {
+            var lat = self.panorama.getPosition().lat;
+            var lng = self.panorama.getPosition().lng;
+            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}">View in Google Street View</a>`);
+            self.modalLat.html(lat.toFixed(8) + '°');
+            self.modalLng.html(lng.toFixed(8) + '°');
+        }
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
-            labelMetadata['pitch'], labelMetadata['zoom']);
+            labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'],
@@ -320,17 +353,19 @@ function AdminGSVLabelView(admin) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
         self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
-        self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalValidations.html(validationsText);
+        self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
+        self.modalLabelId.html(labelMetadata['label_id']);
+        self.modalStreetId.html(labelMetadata['label_id']);
+        self.modalRegionId.html(labelMetadata['label_id']);
         if (self.admin) {
-            self.modalLabelId.html(labelMetadata['label_id']);
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
                 labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
                 labelMetadata['username'] + "</a>");

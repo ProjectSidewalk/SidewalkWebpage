@@ -115,8 +115,9 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
      * @param heading
      * @param pitch
      * @param zoom
+     * @param callbackParam
      */
-    function setPano(panoId, heading, pitch, zoom) {
+    function setPano(panoId, heading, pitch, zoom, callbackParam) {
         if (typeof google != "undefined") {
             self.panorama.registerPanoProvider(function(pano) {
                 if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
@@ -169,6 +170,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 } else {
                     setTimeout(callback, 200, n - 1);
                 }
+                callbackParam();
             }
             setTimeout(callback, 200, 10);
         }
