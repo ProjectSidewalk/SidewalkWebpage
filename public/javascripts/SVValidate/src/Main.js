@@ -147,7 +147,8 @@ function Main (param) {
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
-        svv.validationContainer = new ValidationContainer(param.labelList);
+        svv.labelContainer = new LabelContainer();
+        svv.panoramaContainer = new PanoramaContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
@@ -170,7 +171,9 @@ function Main (param) {
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-        svv.infoPopover = new GSVInfoPopOver(svv.ui.dateHolder, svv.panorama.getPanorama(), svv.panorama.getPosition, svv.panorama.getPanoId, null, null, svv.panorama.getPov);
+        svv.infoPopover = new GSVInfoPopOver(svv.ui.dateHolder, svv.panorama.getPanorama(), svv.panorama.getPosition,
+            svv.panorama.getPanoId, svv.panoramaContainer.getCurrentLabelStreetEdgeId,
+            svv.panoramaContainer.getCurrentLabelRegionId, svv.panorama.getPov);
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);

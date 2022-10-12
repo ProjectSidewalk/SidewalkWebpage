@@ -71,6 +71,8 @@ object LabelFormat {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
+      "street_edge_id" -> labelMetadata.streetEdgeId,
+      "region_id" -> labelMetadata.regionId,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "tags" -> labelMetadata.tags
     )

@@ -74,7 +74,7 @@ function Main (params) {
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
         sg.modal = sg.cardContainer.getModal;
-        sg.infoPopover = new GSVInfoPopOver($('.pano-timestamp'), sg.modal().pano.panorama, sg.modal().pano.getPosition, sg.modal().pano.getPanoId, null, null, sg.modal().pano.getPov);
+        // sg.infoPopover = new GSVInfoPopOver($('.pano-timestamp'), sg.modal().pano.panorama, sg.modal().pano.getPosition, sg.modal().pano.getPanoId, null, null, sg.modal().pano.getPov);
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
         sg.tracker = new Tracker();

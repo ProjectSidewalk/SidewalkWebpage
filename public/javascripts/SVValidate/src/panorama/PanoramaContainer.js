@@ -47,6 +47,8 @@ function PanoramaContainer (labelList) {
             severity: metadata.severity,
             temporary: metadata.temporary,
             description: metadata.description,
+            streetEdgeId: metadata.streetEdgeId,
+            regionId: metadata.regionId,
             tags: metadata.tags
         };
         return new Label(labelMetadata);
@@ -108,6 +110,18 @@ function PanoramaContainer (labelList) {
         }
     }
 
+    function getCurrentLabel() {
+        return labels[getProperty('progress') - 1];
+    }
+
+    function getCurrentLabelStreetEdgeId() {
+        return getCurrentLabel().getAuditProperty('streetEdgeId');
+    }
+
+    function getCurrentLabelRegionId() {
+        return getCurrentLabel().getAuditProperty('regionId');
+    }
+
     /**
      * Resets the validation interface for a new mission. Loads a new set of label onto the panoramas.
      */
@@ -151,6 +165,9 @@ function PanoramaContainer (labelList) {
     self.fetchNewLabel = fetchNewLabel;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
+    self.getCurrentLabel = getCurrentLabel;
+    self.getCurrentLabelStreetEdgeId = getCurrentLabelStreetEdgeId;
+    self.getCurrentLabelRegionId = getCurrentLabelRegionId;
     self.setProperty = setProperty;
     self.reset = reset;
     self.setLabelList = setLabelList;

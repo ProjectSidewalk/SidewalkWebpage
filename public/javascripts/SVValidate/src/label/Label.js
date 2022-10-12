@@ -23,6 +23,8 @@ function Label(params) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        streetEdgeId: undefined,
+        regionId: undefined,
         tags: undefined,
         isMobile: undefined
     };
@@ -99,6 +101,8 @@ function Label(params) {
             if ("severity" in params) setAuditProperty("severity", params.severity);
             if ("temporary" in params) setAuditProperty("temporary", params.temporary);
             if ("description" in params) setAuditProperty("description", params.description);
+            if ("streetEdgeId" in params) setAuditProperty("streetEdgeId", params.streetEdgeId);
+            if ("regionId" in params) setAuditProperty("regionId", params.regionId);
             if ("tags" in params) setAuditProperty("tags", params.tags);
             setAuditProperty("isMobile", isMobile());
         }
