@@ -12,48 +12,10 @@
  * update values method
  */
 function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov) {
-    /*
-    DELETE ONCE FINISHED
-    Back-end API TODO:
-    Here's the list of all the references to parameters (coords, panoId, etc.) I've found/created on each page.
-    The blank ones are the ones that need changes to the backend API to grab that info from the database.
-
-    LabelMap was configured differently so I couldn't figure out how to get the bootstrap popover to function on
-    that page?
-
-    Audit: (located in public/javascripts/SVLabel/src/Main.js) DONE
-        Panorama: svl.panorama
-        Coords: svl.map.getPosition
-        PanoId: svl.map.getPanoId
-        StreetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId
-        RegionId: svl.taskContainer.getCurrentTask().getRegionId
-        POV: svl.map.getPov
-    Gallery: (located in public/javascripts/Gallery/src/Main.js)
-        Panorama: sg.modal().pano.panorama
-        Coords: sg.modal().pano.getPosition
-        PanoId: sg.modal().pano.getPanoId
-        StreetEdgeId:
-        RegionId:
-        POV: sg.modal().pano.getPov
-    Validate: (located in public/javascripts/SVValidate/src/Main.js)
-        Panorama: svv.panorama.getPanorama()
-        Coords: svv.panorama.getPosition
-        PanoId: svv.panorama.getPanoId
-        StreetEdgeId:
-        RegionId:
-        POV: svv.panorama.getPov
-    LabelMap: (located in public/javascripts/Admin/src/Admin.GSVLabelView.js)
-        Panorama: self.panorama.panorama
-        Coords: self.panorama.getPosition
-        PanoId: self.panorama.getPanoId
-        StreetEdgeId:
-        RegionId:
-        POV: self.panorama.getPov
-     */
     let self = this;
 
     function _init() {
-        // Create popover title bar
+        // Create popover title bar.
         self.titleBox = document.createElement('div');
 
         let title = document.createElement('span');
@@ -75,10 +37,10 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         self.titleBox.appendChild(clipboard);
 
 
-        // Create popover content
+        // Create popover content.
         self.popoverContent = document.createElement('div');
 
-        // Add in container for each info type to the popover
+        // Add in container for each info type to the popover.
         let dataList = document.createElement('ul');
         dataList.classList.add('list-group', 'list-group-flush');
 
@@ -90,7 +52,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
         self.popoverContent.appendChild(dataList);
 
-        // Create link to separate GSV
+        // Create link to separate GSV.
         let linkGSV = document.createElement('a');
         linkGSV.classList.add('popover-element');
         linkGSV.id = 'gsv-link'
@@ -98,40 +60,37 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         self.popoverContent.appendChild(linkGSV);
 
 
-        // Create info button and add popover attributes
+        // Create info button and add popover attributes.
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'info-button';
         self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/gsv_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
-        self.infoButton.setAttribute('data-placement', 'top');
-        self.infoButton.setAttribute('title', self.titleBox.innerHTML);
-        self.infoButton.setAttribute('data-content', self.popoverContent.innerHTML);
 
         container.append(self.infoButton);
 
         // Enable popovers/tooltips and set options
         $('#info-button').popover({
             html: true,
-            container: $('body'),
-        });
-        $('#clipboard').tooltip();
-
-        // Update popover everytime it opens
-        $('#info-button').on('click', updateVals);
-
-        // Dismiss popover on clicking outside of popover
-        $('#info-button').on('shown.bs.popover', () => {
+            placement: 'top',
+            container: 'body',
+            title: self.titleBox.innerHTML,
+            content: self.popoverContent.innerHTML
+        }).on('click', updateVals).on('shown.bs.popover', () => {
+            // Add popover-element classes to more elements, making it easier to dismiss popover on when outside it.
             $('.popover-title').addClass('popover-element');
             $('.popover-content').addClass('popover-element');
         });
-        $('html').on('mousedown', (e) => {
+        $('#clipboard').tooltip();
+
+        // Dismiss popover when clicking outside it. Anything without the 'popover-element' class is considered outside.
+        $(document).on('click', (e) => {
             let tar = $(e.target);
-            if (tar[0].className.indexOf('popover-element') === -1) {
+            if (!tar[0].classList.contains('popover-element')) {
                 $('#info-button').popover('hide');
             }
         });
-        // Dismiss popover whenver panorama changes
+        // Dismiss popover whenever panorama changes.
         panorama.addListener('pano_changed', () => {
             $('#info-button').popover('hide');
         })
@@ -139,14 +98,14 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
 
     /**
-     * Update the values within the popover
+     * Update the values within the popover.
      */
     function updateVals() {
-        // Position popover
-        let xpos = self.infoButton.getBoundingClientRect().x + (self.infoButton.getBoundingClientRect().width / 2) - 175
+        // Position popover.
+        let xpos = self.infoButton.getBoundingClientRect().x + (self.infoButton.getBoundingClientRect().width / 2) - 175;
         $('.popover').css('left', `${xpos}px`);
 
-        // Get info values
+        // Get info values.
         const currCoords = coords ? coords() : {lat: null, lng: null};
         const currPanoId = panoId ? panoId() : null;
         const currStreetEdgeId = streetEdgeId ? streetEdgeId() : null;
@@ -169,25 +128,27 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         changeVals('Street Edge ID', currStreetEdgeId);
         changeVals('Region ID', currRegionId)
 
-        // Create GSV link
-        $('#gsv-link').attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
-        $('#gsv-link').attr('target', '_blank');
+        // Create GSV link.
+        let gsvLink = $('#gsv-link');
+        gsvLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
+        gsvLink.attr('target', '_blank');
 
-        // Copy to clipboard
-        $('#clipboard').click(() => {
-            $('#clipboard').tooltip('enable');
-            $('#clipboard').tooltip('show');
+        // Copy to clipboard.
+        let clipboardElem = $('#clipboard');
+        clipboardElem.click(() => {
+            clipboardElem.tooltip('enable');
+            clipboardElem.tooltip('show');
             navigator.clipboard.writeText(
                 `Latitude: ${currCoords.lat}°\nLongitude: ${currCoords.lng}°\nPano ID: ${currPanoId}\nStreet Edge ID: ${currStreetEdgeId}\nRegion ID: ${currRegionId}`
             );
         });
-        $('#clipboard').on('mouseout', () => {
-            $('#clipboard').tooltip('disable');
+        clipboardElem.on('mouseout', () => {
+            clipboardElem.tooltip('disable');
         });
     }
 
     /**
-     * Creates a key-value pair display within the popover
+     * Creates a key-value pair display within the popover.
      * @param {String} key Key name of the key-value pair
      * @param {HTMLElement} dataList List element container to add list item to
      */
