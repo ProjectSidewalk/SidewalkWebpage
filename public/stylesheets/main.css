@@ -1246,6 +1246,10 @@ kbd {
     vertical-align: middle;
 }
 
+#gsv-info-button {
+    cursor: pointer;
+}
+
 .gsv-info-list-group {
     margin-bottom: 8px;
 }

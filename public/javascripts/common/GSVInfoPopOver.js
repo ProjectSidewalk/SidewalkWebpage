@@ -66,7 +66,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         // Create info button and add popover attributes.
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
-        self.infoButton.id = 'info-button';
+        self.infoButton.id = 'gsv-info-button';
         if (whiteIcon) self.infoButton.src = '/assets/images/icons/gsv_info_btn_white.svg';
         else self.infoButton.src = '/assets/images/icons/gsv_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
@@ -74,7 +74,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         container.append(self.infoButton);
 
         // Enable popovers/tooltips and set options
-        $('#info-button').popover({
+        $('#gsv-info-button').popover({
             html: true,
             placement: 'top',
             container: 'body',
@@ -91,12 +91,12 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         $(document).on('mousedown', (e) => {
             let tar = $(e.target);
             if (!tar[0].classList.contains('popover-element')) {
-                $('#info-button').popover('hide');
+                $('#gsv-info-button').popover('hide');
             }
         });
         // Dismiss popover whenever panorama changes.
         panorama.addListener('pano_changed', () => {
-            $('#info-button').popover('hide');
+            $('#gsv-info-button').popover('hide');
         })
     }
 
