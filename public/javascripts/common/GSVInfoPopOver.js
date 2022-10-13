@@ -27,14 +27,14 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
         let clipboard = document.createElement('img');
         clipboard.classList.add('popover-element');
-        clipboard.src = '/assets/javascripts/SVLabel/img/misc/clipboard_copy.png';
+        clipboard.src = '/assets/images/icons/clipboard_copy.png';
         clipboard.id = 'clipboard';
 
-        clipboard.setAttribute('data-toggle', 'tooltip');
-        clipboard.setAttribute('data-placement', 'top');
-        clipboard.setAttribute('trigger', 'click');
+        clipboard.setAttribute('data-toggle', 'popover');
         clipboard.setAttribute('tabindex', 0);
-        clipboard.setAttribute('title', 'Details copied to clipboard!');
+        clipboard.setAttribute( 'data-placement', 'top');
+        clipboard.setAttribute( 'data-content', 'Data copied to your clipboard!');
+        clipboard.setAttribute('trigger', 'manual');
 
         self.titleBox.appendChild(clipboard);
 
@@ -44,7 +44,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
 
         // Add in container for each info type to the popover.
         let dataList = document.createElement('ul');
-        dataList.classList.add('list-group', 'list-group-flush');
+        dataList.classList.add('list-group', 'list-group-flush', 'gsv-info-list-group');
 
         addListElement('Latitude', dataList);
         addListElement('Longitude', dataList);
@@ -85,7 +85,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
             $('.popover-title').addClass('popover-element');
             $('.popover-content').addClass('popover-element');
         });
-        $('#clipboard').tooltip();
+        $('#clipboard').popover();
 
         // Dismiss popover when clicking outside it. Anything without the 'popover-element' class is considered outside.
         $(document).on('mousedown', (e) => {
@@ -140,16 +140,20 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         gsvLink.attr('target', '_blank');
 
         // Copy to clipboard.
-        let clipboardElem = $('#clipboard');
-        clipboardElem.click(() => {
-            clipboardElem.tooltip('enable');
-            clipboardElem.tooltip('show');
-            navigator.clipboard.writeText(
-                `Latitude: ${currCoords.lat}°\nLongitude: ${currCoords.lng}°\nPano ID: ${currPanoId}\nStreet Edge ID: ${currStreetEdgeId}\nRegion ID: ${currRegionId}`
-            );
-        });
-        clipboardElem.on('mouseout', () => {
-            clipboardElem.tooltip('disable');
+        $('#clipboard').on('click', function(e) {
+            let clipboardText = `Latitude: ${currCoords.lat}°\nLongitude: ${currCoords.lng}°\nPano ID: ${currPanoId}\nStreet Edge ID: ${currStreetEdgeId}\nRegion ID: ${currRegionId}`;
+            if (currLabelId) clipboardText += `Label ID: ${currLabelId}`;
+            navigator.clipboard.writeText(clipboardText);
+
+            // The clipboard popover will only show one time until you close and reopen the info button popover. I have
+            // no idea why that's happening, but for some reason it works if you put it in a setTimeout. So I have a one
+            // ms delay before showing the popover. Then it disappears after 1.5 seconds.
+            setTimeout(function() {
+                $(e.target).popover('show');
+                setTimeout(function() {
+                    $(e.target).popover('hide');
+                }, 1500);
+            }, 1);
         });
     }
 
