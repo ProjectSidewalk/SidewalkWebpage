@@ -105,7 +105,8 @@
     justify-content: space-between;
     width: 100%;
     font-size: .8vw;
-    padding-bottom: 1%;
+    padding-bottom: 0.9%;
+    padding-top: 0.1%;
 }
 
 .gallery-modal-info-severity {
