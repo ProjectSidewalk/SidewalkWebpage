@@ -310,7 +310,7 @@ function Panorama (label) {
      * Skips the current label on this panorama and fetches a new label for validation.
      */
     function skipLabel () {
-        svv.panoramaContainer.fetchNewLabel(currentLabel.getProperty('labelId'));
+        svv.panoramaContainer.fetchNewLabel(currentLabel.getAuditProperty('labelId'));
     }
 
     /**
