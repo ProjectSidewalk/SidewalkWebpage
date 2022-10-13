@@ -139,6 +139,13 @@ function Modal(uiModal) {
         self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
+        // Add info button to the right of the label timestamp.
+        self.infoPopover = new GSVInfoPopOver(self.labelTimestampData, sg.modal().pano.panorama,
+            sg.modal().pano.getPosition, sg.modal().pano.getPanoId,
+            function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
+            sg.modal().pano.getPov
+        );
+
         // Add severity and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
         new TagDisplay(self.tags, properties.tags, true);
@@ -170,9 +177,6 @@ function Modal(uiModal) {
     function openModal() {
         resetModal();
         populateModalDescriptionFields();
-        sg.infoPopover = new GSVInfoPopOver(self.labelTimestampData, sg.modal().pano.panorama,
-            sg.modal().pano.getPosition, sg.modal().pano.getPanoId, function() { return properties['street_edge_id']; },
-            function() { return properties['region_id']; }, sg.modal().pano.getPov);
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
