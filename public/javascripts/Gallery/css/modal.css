@@ -30,8 +30,10 @@
 }
 
 #info-button {
-    width: 15px;
-    margin: 0 3px 3px 7px;
+    width: 0.9vw;
+    height: 0.9vw;
+    margin-left: 5px;
+    margin-top: 2px;
 }
 
 .modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
