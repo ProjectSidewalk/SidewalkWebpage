@@ -84,7 +84,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         $('#clipboard').tooltip();
 
         // Dismiss popover when clicking outside it. Anything without the 'popover-element' class is considered outside.
-        $(document).on('click', (e) => {
+        $(document).on('mousedown', (e) => {
             let tar = $(e.target);
             if (!tar[0].classList.contains('popover-element')) {
                 $('#info-button').popover('hide');
