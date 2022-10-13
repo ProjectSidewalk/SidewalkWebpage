@@ -29,12 +29,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         clipboard.classList.add('popover-element');
         clipboard.src = '/assets/images/icons/clipboard_copy.png';
         clipboard.id = 'clipboard';
-
         clipboard.setAttribute('data-toggle', 'popover');
-        clipboard.setAttribute('tabindex', 0);
-        clipboard.setAttribute( 'data-placement', 'top');
-        clipboard.setAttribute( 'data-content', 'Data copied to your clipboard!');
-        clipboard.setAttribute('trigger', 'manual');
 
         self.titleBox.appendChild(clipboard);
 
@@ -84,8 +79,15 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
             // Add popover-element classes to more elements, making it easier to dismiss popover on when outside it.
             $('.popover-title').addClass('popover-element');
             $('.popover-content').addClass('popover-element');
+
+            // Initialize the popover for the clipboard.
+            $('#clipboard').popover({
+                placement: 'top',
+                trigger: 'manual',
+                html: true,
+                content: '<span class="clipboard-tooltip">Data copied to your clipboard!</span>'
+            });
         });
-        $('#clipboard').popover();
 
         // Dismiss popover when clicking outside it. Anything without the 'popover-element' class is considered outside.
         $(document).on('mousedown', (e) => {
@@ -105,10 +107,6 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
      * Update the values within the popover.
      */
     function updateVals() {
-        // Position popover.
-        let xpos = self.infoButton.getBoundingClientRect().x + (self.infoButton.getBoundingClientRect().width / 2) - 175;
-        $('.popover').css('left', `${xpos}px`);
-
         // Get info values.
         const currCoords = coords ? coords() : {lat: null, lng: null};
         const currPanoId = panoId ? panoId() : null;
@@ -138,6 +136,12 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         let gsvLink = $('#gsv-link');
         gsvLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
         gsvLink.attr('target', '_blank');
+
+        // Position popover.
+        let infoPopover = $('.popover');
+        let infoRect = self.infoButton.getBoundingClientRect();
+        let xpos = infoRect.x + (infoRect.width / 2) - (infoPopover.width() / 2);
+        infoPopover.css('left', `${xpos}px`);
 
         // Copy to clipboard.
         $('#clipboard').on('click', function(e) {

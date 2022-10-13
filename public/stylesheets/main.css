@@ -723,6 +723,7 @@ p#conditional-text {
 /* GSV Info Popover styling */
 .info-key {
     font-weight: bold;
+    margin-right: 20px;
 }
 
 .info-list-item {
@@ -731,7 +732,6 @@ p#conditional-text {
 }
 
 .popover {
-    width: 350px;
     max-width: 350px;
 }
 
@@ -760,6 +760,11 @@ p#conditional-text {
 
 #clipboard:active {
     opacity: 50%;
+}
+
+.clipboard-tooltip {
+    font-size: 12px;
+    white-space: nowrap;
 }
 
 @media only screen and (max-device-width: 500px) {
