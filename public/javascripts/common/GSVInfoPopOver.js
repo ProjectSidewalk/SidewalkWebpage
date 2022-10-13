@@ -8,10 +8,11 @@
  * @param {function} streetEdgeId Function that returns current Street Edge ID
  * @param {function} regionId Function that returns current Region ID
  * @param {function} pov Function that returns current POV
+ * @param {function} [labelId] Optional function that returns the Label ID.
  * @returns {GSVInfoPopOver} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov) {
+function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov, labelId) {
     let self = this;
 
     function _init() {
@@ -48,7 +49,8 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         addListElement('Longitude', dataList);
         addListElement('Pano ID', dataList);
         addListElement('Street Edge ID', dataList);
-        addListElement('Region ID', dataList)
+        addListElement('Region ID', dataList);
+        if (labelId) addListElement('Label ID', dataList);
 
         self.popoverContent.appendChild(dataList);
 
@@ -111,6 +113,7 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         const currStreetEdgeId = streetEdgeId ? streetEdgeId() : null;
         const currRegionId = regionId ? regionId() : null;
         const currPov = pov ? pov() : {heading: 0, pitch: 0};
+        const currLabelId = labelId ? labelId() : null;
 
         function changeVals(key, val) {
             if (!val) {
@@ -126,7 +129,8 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         changeVals('Longitude', currCoords.lng);
         changeVals('Pano ID', currPanoId);
         changeVals('Street Edge ID', currStreetEdgeId);
-        changeVals('Region ID', currRegionId)
+        changeVals('Region ID', currRegionId);
+        if (currLabelId) changeVals('Label ID', currLabelId);
 
         // Create GSV link.
         let gsvLink = $('#gsv-link');

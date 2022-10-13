@@ -172,8 +172,12 @@ function Main (param) {
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
         svv.infoPopover = new GSVInfoPopOver(svv.ui.dateHolder, svv.panorama.getPanorama(), svv.panorama.getPosition,
-            svv.panorama.getPanoId, svv.panoramaContainer.getCurrentLabelStreetEdgeId,
-            svv.panoramaContainer.getCurrentLabelRegionId, svv.panorama.getPov);
+            svv.panorama.getPanoId,
+            function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
+            function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
+            svv.panorama.getPov,
+            function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('labelId'); }
+        );
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);

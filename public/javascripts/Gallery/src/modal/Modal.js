@@ -143,8 +143,9 @@ function Modal(uiModal) {
         self.infoPopover = new GSVInfoPopOver(self.labelTimestampData, sg.modal().pano.panorama,
             sg.modal().pano.getPosition, sg.modal().pano.getPanoId,
             function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
-            sg.modal().pano.getPov
+            sg.modal().pano.getPov, function () { return properties['label_id']; }
         );
+        console.log(properties['label_id']);
 
         // Add severity and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
