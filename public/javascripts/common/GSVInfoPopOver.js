@@ -67,8 +67,8 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'info-button';
-        if (whiteIcon) self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/gsv_info_btn_white.svg';
-        else self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/gsv_info_btn.png';
+        if (whiteIcon) self.infoButton.src = '/assets/images/icons/gsv_info_btn_white.svg';
+        else self.infoButton.src = '/assets/images/icons/gsv_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
 
         container.append(self.infoButton);
