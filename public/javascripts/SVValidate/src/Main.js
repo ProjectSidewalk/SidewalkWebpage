@@ -175,7 +175,7 @@ function Main (param) {
             svv.panorama.getPanoId,
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
-            svv.panorama.getPov,
+            svv.panorama.getPov, true,
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('labelId'); }
         );
 

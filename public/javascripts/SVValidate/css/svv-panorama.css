@@ -32,8 +32,9 @@
 }
 
 #info-button {
-    margin: 5px;
-    max-height: 100%;
+    margin-left: 4px;
+    margin-top: 7px;
+    height: 16px;
 }
 
 /* Black outline around GSV panorama. */

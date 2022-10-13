@@ -8,11 +8,12 @@
  * @param {function} streetEdgeId Function that returns current Street Edge ID
  * @param {function} regionId Function that returns current Region ID
  * @param {function} pov Function that returns current POV
+ * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
  * @param {function} [labelId] Optional function that returns the Label ID.
  * @returns {GSVInfoPopOver} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov, labelId) {
+function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov, whiteIcon, labelId) {
     let self = this;
 
     function _init() {
@@ -66,7 +67,8 @@ function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regi
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'info-button';
-        self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/gsv_info_btn.png';
+        if (whiteIcon) self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/gsv_info_btn_white.svg';
+        else self.infoButton.src = '/assets/javascripts/SVLabel/img/misc/gsv_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
 
         container.append(self.infoButton);
