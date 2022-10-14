@@ -140,7 +140,7 @@ function Modal(uiModal) {
         self.timestamps.append(panoTimestampData);
 
         // Add info button to the right of the label timestamp.
-        self.infoPopover = new GSVInfoPopOver(self.labelTimestampData, sg.modal().pano.panorama,
+        self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.modal().pano.panorama,
             sg.modal().pano.getPosition, sg.modal().pano.getPanoId,
             function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
             sg.modal().pano.getPov, false, function () { return properties['label_id']; }

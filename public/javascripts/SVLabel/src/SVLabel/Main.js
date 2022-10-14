@@ -157,7 +157,7 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
-        svl.infoPopover = new GSVInfoPopOver(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
+        svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
             svl.taskContainer.getCurrentTask().getStreetEdgeId, svl.taskContainer.getCurrentTask().getRegionId,
             svl.map.getPov, true);
 

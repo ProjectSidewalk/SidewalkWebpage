@@ -10,10 +10,10 @@
  * @param {function} pov Function that returns current POV
  * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
  * @param {function} [labelId] Optional function that returns the Label ID.
- * @returns {GSVInfoPopOver} Popover object, which holds the popover title html, content html, info button html, and
+ * @returns {GSVInfoPopover} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopOver (container, panorama, coords, panoId, streetEdgeId, regionId, pov, whiteIcon, labelId) {
+function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, pov, whiteIcon, labelId) {
     let self = this;
 
     function _init() {

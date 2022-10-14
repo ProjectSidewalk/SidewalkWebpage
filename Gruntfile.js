@@ -33,7 +33,7 @@ module.exports = function(grunt) {
                     'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/common/UtilitiesShape.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopOver.js'
+                    'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
@@ -72,7 +72,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/zoom/*.js',
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopOver.js'
+                    'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             },
@@ -86,7 +86,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/modal/*.js',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/GSVInfoPopOver.js'
+                    'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
             }
