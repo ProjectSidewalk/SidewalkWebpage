@@ -9,11 +9,14 @@
  * @param {function} regionId Function that returns current Region ID
  * @param {function} pov Function that returns current POV
  * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
+ * @param {function} infoLogging Function that adds the info button click to the appropriate logs.
+ * @param {function} clipboardLogging Function that adds the copy to clipboard click to the appropriate logs.
+ * @param {function} viewGSVLogging Function that adds the View in GSV click to the appropriate logs.
  * @param {function} [labelId] Optional function that returns the Label ID.
  * @returns {GSVInfoPopover} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, pov, whiteIcon, labelId) {
+function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, pov, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId) {
     let self = this;
 
     function _init() {
@@ -56,7 +59,6 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         linkGSV.id = 'gsv-link'
         linkGSV.textContent = 'View in Google Street View';
         self.popoverContent.appendChild(linkGSV);
-
 
         // Create info button and add popover attributes.
         self.infoButton = document.createElement('img');
@@ -107,6 +109,9 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
      * Update the values within the popover.
      */
     function updateVals() {
+        // Log the click on the info button.
+        infoLogging();
+
         // Get info values.
         const currCoords = coords ? coords() : {lat: null, lng: null};
         const currPanoId = panoId ? panoId() : null;
@@ -132,10 +137,11 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         changeVals('Region ID', currRegionId);
         if (currLabelId) changeVals('Label ID', currLabelId);
 
-        // Create GSV link.
+        // Create GSV link and log the click.
         let gsvLink = $('#gsv-link');
         gsvLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
         gsvLink.attr('target', '_blank');
+        gsvLink.on('click', viewGSVLogging);
 
         // Position popover.
         let infoPopover = $('.popover');
@@ -145,8 +151,11 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
 
         // Copy to clipboard.
         $('#clipboard').on('click', function(e) {
+            // Log the click on the copy to keyboard button.
+            clipboardLogging();
+
             let clipboardText = `Latitude: ${currCoords.lat}°\nLongitude: ${currCoords.lng}°\nPano ID: ${currPanoId}\nStreet Edge ID: ${currStreetEdgeId}\nRegion ID: ${currRegionId}`;
-            if (currLabelId) clipboardText += `Label ID: ${currLabelId}`;
+            if (currLabelId) clipboardText += `\nLabel ID: ${currLabelId}`;
             navigator.clipboard.writeText(clipboardText);
 
             // The clipboard popover will only show one time until you close and reopen the info button popover. I have

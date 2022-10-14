@@ -159,7 +159,10 @@ function Main (params) {
 
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
             svl.taskContainer.getCurrentTask().getStreetEdgeId, svl.taskContainer.getCurrentTask().getRegionId,
-            svl.map.getPov, true);
+            svl.map.getPov, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
+            function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
+            function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
+        );
 
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);

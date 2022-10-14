@@ -140,12 +140,16 @@ function Modal(uiModal) {
         self.timestamps.append(panoTimestampData);
 
         // Add info button to the right of the label timestamp.
+        let getPanoId = sg.modal().pano.getPanoId;
         self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.modal().pano.panorama,
-            sg.modal().pano.getPosition, sg.modal().pano.getPanoId,
+            sg.modal().pano.getPosition, getPanoId,
             function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
-            sg.modal().pano.getPov, false, function () { return properties['label_id']; }
+            sg.modal().pano.getPov, false,
+            function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
+            function () { return properties['label_id']; }
         );
-        console.log(properties['label_id']);
 
         // Add severity and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);

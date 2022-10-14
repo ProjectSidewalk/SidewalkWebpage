@@ -175,7 +175,9 @@ function Main (param) {
             svv.panorama.getPanoId,
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
-            svv.panorama.getPov, true,
+            svv.panorama.getPov, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
+            function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
+            function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('labelId'); }
         );
 
