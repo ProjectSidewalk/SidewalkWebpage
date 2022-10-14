@@ -25,7 +25,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
 
         let title = document.createElement('span');
         title.classList.add('popover-element');
-        title.textContent = 'Details'
+        title.textContent = i18next.t('common:gsv-info.details-title');
         self.titleBox.appendChild(title);
 
         let clipboard = document.createElement('img');
@@ -44,12 +44,12 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         let dataList = document.createElement('ul');
         dataList.classList.add('list-group', 'list-group-flush', 'gsv-info-list-group');
 
-        addListElement('Latitude', dataList);
-        addListElement('Longitude', dataList);
-        addListElement('Pano ID', dataList);
-        addListElement('Street Edge ID', dataList);
-        addListElement('Region ID', dataList);
-        if (labelId) addListElement('Label ID', dataList);
+        addListElement('latitude', dataList);
+        addListElement('longitude', dataList);
+        addListElement('panorama-id', dataList);
+        addListElement('street-id', dataList);
+        addListElement('region-id', dataList);
+        if (labelId) addListElement('label-id', dataList);
 
         self.popoverContent.appendChild(dataList);
 
@@ -57,7 +57,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         let linkGSV = document.createElement('a');
         linkGSV.classList.add('popover-element');
         linkGSV.id = 'gsv-link'
-        linkGSV.textContent = 'View in Google Street View';
+        linkGSV.textContent = i18next.t('common:gsv-info.view-in-gsv');
         self.popoverContent.appendChild(linkGSV);
 
         // Create info button and add popover attributes.
@@ -87,7 +87,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
                 placement: 'top',
                 trigger: 'manual',
                 html: true,
-                content: '<span class="clipboard-tooltip">Data copied to your clipboard!</span>'
+                content: `<span class="clipboard-tooltip">${i18next.t('common:gsv-info.copied-to-clipboard')}</span>`
             });
         });
 
@@ -123,19 +123,19 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         function changeVals(key, val) {
             if (!val) {
                 val = 'No Info';
-            } else if (key === "Latitude" || key === 'Longitude') {
+            } else if (key === "latitude" || key === 'longitude') {
                 val = val.toFixed(8) + '°';
             }
             let valSpan = document.getElementById(`${key}-value`);
             valSpan.textContent = val;
         }
 
-        changeVals('Latitude', currCoords.lat);
-        changeVals('Longitude', currCoords.lng);
-        changeVals('Pano ID', currPanoId);
-        changeVals('Street Edge ID', currStreetEdgeId);
-        changeVals('Region ID', currRegionId);
-        if (currLabelId) changeVals('Label ID', currLabelId);
+        changeVals('latitude', currCoords.lat);
+        changeVals('longitude', currCoords.lng);
+        changeVals('panorama-id', currPanoId);
+        changeVals('street-id', currStreetEdgeId);
+        changeVals('region-id', currRegionId);
+        if (currLabelId) changeVals('label-id', currLabelId);
 
         // Create GSV link and log the click.
         let gsvLink = $('#gsv-link');
@@ -154,8 +154,12 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
             // Log the click on the copy to keyboard button.
             clipboardLogging();
 
-            let clipboardText = `Latitude: ${currCoords.lat}°\nLongitude: ${currCoords.lng}°\nPano ID: ${currPanoId}\nStreet Edge ID: ${currStreetEdgeId}\nRegion ID: ${currRegionId}`;
-            if (currLabelId) clipboardText += `\nLabel ID: ${currLabelId}`;
+            let clipboardText = `${i18next.t(`common:gsv-info.latitude`)}: ${currCoords.lat}°\n` +
+                `${i18next.t(`common:gsv-info.longitude`)}: ${currCoords.lng}°\n` +
+                `${i18next.t(`common:gsv-info.panorama-id`)}: ${currPanoId}\n` +
+                `${i18next.t(`common:gsv-info.street-id`)}: ${currStreetEdgeId}\n` +
+                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n`;
+            if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}`;
             navigator.clipboard.writeText(clipboardText);
 
             // The clipboard popover will only show one time until you close and reopen the info button popover. I have
@@ -181,7 +185,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
 
         let keySpan = document.createElement('span');
         keySpan.classList.add('info-key', 'popover-element');
-        keySpan.textContent = key;
+        keySpan.textContent = i18next.t(`common:gsv-info.${key}`);
         listElement.appendChild(keySpan);
 
         let valSpan = document.createElement('span');

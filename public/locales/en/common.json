@@ -103,5 +103,16 @@
     "APS": "APS",
     "missing crosswalk": "missing crosswalk",
     "no bus stop access": "no bus stop access"
+  },
+  "gsv-info": {
+    "details-title": "Details",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "panorama-id": "Panorama ID",
+    "street-id": "Street ID",
+    "region-id": "Region ID",
+    "label-id": "Label ID",
+    "view-in-gsv": "View in Google Street View",
+    "copied-to-clipboard": "Data copied to your clipboard!"
   }
 }
