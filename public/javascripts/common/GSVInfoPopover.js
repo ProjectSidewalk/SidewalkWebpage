@@ -168,7 +168,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
      */
     function addListElement(key, dataList) {
         let listElement = document.createElement('li');
-        listElement.classList.add('list-group-item', 'info-list-item', 'popover-element');
+        listElement.classList.add('list-group-item', 'info-list-item', 'popover-element', 'audit-selectable');
 
         let keySpan = document.createElement('span');
         keySpan.classList.add('info-key', 'popover-element');
