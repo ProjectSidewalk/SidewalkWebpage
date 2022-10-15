@@ -46,7 +46,7 @@ module.exports = function(grunt) {
             },
             dist_admin: {
                 src: [
-                    'public/javascripts/Admin/src/*.js',
+                    'public/javascripts/Admin/src/*.js'
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },

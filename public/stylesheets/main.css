@@ -720,7 +720,7 @@ p#conditional-text {
     text-decoration:underline;
 }
 
-/* GSV Info Popover styling */
+/* GSV Info Popover styling. */
 .info-key {
     font-weight: bold;
     margin-right: 20px;
@@ -746,6 +746,7 @@ p#conditional-text {
     flex-direction: column;
     justify-content: center;
 }
+
 #gsv-link {
     text-align: center;
     width: fit-content;

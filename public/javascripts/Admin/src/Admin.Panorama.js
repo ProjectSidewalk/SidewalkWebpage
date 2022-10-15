@@ -332,7 +332,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
      * Returns the panorama ID for the current panorama.
      * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
      */
-    function getPanoId () {
+    function getPanoId() {
         return self.panorama.getPano();
     }
 
@@ -341,7 +341,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
      * (probably a bug in GSV), so sometimes this function returns null.
      * @returns {{lat, lng}}
      */
-    function getPos () {
+    function getPos() {
         let position = self.panorama.getPosition();
         return (position) ? {'lat': position.lat(), 'lng': position.lng()} : null;
     }
@@ -350,7 +350,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
      * Returns the pov of the viewer.
      * @returns {{heading: float, pitch: float, zoom: float}}
      */
-    function getPov () {
+    function getPov() {
         let pov = self.panorama.getPov();
 
         // Pov can be less than 0. So adjust it.
@@ -365,7 +365,6 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         return pov;
     }
 
-    //init
     _init();
 
     self.setPov = setPov;

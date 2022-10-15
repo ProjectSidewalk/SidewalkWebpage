@@ -23,9 +23,7 @@ function AdminGSVLabelView(admin) {
                             '<h4 class="modal-title" id="myModalLabel"></h4>' +
                         '</div>' +
                         '<div class="modal-body">' +
-                            '<div id="svholder" style="width: 540px; height:360px">' +
-                                '<div id="info-popover-holder"></div>' +
-                            '</div>' +
+                            '<div id="svholder" style="width: 540px; height:360px"></div>' +
                             '<div id="validation-input-holder">' +
                                 '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
@@ -177,7 +175,6 @@ function AdminGSVLabelView(admin) {
         self.modalLabelId = self.modal.find("#label-id");
         self.modalStreetId = self.modal.find('#street-id');
         self.modalRegionId = self.modal.find('#region-id');
-        self.modalInfoHolder = self.modal.find('#info-popover-holder');
     }
 
     /**
@@ -331,8 +328,8 @@ function AdminGSVLabelView(admin) {
     function _handleData(labelMetadata) {
         // Pass a callback function that fills in the pano lat/lng.
         var panoCallback = function () {
-            var lat = self.panorama.getPosition().lat;
-            var lng = self.panorama.getPosition().lng;
+            var lat = self.panorama.panorama.getPosition().lat();
+            var lng = self.panorama.panorama.getPosition().lng();
             self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}" target="_blank">View in Google Street View</a>`);
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');

@@ -450,10 +450,6 @@ function CardContainer(uiCardContainer) {
         return lastPage;
     }
 
-    /**
-     * Returns the modal object
-     * @returns {Modal} Gallery modal object
-     */
     function getModal() {
         return modal;
     }

@@ -274,12 +274,12 @@
     }
 
     /**
-     * Gets the current coordinates
+     * Gets the current coordinates.
      * @returns {{lng: float, lat: float}}
      */
     function getCoords() {
         let coords = self.panorama.getPosition();
-        // Creates "TypeError: Cannot read properties of undefined (reading 'lat')", but still works fine
+        // Creates "TypeError: Cannot read properties of undefined (reading 'lat')", but still works fine.
         return coords ? { 'lat' : coords.lat(), 'lng' : coords.lng() } : undefined;
     }
 
@@ -302,13 +302,9 @@
         return pov;
     }
 
-    /**
-     * Get the label's default panorama ID
-     */
     function getPanoId() {
         return self.panoId
     }
-    
 
     _init();
 

@@ -1,5 +1,5 @@
 /**
- * Displays info about the current GSV pane
+ * Displays info about the current GSV pane.
  *
  * @param {HTMLElement} container Element where the info button will be displayed
  * @param {StreetViewPanorama} panorama Panorama object
@@ -36,7 +36,6 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
 
         self.titleBox.appendChild(clipboard);
 
-
         // Create popover content.
         self.popoverContent = document.createElement('div');
 
@@ -53,7 +52,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
 
         self.popoverContent.appendChild(dataList);
 
-        // Create link to separate GSV.
+        // Create element for a link to GSV in a separate tab.
         let linkGSV = document.createElement('a');
         linkGSV.classList.add('popover-element');
         linkGSV.id = 'gsv-link'
@@ -70,7 +69,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
 
         container.append(self.infoButton);
 
-        // Enable popovers/tooltips and set options
+        // Enable popovers/tooltips and set options.
         $('#gsv-info-button').popover({
             html: true,
             placement: 'top',
@@ -104,7 +103,6 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         })
     }
 
-
     /**
      * Update the values within the popover.
      */
@@ -129,7 +127,6 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
             let valSpan = document.getElementById(`${key}-value`);
             valSpan.textContent = val;
         }
-
         changeVals('latitude', currCoords.lat);
         changeVals('longitude', currCoords.lng);
         changeVals('panorama-id', currPanoId);
