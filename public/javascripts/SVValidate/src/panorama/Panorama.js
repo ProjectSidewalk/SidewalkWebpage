@@ -206,7 +206,7 @@ function Panorama (label) {
                         } 
                     } else {
                         console.error("Error retrieving Panoramas: " + status);
-                        svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                        svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }
                 });
         }
@@ -310,7 +310,7 @@ function Panorama (label) {
      * Skips the current label on this panorama and fetches a new label for validation.
      */
     function skipLabel () {
-        svv.panoramaContainer.fetchNewLabel(currentLabel.getProperty('labelId'));
+        svv.panoramaContainer.fetchNewLabel(currentLabel.getAuditProperty('labelId'));
     }
 
     /**

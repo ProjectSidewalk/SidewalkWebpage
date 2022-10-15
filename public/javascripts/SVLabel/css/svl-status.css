@@ -54,7 +54,7 @@
 #accuracy-rating-tooltip {
     background-color:rgba(58,58,58, 0.9);
     color: white;
-    width: 400px;
+    width: 276px;
     top: 18px;
     border-radius: 15px;
     font-size: 10px;
@@ -64,8 +64,9 @@
     color: white;
 }
 
-.popover-content {
+#accuracy-rating-tooltip > .popover-content {
     padding: 6px 10px;
+    display: block;
 }
 
 #accuracy-rating-tooltip.top > .arrow {

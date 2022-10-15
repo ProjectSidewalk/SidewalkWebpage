@@ -902,9 +902,15 @@
         }
 
         $(document).ready(function() {
-            // Solutions to annoying text selection cursor.
-            // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
-            document.onselectstart = function () { return false; };
+            // Prevents text selection with cursor. Fixes https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121.
+            // We also add the 'audit-selectable' class to a parent of any element that we want to have selectable.
+            document.onselectstart = function (e) {
+                if ($(e.target).closest('.audit-selectable').length > 0) {
+                    return true;
+                } else {
+                    return false;
+                }
+            };
             enableTouchSupport();
 
             // Advanced Neighborhood Overlay

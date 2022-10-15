@@ -103,5 +103,16 @@
     "APS": "APS",
     "missing crosswalk": "paso peatonal ausente (i)",
     "no bus stop access": "No hay acceso a la parada de autobús"
+  },
+  "gsv-info": {
+    "details-title": "Detalles",
+    "latitude": "Latitud",
+    "longitude": "Longitud",
+    "panorama-id": "ID de panorama",
+    "street-id": "ID de calle",
+    "region-id": "ID de región",
+    "label-id": "ID de etiqueta",
+    "view-in-gsv": "Ver en Google Street View",
+    "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
   }
 }
