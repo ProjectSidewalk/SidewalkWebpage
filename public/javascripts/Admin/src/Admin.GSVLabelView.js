@@ -54,19 +54,19 @@ function AdminGSVLabelView(admin) {
                                         '<td id="label-type-value"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>' + i18next.t('common:severity') + '</th>' +
+                                        `<th>${i18next.t('common:severity')}</th>` +
                                         '<td id="severity"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>' + i18next.t('common:temporary') + '</th>' +
+                                        `<th>${i18next.t('common:temporary')}</th>` +
                                         '<td id="temporary"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>' + i18next.t('common:tags') + '</th>' +
+                                        `<th>${i18next.t('common:tags')}</th>` +
                                         '<td colspan="3" id="tags"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>' + i18next.t('common:description') + '</th>' +
+                                        `<th>${i18next.t('common:description')}</th>` +
                                         '<td colspan="3" id="label-description"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -74,14 +74,14 @@ function AdminGSVLabelView(admin) {
                                         '<td colspan="3" id="label-validations"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>' + i18next.t('common:labeled') + '</th>' +
+                                        `<th>${i18next.t('common:labeled')}</th>` +
                                         '<td id="timestamp" colspan="3"></td>' +
                                     '</tr>' +
                                         '<th>' + i18next.t('common:image-date') + '</th>' +
                                         '<td id="image-date" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Pano ID</th>' +
+                                        `<th>${i18next.t('common:gsv-info.panorama-id')}</th>` +
                                         '<td id="pano-id" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -89,23 +89,23 @@ function AdminGSVLabelView(admin) {
                                         '<td id="view-in-gsv" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Latitude</th>' +
+                                        `<th>${i18next.t('common:gsv-info.latitude')}</th>` +
                                         '<td id="lat" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Longitude</th>' +
+                                        `<th>${i18next.t('common:gsv-info.longitude')}</th>` +
                                         '<td id="lng" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Label ID</th>' +
+                                        `<th>${i18next.t('common:gsv-info.label-id')}</th>` +
                                         '<td id="label-id" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Street ID</th>' +
+                                        `<th>${i18next.t('common:gsv-info.street-id')}</th>` +
                                         '<td id="street-id" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Region ID</th>' +
+                                        `<th>${i18next.t('common:gsv-info.region-id')}</th>` +
                                         '<td id="region-id" colspan="3"></td>' +
                                     '</tr>';
         if (self.admin) {
@@ -330,7 +330,7 @@ function AdminGSVLabelView(admin) {
         var panoCallback = function () {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
-            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}" target="_blank">View in Google Street View</a>`);
+            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}" target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
         }
