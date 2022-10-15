@@ -12,14 +12,23 @@ crosswalk = Cruce peatonal
 signal = Semáforo peatonal
 other = Otro
 labels = etiquetas
+label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
+accuracy = de precisión
+accuracy.caps = Precisión
+accuracy.icon.alt = Blanco con una flecha en la mira
 dist.metric.abbr = km
+distance.icon.alt = Icono que muestra el camino curvo hacia el destino
 ok = OK
 cancel = Cancelar
 error = ¡Error!
+yes.caps = Sí
+no.caps = No
 thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
+test.server.warning.message = <strong>¡ADVERTENCIA!</strong> ¡Estás en un servidor de prueba! ¡Tus datos no se guardarán! Si desea que sus datos se guarden, utilice el sitio principal
+dont.show.again = No mostrar de nuevo
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -131,6 +140,7 @@ audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o un nuevo barrio
 audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en este barrio
 audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
 
+audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.distance = kilómetros
 audit.right.ui.current.mission = Misión actual
@@ -140,7 +150,6 @@ audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
 audit.center.ui.add.tags = Agregar etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
-audit.center.ui.show.again = No mostrar de nuevo
 
 audit.mission.complete.labels.title = Etiquetas de la misión
 audit.mission.complete.progress.title = Progreso del barrio
@@ -221,6 +230,7 @@ authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>
 authenticate.confirm.password = Confirmar contraseña
+authenticate.service.hours.title = ¿Planea solicitar que su trabajo a través de Project Sidewalk se cuente como horas de servicio comunitario/voluntario?
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
@@ -236,7 +246,9 @@ authenticate.error.email.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
 authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
+authenticate.error.missing.service.hours = Por favor responda a cada pregunta
 authenticate.error.invalid.credentials = Credenciales inválidas
+authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
@@ -276,12 +288,8 @@ dashboard.your.missions = Tus misiones
 dashboard.distance = Distancia
 dashboard.labels = Etiquetas
 dashboard.validations = Validaciones
-dashboard.accuracy = Precisión
 dashboard.mission.icon.alt = Usuario de silla de ruedas sosteniendo una bandera
-dashboard.distance.icon.alt = Icono que muestra el camino curvo hacia el destino
-dashboard.label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
 dashboard.validation.icon.alt = Listado junto a un lápiz
-dashboard.accuracy.icon.alt = Blanco con una flecha en la mira
 dashboard.accuracy.icon.tooltip = Tu precisión de etiquetado. Si se muestra N/A, significa que no se han validado suficientes de tus etiquetas por otras personas usuarias
 dashboard.achievements = Logros
 dashboard.first = primera
@@ -315,7 +323,6 @@ leaderboard.header.team = Equipo
 leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
-leaderboard.header.accuracy = Precisión
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/audit"><u>¡Empieza a explorar!</u></a>

@@ -450,6 +450,10 @@ function CardContainer(uiCardContainer) {
         return lastPage;
     }
 
+    function getModal() {
+        return modal;
+    }
+
     self.fetchLabels = fetchLabels;
     self.getCards = getCards;
     self.getCurrentCards = getCurrentCards;
@@ -465,6 +469,7 @@ function CardContainer(uiCardContainer) {
     self.getCardByIndex = getCardByIndex;
     self.getCurrentPage = getCurrentPage;
     self.getCurrentPageCards = getCurrentPageCards;
+    self.getModal = getModal;
 
     _init();
     return this;
