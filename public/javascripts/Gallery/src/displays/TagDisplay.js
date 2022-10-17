@@ -62,8 +62,9 @@ function TagDisplay(container, tags, isModal=false) {
                 let isLastTag = i === tagsText.length - 1;
                 let tagWidth = parseFloat($(tagEl).css('width'));
 
-                // If this is the last tag, and there are hidden tags, then we need to account for the PLUS_N indicator in addition to the margin between tags in the extra space needed.
-                // Otherwise, we just need to account for the margin between tags.
+                // If this is the last tag and there are hidden tags, then we need to account for the PLUS_N indicator
+                // in addition to the margin between tags in the extra space needed. Otherwise, we just need to account
+                // for the margin between tags.
                 let extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
                 let spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
 
