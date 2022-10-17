@@ -67,7 +67,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         })[0];
 
         self.panoNotAvailableAuditSuggestion = 
-            $("<div id='pano-not-avail-audit'>We suggest that you " + '<a href="">explore the street</a>' + " again! </div>").css({
+            $('<div id="pano-not-avail-audit"><a>Explore the street</a> again to use Google\'s newer images!</div>').css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
