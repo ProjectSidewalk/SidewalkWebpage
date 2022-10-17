@@ -110,7 +110,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
         return this;
     }
-    
+
     function setPov(heading, pitch, zoom) {
         self.panorama.set('pov', {heading: heading, pitch: pitch});
         self.panorama.set('zoom', zoomLevel[zoom]);
