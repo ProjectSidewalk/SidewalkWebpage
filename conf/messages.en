@@ -12,14 +12,23 @@ crosswalk = Crosswalk
 signal = Pedestrian Signal
 other = Other
 labels = labels
+label.icon.alt = Minimalist map icon with large destination marker
+accuracy = accuracy
+accuracy.caps = Accuracy
+accuracy.icon.alt = Target with an arrow in the bullseye
 dist.metric.abbr = mi
+distance.icon.alt = Icon showing curved path to destination
 ok = OK
 cancel = Cancel
 error = Error!
+yes.caps = Yes
+no.caps = No
 thanks = Thanks!
 username = Username
 loading = Loading...
 loading.encouragement = Let''s do this!
+test.server.warning.message = <strong>WARNING!</strong> You are on a test server! Your data will not be saved! If you would like your data to be saved, please use the main site
+dont.show.again = Don''t show again
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -131,6 +140,7 @@ audit.left.ui.jump.explore.title = Go to a new location or a new neighborhood?
 audit.left.ui.jump.explore.button.same.neighborhood = Go to a new location in this neighborhood
 audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood
 
+audit.right.ui.overall.stats = Overall Stats
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.distance = kilometers
 audit.right.ui.current.mission = Current Mission
@@ -140,7 +150,6 @@ audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable
 audit.center.ui.add.tags = Add Tags:
 audit.center.ui.temporary = Temporary (e.g., construction)
-audit.center.ui.show.again = Don''t show again
 
 audit.mission.complete.labels.title = Mission Labels
 audit.mission.complete.progress.title = Neighborhood Progress
@@ -190,7 +199,6 @@ audit.help.surface.problem.1 = Partially damaged sidewalk. Because there is enou
 audit.help.surface.problem.3 = Wheelchair users would have difficulty navigating on the cobblestone sidewalks and crosswalks.
 audit.help.surface.problem.5 = Wheelchair users cannot pass severely degraded sidewalk surfaces due to the over-grown vegetation.
 
-validate.top.ui.hide.label = <u>H</u>ide Label
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Out
 validate.left.ui.skip = Skip
@@ -223,6 +231,7 @@ authenticate.submit = Submit
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password
+authenticate.service.hours.title = Are planning to request that your work through Project Sidewalk be counted for community/volunteer service hours?
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
 authenticate.signup.new.account = Sign up for a new account
@@ -238,7 +247,9 @@ authenticate.error.email.exists = Email already exists
 authenticate.error.username.exists = Username already exists
 authenticate.error.password.length = Password must be at least 6 characters
 authenticate.error.password.mismatch = Passwords do not match
+authenticate.error.missing.service.hours = Please respond to every question
 authenticate.error.invalid.credentials = Invalid credentials!
+authenticate.error.generic = Something went wrong processing your request. Please make sure all your information is correct and then try again
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = No worries, type in your email and we’ll send you a link to reset your password.
@@ -278,12 +289,8 @@ dashboard.your.missions = Your missions
 dashboard.distance = Distance
 dashboard.labels = Labels
 dashboard.validations = Validations
-dashboard.accuracy = Accuracy
 dashboard.mission.icon.alt = Wheelchair user holding a flag
-dashboard.distance.icon.alt = Icon showing curved path to destination
-dashboard.label.icon.alt = Minimalist map icon with large destination marker
 dashboard.validation.icon.alt = Checklist next to a pencil
-dashboard.accuracy.icon.alt = Target with an arrow in the bullseye
 dashboard.accuracy.icon.tooltip = Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users.
 dashboard.achievements = Achievements
 dashboard.first = first
@@ -295,6 +302,9 @@ dashboard.mission.badge = {0} mission badge
 dashboard.distance.badge = {0} distance badge
 dashboard.label.badge = {0} label badge
 dashboard.validation.badge = {0} validation badge
+dashboard.mistakes.header = Your recent labeling mistakes
+dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
+dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
@@ -315,7 +325,6 @@ leaderboard.header.team = Team
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
-leaderboard.header.accuracy = Accuracy
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/audit"><u>Start exploring!</u></a>

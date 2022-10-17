@@ -129,6 +129,8 @@ function Main (param) {
         svv.ui.status.examples.popupImage = $("#example-image-popup");
         svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
         svv.ui.status.examples.popupTitle = $("#example-image-popup-title");
+
+        svv.ui.dateHolder = $("#svv-panorama-date-holder");
     }
 
     function _init() {
@@ -145,7 +147,8 @@ function Main (param) {
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
-        svv.validationContainer = new ValidationContainer(param.labelList);
+        svv.labelContainer = new LabelContainer();
+        svv.panoramaContainer = new PanoramaContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
@@ -168,6 +171,15 @@ function Main (param) {
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+        svv.infoPopover = new GSVInfoPopover(svv.ui.dateHolder, svv.panorama.getPanorama(), svv.panorama.getPosition,
+            svv.panorama.getPanoId,
+            function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
+            function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
+            svv.panorama.getPov, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
+            function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
+            function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },
+            function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('labelId'); }
+        );
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);

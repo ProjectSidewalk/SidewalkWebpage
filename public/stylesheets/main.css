@@ -70,6 +70,18 @@ footer {
 /*
  * Custom styles
  */
+.label-icon {
+    position: absolute;
+    border: 1px solid black;
+    border-radius: 100%;
+    outline: 0.5px solid white;
+}
+
+.icon-outline {
+    border: 1px solid black;
+    border-radius: 25px;
+    outline: .5px solid white;
+}
 
 .stats-grid{
     display: flex;
@@ -708,6 +720,54 @@ p#conditional-text {
     text-decoration:underline;
 }
 
+/* GSV Info Popover styling. */
+.info-key {
+    font-weight: bold;
+    margin-right: 20px;
+}
+
+.info-list-item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.popover {
+    max-width: 400px;
+}
+
+.popover-title {
+    display: flex;
+    justify-content: space-between;
+    height: 36px;
+}
+
+.popover-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#gsv-link {
+    text-align: center;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#clipboard {
+    max-height: 100%;
+    cursor: pointer;
+}
+
+#clipboard:active {
+    opacity: 50%;
+}
+
+.clipboard-tooltip {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
 @media only screen and (max-device-width: 500px) {
     #awardnum {
         width: 100% !important;
@@ -1192,6 +1252,14 @@ kbd {
     vertical-align: middle;
 }
 
+#gsv-info-button {
+    cursor: pointer;
+}
+
+.gsv-info-list-group {
+    margin-bottom: 8px;
+}
+
 .mobile-popover {
     background-color:rgba(58,58,58, 0.9);
     color: white;
@@ -1358,6 +1426,58 @@ kbd {
     left: 500px;
     transform: translate(0, 0);
 }
+
+/* Formatting the test server warning banner. */
+.test-server-banner {
+    background-color: rgb(251,215,139);
+}
+
+.test-server-banner-content {
+    padding: 0.5%;
+    max-width: 70%;
+    margin: 0 auto;
+    display: flex;
+    font-size: medium;
+}
+
+.test-server-banner-text {
+    font-family: raleway-bold, sans-serif;
+    text-align: center;
+}
+.test-server-banner-text > strong {
+    color: red;
+}
+
+.test-server-banner-dont-show-again {
+    background: none;
+    border: none;
+    text-decoration: underline;
+    min-width: fit-content;
+    padding: 0 20px;
+}
+
+.test-server-banner-close {
+    background: none;
+    border: none;
+    margin-top: 2px;
+}
+
+/*
+ * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
+ * for some reason. So CSS for that page is in mobileValidate.css.
+ */
+@media only screen and (max-width: 500px) {
+    .test-server-banner {
+        border-radius: 5px;
+    }
+
+    .test-server-banner-content {
+        max-width: 300px;
+        flex-wrap: wrap;
+        font-size: small;
+    }
+}
+
 
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar

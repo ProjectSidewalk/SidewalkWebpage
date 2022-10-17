@@ -1,6 +1,7 @@
 package models.user
 
 import formats.json.UserFormats.labelTypeStatWrites
+import models.attribute.UserAttributeLabelTable.userAttributeLabels
 import models.attribute.UserClusteringSessionTable
 import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -11,13 +12,12 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import java.sql.Timestamp
-import java.time.Instant
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
-                    accuracy: Option[Float], excludeManual: Option[Boolean])
+                    accuracy: Option[Float], excluded: Boolean)
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int) {
   def toArray = Array(labels, validatedCorrect, validatedIncorrect, notValidated)
@@ -83,9 +83,9 @@ class UserStatTable(tag: Tag) extends Table[UserStat](tag, Some("sidewalk"), "us
   def highQualityManual = column[Option[Boolean]]("high_quality_manual")
   def ownLabelsValidated = column[Int]("own_labels_validated", O.NotNull)
   def accuracy = column[Option[Float]]("accuracy")
-  def excludeManual = column[Option[Boolean]]("exclude_manual")
+  def excluded = column[Boolean]("excluded")
 
-  def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excludeManual) <> ((UserStat.apply _).tupled, UserStat.unapply)
+  def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
   def user: ForeignKeyQuery[UserTable, DBUser] =
     foreignKey("user_stat_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
@@ -117,40 +117,31 @@ object UserStatTable {
   /**
     * Return query with user_id and high_quality columns.
     */
-  def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Option[Boolean]]), (String, Boolean, Option[Boolean]), Seq] = db.withSession { implicit session =>
-    userStats.map(x => (x.userId, x.highQuality, x.excludeManual))
+  def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Boolean]), (String, Boolean, Boolean), Seq] = db.withSession { implicit session =>
+    userStats.map(x => (x.userId, x.highQuality, x.excluded))
   }
 
 
   /**
-   * Get list of users where `high_quality` column is marked as `TRUE` and they have placed a label since `cutoffTime`.
+   * Get list of users whose data needs to be re-clustered.
    *
-   * @param cutoffTime Only get users who have placed a label since this time. Defaults to all time.
+   * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
+   * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
    */
-  def getIdsOfGoodUsersWithLabels(cutoffTime: Timestamp = new Timestamp(Instant.EPOCH.toEpochMilli)): List[String] = db.withSession { implicit session =>
-    // Get the list of users who have placed a label by joining with the label table.
-    val usersWithLabels = for {
-      _stat <- userStats if _stat.highQuality
-      _mission <- MissionTable.auditMissions if _mission.userId === _stat.userId
-      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
-      if _label.timeCreated > cutoffTime
-    } yield _stat.userId
+  def usersToUpdateInAPI(): List[String] = db.withSession { implicit session =>
+    // Get the labels that are currently present in the API.
+    val labelsInAPI = for {
+      _ual <- userAttributeLabels
+      _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
+      _m <- MissionTable.missions if _l.missionId === _m.missionId
+    } yield (_m.userId, _l.labelId)
 
-    // SELECT DISTINCT on the user_ids.
-    usersWithLabels.groupBy(x => x).map(_._1).list
-  }
-
-  /**
-   * Get list of users where their data was included in clustering but they have since been marked as low quality.
-   */
-  def getIdsOfNewlyLowQualityUsers: List[String] = db.withSession { implicit session =>
-    val newLowQualityUsers = for {
-      _stat <- userStats if _stat.highQuality === false
-      _clustSession <- UserClusteringSessionTable.userClusteringSessions if _stat.userId === _clustSession.userId
-    } yield _stat.userId
-
-    // SELECT DISTINCT on the user_ids.
-    newLowQualityUsers.groupBy(x => x).map(_._1).list
+    // Find all mismatches between the list of labels above using an outer join.
+    UserClusteringSessionTable.labelsForAPIQuery
+      .outerJoin(labelsInAPI).on(_._2 === _._2)            // FULL OUTER JOIN.
+      .filter(x => x._1._2.?.isEmpty || x._2._2.?.isEmpty) // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
+      .map(x => (x._1._1.?, x._2._1.?))                    // SELECT no_api.user_id, in_api.user_id.
+      .list.map(x => x._1.getOrElse(x._2.get)).distinct    // Combine the two and do a SELECT DISTINCT.
   }
 
   /**
@@ -200,7 +191,7 @@ object UserStatTable {
     // Compute label counts for each of those users.
     val labelCounts = (for {
       _mission <- MissionTable.auditMissions
-      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
       if _mission.userId inSet usersStatsToUpdate
     } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
@@ -272,7 +263,7 @@ object UserStatTable {
 
     // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsers: List[(String, Boolean)] =
-      userStats.filter(u => u.excludeManual.getOrElse(false) || !u.highQualityManual.getOrElse(true))
+      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
         .map(x => (x.userId, x.highQualityManual.get)).list
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
@@ -396,7 +387,7 @@ object UserStatTable {
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
-        |        AND (user_stat.exclude_manual = FALSE OR user_stat.exclude_manual IS NULL)
+        |        AND user_stat.excluded = FALSE
         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |        $orgFilter
         |    GROUP BY $groupingCol
@@ -559,7 +550,8 @@ object UserStatTable {
          |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId}
          |    GROUP BY user_id
          |) label_counts ON user_stat.user_id = label_counts.user_id
-         |WHERE role.role <> 'Anonymous';""".stripMargin
+         |WHERE role.role <> 'Anonymous'
+         |    AND user_stat.excluded = FALSE;""".stripMargin
     )
     statsQuery.list
   }
@@ -585,7 +577,7 @@ object UserStatTable {
     */
   def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
     if (userStats.filter(_.userId === userId.toString).length.run == 0)
-      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, None))
+      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, false))
     else
       0
   }

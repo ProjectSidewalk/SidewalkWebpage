@@ -27,32 +27,6 @@ function PanoramaContainer (labelList) {
     }
 
     /**
-     * Uses label metadata to initialize a new label.
-     * @param metadata  Metadata for the label.
-     * @returns {Label} Label object for this label.
-     * @private
-     */
-    function _createSingleLabel (metadata) {
-        let labelMetadata = {
-            canvasHeight: metadata.canvas_height,
-            canvasWidth: metadata.canvas_width,
-            canvasX: metadata.canvas_x,
-            canvasY: metadata.canvas_y,
-            gsvPanoramaId: metadata.gsv_panorama_id,
-            heading: metadata.heading,
-            labelId: metadata.label_id,
-            labelType: metadata.label_type,
-            pitch: metadata.pitch,
-            zoom: metadata.zoom,
-            severity: metadata.severity,
-            temporary: metadata.temporary,
-            description: metadata.description,
-            tags: metadata.tags
-        };
-        return new Label(labelMetadata);
-    }
-
-    /**
      * Fetches a single label from the database.  When the user clicks skip, need to get more
      * because missions fetch exactly the number of labels that are needed to complete the mission.
      * @param skippedLabelId the ID of the label that we are skipping
@@ -76,7 +50,7 @@ function PanoramaContainer (labelList) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (labelMetadata) {
-                labels.push(_createSingleLabel(labelMetadata));
+                labels.push(new Label(labelMetadata));
                 svv.missionContainer.updateAMissionSkip();
                 loadNewLabelOntoPanorama(svv.panorama);
             }
@@ -99,13 +73,17 @@ function PanoramaContainer (labelList) {
         svv.panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
         if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
-            svv.labelVisibilityControl.unhideLabel();
+            svv.labelVisibilityControl.unhideLabel(true);
         }
 
         // Update zoom availability on desktop.
         if (svv.zoomControl) {
             svv.zoomControl.updateZoomAvailability();
         }
+    }
+
+    function getCurrentLabel() {
+        return labels[getProperty('progress') - 1];
     }
 
     /**
@@ -123,7 +101,7 @@ function PanoramaContainer (labelList) {
      */
     function setLabelList (labelList) {
         Object.keys(labelList).map(function(key, index) {
-            labelList[key] = _createSingleLabel(labelList[key]);
+            labelList[key] = new Label(labelList[key]);
         });
 
         labels = labelList;
@@ -151,6 +129,7 @@ function PanoramaContainer (labelList) {
     self.fetchNewLabel = fetchNewLabel;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
+    self.getCurrentLabel = getCurrentLabel;
     self.setProperty = setProperty;
     self.reset = reset;
     self.setLabelList = setLabelList;

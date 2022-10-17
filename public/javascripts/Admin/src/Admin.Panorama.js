@@ -122,8 +122,9 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
      * @param heading
      * @param pitch
      * @param zoom
+     * @param callbackParam
      */
-    function setPano(panoId, heading, pitch, zoom) {
+    function setPano(panoId, heading, pitch, zoom, callbackParam) {
         if (typeof google != "undefined") {
             self.panorama.registerPanoProvider(function(pano) {
                 if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
@@ -182,6 +183,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 } else {
                     setTimeout(callback, 200, n - 1);
                 }
+                callbackParam();
             }
             setTimeout(callback, 200, 10);
         }
@@ -338,7 +340,43 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         }
     }
 
-    //init
+    /**
+     * Returns the panorama ID for the current panorama.
+     * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
+     */
+    function getPanoId() {
+        return self.panorama.getPano();
+    }
+
+    /**
+     * Returns the lat lng of this panorama. Note that sometimes position is null/undefined
+     * (probably a bug in GSV), so sometimes this function returns null.
+     * @returns {{lat, lng}}
+     */
+    function getPos() {
+        let position = self.panorama.getPosition();
+        return (position) ? {'lat': position.lat(), 'lng': position.lng()} : null;
+    }
+
+    /**
+     * Returns the pov of the viewer.
+     * @returns {{heading: float, pitch: float, zoom: float}}
+     */
+    function getPov() {
+        let pov = self.panorama.getPov();
+
+        // Pov can be less than 0. So adjust it.
+        while (pov.heading < 0) {
+            pov.heading += 360;
+        }
+
+        // Pov can be more than 360. Adjust it.
+        while (pov.heading > 360) {
+            pov.heading -= 360;
+        }
+        return pov;
+    }
+
     _init();
 
     self.setPov = setPov;
@@ -346,5 +384,9 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     self.setLabel = setLabel;
     self.renderLabel = renderLabel;
     self.getOriginalPosition = getOriginalPosition;
+    self.getPanoId = getPanoId;
+    self.getPosition = getPos;
+    self.getPov = getPov;
+
     return self;
 }
