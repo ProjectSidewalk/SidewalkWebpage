@@ -67,8 +67,8 @@ function TagDisplay(container, tags, isModal=false) {
                 let extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
                 let spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
 
-                if ((remainingWidth > tagWidth + extraSpaceNeeded)) {
-                    // Show the entire tag if there is enough space.
+                if (isModal || (remainingWidth > tagWidth + extraSpaceNeeded)) {
+                    // Show the entire tag if there is enough space. Always show in modal bc we have a scrollbar.
                     remainingWidth -= (tagWidth + MARGIN_BW_TAGS);
                 } else if (remainingWidth > spaceForShortenedTag) {
                     // Show a tag abbreviated with an ellipsis if there's some space, just not enough for the full tag.
@@ -79,11 +79,9 @@ function TagDisplay(container, tags, isModal=false) {
                     tagEl.title = tagsText[i];
                 } else {
                     // If the tag does not fit at all, add it to the list of hidden tags to show in the popover.
-                    if (!isModal) {
-                        tagEl.remove();
-                        tagEl.classList.add("not-added");
-                        hiddenTags.push(tagEl);
-                    }
+                    tagEl.remove();
+                    tagEl.classList.add("not-added");
+                    hiddenTags.push(tagEl);
                 }
             }
 
