@@ -23,6 +23,8 @@ function Label(params) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        streetEdgeId: undefined,
+        regionId: undefined,
         tags: undefined,
         isMobile: undefined
     };
@@ -33,7 +35,6 @@ function Label(params) {
         canvasX: undefined,
         canvasY: undefined,
         endTimestamp: undefined,
-        labelId: undefined,
         heading: undefined,
         pitch: undefined,
         startTimestamp: undefined,
@@ -83,22 +84,23 @@ function Label(params) {
      */
     function _init() {
         if (params) {
-            if ("canvasHeight" in params) setAuditProperty("canvasHeight", params.canvasHeight);
-            if ("canvasWidth" in params) setAuditProperty("canvasWidth", params.canvasWidth);
-            if ("canvasX" in params) setAuditProperty("canvasX", params.canvasX);
-            if ("canvasY" in params) setAuditProperty("canvasY", params.canvasY);
-            if ("gsvPanoramaId" in params) setAuditProperty("gsvPanoramaId", params.gsvPanoramaId);
-            if ("imageDate" in params) setAuditProperty("imageDate", params.imageDate);
-            if ("labelTimestamp" in params) setAuditProperty("labelTimestamp", params.labelTimestamp);
+            if ("canvas_height" in params) setAuditProperty("canvasHeight", params.canvas_height);
+            if ("canvas_width" in params) setAuditProperty("canvasWidth", params.canvas_width);
+            if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
+            if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
+            if ("gsv_panorama_id" in params) setAuditProperty("gsvPanoramaId", params.gsv_panorama_id);
+            if ("image_date" in params) setAuditProperty("imageDate", params.image_date);
+            if ("label_timestamp" in params) setAuditProperty("labelTimestamp", params.label_timestamp);
             if ("heading" in params) setAuditProperty("heading", params.heading);
-            if ("labelId" in params) setAuditProperty("labelId", params.labelId);
-            if ("labelId" in params) setProperty("labelId", params.labelId);
-            if ("labelType" in params) setAuditProperty("labelType", params.labelType);
+            if ("label_id" in params) setAuditProperty("labelId", params.label_id);
+            if ("label_type" in params) setAuditProperty("labelType", params.label_type);
             if ("pitch" in params) setAuditProperty("pitch", params.pitch);
             if ("zoom" in params) setAuditProperty("zoom", params.zoom);
             if ("severity" in params) setAuditProperty("severity", params.severity);
             if ("temporary" in params) setAuditProperty("temporary", params.temporary);
             if ("description" in params) setAuditProperty("description", params.description);
+            if ("street_edge_id" in params) setAuditProperty("streetEdgeId", params.street_edge_id);
+            if ("region_id" in params) setAuditProperty("regionId", params.region_id);
             if ("tags" in params) setAuditProperty("tags", params.tags);
             setAuditProperty("isMobile", isMobile());
         }
@@ -219,6 +221,7 @@ function Label(params) {
      * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
      *
      * @param validationResult  Must be one of the following: {Agree, Disagree, Notsure}.
+     * @param comment An optional comment submitted with the validation.
      */
     function validate(validationResult, comment) {
         // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center
@@ -272,21 +275,21 @@ function Label(params) {
             case "Agree":
                 setProperty("validationResult", 1);
                 svv.missionContainer.getCurrentMission().updateValidationResult(1);
-                svv.labelContainer.push(getProperties());
+                svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
                 setProperty("validationResult", 2);
                 svv.missionContainer.getCurrentMission().updateValidationResult(2);
-                svv.labelContainer.push(getProperties());
+                svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Not sure option selected.
             case "NotSure":
                 setProperty("validationResult", 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3);
-                svv.labelContainer.push(getProperties());
+                svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
         }

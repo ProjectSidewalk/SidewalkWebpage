@@ -720,6 +720,54 @@ p#conditional-text {
     text-decoration:underline;
 }
 
+/* GSV Info Popover styling. */
+.info-key {
+    font-weight: bold;
+    margin-right: 20px;
+}
+
+.info-list-item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.popover {
+    max-width: 400px;
+}
+
+.popover-title {
+    display: flex;
+    justify-content: space-between;
+    height: 36px;
+}
+
+.popover-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#gsv-link {
+    text-align: center;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#clipboard {
+    max-height: 100%;
+    cursor: pointer;
+}
+
+#clipboard:active {
+    opacity: 50%;
+}
+
+.clipboard-tooltip {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
 @media only screen and (max-device-width: 500px) {
     #awardnum {
         width: 100% !important;
@@ -1202,6 +1250,14 @@ kbd {
     border-width: 2px;
     border-color: lightgrey;
     vertical-align: middle;
+}
+
+#gsv-info-button {
+    cursor: pointer;
+}
+
+.gsv-info-list-group {
+    margin-bottom: 8px;
 }
 
 .mobile-popover {

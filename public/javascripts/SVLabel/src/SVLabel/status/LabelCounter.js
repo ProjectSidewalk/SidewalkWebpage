@@ -13,10 +13,10 @@ function LabelCounter (d3) {
     var margin = {top: 10, right: 10, bottom: 10, left: 0};
     var padding = {left: 5, top: 15};
     var width = 200 - margin.left - margin.right;
-    var height = 40 - margin.top - margin.bottom;
+    var height = 34 - margin.top - margin.bottom;
     var colorScheme = util.misc.getLabelColors();
-    var imageWidth = 21;
-    var imageHeight = 21;
+    var imageWidth = 18;
+    var imageHeight = 18;
     var rightColumn = 1.8;
 
     // Prepare a group to store svg elements, and declare a text
@@ -295,12 +295,13 @@ function LabelCounter (d3) {
             $(document).trigger('RemoveLabel');
         }
 
-        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (keys.indexOf(key) === -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
         update(key);
 
+        svl.statusFieldOverall.decrementLabelCount();
         if ("labelContainer" in svl) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
             var count = svl.labelContainer.countLabels(regionId) - 1;
@@ -314,12 +315,13 @@ function LabelCounter (d3) {
      * @param key {string} Label type
      */
     this.increment = function (key) {
-        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (keys.indexOf(key) === -1) { key = "Other"; }
         if (key in dotPlots) {
             dotPlots[key].count += 1;
             update(key);
         }
 
+        svl.statusFieldOverall.incrementLabelCount();
         if ("labelContainer" in svl) {
             var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
             var count = svl.labelContainer.countLabels(regionId) + 1;

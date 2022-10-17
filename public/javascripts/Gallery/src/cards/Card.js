@@ -33,6 +33,8 @@ function Card (params, imageUrl, modal) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        street_edge_id: undefined,
+        region_id: undefined,
         user_validation: undefined,
         tags: []
     };
