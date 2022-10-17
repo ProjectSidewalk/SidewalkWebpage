@@ -338,9 +338,9 @@ function AdminGSVLabelView(admin) {
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
-            labelMetadata['canvas_x'], labelMetadata['canvas_y'],
-            labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
-            labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'], labelMetadata['lat'], labelMetadata['lng'], labelMetadata['gsv_panorama_id']);
+            labelMetadata['canvas_x'], labelMetadata['canvas_y'], labelMetadata['canvas_width'],
+            labelMetadata['canvas_height'], labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'],
+            labelMetadata['street_edge_id']);
         self.panorama.setLabel(adminPanoramaLabel);
 
         var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +

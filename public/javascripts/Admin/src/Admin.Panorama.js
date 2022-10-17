@@ -167,9 +167,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');
-                    // Route used in AuditController.scala  -->  /audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId
-                    // The below line currently works and directs to the correct street, but it's missing the 'location' parameter
-                    $("a").attr("href", "/audit/street/" + self.label['streetEdgeId']); // Last code tried --> "/location?lat=" + self.label['lat'] + "%lng=" + self.label['lng'] + "?panoId=" + self.label['panoId']);
+                    $("a").attr("href", "/audit/street/" + self.label['streetEdgeId']);
                     $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
                     $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
