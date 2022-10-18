@@ -133,12 +133,33 @@ input[type="radio"] {
 }
 
 #svl-panorama-date-holder {
+    display: flex;
+    justify-content: flex-start;
+    height: 29px;
     position: absolute;
-    bottom: 3px;
-    left: 75px;
+    bottom: 0px;
+    left: 69px;
     z-index: 1;
     font-family: sans-serif;
     font-size: 15px;
     text-shadow: 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5);
     color: white;
+}
+
+#svl-panorama-date {
+    padding: 5px;
+}
+
+/**
+ * Add this class to any text on the audit page that you want to be selectable. In audit.scala.html we set onselectstart
+ * to return false over the whole document, except elements where itself or a parent has this class. This was done to
+ * prevent an issue where dragging on the GSV pane would select a bunch of stuff in the background; issue link below.
+ * https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121
+ */
+.audit-selectable { }
+
+#gsv-info-button {
+    margin-left: 4px;
+    margin-top: 7px;
+    height: 16px;
 }
