@@ -13,14 +13,14 @@ function InitializeStreets(map, params, streetData) {
     let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
-        if (feature.properties && feature.properties.type) {
-            layer.bindPopup(feature.properties.type);
-        }
         layer.on({
-            'add': function () {
-                layer.bringToBack()
+            'mouseover': function () {
+                this.setStyle({ weight: 5 });
+                },
+            'mouseout': function() {
+                this.setStyle({ weight: 3 });
             }
-        })
+        });
     }
     // Render street segments.
     streetLayer = L.geoJson(streetData, {
