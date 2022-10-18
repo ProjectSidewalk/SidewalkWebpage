@@ -213,6 +213,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         } else {
           val region: NamedRegion = regions.head
           val regionId: Int = region.regionId
+          UserCurrentRegionTable.saveOrUpdate(userId, regionId)
 
           // TODO: Should this function be modified?
           val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
