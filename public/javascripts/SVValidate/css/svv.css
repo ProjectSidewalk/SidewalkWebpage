@@ -78,8 +78,3 @@ input[type="radio"] {
     cursor: default;
     opacity: 0.5;
 }
-
-/* To keep the mouseover icon open hand. See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1393 */
-.icon-outline {
-    cursor: inherit !important;
-}
