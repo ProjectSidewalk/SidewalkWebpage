@@ -13,8 +13,14 @@ ALTER TABLE region ALTER COLUMN data_source SET NOT NULL;
 UPDATE region SET name = '' WHERE name IS NULL;
 ALTER TABLE region ALTER COLUMN name SET NOT NULL;
 
+-- No audit_tasks have a null task_end in any database right now, but adding a check to be safe.
+UPDATE audit_task SET task_end = task_start WHERE task_end IS NULL;
+ALTER TABLE audit_task ALTER COLUMN task_end SET NOT NULL;
+
 # --- !Downs
-ALTER TABLE name ALTER COLUMN name DROP NOT NULL;
+ALTER TABLE audit_task ALTER COLUMN task_end DROP NOT NULL;
+
+ALTER TABLE region ALTER COLUMN name DROP NOT NULL;
 
 ALTER TABLE region ALTER COLUMN data_source DROP NOT NULL;
 
