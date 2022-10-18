@@ -13,15 +13,11 @@ function InitializeStreets(map, params, streetData) {
     let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
-        let popupContent = `<a href="/audit/street/${feature.properties.street_edge_id}">Explore this street!</a>`;
+        let popupContent = `<a href="/audit/street/${feature.properties.street_edge_id}">Click here</a> to explore this street!`;
         layer.bindPopup(popupContent);
         layer.on({
-            'mouseover': function () {
-                this.setStyle({ weight: 5 });
-                },
-            'mouseout': function() {
-                this.setStyle({ weight: 3 });
-            }
+            'mouseover': function () { this.setStyle({ weight: 6 }); },
+            'mouseout': function() { this.setStyle({ weight: 3 }); }
         });
     }
     // Render street segments.
