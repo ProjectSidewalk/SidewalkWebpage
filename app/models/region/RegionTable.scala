@@ -14,18 +14,18 @@ import play.extras.geojson.LatLng
 import scala.collection.immutable.Seq
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class Region(regionId: Int, dataSource: String, description: String, geom: MultiPolygon, deleted: Boolean)
+case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
 case class NamedRegion(regionId: Int, name: String, geom: MultiPolygon)
 case class NamedRegionAndUserCompletion(regionId: Int, name: String, geom: MultiPolygon, userCompleted: Boolean)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
-  def dataSource = column[String]("data_source", O.Nullable)
-  def description = column[String]("description", O.Nullable)
-  def geom = column[MultiPolygon]("geom")
-  def deleted = column[Boolean]("deleted")
+  def dataSource = column[String]("data_source", O.NotNull)
+  def name = column[String]("name", O.NotNull)
+  def geom = column[MultiPolygon]("geom", O.NotNull)
+  def deleted = column[Boolean]("deleted", O.NotNull)
 
-  def * = (regionId, dataSource, description, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
+  def * = (regionId, dataSource, name, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
 }
 
 /**
@@ -78,14 +78,14 @@ object RegionTable {
     * Returns a list of all neighborhoods with names.
     */
   def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
-    regionsWithoutDeleted.map(r => (r.regionId, r.description, r.geom)).list.map(NamedRegion.tupled)
+    regionsWithoutDeleted.map(r => (r.regionId, r.name, r.geom)).list.map(NamedRegion.tupled)
   }
 
   /**
    * Return the neighborhood name of the given region.
    */
   def neighborhoodName(regionId: Int): Option[String] = db.withSession { implicit session =>
-    regions.filter(_.regionId === regionId).map(_.description).firstOption
+    regions.filter(_.regionId === regionId).map(_.name).firstOption
   }
 
   /**
@@ -147,7 +147,7 @@ object RegionTable {
   def selectANamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
     regionsWithoutDeleted
       .filter(_.regionId === regionId)
-      .map(x => (x.regionId, x.description, x.geom))
+      .map(x => (x.regionId, x.name, x.geom))
       .firstOption.map(NamedRegion.tupled)
   }
 
@@ -159,7 +159,7 @@ object RegionTable {
       _region <- regionsWithoutDeleted
       _userCurrRegion <- userCurrentRegions if _region.regionId === _userCurrRegion.regionId
       if _userCurrRegion.userId === userId.toString
-    } yield (_region.regionId, _region.description, _region.geom)
+    } yield (_region.regionId, _region.name, _region.geom)
 
     _currentRegion.firstOption.map(x => NamedRegion.tupled(x))
   }
@@ -171,7 +171,7 @@ object RegionTable {
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
-      """SELECT region.region_id, region.description, region.geom
+      """SELECT region.region_id, region.name, region.geom
         |FROM region
         |WHERE region.deleted = FALSE
         |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
@@ -198,7 +198,7 @@ object RegionTable {
     // Left join named regions and incomplete neighborhoods to record completion status.
     regionsWithoutDeleted
       .leftJoin(incompleteRegionsForUser).on(_.regionId === _)
-      .map(x => (x._1.regionId, x._1.description, x._1.geom, x._2.?.isEmpty))
+      .map(x => (x._1.regionId, x._1.name, x._1.geom, x._2.?.isEmpty))
       .list.map(NamedRegionAndUserCompletion.tupled)
   }
 

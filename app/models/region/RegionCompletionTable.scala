@@ -49,7 +49,7 @@ object RegionCompletionTable {
     val namedRegionCompletions = for {
       _rc <- regionCompletions
       _r <- regionsWithoutDeleted if _rc.regionId === _r.regionId
-    } yield (_r.regionId, _r.description, _rc.totalDistance, _rc.auditedDistance)
+    } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance)
 
     namedRegionCompletions.list.map(x => NamedRegionCompletion.tupled(x))
   }
