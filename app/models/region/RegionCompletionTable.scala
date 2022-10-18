@@ -89,7 +89,7 @@ object RegionCompletionTable {
 
     if (regionCompletions.length.run == 0) {
 
-      val neighborhoods: List[NamedRegion] = RegionTable.selectAllNamedNeighborhoods
+      val neighborhoods: List[Region] = RegionTable.getAllRegions
       for (neighborhood <- neighborhoods) yield {
 
         // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are

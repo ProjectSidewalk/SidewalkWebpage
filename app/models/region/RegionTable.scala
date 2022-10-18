@@ -15,8 +15,6 @@ import scala.collection.immutable.Seq
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
-case class NamedRegion(regionId: Int, name: String, geom: MultiPolygon)
-case class NamedRegionAndUserCompletion(regionId: Int, name: String, geom: MultiPolygon, userCompleted: Boolean)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
@@ -36,10 +34,6 @@ object RegionTable {
 
   implicit val regionConverter = GetResult[Region](r => {
     Region(r.nextInt, r.nextString, r.nextString, r.nextGeometry[MultiPolygon], r.nextBoolean)
-  })
-
-  implicit val namedRegionConverter = GetResult[NamedRegion](r => {
-    NamedRegion(r.nextInt, r.nextString, r.nextGeometry[MultiPolygon])
   })
 
   case class StreetCompletion(regionId: Int, regionName: String, streetEdgeId: Int, completionCount: Int, distance: Double)
@@ -77,12 +71,12 @@ object RegionTable {
   /**
     * Returns a list of all neighborhoods with names.
     */
-  def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
-    regionsWithoutDeleted.map(r => (r.regionId, r.name, r.geom)).list.map(NamedRegion.tupled)
+  def getAllRegions: List[Region] = db.withSession { implicit session =>
+    regionsWithoutDeleted.list
   }
 
   /**
-   * Return the neighborhood name of the given region.
+   * Return the name of the given neighborhood.
    */
   def neighborhoodName(regionId: Int): Option[String] = db.withSession { implicit session =>
     regions.filter(_.regionId === regionId).map(_.name).firstOption
@@ -91,7 +85,7 @@ object RegionTable {
   /**
     * Picks one of the regions with highest average priority.
     */
-  def selectAHighPriorityRegion: Option[NamedRegion] = db.withSession { implicit session =>
+  def selectAHighPriorityRegion: Option[Region] = db.withSession { implicit session =>
     val possibleRegionIds: List[Int] = regionsWithoutDeleted.map(_.regionId).list
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
@@ -103,7 +97,7 @@ object RegionTable {
   /**
     * Picks one of the regions with highest average priority out of those that the user has not completed.
     */
-  def selectAHighPriorityRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def selectAHighPriorityRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
     val possibleRegionIds: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
@@ -115,7 +109,7 @@ object RegionTable {
   /**
     * Picks one of the easy regions with highest average priority out of those that the user has not completed.
     */
-  def selectAHighPriorityEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def selectAHighPriorityEasyRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
     val possibleRegionIds: List[Int] =
       AuditTaskTable.selectIncompleteRegions(userId).filterNot(difficultRegionIds.contains(_)).toList
 
@@ -128,7 +122,7 @@ object RegionTable {
   /**
     * Out of the provided regions, picks one of the 5 with highest average priority across their street edges.
     */
-  def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[NamedRegion] = db.withSession { implicit session =>
+  def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[Region] = db.withSession { implicit session =>
 
     val highestPriorityRegions: List[Int] =
       StreetEdgeRegionTable.streetEdgeRegionTable
@@ -138,55 +132,48 @@ object RegionTable {
       .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
       .sortBy(_._2.desc).take(5).map(_._1).list // take the 5 with highest average priority, select region_id
 
-    scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(selectANamedRegion)
+    scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(getRegion)
   }
 
   /**
     * Get the region specified by the region id.
     */
-  def selectANamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
-    regionsWithoutDeleted
-      .filter(_.regionId === regionId)
-      .map(x => (x.regionId, x.name, x.geom))
-      .firstOption.map(NamedRegion.tupled)
+  def getRegion(regionId: Int): Option[Region] = db.withSession { implicit session =>
+    regionsWithoutDeleted.filter(_.regionId === regionId).firstOption
   }
 
   /**
     * Get the neighborhood that is currently assigned to the user.
     */
-  def selectTheCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def getCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
     val _currentRegion = for {
       _region <- regionsWithoutDeleted
       _userCurrRegion <- userCurrentRegions if _region.regionId === _userCurrRegion.regionId
       if _userCurrRegion.userId === userId.toString
-    } yield (_region.regionId, _region.name, _region.geom)
+    } yield _region
 
-    _currentRegion.firstOption.map(x => NamedRegion.tupled(x))
+    _currentRegion.firstOption
   }
 
   /**
     * Returns a list of neighborhoods within the given bounding box.
     */
-  def selectNamedNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[NamedRegion] = db.withTransaction { implicit session =>
+  def getNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[Region] = db.withTransaction { implicit session =>
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
-    val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
-      """SELECT region.region_id, region.name, region.geom
+    val selectNeighborhoodsQuery = Q.query[(Double, Double, Double, Double), Region](
+      """SELECT region.region_id, region.data_source, region.name, region.geom, region.deleted
         |FROM region
         |WHERE region.deleted = FALSE
         |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
     )
-    val minLat = min(lat1, lat2)
-    val minLng = min(lng1, lng2)
-    val maxLat = max(lat1, lat2)
-    val maxLng = max(lng1, lng2)
-    selectNamedNeighborhoodQuery((minLng, minLat, maxLng, maxLat)).list
+    selectNeighborhoodsQuery((min(lng1, lng2), min(lat1, lat2), max(lng1, lng2), max(lat1, lat2))).list
   }
 
   /**
-   * Gets all named neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
+   * Gets all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
    */
-  def getNeighborhoodsWithUserCompletionStatus(userId: UUID): List[NamedRegionAndUserCompletion] = db.withSession { implicit session =>
+  def getNeighborhoodsWithUserCompletionStatus(userId: UUID): List[(Region, Boolean)] = db.withSession { implicit session =>
     val userTasks = AuditTaskTable.auditTasks.filter(a => a.completed && a.userId === userId.toString)
     // Gets regions that the user has not fully audited.
     val incompleteRegionsForUser = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
@@ -195,11 +182,8 @@ object RegionTable {
       .groupBy(_._1.regionId) // GROUP BY region_id
       .map(_._1) // SELECT region_id
 
-    // Left join named regions and incomplete neighborhoods to record completion status.
-    regionsWithoutDeleted
-      .leftJoin(incompleteRegionsForUser).on(_.regionId === _)
-      .map(x => (x._1.regionId, x._1.name, x._1.geom, x._2.?.isEmpty))
-      .list.map(NamedRegionAndUserCompletion.tupled)
+    // Left join regions and incomplete neighborhoods to record completion status.
+    regionsWithoutDeleted.leftJoin(incompleteRegionsForUser).on(_.regionId === _).map(x => (x._1, x._2.?.isEmpty)).list
   }
 
   /**
