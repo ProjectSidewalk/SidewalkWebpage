@@ -300,7 +300,7 @@ object MissionTable {
 
     val missionsWithRegionName = for {
       (_m, _r) <- userMissions.leftJoin(RegionTable.regions).on(_.regionId === _.regionId)
-    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.description.?, _m.distanceMeters, _m.labelsValidated)
+    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.name.?, _m.distanceMeters, _m.labelsValidated)
 
     val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>
       RegionalMission(m._1, MissionTypeTable.missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6)

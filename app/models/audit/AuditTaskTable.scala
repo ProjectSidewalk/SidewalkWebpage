@@ -18,7 +18,7 @@ import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, startPointReversed: Boolean)
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp, completed: Boolean, currentLat: Float, currentLng: Float, startPointReversed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString, regionId: Int,
                    currentLng: Float, currentLat: Float, x1: Float, y1: Float, x2: Float, y2: Float,
                    startPointReversed: Boolean, // Did we start at x1,y1 instead of x2,y2?
@@ -82,7 +82,7 @@ class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("
   def userId = column[String]("user_id", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def taskStart = column[Timestamp]("task_start", O.NotNull)
-  def taskEnd = column[Option[Timestamp]]("task_end", O.Nullable)
+  def taskEnd = column[Timestamp]("task_end", O.NotNull)
   def completed = column[Boolean]("completed", O.NotNull)
   def currentLat = column[Float]("current_lat", O.NotNull)
   def currentLng = column[Float]("current_lng", O.NotNull)
@@ -104,7 +104,7 @@ object AuditTaskTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val auditTaskConverter = GetResult[AuditTask](r => {
-    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean, r.nextFloat, r.nextFloat, r.nextBoolean)
+    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestamp, r.nextBoolean, r.nextFloat, r.nextFloat, r.nextBoolean)
   })
 
   implicit val newTaskConverter = GetResult[NewTask](r => {
@@ -150,7 +150,7 @@ object AuditTaskTable {
   }
 
   case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
 
   /**
     * Returns a count of the number of audits performed on each day with audits.
@@ -337,8 +337,7 @@ object AuditTaskTable {
       _ut <- UserStatTable.userStats if _at.userId === _ut.userId
       _ur <- UserRoleTable.userRoles if _ut.userId === _ur.userId
       _r <- UserRoleTable.roles if _ur.roleId === _r.roleId
-      if _at.taskEnd.isDefined // NOTE this always seems to be true, maybe we can remove this constraint.
-    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd.get, _se.geom)
+    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd, _se.geom)
     auditedStreets.list.map(AuditedStreetWithTimestamp.tupled)
   }
 
@@ -490,6 +489,6 @@ object AuditTaskTable {
     */
   def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float): Int = db.withTransaction { implicit session =>
     val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng)
-    q.update((Some(timestamp), lat, lng))
+    q.update((timestamp, lat, lng))
   }
 }

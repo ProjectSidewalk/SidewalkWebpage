@@ -57,17 +57,17 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         }
 
         // Get current region if we aren't assigning new one; otherwise assign new region.
-        var region: Option[NamedRegion] = nextRegion match {
+        var region: Option[Region] = nextRegion match {
           case Some("easy") => // Assign an easy region if the query string has nextRegion=easy.
             UserCurrentRegionTable.assignEasyRegion(user.userId)
           case Some("regular") => // Assign any region if nextRegion=regular and the user is experienced.
             UserCurrentRegionTable.assignRegion(user.userId)
           case Some(illformedString) => // Log warning, assign new region if one is not already assigned.
             Logger.warn(s"Parameter to audit must be \'easy\' or \'regular\', but \'$illformedString\' was passed.")
-            if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.selectTheCurrentNamedRegion(user.userId)
+            if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.getCurrentRegion(user.userId)
             else UserCurrentRegionTable.assignRegion(user.userId)
           case None => // Assign new region if one is not already assigned.
-            if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.selectTheCurrentNamedRegion(user.userId)
+            if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.getCurrentRegion(user.userId)
             else UserCurrentRegionTable.assignRegion(user.userId)
         }
 
@@ -147,12 +147,12 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId: UUID = user.userId
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
-        val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
+        val regionOption: Option[Region] = RegionTable.getRegion(regionId)
         WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Update the currently assigned region for the user.
-        region match {
-          case Some(namedRegion) =>
+        regionOption match {
+          case Some(region) =>
             UserCurrentRegionTable.saveOrUpdate(userId, regionId)
             val role: String = user.role.getOrElse("")
             val payPerMeter: Double =
@@ -184,7 +184,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (missionSetProgress.missionType != "audit") {
               Future.successful(Redirect("/validate"))
             } else {
-              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
             }
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
@@ -203,16 +203,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val regions: List[NamedRegion] = StreetEdgeRegionTable.selectByStreetEdgeId(streetEdgeId).flatMap {
-          edgeRegion => RegionTable.selectANamedRegion(edgeRegion.regionId)
-        }
+        val regionOption: Option[Region] = StreetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)
 
-        if (regions.isEmpty) {
+        if (regionOption.isEmpty) {
           Logger.error(s"Either there is no region associated with street edge $streetEdgeId, or it is not a valid id.")
           Future.successful(Redirect("/audit"))
         } else {
-          val region: NamedRegion = regions.head
+          val region: Region = regionOption.get
           val regionId: Int = region.regionId
+          UserCurrentRegionTable.saveOrUpdate(userId, regionId)
 
           // TODO: Should this function be modified?
           val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
@@ -261,10 +260,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val regions: List[NamedRegion] = StreetEdgeRegionTable.selectByStreetEdgeId(streetEdgeId).flatMap {
-          edgeRegion => RegionTable.selectANamedRegion(edgeRegion.regionId)
-        }
-        val region: NamedRegion = regions.head
+        val regionOption: Option[Region] = StreetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)
+        val region: Region = regionOption.get
 
         val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
         val role: String = user.role.getOrElse("")
