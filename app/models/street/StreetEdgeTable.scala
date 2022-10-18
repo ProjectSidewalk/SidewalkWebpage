@@ -162,8 +162,8 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def auditedStreetDistance(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false, allowDuplicatedStreets: Boolean = false): Float = db.withSession { implicit session =>
-    val cacheKey = s"auditedStreetDistance($auditCount, $userType, $highQualityOnly, $allowDuplicatedStreets)"
+  def auditedStreetDistance(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = db.withSession { implicit session =>
+    val cacheKey = s"auditedStreetDistance($auditCount, $userType, $highQualityOnly)"
 
     Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
       val auditTaskQuery = userType match {
@@ -190,12 +190,6 @@ object StreetEdgeTable {
         _tasks <- filteredTasks if _tasks.streetEdgeId === _edges.streetEdgeId
       } yield _edges
 
-      // Calculate total audited distance, included audits over the same streets.
-      // This ignores the auditCount filter specifier.
-      if (allowDuplicatedStreets) {
-        return edges.map(_.geom.transform(26918).length).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
-      }
-
       // Gets tuple of (street_edge_id, num_completed_audits).
       val edgesWithAuditCounts = edges.groupBy(x => x).map{
         case (edge, group) => (edge.geom.transform(26918).length, group.length)
@@ -204,6 +198,22 @@ object StreetEdgeTable {
       // Get length of each street segment, sum the lengths, and convert from meters to miles.
       return edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
     }
+  }
+
+  /**
+   * Calculates the total distance audited by all users.
+   *
+   * @return The total distance audited  by all users in miles.
+   */
+  def auditedStreetDistanceTotal(): Float = db.withSession { implicit session =>
+    val getDistanceQuery = Q.queryNA[Float](
+      """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
+        |FROM street_edge
+        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |WHERE street_edge.deleted = FALSE
+        |     AND audit_task.completed = TRUE""".stripMargin
+    )
+    (getDistanceQuery.first * 0.000621371).toFloat;
   }
 
   /**
