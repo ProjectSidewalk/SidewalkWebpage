@@ -167,9 +167,9 @@
                                 </tr>
                                 <tr>
                                     <th>Audited Distance</th>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceTotal()))) @Messages("dist.metric.abbr")</td>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceToday()))) @Messages("dist.metric.abbr")</td>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistancePastWeek()))) @Messages("dist.metric.abbr")</td>
+                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("all time")))) @Messages("dist.metric.abbr")</td>
+                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("today")))) @Messages("dist.metric.abbr")</td>
+                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("week")))) @Messages("dist.metric.abbr")</td>
                                 </tr>
                                 <tr>
                                     <th>Total Validation Users</th>
