@@ -13,6 +13,8 @@ function InitializeStreets(map, params, streetData) {
     let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
+        let popupContent = `<a href="/audit/street/${feature.properties.street_edge_id}">Explore this street!</a>`;
+        layer.bindPopup(popupContent);
         layer.on({
             'mouseover': function () {
                 this.setStyle({ weight: 5 });
