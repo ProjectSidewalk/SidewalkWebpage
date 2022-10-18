@@ -203,15 +203,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val regions: List[Region] = StreetEdgeRegionTable.selectByStreetEdgeId(streetEdgeId).flatMap {
-          edgeRegion => RegionTable.getRegion(edgeRegion.regionId)
-        }
+        val regionOption: Option[Region] = StreetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)
 
-        if (regions.isEmpty) {
+        if (regionOption.isEmpty) {
           Logger.error(s"Either there is no region associated with street edge $streetEdgeId, or it is not a valid id.")
           Future.successful(Redirect("/audit"))
         } else {
-          val region: Region = regions.head
+          val region: Region = regionOption.get
           val regionId: Int = region.regionId
           UserCurrentRegionTable.saveOrUpdate(userId, regionId)
 
@@ -262,10 +260,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val regions: List[Region] = StreetEdgeRegionTable.selectByStreetEdgeId(streetEdgeId).flatMap {
-          edgeRegion => RegionTable.getRegion(edgeRegion.regionId)
-        }
-        val region: Region = regions.head
+        val regionOption: Option[Region] = StreetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)
+        val region: Region = regionOption.get
 
         val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
         val role: String = user.role.getOrElse("")
