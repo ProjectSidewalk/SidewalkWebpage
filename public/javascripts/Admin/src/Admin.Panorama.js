@@ -66,9 +66,16 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             'padding-bottom': '15px'
         })[0];
 
+        self.panoNotAvailableAuditSuggestion = 
+            $('<div id="pano-not-avail-audit"><a>Explore the street</a> again to use Google\'s newer images!</div>').css({
+            'font-size': '85%',
+            'padding-bottom': '15px'
+        })[0];
+
         self.svHolder.append($(self.panoCanvas));
         self.svHolder.append($(self.panoNotAvailable));
         self.svHolder.append($(self.panoNotAvailableDetails));
+        self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
 
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
         self.panorama.addListener('pano_changed', function() {
@@ -115,8 +122,9 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
      * @param heading
      * @param pitch
      * @param zoom
+     * @param callbackParam
      */
-    function setPano(panoId, heading, pitch, zoom) {
+    function setPano(panoId, heading, pitch, zoom, callbackParam) {
         if (typeof google != "undefined") {
             self.panorama.registerPanoProvider(function(pano) {
                 if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
@@ -150,6 +158,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'block');
                     $(self.panoNotAvailable).css('display', 'none');
                     $(self.panoNotAvailableDetails).css('display', 'none');
+                    $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
                     $(self.buttonHolder).css('display', 'block');
                     if (self.label) renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
@@ -158,6 +167,8 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');
+                    $("a").attr("href", "/audit/street/" + self.label['streetEdgeId']);
+                    $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
                     $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
                     $(self.svHolder).css('height', '');
@@ -165,10 +176,12 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'none');
+                    $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
                     $(self.buttonHolder).css('display', 'none');
                 } else {
                     setTimeout(callback, 200, n - 1);
                 }
+                callbackParam();
             }
             setTimeout(callback, 200, 10);
         }
@@ -188,7 +201,6 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         var url = icons[label['label_type']];
         var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
-
         self.labelMarkers.push({
             panoId: self.panorama.getPano(),
             marker: new PanoMarker({
@@ -326,7 +338,43 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         }
     }
 
-    //init
+    /**
+     * Returns the panorama ID for the current panorama.
+     * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
+     */
+    function getPanoId() {
+        return self.panorama.getPano();
+    }
+
+    /**
+     * Returns the lat lng of this panorama. Note that sometimes position is null/undefined
+     * (probably a bug in GSV), so sometimes this function returns null.
+     * @returns {{lat, lng}}
+     */
+    function getPos() {
+        let position = self.panorama.getPosition();
+        return (position) ? {'lat': position.lat(), 'lng': position.lng()} : null;
+    }
+
+    /**
+     * Returns the pov of the viewer.
+     * @returns {{heading: float, pitch: float, zoom: float}}
+     */
+    function getPov() {
+        let pov = self.panorama.getPov();
+
+        // Pov can be less than 0. So adjust it.
+        while (pov.heading < 0) {
+            pov.heading += 360;
+        }
+
+        // Pov can be more than 360. Adjust it.
+        while (pov.heading > 360) {
+            pov.heading -= 360;
+        }
+        return pov;
+    }
+
     _init();
 
     self.setPov = setPov;
@@ -334,5 +382,9 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     self.setLabel = setLabel;
     self.renderLabel = renderLabel;
     self.getOriginalPosition = getOriginalPosition;
+    self.getPanoId = getPanoId;
+    self.getPosition = getPos;
+    self.getPov = getPov;
+
     return self;
 }

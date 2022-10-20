@@ -9,7 +9,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.LabelFormat.labelMetadataUserDashToJson
-import models.audit.AuditTaskTable
+import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
 import models.mission.MissionTable
 import models.user.UserOrgTable
 import models.label.{LabelTable, LabelValidationTable}
@@ -75,17 +75,18 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Get the list of streets that have been audited by any user.
+   * Get the list of all streets and whether they have been audited or not, regardless of user.
    */
-  def getAllAuditedStreets(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
-    val streets = AuditTaskTable.selectStreetsAudited(filterLowQuality)
+  def getAllStreets(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
+    val streets: List[StreetEdgeWithAuditStatus] = AuditTaskTable.selectStreetsWithAuditStatus(filterLowQuality)
     val features: List[JsObject] = streets.map { edge =>
       val coordinates: Array[Coordinate] = edge.geom.getCoordinates
       val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
       val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
       val properties = Json.obj(
         "street_edge_id" -> edge.streetEdgeId,
-        "way_type" -> edge.wayType
+        "way_type" -> edge.wayType,
+        "audited" -> edge.audited
       )
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     }
@@ -100,7 +101,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         val labels = regionId match {
-          case Some(rid) => LabelTable.getLabelLocations(user.userId, rid)
+          case Some(rid) => LabelTable.getLabelLocations(user.userId, Some(rid))
           case None => LabelTable.getLabelLocations(user.userId)
         }
 
@@ -191,10 +192,30 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           }
         }
         Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
+      case None =>
+        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
+    }
+  }
+
+  /**
+   * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.
+   */
+  def getBasicUserStats = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val userId: UUID = user.userId
+        // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+        val auditedDistance: Float = {
+          if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(userId) * 1.60934.toFloat
+          else MissionTable.getDistanceAudited(userId)
+        }
+        Future.successful(Ok(Json.obj(
+          "distance_audited" -> auditedDistance,
+          "label_count" -> LabelTable.countLabels(userId),
+          "accuracy" -> LabelValidationTable.getUserAccuracy(userId)
+        )))
+      case None =>
+        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }
   }
 }

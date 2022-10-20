@@ -20,7 +20,7 @@ object LabelFormat {
       (__ \ "panorama_lng").write[Float] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").writeNullable[Int] and
-      (__ \ "time_created").writeNullable[Timestamp] and
+      (__ \ "time_created").write[Timestamp] and
       (__ \ "tutorial").write[Boolean] and
       (__ \ "street_edge_id").write[Int] and
       (__ \ "agree_count").write[Int] and
@@ -71,6 +71,8 @@ object LabelFormat {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
+      "street_edge_id" -> labelMetadata.streetEdgeId,
+      "region_id" -> labelMetadata.regionId,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "tags" -> labelMetadata.tags
     )
@@ -82,14 +84,16 @@ object LabelFormat {
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
       "image_date" -> labelMetadata.imageDate,
-      "heading" -> labelMetadata.heading,
-      "pitch" -> labelMetadata.pitch,
-      "zoom" -> labelMetadata.zoom,
+      "heading" -> labelMetadata.headingPitchZoom._1,
+      "pitch" -> labelMetadata.headingPitchZoom._2,
+      "zoom" -> labelMetadata.headingPitchZoom._3,
       "canvas_x" -> labelMetadata.canvasXY._1,
       "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight,
+      "canvas_width" -> labelMetadata.canvasWidthHeight._1,
+      "canvas_height" -> labelMetadata.canvasWidthHeight._2,
       "audit_task_id" -> labelMetadata.auditTaskId,
+      "street_edge_id" -> labelMetadata.streetEdgeId,
+      "region_id" -> labelMetadata.regionId,
       "user_id" -> labelMetadata.userId,
       "username" -> labelMetadata.username,
       "timestamp" -> labelMetadata.timestamp,
@@ -113,13 +117,15 @@ object LabelFormat {
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
       "image_date" -> labelMetadata.imageDate,
-      "heading" -> labelMetadata.heading,
-      "pitch" -> labelMetadata.pitch,
-      "zoom" -> labelMetadata.zoom,
+      "heading" -> labelMetadata.headingPitchZoom._1,
+      "pitch" -> labelMetadata.headingPitchZoom._2,
+      "zoom" -> labelMetadata.headingPitchZoom._3,
       "canvas_x" -> labelMetadata.canvasXY._1,
       "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight,
+      "canvas_width" -> labelMetadata.canvasWidthHeight._1,
+      "canvas_height" -> labelMetadata.canvasWidthHeight._2,
+      "street_edge_id" -> labelMetadata.streetEdgeId,
+      "region_id" -> labelMetadata.regionId,
       "timestamp" -> labelMetadata.timestamp,
       "label_type_key" -> labelMetadata.labelTypeKey,
       "label_type_value" -> labelMetadata.labelTypeValue,

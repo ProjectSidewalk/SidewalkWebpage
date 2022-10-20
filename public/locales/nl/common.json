@@ -4,6 +4,7 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "format-number": "{{val, number}}",
   "curb-ramp": "Trottoir oprit",
   "no-curb-ramp": "Ontbrekende trottoir oprit",
   "obstacle": "Obstakel op het pad",
@@ -102,5 +103,16 @@
     "APS": "APS",
     "missing crosswalk": "missend zebrapad",
     "no bus stop access": "geen bushalte toegang"
+  },
+  "gsv-info": {
+    "details-title": "Details",
+    "latitude": "Breedtegraad",
+    "longitude": "Lengtegraad",
+    "panorama-id": "Panorama-ID",
+    "street-id": "Straat-ID",
+    "region-id": "Regio-ID",
+    "label-id": "Label-ID",
+    "view-in-gsv": "Bekijken in Google Streetview",
+    "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
   }
 }

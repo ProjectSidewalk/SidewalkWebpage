@@ -33,19 +33,18 @@ object GlobalClusteringSessionTable {
   /**
    * Gets list of region_ids where the underlying data has been changed during single-user clustering.
    *
-   * Data in the `global_attribute` table that is missing from the `global_attribute_user_attribute` table means that
-   * the user who contributed the data has added data or has been marked as low quality. Data in the `user_attribute`
-   * table that is missing from the `global_attribute_user_attribute` table means that this is a new user or they've
-   * added new data. SELECT DISTINCT on the associated region_ids from both queries yields all regions to update.
+   * Data in the `global_attribute` table that is missing from the `global_attribute_user_attribute` table, or data in
+   * the `user_attribute` table that is missing from the `global_attribute_user_attribute` table, means that the
+   * underlying data changed during single-user clustering. Return all `region_id`s where that's the case.
    */
   def getNeighborhoodsToReCluster: List[Int] = db.withSession { implicit session =>
-    // global_attribute left joins with global_attribute_user_attribute, nulls mean low quality/updated users.
+    // global_attribute left joins with global_attribute_user_attribute, nulls mean underlying changes.
     val lowQualityOrUpdated = GlobalAttributeTable.globalAttributes
       .leftJoin(globalAttributeUserAttributes).on(_.globalAttributeId === _.globalAttributeId)
       .filter(_._2.globalAttributeId.?.isEmpty)
       .map(_._1.regionId)
 
-    // global_attribute_user_attribute right joins with user_attribute, nulls mean new/updated users.
+    // global_attribute_user_attribute right joins with user_attribute, nulls mean underlying changes.
     val newOrUpdated = globalAttributeUserAttributes
       .rightJoin(UserAttributeTable.userAttributes).on(_.userAttributeId === _.userAttributeId)
       .filter(_._1.userAttributeId.?.isEmpty)

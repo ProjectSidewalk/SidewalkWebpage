@@ -45,8 +45,6 @@
                 <div id="upper-menu-title-bar"></div>
                 <div id="label-visibility-control-holder">
                     <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
-                        <br/>@Html(Messages("validate.top.ui.hide.label"))
                     </button>
                 </div>
 
@@ -269,25 +267,7 @@
                 // Initializes an object of labels from label metadata.
                 // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
                 Object.keys(param.labelList).map(function (key, index) {
-                    let labelMetadata = {
-                        canvasHeight: param.labelList[key].canvas_height,
-                        canvasWidth: param.labelList[key].canvas_width,
-                        canvasX: param.labelList[key].canvas_x,
-                        canvasY: param.labelList[key].canvas_y,
-                        gsvPanoramaId: param.labelList[key].gsv_panorama_id,
-                        imageDate: param.labelList[key].image_date,
-                        labelTimestamp: param.labelList[key].label_timestamp,
-                        heading: param.labelList[key].heading,
-                        labelId: param.labelList[key].label_id,
-                        labelType: param.labelList[key].label_type,
-                        pitch: param.labelList[key].pitch,
-                        zoom: param.labelList[key].zoom,
-                        severity: param.labelList[key].severity,
-                        temporary: param.labelList[key].temporary,
-                        description: param.labelList[key].description,
-                        tags: param.labelList[key].tags
-                    };
-                    param.labelList[key] = new Label(labelMetadata);
+                    param.labelList[key] = new Label(param.labelList[key]);
                 });
             }
             svv.main = new Main(param);

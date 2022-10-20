@@ -4,6 +4,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.mission.MissionTable
 import models.region.RegionTable
+import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -15,8 +16,8 @@ import scala.language.postfixOps
 case class LabelToCluster(userId: String,
                           labelId: Int,
                           labelType: String,
-                          lat: Option[Float],
-                          lng: Option[Float],
+                          lat: Float,
+                          lng: Float,
                           severity: Option[Int],
                           temporary: Boolean) {
   /**
@@ -59,27 +60,29 @@ object UserClusteringSessionTable {
   val userClusteringSessions: TableQuery[UserClusteringSessionTable] = TableQuery[UserClusteringSessionTable]
 
   implicit val labelToClusterConverter = GetResult[LabelToCluster](r => {
-    LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
+    LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean)
   })
 
   /**
     * Returns labels that were placed by the specified user in the format needed for clustering.
     */
   def getUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
-
-    // Gets all non-deleted, non-tutorial labels placed by the specified user.
-    val labels = for {
-      _mission <- MissionTable.missions if _mission.userId === userId
-      _region <- RegionTable.regions if _mission.regionId === _region.regionId
-      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.missionId === _mission.missionId
-      _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
-      _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
-      if _region.deleted === false &&
-        (_lab.correct.isEmpty || _lab.correct === true) // Filter out labels validated as incorrect.
-    } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng, _lab.severity, _lab.temporary)
-
-    labels.list.map(LabelToCluster.tupled)
+    labelsForAPIQuery.filter(_._1 === userId).list.map(LabelToCluster.tupled)
   }
+
+  // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
+  // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
+  def labelsForAPIQuery = for {
+    _mission <- MissionTable.missions
+    _region <- RegionTable.regions if _mission.regionId === _region.regionId
+    _userStat <- UserStatTable.userStats if _mission.userId === _userStat.userId
+    _lab <- LabelTable.labels if _lab.missionId === _mission.missionId
+    _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
+    _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
+    if _region.deleted === false
+    if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty)
+    if _latlng.lat.isDefined && _latlng.lng.isDefined
+  } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.get, _latlng.lng.get, _lab.severity, _lab.temporary)
 
   /**
     * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
@@ -94,8 +97,8 @@ object UserClusteringSessionTable {
       _sess.userId,
       _att.userAttributeId,
       _type.labelType,
-      _att.lat.?,
-      _att.lng.?,
+      _att.lat,
+      _att.lng,
       _att.severity,
       _att.temporary
     )

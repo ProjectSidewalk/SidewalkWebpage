@@ -44,10 +44,9 @@ function Neighborhood (parameters) {
         }
     }
 
-    function completedLineDistanceAcrossAllUsersUsingPriority(unit) {
-        if (!unit) unit = {units: 'kilometers'};
+    function completedLineDistanceAcrossAllUsersUsingPriority() {
         if ("taskContainer" in svl && svl.taskContainer) {
-            return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority(unit);
+            return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority();
         } else {
             return null;
         }

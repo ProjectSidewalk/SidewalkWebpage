@@ -5,6 +5,7 @@ function Admin(_, $, difficultRegionIds) {
     var mapData = InitializeMapLayerContainer();
     var map;
     var auditedStreetLayer;
+    var unauditedStreetLayer;
     var analyticsTabMapParams = {
         popupType: 'completionRate',
         regionColors: [
@@ -62,7 +63,8 @@ function Admin(_, $, difficultRegionIds) {
     var streetParams = {
         labelPopup: true,
         includeLabelColor: true,
-        streetColor: 'black'
+        auditedStreetColor: 'black',
+        unauditedStreetColor: 'gray'
     };
 
     function initializeAdminGSVLabelView() {
@@ -109,6 +111,10 @@ function Admin(_, $, difficultRegionIds) {
 
     function toggleAuditedStreetLayerAdmin() {
         toggleAuditedStreetLayer(map, auditedStreetLayer);
+    }
+
+    function toggleUnauditedStreetLayerAdmin() {
+        toggleUnauditedStreetLayer(map, unauditedStreetLayer);
     }
 
     // Takes an array of objects and the name of a property of the objects, returns summary stats for that property.
@@ -229,20 +235,22 @@ function Admin(_, $, difficultRegionIds) {
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
             var loadMapParams = $.getJSON('/cityMapParams');
-            var loadAuditedStreets = $.getJSON('/contribution/streets/all');
+            var loadStreets = $.getJSON('/contribution/streets/all');
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
                 map = Choropleth(_, $, difficultRegionIds, mapTabMapParams, [], data1[0], data2[0], data3[0]);
             });
-            // When the polygons have been rendered and the audited streets have loaded,
-            // the audited streets can be rendered.
-            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-                auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
+            // When the polygons have been rendered and the audited streets have loaded, the streets can be rendered.
+            var renderStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
+                var auditedStreets = { features: data2[0].features.filter(edges => edges.properties.audited) };
+                var unauditedStreets = { features: data2[0].features.filter(edges => !edges.properties.audited) };
+                auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets);
+                unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets);
             });
             // When the audited streets have been rendered and the submitted labels have loaded,
             // the submitted labels can be rendered.
-            $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+            $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
                 mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), mapData, data2[0])
             })
             mapLoaded = true;
@@ -317,9 +325,11 @@ function Admin(_, $, difficultRegionIds) {
                 }
                 var curbRamps = data.features.filter(function(label) {return label.properties.label_type === "CurbRamp"});
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
-                var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+                var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
+                var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
+                var pedestrianSignals = data.features.filter(function(label) {return label.properties.label_type === "Signal"});
                 
                 var curbRampStats = getSummaryStats(curbRamps, "severity");
                 $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
@@ -329,25 +339,34 @@ function Admin(_, $, difficultRegionIds) {
                 $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
                 $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
                 
+                var obstacleStats = getSummaryStats(obstacles, "severity");
+                $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
+                $("#obstacle-std").html((obstacleStats.std).toFixed(2));
+
                 var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
                 $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
                 $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
                 
-                var obstacleStats = getSummaryStats(obstacles, "severity");
-                $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
-                $("#obstacle-std").html((obstacleStats.std).toFixed(2));
-                
                 var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
                 $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
                 $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
+                
+                var crosswalkStats = getSummaryStats(crosswalks, "severity");
+                $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
+                $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
+
+                var pedestrianSignalStats = getSummaryStats(pedestrianSignals, "severity");
+                $("#signal-mean").html((pedestrianSignalStats.mean).toFixed(2));
+                $("#signal-std").html((pedestrianSignalStats.std).toFixed(2));
 
                 var allData = data.features;
                 var allDataStats = getSummaryStats(allData, "severity");
                 $("#labels-mean").html((allDataStats.mean).toFixed(2));
                 $("#labels-std").html((allDataStats.std).toFixed(2));
-                
-                var subPlotHeight = 150;
-                var subPlotWidth = 149;
+
+                var subPlotHeight = 150; // Before, it was 150
+                var subPlotWidth = 130; // Before, it was 149
+
                 var chart = {
                     "hconcat": [
                         {
@@ -359,28 +378,6 @@ function Admin(_, $, difficultRegionIds) {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "Curb Ramp Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
-                            }
-                        },
-                        {
-                            "height": subPlotHeight,
-                            "width": subPlotWidth,
-                            "data": {"values": noCurbRamps},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Missing Curb Ramp Severity", "labelAngle": 0}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
-                            }
-                        },
-                        {
-                            "height": subPlotHeight,
-                            "width": subPlotWidth,
-                            "data": {"values": surfaceProblems},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Surface Problem Severity", "labelAngle": 0}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                         {
@@ -404,15 +401,71 @@ function Admin(_, $, difficultRegionIds) {
                                     "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
-                        }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": pedestrianSignals},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Pedestrian Signal Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
                     ],
                     "config": {
                         "axis": {
-                            "titleFontSize": 14
+                            "titleFontSize": 10
                         }
                     }
                 };
+
+                var chart2 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noCurbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Missing Curb Ramp Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": surfaceProblems},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Surface Problem Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": crosswalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "Crosswalk Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 10
+                        }
+                    }
+                };
+
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
+                vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Create a choropleth.
@@ -1118,6 +1171,7 @@ function Admin(_, $, difficultRegionIds) {
     self.toggleLayers = toggleLayersAdmin;
     self.filterLayers = filterLayersAdmin;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
+    self.toggleUnauditedStreetLayer = toggleUnauditedStreetLayerAdmin;
 
     $('.change-role').on('click', changeRole);
 

@@ -4,6 +4,7 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "format-number": "{{val, number}}",
   "curb-ramp": "Rampa peatonal",
   "no-curb-ramp": "Rampa peatonal ausente",
   "obstacle": "Obstáculo en la banqueta",
@@ -102,5 +103,16 @@
     "APS": "APS",
     "missing crosswalk": "paso peatonal ausente (i)",
     "no bus stop access": "No hay acceso a la parada de autobús"
+  },
+  "gsv-info": {
+    "details-title": "Detalles",
+    "latitude": "Latitud",
+    "longitude": "Longitud",
+    "panorama-id": "ID de panorama",
+    "street-id": "ID de calle",
+    "region-id": "ID de región",
+    "label-id": "ID de etiqueta",
+    "view-in-gsv": "Ver en Google Street View",
+    "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
   }
 }

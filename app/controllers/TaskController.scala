@@ -111,13 +111,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val point: Point = new GeometryFactory().createPoint(new Coordinate(0, 0))
       val auditTaskObj = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
-          Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-          auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId, point)
+          Timestamp.valueOf(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat,
+          auditTask.currentLng, auditTask.startPointReversed, missionId, point)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
           AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId,
-            Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-            auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed, missionId, point)
+            Timestamp.valueOf(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat,
+            auditTask.currentLng, auditTask.startPointReversed, missionId, point)
       }
       AuditTaskTable.save(auditTaskObj)
     }
@@ -272,11 +272,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             labId
           case None =>
             // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
-            val timeCreated: Option[Timestamp] = label.timeCreated match {
-              case Some(time) => Some(new Timestamp(time))
+            val timeCreated: Timestamp = label.timeCreated match {
+              case Some(time) => new Timestamp(time)
               case None =>
-                Logger.error("No timestamp given for a new label")
-                None
+                Logger.error("No timestamp given for a new label, using current time instead.")
+                new Timestamp(Instant.now.toEpochMilli)
             }
 
             var calculatedStreetEdgeId: Int = streetEdgeId;

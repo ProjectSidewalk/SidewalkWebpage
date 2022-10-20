@@ -14,14 +14,27 @@
 }
 
 #svv-panorama-date-holder {
+    display: flex;
+    justify-content: flex-start;
+    height: 29px;
     position: absolute;
-    bottom: 3px;
-    left: 75px;
-    z-index: 1;
+    bottom: 0px;
+    left: 69px;
+    z-index: 2;
     font-family: sans-serif;
     font-size: 15px;
     text-shadow: 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5);
     color: white;
+}
+
+#svv-panorama-date {
+    padding: 5px;
+}
+
+#gsv-info-button {
+    margin-left: 4px;
+    margin-top: 7px;
+    height: 16px;
 }
 
 /* Black outline around GSV panorama. */

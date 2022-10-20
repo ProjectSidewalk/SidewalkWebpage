@@ -12,14 +12,23 @@ crosswalk = Oversteekplaats
 signal = Verkeerslicht
 other = Anders
 labels = labels
+label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
+accuracy = nauwkeurigheid
+accuracy.caps = Nauwkeurigheid
+accuracy.icon.alt = Doel met een pijl in de roos
 dist.metric.abbr = km
+distance.icon.alt = Pictogram met gebogen pad naar bestemming
 ok = OK
 cancel = Annuleer
 error = Error!
+yes.caps = Ja
+no.caps = Nee
 thanks = Dank je wel!
 username = Gebruikersnaam
 loading = Laden...
 loading.encouragement = Let''s go!
+test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
+dont.show.again = Laat niet opnieuw zien
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
@@ -131,6 +140,7 @@ audit.left.ui.jump.explore.title = Naar een nieuwe locatie of naar een nieuwe wi
 audit.left.ui.jump.explore.button.same.neighborhood = Ga naar een nieuwe locatie in de wijk
 audit.left.ui.jump.explore.button.new.neighborhood = Ga naar een nieuwe wijk
 
+audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
 audit.right.ui.current.mission = Huidige Missie
@@ -140,7 +150,6 @@ audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
 audit.center.ui.add.tags = Voeg<br>Tags toe:
 audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
-audit.center.ui.show.again = Laat niet opnieuw zien
 
 audit.mission.complete.labels.title = Missie labels
 audit.mission.complete.progress.title = Wijk voortgang
@@ -189,7 +198,6 @@ audit.help.obstacle.5 = De boom blokkeert het pad volledig, waardoor deze niet b
 audit.help.surface.problem.1 = Gedeeltelijk beschadigd trottoir. Omdat er voldoende ruimte is naast het beschadigde deel van het trottoir, zouden rolstoelgebruikers kunnen passeren.
 audit.help.surface.problem.3 = Rolstoelgebruikers zouden moeite hebben met het navigeren op de geplaveide trottoirs en zebrapaden.
 audit.help.surface.problem.5 = Rolstoelgebruikers kunnen ernstig aangetaste stoepoppervlakken niet passeren vanwege de overgroeide vegetatie.
-validate.top.ui.hide.label = Verberg Label
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
@@ -222,6 +230,7 @@ authenticate.submit = Dien in
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
 authenticate.non.member = Nog geen account? <a href="{0}">Maak er een</a>
 authenticate.confirm.password = Bevestig wachtwoord
+authenticate.service.hours.title = Bent u van plan om te verzoeken dat uw werk via Project Sidewalk wordt meegeteld voor de gemeenschaps-/vrijwilligersdiensturen?
 authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">Gebruiksvoorwaarden en Privacybeleid</a>
 authenticate.signup = Een account maken
 authenticate.signup.new.account = Maak een nieuw account
@@ -237,7 +246,9 @@ authenticate.error.email.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al
 authenticate.error.password.length = Wachtwoord moet minimaal 6 tekens lang zijn
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
+authenticate.error.missing.service.hours = Gelieve te reageren op elke vraag
 authenticate.error.invalid.credentials = Ongeldige inloggegevens!
+authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
 reset.pw.forgot.title = Wachtwoord vergeten?
 reset.pw.forgot.submit.email = Geen zorgen, typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
@@ -277,12 +288,8 @@ dashboard.your.missions = Jouw missies
 dashboard.distance = Afstand
 dashboard.labels = Labels
 dashboard.validations = Validaties
-dashboard.accuracy = Nauwkeurigheid
 dashboard.mission.icon.alt = Rolstoelgebruiker met een vlag
-dashboard.distance.icon.alt = Pictogram met gebogen pad naar bestemming
-dashboard.label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
 dashboard.validation.icon.alt = Checklist naast een potlood
-dashboard.accuracy.icon.alt = Doel met een pijl in de roos
 dashboard.accuracy.icon.tooltip = je labelnauwkeurigheid. Als N/A wordt weergegeven, zijn er niet genoeg van je labels gevalideerd door andere gebruikers.
 dashboard.achievements = Prestaties
 dashboard.eerst = eerste
@@ -315,7 +322,6 @@ leaderboard.org.detail = Top 10 algemene bijdragers aan {0}
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missies
 leaderboard.header.distance = Afstand
-leaderboard.header.accuracy = Nauwkeurigheid
 leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten minste 10 van je labels zijn gevalideerd
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/audit"><u>Begin met verkennen!</u></a>

@@ -14,9 +14,10 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
 
     var audios = {
         drip: new Audio(fileDirectory + 'audio/drip.mp3'),
-        glug1: new Audio(fileDirectory + 'audio/glug1.mp3'),
         success: new Audio(fileDirectory + 'audio/success.mp3')
     };
+    audios.drip.volume = 0.25;
+    audios.success.volume = 0.05;
     var blinkInterval;
 
     uiSoundButton.sound.on('click', toggleSound);
