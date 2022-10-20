@@ -1,13 +1,13 @@
 @import models.user.User
 @import models.region.RegionTable
-@import models.region.NamedRegion
+@import models.region.Region
 @import models.mission.{MissionTable, Mission}
 @import models.survey._
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
