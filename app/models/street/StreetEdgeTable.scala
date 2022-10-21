@@ -207,27 +207,24 @@ object StreetEdgeTable {
    * @return The total distance audited by all users in miles.
    */
   def auditedStreetDistanceOverTime(timeInterval: String = "all time"): Float = db.withSession { implicit session =>
-    val cacheKey = s"auditedStreetDistanceOverTime($timeInterval)"
-    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
-      // Build up SQL string related to audit task time intervals.
-      // Defaults to *not* specifying a time (which is the same thing as "all time").
-      val auditTaskTimeIntervalSql = timeInterval.toLowerCase() match {
-        case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
-        case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-        case _ => "TRUE"
-      }
-
-      // Execute query.
-      val getDistanceQuery = Q.queryNA[Float](
-        s"""SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
-           |FROM street_edge
-           |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-           |WHERE $auditTaskTimeIntervalSql
-           |     AND street_edge.deleted = FALSE
-           |     AND audit_task.completed = TRUE""".stripMargin
-      )
-      (getDistanceQuery.first * 0.000621371).toFloat;
+    // Build up SQL string related to audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all time").
+    val auditTaskTimeIntervalSql = timeInterval.toLowerCase() match {
+      case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
     }
+
+    // Execute query.
+    val getDistanceQuery = Q.queryNA[Float](
+      s"""SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
+         |FROM street_edge
+         |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |WHERE $auditTaskTimeIntervalSql
+         |     AND street_edge.deleted = FALSE
+         |     AND audit_task.completed = TRUE""".stripMargin
+    )
+    (getDistanceQuery.first * 0.000621371).toFloat
   }
 
   /**
