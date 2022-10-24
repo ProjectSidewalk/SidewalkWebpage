@@ -227,7 +227,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
       // Update MissionStart
-      updateMissionStart(auditTaskId, data.auditTask.missionStart)
+//      updateMissionStart(auditTaskId, data.auditTask.missionStart)
 
       // Update the MissionTable.
       val possibleNewMission: Option[Mission] = updateMissionTable(userOption, data.missionProgress)

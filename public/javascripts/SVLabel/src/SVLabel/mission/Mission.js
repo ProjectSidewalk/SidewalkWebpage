@@ -92,7 +92,7 @@ function Mission(parameters) {
         updateDistanceProgress();
         if ("taskContainer" in svl && getProperty("missionType") !== "auditOnboarding") {
             var distanceProgress = getProperty("distanceProgress");
-            var targetDistance = getDistance();
+            var targetDistance = getDistance('meters');
 
             return Math.min(Math.max(distanceProgress / targetDistance, 0), 1);
         } else {
