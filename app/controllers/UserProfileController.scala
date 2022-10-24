@@ -12,7 +12,7 @@ import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
 import models.mission.MissionTable
 import models.user.UserOrgTable
-import models.label.{LabelTable, LabelValidationTable}
+import models.label.{LabelLocation, LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
@@ -100,11 +100,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedLabels(regionId: Option[Int]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels = regionId match {
-          case Some(rid) => LabelTable.getLabelLocations(user.userId, Some(rid))
-          case None => LabelTable.getLabelLocations(user.userId)
-        }
-
+        val labels: List[LabelLocation] = LabelTable.getLabelLocations(user.userId, regionId)
         val features: List[JsObject] = labels.map { label =>
           val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
           val properties = Json.obj(
