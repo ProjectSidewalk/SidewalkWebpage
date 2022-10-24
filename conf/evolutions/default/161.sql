@@ -55,4 +55,3 @@ WHERE label.label_id = validation_count.label_id
 
 ALTER TABLE user_stat ALTER COLUMN exclude_manual DROP NOT NULL;
 UPDATE user_stat SET exclude_manual = NULL WHERE exclude_manual = FALSE;
->>>>>>> 1f7655d3ffe38be5c3bd3892ccbb5285dcb339c6

@@ -448,22 +448,6 @@ object AuditTaskTable {
 
     newTask.list.map(NewTask.tupled).headOption
   }
-  
-  /**
-    * Get tasks in the mission. Called when a list of tasks is requested through the API.
-    */
-  def selectTasksInAMission(missionId: Int): List[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-
-    val tasks = for {
-      at <- auditTasks if at.missionId === missionId
-      se <- streetEdges if at.streetEdgeId === se.streetEdgeId
-      re <- regions if se.streetEdgeId === re.streetEdgeId
-      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, at.missionId)
-    tasks.list.map(NewTask.tupled(_))
-  }
 
   /**
     * Get tasks in the region. Called when a list of tasks is requested through the API.

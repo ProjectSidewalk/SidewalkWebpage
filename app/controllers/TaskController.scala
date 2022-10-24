@@ -71,22 +71,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   * Get the audit tasks in the given mission
-   */
-  def getTasksInAMission(missionId: Int) = UserAwareAction.async { implicit request =>
-    val tasks: List[JsObject] = AuditTaskTable.selectTasksInAMission(missionId).map(_.toJSON)
-    Future.successful(Ok(JsArray(tasks)))
-  }
-
-  // /**
-  //  * Get ending completion point of a partially complete task
-  //  */
-  // def getMissionStartPoint(auditTaskId: Int, missionId: Int) = UserAwareAction.async { implicit request =>
-  //   val tasks: List[JsObject] = AuditTaskTable.findMissionStartPoint(auditTaskId, missionId)
-  //   Future.successful(Ok(JsArray(tasks)))
-  // }
-
-  /**
    * Save completion end point of a partially complete task
    */
   def updateMissionStart(auditTaskId: Int, missionStart: Point) = {

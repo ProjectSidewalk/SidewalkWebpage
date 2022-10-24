@@ -112,7 +112,7 @@ function Main (params) {
         svl.taskModel._taskContainer = svl.taskContainer;
 
         // Mission
-        svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
+        svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
@@ -123,8 +123,9 @@ function Main (params) {
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
             currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
-            if (svl.mission.getProperty("started") == false) {
-                svl.mission.setProperty("started", true);
+            var currMission = svl.missionContainer.getCurrentMission();
+            if (!currMission.getProperty("started")) {
+                currMission.setProperty("started", true);
                 currTask.setProperty("missionStart", currTask.missionStart)
             }
         } else {

@@ -366,35 +366,17 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Find incomplete tasks by the user
-     * @returns {null}
+     * Find incomplete tasks by the user.
      */
     self.getIncompleteTasks = function () {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            self.fetchTasks(null, false);
-            return null;
-        }
-        return self._tasks.filter(function (task) {
-            return !task.isComplete();
-        });
+        return self._tasks.filter(function (task) { return !task.isComplete(); });
     };
 
     /**
-     * Find incomplete tasks across all users
-     *
-     * @returns {*}
+     * Find incomplete tasks across all users.
      */
     self.getIncompleteTasksAcrossAllUsersUsingPriority = function () {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            self.fetchTasks(null, false);
-            return null;
-        }
-
-        var incompleteTasksByUser = self._tasks.filter(function (task) {
-            return !task.isComplete();
-        });
+        var incompleteTasksByUser = self._tasks.filter(function (task) { return !task.isComplete(); });
 
         var incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {

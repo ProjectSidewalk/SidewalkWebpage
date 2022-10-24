@@ -24,6 +24,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         regionId: null,
         completedByAnyUser: null,
         priority: null,
+        missionId: null,
         currentLat: currentLat,
         currentLng: currentLng,
         startPointReversed: startPointReversed,
@@ -44,6 +45,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         self.setProperty("regionId", _geojson.features[0].properties.region_id);
         self.setProperty("completedByAnyUser", _geojson.features[0].properties.completed_by_any_user);
         self.setProperty("priority", _geojson.features[0].properties.priority);
+        self.setProperty("missionId", _geojson.features[0].properties.mission_id);
 
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
@@ -308,7 +310,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      * @returns {*}
      */
     this.getGeoJSON = function () {
-        return _geojson; 
+        return _geojson;
     };
 
     /**
@@ -424,7 +426,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     /**
      * This method checks if the task is completed by comparing the
      * current position and the ending point.
-     * 
+     *
      * @param lat
      * @param lng
      * @param threshold
