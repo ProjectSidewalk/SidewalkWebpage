@@ -13,14 +13,12 @@ function InitializeStreets(map, params, streetData) {
     let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
-        if (feature.properties && feature.properties.type) {
-            layer.bindPopup(feature.properties.type);
-        }
+        let popupContent = `<a href="/audit/street/${feature.properties.street_edge_id}">Click here</a> to explore this street!`;
+        layer.bindPopup(popupContent);
         layer.on({
-            'add': function () {
-                layer.bringToBack()
-            }
-        })
+            'mouseover': function () { this.setStyle({ weight: 6 }); },
+            'mouseout': function() { this.setStyle({ weight: 3 }); }
+        });
     }
     // Render street segments.
     streetLayer = L.geoJson(streetData, {

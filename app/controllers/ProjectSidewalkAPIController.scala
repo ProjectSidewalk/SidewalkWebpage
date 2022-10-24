@@ -437,7 +437,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version = version, coordinates)
     val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val auditedStreets: List[StreetEdgeInfo] = streets.filter(_.auditCount > 0)
-    val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+    val neighborhoods: List[Region] = RegionTable.getNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
     // Populate every object in the list.
