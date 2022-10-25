@@ -196,7 +196,7 @@ object StreetEdgeTable {
       }
 
       // Get length of each street segment, sum the lengths, and convert from meters to miles.
-      return edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
+      edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
     }
   }
 
