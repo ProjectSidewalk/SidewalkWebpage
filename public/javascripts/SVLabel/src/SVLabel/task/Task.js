@@ -24,7 +24,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         regionId: null,
         completedByAnyUser: null,
         priority: null,
-        missionId: null,
+        currentMissionId: null,
         currentLat: currentLat,
         currentLng: currentLng,
         startPointReversed: startPointReversed,
@@ -45,7 +45,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         self.setProperty("regionId", _geojson.features[0].properties.region_id);
         self.setProperty("completedByAnyUser", _geojson.features[0].properties.completed_by_any_user);
         self.setProperty("priority", _geojson.features[0].properties.priority);
-        self.setProperty("missionId", _geojson.features[0].properties.mission_id);
+        self.setProperty("currentMissionId", _geojson.features[0].properties.current_mission_id);
 
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
@@ -236,36 +236,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             return Math.min(turf.distance(point, point1), turf.distance(point, point2));
         }
     }
-
-    // function updateMissionStart(point) {
-    //     var data = {
-    //         streetEdgeId: self.getProperty("streetEdgeId"),
-    //         taskStart: self.getProperty(""),
-    //         auditTaskId: self,
-    //         completed: Option[Boolean],
-    //         currentLat: Float,
-    //         currentLng: Float,
-    //         startPointReversed: Boolean,
-    //         lastPriorityUpdateTime: Long,
-    //         requestUpdatedStreetPriority: Boolean,
-    //         missionStart: point
-    //     };
-
-    //     // Submit the new Point via POST request.
-    //     $.ajax({
-    //         async: true,
-    //         contentType: 'application/json; charset=utf-8',
-    //         url: "/task",
-    //         type: 'post',
-    //         data: JSON.stringify(data),
-    //         dataType: 'json',
-    //         success: function (result) {},
-    //         error: function (result) {
-    //             console.error(result);
-    //         }
-    //     });
-    // }
-    // }
 
     this._hasAdvanced = function (currentLat, currentLng) {
         if (typeof _furthestPoint === "undefined") return false;

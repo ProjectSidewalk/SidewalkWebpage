@@ -19,18 +19,10 @@ object TaskSubmissionFormats {
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
-  // case class Point(lat: float, lng: float)
-  // implicit val pointReads: Reads[Point] = Reads { point =>
-  //   Json.obj(
-  //     "lat" -> point.getX,
-  //     "lng" -> point.getY
-  //   )
-  // }
-
-  implicit val pointReads: Reads[Point] = (
-    (JsPath \ "lat").read[Double] and
-      (JsPath \ "lng").read[Double]
-    )((lat, lng) => new GeometryFactory().createPoint(new Coordinate(lat, lng)))
+//  implicit val pointReads: Reads[Point] = (
+//    (JsPath \ "lat").read[Double] and
+//      (JsPath \ "lng").read[Double]
+//    )((lat, lng) => new GeometryFactory().createPoint(new Coordinate(lat, lng)))
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and

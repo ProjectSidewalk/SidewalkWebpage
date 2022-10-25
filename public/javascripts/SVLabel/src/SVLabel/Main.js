@@ -126,7 +126,7 @@ function Main (params) {
             var currMission = svl.missionContainer.getCurrentMission();
             if (!currMission.getProperty("started")) {
                 currMission.setProperty("started", true);
-                currTask.setProperty("missionStart", currTask.missionStart)
+                // currTask.setProperty("missionStart", currTask.missionStart)
             }
         } else {
             svl.tracker.initTaskId();

@@ -28,8 +28,8 @@ object TaskFormats {
       (__ \ "current_lat").write[Float] and
       (__ \ "current_lng").write[Float] and
       (__ \ "start_point_reversed").write[Boolean] and
-      (__ \ "mission_id").write[Int] and
-      (__ \ "mission_start").write[Point]
+      (__ \ "current_mission_id").writeNullable[Int] and
+      (__ \ "current_mission_start").writeNullable[Point]
     )(unlift(AuditTask.unapply _))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (

@@ -182,7 +182,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 for (var i = 0; i < result.length; i++) {
                     task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
-                    if (task.getProperty('missionId') === currMissionId) currMission.pushATaskToTheRoute(task);
+                    if (task.getProperty('currentMissionId') === currMissionId) currMission.pushATaskToTheRoute(task);
                     storeTask(task);
                 }
 
