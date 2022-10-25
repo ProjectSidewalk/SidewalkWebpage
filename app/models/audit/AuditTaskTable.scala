@@ -474,7 +474,9 @@ object AuditTaskTable {
 
     val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 
-    val userCompletedStreets = completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map{ x => (x._1, true) }
+    val userCompletedStreets = completedTasks
+      .filter(_.userId === user.toString)
+      .groupBy(_.streetEdgeId).map{ x => (x._1, true, x._2.map(_.missionId).max) }
 
     val tasks = for {
       (ser, ucs) <- edgesInRegion.leftJoin(userCompletedStreets).on(_.streetEdgeId === _._1)
@@ -482,7 +484,7 @@ object AuditTaskTable {
       re <- regions if se.streetEdgeId === re.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, ucs._2.?.getOrElse(false), 0)
+    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, ucs._2.?.getOrElse(false), ucs._3.getOrElse(-1))
 
     tasks.list.map(NewTask.tupled(_))
   }

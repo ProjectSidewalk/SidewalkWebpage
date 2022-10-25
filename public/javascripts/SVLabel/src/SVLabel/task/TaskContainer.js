@@ -130,7 +130,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         self.update();
         // Renders the next street that the user will explore.
         if(nextTask) nextTask.render();
-        
+
         return task;
     };
 
@@ -170,6 +170,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     self.fetchTasks = function (callback, async) {
         if (typeof async == "undefined") async = true;
+        var currMission = svl.missionContainer.getCurrentMission();
+        var currMissionId = currMission.getProperty('missionId');
 
         $.ajax({
             url: "/tasks?regionId=" + svl.neighborhoodModel.currentNeighborhood().getProperty("regionId"),
@@ -180,6 +182,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 for (var i = 0; i < result.length; i++) {
                     task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
+                    if (task.getProperty('missionId') === currMissionId) currMission.pushATaskToTheRoute(task);
                     storeTask(task);
                 }
 
