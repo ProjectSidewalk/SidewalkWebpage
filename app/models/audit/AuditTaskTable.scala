@@ -364,16 +364,13 @@ object AuditTaskTable {
   def selectANewTask(streetEdgeId: Int, user: Option[UUID]): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
-    // Set completed to true if the user has already audited this street.
-    val userCompleted: Boolean = if (user.isDefined) userHasAuditedStreet(streetEdgeId, user.get) else false
-
     // Join with other queries to get completion count and priority for each of the street edges.
     val edges = for {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       re <- regions if se.streetEdgeId === re.streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, userCompleted, Some(-1).asColumnOf[Option[Int]])
+    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, None: Option[Int])
 
     NewTask.tupled(edges.first)
   }
@@ -393,7 +390,7 @@ object AuditTaskTable {
       se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
       re <- regions if se.streetEdgeId === re.streetEdgeId
       sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, Some(-1).asColumnOf[Option[Int]])
+    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, None: Option[Int])
 
     // Get the priority of the highest priority task.
     val highestPriority: Option[Double] = possibleTasks.map(_._13).max.run
@@ -411,47 +408,32 @@ object AuditTaskTable {
     * Gets the metadata for a task from its audit_task_id.
     */
   def selectTaskFromTaskId(taskId: Int): Option[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-
     val newTask = for {
       at <- auditTasks if at.auditTaskId === taskId
       se <- streetEdges if at.streetEdgeId === se.streetEdgeId
       re <- regions if se.streetEdgeId === re.streetEdgeId
       sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, re.regionId, at.currentLng, at.currentLat, se.x1, se.y1, se.x2, se.y2, at.startPointReversed, timestamp, sc._2, sp.priority, false, Some(-1).asColumnOf[Option[Int]])
+    } yield (se.streetEdgeId, se.geom, re.regionId, at.currentLng, at.currentLat, se.x1, se.y1, se.x2, se.y2, at.startPointReversed, at.taskStart, sc._2, sp.priority, at.completed, at.currentMissionId)
 
-    newTask.list.map(NewTask.tupled).headOption
+    newTask.firstOption.map(NewTask.tupled)
   }
 
   /**
-    * Get tasks in the region. Called when a list of tasks is requested through the API.
-    */
-  def selectTasksInARegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-
-    val tasks = for {
-      ser <- nonDeletedStreetEdgeRegions if ser.regionId === regionId
-      se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
-      re <- regions if se.streetEdgeId === re.streetEdgeId
-      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, Some(-1).asColumnOf[Option[Int]])
-
-    tasks.list.map(NewTask.tupled(_))
-  }
-
-  /**
-    * Get tasks in the region. Called when a user begins auditing a region.
+    * Get tasks in the region. Called when a user begins auditing. Includes completed tasks, despite return type!
     */
   def selectTasksInARegion(regionId: Int, user: UUID): List[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 
+    // Get the street_edge_id, task_start, and current_mission_id for streets that the user has audited. If there are
+    // multiple audit_tasks for the same street, choose the most recent one (the one w/ the highest audit_task_id).
     val userCompletedStreets = completedTasks
       .filter(_.userId === user.toString)
-      .groupBy(_.streetEdgeId).map{ x => (x._1, true, x._2.map(_.currentMissionId).max) }
+      .groupBy(_.streetEdgeId).map(_._2.map(_.auditTaskId).max)
+      .innerJoin(auditTasks).on(_ === _.auditTaskId)
+      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.currentMissionId))
 
     val tasks = for {
       (ser, ucs) <- edgesInRegion.leftJoin(userCompletedStreets).on(_.streetEdgeId === _._1)
@@ -459,7 +441,7 @@ object AuditTaskTable {
       re <- regions if se.streetEdgeId === re.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, ucs._2.?.getOrElse(false), ucs._3)
+    } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, ucs._2.?.getOrElse(timestamp), scau._2, sep.priority, ucs._1.?.isDefined, ucs._3)
 
     tasks.list.map(NewTask.tupled(_))
   }

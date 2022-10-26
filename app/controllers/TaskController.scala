@@ -49,6 +49,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   /**
     * This method returns a task definition specified by the streetEdgeId.
     *
+    * This is used to get the tutorial street info. We never pass along the user_id so users can retake the tutorial.
+    *
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
@@ -65,8 +67,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
       case None =>
-        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId).map(_.toJSON)
-        Future.successful(Ok(JsArray(tasks)))
+        Future.successful(Redirect(s"/anonSignUp?url=/tasks?regionId=${regionId}"))
     }
   }
 

@@ -213,7 +213,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           val regionId: Int = region.regionId
           UserCurrentRegionTable.saveOrUpdate(userId, regionId)
 
-          // TODO: Should this function be modified?
           val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
           val role: String = user.role.getOrElse("")
           val payPerMeter: Double =
@@ -302,7 +301,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           }
         }
       case None => Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId"))
-    }    
+    }
   }
 
   /**

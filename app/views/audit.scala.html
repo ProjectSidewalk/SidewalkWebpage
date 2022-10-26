@@ -713,7 +713,7 @@
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
                 <table class="tutorial-table">
-                    <tr> 
+                    <tr>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("curb.ramps"))</td>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("missing.ramps"))</td>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("obstacles")) </td>
@@ -757,7 +757,7 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.end.1"))</p>
-                
+
                 <table class="tutorial-table">
                     <tr>
                         <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.accessible"))</th>
@@ -786,7 +786,7 @@
                         <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.surface.problem"))</td>
                     </tr>
                 </table>
-                
+
                 <p>@Html(Messages("audit.tutorial.end.2"))</p>
             </div>
         </div>
@@ -822,7 +822,7 @@
         }
 
         svl.userModel = new UserModel();
-        @if(user) {
+        @if(user.isDefined) {
             var userParam = {
                 username: '@user.get.username',
                 role: '@user.get.role'
@@ -850,7 +850,7 @@
         if (hitExpired) {
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
-        } else @if(task) {
+        } else @if(task.isDefined) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 25;
@@ -876,7 +876,7 @@
                     init();
 
                     // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
-                    @if(panoId) {
+                    @if(panoId.isDefined) {
                         try {
                             svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
                                 var lat = panoData.location.latLng.lat();
@@ -885,7 +885,7 @@
                             });
                         } catch (e) {
                             console.error("Invalid panorama ID");
-                        }                        
+                        }
                     } else { @if(lat && lng) {
                         svl.map.setPosition(@lat.get, @lng.get);
                     }}
