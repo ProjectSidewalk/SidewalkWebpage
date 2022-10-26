@@ -11,7 +11,6 @@ function Main (params) {
     var self = { className: 'Main' };
 
     // Initialize things that needs data loading.
-    var loadingAnOnboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
@@ -244,20 +243,21 @@ function Main (params) {
         });
     }
 
-    function loadData (taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
-        // Fetch an onboarding task.
-        taskContainer.fetchATask(tutorialStreetId, {tutorialTask: true}, function () {
-            loadingAnOnboardingTaskCompleted = true;
-            handleDataLoadComplete();
-        });
+    function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
+        // Fetch the tutorial task if this is the tutorial mission, or all the tasks in the neighborhood otherwise.
+        if (params.mission.mission_type === 'auditOnboarding') {
+            taskContainer.fetchATask(tutorialStreetId, {tutorialTask: true}, function () {
+                loadingTasksCompleted = true;
+                handleDataLoadComplete();
+            });
+        } else {
+            taskContainer.fetchTasks(function () {
+                loadingTasksCompleted = true;
+                handleDataLoadComplete();
+            });
+        }
 
-        // Fetch tasks in the current region.
-        taskContainer.fetchTasks(function () {
-            loadingTasksCompleted = true;
-            handleDataLoadComplete();
-        });
-
-        // Fetch all the missions
+        // Fetch the user's completed missions.
         missionModel.fetchCompletedMissionsInNeighborhood(function () {
             loadingMissionsCompleted = true;
             handleDataLoadComplete();
@@ -308,8 +308,8 @@ function Main (params) {
     function startTheMission(mission, neighborhood) {
         document.getElementById("google-maps-holder").style.backgroundColor = "#e5e3df";
         if(params.init !== "noInit") {
-            // Popup the message explaining the goal of the current mission
-            if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
+            // Popup the message explaining the goal of the current mission.
+            if (svl.missionContainer.isTheFirstMission()) {
                 neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
                 svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
                     svl.taskContainer, svl.labelContainer, svl.tracker);
@@ -376,8 +376,7 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
-            loadingMissionsCompleted && loadNeighborhoodsCompleted &&
+        if (loadingTasksCompleted && loadingMissionsCompleted && loadNeighborhoodsCompleted &&
             loadDifficultNeighborhoodsCompleted && loadLabelTags) {
 
             // Mark neighborhood as complete if there are no streets left with max priority (= 1).
@@ -394,14 +393,13 @@ function Main (params) {
                 $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
-                svl.taskContainer.removeTutorialTask();
                 _calculateAndSetTasksMissionsOffset();
                 var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
 
                 var regionId = currentNeighborhood.getProperty("regionId");
                 var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
-                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay){
+                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay) {
                     $('#advanced-overlay').show();
                 }
                 startTheMission(mission, currentNeighborhood);

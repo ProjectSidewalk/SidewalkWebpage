@@ -45,17 +45,11 @@ function MissionContainer (statusFieldMission, missionModel) {
         }
     };
 
-    this.onlyMissionOnboardingDone = function (){
-       return self._completedMissions.length === 1
-           && self._completedMissions[0].getProperty("missionType") === "auditOnboarding"
-           && !svl.storage.get("completedFirstMission");
-    };
-
     /** Get current mission */
     function getCurrentMission() {
         return self._currentMission;
     }
-    
+
     /**
      * Get all the completed missions
      */
@@ -81,7 +75,7 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @returns {boolean}
      */
     function isTheFirstMission () {
-        return getCompletedMissions().length === 1 && !svl.storage.get("completedFirstMission");
+        return getCompletedMissions().length === 0 && !svl.storage.get("completedFirstMission");
     }
 
     /**

@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    @if(Some(User)) {
+    @if(user.isDefined) {
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content" id="survey-modal">
@@ -84,7 +84,7 @@
                 </div><!-- /.modal-content -->
             </div><!-- /.modal-dialog -->
         </div><!-- /.modal -->
-}
+    }
 
     <div class="container tool-ui" style = "visibility: hidden;">
         <div id="advanced-overlay">
@@ -1017,7 +1017,7 @@
             svl.main = new Main(mainParam);
         }
 
-        @if(user) {
+        @if(user.isDefined) {
         //Survey Submission
         $("#survey-form").submit(function submitSurvey(e) {
             var formData = $('#survey-form').serializeArray();

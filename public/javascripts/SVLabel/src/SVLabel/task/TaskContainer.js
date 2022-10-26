@@ -153,7 +153,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     lng1 = json.features[0].geometry.coordinates[0][0],
                     newTask = svl.taskFactory.create(json, tutorialTask, lat1, lng1);
                 if (json.features[0].properties.completed) newTask.complete();
-                storeTask(newTask);
+                self._tasks.push(newTask);
                 if (callback) callback();
             },
             error: function (result) {
@@ -183,7 +183,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
                     if (task.getProperty('currentMissionId') === currMissionId) currMission.pushATaskToTheRoute(task);
-                    storeTask(task);
+                    self._tasks.push(task);
                 }
 
                 if (callback) callback();
@@ -546,27 +546,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Store a task into _tasks. Make sure the tutorial task gets added, even if it has a duplicate streetEdgeId.
-     * @param task {object} Task object
-     */
-    function storeTask(task) {
-        var nonTutorialTasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
-        var streetEdgeIds = nonTutorialTasks.map(function (task) {
-            return task.getStreetEdgeId();
-        });
-        if (task.getProperty('tutorialTask') || streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
-            self._tasks.push(task);
-        }
-    }
-
-    /**
-     * Removes the tutorial task.
-     */
-    function removeTutorialTask() {
-        self._tasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
-    }
-
-    /**
      *
      * @param unit {string} Distance unit
      */
@@ -653,9 +632,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.push = pushATask;
     self.renderTasksFromPreviousSessions = renderTasksFromPreviousSessions;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
-
-    self.storeTask = storeTask;
-    self.removeTutorialTask = removeTutorialTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
