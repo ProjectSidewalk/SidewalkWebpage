@@ -24,6 +24,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         regionId: null,
         completedByAnyUser: null,
         priority: null,
+        taskStart: null,
         currentMissionId: null,
         currentLat: currentLat,
         currentLng: currentLng,
@@ -46,6 +47,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         self.setProperty("completedByAnyUser", _geojson.features[0].properties.completed_by_any_user);
         self.setProperty("priority", _geojson.features[0].properties.priority);
         self.setProperty("currentMissionId", _geojson.features[0].properties.current_mission_id);
+        self.setProperty("taskStart", new Date(`${_geojson.features[0].properties.task_start} UTC`));
 
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
@@ -356,13 +358,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     this.getStreetPriorityDiscretized = function() {
         var n = 4;
         return Math.min(Math.floor(_geojson.features[0].properties.priority / (1 / n)), n - 1);
-    };
-
-    /**
-     * Returns the task start time
-     */
-    this.getTaskStart = function () {
-        return _geojson.features[0].properties.task_start;
     };
 
     this.getAuditedDistance = function (unit) {

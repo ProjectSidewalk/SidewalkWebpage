@@ -11,7 +11,7 @@ object TaskSubmissionFormats {
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
   case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
-  case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)//, missionStart: Point)
+  case class TaskSubmission(streetEdgeId: Int, taskStart: Long, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)//, missionStart: Point)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], links: Seq[GSVLinkSubmission], copyright: String)
@@ -94,7 +94,7 @@ object TaskSubmissionFormats {
 
   implicit val auditTaskReads: Reads[TaskSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and
-      (JsPath \ "task_start").read[String] and
+      (JsPath \ "task_start").read[Long] and
       (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "completed").readNullable[Boolean] and
       (JsPath \ "current_lat").read[Float] and

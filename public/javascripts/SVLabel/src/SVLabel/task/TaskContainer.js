@@ -449,7 +449,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the next task and set it as a current task.
      *
      * Procedure:
-     * Get the list of highest priority streets that this user has not audited
+     * Get the list of the highest priority streets that this user has not audited
      * - If the street you just audited connects to any of those, pick the highest priority one
      * - O/w jump to the highest priority street
      *
@@ -463,7 +463,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Check if this task finishes the neighborhood across all users, if so, shows neighborhood complete overlay.
         updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask);
 
-        // Find highest priority task not audited by the user
+        // Find the highest priority task not audited by the user.
         var tasksNotCompletedByUser = self.getTasks().filter(function (t) {
             return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
         }).sort(function(t1, t2) {
@@ -490,10 +490,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             newTask = highestPriorityTask;
         }
 
-        // Return the new task. Change the starting point of the new task accordingly.
+        // Return the new task. Change the starting point and start time of the new task accordingly.
         if (finishedTask) {
             var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+            newTask.setProperty('taskStart', new Date());
         }
 
         return newTask;

@@ -46,7 +46,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
-            task_start: task.getTaskStart(),
+            task_start: task.getProperty("taskStart").getTime(),
             audit_task_id: task.getAuditTaskId(),
             completed: task.isComplete(),
             current_lat: navigationModel.getPosition().lat,

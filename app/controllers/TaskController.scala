@@ -94,15 +94,15 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       // Insert audit task.
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val point: Point = new GeometryFactory().createPoint(new Coordinate(0, 0))
-      val auditTaskObj = user match {
+      val auditTaskObj: AuditTask = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
-          Timestamp.valueOf(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat,
-          auditTask.currentLng, auditTask.startPointReversed, Some(missionId), Some(point))
+          new Timestamp(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,
+          auditTask.startPointReversed, Some(missionId), Some(point))
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
-          AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId,
-            Timestamp.valueOf(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat,
-            auditTask.currentLng, auditTask.startPointReversed, Some(missionId), Some(point))
+          AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId, new Timestamp(auditTask.taskStart),
+            timestamp, completed=false, auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed,
+            Some(missionId), Some(point))
       }
       AuditTaskTable.save(auditTaskObj)
     }
