@@ -875,19 +875,27 @@
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
 
-                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
+                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin).
+                    // Since it's only for admins, we added a hacky workaround of a 2 seconds sleep delay.
+                    function sleep (time) {
+                        return new Promise((resolve) => setTimeout(resolve, time));
+                    }
                     @if(panoId.isDefined) {
-                        try {
-                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
-                                var lat = panoData.location.latLng.lat();
-                                var lng = panoData.location.latLng.lng();
-                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
-                            });
-                        } catch (e) {
-                            console.error("Invalid panorama ID");
-                        }
+                        sleep(2000).then(() => {
+                            try {
+                                svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
+                                    var lat = panoData.location.latLng.lat();
+                                    var lng = panoData.location.latLng.lng();
+                                    svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
+                                });
+                            } catch (e) {
+                                console.error("Invalid panorama ID");
+                            }
+                        });
                     } else { @if(lat && lng) {
-                        svl.map.setPosition(@lat.get, @lng.get);
+                        sleep(2000).then(() => {
+                            svl.map.setPosition(@lat.get, @lng.get);
+                        });
                     }}
                 }
                 else {
