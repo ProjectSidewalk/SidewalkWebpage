@@ -19,7 +19,6 @@ import models.region._
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
-import models.mission.MissionTable
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -44,18 +43,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         "updated_street_priorities" -> updatedStreetPriorities.map(_.toJSON)
       )
     }
-  }
-
-  /**
-    * This method returns a task definition specified by the streetEdgeId.
-    *
-    * This is used to get the tutorial street info. We never pass along the user_id so users can retake the tutorial.
-    *
-    * @return Task definition
-    */
-  def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
-    Future.successful(Ok(task.toJSON))
   }
 
   /**

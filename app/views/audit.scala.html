@@ -869,9 +869,9 @@
 
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    // Ok
-                    var tutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId
+                    var tutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId;
                     var newTask = svl.taskFactory.create(geojson, tutorialTask, lat1, lng1, startPointReversed);
+                    svl.taskContainer._tasks.push(newTask);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
 

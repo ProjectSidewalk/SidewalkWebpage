@@ -14,7 +14,7 @@ import models.amt.AMTAssignmentTable
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
-import models.mission.{Mission, MissionTable, MissionSetProgress}
+import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgeRegionTable}
 import models.user._
@@ -101,12 +101,14 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               else MissionTable.defaultAuditMissionSetProgress
 
             val mission: Mission =
-              if(retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
+              if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
               else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
 
             // If there is a partially completed task in this mission, get that, o/w make a new one.
             val task: Option[NewTask] =
-              if (mission.currentAuditTaskId.isDefined)
+              if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
+                Some(AuditTaskTable.getATutorialTask)
+              else if (mission.currentAuditTaskId.isDefined)
                 AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
               else
                 AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
@@ -168,7 +170,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
             // If there is a partially completed task in this mission, get that, o/w make a new one.
             val task: Option[NewTask] =
-              if (mission.currentAuditTaskId.isDefined)
+              if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
+                Some(AuditTaskTable.getATutorialTask)
+              else if (mission.currentAuditTaskId.isDefined)
                 AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
               else
                 AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
@@ -213,7 +217,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           val regionId: Int = region.regionId
           UserCurrentRegionTable.saveOrUpdate(userId, regionId)
 
-          val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
           val role: String = user.role.getOrElse("")
           val payPerMeter: Double =
             if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
@@ -221,6 +224,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
           var mission: Mission =
             MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
+          val task: NewTask =
+            if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
+              AuditTaskTable.getATutorialTask
+            else
+              AuditTaskTable.selectANewTask(streetEdgeId)
           val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
           val missionSetProgress: MissionSetProgress =
@@ -262,7 +270,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val regionOption: Option[Region] = StreetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)
         val region: Region = regionOption.get
 
-        val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
         val role: String = user.role.getOrElse("")
         val payPerMeter: Double =
           if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
@@ -270,6 +277,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
         val mission: Mission =
           MissionTable.resumeOrCreateNewAuditMission(userId, region.regionId, payPerMeter, tutorialPay).get
+        val task: NewTask =
+          if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
+            AuditTaskTable.getATutorialTask
+          else
+            AuditTaskTable.selectANewTask(streetEdgeId)
         val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
         val missionSetProgress: MissionSetProgress =

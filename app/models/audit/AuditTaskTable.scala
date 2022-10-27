@@ -361,7 +361,7 @@ object AuditTaskTable {
   /**
     * Get a new task specified by the street edge id. Used when calling the /audit/street route.
     */
-  def selectANewTask(streetEdgeId: Int, user: Option[UUID]): NewTask = db.withSession { implicit session =>
+  def selectANewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Join with other queries to get completion count and priority for each of the street edges.
@@ -373,6 +373,17 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, re.regionId, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, None: Option[Int])
 
     NewTask.tupled(edges.first)
+  }
+
+  /**
+   * Get a NewTask object for the tutorial. Some dummy values are filled in specifically for the tutorial.
+   */
+  def getATutorialTask: NewTask = db.withSession { implicit session =>
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val tutorialTask = streetEdges
+      .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
+      .map(e => (e.streetEdgeId, e.geom, -1, e.x2, e.y2, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, None: Option[Int]))
+    NewTask.tupled(tutorialTask.first)
   }
 
   /**

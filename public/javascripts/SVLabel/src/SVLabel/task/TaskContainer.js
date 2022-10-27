@@ -132,34 +132,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if(nextTask) nextTask.render();
 
         return task;
-    };
-
-
-    /**
-     * Fetch a task based on the street id.
-     * @param streetEdgeId
-     * @param params
-     * @param callback
-     * @param async
-     */
-    function fetchATask(streetEdgeId, params, callback, async) {
-        var tutorialTask = params.tutorialTask ? params.tutorialTask : false;
-        if (typeof async == "undefined") async = true;
-        $.ajax({
-            url: "/task/street/" + streetEdgeId,
-            type: 'get',
-            success: function (json) {
-                var lat1 = json.features[0].geometry.coordinates[0][1],
-                    lng1 = json.features[0].geometry.coordinates[0][0],
-                    newTask = svl.taskFactory.create(json, tutorialTask, lat1, lng1);
-                if (json.features[0].properties.completed) newTask.complete();
-                self._tasks.push(newTask);
-                if (callback) callback();
-            },
-            error: function (result) {
-                throw result;
-            }
-        });
     }
 
     /**
@@ -182,8 +154,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 for (var i = 0; i < result.length; i++) {
                     task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
-                    if (task.getProperty('currentMissionId') === currMissionId) currMission.pushATaskToTheRoute(task);
-                    self._tasks.push(task);
+                    // Skip the task that we were given to start with so that we don't add a duplicate.
+                    if (task.getStreetEdgeId() !== getCurrentTask().getStreetEdgeId()) {
+                        self._tasks.push(task);
+                        // If the street was part of the curr mission, add it to the list!
+                        if (task.getProperty('currentMissionId') === currMissionId) {
+                            currMission.pushATaskToTheRoute(task);
+                        }
+                    }
                 }
 
                 if (callback) callback();
@@ -429,6 +407,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
                 console.error('finished neighborhood screen has appeared, logging debug info');
+                console.trace();
                 console.log('incompleteTasks.length:' +
                     self.getIncompleteTasksAcrossAllUsersUsingPriority().length);
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
@@ -619,7 +598,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     self.endTask = endTask;
-    self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;
     self.getCurrentTaskDistance = getCurrentTaskDistance;

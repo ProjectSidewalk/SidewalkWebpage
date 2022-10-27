@@ -101,7 +101,6 @@ GET     /validate                                            @controllers.Valida
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
-GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon

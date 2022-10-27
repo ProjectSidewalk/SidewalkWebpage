@@ -244,12 +244,10 @@ function Main (params) {
     }
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
-        // Fetch the tutorial task if this is the tutorial mission, or all the tasks in the neighborhood otherwise.
+        // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
         if (params.mission.mission_type === 'auditOnboarding') {
-            taskContainer.fetchATask(tutorialStreetId, {tutorialTask: true}, function () {
-                loadingTasksCompleted = true;
-                handleDataLoadComplete();
-            });
+            loadingTasksCompleted = true;
+            handleDataLoadComplete();
         } else {
             taskContainer.fetchTasks(function () {
                 loadingTasksCompleted = true;
