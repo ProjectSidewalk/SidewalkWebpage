@@ -803,7 +803,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if ("compass" in svl) {
                 svl.compass.update();
             }
-            if ("taskContainer" in svl) {
+            if (!isOnboarding && "taskContainer" in svl) {
                 svl.taskContainer.update();
 
                 // End of the task if the user is close enough to the end point and we aren't in the tutorial.
