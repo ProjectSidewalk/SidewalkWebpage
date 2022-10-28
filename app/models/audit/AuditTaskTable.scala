@@ -359,7 +359,7 @@ object AuditTaskTable {
   /**
     * Get a new task specified by the street edge id. Used when calling the /audit/street route.
     */
-  def selectANewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
+  def selectANewTask(streetEdgeId: Int, missionId: Int): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Join with other queries to get completion count and priority for each of the street edges.
@@ -367,7 +367,7 @@ object AuditTaskTable {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, None: Option[Int])
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, Some(missionId).asColumnOf[Option[Int]])
 
     NewTask.tupled(edges.first)
   }
@@ -375,18 +375,18 @@ object AuditTaskTable {
   /**
    * Get a NewTask object for the tutorial. Some dummy values are filled in specifically for the tutorial.
    */
-  def getATutorialTask: NewTask = db.withSession { implicit session =>
+  def getATutorialTask(missionId: Int): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val tutorialTask = streetEdges
       .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
-      .map(e => (e.streetEdgeId, e.geom, e.x2, e.y2, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, None: Option[Int]))
+      .map(e => (e.streetEdgeId, e.geom, e.x2, e.y2, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, missionId.asColumnOf[Option[Int]]))
     NewTask.tupled(tutorialTask.first)
   }
 
   /**
    * Get a task that is in a given region. Used if a user has already been assigned a region, or from /audit/region.
    */
-  def selectANewTaskInARegion(regionId: Int, user: UUID): Option[NewTask] = db.withSession { implicit session =>
+  def selectANewTaskInARegion(regionId: Int, user: UUID, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Get the streets that the user has not already completed.
@@ -397,7 +397,7 @@ object AuditTaskTable {
       sp <- streetEdgePriorities
       se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
       sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, None: Option[Int])
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, Some(missionId).asColumnOf[Option[Int]])
 
     // Get the priority of the highest priority task.
     val highestPriority: Option[Double] = possibleTasks.map(_._12).max.run

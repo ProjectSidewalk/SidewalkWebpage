@@ -30,6 +30,7 @@ function MissionContainer (statusFieldMission, missionModel) {
         } else {
             self.setCurrentMission(mission);
             self.notifyMissionLoaded(mission);
+            svl.taskContainer.getCurrentTask().setProperty('currentMissionId', mission.getProperty('missionId'));
         }
     });
 

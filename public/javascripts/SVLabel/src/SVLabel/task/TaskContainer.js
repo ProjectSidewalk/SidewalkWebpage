@@ -503,6 +503,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     this.setCurrentTask = function (task) {
         currentTask = task;
+        if ('missionContainer' in svl) {
+            var currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
+            currentTask.setProperty('currentMissionId', currMissionId);
+        }
         if (tracker) tracker.push('TaskStart');
 
         if ('compass' in svl) {

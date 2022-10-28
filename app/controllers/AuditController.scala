@@ -107,11 +107,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // If there is a partially completed task in this mission, get that, o/w make a new one.
             val task: Option[NewTask] =
               if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
-                Some(AuditTaskTable.getATutorialTask)
+                Some(AuditTaskTable.getATutorialTask(mission.missionId))
               else if (mission.currentAuditTaskId.isDefined)
                 AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
               else
-                AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
+                AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
             val nextTempLabelId: Int = LabelTable.nextTempLabelId(user.userId)
 
             // Check if they have already completed an audit mission. We send them to /validate after their first audit
@@ -171,11 +171,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // If there is a partially completed task in this mission, get that, o/w make a new one.
             val task: Option[NewTask] =
               if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
-                Some(AuditTaskTable.getATutorialTask)
+                Some(AuditTaskTable.getATutorialTask(mission.missionId))
               else if (mission.currentAuditTaskId.isDefined)
                 AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
               else
-                AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
+                AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
             val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
             // Check if they have already completed an audit mission. We send them to /validate after their first audit.
@@ -228,9 +228,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
           val task: NewTask =
             if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
-              AuditTaskTable.getATutorialTask
+              AuditTaskTable.getATutorialTask(mission.missionId)
             else
-              AuditTaskTable.selectANewTask(streetEdgeId)
+              AuditTaskTable.selectANewTask(streetEdgeId, mission.missionId)
           val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
           val missionSetProgress: MissionSetProgress =
