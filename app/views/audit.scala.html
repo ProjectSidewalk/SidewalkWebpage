@@ -713,7 +713,7 @@
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
                 <table class="tutorial-table">
-                    <tr> 
+                    <tr>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("curb.ramps"))</td>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("missing.ramps"))</td>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("obstacles")) </td>
@@ -757,7 +757,7 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.end.1"))</p>
-                
+
                 <table class="tutorial-table">
                     <tr>
                         <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.accessible"))</th>
@@ -786,7 +786,7 @@
                         <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.surface.problem"))</td>
                     </tr>
                 </table>
-                
+
                 <p>@Html(Messages("audit.tutorial.end.2"))</p>
             </div>
         </div>
@@ -885,7 +885,7 @@
                             });
                         } catch (e) {
                             console.error("Invalid panorama ID");
-                        }                        
+                        }
                     } else { @if(lat && lng) {
                         svl.map.setPosition(@lat.get, @lng.get);
                     }}
