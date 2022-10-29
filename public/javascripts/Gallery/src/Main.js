@@ -64,24 +64,35 @@ function Main (params) {
     }
 
     function _init() {
+
+        function handlerViewControlLayerMouseDown(e) {
+            $('.widget-scene-canvas').css('cursor', 'url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move');
+        }
+
+        function handlerViewControlLayerMouseUp(e) {
+            $('.widget-scene-canvas').css('cursor', '');
+        }
+
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
         sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu);
-        
+
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
         sg.modal = sg.cardContainer.getModal;
         // Initialize data collection.
-        sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
+        sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl);
         sg.tracker = new Tracker();
 
         let sidebarWrapper = sg.ui.cardFilter.wrapper;
         let sidebarWidth = sidebarWrapper.css('width');
 
         sg.ui.labelTypeMenu.select.change();
+
+        $('.widget-scene-canvas').bind('mousedown', handlerViewControlLayerMouseDown).bind('mouseup', handlerViewControlLayerMouseUp);
 
         // Handle sidebar and expanded view stickiness while scrolling.
         $(window).scroll(function () {
