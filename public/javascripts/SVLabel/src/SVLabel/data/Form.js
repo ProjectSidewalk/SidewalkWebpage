@@ -52,6 +52,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             current_lat: navigationModel.getPosition().lat,
             current_lng: navigationModel.getPosition().lng,
             start_point_reversed: task.getProperty("startPointReversed"),
+            current_mission_start: task.getProperty("currentMissionStart"),
             last_priority_update_time: properties.lastPriorityUpdateTime,
             // Request updated street priorities if we are at least 60% of the way through the current street.
             request_updated_street_priority: !svl.isOnboarding() && (task.getAuditedDistance() / task.lineDistance()) > 0.6

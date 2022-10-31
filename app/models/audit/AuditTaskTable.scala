@@ -28,7 +28,9 @@ case class NewTask(edgeId: Int, geom: LineString,
                    completedByAnyUser: Boolean, // Notes if any user has audited this street.
                    priority: Double,
                    completed: Boolean, // Notes if the user audited this street before (null if no corresponding user).
-                   currentMissionId: Option[Int])  {
+                   currentMissionId: Option[Int],
+                   currentMissionStart: Option[Point] // If a mission was started mid-task, the loc where it started.
+                  )  {
   /**
     * Converts the data into the GeoJSON format.
     */
@@ -49,7 +51,8 @@ case class NewTask(edgeId: Int, geom: LineString,
       "completed_by_any_user" -> completedByAnyUser,
       "priority" -> priority,
       "completed" -> completed,
-      "current_mission_id" -> currentMissionId
+      "current_mission_id" -> currentMissionId,
+      "current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX))
     )
     val feature = Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     Json.obj("type" -> "FeatureCollection", "features" -> List(feature))
@@ -118,7 +121,7 @@ object AuditTaskTable {
   implicit val newTaskConverter = GetResult[NewTask](r => {
     NewTask(r.nextInt, r.nextGeometry[LineString], r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat,
       r.nextFloat, r.nextBoolean, r.nextTimestamp, r.nextBoolean, r.nextDouble, r.nextBooleanOption.getOrElse(false),
-      r.nextIntOption)
+      r.nextIntOption, r.nextGeometryOption[Point])
   })
 
   val db = play.api.db.slick.DB
@@ -367,7 +370,7 @@ object AuditTaskTable {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, Some(missionId).asColumnOf[Option[Int]])
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
 
     NewTask.tupled(edges.first)
   }
@@ -379,7 +382,7 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val tutorialTask = streetEdges
       .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
-      .map(e => (e.streetEdgeId, e.geom, e.x2, e.y2, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, missionId.asColumnOf[Option[Int]]))
+      .map(e => (e.streetEdgeId, e.geom, e.x2, e.y2, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, missionId.asColumnOf[Option[Int]], None: Option[Point]))
     NewTask.tupled(tutorialTask.first)
   }
 
@@ -397,7 +400,7 @@ object AuditTaskTable {
       sp <- streetEdgePriorities
       se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
       sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, Some(missionId).asColumnOf[Option[Int]])
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
 
     // Get the priority of the highest priority task.
     val highestPriority: Option[Double] = possibleTasks.map(_._12).max.run
@@ -420,7 +423,7 @@ object AuditTaskTable {
       se <- streetEdges if at.streetEdgeId === se.streetEdgeId
       sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.x1, se.y1, se.x2, se.y2, at.startPointReversed, at.taskStart, sc._2, sp.priority, at.completed, at.currentMissionId)
+    } yield (se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.x1, se.y1, se.x2, se.y2, at.startPointReversed, at.taskStart, sc._2, sp.priority, at.completed, at.currentMissionId, at.currentMissionStart)
 
     newTask.firstOption.map(NewTask.tupled)
   }
@@ -433,20 +436,20 @@ object AuditTaskTable {
 
     val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 
-    // Get the street_edge_id, task_start, and current_mission_id for streets that the user has audited. If there are
-    // multiple audit_tasks for the same street, choose the most recent one (the one w/ the highest audit_task_id).
+    // Get street_edge_id, task_start, current_mission_id, and current_mission_start for streets the user has audited.
+    // If there are multiple audit_tasks for the same street, choose most recent one (one w/ the highest audit_task_id).
     val userCompletedStreets = completedTasks
       .filter(_.userId === user.toString)
       .groupBy(_.streetEdgeId).map(_._2.map(_.auditTaskId).max)
       .innerJoin(auditTasks).on(_ === _.auditTaskId)
-      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.currentMissionId))
+      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.currentMissionId, t._2.currentMissionStart))
 
     val tasks = for {
       (ser, ucs) <- edgesInRegion.leftJoin(userCompletedStreets).on(_.streetEdgeId === _._1)
       se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, ucs._2.?.getOrElse(timestamp), scau._2, sep.priority, ucs._1.?.isDefined, ucs._3)
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, ucs._2.?.getOrElse(timestamp), scau._2, sep.priority, ucs._1.?.isDefined, ucs._3, ucs._4)
 
     tasks.list.map(NewTask.tupled(_))
   }

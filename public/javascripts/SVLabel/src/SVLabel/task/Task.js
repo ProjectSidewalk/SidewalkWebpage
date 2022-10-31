@@ -28,6 +28,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         currentLat: currentLat,
         currentLng: currentLng,
         startPointReversed: startPointReversed,
+        currentMissionStart: null,
         finishedReversing: false,
         tutorialTask: tutorialTask
     };
@@ -46,11 +47,13 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         self.setProperty("priority", _geojson.features[0].properties.priority);
         self.setProperty("currentMissionId", _geojson.features[0].properties.current_mission_id);
         self.setProperty("taskStart", new Date(`${_geojson.features[0].properties.task_start} UTC`));
-
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
         }
-
+        if (_geojson.features[0].properties.currentMissionStart) {
+            var missionStart = _geojson.features[0].properties.currentMissionStart;
+            self.setProperty("currentMissionStart", { lat: missionStart[0], lng: missionStart[1] });
+        }
         if (currentLat && currentLng) {
             this.setStreetEdgeDirection(currentLat, currentLng);
         }

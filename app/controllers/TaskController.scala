@@ -214,8 +214,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
-      // Update MissionStart
-//      updateMissionStart(auditTaskId, data.auditTask.missionStart)
+      // Update MissionStart.
+      if (data.auditTask.currentMissionStart.isDefined) updateMissionStart(auditTaskId, data.auditTask.currentMissionStart.get)
 
       // Update the MissionTable.
       val possibleNewMission: Option[Mission] = updateMissionTable(userOption, data.missionProgress)

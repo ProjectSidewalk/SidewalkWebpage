@@ -30,7 +30,6 @@ function MissionContainer (statusFieldMission, missionModel) {
         } else {
             self.setCurrentMission(mission);
             self.notifyMissionLoaded(mission);
-            svl.taskContainer.getCurrentTask().setProperty('currentMissionId', mission.getProperty('missionId'));
         }
     });
 
@@ -87,6 +86,19 @@ function MissionContainer (statusFieldMission, missionModel) {
     this.setCurrentMission = function (mission) {
         self._currentMission = mission;
         statusFieldMission.setMessage(mission);
+        var currTask = svl.taskContainer.getCurrentTask();
+        currTask.setProperty('currentMissionId', mission.getProperty('missionId'));
+
+        // If this is the start of a new mission, mark the location along the street that the user is at when the
+        // mission starts. This will be used later to draw their route on the mission complete map.
+        if (mission.getProperty('distanceProgress') < 1.0) {
+            // Snap the current location to the nearest point on the street, and use that as the mission start.
+            var currPos = turf.point([svl.map.getPosition().lng, svl.map.getPosition().lat]);
+            var missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
+            if (turf.nearestPointOnLine(currTask.getFeature(), currPos).prorperties.dist > 0.02)
+                console.warn(`current pos is ${1000 * turf.nearestPointOnLine(currTask.getFeature(), currPos).prorperties.dist} meters from the street when setting mission start!`);
+            currTask.setProperty('currentMissionStart', { lat: missionStart[1], lng: missionStart[0]});
+        }
         return this;
     };
 
