@@ -96,7 +96,7 @@ function MissionContainer (statusFieldMission, missionModel) {
             var currPos = turf.point([svl.map.getPosition().lng, svl.map.getPosition().lat]);
             var missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
             if (turf.nearestPointOnLine(currTask.getFeature(), currPos).properties.dist > 0.02)
-                console.warn(`current pos is ${1000 * turf.nearestPointOnLine(currTask.getFeature(), currPos).prorperties.dist} meters from the street when setting mission start!`);
+                console.warn(`current pos is ${1000 * turf.nearestPointOnLine(currTask.getFeature(), currPos).properties.dist} meters from the street when setting mission start!`);
             currTask.setProperty('currentMissionStart', { lat: missionStart[1], lng: missionStart[0]});
         }
         return this;
