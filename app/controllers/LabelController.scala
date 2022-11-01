@@ -23,20 +23,6 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-   * Get the list of labels applied by the given user for their current audit mission in the given region.
-   */
-  def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val labels = LabelTable.getLabelsFromCurrentAuditMission(regionId, user.userId)
-        val jsLabels = JsArray(labels.map(l => Json.toJson(l)))
-        Future.successful(Ok(jsLabels))
-      case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
-    }
-  }
-
-  /**
    * Fetches the labels that a user has added in the current region they are working in.
    *
    * @param regionId Region id
@@ -73,6 +59,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
             "canvasX" -> label.pointData.canvasX,
             "canvasY" -> label.pointData.canvasY,
             "audit_task_id" -> label.labelData.auditTaskId,
+            "missionId" -> label.labelData.missionId,
             "labelLat" -> label.pointData.lat,
             "labelLng" -> label.pointData.lng
           )

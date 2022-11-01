@@ -50,13 +50,6 @@ function Mission(parameters) {
             svl.missionContainer.setTasksMissionsOffset(newOffset);
         }
 
-        // Update the neighborhood status
-        if ("labelContainer" in svl) {
-            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId);
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        }
-
         // Reset the label counter
         if ('labelCounter' in svl) {
             labelCountsAtCompletion = {

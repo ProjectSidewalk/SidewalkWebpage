@@ -317,47 +317,25 @@ function Main (params) {
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
 
-        // Get the labels collected in the current neighborhood
-        svl.labelContainer.fetchLabelsInANeighborhood(neighborhood.getProperty("regionId"), function () {
-            var count = svl.labelContainer.countLabels(neighborhood.getProperty("regionId"));
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        });
+        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty('regionId'), function (result) {
+            svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
+            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
 
-        svl.labelContainer.fetchLabelsInTheCurrentMission(
-            neighborhood.getProperty("regionId"),
-            function (result) {
-                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0};
-                for (var i = 0, len = result.length; i < len; i++) {
-                    switch (result[i].label_type_id) {
-                        case 1:
-                            counter['CurbRamp'] += 1;
-                            break;
-                        case 2:
-                            counter['NoCurbRamp'] += 1;
-                            break;
-                        case 3:
-                            counter['Obstacle'] += 1;
-                            break;
-                        case 4:
-                            counter['SurfaceProblem'] += 1;
-                            break;
-                        case 7:
-                            counter['NoSidewalk'] += 1;
-                            break;
-                        default:
-                            counter['Other'] += 1;
+            // Count the labels of each label type to initialize the current mission label counts.
+            var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};
+            for (var i = 0, len = result.labels.length; i < len; i++) {
+                var currLabel = result.labels[i];
+                if (currLabel.missionId === mission.getProperty('missionId')) {
+                    if (Object.keys(counter).indexOf(currLabel.labelType) !== -1) {
+                        counter[currLabel.labelType] += 1;
+                    } else {
+                        counter['Other'] += 1;
                     }
                 }
-                svl.labelCounter.set('CurbRamp', counter['CurbRamp']);
-                svl.labelCounter.set('NoCurbRamp', counter['NoCurbRamp']);
-                svl.labelCounter.set('Obstacle', counter['Obstacle']);
-                svl.labelCounter.set('SurfaceProblem', counter['SurfaceProblem']);
-                svl.labelCounter.set('NoSidewalk', counter['NoSidewalk']);
-                svl.labelCounter.set('Other', counter['Other']);
+            }
+            Object.keys(counter).forEach(function (key) {
+                svl.labelCounter.set(key, counter[key]);
             });
-
-        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty("regionId"), function (result) {
-            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
         });
 
         svl.taskContainer.renderTasksFromPreviousSessions();

@@ -115,7 +115,6 @@ GET     /neighborhoodMissions                                @controllers.Missio
 GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
 
 # Labels
-GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/resumeMission                                 @controllers.LabelController.getLabelsToResumeMission(regionId: Int)
 POST    /label/labels                                        @controllers.GalleryController.getLabels
