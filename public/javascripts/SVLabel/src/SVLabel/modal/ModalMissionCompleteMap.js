@@ -11,11 +11,11 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
+        self._map.setZoom(data.default_zoom);
         self._map.setView([data.city_center.lat, data.city_center.lng]);
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         self._map.setMaxBounds(L.latLngBounds(southWest, northEast));
-        self._map.setZoom(data.default_zoom);
     });
 
     // These two are defined globally so that they can be added in show and removed in hide.
@@ -30,9 +30,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         var leafletMap = this._map;
         var completedTasksLayer = this._completedTasksLayer;
 
-        var svg = d3.select(leafletMap.getPanes().overlayPane).append("svg"),
-
-            g = svg.append("g").attr("class", "leaflet-zoom-hide");
+        var svg = d3.select(leafletMap.getPanes().overlayPane).append("svg");
+        var g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
         var transform = d3.geo.transform({
             point: projectPoint
@@ -131,7 +130,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         }
 
         // render svg segments
-        function renderPath(missionTasks){
+        function renderPath(missionTasks) {
             var missionTaskLayerStyle = {color: "rgb(20,220,120)", opacity: 1, weight: 5 };
 
             var len = missionTasks.length;
@@ -153,7 +152,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
      * This method takes tasks that has been completed in the current mission and *all* the tasks completed in the
      * current neighborhood so far.
      * WARNING: `completedTasks` include tasks completed in the current mission too.
-     * WARNING2: The current tasks are not included in neither of `missionTasks` and `completedTasks`
+     * WARNING2: The current tasks are not included in either `missionTasks` or `completedTasks`
      *
      * @param missionTasks
      * @param completedTasks
@@ -191,7 +190,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         // Add the completed task layer
         for (i = 0; i < completedTasks.length; i++) {
             var streetEdgeId = completedTasks[i].getStreetEdgeId();
-            if(newStreets.indexOf(streetEdgeId) === -1){
+            if (newStreets.indexOf(streetEdgeId) === -1) {
                 geojsonFeature = completedTasks[i].getFeature();
                 layer = L.geoJson(geojsonFeature).addTo(this._map);
                 layer.setStyle(completedTaskLayerStyle);

@@ -12,11 +12,11 @@ $(document).ready(function () {
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
+        map.setZoom(data.default_zoom);
         map.setView([data.city_center.lat, data.city_center.lng]);
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
-        map.setZoom(data.default_zoom);
         initializeNeighborhoodPolygons(map, data.southwest_boundary, data.northeast_boundary);
         initializeSubmittedLabels(map, data.southwest_boundary, data.northeast_boundary);
     });
