@@ -91,7 +91,7 @@ function MissionContainer (statusFieldMission, missionModel) {
 
         // If this is the start of a new mission, mark the location along the street that the user is at when the
         // mission starts. This will be used later to draw their route on the mission complete map.
-        if (mission.getProperty('distanceProgress') < 1.0) {
+        if (mission.getProperty('distanceProgress') < 1.0 && !currTask.getProperty('tutorialTask')) {
             // Snap the current location to the nearest point on the street, and use that as the mission start.
             var currPos = turf.point([svl.map.getPosition().lng, svl.map.getPosition().lat]);
             var missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
