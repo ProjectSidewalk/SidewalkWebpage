@@ -457,7 +457,7 @@ object AuditTaskTable {
   /**
    * Saves a new audit task.
    */
-  def save(completedTask: AuditTask): Int = db.withTransaction { implicit session =>
+  def save(completedTask: AuditTask): Int = db.withSession { implicit session =>
     val auditTaskId: Int =
       (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
     auditTaskId
@@ -466,7 +466,7 @@ object AuditTaskTable {
   /**
     * Update the `current_mission_start` column of the specified audit task row.
     */
-  def updateMissionStart(auditTaskId: Int, missionStart: Point): Int = db.withTransaction { implicit session =>
+  def updateMissionStart(auditTaskId: Int, missionStart: Point): Int = db.withSession { implicit session =>
     val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.currentMissionStart
     q.update(Some(missionStart))
   }
@@ -475,16 +475,16 @@ object AuditTaskTable {
     * Update the `completed` column of the specified audit task row.
     * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
     */
-  def updateCompleted(auditTaskId: Int, completed: Boolean): Int = db.withTransaction { implicit session =>
+  def updateCompleted(auditTaskId: Int, completed: Boolean): Int = db.withSession { implicit session =>
     val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.completed
     q.update(completed)
   }
 
   /**
-    * Update the `current_lat`, `current_lng`, 'missionId', and `task_end` columns of the specified audit task row.
+    * Update the `current_lat`, `current_lng`, `mission_id`, and `task_end` columns of the specified audit task row.
     */
-  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float, missionId: Int): Int = db.withTransaction { implicit session =>
-    val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId)
-    q.update((timestamp, lat, lng, Some(missionId)))
+  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float, missionId: Int, currMissionStart: Option[Point]): Int = db.withSession { implicit session =>
+    val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart)
+    q.update((timestamp, lat, lng, Some(missionId), currMissionStart))
   }
 }
