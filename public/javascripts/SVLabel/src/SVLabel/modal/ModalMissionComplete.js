@@ -57,7 +57,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     svl.neighborhoodModel.on("Neighborhood:completed", function() {
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
-        self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
+        self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
         uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
@@ -270,7 +270,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var neighborhoodName = neighborhood.getProperty("name");
         this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title'));
 
-        modalMissionCompleteMap.update(mission, neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 

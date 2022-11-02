@@ -2,6 +2,13 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     // Map visualization
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var self = this;
+
+    // These two are defined globally so that they can be added in show and removed in hide.
+    this._overlayPolygon = null;
+    this._overlayPolygonLayer = null;
+    this._ui = uiModalMissionComplete;
+    this._completedTasksLayer = [];
+
     this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
         maxZoom: 19,
         minZoom: 10,
@@ -12,17 +19,35 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
         self._map.setZoom(data.default_zoom);
-        self._map.setView([data.city_center.lat, data.city_center.lng]);
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         self._map.setMaxBounds(L.latLngBounds(southWest, northEast));
-    });
 
-    // These two are defined globally so that they can be added in show and removed in hide.
-    this._overlayPolygon = null;
-    this._overlayPolygonLayer = null;
-    this._ui = uiModalMissionComplete;
-    this._completedTasksLayer = [];
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        var center = neighborhood.center();
+        self._map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
+
+        // Gray out a large area around the city with the neighborhood cut out to highlight the neighborhood.
+        var largeBoundary = [
+            [data.southwest_boundary.lng + 5,data.southwest_boundary.lat - 5],
+            [data.southwest_boundary.lng + 5,data.southwest_boundary.lat + 5],
+            [data.southwest_boundary.lng - 5, data.southwest_boundary.lat + 5],
+            [data.southwest_boundary.lng - 5,data.southwest_boundary.lat - 5]
+        ];
+
+        // Add a small buffer around the neighborhood because it looks prettier.
+        var neighborhoodGeom = neighborhood.getGeoJSON();
+        var neighborhoodBuffer = turf.buffer(neighborhoodGeom, 0.04, { units: 'miles' });
+        self._overlayPolygon = {
+            'type': 'FeatureCollection',
+            'features': [{
+                'type': 'Feature',
+                'geometry': {'type': 'Polygon', 'coordinates': [largeBoundary, neighborhoodBuffer.geometry.coordinates[0]]}
+            }]};
+        self._overlayPolygonLayer = L.geoJson(self._overlayPolygon);
+        self._overlayPolygonLayer.setStyle({ 'opacity': 0, 'fillColor': 'rgb(110, 110, 110)', 'fillOpacity': 0.25});
+        self._overlayPolygonLayer.addTo(self._map);
+    });
 
     this._addMissionTasksAndAnimate = function(completedTasks) {
         var route;
@@ -55,8 +80,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         var i;
         var geojsonFeature;
         var layer;
-        var completedTaskAllUsersLayerStyle = { color: "rgb(100,100,100)", opacity: 1, weight: 5 };
-        var completedTaskLayerStyle = { color: "rgb(70,130,180)", opacity: 1, weight: 5 };
+        var completedTaskAllUsersLayerStyle = { color: 'rgb(100,100,100)', opacity: 1, weight: 5 };
+        var completedTaskLayerStyle = { color: 'rgb(70,130,180)', opacity: 1, weight: 5 };
         var leafletMap = this._map;
 
         // remove previous tasks
@@ -104,36 +129,10 @@ ModalMissionCompleteMap.prototype.hide = function () {
 
     this._ui.map.css('top', 500);
     this._ui.map.css('left', -500);
-    $(".leaflet-clickable").css('visibility', 'hidden');
-    $(".leaflet-control-attribution").remove();
-    $(".g-bar-chart").css('visibility', 'hidden');
-    $(".leaflet-zoom-animated path").css('visibility', 'hidden');
-};
-
-ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
-    // Clear the previous highlighted region
-    if(this._overlayPolygonLayer)
-        this._map.removeLayer(this._overlayPolygonLayer);
-    // Focus on the current region on the Leaflet map
-    var center = neighborhood.center();
-    var neighborhoodGeom = neighborhood.getGeoJSON();
-    // overlay of entire map bounds
-    this._overlayPolygon = {
-        "type": "FeatureCollection",
-        "features": [{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [
-            [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]]}}]};
-    // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
-    var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, {units: 'miles'});
-    var bufferedCoors = bufferedGeom.geometry.coordinates[0];
-    // cut out neighborhood from overlay
-    this._overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);
-    this._overlayPolygonLayer = L.geoJson(this._overlayPolygon);
-    // everything but current neighborhood grayed out
-    this._overlayPolygonLayer.setStyle({ "opacity": 0, "fillColor": "rgb(110, 110, 110)", "fillOpacity": 0.25});
-    this._overlayPolygonLayer.addTo(this._map);
-    if (center) {
-        this._map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
-    }
+    $('.leaflet-clickable').css('visibility', 'hidden');
+    $('.leaflet-control-attribution').remove();
+    $('.g-bar-chart').css('visibility', 'hidden');
+    $('.leaflet-zoom-animated path').css('visibility', 'hidden');
 };
 
 /**
@@ -143,7 +142,7 @@ ModalMissionCompleteMap.prototype.show = function () {
     this._ui.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
     this._ui.map.css('left', 15);
 
-    $(".leaflet-clickable").css('visibility', 'visible');
-    $(".g-bar-chart").css('visibility', 'visible');
-    $(".leaflet-zoom-animated path").css('visibility', 'visible');
+    $('.leaflet-clickable').css('visibility', 'visible');
+    $('.g-bar-chart').css('visibility', 'visible');
+    $('.leaflet-zoom-animated path').css('visibility', 'visible');
 };
