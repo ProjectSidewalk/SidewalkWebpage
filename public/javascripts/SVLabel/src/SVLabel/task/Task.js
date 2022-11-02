@@ -152,7 +152,16 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     this._getSubsetOfCoordinates = function(fromLat, fromLng, toLat, toLng) {
         var startPoint = turf.point([fromLng, fromLat]);
         var endPoint = turf.point([toLng, toLat]);
-        return turf.cleanCoords(turf.lineSlice(startPoint, endPoint, _geojson.features[0])).geometry.coordinates;
+        var slicedLine = turf.lineSlice(startPoint, endPoint, _geojson.features[0]);
+
+        var coordinates = slicedLine.geometry.coordinates;
+        // If the linestring just has two identical points, `turf.cleanCoords` doesn't work, so just return a point.
+        if (coordinates.length === 2 && coordinates[0] === coordinates[1]) {
+            console.log('fixing');
+            return [coordinates[0]];
+        } else {
+            return turf.cleanCoords(slicedLine).geometry.coordinates
+        }
     };
 
     this._getSegmentsToAPoint = function (lat, lng) {
