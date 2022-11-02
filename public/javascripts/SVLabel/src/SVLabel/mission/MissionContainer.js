@@ -87,7 +87,8 @@ function MissionContainer (statusFieldMission, missionModel) {
         self._currentMission = mission;
         statusFieldMission.setMessage(mission);
         var currTask = svl.taskContainer.getCurrentTask();
-        currTask.setProperty('currentMissionId', mission.getProperty('missionId'));
+        var missionId = mission.getProperty('missionId');
+        currTask.setProperty('currentMissionId', missionId);
 
         // If this is the start of a new mission, mark the location along the street that the user is at when the
         // mission starts. This will be used later to draw their route on the mission complete map.
@@ -97,7 +98,7 @@ function MissionContainer (statusFieldMission, missionModel) {
             var missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
             if (turf.nearestPointOnLine(currTask.getFeature(), currPos).properties.dist > 0.02)
                 console.warn(`current pos is ${1000 * turf.nearestPointOnLine(currTask.getFeature(), currPos).properties.dist} meters from the street when setting mission start!`);
-            currTask.setProperty('currentMissionStart', { lat: missionStart[1], lng: missionStart[0]});
+            currTask.setMissionStart(missionId, { lat: missionStart[1], lng: missionStart[0]});
         }
         return this;
     };

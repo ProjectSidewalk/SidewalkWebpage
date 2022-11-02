@@ -47,21 +47,37 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         self._map.fitBounds(L.geoJson(neighborhoodBuffer).getBounds());
     });
 
-    this._addMissionTasksAndAnimate = function(completedTasks) {
+    this._addMissionTasksAndAnimate = function(completedTasks, missionId) {
         var route;
         var i, j;
         var path;
+        var missionStart;
+        var features = [];
         for (i = 0; i < completedTasks.length; i++) {
             var latlngs = [];
-            route = completedTasks[i].getGeometry().coordinates;
+            missionStart = completedTasks[i].getMissionStart(missionId);
+            if (missionStart || !completedTasks[i].isComplete()) {
+                var startPoint = missionStart ? missionStart : completedTasks[i].getStartCoordinate();
+                var endPoint;
+                if (completedTasks[i].isComplete()) {
+                    endPoint = completedTasks[i].getLastCoordinate();
+                } else {
+                    var farthestPoint = completedTasks[i].getFurthestPointReached().geometry.coordinates;
+                    endPoint = { lat: farthestPoint[1], lng: farthestPoint[0] };
+                }
+                route = completedTasks[i].getSubsetOfCoordinates(startPoint.lat, startPoint.lng, endPoint.lat, endPoint.lng)
+            } else {
+                route = completedTasks[i].getGeometry().coordinates;
+            }
             for (j = 0; j < route.length; j++) {
                 latlngs.push(new L.LatLng(route[j][1], route[j][0]));
             }
-            console.log(latlngs);
             path = L.polyline(latlngs, { color: 'rgb(20,220,120)', snakingSpeed: 20 });
-            console.log(path);
-            path.addTo(self._map).snakeIn();
+            features.push(path);
         }
+        self._completedTasksLayer = L.featureGroup(features);
+        self._map.addLayer(self._completedTasksLayer);
+        self._completedTasksLayer.snakeIn();
     };
 
     /**
@@ -73,9 +89,10 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
      * @param missionTasks
      * @param completedTasks
      * @param allCompletedTasks
+     * @param missionId
      * @private
      */
-    this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks) {
+    this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks, missionId) {
         // Add layers http://leafletjs.com/reference.html#map-addlayer
         var i;
         var geojsonFeature;
@@ -84,7 +101,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         var completedTaskLayerStyle = { color: 'rgb(70,130,180)', opacity: 1, weight: 5 };
         var leafletMap = this._map;
 
-        // remove previous tasks
+        // Remove previous tasks.
         _.each(this._completedTasksLayer, function(element) {
             leafletMap.removeLayer(element);
         });
@@ -103,7 +120,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             }
         }
 
-        // Add the completed task layer
+        // Add the completed task layer.
         for (i = 0; i < completedTasks.length; i++) {
             var streetEdgeId = completedTasks[i].getStreetEdgeId();
             if (newStreets.indexOf(streetEdgeId) === -1) {
@@ -115,7 +132,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         }
 
         // Add the current mission animation layer.
-        self._addMissionTasksAndAnimate(missionTasks);
+        self._addMissionTasksAndAnimate(missionTasks, missionId);
     };
 }
 

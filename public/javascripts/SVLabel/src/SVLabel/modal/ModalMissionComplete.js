@@ -270,7 +270,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var neighborhoodName = neighborhood.getProperty("name");
         this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title'));
 
-        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);
+        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'));
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
         this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance);

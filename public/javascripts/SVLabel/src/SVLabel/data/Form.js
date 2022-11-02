@@ -35,9 +35,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         data.amt_assignment_id = svl.amtAssignmentId;
 
         var mission = missionContainer.getCurrentMission();
+        var missionId = mission.getProperty("missionId");
         mission.updateDistanceProgress();
         data.mission = {
-            mission_id: mission.getProperty("missionId"),
+            mission_id: missionId,
             distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
             completed: mission.getProperty("isComplete"),
             audit_task_id: task.getAuditTaskId(),
@@ -52,7 +53,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             current_lat: navigationModel.getPosition().lat,
             current_lng: navigationModel.getPosition().lng,
             start_point_reversed: task.getProperty("startPointReversed"),
-            current_mission_start: task.getProperty("currentMissionStart"),
+            current_mission_start: task.getMissionStart(missionId),
             last_priority_update_time: properties.lastPriorityUpdateTime,
             // Request updated street priorities if we are at least 60% of the way through the current street.
             request_updated_street_priority: !svl.isOnboarding() && (task.getAuditedDistance() / task.lineDistance()) > 0.6
