@@ -18,14 +18,9 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
-        self._map.setZoom(data.default_zoom);
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         self._map.setMaxBounds(L.latLngBounds(southWest, northEast));
-
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-        var center = neighborhood.center();
-        self._map.setView([center.geometry.coordinates[1], center.geometry.coordinates[0]], 14);
 
         // Gray out a large area around the city with the neighborhood cut out to highlight the neighborhood.
         var largeBoundary = [
@@ -36,7 +31,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         ];
 
         // Add a small buffer around the neighborhood because it looks prettier.
-        var neighborhoodGeom = neighborhood.getGeoJSON();
+        var neighborhoodGeom = svl.neighborhoodContainer.getCurrentNeighborhood().getGeoJSON();
         var neighborhoodBuffer = turf.buffer(neighborhoodGeom, 0.04, { units: 'miles' });
         self._overlayPolygon = {
             'type': 'FeatureCollection',
@@ -47,6 +42,9 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         self._overlayPolygonLayer = L.geoJson(self._overlayPolygon);
         self._overlayPolygonLayer.setStyle({ 'opacity': 0, 'fillColor': 'rgb(110, 110, 110)', 'fillOpacity': 0.25});
         self._overlayPolygonLayer.addTo(self._map);
+
+        // Zoom/pan the map to the neighborhood.
+        self._map.fitBounds(L.geoJson(neighborhoodBuffer).getBounds());
     });
 
     this._addMissionTasksAndAnimate = function(completedTasks) {
@@ -59,7 +57,9 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             for (j = 0; j < route.length; j++) {
                 latlngs.push(new L.LatLng(route[j][1], route[j][0]));
             }
+            console.log(latlngs);
             path = L.polyline(latlngs, { color: 'rgb(20,220,120)', snakingSpeed: 20 });
+            console.log(path);
             path.addTo(self._map).snakeIn();
         }
     };
