@@ -1,7 +1,7 @@
 
 /**
  * An object that creates a display for the severity.
- * 
+ *
  * @param {HTMLElement} container The DOM element that contains the display
  * @param {Number} severity The severity to display
  * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
@@ -53,7 +53,7 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
             if (unsupported || severity == null) {
                 // Create grayed out empty circles/smileys.
                 if (isModal) {
-                    severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+                    severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_default.png`;
                     severityCircle.classList.add('modal-no-severity');
                 } else {
                     severityCircle.classList.add(severityCircleClass, 'no-severity-circle');
@@ -65,7 +65,7 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
                     if (i <= severity) { // Filled in smileys.
                         severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_inverted.png`;
                     } else { // Empty smileys.
-                        severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+                        severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_default.png`;
                     }
                 } else {
                     if (i <= severity) { // Fills in circles.

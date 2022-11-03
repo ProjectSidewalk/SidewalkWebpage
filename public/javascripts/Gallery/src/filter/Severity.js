@@ -23,7 +23,7 @@ function Severity (params, active){
 
     /**
      * Initialize Severity.
-     * 
+     *
      * @param {int} param Severity.
      */
     function _init(param) {
@@ -41,7 +41,7 @@ function Severity (params, active){
         } else {
             _showDeselected();
         }
-        
+
         severityElement.appendChild(severityImage);
 
         // Show inverted smiley face on click or hover.
@@ -72,7 +72,7 @@ function Severity (params, active){
     }
 
     function _showDeselected() {
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
+        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_default.png`;
     }
 
     /**
@@ -97,7 +97,7 @@ function Severity (params, active){
 
     /**
      * Renders Severity in sidebar.
-     * 
+     *
      * @param {*} filterContainer UI element to render Severity in.
      */
     function render(filterContainer) {

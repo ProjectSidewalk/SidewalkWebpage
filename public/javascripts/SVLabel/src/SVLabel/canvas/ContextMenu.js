@@ -210,7 +210,7 @@ function ContextMenu (uiContextMenu) {
         if (hoveredRadioButtonValue && hoveredRadioButtonValue > 0 && hoveredRadioButtonValue <= 5) {
             $hoveredRadioButtonImage = $radioButtonLabels.find("input[value='" + hoveredRadioButtonValue + "'] + img");
             imageURL = $hoveredRadioButtonImage.attr("default-src");
-            imageURL = imageURL.replace("_BW.png", ".png");
+            imageURL = imageURL.replace("_default.png", "_inverted_green.png");
             $hoveredRadioButtonImage.attr("src", imageURL);
         }
 
@@ -218,7 +218,7 @@ function ContextMenu (uiContextMenu) {
         $selectedRadioButtonImage = $radioButtonLabels.find("input:checked + img");
         if ($selectedRadioButtonImage.length > 0) {
             imageURL = $selectedRadioButtonImage.attr("default-src");
-            imageURL = imageURL.replace("_BW.png", ".png");
+            imageURL = imageURL.replace("_default.png", "_inverted_green.png");
             $selectedRadioButtonImage.attr("src", imageURL);
         }
     };
