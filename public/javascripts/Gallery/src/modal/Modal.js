@@ -351,7 +351,7 @@ function Modal(uiModal) {
         // Google Street View loads inside 'actual-pano' but there is no event triggered after it loads all the components.
         // So we need to detect it by brute-force.
         $('.actual-pano').bind('DOMNodeInserted', function(e) {
-            if (e.target.class.indexOf('widget-scene-canvas') > -1) {
+            if (e.target && e.target.className && typeof e.target.className === 'string' && e.target.className.indexOf('widget-scene-canvas') > -1) {
                 $('.widget-scene-canvas').bind('mousedown', handlerViewControlLayerMouseDown).bind('mouseup', handlerViewControlLayerMouseUp);
             }
         });
