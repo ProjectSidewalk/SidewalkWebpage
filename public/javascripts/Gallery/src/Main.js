@@ -65,14 +65,6 @@ function Main (params) {
 
     function _init() {
 
-        function handlerViewControlLayerMouseDown(e) {
-            $('.widget-scene-canvas').css('cursor', 'url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move');
-        }
-
-        function handlerViewControlLayerMouseUp(e) {
-            $('.widget-scene-canvas').css('cursor', '');
-        }
-
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.
@@ -91,8 +83,6 @@ function Main (params) {
         let sidebarWidth = sidebarWrapper.css('width');
 
         sg.ui.labelTypeMenu.select.change();
-
-        $('.widget-scene-canvas').bind('mousedown', handlerViewControlLayerMouseDown).bind('mouseup', handlerViewControlLayerMouseUp);
 
         // Handle sidebar and expanded view stickiness while scrolling.
         $(window).scroll(function () {
