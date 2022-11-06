@@ -39,7 +39,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         observedAreas: [],  // List of observed areas (latLng, minAngle, maxAngle).
         fractionObserved: 0,  // User's current fraction of 360 degrees observed.
         fogOfWarCtx: null,  // Canvas context for the fog of war.
-        fovCtx: null,  // Canvas context for user's FOV.
+        fovCtx: null,  // Canvas context for user's FOV (and progress bar).
         width: 0,  // Canvas width.
         height: 0,  // Canvas height.
     }
@@ -604,7 +604,11 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      * Renders the fog of war.
      */
     function renderFogOfWar() {
-        fogOfWarProperties.fogOfWarCtx.fillStyle = "#888888";
+        if (fogOfWarProperties.fractionObserved == 1) {
+            fogOfWarProperties.fogOfWarCtx.fillStyle = "#00ff00";
+        } else {
+            fogOfWarProperties.fogOfWarCtx.fillStyle = "#888888";
+        }
         fogOfWarProperties.fogOfWarCtx.filter = "blur(5px)";
         fogOfWarProperties.fogOfWarCtx.fillRect(0, 0, fogOfWarProperties.width, fogOfWarProperties.height);
         fogOfWarProperties.fogOfWarCtx.globalCompositeOperation = "destination-out";
@@ -639,23 +643,17 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     /**
      * Renders the user's percentage of 360 degrees observed progress bar.
      */
-    function renderPercentObserved() {
+    function renderProgressBar() {
         let observedPercentage = Math.floor(100 * fogOfWarProperties.fractionObserved) + "%";
+        document.getElementById("google-maps-percent-observed").style.color = "#404040";
         document.getElementById("google-maps-percent-observed").innerText = observedPercentage;
-        if (fogOfWarProperties.fractionObserved == 1) {
-            // If 100% observed, turn progress bar and text green.
-            document.getElementById("google-maps-percent-observed").style.color = "#00dd00";
-            fogOfWarProperties.fovCtx.strokeStyle = "#00dd00";
-        } else {
-            document.getElementById("google-maps-percent-observed").style.color = "#404040";
-            fogOfWarProperties.fovCtx.strokeStyle = "#808080";
-            fogOfWarProperties.fovCtx.lineWidth = 3;
-            fogOfWarProperties.fovCtx.beginPath();
-            fogOfWarProperties.fovCtx.arc(fogOfWarProperties.width - 20, 20, 16, 0, 2 * Math.PI);
-            fogOfWarProperties.fovCtx.stroke();
-            fogOfWarProperties.fovCtx.strokeStyle = "#404040";
-        }
+        fogOfWarProperties.fovCtx.strokeStyle = "#808080";
         fogOfWarProperties.fovCtx.lineCap = "round";
+        fogOfWarProperties.fovCtx.lineWidth = 3;
+        fogOfWarProperties.fovCtx.beginPath();
+        fogOfWarProperties.fovCtx.arc(fogOfWarProperties.width - 20, 20, 16, 0, 2 * Math.PI);
+        fogOfWarProperties.fovCtx.stroke();
+        fogOfWarProperties.fovCtx.strokeStyle = "#404040";
         fogOfWarProperties.fovCtx.beginPath();
         fogOfWarProperties.fovCtx.arc(fogOfWarProperties.width - 20, 20, 16,
             toRadians(-90), toRadians(fogOfWarProperties.fractionObserved * 360 - 90));
@@ -670,7 +668,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             updateAngles();
             renderFogOfWar();
             renderFov();
-            renderPercentObserved();
+            renderProgressBar();
         }
     }
 
