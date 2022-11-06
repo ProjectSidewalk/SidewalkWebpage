@@ -88,8 +88,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             }
         }
 
-        // Update the total distance across neighborhoods that the user has audited
-        updateAuditedDistance({units: 'miles'});
+        // Update the audited distance in the right sidebar.
+        updateAuditedDistance();
 
         if (!('user' in svl) || (svl.user.getProperty('role') === "Anonymous" &&
             getCompletedTaskDistance({units: 'kilometers'}) > 0.15 &&
@@ -253,8 +253,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @params {unit} String can be degrees, radians, miles, or kilometers
      * @returns {number} distance in unit.
      */
-    function getCompletedTaskDistance (unit) {
-        if (!unit) unit = {units: 'kilometers'};
+    function getCompletedTaskDistance(unit) {
+        if (!unit) unit = { units: i18next.t('common:unit-distance') };
         var completedTasks = getCompletedTasks(),
             geojson,
             feature,
@@ -275,11 +275,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Get the total distance of segments completed by any user.
      *
-     * @param {unit} String can be degrees, radians, miles, or kilometers.
      * @returns {number} distance in unit.
      */
-    function getCompletedTaskDistanceAcrossAllUsersUsingPriority(unit) {
-        if (!unit) unit = {units: 'kilometers'};
+    function getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
+        var unit = { units: i18next.t('common:unit-distance') };
         var tasks = self.getTasks().filter(function(t) { return t.getStreetPriority() < 1; });
         var geojson;
         var feature;
@@ -622,24 +621,18 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     /**
-     * Update the audited distance by combining the distance previously traveled and the distance the user traveled in
-     * the current session.
-     * TODO Fix this. The function name should be clear that this updates the global distance rather than the distance traveled in the current neighborhood.
-     * @param unit {string} Distance unit
+     * Update the audited distance in the right sidebar using the length of the streets in the current neighborhood.
      * @returns {updateAuditedDistance}
      */
-    function updateAuditedDistance (unit) {
-        if (!unit) unit = {units: 'kilometers'};
+    function updateAuditedDistance() {
         var distance = 0;
-        var sessionDistance = 0;
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
 
         if (neighborhood) {
-            sessionDistance = getCompletedTaskDistance(unit);
+            distance = getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
         }
-
-        distance += sessionDistance;
-        svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1));
+        svl.statusFieldNeighborhood.setAuditedDistance(distance);
+        svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
         return this;
     }
 

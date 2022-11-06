@@ -5,14 +5,15 @@ import play.api.Play.current
 import java.util.UUID
 import scala.util.control.NonFatal
 
-case class UserRole(userRoleId: Int, userId: String, roleId: Int)
+case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean)
 
 class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk"), "user_role") {
   def userRoleId = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def roleId = column[Int]("role_id", O.NotNull)
+  def communityService = column[Boolean]("community_service", O.NotNull)
 
-  def * = (userRoleId, userId, roleId) <> ((UserRole.apply _).tupled, UserRole.unapply)
+  def * = (userRoleId, userId, roleId, communityService) <> ((UserRole.apply _).tupled, UserRole.unapply)
 }
 
 object UserRoleTable {
@@ -36,17 +37,18 @@ object UserRoleTable {
     } catch {
       // No role found, give them Registered role.
       case NonFatal(t) =>
-        setRole(userId, "Registered")
+        setRole(userId, "Registered", communityService = Some(false))
         "Registered"
     }
   }
 
-  def setRole(userId: UUID, newRole: String): Int = db.withTransaction { implicit session =>
-    setRole(userId, roleMapping(newRole))
+  def setRole(userId: UUID, newRole: String, communityService: Option[Boolean]): Int = db.withTransaction { implicit session =>
+    setRole(userId, roleMapping(newRole), communityService)
   }
 
-  def setRole(userId: UUID, newRole: Int): Int = db.withTransaction { implicit session =>
-    val userRoleId: Option[Int] = userRoles.filter(_.userId === userId.toString).map(_.userRoleId).firstOption
-    userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole))
+  def setRole(userId: UUID, newRole: Int, communityService: Option[Boolean]): Int = db.withTransaction { implicit session =>
+    val currRole: Option[UserRole] = userRoles.filter(_.userId === userId.toString).firstOption
+    val commServ: Boolean = communityService.getOrElse(currRole.map(_.communityService).getOrElse(false))
+    userRoles.insertOrUpdate(UserRole(currRole.map(_.userRoleId).getOrElse(0), userId.toString, newRole, commServ))
   }
 }

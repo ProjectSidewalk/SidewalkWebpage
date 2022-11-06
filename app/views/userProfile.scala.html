@@ -69,13 +69,13 @@
                 <span class="user-stats-header">@Messages("dashboard.distance")</span>
                 <span class="user-stats-header">@Messages("dashboard.labels")</span>
                 <span class="user-stats-header">@Messages("dashboard.validations")</span>
-                <span class="user-stats-header">@Messages("dashboard.accuracy")</span>
+                <span class="user-stats-header">@Messages("accuracy.caps")</span>
 
                 <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("dashboard.distance.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("dashboard.label.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
                 <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("dashboard.accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
+                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
                 <span class="user-stats-stat">@MissionTable.countCompletedMissions(user.get.userId, true, false)</span>
                 <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
@@ -159,20 +159,26 @@
                         <img id="validations-badge5" src='@routes.Assets.at("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
                     </div>
                 </div>
-
             </div>
+        </div>
+
+        <div id="mistakes-row" class="row">
+            <h2>@Messages("dashboard.mistakes.header")</h2>
+            <span id="mistakes-subheader"></span>
+            <img src="@routes.Assets.at("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
+            <div id="mistake-carousels-holder"></div>
         </div>
     </div>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeStreets.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
@@ -200,8 +206,13 @@
                     @LabelTable.countLabels(user.get.userId),
                     @LabelValidationTable.countValidations(user.get.userId),
                 );
+
+                MistakeCarousel();
             });
             
+            // Initialize tooltips.
+            $('[data-toggle="tooltip"]').tooltip()
+
             // Initialize popovers.
             $('[id="edit-org-dropdown"]').popover({
                 trigger: 'manual',

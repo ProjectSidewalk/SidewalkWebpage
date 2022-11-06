@@ -30,23 +30,10 @@ object StreetEdgeRegionTable {
     _r <- RegionTable.regionsWithoutDeleted if _ser.regionId === _r.regionId
   } yield _ser
 
-  /**
-    * Get records based on the street edge id.
-    *
-    * @param streetEdgeId
-    * @return
-    */
-  def selectByStreetEdgeId(streetEdgeId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    streetEdgeRegionTable.filter(item => item.streetEdgeId === streetEdgeId).list
-  }
-
-  /**
-    * Get records based on the region id.
-    *
-    * @param regionId
-    * @return
-    */
-  def selectNonDeletedByRegionId(regionId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    nonDeletedStreetEdgeRegions.filter(item => item.regionId === regionId).list
+  def getNonDeletedRegionFromStreetId(streetEdgeId: Int): Option[Region] = db.withSession { implicit session =>
+    streetEdgeRegionTable
+      .filter(_.streetEdgeId === streetEdgeId)
+      .innerJoin(RegionTable.regionsWithoutDeleted).on(_.regionId === _.regionId)
+      .map(_._2).firstOption
   }
 }

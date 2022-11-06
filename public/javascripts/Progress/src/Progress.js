@@ -30,7 +30,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
     };
     var streetParams = {
         includeLabelCounts: true,
-        streetColor: '#000000',
+        auditedStreetColor: 'black',
         useTotalAuditedDistance: false,
         progressElement: 'td-total-distance-audited',
         userRole: userRole
@@ -49,7 +49,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
     // When the polygons have been rendered and the audited streets have loaded,
     // the audited streets can be rendered.
     var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-        InitializeAuditedStreets(map, streetParams, data2[0]);
+        InitializeStreets(map, streetParams, data2[0]);
     });
     // When the audited streets have been rendered and the submitted labels have loaded,
     // the submitted labels can be rendered.

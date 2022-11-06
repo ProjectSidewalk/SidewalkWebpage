@@ -21,6 +21,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     var properties = {
         auditTaskId: null,
         streetEdgeId: null,
+        regionId: null,
         completedByAnyUser: null,
         priority: null,
         currentLat: currentLat,
@@ -53,6 +54,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         _geojson = geojson;
 
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
+        self.setProperty("regionId", _geojson.features[0].properties.region_id);
         self.setProperty("completedByAnyUser", _geojson.features[0].properties.completed_by_any_user);
         self.setProperty("priority", _geojson.features[0].properties.priority);
 
@@ -349,6 +351,10 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     this.getStreetEdgeId = function () {
         return _geojson.features[0].properties.street_edge_id;
     };
+
+    this.getRegionId = function () {
+        return _geojson.features[0].properties.region_id;
+    }
 
     this.streetCompletedByAnyUser = function () {
         return properties.completedByAnyUser;

@@ -3,6 +3,7 @@
     "unit-distance-abbreviation": "mi",
     "unit-abbreviation-mission-distance": "ft",
     "unit-distance": "miles",
+    "format-number": "{{val, number}}",
     "map": {
         "distance-left": "Only {{n}} miles left!",
         "distance-left-one-unit": "Only 1 mile left!",

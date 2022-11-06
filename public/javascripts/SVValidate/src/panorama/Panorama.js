@@ -197,15 +197,16 @@ function Panorama (label) {
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
-                        // Make Terms of Use & Report a problem links on GSV clickable. Should only be done once.
+                        // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links  clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
                         if (!bottomLinksClickable) {
-                            $("#view-control-layer").append($('.gm-style-cc').slice(1, 3));
+                            $('.gm-style-cc')[0].remove();
+                            $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
                             bottomLinksClickable = true;
                         } 
                     } else {
                         console.error("Error retrieving Panoramas: " + status);
-                        svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                        svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }
                 });
         }
@@ -238,7 +239,7 @@ function Panorama (label) {
                 pano: panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
                 icon: url,
-                size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
+                size: new google.maps.Size(currentLabel.getRadius() * 2 + 2, currentLabel.getRadius() * 2 + 2),
                 anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
                 zIndex: 2
             });
@@ -309,7 +310,7 @@ function Panorama (label) {
      * Skips the current label on this panorama and fetches a new label for validation.
      */
     function skipLabel () {
-        svv.panoramaContainer.fetchNewLabel(currentLabel.getProperty('labelId'));
+        svv.panoramaContainer.fetchNewLabel(currentLabel.getAuditProperty('labelId'));
     }
 
     /**

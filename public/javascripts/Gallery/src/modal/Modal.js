@@ -51,6 +51,8 @@ function Modal(uiModal) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
+        streetEdgeId: undefined,
+        regionId: undefined,
         user_validation: undefined,
         tags: []
     };
@@ -128,17 +130,29 @@ function Modal(uiModal) {
      */
     function populateModalDescriptionFields() {
         // Add timestamp data for when label was placed and when pano was created.
-        let labelTimestampData = document.createElement('div');
-        labelTimestampData.className = 'label-timestamp';
-        labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
+        self.labelTimestampData = document.createElement('div');
+        self.labelTimestampData.className = 'label-timestamp';
+        self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
         panoTimestampData.innerHTML = `<div>${i18next.t('image-date')}: ${moment(properties.image_date).format('MMM YYYY')}</div>`;
-        self.timestamps.append(labelTimestampData);
+        self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
+        // Add info button to the right of the label timestamp.
+        let getPanoId = sg.modal().pano.getPanoId;
+        self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.modal().pano.panorama,
+            sg.modal().pano.getPosition, getPanoId,
+            function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
+            sg.modal().pano.getPov, false,
+            function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
+            function () { return properties['label_id']; }
+        );
+
         // Add severity and tag display to the modal.
-        new SeverityDisplay(self.severity, properties.severity, true);
+        new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
         new TagDisplay(self.tags, properties.tags, true);
 
         // Add the information about the temporary property to the Modal.
@@ -170,7 +184,7 @@ function Modal(uiModal) {
         populateModalDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
-        self.header.text(i18next.t(`gallery.${util.camelToKebab(properties.label_type)}`));
+        self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
 
         // Highlight selected card thumbnail.
         highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));

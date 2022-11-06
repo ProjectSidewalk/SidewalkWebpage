@@ -32,13 +32,15 @@ module.exports = function(grunt) {
                     'public/javascripts/common/UtilitiesMath.js',
                     'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/common/UtilitiesShape.js',
-                    'public/javascripts/common/UtilitiesSidewalk.js'
+                    'public/javascripts/common/UtilitiesSidewalk.js',
+                    'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
             dist_progress: {
                 src: [
-                    'public/javascripts/Progress/src/*.js'
+                    'public/javascripts/Progress/src/*.js',
+                    'public/javascripts/common/Utilities.js'
                 ],
                 dest: 'public/javascripts/Progress/build/Progress.js'
             },
@@ -69,7 +71,8 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
                     'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/UtilitiesSidewalk.js'
+                    'public/javascripts/common/UtilitiesSidewalk.js',
+                    'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             },
@@ -82,7 +85,8 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/displays/*.js',
                     'public/javascripts/Gallery/src/modal/*.js',
                     'public/javascripts/Gallery/src/*.js',
-                    'public/javascripts/common/Panomarker.js'
+                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
             }

@@ -1,0 +1,12 @@
+@(field: Field, label: String = "TODO", buttonNameList: List[String])
+
+<div class="form-group has-feedback @if(field.hasErrors) {has-error}">
+    <label>@label</label>
+    @for(buttonName <- buttonNameList) {
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="@field.name" id="navbar-service-hours-@buttonName" value="@buttonName">
+            <label class="form-check-label" for="navbar-service-hours-@buttonName">@buttonName</label>
+        </div>
+    }
+    <span class="help-block">@{field.error.map { error => Messages(error.message) }}</span>
+</div>

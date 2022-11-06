@@ -69,7 +69,7 @@
                         <td>@AuditTaskTable.countCompletedAudits(UUID.fromString(user.get.userId))</td>
                         <td>@LabelTable.countLabels(UUID.fromString(user.get.userId))</td>
                         <td id="td-total-distance-audited-admin"></td>
-                        <td>@AuditTaskInteractionTable.getHoursAuditingAndValidating(user.get.userId) hours</td>
+                        <td>@{"%.2f".format(AuditTaskInteractionTable.getHoursAuditingAndValidating(user.get.userId))} hours</td>
                     </tr>
                 </table>
             </div>
@@ -180,7 +180,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
@@ -189,7 +189,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesPanomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeStreets.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
