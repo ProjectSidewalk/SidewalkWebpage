@@ -31,19 +31,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         tutorialTask: tutorialTask
     };
 
-    var fogOfWarProperties = {
-        radius: 40,  // FOV radius in pixels.
-        angle: null,  // User's angle.
-        leftAngle: null,  // Left-most angle of the user's FOV.
-        rightAngle: null,  // Right-most angle of the user's FOV.
-        observedAreas: [],  // List of observed areas (latLng, minAngle, maxAngle).
-        fractionObserved: 0,  // User's current fraction of 360 degrees observed.
-        fogOfWarCtx: null,  // Canvas context for the fog of war.
-        fovCtx: null,  // Canvas context for user's FOV (and progress bar).
-        width: 0,  // Canvas width.
-        height: 0,  // Canvas height.
-    }
-
     /**
      * This method takes a task parameters and set up the current task.
      * @param geojson Description of the next task in json format.
@@ -67,16 +54,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         }
 
         paths = null;
-
-        // Get canvas context for the fog of war.
-        let fogOfWarCanvas = document.getElementById("google-maps-fog-of-war-canvas");
-        fogOfWarProperties.fogOfWarCtx = fogOfWarCanvas.getContext("2d");
-        // Get canvas context for user's FOV.
-        let fovCanvas = document.getElementById("google-maps-fov-canvas");
-        fogOfWarProperties.fovCtx = fovCanvas.getContext("2d");
-        // Get canvas width and height.
-        fogOfWarProperties.width = fogOfWarCanvas.width;
-        fogOfWarProperties.height = fogOfWarCanvas.height;
     };
 
     this.setStreetEdgeDirection = function (currentLat, currentLng) {
@@ -518,159 +495,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             }
         }
     };
-
-    /**
-     * Resets the user's angle and appends the user's new position to 'observedAreas'. Called when the user takes a step. 
-     */
-    this.observedAreaStep = function () {
-        fogOfWarProperties.angle = null;
-        fogOfWarProperties.leftAngle = null;
-        fogOfWarProperties.rightAngle = null;
-        let latLng = svl.map.getPosition();
-        for (let i = 0; i < fogOfWarProperties.observedAreas.length; i++) {
-            // If we have observed the new position before, move it to the end of the 'observedAreas' list.
-            if (fogOfWarProperties.observedAreas[i].latLng.lat == latLng.lat
-                    && fogOfWarProperties.observedAreas[i].latLng.lng == latLng.lng) {
-                fogOfWarProperties.observedAreas.push(fogOfWarProperties.observedAreas.splice(i, 1)[0]);
-                return;
-            }
-        }
-        fogOfWarProperties.observedAreas.push({latLng: latLng, minAngle: null, maxAngle: null});
-    }
-
-    /**
-     * From PanoMarker spec
-     * @param zoom
-     * @returns {number}
-     */
-    function get3dFov(zoom) {
-        return zoom <= 2 ? 126.5 - zoom * 36.75 : 195.93 / Math.pow(1.92, zoom);
-    }
-
-    /**
-     * Converts degrees to radians.
-     * @param degrees
-     * @returns {number}
-     */
-    function toRadians(degrees) {
-        return degrees / 180 * Math.PI;
-    }
-
-    /**
-     * Converts a latitude and longitude to pixel xy-coordinates.
-     * @param latLng
-     * @returns {number, number}
-     */
-    function latLngToPixel(latLng) {
-        let projection = svl.map.getMap().getProjection();
-        let bounds = svl.map.getMap().getBounds();
-        let topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-        let bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-        let scale = Math.pow(2, svl.map.getMap().getZoom());
-        let worldPoint = projection.fromLatLngToPoint(latLng);
-        return {x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
-                y: Math.floor((worldPoint.y - topRight.y) * scale)};
-    }
-
-    /**
-     * Updates all of the angle variables necessary to keep track of the user's observed area.
-     */
-    function updateAngles() {
-        let pov = svl.map.getPov();
-        let heading = pov.heading;
-        let fov = get3dFov(pov.zoom);
-        if (fogOfWarProperties.angle) {
-            if (heading - fogOfWarProperties.angle > 180) {
-                heading -= 360;
-            }
-            if (heading - fogOfWarProperties.angle < -180) {
-                heading += 360;
-            }
-        }
-        fogOfWarProperties.angle = heading;
-        fogOfWarProperties.leftAngle = fogOfWarProperties.angle - fov / 2;
-        fogOfWarProperties.rightAngle = fogOfWarProperties.angle + fov / 2;
-        let current = fogOfWarProperties.observedAreas[fogOfWarProperties.observedAreas.length - 1];
-        if (!current.minAngle || fogOfWarProperties.leftAngle < current.minAngle) {
-            current.minAngle = fogOfWarProperties.leftAngle;
-        }
-        if (!current.maxAngle || fogOfWarProperties.rightAngle > current.maxAngle) {
-            current.maxAngle = fogOfWarProperties.rightAngle;
-        }
-        fogOfWarProperties.fractionObserved = Math.min(current.maxAngle - current.minAngle, 360) / 360;
-    }
-
-    /**
-     * Renders the fog of war.
-     */
-    function renderFogOfWar() {
-        if (fogOfWarProperties.fractionObserved == 1) {
-            fogOfWarProperties.fogOfWarCtx.fillStyle = "#00ff00";
-        } else {
-            fogOfWarProperties.fogOfWarCtx.fillStyle = "#888888";
-        }
-        fogOfWarProperties.fogOfWarCtx.filter = "blur(5px)";
-        fogOfWarProperties.fogOfWarCtx.fillRect(0, 0, fogOfWarProperties.width, fogOfWarProperties.height);
-        fogOfWarProperties.fogOfWarCtx.globalCompositeOperation = "destination-out";
-        for (let observedArea of fogOfWarProperties.observedAreas) {
-            let center = latLngToPixel(observedArea.latLng);
-            fogOfWarProperties.fogOfWarCtx.beginPath();
-            if (observedArea.maxAngle - observedArea.minAngle < 360) {
-                fogOfWarProperties.fogOfWarCtx.moveTo(center.x, center.y);
-            }
-            fogOfWarProperties.fogOfWarCtx.arc(center.x, center.y, fogOfWarProperties.radius,
-                toRadians(observedArea.minAngle - 90), toRadians(observedArea.maxAngle - 90));
-                fogOfWarProperties.fogOfWarCtx.fill();
-        }
-        fogOfWarProperties.fogOfWarCtx.globalCompositeOperation = "source-over";
-    }
-
-    /**
-     * Renders the the user's FOV.
-     */
-    function renderFov() {
-        fogOfWarProperties.fovCtx.fillStyle = "#8080ff";
-        fogOfWarProperties.fovCtx.clearRect(0, 0, fogOfWarProperties.width, fogOfWarProperties.height);
-        let current = fogOfWarProperties.observedAreas[fogOfWarProperties.observedAreas.length - 1];
-        let center = latLngToPixel(current.latLng);
-        fogOfWarProperties.fovCtx.beginPath();
-        fogOfWarProperties.fovCtx.moveTo(center.x, center.y);
-        fogOfWarProperties.fovCtx.arc(center.x, center.y, fogOfWarProperties.radius,
-            toRadians(fogOfWarProperties.leftAngle - 90), toRadians(fogOfWarProperties.rightAngle - 90));
-        fogOfWarProperties.fovCtx.fill();
-    }
-
-    /**
-     * Renders the user's percentage of 360 degrees observed progress bar.
-     */
-    function renderProgressBar() {
-        let observedPercentage = Math.floor(100 * fogOfWarProperties.fractionObserved) + "%";
-        document.getElementById("google-maps-percent-observed").style.color = "#404040";
-        document.getElementById("google-maps-percent-observed").innerText = observedPercentage;
-        fogOfWarProperties.fovCtx.strokeStyle = "#808080";
-        fogOfWarProperties.fovCtx.lineCap = "round";
-        fogOfWarProperties.fovCtx.lineWidth = 3;
-        fogOfWarProperties.fovCtx.beginPath();
-        fogOfWarProperties.fovCtx.arc(fogOfWarProperties.width - 20, 20, 16, 0, 2 * Math.PI);
-        fogOfWarProperties.fovCtx.stroke();
-        fogOfWarProperties.fovCtx.strokeStyle = "#404040";
-        fogOfWarProperties.fovCtx.beginPath();
-        fogOfWarProperties.fovCtx.arc(fogOfWarProperties.width - 20, 20, 16,
-            toRadians(-90), toRadians(fogOfWarProperties.fractionObserved * 360 - 90));
-        fogOfWarProperties.fovCtx.stroke();
-    }
-
-    /**
-     * Updates everything relevant to the user's observed area.
-     */
-    this.updateObservedArea = function () {
-        if (fogOfWarProperties.observedAreas.length > 0) {
-            updateAngles();
-            renderFogOfWar();
-            renderFov();
-            renderProgressBar();
-        }
-    }
 
     /**
      * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.

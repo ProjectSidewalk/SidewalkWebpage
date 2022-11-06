@@ -609,15 +609,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var currentLatLng = navigationModel.getPosition();
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
-
-        currentTask.observedAreaStep();
-    }
-
-    /**
-     * Updates the observed area.
-     */
-    function updateObservedArea() {
-        currentTask.updateObservedArea();
     }
 
     /**
@@ -681,7 +672,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.removeTutorialTask = removeTutorialTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
-    self.updateObservedArea = updateObservedArea;
     self.updateAuditedDistance = updateAuditedDistance;
     self.updateTaskPriorities = updateTaskPriorities;
 }

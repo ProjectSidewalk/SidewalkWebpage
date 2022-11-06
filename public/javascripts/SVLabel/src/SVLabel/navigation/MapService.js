@@ -812,6 +812,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     _endTheCurrentTask(task, currentMission);
                 }
             }
+            if ("observedArea" in svl) {
+                svl.observedArea.step();
+            }
             svl.missionModel.updateMissionProgress(currentMission, neighborhood);
         }
 
@@ -839,7 +842,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         povChange["status"] = false;
 
         if ("compass" in svl) { svl.compass.update(); }
-        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(); }
+        if ("observedArea" in svl) { svl.observedArea.update(); }
         
         svl.tracker.push("POV_Changed");
     }
@@ -848,9 +851,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Callback for zoom update
      */
      function handlerZoomChange () {
-        // This is a callback function that is fired when zoom is changed
-        if ("taskContainer" in svl) { svl.taskContainer.updateObservedArea(); }
-        
+        if ("observedArea" in svl) { svl.observedArea.update(); }
+
         svl.tracker.push("Zoom_Changed");
     }
     

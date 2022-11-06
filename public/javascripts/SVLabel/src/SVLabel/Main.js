@@ -111,6 +111,8 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
+        svl.observedArea = new ObservedArea();
+
         // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
