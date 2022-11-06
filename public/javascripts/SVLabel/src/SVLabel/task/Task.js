@@ -499,7 +499,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     /**
      * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
      */
-    this.reverseCoordinates = function () {
+    this.reverseCoordinates = function (){
         _geojson.features[0].geometry.coordinates.reverse();
     };
 
