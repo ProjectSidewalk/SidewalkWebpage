@@ -1955,6 +1955,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "walk-3": {
             "properties": {
                 "action": "WalkTowards",
+                "blinks": ["compass", "movement-arrow"],
                 "panoId": afterWalkPanoId,
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
