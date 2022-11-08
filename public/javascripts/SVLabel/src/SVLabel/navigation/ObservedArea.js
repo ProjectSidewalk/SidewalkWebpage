@@ -29,7 +29,8 @@ function ObservedArea () {
     };
 
     /**
-     * Resets the user's angle and appends the user's new position to 'observedAreas'. Called when the user takes a step. 
+     * Resets the user's angle and appends the user's new position to 'observedAreas'.
+     * Called when the user takes a step. 
      */
      this.step = function () {
         angle = null;
@@ -144,8 +145,7 @@ function ObservedArea () {
         let center = latLngToPixel(current.latLng);
         fovCtx.beginPath();
         fovCtx.moveTo(center.x, center.y);
-        fovCtx.arc(center.x, center.y, radius,
-            toRadians(leftAngle - 90), toRadians(rightAngle - 90));
+        fovCtx.arc(center.x, center.y, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
         fovCtx.fill();
     }
 
@@ -153,9 +153,7 @@ function ObservedArea () {
      * Renders the user's percentage of 360 degrees observed progress bar.
      */
     function renderProgressBar() {
-        let observedPercentage = Math.floor(100 * fractionObserved) + "%";
         document.getElementById("google-maps-percent-observed").style.color = "#404040";
-        document.getElementById("google-maps-percent-observed").innerText = observedPercentage;
         fovCtx.strokeStyle = "#808080";
         fovCtx.lineCap = "round";
         fovCtx.lineWidth = 3;
@@ -164,8 +162,7 @@ function ObservedArea () {
         fovCtx.stroke();
         fovCtx.strokeStyle = "#404040";
         fovCtx.beginPath();
-        fovCtx.arc(width - 20, 20, 16,
-            toRadians(-90), toRadians(fractionObserved * 360 - 90));
+        fovCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
         fovCtx.stroke();
     }
 
@@ -178,6 +175,12 @@ function ObservedArea () {
             renderFogOfWar();
             renderFov();
             renderProgressBar();
+            document.getElementById("google-maps-percent-observed").innerText = Math.floor(100 * fractionObserved) + "%";
+            if (fractionObserved == 1) {
+                document.getElementById("google-maps-message").innerText = i18next.t("minimap.follow-red-line");
+            } else {
+                document.getElementById("google-maps-message").innerText = i18next.t("minimap.explore-current-location");
+            }
         }
     }
 

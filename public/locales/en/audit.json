@@ -224,5 +224,9 @@
         "still-stuck": "If you're still stuck, click the Stuck button again.",
         "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street.",
         "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left."
+    },
+    "minimap": {
+        "follow-red-line": "Follow the red line to continue the mission",
+        "explore-current-location": "Explore this location for accessibility problems"
     }
 }

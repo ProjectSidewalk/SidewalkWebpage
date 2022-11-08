@@ -144,7 +144,6 @@ audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
 audit.right.ui.current.mission = Huidige Missie
-audit.right.ui.red.line = Volg de rode lijn
 
 audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
