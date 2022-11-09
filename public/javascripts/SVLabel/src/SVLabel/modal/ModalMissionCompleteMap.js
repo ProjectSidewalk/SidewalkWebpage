@@ -8,6 +8,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this._overlayPolygonLayer = null;
     this._ui = uiModalMissionComplete;
     this._completedTasksLayer = [];
+    this.neighborhoodBounds = null;
 
     this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
         maxZoom: 19,
@@ -44,7 +45,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         self._overlayPolygonLayer.addTo(self._map);
 
         // Zoom/pan the map to the neighborhood.
-        self._map.fitBounds(L.geoJson(neighborhoodBuffer).getBounds());
+        self.neighborhoodBounds = L.geoJson(neighborhoodBuffer).getBounds();
+        self._map.fitBounds(self.neighborhoodBounds);
     });
 
     this._addMissionTasksAndAnimate = function(completedTasks, missionId) {
@@ -93,13 +95,15 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
      * @private
      */
     this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks, missionId) {
-        // Add layers http://leafletjs.com/reference.html#map-addlayer
         var i;
         var leafletLine;
         var layer;
         var completedTaskAllUsersLayerStyle = { color: 'rgb(100,100,100)', opacity: 1, weight: 3 };
         var completedTaskLayerStyle = { color: 'rgb(70,130,180)', opacity: 1, weight: 5 };
         var leafletMap = this._map;
+
+        // Reset map zoom to show the whole neighborhood.
+        self._map.fitBounds(self.neighborhoodBounds);
 
         // Remove previous tasks.
         _.each(this._completedTasksLayer, function(element) {
