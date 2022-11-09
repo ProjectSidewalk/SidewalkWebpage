@@ -1,0 +1,243 @@
+@import url('https://fonts.googleapis.com/css?family=Raleway:400,700&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap');
+
+.template {
+    display: none;
+}
+
+.disabled {
+    opacity: 0.5;
+
+}
+
+.mission-tutorial-overlay {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: white;
+    z-index: 10;
+    display: flex;
+    flex-shrink: 0;
+
+    /* Default font should be defined only here and should be overridden wherever needed. */
+    font-family: 'Open Sans', sans-serif;
+}
+
+.mission-tutorial-content {
+    margin-top: 35px;
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    width: calc(100% - 120px);
+    flex-direction: column;
+}
+
+.mission-instruction-1 {
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    color: #525252;
+    margin: 5px 0;
+    padding: 0 10px;
+    width: 100%;
+    height: fit-content;
+}
+
+.mission-instruction-2 {
+    font-family: 'Raleway', 'Open Sans', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 24px;
+    margin: 5px 0;
+    padding: 0 10px;
+
+    color: #000000;
+    width: 100%;
+}
+
+.mission-carousel {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 30px;
+}
+
+.previous-slide-button, .next-slide-button {
+    height: 100%;
+    width: 30px;
+    display: flex;
+    fill: #C4C4C4;
+    cursor: pointer;
+}
+
+.previous-slide-button:not(.disabled):hover, .next-slide-button:not(.disabled):hover {
+    fill: #000000;
+}
+
+.previous-slide-button {
+    margin-right: 30px;
+}
+
+.next-slide-button {
+    margin-left: 30px;
+}
+
+.mission-tutorial-slide {
+    height: 436px;
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.mts-text-area {
+    width: 294px;
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    flex-direction: column;
+}
+
+.label-type-title {
+    font-family: 'Raleway', 'Open Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-align: left;
+    margin-bottom: 25px;
+    padding: 0 10px;
+}
+
+.label-type-subtitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #949494;
+    padding: 0 10px;
+}
+
+.label-type-description {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-align: left;
+    padding: 0 10px;
+    margin-top: 10px;
+}
+
+.mission-tutorial-overlay-footer {
+    margin-top: 20px;
+    width: 100%;
+}
+
+.mission-tutorial-done-btn {
+    height: 36px;
+    width: 249px;
+    border-radius: 7.25px;
+    float: right;
+    background: #F6D795;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.mission-tutorial-done-btn:hover {
+    background: #ffc342;
+}
+
+.mts-image-area {
+    width: 658px;
+    height: 436px;
+    float: right;
+    background: lightgrey;
+    display: flex;
+}
+
+.mts-image {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.example-type-area {
+    display: flex;
+    padding: 10px;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.example-type-area::after {
+    background: #30785D;
+    width: calc(100% - 20px);
+    height: 8px;
+    position: absolute;
+    bottom: -6px;
+    content: '';
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.correct .example-type-area::after {
+    background: #30785D;
+}
+
+.incorrect .example-type-area::after {
+    background: #EB734D;
+}
+
+.example-type-icon {
+    height: 24px;
+    width: 24px;
+    display: inline-block;
+    margin-right: 5px;
+    fill: none;
+}
+
+.correct .example-type-icon {
+    stroke: #30785D;
+}
+
+.incorrect .example-type-icon {
+    stroke: #EB734D;
+}
+
+.example-type-label {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.correct .example-type-label {
+    color: #30785D;
+}
+
+.incorrect .example-type-label {
+    color: #EB734D;
+}
+
+.mission-carousel-location-indicator-area {
+    height: 30px;
+    width: 100%;
+    padding: 5px;
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mission-carousel-location-indicator {
+    height: 7px;
+    width: 40px;
+    margin: 0 3.5px;
+    background: #C4C4C4;
+    transition: all 0.4s;
+    border-radius: 100px;
+}
+
+.mission-carousel-location-indicator.current-location {
+    background: #2C2A3D;
+}

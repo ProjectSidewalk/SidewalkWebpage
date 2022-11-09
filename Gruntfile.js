@@ -72,7 +72,8 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/zoom/*.js',
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopover.js'
+                    'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/MissionTutorial.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             },
