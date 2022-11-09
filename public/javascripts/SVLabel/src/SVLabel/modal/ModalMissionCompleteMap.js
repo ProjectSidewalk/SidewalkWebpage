@@ -74,7 +74,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             for (j = 0; j < route.length; j++) {
                 latlngs.push(new L.LatLng(route[j][1], route[j][0]));
             }
-            path = L.polyline(latlngs, { color: 'rgb(20,220,120)', opacity: 1, weight: 5, snakingSpeed: 20 });
+            path = L.polyline(latlngs, { color: 'rgb(20,220,120)', opacity: 1, weight: 4, snakingSpeed: 20 });
             features.push(path);
         }
         var featureGroup = L.featureGroup(features);
@@ -99,7 +99,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         var leafletLine;
         var layer;
         var completedTaskAllUsersLayerStyle = { color: 'rgb(100,100,100)', opacity: 1, weight: 3 };
-        var completedTaskLayerStyle = { color: 'rgb(70,130,180)', opacity: 1, weight: 5 };
+        var completedTaskLayerStyle = { color: 'rgb(70,130,180)', opacity: 1, weight: 4 };
         var leafletMap = this._map;
 
         // Reset map zoom to show the whole neighborhood.

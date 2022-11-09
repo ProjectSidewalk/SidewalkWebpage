@@ -126,6 +126,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         } else {
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
+            svl.map.unlockDisableWalking();
+            svl.map.enableWalking();
             self.hide();
         }
     };
@@ -159,6 +161,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
      */
     this.show = function () {
         this._status.isOpen = true;
+        svl.map.disableWalking();
+        svl.map.lockDisableWalking();
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
