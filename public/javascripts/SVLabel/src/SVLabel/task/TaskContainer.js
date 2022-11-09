@@ -15,10 +15,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousTasks = [];
     var currentTask = null;
     var beforeJumpNewTask = null;
-    var paths;
-    var previousPaths = [];
 
-    self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
+    self._tasks = [];
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
@@ -109,22 +107,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             svl.form.submit(data, task);
         }
 
-
-        pushATask(task); // Push the data into previousTasks
-
-        // Clear the current paths
-        var _geojson = task.getGeoJSON();
-        var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
-            return new google.maps.LatLng(coord[1], coord[0]);
-        });
-        previousPaths.push(new google.maps.Polyline({
-            path: gCoordinates,
-            geodesic: true,
-            strokeColor: '#00ff00',
-            strokeOpacity: 1.0,
-            strokeWeight: 2
-        }));
-        paths = null;
+        pushATask(task); // Push the data into previousTasks.
 
         // Updates the segments that the user has already explored.
         self.update();
