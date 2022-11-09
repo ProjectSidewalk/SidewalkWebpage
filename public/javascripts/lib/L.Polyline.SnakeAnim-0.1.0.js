@@ -1,9 +1,11 @@
+// "THE BEER-WARE LICENSE": ivan@sanchezortega.es wrote this file. As long as
+// you retain this notice you can do whatever you want with this stuff. If we
+// meet some day, and you think this stuff is worth it, you can buy me a beer
+// in return.
 ///// FIXME: Use path._rings instead of path._latlngs???
 ///// FIXME: Panic if this._map doesn't exist when called.
 ///// FIXME: Implement snakeOut()
-///// FIXME: Implement layerGroup.snakeIn() / Out()
 L.Polyline.include({
-
 	// Hi-res timestamp indicating when the last calculations for vertices and
 	// distance took place.
 	_snakingTimestamp: 0,
@@ -23,7 +25,6 @@ L.Polyline.include({
 	/// TODO: accept a 'map' parameter, fall back to addTo() in case
 	/// performance.now is not available.
 	snakeIn: function(){
-
 		if (this._snaking) { return; }
 
 		if ( !('performance' in window) ||
@@ -43,7 +44,7 @@ L.Polyline.include({
 		}
 
 		// Init with just the first (0th) vertex in a new ring
-		// Twice because the first thing that this._snake is is chop the head.
+		// Twice because the first thing that this._snake does is chop the head.
 		this._latlngs = [[ this._snakeLatLngs[0][0], this._snakeLatLngs[0][0] ]];
 
 		this._update();
@@ -124,7 +125,6 @@ L.Polyline.mergeOptions({
 });
 
 L.LayerGroup.include({
-
 	_snakingLayers: [],
 	_snakingLayersDone: 0,
 
@@ -158,7 +158,6 @@ L.LayerGroup.include({
 		}
 
 		var currentLayer = this._snakingLayers[this._snakingLayersDone];
-
 		this._snakingLayersDone++;
 
 		this.addLayer(currentLayer);
