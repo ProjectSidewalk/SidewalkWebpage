@@ -54,8 +54,9 @@ L.Polyline.include({
 
 	_snake: function(){
 		var now = performance.now();
-		var diff = now - this._snakingTime;	// In milliseconds
-		var forward = diff * this.options.snakingSpeed / 1000;	// In pixels
+		var timeDdiff = now - this._snakingTime;	// In milliseconds
+		timeDdiff = (timeDdiff === 0 ? 0.001 : timeDdiff) // Avoids low time resolution issues in some browsers
+		var forward = timeDdiff * this.options.snakingSpeed / 1000;	// In pixels
 		this._snakingTime = now;
 
 		// Chop the head from the previous frame
@@ -138,10 +139,10 @@ L.LayerGroup.include({
 		this._snaking = true;
 		this._snakingLayers = [];
 		this._snakingLayersDone = 0;
-		var keys = Object.keys(this._layers);
-		for (var i in keys) {
-			var key = keys[i];
-			this._snakingLayers.push(this._layers[key]);
+		for (var key in this._layers) {
+			if (this._layers.hasOwnProperty(key)) {
+				this._snakingLayers.push(this._layers[key]);
+			}
 		}
 		this.clearLayers();
 
