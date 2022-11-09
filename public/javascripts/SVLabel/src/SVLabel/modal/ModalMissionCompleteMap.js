@@ -172,10 +172,6 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
  * Hide the leaflet map
  */
 ModalMissionCompleteMap.prototype.hide = function () {
-    if (this._overlayPolygonLayer) {
-        this._map.removeLayer(this._overlayPolygonLayer);
-    }
-
     this._ui.map.css('top', 500);
     this._ui.map.css('left', -500);
     $('.leaflet-clickable').css('visibility', 'hidden');
