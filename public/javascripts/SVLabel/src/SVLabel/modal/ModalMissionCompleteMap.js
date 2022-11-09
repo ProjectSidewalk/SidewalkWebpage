@@ -72,19 +72,19 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             for (j = 0; j < route.length; j++) {
                 latlngs.push(new L.LatLng(route[j][1], route[j][0]));
             }
-            path = L.polyline(latlngs, { color: 'rgb(20,220,120)', snakingSpeed: 20 });
+            path = L.polyline(latlngs, { color: 'rgb(20,220,120)', opacity: 1, weight: 5, snakingSpeed: 20 });
             features.push(path);
         }
-        self._completedTasksLayer = L.featureGroup(features);
-        self._map.addLayer(self._completedTasksLayer);
-        self._completedTasksLayer.snakeIn();
+        var featureGroup = L.featureGroup(features);
+        self._completedTasksLayer.push(featureGroup);
+        self._map.addLayer(featureGroup);
+        featureGroup.snakeIn();
     };
 
     /**
      * This method takes tasks that has been completed in the current mission and *all* the tasks completed in the
      * current neighborhood so far.
      * WARNING: `completedTasks` include tasks completed in the current mission too.
-     * WARNING2: The current tasks are not included in either `missionTasks` or `completedTasks`
      *
      * @param missionTasks
      * @param completedTasks
@@ -95,9 +95,9 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks, missionId) {
         // Add layers http://leafletjs.com/reference.html#map-addlayer
         var i;
-        var geojsonFeature;
+        var leafletLine;
         var layer;
-        var completedTaskAllUsersLayerStyle = { color: 'rgb(100,100,100)', opacity: 1, weight: 5 };
+        var completedTaskAllUsersLayerStyle = { color: 'rgb(100,100,100)', opacity: 1, weight: 3 };
         var completedTaskLayerStyle = { color: 'rgb(70,130,180)', opacity: 1, weight: 5 };
         var leafletMap = this._map;
 
@@ -106,6 +106,11 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             leafletMap.removeLayer(element);
         });
 
+        // If the current street is long enough that the user started their mission mid-street and finished their
+        // mission before completing the street, then we add to `completedTasks` so that we can draw the old part.
+        var currTask = missionTasks.filter(function (t) { return !t.isComplete() && t.getMissionStart(missionId); })[0];
+        if (currTask) completedTasks.push(currTask);
+
         var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
         var userOldStreets = completedTasks.map( function(t) { return t.getStreetEdgeId(); });
 
@@ -113,8 +118,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         for (i = 0; i < allCompletedTasks.length; i++) {
             var otherUserStreet = allCompletedTasks[i].getStreetEdgeId();
             if(userOldStreets.indexOf(otherUserStreet) === -1 && newStreets.indexOf(otherUserStreet) === -1){
-                geojsonFeature = allCompletedTasks[i].getFeature();
-                layer = L.geoJson(geojsonFeature).addTo(this._map);
+                leafletLine = L.geoJson(allCompletedTasks[i].getFeature());
+                layer = leafletLine.addTo(this._map);
                 layer.setStyle(completedTaskAllUsersLayerStyle);
                 this._completedTasksLayer.push(layer);
             }
@@ -122,10 +127,33 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
         // Add the completed task layer.
         for (i = 0; i < completedTasks.length; i++) {
-            var streetEdgeId = completedTasks[i].getStreetEdgeId();
-            if (newStreets.indexOf(streetEdgeId) === -1) {
-                geojsonFeature = completedTasks[i].getFeature();
-                layer = L.geoJson(geojsonFeature).addTo(this._map);
+            leafletLine = null;
+            // If the street was not part of this mission, draw the full street.
+            var newStreetIdx = newStreets.indexOf(completedTasks[i].getStreetEdgeId());
+            if (newStreetIdx === -1) {
+                leafletLine = L.geoJson(completedTasks[i].getFeature());
+            } else {
+                // If a nontrivial part of a street in this mission was completed in a previous mission (say, 3 meters),
+                // draw the part that was completed in previous missions.
+                var theStreet = missionTasks[newStreetIdx];
+                var missionStart = theStreet ? theStreet.getMissionStart(missionId) : null;
+                var streetStart = theStreet ? theStreet.getStartCoordinate() : null;
+                var distFromStart = null;
+                if (missionStart && streetStart) {
+                    distFromStart = turf.distance(turf.point([streetStart.lng, streetStart.lat]),
+                                                  turf.point([missionStart.lng, missionStart.lat]));
+                }
+                if (missionStart && streetStart && distFromStart > 0.003) {
+                    var route = theStreet.getSubsetOfCoordinates(streetStart.lat, streetStart.lng, missionStart.lat, missionStart.lng);
+                    var reversedRoute = [];
+                    route.forEach(coord => reversedRoute.push([coord[1], coord[0]]));
+                    leafletLine = L.polyline(reversedRoute);
+                }
+            }
+
+            // If we made a layer to draw, then draw it.
+            if (leafletLine) {
+                layer = leafletLine.addTo(this._map);
                 layer.setStyle(completedTaskLayerStyle);
                 this._completedTasksLayer.push(layer);
             }
