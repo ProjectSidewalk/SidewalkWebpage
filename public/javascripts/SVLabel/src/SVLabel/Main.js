@@ -412,6 +412,7 @@ function Main (params) {
         svl.ui.minimap.message = $("#minimap-message");
         svl.ui.minimap.fogOfWar = $("#minimap-fog-of-war-canvas");
         svl.ui.minimap.fov = $("#minimap-fov-canvas");
+        svl.ui.minimap.progressCircle = $("#minimap-progress-circle-canvas");
         svl.ui.minimap.percentObserved = $("#minimap-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
 

@@ -13,14 +13,15 @@ function ObservedArea (uiMiniMap) {
     let fractionObserved = 0;  // User's current fraction of 360 degrees observed.
     let fogOfWarCtx = null;  // Canvas context for the fog of war.
     let fovCtx = null;  // Canvas context for user's FOV (and progress bar).
+    let progressCircleCtx = null; // Canvas context for current pano's FOV progress circle.
     let width = 0;  // Canvas width.
     let height = 0;  // Canvas height.
 
     this.initialize = function () {
-        // Get canvas context for the fog of war.
+        // Get canvas context for the various components of the fog of war view on the mini map.
         fogOfWarCtx = uiMiniMap.fogOfWar[0].getContext("2d");
-        // Get canvas context for user's FOV.
         fovCtx = uiMiniMap.fov[0].getContext("2d");
+        progressCircleCtx = uiMiniMap.progressCircle[0].getContext('2d');
         // Get canvas width and height.
         width = uiMiniMap.fogOfWar.width();
         height = uiMiniMap.fogOfWar.height();
@@ -30,8 +31,9 @@ function ObservedArea (uiMiniMap) {
         fogOfWarCtx.fillStyle = "#888888";
         fogOfWarCtx.filter = "blur(5px)";
         fovCtx.fillStyle = "#8080ff";
-        fovCtx.lineCap = "round";
-        fovCtx.lineWidth = 2;
+        progressCircleCtx.fillStyle = "#8080ff";
+        progressCircleCtx.lineCap = "round";
+        progressCircleCtx.lineWidth = 2;
     };
 
     /**
@@ -152,10 +154,11 @@ function ObservedArea (uiMiniMap) {
      * Renders the user's percentage of 360 degrees observed progress bar. Gray until 100%, then switches to green.
      */
     function renderProgressCircle() {
-        fovCtx.strokeStyle = fractionObserved === 1 ? "#00dd00" : '#404040';
-        fovCtx.beginPath();
-        fovCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
-        fovCtx.stroke();
+        progressCircleCtx.clearRect(0, 0, width, height);
+        progressCircleCtx.strokeStyle = fractionObserved === 1 ? "#00dd00" : '#404040';
+        progressCircleCtx.beginPath();
+        progressCircleCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
+        progressCircleCtx.stroke();
     }
 
     /**

@@ -26,12 +26,12 @@
     padding-left: 3px;
 }
 
-#minimap-fog-of-war-canvas {
+#minimap-fog-of-war-canvas, #minimap-fov-canvas {
     opacity: 0.3;
 }
 
-#minimap-fov-canvas {
-    opacity: 0.3;
+#minimap-progress-circle-canvas {
+    opacity: 0.6;
 }
 
 #minimap-percent-observed {
