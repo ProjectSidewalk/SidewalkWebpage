@@ -45,17 +45,11 @@ function MissionContainer (statusFieldMission, missionModel) {
         }
     };
 
-    this.onlyMissionOnboardingDone = function (){
-       return self._completedMissions.length === 1
-           && self._completedMissions[0].getProperty("missionType") === "auditOnboarding"
-           && !svl.storage.get("completedFirstMission");
-    };
-
     /** Get current mission */
     function getCurrentMission() {
         return self._currentMission;
     }
-    
+
     /**
      * Get all the completed missions
      */
@@ -81,7 +75,7 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @returns {boolean}
      */
     function isTheFirstMission () {
-        return getCompletedMissions().length === 1 && !svl.storage.get("completedFirstMission");
+        return getCompletedMissions().length === 0 && !svl.storage.get("completedFirstMission");
     }
 
     /**
@@ -92,6 +86,18 @@ function MissionContainer (statusFieldMission, missionModel) {
     this.setCurrentMission = function (mission) {
         self._currentMission = mission;
         statusFieldMission.setMessage(mission);
+        var currTask = svl.taskContainer.getCurrentTask();
+        var missionId = mission.getProperty('missionId');
+        currTask.setProperty('currentMissionId', missionId);
+
+        // If this is the start of a new mission, mark the location along the street that the user is at when the
+        // mission starts. This will be used later to draw their route on the mission complete map.
+        if (mission.getProperty('distanceProgress') < 1.0 && !currTask.getProperty('tutorialTask')) {
+            // Snap the current location to the nearest point on the street, and use that as the mission start.
+            var currPos = turf.point([svl.map.getPosition().lng, svl.map.getPosition().lat]);
+            var missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
+            currTask.setMissionStart(missionId, { lat: missionStart[1], lng: missionStart[0]});
+        }
         return this;
     };
 

@@ -47,6 +47,7 @@ function Label (svl, pathIn, params) {
         canvasDistortionAlphaY: undefined,
         labelerId : 'DefaultValue',
         labelId: 'DefaultValue',
+        missionId: undefined,
         labelType: undefined,
         labelDescription: undefined,
         labelFillStyle: undefined,
