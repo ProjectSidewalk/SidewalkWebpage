@@ -18,14 +18,12 @@ function ObservedArea (uiMiniMap) {
 
     this.initialize = function () {
         // Get canvas context for the fog of war.
-        let fogOfWarCanvas = document.getElementById("google-maps-fog-of-war-canvas");
-        fogOfWarCtx = fogOfWarCanvas.getContext("2d");
+        fogOfWarCtx = uiMiniMap.fogOfWar[0].getContext("2d");
         // Get canvas context for user's FOV.
-        let fovCanvas = document.getElementById("google-maps-fov-canvas");
-        fovCtx = fovCanvas.getContext("2d");
+        fovCtx = uiMiniMap.fov[0].getContext("2d");
         // Get canvas width and height.
-        width = fogOfWarCanvas.width;
-        height = fogOfWarCanvas.height;
+        width = uiMiniMap.fogOfWar.width();
+        height = uiMiniMap.fogOfWar.height();
 
         // Set up some ctx stuff that never changes here so that we don't do it repeatedly.
         uiMiniMap.percentObserved.css('color', '#404040')
@@ -169,11 +167,11 @@ function ObservedArea (uiMiniMap) {
             renderFogOfWar();
             renderFov();
             renderProgressCircle();
-            document.getElementById("google-maps-percent-observed").innerText = Math.floor(100 * fractionObserved) + "%";
+            uiMiniMap.percentObserved.text(Math.floor(100 * fractionObserved) + "%");
             if (fractionObserved === 1) {
-                document.getElementById("google-maps-message").innerText = i18next.t("minimap.follow-red-line");
+                uiMiniMap.message.text(i18next.t("minimap.follow-red-line"));
             } else {
-                document.getElementById("google-maps-message").innerText = i18next.t("minimap.explore-current-location");
+                uiMiniMap.message.text(i18next.t("minimap.explore-current-location"));
             }
         }
     }

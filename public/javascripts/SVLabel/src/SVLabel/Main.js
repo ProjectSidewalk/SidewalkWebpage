@@ -409,6 +409,9 @@ function Main (params) {
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
         svl.ui.googleMaps.overlay = $("#google-maps-overlay");
+        svl.ui.googleMaps.message = $("#google-maps-message");
+        svl.ui.googleMaps.fogOfWar = $("#google-maps-fog-of-war-canvas");
+        svl.ui.googleMaps.fov = $("#google-maps-fov-canvas");
         svl.ui.googleMaps.percentObserved = $("#google-maps-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
 
