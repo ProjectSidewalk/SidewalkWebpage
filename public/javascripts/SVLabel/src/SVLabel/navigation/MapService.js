@@ -814,7 +814,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 }
             }
             if ("observedArea" in svl) {
-                svl.observedArea.step();
+                svl.observedArea.panoChanged();
             }
             svl.missionModel.updateMissionProgress(currentMission, neighborhood);
         }

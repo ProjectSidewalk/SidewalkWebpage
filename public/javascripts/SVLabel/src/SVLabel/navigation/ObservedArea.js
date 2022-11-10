@@ -9,7 +9,8 @@ function ObservedArea(uiMiniMap) {
     let angle = null;  // User's angle.
     let leftAngle = null;  // Left-most angle of the user's FOV.
     let rightAngle = null;  // Right-most angle of the user's FOV.
-    let observedAreas = [];  // List of observed areas (latLng, minAngle, maxAngle).
+    let observedAreas = [];  // List of observed areas (panoId, latLng, minAngle, maxAngle).
+    let currArea = {}; // Current observed area (panoId, latLng, minAngle, maxAngle).
     let fractionObserved = 0;  // User's current fraction of 360 degrees observed.
     let fogOfWarCtx = null;  // Canvas context for the fog of war.
     let fovCtx = null;  // Canvas context for user's FOV (and progress bar).
@@ -37,23 +38,19 @@ function ObservedArea(uiMiniMap) {
     };
 
     /**
-     * Resets the user's angle and appends the user's new position to 'observedAreas'.
-     * Called when the user takes a step.
+     * Resets the user's angle and adds user's new pano to 'observedAreas'. Called when the user takes a step.
      */
-     this.step = function() {
+     this.panoChanged = function() {
         angle = null;
         leftAngle = null;
         rightAngle = null;
-        let latLng = svl.map.getPosition();
-        for (let i = 0; i < observedAreas.length; i++) {
-            // If we have observed the new position before, move it to the end of the 'observedAreas' list.
-            if (observedAreas[i].latLng.lat == latLng.lat
-                    && observedAreas[i].latLng.lng == latLng.lng) {
-                observedAreas.push(observedAreas.splice(i, 1)[0]);
-                return;
-            }
+        const panoId = svl.panorama.getPano();
+        currArea = observedAreas.find(area => area.panoId === panoId);
+
+        if (!currArea) {
+            currArea = { panoId: panoId, latLng: svl.map.getPosition(), minAngle: null, maxAngle: null };
+            observedAreas.push(currArea);
         }
-        observedAreas.push({latLng: latLng, minAngle: null, maxAngle: null});
     }
 
     /**
@@ -80,23 +77,23 @@ function ObservedArea(uiMiniMap) {
      * @returns {number, number}
      */
     function latLngToPixel(latLng) {
-        let projection = svl.map.getMap().getProjection();
-        let bounds = svl.map.getMap().getBounds();
-        let topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-        let bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-        let scale = Math.pow(2, svl.map.getMap().getZoom());
-        let worldPoint = projection.fromLatLngToPoint(latLng);
+        const projection = svl.map.getMap().getProjection();
+        const bounds = svl.map.getMap().getBounds();
+        const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
+        const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
+        const scale = Math.pow(2, svl.map.getMap().getZoom());
+        const worldPoint = projection.fromLatLngToPoint(latLng);
         return {x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
                 y: Math.floor((worldPoint.y - topRight.y) * scale)};
     }
 
     /**
-     * Updates all of the angle variables necessary to keep track of the user's observed area.
+     * Updates all the angle variables necessary to keep track of the user's observed area.
      */
     function updateAngles() {
-        let pov = svl.map.getPov();
+        const pov = svl.map.getPov();
         let heading = pov.heading;
-        let fov = get3dFov(pov.zoom);
+        const fov = get3dFov(pov.zoom);
         if (angle) {
             if (heading - angle > 180) {
                 heading -= 360;
@@ -108,14 +105,13 @@ function ObservedArea(uiMiniMap) {
         angle = heading;
         leftAngle = angle - fov / 2;
         rightAngle = angle + fov / 2;
-        let current = observedAreas[observedAreas.length - 1];
-        if (!current.minAngle || leftAngle < current.minAngle) {
-            current.minAngle = leftAngle;
+        if (!currArea.minAngle || leftAngle < currArea.minAngle) {
+            currArea.minAngle = leftAngle;
         }
-        if (!current.maxAngle || rightAngle > current.maxAngle) {
-            current.maxAngle = rightAngle;
+        if (!currArea.maxAngle || rightAngle > currArea.maxAngle) {
+            currArea.maxAngle = rightAngle;
         }
-        fractionObserved = Math.min(current.maxAngle - current.minAngle, 360) / 360;
+        fractionObserved = Math.min(currArea.maxAngle - currArea.minAngle, 360) / 360;
     }
 
     /**
@@ -124,8 +120,8 @@ function ObservedArea(uiMiniMap) {
     function renderFogOfWar() {
         fogOfWarCtx.fillRect(0, 0, width, height);
         fogOfWarCtx.globalCompositeOperation = 'destination-out';
-        for (let observedArea of observedAreas) {
-            let center = latLngToPixel(observedArea.latLng);
+        for (const observedArea of observedAreas) {
+            const center = latLngToPixel(observedArea.latLng);
             fogOfWarCtx.beginPath();
             if (observedArea.maxAngle - observedArea.minAngle < 360) {
                 fogOfWarCtx.moveTo(center.x, center.y);
@@ -142,8 +138,7 @@ function ObservedArea(uiMiniMap) {
      */
     function renderFov() {
         fovCtx.clearRect(0, 0, width, height);
-        let current = observedAreas[observedAreas.length - 1];
-        let center = latLngToPixel(current.latLng);
+        const center = latLngToPixel(currArea.latLng);
         fovCtx.beginPath();
         fovCtx.moveTo(center.x, center.y);
         fovCtx.arc(center.x, center.y, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
