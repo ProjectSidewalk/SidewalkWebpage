@@ -4,7 +4,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.LabelFormat._
 import models.label._
 import models.user.User
 import play.api.libs.json._

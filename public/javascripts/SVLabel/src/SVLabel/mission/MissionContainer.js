@@ -96,8 +96,6 @@ function MissionContainer (statusFieldMission, missionModel) {
             // Snap the current location to the nearest point on the street, and use that as the mission start.
             var currPos = turf.point([svl.map.getPosition().lng, svl.map.getPosition().lat]);
             var missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
-            if (turf.nearestPointOnLine(currTask.getFeature(), currPos).properties.dist > 0.02)
-                console.warn(`current pos is ${1000 * turf.nearestPointOnLine(currTask.getFeature(), currPos).properties.dist} meters from the street when setting mission start!`);
             currTask.setMissionStart(missionId, { lat: missionStart[1], lng: missionStart[0]});
         }
         return this;

@@ -57,26 +57,32 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         var features = [];
         for (i = 0; i < completedTasks.length; i++) {
             var latlngs = [];
+
+            // If only part of this street was completed during the mission, get the corresponding subset of the
+            // coordinates for the street, otherwise we can just use the full route.
             missionStart = completedTasks[i].getMissionStart(missionId);
             if (missionStart || !completedTasks[i].isComplete()) {
-                var startPoint = missionStart ? missionStart : completedTasks[i].getStartCoordinate();
-                var endPoint;
+                var start = missionStart ? missionStart : completedTasks[i].getStartCoordinate();
+                var end;
                 if (completedTasks[i].isComplete()) {
-                    endPoint = completedTasks[i].getLastCoordinate();
+                    end = completedTasks[i].getLastCoordinate();
                 } else {
                     var farthestPoint = completedTasks[i].getFurthestPointReached().geometry.coordinates;
-                    endPoint = { lat: farthestPoint[1], lng: farthestPoint[0] };
+                    end = { lat: farthestPoint[1], lng: farthestPoint[0] };
                 }
-                route = completedTasks[i].getSubsetOfCoordinates(startPoint.lat, startPoint.lng, endPoint.lat, endPoint.lng)
+                route = completedTasks[i].getSubsetOfCoordinates(start.lat, start.lng, end.lat, end.lng)
             } else {
                 route = completedTasks[i].getGeometry().coordinates;
             }
+
+            // Take the list of coordinates and put it in the format needed to make polylines.
             for (j = 0; j < route.length; j++) {
                 latlngs.push(new L.LatLng(route[j][1], route[j][0]));
             }
             path = L.polyline(latlngs, { color: 'rgb(20,220,120)', opacity: 1, weight: 4, snakingSpeed: 20 });
             features.push(path);
         }
+        // Add the list of lines to the map and animate them with snakeIn().
         var featureGroup = L.featureGroup(features);
         self._completedTasksLayer.push(featureGroup);
         self._map.addLayer(featureGroup);
@@ -139,16 +145,16 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             } else {
                 // If a nontrivial part of a street in this mission was completed in a previous mission (say, 3 meters),
                 // draw the part that was completed in previous missions.
-                var theStreet = missionTasks[newStreetIdx];
-                var missionStart = theStreet ? theStreet.getMissionStart(missionId) : null;
-                var streetStart = theStreet ? theStreet.getStartCoordinate() : null;
+                var currStreet = missionTasks[newStreetIdx];
+                var missionStart = currStreet ? currStreet.getMissionStart(missionId) : null;
+                var streetStart = currStreet ? currStreet.getStartCoordinate() : null;
                 var distFromStart = null;
                 if (missionStart && streetStart) {
                     distFromStart = turf.distance(turf.point([streetStart.lng, streetStart.lat]),
                                                   turf.point([missionStart.lng, missionStart.lat]));
                 }
                 if (missionStart && streetStart && distFromStart > 0.003) {
-                    var route = theStreet.getSubsetOfCoordinates(streetStart.lat, streetStart.lng, missionStart.lat, missionStart.lng);
+                    var route = currStreet.getSubsetOfCoordinates(streetStart.lat, streetStart.lng, missionStart.lat, missionStart.lng);
                     var reversedRoute = [];
                     route.forEach(coord => reversedRoute.push([coord[1], coord[0]]));
                     leafletLine = L.polyline(reversedRoute);

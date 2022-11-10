@@ -193,7 +193,6 @@ function Mission(parameters) {
     }
 
     _init(parameters);
-    // getMissionTasks(getProperty("missionId"), null, false);
 
     self.complete = complete;
     self.getLabelCount = getLabelCount;
