@@ -90,8 +90,7 @@ GET     /label/id/:labelId                                   @controllers.AdminC
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
-GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
-GET     /audit/street/:id/location                           @controllers.AuditController.auditLocation(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
+GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
@@ -101,7 +100,6 @@ GET     /validate                                            @controllers.Valida
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
-GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
@@ -117,7 +115,6 @@ GET     /neighborhoodMissions                                @controllers.Missio
 GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
 
 # Labels
-GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/resumeMission                                 @controllers.LabelController.getLabelsToResumeMission(regionId: Int)
 POST    /label/labels                                        @controllers.GalleryController.getLabels

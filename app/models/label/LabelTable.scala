@@ -79,7 +79,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
  */
 object LabelTable {
   import MyPostgresDriver.plainImplicits._
-  
+
   val db = play.api.db.slick.DB
   val labelsUnfiltered = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
@@ -1076,21 +1076,6 @@ object LabelTable {
     )
     //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
     selectStreetEdgeIdQuery((lng, lat)).firstOption
-  }
-
-  /**
-    * Gets the labels placed in the most recent mission.
-    */
-  def getLabelsFromCurrentAuditMission(regionId: Int, userId: UUID): List[Label] = db.withSession { implicit session =>
-    val recentMissionId: Option[Int] = MissionTable.missions
-        .filter(m => m.userId === userId.toString && m.regionId === regionId)
-        .sortBy(_.missionStart.desc)
-        .map(_.missionId).firstOption
-
-    recentMissionId match {
-      case Some(missionId) => labelsWithTutorialAndExcludedUsers.filter(_.missionId === missionId).list
-      case None => List()
-    }
   }
 
   /**

@@ -46,7 +46,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
             // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
             var labels = labelContainer.getCurrentLabels();
             var prev_labels = labelContainer.getPreviousLabels();
-            if (labels.length == 0) {
+            if (labels.length === 0) {
                 labels = prev_labels;
             }
             var labelCount = labels.length;
