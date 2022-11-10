@@ -15,7 +15,7 @@ function ObservedArea () {
     let fovCtx = null;  // Canvas context for user's FOV (and progress bar).
     let width = 0;  // Canvas width.
     let height = 0;  // Canvas height.
-    
+
     this.initialize = function () {
         // Get canvas context for the fog of war.
         let fogOfWarCanvas = document.getElementById("google-maps-fog-of-war-canvas");
@@ -30,7 +30,7 @@ function ObservedArea () {
 
     /**
      * Resets the user's angle and appends the user's new position to 'observedAreas'.
-     * Called when the user takes a step. 
+     * Called when the user takes a step.
      */
      this.step = function () {
         angle = null;
@@ -114,11 +114,7 @@ function ObservedArea () {
      * Renders the fog of war.
      */
     function renderFogOfWar() {
-        if (fractionObserved == 1) {
-            fogOfWarCtx.fillStyle = "#00ff00";
-        } else {
-            fogOfWarCtx.fillStyle = "#888888";
-        }
+        fogOfWarCtx.fillStyle = "#888888";
         fogOfWarCtx.filter = "blur(5px)";
         fogOfWarCtx.fillRect(0, 0, width, height);
         fogOfWarCtx.globalCompositeOperation = "destination-out";
@@ -136,7 +132,7 @@ function ObservedArea () {
     }
 
     /**
-     * Renders the the user's FOV.
+     * Renders the user's FOV.
      */
     function renderFov() {
         fovCtx.fillStyle = "#8080ff";
@@ -150,17 +146,13 @@ function ObservedArea () {
     }
 
     /**
-     * Renders the user's percentage of 360 degrees observed progress bar.
+     * Renders the user's percentage of 360 degrees observed progress bar. Gray until 100%, then switches to green.
      */
-    function renderProgressBar() {
+    function renderProgressCircle() {
         document.getElementById("google-maps-percent-observed").style.color = "#404040";
-        fovCtx.strokeStyle = "#808080";
+        fovCtx.strokeStyle = fractionObserved === 1 ? "#00dd00" : '#404040';
         fovCtx.lineCap = "round";
-        fovCtx.lineWidth = 3;
-        fovCtx.beginPath();
-        fovCtx.arc(width - 20, 20, 16, 0, 2 * Math.PI);
-        fovCtx.stroke();
-        fovCtx.strokeStyle = "#404040";
+        fovCtx.lineWidth = 2;
         fovCtx.beginPath();
         fovCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
         fovCtx.stroke();
@@ -174,9 +166,9 @@ function ObservedArea () {
             updateAngles();
             renderFogOfWar();
             renderFov();
-            renderProgressBar();
+            renderProgressCircle();
             document.getElementById("google-maps-percent-observed").innerText = Math.floor(100 * fractionObserved) + "%";
-            if (fractionObserved == 1) {
+            if (fractionObserved === 1) {
                 document.getElementById("google-maps-message").innerText = i18next.t("minimap.follow-red-line");
             } else {
                 document.getElementById("google-maps-message").innerText = i18next.t("minimap.explore-current-location");
