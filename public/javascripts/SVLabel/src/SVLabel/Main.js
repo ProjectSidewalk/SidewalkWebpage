@@ -110,7 +110,7 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        svl.observedArea = new ObservedArea();
+        svl.observedArea = new ObservedArea(svl.ui.googleMaps);
 
         // Mission
         svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
@@ -409,6 +409,7 @@ function Main (params) {
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
         svl.ui.googleMaps.overlay = $("#google-maps-overlay");
+        svl.ui.googleMaps.percentObserved = $("#google-maps-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
 
         // Status holder

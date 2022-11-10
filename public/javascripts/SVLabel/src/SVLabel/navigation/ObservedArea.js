@@ -4,7 +4,7 @@
  * @constructor
  * @memberof svl
  */
-function ObservedArea () {
+function ObservedArea (uiMiniMap) {
     let radius = 40;  // FOV radius in pixels.
     let angle = null;  // User's angle.
     let leftAngle = null;  // Left-most angle of the user's FOV.
@@ -26,6 +26,14 @@ function ObservedArea () {
         // Get canvas width and height.
         width = fogOfWarCanvas.width;
         height = fogOfWarCanvas.height;
+
+        // Set up some ctx stuff that never changes here so that we don't do it repeatedly.
+        uiMiniMap.percentObserved.css('color', '#404040')
+        fogOfWarCtx.fillStyle = "#888888";
+        fogOfWarCtx.filter = "blur(5px)";
+        fovCtx.fillStyle = "#8080ff";
+        fovCtx.lineCap = "round";
+        fovCtx.lineWidth = 2;
     };
 
     /**
@@ -114,8 +122,6 @@ function ObservedArea () {
      * Renders the fog of war.
      */
     function renderFogOfWar() {
-        fogOfWarCtx.fillStyle = "#888888";
-        fogOfWarCtx.filter = "blur(5px)";
         fogOfWarCtx.fillRect(0, 0, width, height);
         fogOfWarCtx.globalCompositeOperation = "destination-out";
         for (let observedArea of observedAreas) {
@@ -135,7 +141,6 @@ function ObservedArea () {
      * Renders the user's FOV.
      */
     function renderFov() {
-        fovCtx.fillStyle = "#8080ff";
         fovCtx.clearRect(0, 0, width, height);
         let current = observedAreas[observedAreas.length - 1];
         let center = latLngToPixel(current.latLng);
@@ -149,10 +154,7 @@ function ObservedArea () {
      * Renders the user's percentage of 360 degrees observed progress bar. Gray until 100%, then switches to green.
      */
     function renderProgressCircle() {
-        document.getElementById("google-maps-percent-observed").style.color = "#404040";
         fovCtx.strokeStyle = fractionObserved === 1 ? "#00dd00" : '#404040';
-        fovCtx.lineCap = "round";
-        fovCtx.lineWidth = 2;
         fovCtx.beginPath();
         fovCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
         fovCtx.stroke();
