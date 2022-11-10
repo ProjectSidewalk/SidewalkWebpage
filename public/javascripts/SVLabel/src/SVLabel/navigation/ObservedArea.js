@@ -4,7 +4,7 @@
  * @constructor
  * @memberof svl
  */
-function ObservedArea (uiMiniMap) {
+function ObservedArea(uiMiniMap) {
     let radius = 40;  // FOV radius in pixels.
     let angle = null;  // User's angle.
     let leftAngle = null;  // Left-most angle of the user's FOV.
@@ -17,10 +17,10 @@ function ObservedArea (uiMiniMap) {
     let width = 0;  // Canvas width.
     let height = 0;  // Canvas height.
 
-    this.initialize = function () {
+    this.initialize = function() {
         // Get canvas context for the various components of the fog of war view on the mini map.
-        fogOfWarCtx = uiMiniMap.fogOfWar[0].getContext("2d");
-        fovCtx = uiMiniMap.fov[0].getContext("2d");
+        fogOfWarCtx = uiMiniMap.fogOfWar[0].getContext('2d');
+        fovCtx = uiMiniMap.fov[0].getContext('2d');
         progressCircleCtx = uiMiniMap.progressCircle[0].getContext('2d');
         // Get canvas width and height.
         width = uiMiniMap.fogOfWar.width();
@@ -28,11 +28,11 @@ function ObservedArea (uiMiniMap) {
 
         // Set up some ctx stuff that never changes here so that we don't do it repeatedly.
         uiMiniMap.percentObserved.css('color', '#404040')
-        fogOfWarCtx.fillStyle = "#888888";
-        fogOfWarCtx.filter = "blur(5px)";
-        fovCtx.fillStyle = "#8080ff";
-        progressCircleCtx.fillStyle = "#8080ff";
-        progressCircleCtx.lineCap = "round";
+        fogOfWarCtx.fillStyle = '#888888';
+        fogOfWarCtx.filter = 'blur(5px)';
+        fovCtx.fillStyle = '#8080ff';
+        progressCircleCtx.fillStyle = '#8080ff';
+        progressCircleCtx.lineCap = 'round';
         progressCircleCtx.lineWidth = 2;
     };
 
@@ -40,7 +40,7 @@ function ObservedArea (uiMiniMap) {
      * Resets the user's angle and appends the user's new position to 'observedAreas'.
      * Called when the user takes a step.
      */
-     this.step = function () {
+     this.step = function() {
         angle = null;
         leftAngle = null;
         rightAngle = null;
@@ -61,7 +61,7 @@ function ObservedArea (uiMiniMap) {
      * @param zoom
      * @returns {number}
      */
-    function get3dFov(zoom) {
+    function get3dFov(zoom){
         return zoom <= 2 ? 126.5 - zoom * 36.75 : 195.93 / Math.pow(1.92, zoom);
     }
 
@@ -123,7 +123,7 @@ function ObservedArea (uiMiniMap) {
      */
     function renderFogOfWar() {
         fogOfWarCtx.fillRect(0, 0, width, height);
-        fogOfWarCtx.globalCompositeOperation = "destination-out";
+        fogOfWarCtx.globalCompositeOperation = 'destination-out';
         for (let observedArea of observedAreas) {
             let center = latLngToPixel(observedArea.latLng);
             fogOfWarCtx.beginPath();
@@ -134,7 +134,7 @@ function ObservedArea (uiMiniMap) {
                 toRadians(observedArea.minAngle - 90), toRadians(observedArea.maxAngle - 90));
                 fogOfWarCtx.fill();
         }
-        fogOfWarCtx.globalCompositeOperation = "source-over";
+        fogOfWarCtx.globalCompositeOperation = 'source-over';
     }
 
     /**
@@ -155,7 +155,7 @@ function ObservedArea (uiMiniMap) {
      */
     function renderProgressCircle() {
         progressCircleCtx.clearRect(0, 0, width, height);
-        progressCircleCtx.strokeStyle = fractionObserved === 1 ? "#00dd00" : '#404040';
+        progressCircleCtx.strokeStyle = fractionObserved === 1 ? '#00dd00' : '#404040';
         progressCircleCtx.beginPath();
         progressCircleCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
         progressCircleCtx.stroke();
@@ -164,17 +164,17 @@ function ObservedArea (uiMiniMap) {
     /**
      * Updates everything relevant to the user's observed area.
      */
-    this.update = function () {
+    this.update = function() {
         if (observedAreas.length > 0) {
             updateAngles();
             renderFogOfWar();
             renderFov();
             renderProgressCircle();
-            uiMiniMap.percentObserved.text(Math.floor(100 * fractionObserved) + "%");
+            uiMiniMap.percentObserved.text(Math.floor(100 * fractionObserved) + '%');
             if (fractionObserved === 1) {
-                uiMiniMap.message.text(i18next.t("minimap.follow-red-line"));
+                uiMiniMap.message.text(i18next.t('minimap.follow-red-line'));
             } else {
-                uiMiniMap.message.text(i18next.t("minimap.explore-current-location"));
+                uiMiniMap.message.text(i18next.t('minimap.explore-current-location'));
             }
         }
     }
