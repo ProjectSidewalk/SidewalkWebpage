@@ -79,6 +79,8 @@ function Modal(uiModal) {
         self.leftArrow.click(previousLabel);
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
+
+        attachEventHandlers();
     }
 
     /**
@@ -358,7 +360,6 @@ function Modal(uiModal) {
     }
 
     _init();
-    attachEventHandlers();
 
     self.closeModal = closeModal;
     self.updateCardIndex = updateCardIndex;
