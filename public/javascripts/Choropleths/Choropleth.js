@@ -48,11 +48,11 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     if (params.zoomSlider) L.control.zoomslider().addTo(choropleth);
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
+    choropleth.setZoom(mapParamData.default_zoom);
     choropleth.setView([mapParamData.city_center.lat, mapParamData.city_center.lng]);
     let southWest = L.latLng(mapParamData.southwest_boundary.lat, mapParamData.southwest_boundary.lng);
     let northEast = L.latLng(mapParamData.northeast_boundary.lat, mapParamData.northeast_boundary.lng);
     choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
-    choropleth.setZoom(mapParamData.default_zoom);
     if (params.resetButton) {
         $('#reset-button').click(reset);
         function reset() {
@@ -93,7 +93,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 } else {
                     return neighborhoodPolygonStyle;
                 }
-            }  
+            }
         }
 
         // Adds popup text, mouseover and click events, etc. to the neighborhood polygons.
@@ -192,7 +192,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 });
             }
         }
-        
+
         // Add the neighborhood polygons to the map.
         neighborhoodPolygonLayer = L.geoJson(polygonData, {
             style: style,
@@ -253,7 +253,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
     /**
      * This function finds the color for a specific region of the accessibility choropleth.
-     * 
+     *
      * @param polygonData Object from which information about labels is retrieved.
      * @param labels Data about issue counts in a region.
      */
@@ -278,7 +278,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
     /**
      * This function finds the color for a specific region of the choropleth.
-     * 
+     *
      * @param {*} polygonData Object from which information about labels is retrieved.
      */
     function getRegionStyleFromCompletionRate(polygonData) {
@@ -293,7 +293,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
     /**
      * Gets issue count HTML to add to popups on the results page.
-     * 
+     *
      * @param {*} labels Object from which information about labels is retrieved.
      */
     function getIssueCountPopupContent(labels) {
@@ -313,12 +313,12 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                '<td><img src="/assets/javascripts/SVLabel/img/icons/NoCurbRamp_small.png"></td>'+
                '<td><img src="/assets/javascripts/SVLabel/img/icons/SurfaceProblem_small.png"></td>'+
                '<td><img src="/assets/javascripts/SVLabel/img/icons/Obstacle_small.png"></td>'+
-               '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
+               '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';
     }
 
     /**
      * Takes data and initializes the choropleth with it.
-     * 
+     *
      * @param data The data to initialize the regions of the choropleth with.
      * @param labelData Data concerning issue counts for different regions.
      */

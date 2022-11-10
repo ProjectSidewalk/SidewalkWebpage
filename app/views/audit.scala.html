@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    @if(Some(User)) {
+    @if(user.isDefined) {
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content" id="survey-modal">
@@ -84,7 +84,7 @@
                 </div><!-- /.modal-content -->
             </div><!-- /.modal-dialog -->
         </div><!-- /.modal -->
-}
+    }
 
     <div class="container tool-ui" style = "visibility: hidden;">
         <div id="advanced-overlay">
@@ -713,7 +713,7 @@
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
                 <table class="tutorial-table">
-                    <tr> 
+                    <tr>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("curb.ramps"))</td>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("missing.ramps"))</td>
                         <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("obstacles")) </td>
@@ -757,7 +757,7 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.end.1"))</p>
-                
+
                 <table class="tutorial-table">
                     <tr>
                         <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.accessible"))</th>
@@ -786,7 +786,7 @@
                         <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.surface.problem"))</td>
                     </tr>
                 </table>
-                
+
                 <p>@Html(Messages("audit.tutorial.end.2"))</p>
             </div>
         </div>
@@ -809,8 +809,9 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
-    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
-    <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
+    <script src='@routes.Assets.at("javascripts/lib/L.Polyline.SnakeAnim-0.1.0.js")'></script>
 
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
@@ -822,7 +823,7 @@
         }
 
         svl.userModel = new UserModel();
-        @if(user) {
+        @if(user.isDefined) {
             var userParam = {
                 username: '@user.get.username',
                 role: '@user.get.role'
@@ -850,7 +851,7 @@
         if (hitExpired) {
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
-        } else @if(task) {
+        } else @if(task.isDefined) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 25;
@@ -869,25 +870,33 @@
 
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    // Ok
-                    var tutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId
+                    var tutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId;
                     var newTask = svl.taskFactory.create(geojson, tutorialTask, lat1, lng1, startPointReversed);
+                    svl.taskContainer._tasks.push(newTask);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
 
-                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
-                    @if(panoId) {
-                        try {
-                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
-                                var lat = panoData.location.latLng.lat();
-                                var lng = panoData.location.latLng.lng();
-                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
-                            });
-                        } catch (e) {
-                            console.error("Invalid panorama ID");
-                        }                        
+                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin).
+                    // Since it's only for admins, we added a hacky workaround of a 2 seconds sleep delay.
+                    function sleep (time) {
+                        return new Promise((resolve) => setTimeout(resolve, time));
+                    }
+                    @if(panoId.isDefined) {
+                        sleep(2000).then(() => {
+                            try {
+                                svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
+                                    var lat = panoData.location.latLng.lat();
+                                    var lng = panoData.location.latLng.lng();
+                                    svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
+                                });
+                            } catch (e) {
+                                console.error("Invalid panorama ID");
+                            }
+                        });
                     } else { @if(lat && lng) {
-                        svl.map.setPosition(@lat.get, @lng.get);
+                        sleep(2000).then(() => {
+                            svl.map.setPosition(@lat.get, @lng.get);
+                        });
                     }}
                 }
                 else {
@@ -1017,7 +1026,7 @@
             svl.main = new Main(mainParam);
         }
 
-        @if(user) {
+        @if(user.isDefined) {
         //Survey Submission
         $("#survey-form").submit(function submitSurvey(e) {
             var formData = $('#survey-form').serializeArray();

@@ -1,5 +1,5 @@
 /**
- * Label Container module. This is responsible of storing the label objects that were created in the current session.
+ * Label Container module. This is responsible for storing the label objects that were created in the current session.
  * @param $ jQuery object
  * @returns {{className: string}}
  * @constructor
@@ -7,47 +7,12 @@
  */
 function LabelContainer($) {
     var self = this;
-    var currentCanvasLabels = {},
-        prevCanvasLabels = {};
+    var currentCanvasLabels = {};
+    var prevCanvasLabels = {};
 
-    var neighborhoodLabels = {};
-
-    this.countLabels = function (regionId) {
-        if (regionId) {
-            if (regionId in neighborhoodLabels) {
-                // return neighborhoodLabels[regionId].filter(function (l) { return l.getStatus("deleted"); }).length;
-                return neighborhoodLabels[regionId].length;  // Todo. Filter out the deleted ones.
-            } else {
-                return 0;
-            }
-        }
-    };
-
-    this.fetchLabelsInANeighborhood = function (regionId, callback) {
-        $.getJSON("/userapi/labels?regionId=" + regionId, function (data) {
-            if ("features" in data) {
-                var features = data.features,
-                    label,
-                    i = 0,
-                    len = features.length;
-                for (; i < len; i++) {
-                    label = svl.labelFactory.create(null, {
-                        labelId: features[i].properties.label_id
-                    });
-                    self.pushToNeighborhoodLabels(regionId, label);  // NOTE: I should actually convert each JSON object into a Label.
-                }
-                if (callback) callback();
-            }
-        });
-    };
-
-    this.fetchLabelsInTheCurrentMission = function (regionId, callback) {
-        $.getJSON(
-            '/label/currentMission',
-            { regionId: regionId },
-            function (result) {
-                if (callback) callback(result);
-            });
+    this.countLabels = function() {
+        var allLabels = self.getCurrentLabels().concat(self.getPreviousLabels());
+        return allLabels.filter(l => { return !l.isDeleted(); }).length;
     };
 
     this.fetchLabelsToResumeMission = function (regionId, callback) {
@@ -108,17 +73,12 @@ function LabelContainer($) {
 
                 // Prevent tag from being rendered initially
                 label.setTagVisibility('hidden');
-                
+
                 if (!(label.getPanoId() in prevCanvasLabels)) {
                     prevCanvasLabels[label.getPanoId()] = [];
                 }
 
                 prevCanvasLabels[label.getPanoId()].push(label);
-
-                if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
-                    var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-                    svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
-                }
             }
 
             if (callback) callback(result);
@@ -135,23 +95,23 @@ function LabelContainer($) {
         return prev.concat(curr);
     };
 
-    /** 
-     * Get current labels. 
+    /**
+     * Get current labels.
      * Note that this grabs labels from all panoIds in current session.
      */
     this.getCurrentLabels = function () {
         return Object.keys(currentCanvasLabels).reduce(function (r, k) {
-            return r.concat(currentCanvasLabels[k]);     
+            return r.concat(currentCanvasLabels[k]);
         }, []);
     };
 
     /**
      * Get previous labels.
-     * Note that this grabs labels from all panoIds in current session. 
+     * Note that this grabs labels from all panoIds in current session.
      */
     this.getPreviousLabels = function () {
         return Object.keys(prevCanvasLabels).reduce(function (r, k) {
-            return r.concat(prevCanvasLabels[k]);     
+            return r.concat(prevCanvasLabels[k]);
         }, []);
     };
 
@@ -213,73 +173,38 @@ function LabelContainer($) {
         if (!(label.getPanoId() in currentCanvasLabels)) {
             currentCanvasLabels[label.getPanoId()] = [];
         }
-    
+
         currentCanvasLabels[label.getPanoId()].push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
 
-        // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
+        // Keep pano metadata, esp the date when the StreetView img was taken to keep track of when the problem existed.
         var panoramaId = label.getProperty("panoId");
         if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
             svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
         }
-
-        if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
-            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-            svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
-        }
-    };
-
-    /**
-     * Push a label into neighborhoodLabels
-     * @param neighborhoodId
-     * @param label
-     */
-    this.pushToNeighborhoodLabels = function (neighborhoodId, label) {
-        if (!(neighborhoodId in neighborhoodLabels)) {
-            neighborhoodLabels[neighborhoodId] = [];
-        }
-
-        // Do not add if there are duplicates
-        var i = 0,
-            len = neighborhoodLabels[neighborhoodId].length,
-            storedLabel;
-        for (; i < len; i++) {
-            storedLabel = neighborhoodLabels[neighborhoodId][i];
-
-            if (storedLabel.getProperty("labelId") !== "DefaultValue" &&
-                storedLabel.getProperty("labelId") === label.getProperty("labelId")) {
-                return;
-            }
-
-            if (storedLabel.getProperty("temporary_label_id") &&
-                storedLabel.getProperty("temporary_label_id") === label.getProperty("temporary_label_id")) {
-                return
-            }
-        }
-        neighborhoodLabels[neighborhoodId].push(label);
     };
 
     /** Refresh */
     this.refresh = function () {
-        //prevCanvasLabels = prevCanvasLabels.concat(currentCanvasLabels);
         for (let key in currentCanvasLabels) {
             if (!(key in prevCanvasLabels)) {
                 prevCanvasLabels[key] = currentCanvasLabels[key];
             } else {
-                prevCanvasLabels[key] = prevCanvasLabels[key].concat(currentCanvasLabels[key]);
+                for (var i = 0; i < currentCanvasLabels[key].length; i++) {
+                    // Remove any old versions of the label and add the new one.
+                    var currLabel = currentCanvasLabels[key][i];
+                    prevCanvasLabels[key] = prevCanvasLabels[key].filter(function (l) {
+                        return l.getProperty("temporary_label_id") !== currLabel.getProperty("temporary_label_id");
+                    });
+                    prevCanvasLabels[key].push(currLabel);
+                }
             }
         }
-
-        currentCanvasLabels = {};
-    };
-
-    /**  Flush the canvasLabels */
-    this.removeAll = function () {
         currentCanvasLabels = {};
     };
 
     /**
-     * This function removes a passed label and its child path and points
+     * This function removes a passed label, updates the canvas, and updates label counts.
      * @method
      */
     this.removeLabel = function (label) {
@@ -287,10 +212,6 @@ function LabelContainer($) {
         svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
-
-        var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-        neighborhoodLabels[regionId].pop(label);
-
         svl.canvas.clear();
         svl.canvas.render();
         return this;

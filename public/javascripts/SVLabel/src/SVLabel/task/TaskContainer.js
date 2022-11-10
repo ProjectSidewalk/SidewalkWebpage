@@ -15,10 +15,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousTasks = [];
     var currentTask = null;
     var beforeJumpNewTask = null;
-    var paths;
-    var previousPaths = [];
 
-    self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
+    self._tasks = [];
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
@@ -109,57 +107,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             svl.form.submit(data, task);
         }
 
-
-        pushATask(task); // Push the data into previousTasks
-
-        // Clear the current paths
-        var _geojson = task.getGeoJSON();
-        var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
-            return new google.maps.LatLng(coord[1], coord[0]);
-        });
-        previousPaths.push(new google.maps.Polyline({
-            path: gCoordinates,
-            geodesic: true,
-            strokeColor: '#00ff00',
-            strokeOpacity: 1.0,
-            strokeWeight: 2
-        }));
-        paths = null;
+        pushATask(task); // Push the data into previousTasks.
 
         // Updates the segments that the user has already explored.
         self.update();
         // Renders the next street that the user will explore.
         if(nextTask) nextTask.render();
-        
+
         return task;
-    };
-
-
-    /**
-     * Fetch a task based on the street id.
-     * @param streetEdgeId
-     * @param params
-     * @param callback
-     * @param async
-     */
-    function fetchATask(streetEdgeId, params, callback, async) {
-        var tutorialTask = params.tutorialTask ? params.tutorialTask : false;
-        if (typeof async == "undefined") async = true;
-        $.ajax({
-            url: "/task/street/" + streetEdgeId,
-            type: 'get',
-            success: function (json) {
-                var lat1 = json.features[0].geometry.coordinates[0][1],
-                    lng1 = json.features[0].geometry.coordinates[0][0],
-                    newTask = svl.taskFactory.create(json, tutorialTask, lat1, lng1);
-                if (json.features[0].properties.completed) newTask.complete();
-                storeTask(newTask);
-                if (callback) callback();
-            },
-            error: function (result) {
-                throw result;
-            }
-        });
     }
 
     /**
@@ -170,6 +125,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     self.fetchTasks = function (callback, async) {
         if (typeof async == "undefined") async = true;
+        var currMission = svl.missionContainer.getCurrentMission();
+        var currMissionId = currMission.getProperty('missionId');
 
         $.ajax({
             url: "/tasks?regionId=" + svl.neighborhoodModel.currentNeighborhood().getProperty("regionId"),
@@ -180,7 +137,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 for (var i = 0; i < result.length; i++) {
                     task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
-                    storeTask(task);
+                    // Skip the task that we were given to start with so that we don't add a duplicate.
+                    if (task.getStreetEdgeId() !== getCurrentTask().getStreetEdgeId()) {
+                        self._tasks.push(task);
+                        // If the street was part of the curr mission, add it to the list!
+                        if (task.getProperty('currentMissionId') === currMissionId) {
+                            currMission.pushATaskToTheRoute(task);
+                        }
+                    }
                 }
 
                 if (callback) callback();
@@ -366,35 +330,17 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Find incomplete tasks by the user
-     * @returns {null}
+     * Find incomplete tasks by the user.
      */
     self.getIncompleteTasks = function () {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            self.fetchTasks(null, false);
-            return null;
-        }
-        return self._tasks.filter(function (task) {
-            return !task.isComplete();
-        });
+        return self._tasks.filter(function (task) { return !task.isComplete(); });
     };
 
     /**
-     * Find incomplete tasks across all users
-     *
-     * @returns {*}
+     * Find incomplete tasks across all users.
      */
     self.getIncompleteTasksAcrossAllUsersUsingPriority = function () {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            self.fetchTasks(null, false);
-            return null;
-        }
-
-        var incompleteTasksByUser = self._tasks.filter(function (task) {
-            return !task.isComplete();
-        });
+        var incompleteTasksByUser = self._tasks.filter(function (task) { return !task.isComplete(); });
 
         var incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
@@ -444,6 +390,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
                 console.error('finished neighborhood screen has appeared, logging debug info');
+                console.trace();
                 console.log('incompleteTasks.length:' +
                     self.getIncompleteTasksAcrossAllUsersUsingPriority().length);
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
@@ -464,7 +411,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the next task and set it as a current task.
      *
      * Procedure:
-     * Get the list of highest priority streets that this user has not audited
+     * Get the list of the highest priority streets that this user has not audited
      * - If the street you just audited connects to any of those, pick the highest priority one
      * - O/w jump to the highest priority street
      *
@@ -478,7 +425,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Check if this task finishes the neighborhood across all users, if so, shows neighborhood complete overlay.
         updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask);
 
-        // Find highest priority task not audited by the user
+        // Find the highest priority task not audited by the user.
         var tasksNotCompletedByUser = self.getTasks().filter(function (t) {
             return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
         }).sort(function(t1, t2) {
@@ -505,10 +452,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             newTask = highestPriorityTask;
         }
 
-        // Return the new task. Change the starting point of the new task accordingly.
+        // Return the new task. Change the starting point and start time of the new task accordingly.
         if (finishedTask) {
             var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+            newTask.setProperty('taskStart', new Date());
         }
 
         return newTask;
@@ -538,6 +486,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     this.setCurrentTask = function (task) {
         currentTask = task;
+        if ('missionContainer' in svl) {
+            var currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
+            currentTask.setProperty('currentMissionId', currMissionId);
+        }
         if (tracker) tracker.push('TaskStart');
 
         if ('compass' in svl) {
@@ -558,27 +510,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     this.setBeforeJumpNewTask = function (task) {
         beforeJumpNewTask = task;
     };
-
-    /**
-     * Store a task into _tasks. Make sure the tutorial task gets added, even if it has a duplicate streetEdgeId.
-     * @param task {object} Task object
-     */
-    function storeTask(task) {
-        var nonTutorialTasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
-        var streetEdgeIds = nonTutorialTasks.map(function (task) {
-            return task.getStreetEdgeId();
-        });
-        if (task.getProperty('tutorialTask') || streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
-            self._tasks.push(task);
-        }
-    }
-
-    /**
-     * Removes the tutorial task.
-     */
-    function removeTutorialTask() {
-        self._tasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
-    }
 
     /**
      *
@@ -654,7 +585,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     self.endTask = endTask;
-    self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
     self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;
     self.getCurrentTaskDistance = getCurrentTaskDistance;
@@ -667,9 +597,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.push = pushATask;
     self.renderTasksFromPreviousSessions = renderTasksFromPreviousSessions;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
-
-    self.storeTask = storeTask;
-    self.removeTutorialTask = removeTutorialTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
