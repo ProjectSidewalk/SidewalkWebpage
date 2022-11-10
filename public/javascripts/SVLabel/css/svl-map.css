@@ -1,4 +1,4 @@
-#google-maps-holder {
+#minimap-holder {
     position: absolute;
     left: 735px;
     top: 403px;
@@ -6,7 +6,7 @@
     height: 200px;
 }
 
-.google-maps-pane {
+.minimap-pane {
     border: 0 solid black;
     position: absolute;
     left: 0;
@@ -15,26 +15,26 @@
     height: 200px;
 }
 
-#google-maps-overlay {
+#minimap-overlay {
     z-index: 1;
 }
 
-#google-maps-message {
+#minimap-message {
     font-size: 12px;
     z-index: 1;
     width: 150px;
     padding-left: 3px;
 }
 
-#google-maps-fog-of-war-canvas {
+#minimap-fog-of-war-canvas {
     opacity: 0.3;
 }
 
-#google-maps-fov-canvas {
+#minimap-fov-canvas {
     opacity: 0.6;
 }
 
-#google-maps-percent-observed {
+#minimap-percent-observed {
     font-size: 11px;
     z-index: 1;
     text-align: center;

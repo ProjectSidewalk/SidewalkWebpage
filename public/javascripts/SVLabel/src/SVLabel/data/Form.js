@@ -202,7 +202,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
         }
 
-        task.eraseFromGoogleMaps();
+        task.eraseFromMinimap();
         self.skipSubmit(data, task);
 
         // If the jump was clicked in the middle of the beforeJumpTask,

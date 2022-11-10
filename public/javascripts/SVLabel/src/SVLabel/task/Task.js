@@ -386,7 +386,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     /**
      * Todo. This should go to the MapService or its submodule.
      */
-    this.eraseFromGoogleMaps = function () {
+    this.eraseFromMinimap = function () {
         if ('map' in svl && google && paths) {
             for (var i = 0; i < paths.length; i++) {
                 paths[i].setMap(null);
@@ -403,7 +403,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      */
     this.render = function () {
         if ('map' in svl && google) {
-            self.eraseFromGoogleMaps();
+            self.eraseFromMinimap();
             if (self.isComplete()) {
                 // If the task has been completed already, set the paths to a green polyline
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {

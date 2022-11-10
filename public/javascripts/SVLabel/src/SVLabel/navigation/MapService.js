@@ -56,7 +56,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         panoramaOptions,
         STREETVIEW_MAX_DISTANCE = 50,
         END_OF_STREET_THRESHOLD = 25, // Distance from the endpoint of the street when we consider it complete (meters).
-        googleMapsPaneBlinkInterval,
+        minimapPaneBlinkInterval,
         moveDelay = 800; //delayed move
     //Move delay exists because too quick navigation causes rendering issues/black screens with no panos
     //No current solution to check that pano view is completely loaded before navigating
@@ -124,7 +124,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         disableDefaultUI: true
     };
 
-    var mapCanvas = document.getElementById("google-maps");
+    var mapCanvas = document.getElementById("minimap");
     map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
 
     // Styling google map.
@@ -370,19 +370,19 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Blink google maps pane.
      */
-    function blinkGoogleMaps() {
-        stopBlinkingGoogleMaps();
-        googleMapsPaneBlinkInterval = window.setInterval(function () {
-            svl.ui.googleMaps.overlay.toggleClass("highlight-50");
+    function blinkMinimap() {
+        stopBlinkingMinimap();
+        minimapPaneBlinkInterval = window.setInterval(function () {
+            svl.ui.minimap.overlay.toggleClass("highlight-50");
         }, 500);
     }
 
-    function hideGoogleMaps() {
-        svl.ui.googleMaps.holder.hide();
+    function hideMinimap() {
+        svl.ui.minimap.holder.hide();
     }
 
     svl.neighborhoodModel.on("Neighborhood:completed", function() {
-        hideGoogleMaps();
+        hideMinimap();
     });
 
     /**
@@ -844,7 +844,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if ("compass" in svl) { svl.compass.update(); }
         if ("observedArea" in svl) { svl.observedArea.update(); }
-        
+
         svl.tracker.push("POV_Changed");
     }
 
@@ -856,7 +856,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         svl.tracker.push("Zoom_Changed");
     }
-    
+
     /**
      * This is a callback function that is fired with the mouse down event
      * on the view control layer (where you control street view angle.)
@@ -1020,7 +1020,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             bottomLinks[5].remove(); // Remove mini map copyright text (duplicate of GSV).
             bottomLinks[7].remove(); // Remove mini map terms of use link (duplicate of GSV).
             uiMap.viewControlLayer.append($(bottomLinks[1]).parent().parent());
-            svl.ui.googleMaps.overlay.append($(bottomLinks[8]).parent().parent());
+            svl.ui.minimap.overlay.append($(bottomLinks[8]).parent().parent());
         }
 
         // Bring the layer with arrows forward.
@@ -1131,9 +1131,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return this;
     }
 
-    function stopBlinkingGoogleMaps() {
-        window.clearInterval(googleMapsPaneBlinkInterval);
-        svl.ui.googleMaps.overlay.removeClass("highlight-50");
+    function stopBlinkingMinimap() {
+        window.clearInterval(minimapPaneBlinkInterval);
+        svl.ui.minimap.overlay.removeClass("highlight-50");
     }
 
     function updateCanvas() {
@@ -1481,8 +1481,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return moveDelay;
     }
 
-    self.blinkGoogleMaps = blinkGoogleMaps;
-    self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
+    self.blinkMinimap = blinkMinimap;
+    self.stopBlinkingMinimap = stopBlinkingMinimap;
     self.disablePanning = disablePanning;
     self.disableWalking = disableWalking;
     self.enablePanning = enablePanning;

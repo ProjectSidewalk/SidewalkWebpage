@@ -34,7 +34,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
     };
 
     this._finishedInstructionForGSVLabelDisappearing = function () {
-        mapService.stopBlinkingGoogleMaps();
+        mapService.stopBlinkingMinimap();
 
         if (!svl.isOnboarding()) {
             mapService.unbindPositionUpdate(self._instructForGSVLabelDisappearing);
@@ -58,7 +58,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
                     tracker.push('PopUpShow_GSVLabelDisappear');
 
                     popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
-                    mapService.blinkGoogleMaps();
+                    mapService.blinkMinimap();
                 }
             }
         }
@@ -74,7 +74,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
                 self._stopBlinkingNavigationComponents();
             });
             compass.blink();
-            mapService.blinkGoogleMaps();
+            mapService.blinkMinimap();
         }
     };
     /*
@@ -119,7 +119,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
 
     this._stopBlinkingNavigationComponents = function () {
         compass.stopBlinking();
-        mapService.stopBlinkingGoogleMaps();
+        mapService.stopBlinkingMinimap();
     };
 
     this.start = function (neighborhood) {
