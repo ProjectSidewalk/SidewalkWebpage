@@ -782,6 +782,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * A callback for position_change.
      */
     function handlerPositionUpdate () {
+        var isOnboarding = svl.isOnboarding()
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
@@ -794,7 +795,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         // Position updated, set delay until user can walk again to properly update canvas
-        if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")) {
+        if (!isOnboarding && !svl.keyboard.getStatus("moving")) {
             timeoutWalking();
             setTimeout(resetWalking, moveDelay);
         }
@@ -803,12 +804,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if ("compass" in svl) {
                 svl.compass.update();
             }
-            if ("taskContainer" in svl) {
+            if (!isOnboarding && "taskContainer" in svl) {
                 svl.taskContainer.update();
 
-                // End of the task if the user is close enough to the end point.
+                // End of the task if the user is close enough to the end point and we aren't in the tutorial.
                 var task = svl.taskContainer.getCurrentTask();
-                if (task && task.isAtEnd(position.lat(), position.lng(), END_OF_STREET_THRESHOLD)) {
+                if (!isOnboarding && task && task.isAtEnd(position.lat(), position.lng(), END_OF_STREET_THRESHOLD)) {
                     _endTheCurrentTask(task, currentMission);
                 }
             }

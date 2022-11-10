@@ -11,7 +11,6 @@ function Main (params) {
     var self = { className: 'Main' };
 
     // Initialize things that needs data loading.
-    var loadingAnOnboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
@@ -114,7 +113,7 @@ function Main (params) {
         svl.observedArea = new ObservedArea();
 
         // Mission
-        svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
+        svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
@@ -241,20 +240,19 @@ function Main (params) {
         });
     }
 
-    function loadData (taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
-        // Fetch an onboarding task.
-        taskContainer.fetchATask(tutorialStreetId, {tutorialTask: true}, function () {
-            loadingAnOnboardingTaskCompleted = true;
-            handleDataLoadComplete();
-        });
-
-        // Fetch tasks in the current region.
-        taskContainer.fetchTasks(function () {
+    function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
+        // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
+        if (params.mission.mission_type === 'auditOnboarding') {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
-        });
+        } else {
+            taskContainer.fetchTasks(function () {
+                loadingTasksCompleted = true;
+                handleDataLoadComplete();
+            });
+        }
 
-        // Fetch all the missions
+        // Fetch the user's completed missions.
         missionModel.fetchCompletedMissionsInNeighborhood(function () {
             loadingMissionsCompleted = true;
             handleDataLoadComplete();
@@ -305,8 +303,8 @@ function Main (params) {
     function startTheMission(mission, neighborhood) {
         document.getElementById("google-maps-holder").style.backgroundColor = "#e5e3df";
         if(params.init !== "noInit") {
-            // Popup the message explaining the goal of the current mission
-            if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
+            // Popup the message explaining the goal of the current mission.
+            if (svl.missionContainer.isTheFirstMission()) {
                 neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
                 svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
                     svl.taskContainer, svl.labelContainer, svl.tracker);
@@ -321,47 +319,25 @@ function Main (params) {
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
 
-        // Get the labels collected in the current neighborhood
-        svl.labelContainer.fetchLabelsInANeighborhood(neighborhood.getProperty("regionId"), function () {
-            var count = svl.labelContainer.countLabels(neighborhood.getProperty("regionId"));
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        });
+        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty('regionId'), function (result) {
+            svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
+            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
 
-        svl.labelContainer.fetchLabelsInTheCurrentMission(
-            neighborhood.getProperty("regionId"),
-            function (result) {
-                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0};
-                for (var i = 0, len = result.length; i < len; i++) {
-                    switch (result[i].label_type_id) {
-                        case 1:
-                            counter['CurbRamp'] += 1;
-                            break;
-                        case 2:
-                            counter['NoCurbRamp'] += 1;
-                            break;
-                        case 3:
-                            counter['Obstacle'] += 1;
-                            break;
-                        case 4:
-                            counter['SurfaceProblem'] += 1;
-                            break;
-                        case 7:
-                            counter['NoSidewalk'] += 1;
-                            break;
-                        default:
-                            counter['Other'] += 1;
+            // Count the labels of each label type to initialize the current mission label counts.
+            var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};
+            for (var i = 0, len = result.labels.length; i < len; i++) {
+                var currLabel = result.labels[i];
+                if (currLabel.missionId === mission.getProperty('missionId')) {
+                    if (Object.keys(counter).indexOf(currLabel.labelType) !== -1) {
+                        counter[currLabel.labelType] += 1;
+                    } else {
+                        counter['Other'] += 1;
                     }
                 }
-                svl.labelCounter.set('CurbRamp', counter['CurbRamp']);
-                svl.labelCounter.set('NoCurbRamp', counter['NoCurbRamp']);
-                svl.labelCounter.set('Obstacle', counter['Obstacle']);
-                svl.labelCounter.set('SurfaceProblem', counter['SurfaceProblem']);
-                svl.labelCounter.set('NoSidewalk', counter['NoSidewalk']);
-                svl.labelCounter.set('Other', counter['Other']);
+            }
+            Object.keys(counter).forEach(function (key) {
+                svl.labelCounter.set(key, counter[key]);
             });
-
-        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty("regionId"), function (result) {
-            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
         });
 
         svl.taskContainer.renderTasksFromPreviousSessions();
@@ -373,8 +349,7 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
-            loadingMissionsCompleted && loadNeighborhoodsCompleted &&
+        if (loadingTasksCompleted && loadingMissionsCompleted && loadNeighborhoodsCompleted &&
             loadDifficultNeighborhoodsCompleted && loadLabelTags) {
 
             // Mark neighborhood as complete if there are no streets left with max priority (= 1).
@@ -391,14 +366,13 @@ function Main (params) {
                 $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
-                svl.taskContainer.removeTutorialTask();
                 _calculateAndSetTasksMissionsOffset();
                 var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
 
                 var regionId = currentNeighborhood.getProperty("regionId");
                 var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
-                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay){
+                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay) {
                     $('#advanced-overlay').show();
                 }
                 startTheMission(mission, currentNeighborhood);
@@ -407,7 +381,7 @@ function Main (params) {
     }
 
     function _calculateAndSetTasksMissionsOffset() {
-        var completedTasksDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance());
+        var completedTasksDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
         var completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
         var curMission = svl.missionContainer.getCurrentMission();
         var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
