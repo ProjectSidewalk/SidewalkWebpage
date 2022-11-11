@@ -47,15 +47,6 @@ function ObservedArea(uiMiniMap) {
     }
 
     /**
-     * From PanoMarker spec.
-     * @param zoom
-     * @returns {number}
-     */
-    function get3dFov(zoom){
-        return zoom <= 2 ? 126.5 - zoom * 36.75 : 195.93 / Math.pow(1.92, zoom);
-    }
-
-    /**
      * Converts degrees to radians.
      * @param degrees
      * @returns {number}
@@ -86,7 +77,7 @@ function ObservedArea(uiMiniMap) {
     function updateAngles() {
         const pov = svl.map.getPov();
         let heading = pov.heading;
-        const fov = get3dFov(pov.zoom);
+        const fov = PanoMarker.get3dFov(pov.zoom);
         if (angle) {
             if (heading - angle > 180) {
                 heading -= 360;
