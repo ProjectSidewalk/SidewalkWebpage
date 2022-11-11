@@ -423,9 +423,14 @@
                     <div id="context-menu-vertical-connector"></div>
                 </div>
             </div>
-            <div id="google-maps-holder">
-                <div id="google-maps" class="google-maps-pane"></div>
-                <div id="google-maps-overlay" class="google-maps-pane">@Messages("audit.right.ui.red.line")</div>
+            <div id="minimap-holder">
+                <div id="minimap" class="minimap-pane"></div>
+                <div id="minimap-overlay" class="minimap-pane"></div>
+                <div id="minimap-message" class="minimap-pane"></div>
+                <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                <div id="minimap-percent-observed" class="minimap-pane"></div>
             </div>
             <div id="compass-message-holder" class="animated white-background-75">
                 <span id="compass-message"></span>

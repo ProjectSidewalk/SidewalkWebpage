@@ -110,6 +110,8 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
+        svl.observedArea = new ObservedArea(svl.ui.minimap);
+
         // Mission
         svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
@@ -299,7 +301,7 @@ function Main (params) {
     }
 
     function startTheMission(mission, neighborhood) {
-        document.getElementById("google-maps-holder").style.backgroundColor = "#e5e3df";
+        svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission.
             if (svl.missionContainer.isTheFirstMission()) {
@@ -404,9 +406,14 @@ function Main (params) {
         svl.ui.map.pano = $("div#pano");
         svl.ui.map.viewControlLayer = $("div#view-control-layer");
         svl.ui.map.modeSwitchWalk = $("#mode-switch-button-walk");
-        svl.ui.googleMaps = {};
-        svl.ui.googleMaps.holder = $("#google-maps-holder");
-        svl.ui.googleMaps.overlay = $("#google-maps-overlay");
+        svl.ui.minimap = {};
+        svl.ui.minimap.holder = $("#minimap-holder");
+        svl.ui.minimap.overlay = $("#minimap-overlay");
+        svl.ui.minimap.message = $("#minimap-message");
+        svl.ui.minimap.fogOfWar = $("#minimap-fog-of-war-canvas");
+        svl.ui.minimap.fov = $("#minimap-fov-canvas");
+        svl.ui.minimap.progressCircle = $("#minimap-progress-circle-canvas");
+        svl.ui.minimap.percentObserved = $("#minimap-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
 
         // Status holder

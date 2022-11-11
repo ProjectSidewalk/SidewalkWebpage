@@ -144,7 +144,6 @@ audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.distance = kilómetros
 audit.right.ui.current.mission = Misión actual
-audit.right.ui.red.line = Sigue la línea roja
 
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable

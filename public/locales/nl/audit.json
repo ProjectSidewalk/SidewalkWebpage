@@ -110,6 +110,10 @@
         "current-mission": {
             "message-first-mission": "Zoek voor __PLACEHOLDER__ en vind alle trottoir toegankelijkheidskenmerken",
             "message": "Zoek __PLACEHOLDER__ voor deze wijk"
+        },
+        "minimap": {
+            "follow-red-line": "Volg de rode lijn om de missie voort te zetten",
+            "explore-current-location": "Verken deze locatie voor toegankelijkheidsproblemen"
         }
     },
     "center-ui": {
