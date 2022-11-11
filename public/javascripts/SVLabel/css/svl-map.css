@@ -16,7 +16,7 @@
 }
 
 #minimap-overlay {
-    z-index: 1;
+    z-index: 2;
 }
 
 #minimap-message {
@@ -36,7 +36,6 @@
 
 #minimap-percent-observed {
     font-size: 11px;
-    z-index: 1;
     text-align: center;
     padding-left: 161px;
     padding-top: 12px;

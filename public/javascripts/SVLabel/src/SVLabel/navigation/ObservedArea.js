@@ -5,28 +5,21 @@
  * @memberof svl
  */
 function ObservedArea(uiMiniMap) {
-    let radius = 40;  // FOV radius in pixels.
     let angle = null;  // User's angle.
     let leftAngle = null;  // Left-most angle of the user's FOV.
     let rightAngle = null;  // Right-most angle of the user's FOV.
     let observedAreas = [];  // List of observed areas (panoId, latLng, minAngle, maxAngle).
     let currArea = {}; // Current observed area (panoId, latLng, minAngle, maxAngle).
     let fractionObserved = 0;  // User's current fraction of 360 degrees observed.
-    let fogOfWarCtx = null;  // Canvas context for the fog of war.
-    let fovCtx = null;  // Canvas context for user's FOV (and progress bar).
-    let progressCircleCtx = null; // Canvas context for current pano's FOV progress circle.
-    let width = 0;  // Canvas width.
-    let height = 0;  // Canvas height.
+    const radius = 40;  // FOV radius in pixels.
+    const width = uiMiniMap.fogOfWar.width();  // Canvas width.
+    const height = uiMiniMap.fogOfWar.height();  // Canvas height.
+    // Get canvas context for the various components of the fog of war view on the mini map.
+    const fogOfWarCtx = uiMiniMap.fogOfWar[0].getContext('2d');
+    const fovCtx = uiMiniMap.fov[0].getContext('2d');
+    const progressCircleCtx = uiMiniMap.progressCircle[0].getContext('2d');
 
     this.initialize = function() {
-        // Get canvas context for the various components of the fog of war view on the mini map.
-        fogOfWarCtx = uiMiniMap.fogOfWar[0].getContext('2d');
-        fovCtx = uiMiniMap.fov[0].getContext('2d');
-        progressCircleCtx = uiMiniMap.progressCircle[0].getContext('2d');
-        // Get canvas width and height.
-        width = uiMiniMap.fogOfWar.width();
-        height = uiMiniMap.fogOfWar.height();
-
         // Set up some ctx stuff that never changes here so that we don't do it repeatedly.
         uiMiniMap.percentObserved.css('color', '#404040')
         fogOfWarCtx.fillStyle = '#888888';
@@ -54,7 +47,7 @@ function ObservedArea(uiMiniMap) {
     }
 
     /**
-     * From PanoMarker spec
+     * From PanoMarker spec.
      * @param zoom
      * @returns {number}
      */
@@ -137,8 +130,8 @@ function ObservedArea(uiMiniMap) {
      * Renders the user's FOV.
      */
     function renderFov() {
-        fovCtx.clearRect(0, 0, width, height);
         const center = latLngToPixel(currArea.latLng);
+        fovCtx.clearRect(0, 0, width, height);
         fovCtx.beginPath();
         fovCtx.moveTo(center.x, center.y);
         fovCtx.arc(center.x, center.y, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
@@ -167,9 +160,9 @@ function ObservedArea(uiMiniMap) {
             renderProgressCircle();
             uiMiniMap.percentObserved.text(Math.floor(100 * fractionObserved) + '%');
             if (fractionObserved === 1) {
-                uiMiniMap.message.text(i18next.t('minimap.follow-red-line'));
+                uiMiniMap.message.text(i18next.t('right-ui.minimap.follow-red-line'));
             } else {
-                uiMiniMap.message.text(i18next.t('minimap.explore-current-location'));
+                uiMiniMap.message.text(i18next.t('right-ui.minimap.explore-current-location'));
             }
         }
     }

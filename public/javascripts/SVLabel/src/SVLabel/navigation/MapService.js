@@ -849,7 +849,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Callback for zoom update
+     * Callback for zoom update.
      */
      function handlerZoomChange () {
         if ("observedArea" in svl) { svl.observedArea.update(); }
@@ -858,8 +858,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * This is a callback function that is fired with the mouse down event
-     * on the view control layer (where you control street view angle.)
+     * Callback that is fired with the mousedown event on the view control layer (where you control street view angle).
      * @param e
      */
     function handlerViewControlLayerMouseDown(e) {
