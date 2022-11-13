@@ -11,7 +11,7 @@ function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
-    
+
     function _initUI() {
         // Maps label types to label names.
         svv.labelNames = {
@@ -141,7 +141,7 @@ function Main (param) {
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
 
         let statusFieldParam = {
-            completedValidations: param.completedValidations  
+            completedValidations: param.completedValidations
         };
         svv.statusField = new StatusField(statusFieldParam);
         svv.statusExample = new StatusExample(svv.ui.status.examples);
@@ -209,6 +209,8 @@ function Main (param) {
             svv.keyboard.disableKeyboard();
             $(".tool-ui").css('opacity', 0.5);
         });
+
+        const missionTutorial = new MissionTutorial();
     }
 
     // Gets all the text on the validation page for the correct language.

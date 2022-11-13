@@ -7,13 +7,24 @@
 
 .disabled {
     opacity: 0.5;
+    cursor: not-allowed;
+}
 
+.noselect {
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old versions of Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
 }
 
 .mission-tutorial-overlay {
     position: absolute;
     height: 100%;
     width: 100%;
+    min-width: 1170px; /*  */
     background: white;
     z-index: 10;
     display: flex;
@@ -153,12 +164,80 @@
     float: right;
     background: lightgrey;
     display: flex;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .mts-image {
     height: 100%;
     width: 100%;
     object-fit: contain;
+}
+
+.on-image-label {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 3px solid;
+    border-radius: 10px;
+    box-sizing: content-box;
+}
+
+/* correct/incorrect classes are added to the slide element */
+.correct .on-image-label {
+    border-color: #30785D;
+}
+
+/* correct/incorrect classes are added to the slide element */
+.incorrect .on-image-label {
+    border-color: #EB734D;
+}
+
+.on-image-label-type {
+    margin: 12px 12px 10px 12px;
+    display: flex;
+    align-items: center;
+}
+
+.on-image-label-type-icon {
+    height: 20px;
+    width: 20px;
+    fill: none;
+    display: flex;
+    margin-right: 5px;
+}
+
+.correct .on-image-label-type-icon {
+    stroke: #30785D;
+}
+
+.incorrect .on-image-label-type-icon {
+    stroke: #EB734D;
+}
+
+.on-image-label-type-title {
+    display: flex;
+    font-family: 'Raleway', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-left: 5px;
+}
+
+.correct .on-image-label-type-title {
+    color: #30785D;
+}
+
+.incorrect .on-image-label-type-title {
+    color: #EB734D;
+}
+
+.on-image-label-description {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0;
+    margin-left: 12px;
 }
 
 .example-type-area {
