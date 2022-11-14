@@ -416,18 +416,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                         modalComment.blink();
                         break;
                     case "movement-arrow":
-                        // Need to wait a bit for the arrow to load into the document.
-                        setTimeout(() => {
-                            const arrow = document.querySelector("div.gmnoprint.SLHIdE-sv-links-control").querySelector("svg").querySelector("path[fill-opacity='1']");
-                            // Obtain interval id to allow for the interval to be cleaned up after the arrow leaves document context.
-                            const intervalId = window.setInterval(function () {
-                                // Blink logic.
-                                arrow.setAttribute("fill", (arrow.getAttribute("fill") === "white" ? "yellow" : "white"));
-
-                                // Once the arrow is removed from the document, stop the interval.
-                                if (!document.body.contains(arrow)) window.clearInterval(intervalId);
-                            }, 500);
-                        }, 500);
+                        mapService.blinkNavigationArrows();
                         break;
                 }
             }

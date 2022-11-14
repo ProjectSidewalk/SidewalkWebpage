@@ -1159,6 +1159,25 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         $(".gmnoprint path").css('pointer-events', 'all');
     }
 
+    /**
+     * Make navigation arrows blink.
+     */
+    function blinkNavigationArrows() {
+        setTimeout(() => {
+            const arrows = document.querySelector("div.gmnoprint.SLHIdE-sv-links-control").querySelector("svg").querySelectorAll("path[fill-opacity='1']");
+            // Obtain interval id to allow for the interval to be cleaned up after the arrow leaves document context.
+            const intervalId = window.setInterval(function () {
+                // Blink logic.
+                arrows.forEach((arrow) => {
+                    arrow.setAttribute("fill", (arrow.getAttribute("fill") === "white" ? "yellow" : "white"));
+
+                    // Once the arrow is removed from the document, stop the interval for all arrows.
+                    if (!document.body.contains(arrow)) window.clearInterval(intervalId);
+                });
+            }, 500);
+        }, 500);
+    }
+
     /*
      * Gets the pov change tracking variable.
      */
@@ -1466,6 +1485,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     self.blinkGoogleMaps = blinkGoogleMaps;
     self.stopBlinkingGoogleMaps = stopBlinkingGoogleMaps;
+    self.blinkNavigationArrows = blinkNavigationArrows;
     self.disablePanning = disablePanning;
     self.disableWalking = disableWalking;
     self.enablePanning = enablePanning;
