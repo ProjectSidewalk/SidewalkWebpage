@@ -148,7 +148,7 @@
   "mission-tutorial": {
     "mission-instruction-1": "YOUR MISSION",
     "example-type-label-correct": "CORRECT EXAMPLE",
-    "example-type-label-incorrect": "INCORRECT EXAMPLE",
+    "example-type-label-incorrect": "WRONG EXAMPLE",
     "label-type-subtitle": "Why is this wrong?",
     "on-image-label-title-correct": "Correct label",
     "on-image-label-title-incorrect": "Wrong label",
@@ -192,7 +192,7 @@
       "instruction": "Validate 10 Obstacle Labels",
       "slide-1": {
         "title": "Obstacle",
-        "description": "Obstacles are barriers that impede <b>pedestrian pathways</b> for people using wheelchairs, walkers, or other mobility aids. Not all fire hydrants, poles, and signs are obstacles—only those that clearly obstruct pedestrian paths."
+        "description": "Obstacles are barriers that impede <b>pedestrian pathways</b> for people using wheelchairs, walkers, or other mobility aids.<br><br>Not all fire hydrants, poles, and signs are obstacles—only those that clearly obstruct pedestrian paths."
       },
       "slide-2": {
         "title": "Ample space to maneuver around",
@@ -200,7 +200,7 @@
       },
       "slide-3": {
         "title": "Obstacle not on sidewalk",
-        "description": "This traffic cone is not on a pedestrian pathway so it should not be marked as an Obstacle.<br><br> Only mark obstacles on sidewalks, crosswalks, and other pedestrian pathways."
+        "description": "This traffic cone is <b>not</b> on a pedestrian pathway so it should not be marked as an Obstacle.<br><br> Only mark obstacles on sidewalks, crosswalks, and other pedestrian pathways."
       },
       "slide-4": {
         "title": "Moving object",
@@ -220,6 +220,59 @@
       "slide-3": {
         "title": "Not on pedestrian path",
         "description": "This gravel is <b>not</b> on a pedestrian pathway so it should not be marked as an Surface Problem.<br><br>Only mark surface problems on sidewalks, crosswalks, and other pedestrian pathways."
+      }
+    },
+    "no-sidewalk": {
+      "instruction": "Validate 10 No Sidewalk Labels",
+      "slide-1": {
+        "title": "No Sidewalk",
+        "description": "If a street side does not have a sidewalk, please mark it with a <b>No Sidewalk</b> label."
+      },
+      "slide-2": {
+        "title": "Median",
+        "description": "A median that separates two directions of a traffic and is not intended for pedestirans should <b>not</b> be labeled as No Sidewalk."
+      },
+      "slide-3": {
+        "title": "Pavement",
+        "description": "There is a sidewalk here. It should <b>not</b> be marked as No Sidewalk."
+      }
+    },
+    "crosswalk": {
+      "instruction": "Validate 10 Crosswalk Labels",
+      "slide-1": {
+        "title": "Crosswalk",
+        "description": "A crosswalk is a legally defined space to cross a road.<br><br>Crosswalks are often indicated by <b>zebra crossing or perpendicular dashed lines.</b>"
+      },
+      "slide-2": {
+        "title": "No visual indicator",
+        "description": "Crossings with no visual indicator should <b>not</b> be labeled as Crosswalks."
+      },
+      "slide-3": {
+        "title": "Stop line",
+        "description": "Stop lines should not be labeled as Crosswalks."
+      },
+      "slide-4": {
+        "title": "Speed bump",
+        "description": "Speed bumps should not be labeled as Crosswalks."
+      }
+    },
+    "signal": {
+      "instruction": "Validate 10 Pedestrian Signal Labels",
+      "slide-1": {
+        "title": "Pedestrian Signal",
+        "description": "A pedestrian signal indicates when pedestrians can cross the street and provides time for them to do so safely.<br><br> Some pedestrian signals are activated by a pedestrian push button at waist height."
+      },
+      "slide-2": {
+        "title": "Signage",
+        "description": "This sign does not indicate when pedestrians can cross the street."
+      },
+      "slide-3": {
+        "title": "Pole",
+        "description": "This pole does not show traffic signals to pedestrians."
+      },
+      "slide-4": {
+        "title": "Traffic light for vehicles",
+        "description": "This traffic light is only for vehicles, not for pedestrians."
       }
     }
   }

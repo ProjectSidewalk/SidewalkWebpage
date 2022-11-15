@@ -3,20 +3,20 @@ function MissionTutorial() {
 
     const tutorialDescriptor = {
         'CurbRamp': {
-            'missionInstruction1': 'YOUR MISSION',
-            'missionInstruction2': 'Validate 10 Curb Ramp Labels',
+            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+            'missionInstruction2': i18next.t('mission-tutorial.curb-ramp.instruction'),
             'slides': [
                 {
                     'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.curb-ramp.slide-1.title'),
+                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
                     'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('curb-ramp-caps'),
+                    'labelTypeTitle': i18next.t('mission-tutorial.curb-ramp.slide-1.title'),
                     'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.curb-ramp.slide-1.label-type-description'),
+                    'labelTypeDescription': i18next.t('mission-tutorial.curb-ramp.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/curbramp-correct-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': 'Mark <b>Agree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
                             'left': '238px',
                             'top': '222px'
@@ -37,7 +37,7 @@ function MissionTutorial() {
                     'imageURL': 'assets/images/tutorials/curbramp-incorrect-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -52,13 +52,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.curb-ramp.slide-2.title'),
+                    'labelTypeTitle': i18next.t('mission-tutorial.curb-ramp.slide-3.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.curb-ramp.slide-2.description'),
+                    'labelTypeDescription': i18next.t('mission-tutorial.curb-ramp.slide-3.description'),
                     'imageURL': 'assets/images/tutorials/curbramp-incorrect-2.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '435px',
                             'top': '257px'
@@ -72,20 +72,20 @@ function MissionTutorial() {
             ]
         },
         'NoCurbRamp': {
-            'missionInstruction1': 'YOUR MISSION',
-            'missionInstruction2': 'Validate 10 Missing Curb Ramp Labels',
+            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+            'missionInstruction2': i18next.t('mission-tutorial.no-curb-ramp.instruction'),
             'slides': [
                 {
                     'exampleType': 'correct',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
                     'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('missing-curb-ramp-caps'),
+                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-1.title'),
                     'labelTypeSubtitle': '',
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/no-curbramp-correct-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': 'Mark <b>Agree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
                             'left': '238px',
                             'top': '222px'
@@ -100,13 +100,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Residential walkways',
+                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-2.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-2.description'),
                     'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -121,13 +121,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Not on pedestrian path',
+                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-3.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-3.description'),
                     'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-2.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '397px',
                             'top': '320px'
@@ -142,13 +142,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Missing sidewalk',
+                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-4.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-4.description'),
                     'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-3.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '326px',
                             'top': '302px'
@@ -162,20 +162,20 @@ function MissionTutorial() {
             ]
         },
         'Obstacle': {
-            'missionInstruction1': 'YOUR MISSION',
-            'missionInstruction2': 'Validate 10 Obstacle Labels',
+            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+            'missionInstruction2': i18next.t('mission-tutorial.obstacle.instruction'),
             'slides': [
                 {
                     'exampleType': 'correct',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
                     'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('obstacle-caps'),
+                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-1.title'),
                     'labelTypeSubtitle': '',
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/obstacle-correct-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': 'Mark <b>Agree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
                             'left': '238px',
                             'top': '222px'
@@ -190,13 +190,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': '',
+                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-2.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-2.description'),
                     'imageURL': 'assets/images/tutorials/obstacle-incorrect-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -211,13 +211,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Obstacle not on sidewalk',
+                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-3.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-3.description'),
                     'imageURL': 'assets/images/tutorials/obstacle-incorrect-2.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -232,13 +232,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Moving object',
+                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-4.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-4.description'),
                     'imageURL': 'assets/images/tutorials/obstacle-incorrect-3.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -252,8 +252,8 @@ function MissionTutorial() {
             ]
         },
         'SurfaceProblem': {
-            'missionInstruction1': 'YOUR MISSION',
-            'missionInstruction2': 'Validate 10 Surface Problem Labels',
+            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+            'missionInstruction2': i18next.t('mission-tutorial.surface-problem.instruction'),
             'slides': [
                 {
                     'exampleType': 'correct',
@@ -261,11 +261,11 @@ function MissionTutorial() {
                     'exampleTypeIcon': '#smile-positive',
                     'labelTypeTitle': i18next.t('mission-tutorial.surface-problem.slide-1.title'),
                     'labelTypeSubtitle': '',
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.surface-problem.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/surface-problem-correct-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': 'Mark <b>Agree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
                             'left': '238px',
                             'top': '222px'
@@ -280,13 +280,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Normal sidewalk tiles',
+                    'labelTypeTitle': i18next.t('mission-tutorial.surface-problem.slide-2.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.surface-problem.slide-2.description'),
                     'imageURL': 'assets/images/tutorials/surface-problem-incorrect-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -301,13 +301,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Not on pedestrian path',
+                    'labelTypeTitle': i18next.t('mission-tutorial.surface-problem.slide-3.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': '',
+                    'labelTypeDescription': i18next.t('mission-tutorial.surface-problem.slide-3.description'),
                     'imageURL': 'assets/images/tutorials/surface-problem-incorrect-2.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -321,21 +321,20 @@ function MissionTutorial() {
             ]
         },
         'NoSideWalk': {
-            'missionInstruction1': 'YOUR MISSION',
-            'missionInstruction2': 'Validate 10 No Sidewalk Labels',
+            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+            'missionInstruction2': i18next.t('mission-tutorial.no-sidewalk.instruction'),
             'slides': [
                 {
                     'exampleType': 'correct',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
                     'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('no-sidewalk-caps'),
+                    'labelTypeTitle': i18next.t('mission-tutorial.no-sidewalk.slide-1.title'),
                     'labelTypeSubtitle': '',
-                    'labelTypeDescription': 'If a street side does not have a sidewalk, please' +
-                        ' mark it with a <b>No Sidewalk</b> label.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.no-sidewalk.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/no-sidewalk-correct-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': 'Mark <b>Agree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
                             'left': '238px',
                             'top': '222px'
@@ -350,14 +349,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Median',
+                    'labelTypeTitle': i18next.t('mission-tutorial.no-sidewalk.slide-2.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'A median that separates two directions of a traffic' +
-                        ' and is not intended for pedestirans should <b>not</b> be labeled as No Sidewalk.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.no-sidewalk.slide-2.description'),
                     'imageURL': 'assets/images/tutorials/no-sidewalk-incorrect-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -372,13 +370,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Pavement',
+                    'labelTypeTitle': i18next.t('mission-tutorial.no-sidewalk.slide-3.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'There is a sidewalk here. It should <b>not</b> be marked as No Sidewalk.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.no-sidewalk.slide-3.description'),
                     'imageURL': 'assets/images/tutorials/no-sidewalk-incorrect-2.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -392,21 +390,20 @@ function MissionTutorial() {
             ]
         },
         'Crosswalk': {
-            'missionInstruction1': 'YOUR MISSION',
-            'missionInstruction2': 'Validate 10 Crosswalk Labels',
+            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+            'missionInstruction2': i18next.t('mission-tutorial.crosswalk.instruction'),
             'slides': [
                 {
                     'exampleType': 'correct',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
                     'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('crosswalk-caps'),
+                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-1.title'),
                     'labelTypeSubtitle': '',
-                    'labelTypeDescription': 'A crosswalk is a legally defined space to cross a road.<br><br>' +
-                        ' Crosswalks are often indicated by <b>zebra crossing or perpendicular dashed lines.</b>',
+                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/crosswalk-correct-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': 'Mark <b>Agree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
                             'left': '238px',
                             'top': '222px'
@@ -421,14 +418,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'No visual indicator',
+                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-2.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'Crossings with no visual indicator should <b>not</b> be labeled as' +
-                        ' Crosswalks.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-2.description'),
                     'imageURL': 'assets/images/tutorials/crosswalk-incorrect-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -443,13 +439,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Stop line',
+                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-3.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'Stop lines should not be labeled as Crosswalks.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-3.description'),
                     'imageURL': 'assets/images/tutorials/crosswalk-incorrect-2.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -464,13 +460,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Speed bump',
+                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-4.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'Speed bumps should not be labeled as Crosswalks. ',
+                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-4.description'),
                     'imageURL': 'assets/images/tutorials/crosswalk-incorrect-3.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -484,22 +480,20 @@ function MissionTutorial() {
             ]
         },
         'Signal': {
-            'missionInstruction1': 'YOUR MISSION',
-            'missionInstruction2': 'Validate 10 Pedestrian Signal Labels',
+            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+            'missionInstruction2': i18next.t('mission-tutorial.signal.instruction'),
             'slides': [
                 {
                     'exampleType': 'correct',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
                     'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('signal-caps'),
+                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-1.title'),
                     'labelTypeSubtitle': '',
-                    'labelTypeDescription': 'A pedestrian signal indicates when pedestrians can cross the street and' +
-                        ' provides time for them to do so safely.<br><br> Some pedestrian signals are activated by a' +
-                        ' pedestrian push button at waist height.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/signal-correct-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': 'Mark <b>Agree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
                             'left': '238px',
                             'top': '222px'
@@ -514,13 +508,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Signage',
+                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-2.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'This sign does not indicate when pedestrians can cross the street.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-2.description'),
                     'imageURL': 'assets/images/tutorials/signal-incorrect-1.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -535,13 +529,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Pole',
+                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-3.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'This pole does not show traffic signals to pedestrians.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-3.description'),
                     'imageURL': 'assets/images/tutorials/signal-incorrect-2.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -556,13 +550,13 @@ function MissionTutorial() {
                     'exampleType': 'incorrect',
                     'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
                     'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': 'Traffic light for vehicles',
+                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-4.title'),
                     'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': 'This traffic light is only for vehicles, not for pedestrians.',
+                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-4.description'),
                     'imageURL': 'assets/images/tutorials/signal-incorrect-3.png',
                     'onImageLabel': {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': 'Mark <b>Disagree</b>',
+                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
                             'left': '466px',
                             'top': '257px'
@@ -584,7 +578,16 @@ function MissionTutorial() {
 
     console.log(param.labelList[0].getAuditProperty('labelType'));
 
-    const LabelType = 'CurbRamp'; // param.labelList[0].getAuditProperty('labelType'); // should come as an argument
+    function getURLParam(name){
+        if(name=(new RegExp('[?&]'+encodeURIComponent(name)+'=([^&]*)')).exec(location.search))
+            return decodeURIComponent(name[1]);
+    }
+
+    let LabelType = param.labelList[0].getAuditProperty('labelType'); // should come as an argument
+
+    if (getURLParam('labelType')) {
+        LabelType = getURLParam('labelType');
+    }
 
     let currentSlideIdx = 0;
     let nSlides = 2;
