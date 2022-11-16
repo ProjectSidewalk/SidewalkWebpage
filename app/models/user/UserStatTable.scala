@@ -264,7 +264,7 @@ object UserStatTable {
     // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsers: List[(String, Boolean)] =
       userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-        .map(x => (x.userId, x.highQualityManual.get)).list
+        .map(x => (x.userId, false)).list
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
     // low quality are filtered out later (using results from the previous query).

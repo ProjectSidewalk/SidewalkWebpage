@@ -199,8 +199,8 @@ object UserDAOSlick {
 
     // Add in the optional SQL WHERE statement for filtering on high quality users.
     val highQualityOnlySql =
-      if (highQualityOnly) "(user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)"
-      else "TRUE"
+      if (highQualityOnly) "user_stat.high_quality"
+      else "NOT user_stat.excluded"
 
     // Add in the task completion logic.
     val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
