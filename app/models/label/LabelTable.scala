@@ -1245,10 +1245,11 @@ object LabelTable {
          |       val_counts.n_other_disagree,
          |       1.0 * val_counts.n_other_agree / NULLIF(val_counts.n_other_total, 0) AS other_accuracy
          |FROM (
-         |    SELECT SUM(distance_progress) / 1000 AS km_audited
-         |    FROM mission
-         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
-         |    WHERE high_quality_manual = TRUE OR high_quality_manual IS NULL
+         |    SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+         |    FROM street_edge
+         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |    INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+         |    WHERE completed = TRUE AND (high_quality_manual = TRUE OR high_quality_manual IS NULL)
          |) AS km_audited, (
          |    SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
          |    FROM (
@@ -1257,7 +1258,7 @@ object LabelTable {
          |        INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
          |        INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
          |        WHERE completed = TRUE AND (high_quality_manual = TRUE OR high_quality_manual IS NULL)
-         |    ) x
+         |    ) distinct_streets
          |) AS km_audited_no_overlap, (
          |    SELECT COUNT(DISTINCT(users.user_id)) AS total_users,
          |           COUNT(CASE WHEN mission_type = 'validation' THEN 1 END) AS validation_users,
