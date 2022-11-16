@@ -8,8 +8,8 @@ object APIFormats {
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
     (__ \ "count").write[Int] and
       (__ \ "count_with_severity").write[Int] and
-        (__ \ "count_with_severity").writeNullable[Float] and
-        (__ \ "count_with_severity").writeNullable[Float]
+        (__ \ "severity_mean").writeNullable[Float] and
+        (__ \ "severity_sd").writeNullable[Float]
   )(unlift(LabelSeverityStats.unapply))
 
   implicit val labelAccuracyWrites: Writes[LabelAccuracy] = (
