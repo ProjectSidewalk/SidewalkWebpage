@@ -5,6 +5,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
+import formats.json.APIFormats
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.Inject
@@ -796,5 +797,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     } else { // In JSON format.
       Future.successful(Ok(Json.toJson(UserStatTable.getStatsForAPI.map(_.toJSON))))
     }
+  }
+
+  def getOverallSidewalkStats(filetype: Option[String]) = UserAwareAction.async { implicit request =>
+    apiLogging(request.remoteAddress, request.identity, request.toString)
+    Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI)))
   }
 }
