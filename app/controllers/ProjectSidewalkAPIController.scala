@@ -799,8 +799,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     }
   }
 
-  def getOverallSidewalkStats(filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI)))
+    Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI(filterLowQuality))))
   }
 }

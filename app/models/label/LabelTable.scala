@@ -1155,7 +1155,12 @@ object LabelTable {
     labelsInRegionQuery.list
   }
 
-  def getOverallStatsForAPI: ProjectSidewalkStats = db.withSession { implicit session =>
+  def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>
+    // We use a different filter in all the sub-queries, depending on whether or not we filter out low quality data.
+    val userFilter: String =
+      if (filterLowQuality) "user_stat.high_quality"
+      else "NOT user_stat.excluded"
+
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
       s"""SELECT km_audited.km_audited AS km_audited,
          |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
@@ -1203,7 +1208,7 @@ object LabelTable {
          |       label_counts_and_severity.n_other_with_sev,
          |       label_counts_and_severity.other_sev_mean,
          |       label_counts_and_severity.other_sev_sd,
-         |       val_counts.total_validations,
+         |       total_val_count.validation_count,
          |       val_counts.n_validated,
          |       val_counts.n_agree,
          |       val_counts.n_disagree,
@@ -1249,7 +1254,7 @@ object LabelTable {
          |    FROM street_edge
          |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
          |    INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-         |    WHERE completed = TRUE AND (high_quality_manual = TRUE OR high_quality_manual IS NULL)
+         |    WHERE completed = TRUE AND $userFilter
          |) AS km_audited, (
          |    SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
          |    FROM (
@@ -1257,7 +1262,7 @@ object LabelTable {
          |        FROM street_edge
          |        INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
          |        INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-         |        WHERE completed = TRUE AND (high_quality_manual = TRUE OR high_quality_manual IS NULL)
+         |        WHERE completed = TRUE AND $userFilter
          |    ) distinct_streets
          |) AS km_audited_no_overlap, (
          |    SELECT COUNT(DISTINCT(users.user_id)) AS total_users,
@@ -1277,8 +1282,10 @@ object LabelTable {
          |            FROM audit_task
          |            WHERE audit_task.completed = TRUE
          |        ) users_with_type
+         |        INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
          |        INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
          |        INNER JOIN role ON user_role.role_id = role.role_id
+         |        WHERE $userFilter
          |    ) users
          |) AS users, (
          |    SELECT COUNT(*) AS label_count,
@@ -1317,14 +1324,18 @@ object LabelTable {
          |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
          |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-         |    WHERE (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
+         |    WHERE $userFilter
          |        AND deleted = FALSE
          |        AND tutorial = FALSE
          |        AND label.street_edge_id <> $tutorialStreetId
          |        AND audit_task.street_edge_id <> $tutorialStreetId
          |) AS label_counts_and_severity, (
-         |    SELECT SUM(agree_count) + SUM(disagree_count) + SUM(notsure_count) AS total_validations,
-         |           COUNT(CASE WHEN correct THEN 1 END) AS n_agree,
+         |    SELECT COUNT(*) AS validation_count
+         |    FROM label_validation
+         |    INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+         |    WHERE $userFilter
+         |) AS total_val_count, (
+         |    SELECT COUNT(CASE WHEN correct THEN 1 END) AS n_agree,
          |           COUNT(CASE WHEN NOT correct THEN 1 END) AS n_disagree,
          |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS n_validated,
          |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS n_ramp_agree,
@@ -1359,7 +1370,7 @@ object LabelTable {
          |    INNER JOIN mission ON label.mission_id = mission.mission_id
          |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-         |    WHERE (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
+         |    WHERE $userFilter
          |        AND deleted = FALSE
          |        AND tutorial = FALSE
          |        AND label.street_edge_id <> $tutorialStreetId
