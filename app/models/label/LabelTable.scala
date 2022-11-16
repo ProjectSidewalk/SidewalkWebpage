@@ -1319,8 +1319,8 @@ object LabelTable {
          |    WHERE (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
          |        AND deleted = FALSE
          |        AND tutorial = FALSE
-         |        AND label.street_edge_id <> (SELECT MAX(street_edge_id) FROM street_edge WHERE timestamp = '2015-11-16 20:20:19.46-08')
-         |        AND audit_task.street_edge_id <> (SELECT MAX(street_edge_id) FROM street_edge WHERE timestamp = '2015-11-16 20:20:19.46-08')
+         |        AND label.street_edge_id <> $tutorialStreetId
+         |        AND audit_task.street_edge_id <> $tutorialStreetId
          |) AS label_counts_and_severity, (
          |    SELECT SUM(agree_count) + SUM(disagree_count) + SUM(notsure_count) AS total_validations,
          |           COUNT(CASE WHEN correct THEN 1 END) AS n_agree,
@@ -1361,8 +1361,8 @@ object LabelTable {
          |    WHERE (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
          |        AND deleted = FALSE
          |        AND tutorial = FALSE
-         |        AND label.street_edge_id <> (SELECT MAX(street_edge_id) FROM street_edge WHERE timestamp = '2015-11-16 20:20:19.46-08')
-         |        AND audit_task.street_edge_id <> (SELECT MAX(street_edge_id) FROM street_edge WHERE timestamp = '2015-11-16 20:20:19.46-08')
+         |        AND label.street_edge_id <> $tutorialStreetId
+         |        AND audit_task.street_edge_id <> $tutorialStreetId
          |) AS val_counts;""".stripMargin
     )
     overallStatsQuery.first
