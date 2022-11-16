@@ -1,6 +1,6 @@
 /**
  * A holder class that inserts a GSV Pano into the supplied DOM element.
- * 
+ *
  * @param {HTMLElement} svHolder The DOM element that the GSV Pano will be placed in.
  * @returns {GalleryPanorama} The gallery panorama that was generated.
  */
@@ -190,7 +190,7 @@
             });
             self.labelMarker.marker.setIcon(url);
         }
-        
+
         // Make our newly set panomarker visible.
         self.labelMarker.marker.setVisible(true);
 
@@ -303,7 +303,7 @@
     }
 
     function getPanoId() {
-        return self.panoId
+        return self.panoId;
     }
 
     _init();

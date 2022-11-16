@@ -21,7 +21,7 @@ function Mission(parameters) {
         },
         _tasksForTheMission = [],
         labelCountsAtCompletion;
-    
+
     function _init(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("missionType" in parameters) setProperty("missionType", parameters.missionType);
@@ -48,13 +48,6 @@ function Mission(parameters) {
             var oldOffset = svl.missionContainer.getTasksMissionsOffset();
             var newOffset = oldOffset - distanceOver;
             svl.missionContainer.setTasksMissionsOffset(newOffset);
-        }
-
-        // Update the neighborhood status
-        if ("labelContainer" in svl) {
-            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId);
-            svl.statusFieldNeighborhood.setLabelCount(count);
         }
 
         // Reset the label counter
@@ -91,7 +84,7 @@ function Mission(parameters) {
         updateDistanceProgress();
         if ("taskContainer" in svl && getProperty("missionType") !== "auditOnboarding") {
             var distanceProgress = getProperty("distanceProgress");
-            var targetDistance = getDistance();
+            var targetDistance = getDistance('meters');
 
             return Math.min(Math.max(distanceProgress / targetDistance, 0), 1);
         } else {
@@ -138,7 +131,7 @@ function Mission(parameters) {
      * Get an array of tasks for this mission
      * @returns {Array}
      */
-    function getRoute () {
+    function getRoute() {
         return _tasksForTheMission;
     }
 

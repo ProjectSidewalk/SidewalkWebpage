@@ -112,6 +112,10 @@
         "current-mission": {
             "message-first-mission": "Explore for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
             "message": "Explore __PLACEHOLDER__ of this neighborhood"
+        },
+        "minimap": {
+            "follow-red-line": "Follow the red line to continue the mission",
+            "explore-current-location": "Explore this location for accessibility problems"
         }
     },
     "center-ui": {

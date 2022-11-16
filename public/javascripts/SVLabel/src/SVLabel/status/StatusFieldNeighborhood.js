@@ -2,6 +2,7 @@ function StatusFieldNeighborhood (neighborhoodModel, userModel, uiStatus) {
     var self = this;
     this._neighborhoodModel = neighborhoodModel;
     this._userModel = userModel;
+    var labelCount = 0;
 
     this._neighborhoodModel.on("NeighborhoodContainer:neighborhoodChanged", function (parameters) {
         var newNeighborhood = parameters.newNeighborhood;
@@ -18,7 +19,18 @@ function StatusFieldNeighborhood (neighborhoodModel, userModel, uiStatus) {
         uiStatus.auditedDistance.html(i18next.t('common:format-number', { val: distance.toFixed(2) }));
     };
 
+    this.incrementLabelCount = function () {
+        labelCount += 1;
+        self.setLabelCount(labelCount);
+    }
+
+    this.decrementLabelCount = function () {
+        labelCount -= 1;
+        self.setLabelCount(labelCount);
+    }
+
     this.setLabelCount = function (count) {
+        labelCount = count;
         uiStatus.neighborhoodLabelCount.html(i18next.t('common:format-number', { val: count }));
     };
 

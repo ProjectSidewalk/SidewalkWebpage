@@ -218,7 +218,7 @@ object LabelValidationTable {
     val accuracyQuery = Q.query[String, Option[Float]](
       """SELECT CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
         |FROM (
-        |    SELECT CAST(SUM(CASE WHEN correct THEN 1 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 END) + SUM(CASE WHEN NOT correct THEN 1 END), 0) AS accuracy,
+        |    SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
         |    FROM mission
         |    INNER JOIN label ON mission.mission_id = label.mission_id

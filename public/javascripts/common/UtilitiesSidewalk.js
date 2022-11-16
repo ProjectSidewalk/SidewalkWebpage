@@ -10,52 +10,52 @@ function UtilitiesMisc (JSON) {
             Walk : {
                 id : 'Walk',
                 iconImagePath : null,
-                googleMapsIconImagePath: null
+                minimapIconImagePath: null
             },
             CurbRamp: {
                 id: 'CurbRamp',
                 iconImagePath : svl.rootDirectory + 'img/icons/CurbRamp_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/CurbRamp_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/CurbRamp_tiny.png'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
                 iconImagePath : svl.rootDirectory + 'img/icons/NoCurbRamp_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/NoCurbRamp_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/NoCurbRamp_tiny.png'
             },
             Obstacle: {
                 id: 'Obstacle',
                 iconImagePath: svl.rootDirectory + 'img/icons/Obstacle_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Obstacle_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/Obstacle_tiny.png'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
                 iconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_tiny.png'
             },
             Other: {
                 id: 'Other',
                 iconImagePath: svl.rootDirectory + 'img/icons/Other_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Other_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/Other_tiny.png'
             },
             Occlusion: {
                 id: 'Occlusion',
                 iconImagePath: svl.rootDirectory + 'img/icons/Occlusion_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Occlusion_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/Occlusion_tiny.png'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
                 iconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_tiny.png'
             },
             Crosswalk: {
                 id: 'Crosswalk',
                 iconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_tiny.png'
             },
             Signal: {
                 id: 'Signal',
                 iconImagePath: svl.rootDirectory + 'img/icons/Signal_small.png',
-                googleMapsIconImagePath: svl.rootDirectory + 'img/icons/Signal_tiny.png'
+                minimapIconImagePath: svl.rootDirectory + 'img/icons/Signal_tiny.png'
             }
         };
 
