@@ -87,8 +87,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
-                            'left': '238px',
-                            'top': '222px'
+                            'left': '393px',
+                            'top': '157px'
                         },
                         'size': {
                             'height': '83px',
@@ -108,8 +108,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '325px',
+                            'top': '250px'
                         },
                         'size': {
                             'height': '83px',
@@ -177,8 +177,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
-                            'left': '238px',
-                            'top': '222px'
+                            'left': '269px',
+                            'top': '301px'
                         },
                         'size': {
                             'height': '83px',
@@ -198,8 +198,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '397px',
+                            'top': '286px'
                         },
                         'size': {
                             'height': '83px',
@@ -219,8 +219,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '79.5px',
+                            'top': '112px'
                         },
                         'size': {
                             'height': '83px',
@@ -240,8 +240,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '415px',
+                            'top': '187px'
                         },
                         'size': {
                             'height': '83px',
@@ -267,8 +267,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
-                            'left': '238px',
-                            'top': '222px'
+                            'left': '458px',
+                            'top': '203px'
                         },
                         'size': {
                             'height': '83px',
@@ -288,8 +288,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '400px',
+                            'top': '190px'
                         },
                         'size': {
                             'height': '83px',
@@ -309,8 +309,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '334px',
+                            'top': '221px'
                         },
                         'size': {
                             'height': '83px',
@@ -336,8 +336,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
-                            'left': '238px',
-                            'top': '222px'
+                            'left': '290px',
+                            'top': '132px'
                         },
                         'size': {
                             'height': '83px',
@@ -357,8 +357,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '352px',
+                            'top': '312px'
                         },
                         'size': {
                             'height': '83px',
@@ -378,8 +378,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '185px',
+                            'top': '299px'
                         },
                         'size': {
                             'height': '83px',
@@ -405,8 +405,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
-                            'left': '238px',
-                            'top': '222px'
+                            'left': '175px',
+                            'top': '159px'
                         },
                         'size': {
                             'height': '83px',
@@ -426,8 +426,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '354px',
+                            'top': '241px'
                         },
                         'size': {
                             'height': '83px',
@@ -447,8 +447,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '249px',
+                            'top': '302px'
                         },
                         'size': {
                             'height': '83px',
@@ -468,8 +468,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '271px',
+                            'top': '102px'
                         },
                         'size': {
                             'height': '83px',
@@ -495,8 +495,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
                         'position' : {
-                            'left': '238px',
-                            'top': '222px'
+                            'left': '167px',
+                            'top': '325px'
                         },
                         'size': {
                             'height': '83px',
@@ -516,8 +516,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '377px',
+                            'top': '86px'
                         },
                         'size': {
                             'height': '83px',
@@ -537,8 +537,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '390px',
+                            'top': '203px'
                         },
                         'size': {
                             'height': '83px',
@@ -558,8 +558,8 @@ function MissionTutorial() {
                         'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
                         'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '359px',
+                            'top': '332px'
                         },
                         'size': {
                             'height': '83px',
