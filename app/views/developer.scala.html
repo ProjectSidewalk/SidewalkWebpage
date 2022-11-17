@@ -321,7 +321,42 @@
 
         <div class="row">
             <div class="col-sm-12">
-                <h2 id="access-dataset">Users API</h2>
+                <h2 id="general-stats-api">General Project Sidewalk Stats API</h2>
+                <table class="table">
+                    <tr>
+                        <th>URL</th>
+                        <td><code>/v2/overallStats</code></td>
+                    </tr>
+                    <tr>
+                        <th>Method</th>
+                        <td>GET</td>
+                    </tr>
+                    <tr>
+                        <th>Examples</th>
+                        <td>
+                            <a href="/v2/overallStats" target="_blank">
+                                <code>/v2/overallStats</code>
+                            </a><br>
+                            <a href="/v2/overallStats?filterLowQuality=true" target="_blank">
+                                <code>/v2/overallStats?filterLowQuality=true</code>
+                            </a><br>
+                            <a href="/v2/overallStats?filetype=csv" target="_blank">
+                                <code>/v2/overallStats?filetype=csv</code>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Description</th>
+                        <td>
+                            This endpoint gives some general stats about the data collected through Project Sidewalk in
+                            this city. It includes stats like the number of users and km audited. It also includes the
+                            following, broken down by label type: labels placed, average severity, and accuracy. There
+                            is an optional <code>filterLowQuality</code> parameter to remove low quality data.
+                        </td>
+                    </tr>
+                </table>
+
+                <h2 id="users-api">Users API</h2>
                 <table class="table">
                     <tr>
                         <th>URL</th>
