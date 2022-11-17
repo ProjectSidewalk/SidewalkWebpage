@@ -127,8 +127,14 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @private
      */
     this._documentKeyDown = function (e) {
+        // Prevent Google's default panning and moving using arrow keys and WASD.
+        // https://stackoverflow.com/a/66069717/9409728
+        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
+            e.stopPropagation();
+        }
+
         if (!status.focusOnTextField && !status.disableKeyboard) {
-            //only set shift if the event was made after the keyup.
+            // Only set shift if the event was made after the keyup.
             if (e.timeStamp > lastShiftKeyUpTimestamp) {
                 status.shiftDown = e.shiftKey;
             }
@@ -151,27 +157,22 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 }
             } else {
                 switch (e.keyCode) {
-                    case 16:  // "Shift"
-                        break;
-                    case 37:  // "Left"
+                    case 37:  // "ArrowLeft"
                         self._rotatePov(-2);
                         break;
-                    case 39:  // "Right"
+                    case 39:  // "ArrowRight"
                         self._rotatePov(2);
                         break;
                 }
                 if (!status.disableMovement) {
                     switch (e.keyCode) {
-                        case 38: // "up"
+                        case 38: // "ArrowUp"
                             self._moveForward();
                             break;
-                        case 40:  // "down"
+                        case 40:  // "ArrowDown"
                             self._moveBackward();
                             break;
                     }
-                }
-                if ([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-                    e.preventDefault();
                 }
             }
         }
@@ -199,8 +200,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 }
                 switch(e.keyCode) {
                     // Zoom Hotkeys
-                    case 16: //shift
-                        // store the timestamp here so that we can check if the z-up event is in the buffer range
+                    case 16: // Shift
+                        // Store the timestamp here so that we can check if the z-up event is in the buffer range.
                         lastShiftKeyUpTimestamp = e.timeStamp;
                         break;
                     case 90:
@@ -209,7 +210,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             contextMenu.hide();
                         }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                        // if shift was down w/in 100 ms of the z up, then it will also zoom out. 
+                        // if shift was down w/in 100 ms of the z up, then it will also zoom out.
                         // This is to catch the scenarios where shift up is detected before the z up.
                         if (status.shiftDown || (e.timeStamp - lastShiftKeyUpTimestamp) < 100) {
                             // Zoom out
@@ -226,7 +227,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                 }
 
-                // Hotkeys for tag selection
+                // Hotkeys for tag selection.
                 if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTagDisabled()) {
                     var labelType = contextMenu.getTargetLabel().getProperty('labelType');
                     var tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
@@ -238,10 +239,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 }
             }
 
-            /*
-             This is a callback method that is triggered when a keyUp
-             event occurs. It is not relevant to ContextMenu's textbox focus.
-             */
             switch (e.keyCode) {
                 case 13:
                     // "Enter"
@@ -284,7 +281,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         }
     }
 
-    
+
     /**
      * Get status
      * @param {string} key Field name
@@ -310,6 +307,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     };
 
 
-    $(document).bind('keyup', this._documentKeyUp);
-    $(document).bind('keydown', this._documentKeyDown);
+    // Add the keyboard event listeners. We need { capture: true } for keydown to disable StreetView's shortcuts.
+    window.addEventListener('keydown', this._documentKeyDown, { capture: true });
+    window.addEventListener('keyup', this._documentKeyUp);
 }
