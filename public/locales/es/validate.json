@@ -144,5 +144,136 @@
     "info-title-no-sidewalk": "¿Qué es un \"No Hay Banqueta\"?",
     "info-title-crosswalk": "¿Qué es un Cruce Peatonal?",
     "info-title-signal": "¿Qué es un Semáforo Peatonal?"
+  },
+  "mission-tutorial": {
+    "mission-instruction-1": "TU MISIÓN",
+    "example-type-label-correct": "EJEMPLO CORRECTO",
+    "example-type-label-incorrect": "EJEMPLO INCORRECTO",
+    "label-type-subtitle": "¿Por qué está mal?",
+    "on-image-label-title-correct": "etiqueta correcta",
+    "on-image-label-title-incorrect": "etiqueta incorrecta",
+    "on-image-label-description-correct": "Marcar <b>de acuerdo</b>",
+    "on-image-label-description-incorrect": "Marca <b>en desacuerdo</b>",
+    "curb-ramp": {
+      "instruction": "Validar 10 etiquetas de rampa de bordillo",
+      "slide-1": {
+        "title": "Rampa de bordillo",
+        "description": "Las rampas en las aceras a menudo se encuentran en ambos extremos de los cruces de peatones, o cuando una acera continúa en el otro lado de la calle, incluso sin cruce de peatones."
+      },
+      "slide-2": {
+        "title": "Entrada de coches",
+        "description": "Las entradas de vehículos <b>no</b> son rampas en los bordillos. Están diseñados para vehículos y no para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampa de bordillo."
+      },
+      "slide-3": {
+        "title": "Garaje",
+        "description": "Driveways to garages are <b>not</b> curb ramps. Driveways should <b>not</b> be labeled as Curb Ramp."
+      }
+    },
+    "no-curb-ramp": {
+      "instruction": "Validar 10 etiquetas de rampa de bordillo faltantes",
+      "slide-1": {
+        "title": "Rampa de bordillo faltante",
+        "description": "Las intersecciones de aceras deben tener rampas en las aceras, idealmente dos por esquina. Si una esquina tiene una acera pero no tiene una rampa en el bordillo, coloque la etiqueta Rampa en el bordillo faltante donde cree que debería existir una rampa en el bordillo."
+      },
+      "slide-2": {
+        "title": "Pasarelas residenciales",
+        "description": "Los pasillos residenciales <b>no</b> deben estar etiquetados como Rampas de bordillo faltantes."
+      },
+      "slide-3": {
+        "title": "No en camino peatonal",
+        "description": "No se necesitan rampas en los bordillos en caminos <b>no</b> destinados al paso de peatones."
+      },
+      "slide-4": {
+        "title": "acera faltante",
+        "description": "Para las esquinas sin <b>aceras</b>, use la etiqueta Sin acera en lugar de la etiqueta Rampa de bordillo faltante."
+      }
+    },
+    "obstacle": {
+      "instruction": "Validar 10 etiquetas de obstáculos",
+      "slide-1": {
+        "title": "Obstáculo",
+        "description": "Los obstáculos son barreras que impiden las <b>vías peatonales</b> para personas que usan sillas de ruedas, andadores u otras ayudas para la movilidad.<br><br>No todas las bocas de incendios, postes y letreros son obstáculos, solo aquellos que obstruyen claramente a los peatones. caminos."
+      },
+      "slide-2": {
+        "title": "Amplio espacio para maniobrar",
+        "description": "La motocicleta está estacionada a un lado; hay un amplio espacio para peatones en el espacio restante de la acera."
+      },
+      "slide-3": {
+        "title": "Obstáculo no en la acera",
+        "description": "Este cono de tráfico <b>no</b> se encuentra en una vía peatonal, por lo que no debe marcarse como un obstáculo.<br><br> Solo marque obstáculos en aceras, cruces peatonales y otras vías peatonales."
+      },
+      "slide-4": {
+        "title": "Objeto en movimiento",
+        "description": "El automóvil parece estar moviéndose en la imagen y no debe etiquetarse como Obstáculo."
+      }
+    },
+    "surface-problem": {
+      "instruction": "Validar 10 etiquetas de problemas de superficie",
+      "slide-1": {
+        "title": "Problema de superficie",
+        "description": "Si hay algo en la superficie de la acera o del paso de peatones que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema de superficie."
+      },
+      "slide-2": {
+        "title": "Azulejos de acera normales",
+        "description": "Las baldosas de las aceras normales (sin huecos, grietas o protuberancias) no son problemas de superficie."
+      },
+      "slide-3": {
+        "title": "No en camino peatonal",
+        "description": "Esta grava <b>no</b> se encuentra en un camino para peatones, por lo que no debe marcarse como un problema de superficie.<br><br>Solo marque los problemas de superficie en aceras, cruces peatonales y otros caminos para peatones."
+      }
+    },
+    "no-sidewalk": {
+      "instruction": "Validar 10 etiquetas sin acera",
+      "slide-1": {
+        "title": "sin acera",
+        "description": "Si un lado de la calle no tiene acera, márquelo con una etiqueta <b>Sin acera</b>."
+      },
+      "slide-2": {
+        "title": "Mediana",
+        "description": "Una mediana que separa dos direcciones de tráfico y no está diseñada para peatones <b>no</b> debe etiquetarse como Sin acera."
+      },
+      "slide-3": {
+        "title": "Acera",
+        "description": "Hay una acera aquí. <b>No</b> debe estar marcado como Sin acera."
+      }
+    },
+    "crosswalk": {
+      "instruction": "Validar 10 etiquetas de paso de peatones",
+      "slide-1": {
+        "title": "Paso de peatones",
+        "description": "Un paso de peatones es un espacio legalmente definido para cruzar una calle.<br><br>Los pasos de peatones a menudo se indican con <b>pasos de cebra o líneas discontinuas perpendiculares.</b>"
+      },
+      "slide-2": {
+        "title": "Sin indicador visual",
+        "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales."
+      },
+      "slide-3": {
+        "title": "línea de parada",
+        "description": "Las líneas de parada no deben etiquetarse como cruces peatonales."
+      },
+      "slide-4": {
+        "title": "Banda de frenado",
+        "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales."
+      }
+    },
+    "signal": {
+      "instruction": "Validar 10 etiquetas de señales para peatones",
+      "slide-1": {
+        "title": "Señal peatonal",
+        "description": "Una señal para peatones indica cuándo los peatones pueden cruzar la calle y les da tiempo para que lo hagan de manera segura.<br><br> Algunas señales para peatones se activan con un botón para peatones a la altura de la cintura."
+      },
+      "slide-2": {
+        "title": "Señalización",
+        "description": "Esta señal no indica cuándo los peatones pueden cruzar la calle."
+      },
+      "slide-3": {
+        "title": "Polo",
+        "description": "Este poste no muestra señales de tráfico a los peatones."
+      },
+      "slide-4": {
+        "title": "semaforo para vehiculos",
+        "description": "Este semáforo es solo para vehículos, no para peatones."
+      }
+    }
   }
 }

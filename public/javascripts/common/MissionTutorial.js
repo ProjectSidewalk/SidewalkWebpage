@@ -20,10 +20,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '238px',
                             'top': '222px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -41,10 +37,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '466px',
                             'top': '257px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -62,10 +54,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '435px',
                             'top': '257px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 }
@@ -89,10 +77,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '393px',
                             'top': '157px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -110,10 +94,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '325px',
                             'top': '250px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -131,10 +111,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '397px',
                             'top': '320px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -152,10 +128,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '326px',
                             'top': '302px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 }
@@ -179,10 +151,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '269px',
                             'top': '301px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -200,10 +168,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '397px',
                             'top': '286px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -221,10 +185,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '79.5px',
                             'top': '112px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -242,10 +202,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '415px',
                             'top': '187px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 }
@@ -269,10 +225,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '458px',
                             'top': '203px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -290,10 +242,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '400px',
                             'top': '190px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -311,10 +259,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '334px',
                             'top': '221px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 }
@@ -338,10 +282,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '290px',
                             'top': '132px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -359,10 +299,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '352px',
                             'top': '312px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -380,10 +316,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '185px',
                             'top': '299px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 }
@@ -407,10 +339,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '175px',
                             'top': '159px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -428,10 +356,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '354px',
                             'top': '241px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -449,10 +373,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '249px',
                             'top': '302px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -470,10 +390,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '271px',
                             'top': '102px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 }
@@ -497,10 +413,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '167px',
                             'top': '325px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -518,10 +430,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '377px',
                             'top': '86px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -539,10 +447,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '390px',
                             'top': '203px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 },
@@ -560,10 +464,6 @@ function MissionTutorial() {
                         'position' : {
                             'left': '359px',
                             'top': '332px'
-                        },
-                        'size': {
-                            'height': '83px',
-                            'width': '157px'
                         }
                     }
                 }
@@ -635,11 +535,14 @@ function MissionTutorial() {
      */
     function renderSlide(idx) {
 
-        function renderOnImageLabel(onImageLabel) {
-            $onImageLabel.css({'height': onImageLabel.size.height, 'width': onImageLabel.size.width,
-                'top': onImageLabel.position.top, 'left': onImageLabel.position.left});
+        function renderOnImageLabel(onImageLabel, iconID) {
+
+            $onImageLabel.css({'top': onImageLabel.position.top, 'left': onImageLabel.position.left});
             $('.on-image-label-type-title', $onImageLabel).html(onImageLabel.title);
             $('.on-image-label-description', $onImageLabel).html(onImageLabel.description);
+
+            $('.on-image-label-type-icon').find('use').attr('xlink:href', iconID);
+
             $onImageLabel.show();
         }
 
@@ -678,7 +581,7 @@ function MissionTutorial() {
 
         // If the slide has onImageLabel, then should draw it.
         if (slide.onImageLabel) {
-            renderOnImageLabel(slide.onImageLabel);
+            renderOnImageLabel(slide.onImageLabel, slide.exampleTypeIcon);
         }
 
         // Disable the previous/next buttons based on the current slide idx
