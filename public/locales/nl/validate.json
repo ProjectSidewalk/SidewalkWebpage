@@ -144,5 +144,136 @@
     "info-title-no-sidewalk": "Wat is \"Geen Trottoir\"?",
     "info-title-crosswalk": "Wat is een Oversteekplaats?",
     "info-title-signal": "Wat is een Verkeerslicht?"
+  },
+  "mission-tutorial": {
+    "mission-instruction-1": "JOUW MISSIE",
+    "example-type-label-correct": "JUISTE VOORBEELD",
+    "example-type-label-incorrect": "VERKEERD VOORBEELD",
+    "label-type-subtitle": "Waarom is dit verkeerd?",
+    "on-image-label-title-correct": "Correct etiket",
+    "on-image-label-title-incorrect": "Verkeerd etiket",
+    "on-image-label-description-correct": "Markeer <b>Akkoord</b>",
+    "on-image-label-description-incorrect": "Markeer <b>Niet akkoord</b>",
+    "curb-ramp": {
+      "instruction": "Valideer 10 stoeprandlabels",
+      "slide-1": {
+        "title": "stoeprand",
+        "description": "Opritten met trottoirbanden zijn vaak te vinden aan beide uiteinden van oversteekplaatsen, of wanneer een trottoir aan de andere kant van de straat doorloopt, zelfs zonder oversteekplaats."
+      },
+      "slide-2": {
+        "title": "Oprit",
+        "description": "Opritten zijn <b>geen</b> stoephellingen. Ze zijn ontworpen voor voertuigen en niet voor voetgangers. Opritten mogen <b>niet</b> worden aangeduid als stoeprand."
+      },
+      "slide-3": {
+        "title": "Garage",
+        "description": "Opritten naar garages zijn <b>geen</b> stoephellingen. Opritten mogen <b>niet</b> worden aangeduid als stoeprand."
+      }
+    },
+    "no-curb-ramp": {
+      "instruction": "Valideer 10 ontbrekende stoeprandlabels",
+      "slide-1": {
+        "title": "Ontbrekende stoeprand",
+        "description": "Trottoirkruisingen moeten stoeprandhellingen hebben - idealiter twee per hoek. Als een hoek wel een trottoir heeft maar geen oprit, plaatst u het label Ontbrekende oprit op de stoep waar u denkt dat er een oprit op de stoep zou moeten staan."
+      },
+      "slide-2": {
+        "title": "Residentiële looppaden",
+        "description": "Woonpaden mogen <b>niet</b> worden gelabeld als Missing Curb Ramps."
+      },
+      "slide-3": {
+        "title": "Niet op voetpad",
+        "description": "Opritten voor stoepranden zijn niet nodig op paden die <b>niet</b> bedoeld zijn voor voetgangers."
+      },
+      "slide-4": {
+        "title": "Ontbrekende stoep",
+        "description": "Voor hoeken zonder <b>geen trottoirs</b> gebruikt u het label Geen stoep in plaats van het label Ontbrekende oprit."
+      }
+    },
+    "obstacle": {
+      "instruction": "Valideer 10 obstakellabels",
+      "slide-1": {
+        "title": "Obstakel",
+        "description": "Obstakels zijn barrières die <b>voetpaden</b> belemmeren voor mensen die rolstoelen, rollators of andere mobiliteitshulpmiddelen gebruiken.<br><br>Niet alle brandkranen, palen en borden zijn obstakels, alleen obstakels die voetgangers duidelijk belemmeren paden."
+      },
+      "slide-2": {
+        "title": "Voldoende ruimte om te manoeuvreren",
+        "description": "De motor staat aan de kant geparkeerd - er is voldoende ruimte voor voetgangers op de resterende ruimte van het trottoir."
+      },
+      "slide-3": {
+        "title": "Hindernis niet op stoep",
+        "description": "Deze verkeerskegel bevindt zich <b>niet</b> op een voetpad en mag dus niet worden gemarkeerd als een obstakel.<br><br> Markeer alleen obstakels op trottoirs, oversteekplaatsen en andere voetpaden."
+      },
+      "slide-4": {
+        "title": "Bewegend voorwerp",
+        "description": "De auto lijkt te bewegen in het beeld en mag niet als een obstakel worden bestempeld."
+      }
+    },
+    "surface-problem": {
+      "instruction": "Valideer 10 labels voor oppervlakteproblemen",
+      "slide-1": {
+        "title": "Oppervlakte probleem",
+        "description": "Als iets op de stoep of oversteekplaats het <b>ongemakkelijk of onmogelijk maakt om over te steken</b>, moet dit worden bestempeld als een oppervlakteprobleem."
+      },
+      "slide-2": {
+        "title": "Normale stoeptegels",
+        "description": "Normale stoeptegels (zonder kieren, scheuren of oneffenheden) zijn geen oppervlakteproblemen."
+      },
+      "slide-3": {
+        "title": "Niet op voetpad",
+        "description": "Dit grind ligt <b>niet</b> op een voetpad en mag dus niet worden gemarkeerd als een oppervlakteprobleem.<br><br>Markeer alleen oppervlakteproblemen op trottoirs, oversteekplaatsen en andere voetpaden."
+      }
+    },
+    "no-sidewalk": {
+      "instruction": "Valideer 10 geen trottoirlabels",
+      "slide-1": {
+        "title": "Geen trottoir",
+        "description": "Als een straatkant geen trottoir heeft, markeer deze dan met een label <b>Geen stoep</b>."
+      },
+      "slide-2": {
+        "title": "Mediaan",
+        "description": "Een middenberm die twee verkeersrichtingen scheidt en niet bedoeld is voor voetgangers mag <b>niet</b> worden bestempeld als Geen Stoep."
+      },
+      "slide-3": {
+        "title": "Stoep",
+        "description": "Hier is een trottoir. Het moet <b>niet</b> worden gemarkeerd als Geen trottoir."
+      }
+    },
+    "crosswalk": {
+      "instruction": "Valideer 10 zebrapadlabels",
+      "slide-1": {
+        "title": "Zebrapad",
+        "description": "Een oversteekplaats is een wettelijk gedefinieerde ruimte om een weg over te steken.<br><br>Oversteekplaatsen worden vaak aangegeven door <b>zebrapaden of loodrechte stippellijnen.</b>"
+      },
+      "slide-2": {
+        "title": "Geen visuele indicator",
+        "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als oversteekplaatsen."
+      },
+      "slide-3": {
+        "title": "Lijn stoppen",
+        "description": "Stoplijnen mogen niet worden aangeduid als oversteekplaatsen."
+      },
+      "slide-4": {
+        "title": "Verkeersdrempel",
+        "description": "Verkeersdrempels mogen niet als oversteekplaatsen worden bestempeld."
+      }
+    },
+    "signal": {
+      "instruction": "Valideer 10 voetgangerssignaallabels",
+      "slide-1": {
+        "title": "Signaal voor voetgangers",
+        "description": "Een voetgangerssignaal geeft aan wanneer voetgangers de straat kunnen oversteken en geeft hen de tijd om dit veilig te doen.<br><br> Sommige voetgangerssignalen worden geactiveerd door een voetgangersdrukknop op heuphoogte."
+      },
+      "slide-2": {
+        "title": "Bewegwijzering",
+        "description": "Dit bord geeft niet aan wanneer voetgangers kunnen oversteken."
+      },
+      "slide-3": {
+        "title": "Pool",
+        "description": "Deze paal geeft geen verkeerstekens weer aan voetgangers."
+      },
+      "slide-4": {
+        "title": "Verkeerslicht voor voertuigen",
+        "description": "Dit verkeerslicht is alleen voor voertuigen, niet voor voetgangers."
+      }
+    }
   }
 }
