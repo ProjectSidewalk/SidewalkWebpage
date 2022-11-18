@@ -35,13 +35,14 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
   def listNeighborhoods = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val features: List[JsObject] = RegionTable.getNeighborhoodsWithUserCompletionStatus(user.userId).map { region =>
-          val properties: JsObject = Json.obj(
-            "region_id" -> region.regionId,
-            "region_name" -> region.name,
-            "user_completed" -> region.userCompleted
-          )
-          Json.obj("type" -> "Feature", "geometry" -> region.geom.toJSON, "properties" -> properties)
+        val features: List[JsObject] =
+          RegionTable.getNeighborhoodsWithUserCompletionStatus(user.userId).map { case (region, userCompleted) =>
+            val properties: JsObject = Json.obj(
+              "region_id" -> region.regionId,
+              "region_name" -> region.name,
+              "user_completed" -> userCompleted
+            )
+            Json.obj("type" -> "Feature", "geometry" -> region.geom.toJSON, "properties" -> properties)
         }
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Future.successful(Ok(featureCollection))

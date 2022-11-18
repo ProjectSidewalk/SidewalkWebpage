@@ -1,25 +1,44 @@
-#google-maps-holder {
+#minimap-holder {
     position: absolute;
     left: 735px;
-    top: 393px;
+    top: 403px;
     width: 200px;
-    height: 210px;
+    height: 200px;
 }
 
-.google-maps-pane {
+.minimap-pane {
     border: 0 solid black;
     position: absolute;
     left: 0;
     top:0;
     width: 200px;
-    height: 210px;
+    height: 200px;
 }
 
-#google-maps-overlay {
-    color: #888;
+#minimap-overlay {
+    z-index: 2;
+}
+
+#minimap-message {
     font-size: 12px;
     z-index: 1;
+    width: 150px;
+    padding-left: 3px;
+}
 
+#minimap-fog-of-war-canvas, #minimap-fov-canvas {
+    opacity: 0.3;
+}
+
+#minimap-progress-circle-canvas {
+    opacity: 0.6;
+}
+
+#minimap-percent-observed {
+    font-size: 11px;
+    text-align: center;
+    padding-left: 161px;
+    padding-top: 12px;
 }
 
 .gm-svpc {

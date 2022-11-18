@@ -199,8 +199,8 @@ object UserDAOSlick {
 
     // Add in the optional SQL WHERE statement for filtering on high quality users.
     val highQualityOnlySql =
-      if (highQualityOnly) "(user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)"
-      else "TRUE"
+      if (highQualityOnly) "user_stat.high_quality"
+      else "NOT user_stat.excluded"
 
     // Add in the task completion logic.
     val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
@@ -233,21 +233,21 @@ object UserDAOSlick {
    */
   def countValidationUsersContributed(roles: List[String], labelValidated: Boolean): Int = db.withSession { implicit session =>
 
-    val validationMissions =
-      if (labelValidated) MissionTable.validationMissions.filter(_.labelsProgress > 0)
-      else MissionTable.validationMissions
+    val users =
+      if (labelValidated) LabelValidationTable.validationLabels.map(_.userId)
+      else MissionTable.validationMissions.map(_.userId)
 
-    val users = for {
-      _mission <- validationMissions
-      _user <- userTable if _mission.userId === _user.userId
-      _userRole <- userRoleTable if _user.userId === _userRole.userId
+    val filteredUsers = for {
+      _users <- users
+      _userTable <- userTable if _users === _userTable.userId
+      _userRole <- userRoleTable if _userTable.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      if _user.username =!= "anonymous"
+      if _userTable.username =!= "anonymous"
       if _role.role inSet roles
-    } yield _user.userId
+    } yield _userTable.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).length.run
+    filteredUsers.groupBy(x => x).map(_._1).length.run
   }
 
   /**

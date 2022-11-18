@@ -110,6 +110,10 @@
         "current-mission": {
             "message-first-mission": "Explora __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
             "message": "Explora __PLACEHOLDER__ de este barrio"
+        },
+        "minimap": {
+            "follow-red-line": "Sigue la línea roja para continuar la misión",
+            "explore-current-location": "Explore esta ubicación por problemas de accesibilidad"
         }
     },
     "center-ui": {

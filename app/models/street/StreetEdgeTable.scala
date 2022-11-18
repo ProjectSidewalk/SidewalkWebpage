@@ -75,7 +75,12 @@ object StreetEdgeTable {
   val userRoles = TableQuery[UserRoleTable]
   val userTable = TableQuery[UserTable]
   val roleTable = TableQuery[RoleTable]
-  val completedAuditTasks = auditTasks.filter(_.completed === true)
+
+  val completedAuditTasks = for {
+    _tasks <- auditTasks
+    _stat <- UserStatTable.userStats if _tasks.userId === _stat.userId
+    if _tasks.completed && !_stat.excluded
+  } yield _tasks
 
   val turkerCompletedAuditTasks = for {
     _tasks <- completedAuditTasks
@@ -179,7 +184,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTaskQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && !stats.excluded
+            if stats.highQuality
         } yield tasks
       } else {
           auditTaskQuery
@@ -201,37 +206,30 @@ object StreetEdgeTable {
   }
 
   /**
-    * Calculates the distance audited today by all users.
-    *
-    * @return The distance audited today by all users in miles.
-    */
-  def auditedStreetDistanceToday(): Float = db.withSession { implicit session =>
-    val getDistanceQuery = Q.queryNA[Float](
-      """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
-        |FROM street_edge
-        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
-        |     AND street_edge.deleted = FALSE
-        |     AND audit_task.completed = TRUE""".stripMargin
-    )
-    (getDistanceQuery.first * 0.000621371).toFloat;
-  }
+   * Calculates the total distance audited by all users over a specified time period.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return The total distance audited by all users in miles.
+   */
+  def auditedStreetDistanceOverTime(timeInterval: String = "all time"): Float = db.withSession { implicit session =>
+    // Build up SQL string related to audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all time").
+    val auditTaskTimeIntervalSql = timeInterval.toLowerCase() match {
+      case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
+    }
 
-  /**
-    * Calculates the distance audited during the past week by all users.
-    *
-    * @return The distance audited during the past week by all users in miles.
-    */
-  def auditedStreetDistancePastWeek(): Float = db.withSession { implicit session =>
+    // Execute query.
     val getDistanceQuery = Q.queryNA[Float](
-        """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
-            |FROM street_edge
-            |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-            |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-            |     AND street_edge.deleted = FALSE
-            |     AND audit_task.completed = TRUE""".stripMargin
-        )
-    (getDistanceQuery.first * 0.000621371).toFloat;
+      s"""SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
+         |FROM street_edge
+         |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |WHERE $auditTaskTimeIntervalSql
+         |     AND street_edge.deleted = FALSE
+         |     AND audit_task.completed = TRUE""".stripMargin
+    )
+    (getDistanceQuery.first * 0.000621371).toFloat
   }
 
   /**
@@ -255,7 +253,7 @@ object StreetEdgeTable {
 
     // Filter out group of edges with the size less than the passed `auditCount`, picking 1 rep from each group.
     // TODO pick audit with earliest timestamp.
-    val uniqueEdgeDists: List[(Option[Timestamp], Option[Float])] = (for ((eid, groupedAudits) <- audits.list.groupBy(_.streetEdgeId)) yield {
+    val uniqueEdgeDists: List[(Timestamp, Option[Float])] = (for ((eid, groupedAudits) <- audits.list.groupBy(_.streetEdgeId)) yield {
       if (auditCount > 0 && groupedAudits.size >= auditCount) {
         Some((groupedAudits.head.taskEnd, edgeDists.get(eid)))
       } else {
@@ -267,7 +265,7 @@ object StreetEdgeTable {
     val dateRoundedDists: List[(Calendar, Double)] = uniqueEdgeDists.map({
       pair => {
         var c : Calendar = Calendar.getInstance()
-        c.setTimeInMillis(pair._1.get.getTime)
+        c.setTimeInMillis(pair._1.getTime)
         c.set(Calendar.HOUR_OF_DAY, 0)
         c.set(Calendar.MINUTE, 0)
         c.set(Calendar.SECOND, 0)
@@ -311,7 +309,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTasksQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && !stats.excluded
+            if stats.highQuality
         } yield tasks
       } else {
           auditTasksQuery

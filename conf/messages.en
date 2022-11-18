@@ -144,7 +144,6 @@ audit.right.ui.overall.stats = Overall Stats
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.distance = kilometers
 audit.right.ui.current.mission = Current Mission
-audit.right.ui.red.line = Follow the red line
 
 audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable

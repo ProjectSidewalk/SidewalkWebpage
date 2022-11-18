@@ -281,15 +281,9 @@ object MissionTable {
     *
     * @param userId User's UUID
     * @param regionId region Id
-    * @param includeOnboarding should region-less onboarding mission be included if complete
     */
-  def selectCompletedAuditMissions(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
-    val auditMissionTypes: List[String] = if (includeOnboarding) List("audit", "auditOnboarding") else List("audit")
-    val auditMissionTypeIds: List[Int] = missionTypes.filter(_.missionType inSet auditMissionTypes).map(_.missionTypeId).list
-    missions.filter(m => m.userId === userId.toString
-                      && (m.missionTypeId inSet auditMissionTypeIds)
-                      && (m.regionId === regionId || m.regionId.isEmpty)
-                      && m.completed === true).list
+  def selectCompletedAuditMissions(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
+    auditMissions.filter(m => m.completed === true && m.regionId === regionId && m.userId === userId.toString).list
   }
 
   /**
@@ -300,7 +294,7 @@ object MissionTable {
 
     val missionsWithRegionName = for {
       (_m, _r) <- userMissions.leftJoin(RegionTable.regions).on(_.regionId === _.regionId)
-    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.description.?, _m.distanceMeters, _m.labelsValidated)
+    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.name.?, _m.distanceMeters, _m.labelsValidated)
 
     val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>
       RegionalMission(m._1, MissionTypeTable.missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6)
@@ -544,7 +538,7 @@ object MissionTable {
     */
   def getNextAuditMissionDistance(userId: UUID, regionId: Int): Float = {
     val distRemaining: Float = AuditTaskTable.getUnauditedDistance(userId, regionId)
-    val completedInRegion: Int = selectCompletedAuditMissions(userId, regionId, includeOnboarding = false).length
+    val completedInRegion: Int = selectCompletedAuditMissions(userId, regionId).length
     val naiveMissionDist: Float =
       if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
       else                                                            distancesForFirstAuditMissions(completedInRegion)

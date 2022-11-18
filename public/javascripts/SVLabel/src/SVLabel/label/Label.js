@@ -47,6 +47,7 @@ function Label (svl, pathIn, params) {
         canvasDistortionAlphaY: undefined,
         labelerId : 'DefaultValue',
         labelId: 'DefaultValue',
+        missionId: undefined,
         labelType: undefined,
         labelDescription: undefined,
         labelFillStyle: undefined,
@@ -104,7 +105,7 @@ function Label (svl, pathIn, params) {
             path.setBelongsTo(self);
 
             if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
-                googleMarker = createGoogleMapsMarker(param.labelType);
+                googleMarker = createMinimapMarker(param.labelType);
                 googleMarker.setMap(svl.map.getMap());
             }
     }
@@ -174,13 +175,13 @@ function Label (svl, pathIn, params) {
      * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
      * @returns {google.maps.Marker}
      */
-    function createGoogleMapsMarker (labelType) {
+    function createMinimapMarker (labelType) {
         if (typeof google !== "undefined") {
             var latlng = toLatLng();
             var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
 
             var imagePaths = util.misc.getIconImagePaths(),
-                url = imagePaths[labelType].googleMapsIconImagePath;
+                url = imagePaths[labelType].minimapIconImagePath;
 
             return new google.maps.Marker({
                 position: googleLatLng,
