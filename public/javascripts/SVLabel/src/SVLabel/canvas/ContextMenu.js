@@ -146,7 +146,7 @@ function ContextMenu (uiContextMenu) {
     function handleSeverityPopup() {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
-        if (labels.length == 0) {
+        if (labels.length === 0) {
             labels = prev_labels;
         }
         if (labels.length > 0) {

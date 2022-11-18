@@ -1,5 +1,5 @@
 /**
- * Label Counter module. 
+ * Label Counter module.
  * @param d3 d3 module
  * @returns {{className: string}}
  * @constructor
@@ -176,7 +176,7 @@ function LabelCounter (d3) {
 
         // Actual update function
         function _update(key) {
-            if (keys.indexOf(key) == -1) { key = "Other"; }
+            if (keys.indexOf(key) === -1) { key = "Other"; }
 
             var hundredCircles = parseInt(dotPlots[key].count / 100);
             var fiftyCircles = parseInt((dotPlots[key].count % 100) / 50);
@@ -205,7 +205,7 @@ function LabelCounter (d3) {
                      x(tenCircles * 1.95 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
                }
             }
-            
+
             function setCY(d, i){
               if (i < hundredCircles && hundredCircles != 0) {
                 return 0;
@@ -264,7 +264,7 @@ function LabelCounter (d3) {
                   dotPlots[key].data.push([len + i, 0, radius])
               }
               dotPlots[key].plot.selectAll("circle")
-                .attr("r", setR) 
+                .attr("r", setR)
                 .attr("cy", setCY)
                 .attr("cx", setCX)
                 .data(dotPlots[key].data)
@@ -291,7 +291,7 @@ function LabelCounter (d3) {
      * @param key {string} Label type
      */
     this.decrement = function (key) {
-        if(svl.isOnboarding()) {
+        if (svl.isOnboarding()) {
             $(document).trigger('RemoveLabel');
         }
 
@@ -302,11 +302,7 @@ function LabelCounter (d3) {
         update(key);
 
         svl.statusFieldOverall.decrementLabelCount();
-        if ("labelContainer" in svl) {
-            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId) - 1;
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        }
+        svl.statusFieldNeighborhood.decrementLabelCount();
 
     };
 
@@ -322,11 +318,7 @@ function LabelCounter (d3) {
         }
 
         svl.statusFieldOverall.incrementLabelCount();
-        if ("labelContainer" in svl) {
-            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId) + 1;
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        }
+        svl.statusFieldNeighborhood.incrementLabelCount();
     };
 
     /**

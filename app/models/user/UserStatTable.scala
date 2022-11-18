@@ -211,7 +211,7 @@ object UserStatTable {
   }
 
   /**
-    * Update the accuracy column in the user_stat table for every user.
+    * Update the accuracy column in the user_stat table for the given users, or every user if list is empty.
     *
     * @param users A list of user_ids to update, update all users if list is empty.
     */
@@ -227,7 +227,7 @@ object UserStatTable {
          |FROM user_stat
          |INNER JOIN (
          |    SELECT user_id,
-         |           CAST(SUM(CASE WHEN correct THEN 1 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 END) + SUM(CASE WHEN NOT correct THEN 1 END), 0) AS new_accuracy,
+         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
          |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
          |    FROM mission
          |    INNER JOIN label ON mission.mission_id = label.mission_id
@@ -264,7 +264,7 @@ object UserStatTable {
     // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsers: List[(String, Boolean)] =
       userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-        .map(x => (x.userId, x.highQualityManual.get)).list
+        .map(x => (x.userId, false)).list
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
     // low quality are filtered out later (using results from the previous query).
@@ -405,7 +405,7 @@ object UserStatTable {
         |) "missions_and_distance" ON label_counts.$groupingColName = missions_and_distance.$groupingColName
         |LEFT JOIN (
         |    SELECT $groupingColName,
-        |           CAST(SUM(CASE WHEN correct THEN 1 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 END) + SUM(CASE WHEN NOT correct THEN 1 END), 0) AS accuracy_temp,
+        |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
         |    FROM label
         |    INNER JOIN mission ON label.mission_id = mission.mission_id

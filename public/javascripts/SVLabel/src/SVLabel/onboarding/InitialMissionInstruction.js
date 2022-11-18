@@ -34,7 +34,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
     };
 
     this._finishedInstructionForGSVLabelDisappearing = function () {
-        mapService.stopBlinkingGoogleMaps();
+        mapService.stopBlinkingMinimap();
 
         if (!svl.isOnboarding()) {
             mapService.unbindPositionUpdate(self._instructForGSVLabelDisappearing);
@@ -46,7 +46,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
             // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
             var labels = labelContainer.getCurrentLabels();
             var prev_labels = labelContainer.getPreviousLabels();
-            if (labels.length == 0) {
+            if (labels.length === 0) {
                 labels = prev_labels;
             }
             var labelCount = labels.length;
@@ -58,7 +58,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
                     tracker.push('PopUpShow_GSVLabelDisappear');
 
                     popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
-                    mapService.blinkGoogleMaps();
+                    mapService.blinkMinimap();
                 }
             }
         }
@@ -74,7 +74,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
                 self._stopBlinkingNavigationComponents();
             });
             compass.blink();
-            mapService.blinkGoogleMaps();
+            mapService.blinkMinimap();
         }
     };
     /*
@@ -119,7 +119,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
 
     this._stopBlinkingNavigationComponents = function () {
         compass.stopBlinking();
-        mapService.stopBlinkingGoogleMaps();
+        mapService.stopBlinkingMinimap();
     };
 
     this.start = function (neighborhood) {

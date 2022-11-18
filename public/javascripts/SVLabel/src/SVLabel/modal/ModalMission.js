@@ -64,10 +64,10 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
     this._handleCloseButtonClick = function () {
         mission = _missionContainer.getCurrentMission();
-        
-        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later, another 
+
+        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later, another
         // MissionStart will not be triggered
-        if(mission.getProperty("distanceProgress") < 0.0001) { 
+        if(mission.getProperty("distanceProgress") < 0.0001) {
             svl.tracker.push(
                 "MissionStart",
                 {
@@ -141,7 +141,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 uiModalMission.closeButton.css('margin-right', '30%');
                 uiModalMission.closeButton.css('margin-left', '30%');
                 uiModalMission.closeButton.css('margin-top', '30px');
-            } else if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) { // First mission
+            } else if (missionContainer.isTheFirstMission()) {
                 missionTitle = i18next.t('mission-start.title-first') + missionTitle;
                 templateHTML = initialMissionHTML;
             } else {
