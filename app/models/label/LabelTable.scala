@@ -37,6 +37,13 @@ case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanorama
                                      lat: Float, lng: Float, correct: Option[Boolean], expired: Boolean,
                                      highQualityUser: Boolean, severity: Option[Int])
 
+case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
+case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
+case class ProjectSidewalkStats(kmExplored: Float, kmExploreNoOverlap: Float, nUsers: Int, nExplorers: Int,
+                                nValidators: Int, nRegistered: Int, nAnon: Int, nTurker: Int, nResearcher: Int,
+                                nLabels: Int, severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
+                                accuracyByLabelType: Map[String, LabelAccuracy])
+
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
@@ -219,6 +226,34 @@ object LabelTable {
       r.nextStringOption.map(tags => tags.split(",").map(_.toInt).toList).getOrElse(List())
     )
   )
+
+  implicit val projectSidewalkStatsConverter = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
+    r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+    Map(
+      "CurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "NoCurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Obstacle" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "SurfaceProblem" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "NoSidewalk" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Crosswalk" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Signal" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Occlusion" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Other" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption)
+    ),
+    r.nextInt,
+    Map(
+      "Overall" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "CurbRamp" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "NoCurbRamp" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Obstacle" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "SurfaceProblem" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "NoSidewalk" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Crosswalk" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Signal" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Occlusion" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Other" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption)
+    )
+  ))
 
   // Valid label type ids for the /validate -- excludes Other and Occlusion labels.
   val valLabelTypeIds: List[Int] = List(1, 2, 3, 4, 7, 9, 10)
@@ -1118,6 +1153,231 @@ object LabelTable {
         |   AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL;""".stripMargin
     )
     labelsInRegionQuery.list
+  }
+
+  def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>
+    // We use a different filter in all the sub-queries, depending on whether or not we filter out low quality data.
+    val userFilter: String =
+      if (filterLowQuality) "user_stat.high_quality"
+      else "NOT user_stat.excluded"
+
+    val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
+      s"""SELECT km_audited.km_audited AS km_audited,
+         |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
+         |       users.total_users,
+         |       users.audit_users,
+         |       users.validation_users,
+         |       users.registered_users,
+         |       users.anon_users,
+         |       users.turker_users,
+         |       users.researcher_users,
+         |       label_counts_and_severity.label_count,
+         |       label_counts_and_severity.n_ramp,
+         |       label_counts_and_severity.n_ramp_with_sev,
+         |       label_counts_and_severity.ramp_sev_mean,
+         |       label_counts_and_severity.ramp_sev_sd,
+         |       label_counts_and_severity.n_noramp,
+         |       label_counts_and_severity.n_noramp_with_sev,
+         |       label_counts_and_severity.noramp_sev_mean,
+         |       label_counts_and_severity.noramp_sev_sd,
+         |       label_counts_and_severity.n_obs,
+         |       label_counts_and_severity.n_obs_with_sev,
+         |       label_counts_and_severity.obs_sev_mean,
+         |       label_counts_and_severity.obs_sev_sd,
+         |       label_counts_and_severity.n_surf,
+         |       label_counts_and_severity.n_surf_with_sev,
+         |       label_counts_and_severity.surf_sev_mean,
+         |       label_counts_and_severity.surf_sev_sd,
+         |       label_counts_and_severity.n_nosidewalk,
+         |       label_counts_and_severity.n_nosidewalk_with_sev,
+         |       label_counts_and_severity.nosidewalk_sev_mean,
+         |       label_counts_and_severity.nosidewalk_sev_sd,
+         |       label_counts_and_severity.n_crswlk,
+         |       label_counts_and_severity.n_crswlk_with_sev,
+         |       label_counts_and_severity.crswlk_sev_mean,
+         |       label_counts_and_severity.crswlk_sev_sd,
+         |       label_counts_and_severity.n_signal,
+         |       0 AS signal_with_sev,
+         |       NULL AS signal_sev_mean,
+         |       NULL AS signal_sev_sd,
+         |       label_counts_and_severity.n_occlusion,
+         |       0 AS occlusion_with_sev,
+         |       NULL AS occlusion_sev_mean,
+         |       NULL AS occlusion_sev_sd,
+         |       label_counts_and_severity.n_other,
+         |       label_counts_and_severity.n_other_with_sev,
+         |       label_counts_and_severity.other_sev_mean,
+         |       label_counts_and_severity.other_sev_sd,
+         |       total_val_count.validation_count,
+         |       val_counts.n_validated,
+         |       val_counts.n_agree,
+         |       val_counts.n_disagree,
+         |       1.0 * val_counts.n_agree / NULLIF(val_counts.n_validated, 0) AS overall_accuracy,
+         |       val_counts.n_ramp_total,
+         |       val_counts.n_ramp_agree,
+         |       val_counts.n_ramp_disagree,
+         |       1.0 * val_counts.n_ramp_agree / NULLIF(val_counts.n_ramp_total, 0) AS ramp_accuracy,
+         |       val_counts.n_noramp_total,
+         |       val_counts.n_noramp_agree,
+         |       val_counts.n_noramp_disagree,
+         |       1.0 * val_counts.n_noramp_agree / NULLIF(val_counts.n_noramp_total, 0) AS noramp_accuracy,
+         |       val_counts.n_obs_total,
+         |       val_counts.n_obs_agree,
+         |       val_counts.n_obs_disagree,
+         |       1.0 * val_counts.n_obs_agree / NULLIF(val_counts.n_obs_total, 0) AS obs_accuracy,
+         |       val_counts.n_surf_total,
+         |       val_counts.n_surf_agree,
+         |       val_counts.n_surf_disagree,
+         |       1.0 * val_counts.n_surf_agree / NULLIF(val_counts.n_surf_total, 0) AS surf_accuracy,
+         |       val_counts.n_nosidewalk_total,
+         |       val_counts.n_nosidewalk_agree,
+         |       val_counts.n_nosidewalk_disagree,
+         |       1.0 * val_counts.n_nosidewalk_agree / NULLIF(val_counts.n_nosidewalk_total, 0) AS nosidewalk_accuracy,
+         |       val_counts.n_crswlk_total,
+         |       val_counts.n_crswlk_agree,
+         |       val_counts.n_crswlk_disagree,
+         |       1.0 * val_counts.n_crswlk_agree / NULLIF(val_counts.n_crswlk_total, 0) AS crswlk_accuracy,
+         |       val_counts.n_signal_total,
+         |       val_counts.n_signal_agree,
+         |       val_counts.n_signal_disagree,
+         |       1.0 * val_counts.n_signal_agree / NULLIF(val_counts.n_signal_total, 0) AS signal_accuracy,
+         |       val_counts.n_occlusion_total,
+         |       val_counts.n_occlusion_agree,
+         |       val_counts.n_occlusion_disagree,
+         |       1.0 * val_counts.n_occlusion_agree / NULLIF(val_counts.n_occlusion_total, 0) AS occlusion_accuracy,
+         |       val_counts.n_other_total,
+         |       val_counts.n_other_agree,
+         |       val_counts.n_other_disagree,
+         |       1.0 * val_counts.n_other_agree / NULLIF(val_counts.n_other_total, 0) AS other_accuracy
+         |FROM (
+         |    SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+         |    FROM street_edge
+         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |    INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+         |    WHERE completed = TRUE AND $userFilter
+         |) AS km_audited, (
+         |    SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
+         |    FROM (
+         |        SELECT DISTINCT street_edge.street_edge_id, geom
+         |        FROM street_edge
+         |        INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |        INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+         |        WHERE completed = TRUE AND $userFilter
+         |    ) distinct_streets
+         |) AS km_audited_no_overlap, (
+         |    SELECT COUNT(DISTINCT(users.user_id)) AS total_users,
+         |           COUNT(CASE WHEN mission_type = 'validation' THEN 1 END) AS validation_users,
+         |           COUNT(CASE WHEN mission_type = 'audit' THEN 1 END) AS audit_users,
+         |           COUNT(DISTINCT(CASE WHEN role = 'Registered' THEN user_id END)) AS registered_users,
+         |           COUNT(DISTINCT(CASE WHEN role = 'Anonymous' THEN user_id END)) AS anon_users,
+         |           COUNT(DISTINCT(CASE WHEN role = 'Turker' THEN user_id END)) AS turker_users,
+         |           COUNT(DISTINCT(CASE WHEN role IN ('Researcher', 'Administrator', 'Owner') THEN user_id END)) AS researcher_users
+         |    FROM (
+         |        SELECT users_with_type.user_id, mission_type, role.role
+         |        FROM (
+         |            SELECT DISTINCT(label_validation.user_id), 'validation' AS mission_type
+         |            FROM label_validation
+         |            UNION
+         |            SELECT DISTINCT(user_id), 'audit' AS mission_type
+         |            FROM audit_task
+         |            WHERE audit_task.completed = TRUE
+         |        ) users_with_type
+         |        INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
+         |        INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
+         |        INNER JOIN role ON user_role.role_id = role.role_id
+         |        WHERE $userFilter
+         |    ) users
+         |) AS users, (
+         |    SELECT COUNT(*) AS label_count,
+         |           COUNT(CASE WHEN label_type.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
+         |           COUNT(CASE WHEN label_type.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN 1 END) AS n_noramp,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoCurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_noramp_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'Obstacle' THEN 1 END) AS n_obs,
+         |           COUNT(CASE WHEN label_type.label_type = 'Obstacle' AND severity IS NOT NULL THEN 1 END) AS n_obs_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'Obstacle' THEN severity END) AS obs_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'Obstacle' THEN severity END) AS obs_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN 1 END) AS n_surf,
+         |           COUNT(CASE WHEN label_type.label_type = 'SurfaceProblem' AND severity IS NOT NULL THEN 1 END) AS n_surf_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoSidewalk' THEN 1 END) AS n_nosidewalk,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoSidewalk' AND severity IS NOT NULL THEN 1 END) AS n_nosidewalk_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'NoSidewalk' THEN severity END) AS nosidewalk_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'NoSidewalk' THEN severity END) AS nosidewalk_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'Crosswalk' THEN 1 END) AS n_crswlk,
+         |           COUNT(CASE WHEN label_type.label_type = 'Crosswalk' AND severity IS NOT NULL THEN 1 END) AS n_crswlk_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'Signal' THEN 1 END) AS n_signal,
+         |           COUNT(CASE WHEN label_type.label_type = 'Occlusion' THEN 1 END) AS n_occlusion,
+         |           COUNT(CASE WHEN label_type.label_type = 'Other' THEN 1 END) AS n_other,
+         |           COUNT(CASE WHEN label_type.label_type = 'Other' AND severity IS NOT NULL THEN 1 END) AS n_other_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_sd
+         |    FROM label
+         |    INNER JOIN mission ON label.mission_id = mission.mission_id
+         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         |    WHERE $userFilter
+         |        AND deleted = FALSE
+         |        AND tutorial = FALSE
+         |        AND label.street_edge_id <> $tutorialStreetId
+         |        AND audit_task.street_edge_id <> $tutorialStreetId
+         |) AS label_counts_and_severity, (
+         |    SELECT COUNT(*) AS validation_count
+         |    FROM label_validation
+         |    INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+         |    WHERE $userFilter
+         |) AS total_val_count, (
+         |    SELECT COUNT(CASE WHEN correct THEN 1 END) AS n_agree,
+         |           COUNT(CASE WHEN NOT correct THEN 1 END) AS n_disagree,
+         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS n_validated,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS n_ramp_agree,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS n_ramp_disagree,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_ramp_total,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS n_noramp_agree,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS n_noramp_disagree,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_noramp_total,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS n_obs_agree,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS n_obs_disagree,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NOT NULL THEN 1 END) AS n_obs_total,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS n_surf_agree,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS n_surf_disagree,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NOT NULL THEN 1 END) AS n_surf_total,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS n_nosidewalk_agree,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS n_nosidewalk_disagree,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NOT NULL THEN 1 END) AS n_nosidewalk_total,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS n_crswlk_agree,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS n_crswlk_disagree,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NOT NULL THEN 1 END) AS n_crswlk_total,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS n_signal_agree,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS n_signal_disagree,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND correct IS NOT NULL THEN 1 END) AS n_signal_total,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS n_occlusion_agree,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS n_occlusion_disagree,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NOT NULL THEN 1 END) AS n_occlusion_total,
+         |           COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS n_other_agree,
+         |           COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS n_other_disagree,
+         |           COUNT(CASE WHEN label_type = 'Other' AND correct IS NOT NULL THEN 1 END) AS n_other_total
+         |    FROM label
+         |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |    INNER JOIN mission ON label.mission_id = mission.mission_id
+         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         |    WHERE $userFilter
+         |        AND deleted = FALSE
+         |        AND tutorial = FALSE
+         |        AND label.street_edge_id <> $tutorialStreetId
+         |        AND audit_task.street_edge_id <> $tutorialStreetId
+         |) AS val_counts;""".stripMargin
+    )
+    overallStatsQuery.first
   }
 
   /**
