@@ -13,6 +13,8 @@
     width: 25px;
 }
 
+.severity-filter-image:hover svg { fill: green; }
+
 .severity-filter {
     display: flex;
     flex-direction: column;

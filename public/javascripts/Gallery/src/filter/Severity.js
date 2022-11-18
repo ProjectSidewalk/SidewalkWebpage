@@ -32,17 +32,25 @@ function Severity (params, active){
         severityElement = document.createElement('div');
         severityElement.className = 'severity-filter gallery-filter';
 
-        severityImage = document.createElement('img');
-        severityImage.className = 'severity-filter-image';
+        // severityImage = document.createElement('img');
+        // severityImage.className = 'severity-filter-image';
+        // severityImage.id = properties.severity;
+        // severityImage.innerText = properties.severity;
+
+        severityImage = $(`.severity-filter-image.template.severity-${properties.severity}`).clone();
+        severityImage.removeClass('template');
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
-        if (filterActive) {
-            _showSelected();
-        } else {
-            _showDeselected();
-        }
 
-        severityElement.appendChild(severityImage);
+        // severityImage = $('<svg viewBox="0 0 24 24"><use xlink:href="#smile-negative"></use></svg>');
+
+        // if (filterActive) {
+        //     _showSelected();
+        // } else {
+        //     _showDeselected();
+        // }
+
+        $(severityElement).append(severityImage);
 
         // Show inverted smiley face on click or hover.
         severityElement.onclick = handleOnClickCallback;
