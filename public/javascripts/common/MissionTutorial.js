@@ -1,500 +1,49 @@
-function MissionTutorial() {
+/**
+ * Provides structure for a slide based tutorial framework.
+ *
+ * @param tutorialDescriptor
+ * Important JSON descriptor that defines the mission screens for all Label types.
+ * Each key in this object is a LabelType.
+ * And each value object contains the following:
+ *     - missionInstruction1: Text to be shown at the very top, above the slides area.
+ *     - missionInstruction2: Text to be shown below missionInstruction1, above the slides area.
+ *     - slides: An array of 'slides'.
+ *
+ *     Each 'slide' contains the following:
+ *         - isExampleCorrect: boolean, indicating whether the example type is correct or incorrect.
+ *         - exampleTypeLabel: string, text indicating whether the example type is correct or incorrect.
+ *         - exampleTypeIcon: string, ID of the SVG icon to be shown. A symbol with this ID should be present
+ *                            in icons.scala.html.
+ *         - slideTitle: string, title for the slide.
+ *         - slideSubtitle: string, subtitle for the slide.
+ *         - slideDescription: string, long form text description for the slide.
+ *         - imageURL: string, URL to the image to be shown.
+ *         - onImageLabel: object, containg the following:
+ *             - title: string, title for the on-image label
+ *             - description: string, description for the on-image label.
+ *             - position: object, containing 'top' and 'left' attributes for the on-image label.
+ *                         The 'top' and 'left' must be defined with respect to the top and left
+ *                         of the 'image element.'
+ *
+ * @constructor
+ */
+function MissionTutorial(tutorialDescriptor) {
     let self = this;
-
-    const tutorialDescriptor = {
-        'CurbRamp': {
-            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
-            'missionInstruction2': i18next.t('mission-tutorial.curb-ramp.instruction'),
-            'slides': [
-                {
-                    'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
-                    'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('mission-tutorial.curb-ramp.slide-1.title'),
-                    'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.curb-ramp.slide-1.description'),
-                    'imageURL': 'assets/images/tutorials/curbramp-correct-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
-                        'position' : {
-                            'left': '238px',
-                            'top': '222px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.curb-ramp.slide-2.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.curb-ramp.slide-2.description'),
-                    'imageURL': 'assets/images/tutorials/curbramp-incorrect-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '466px',
-                            'top': '257px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.curb-ramp.slide-3.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.curb-ramp.slide-3.description'),
-                    'imageURL': 'assets/images/tutorials/curbramp-incorrect-2.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '435px',
-                            'top': '257px'
-                        }
-                    }
-                }
-            ]
-        },
-        'NoCurbRamp': {
-            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
-            'missionInstruction2': i18next.t('mission-tutorial.no-curb-ramp.instruction'),
-            'slides': [
-                {
-                    'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
-                    'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-1.title'),
-                    'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-1.description'),
-                    'imageURL': 'assets/images/tutorials/no-curbramp-correct-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
-                        'position' : {
-                            'left': '393px',
-                            'top': '157px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-2.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-2.description'),
-                    'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '325px',
-                            'top': '250px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-3.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-3.description'),
-                    'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-2.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '397px',
-                            'top': '320px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-4.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-4.description'),
-                    'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-3.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '326px',
-                            'top': '302px'
-                        }
-                    }
-                }
-            ]
-        },
-        'Obstacle': {
-            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
-            'missionInstruction2': i18next.t('mission-tutorial.obstacle.instruction'),
-            'slides': [
-                {
-                    'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
-                    'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-1.title'),
-                    'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-1.description'),
-                    'imageURL': 'assets/images/tutorials/obstacle-correct-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
-                        'position' : {
-                            'left': '269px',
-                            'top': '301px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-2.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-2.description'),
-                    'imageURL': 'assets/images/tutorials/obstacle-incorrect-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '397px',
-                            'top': '286px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-3.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-3.description'),
-                    'imageURL': 'assets/images/tutorials/obstacle-incorrect-2.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '79.5px',
-                            'top': '112px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.obstacle.slide-4.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.obstacle.slide-4.description'),
-                    'imageURL': 'assets/images/tutorials/obstacle-incorrect-3.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '415px',
-                            'top': '187px'
-                        }
-                    }
-                }
-            ]
-        },
-        'SurfaceProblem': {
-            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
-            'missionInstruction2': i18next.t('mission-tutorial.surface-problem.instruction'),
-            'slides': [
-                {
-                    'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
-                    'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('mission-tutorial.surface-problem.slide-1.title'),
-                    'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.surface-problem.slide-1.description'),
-                    'imageURL': 'assets/images/tutorials/surface-problem-correct-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
-                        'position' : {
-                            'left': '458px',
-                            'top': '203px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.surface-problem.slide-2.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.surface-problem.slide-2.description'),
-                    'imageURL': 'assets/images/tutorials/surface-problem-incorrect-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '400px',
-                            'top': '190px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.surface-problem.slide-3.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.surface-problem.slide-3.description'),
-                    'imageURL': 'assets/images/tutorials/surface-problem-incorrect-2.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '334px',
-                            'top': '221px'
-                        }
-                    }
-                }
-            ]
-        },
-        'NoSideWalk': {
-            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
-            'missionInstruction2': i18next.t('mission-tutorial.no-sidewalk.instruction'),
-            'slides': [
-                {
-                    'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
-                    'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('mission-tutorial.no-sidewalk.slide-1.title'),
-                    'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.no-sidewalk.slide-1.description'),
-                    'imageURL': 'assets/images/tutorials/no-sidewalk-correct-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
-                        'position' : {
-                            'left': '290px',
-                            'top': '132px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.no-sidewalk.slide-2.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.no-sidewalk.slide-2.description'),
-                    'imageURL': 'assets/images/tutorials/no-sidewalk-incorrect-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '352px',
-                            'top': '312px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.no-sidewalk.slide-3.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.no-sidewalk.slide-3.description'),
-                    'imageURL': 'assets/images/tutorials/no-sidewalk-incorrect-2.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '185px',
-                            'top': '299px'
-                        }
-                    }
-                }
-            ]
-        },
-        'Crosswalk': {
-            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
-            'missionInstruction2': i18next.t('mission-tutorial.crosswalk.instruction'),
-            'slides': [
-                {
-                    'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
-                    'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-1.title'),
-                    'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-1.description'),
-                    'imageURL': 'assets/images/tutorials/crosswalk-correct-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
-                        'position' : {
-                            'left': '175px',
-                            'top': '159px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-2.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-2.description'),
-                    'imageURL': 'assets/images/tutorials/crosswalk-incorrect-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '354px',
-                            'top': '241px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-3.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-3.description'),
-                    'imageURL': 'assets/images/tutorials/crosswalk-incorrect-2.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '249px',
-                            'top': '302px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.crosswalk.slide-4.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.crosswalk.slide-4.description'),
-                    'imageURL': 'assets/images/tutorials/crosswalk-incorrect-3.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '271px',
-                            'top': '102px'
-                        }
-                    }
-                }
-            ]
-        },
-        'Signal': {
-            'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
-            'missionInstruction2': i18next.t('mission-tutorial.signal.instruction'),
-            'slides': [
-                {
-                    'exampleType': 'correct',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
-                    'exampleTypeIcon': '#smile-positive',
-                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-1.title'),
-                    'labelTypeSubtitle': '',
-                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-1.description'),
-                    'imageURL': 'assets/images/tutorials/signal-correct-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
-                        'position' : {
-                            'left': '167px',
-                            'top': '325px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-2.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-2.description'),
-                    'imageURL': 'assets/images/tutorials/signal-incorrect-1.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '377px',
-                            'top': '86px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-3.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-3.description'),
-                    'imageURL': 'assets/images/tutorials/signal-incorrect-2.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '390px',
-                            'top': '203px'
-                        }
-                    }
-                },
-                {
-                    'exampleType': 'incorrect',
-                    'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
-                    'exampleTypeIcon': '#smile-negative',
-                    'labelTypeTitle': i18next.t('mission-tutorial.signal.slide-4.title'),
-                    'labelTypeSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
-                    'labelTypeDescription': i18next.t('mission-tutorial.signal.slide-4.description'),
-                    'imageURL': 'assets/images/tutorials/signal-incorrect-3.png',
-                    'onImageLabel': {
-                        'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
-                        'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
-                        'position' : {
-                            'left': '359px',
-                            'top': '332px'
-                        }
-                    }
-                }
-            ]
-        }
-    };
 
     const EXAMPLE_TYPES = {
         CORRECT: 'correct',
         INCORRECT: 'incorrect'
     };
 
-    console.log(param.labelList[0].getAuditProperty('labelType'));
+    let LabelType = param.labelList[0].getAuditProperty('labelType');
 
-    function getURLParam(name){
-        if(name=(new RegExp('[?&]'+encodeURIComponent(name)+'=([^&]*)')).exec(location.search))
-            return decodeURIComponent(name[1]);
-    }
-
-    let LabelType = param.labelList[0].getAuditProperty('labelType'); // should come as an argument
-
-    if (getURLParam('labelType')) {
-        LabelType = getURLParam('labelType');
-    }
-
+    // Initialize variables.
     let currentSlideIdx = 0;
     let nSlides = 2;
 
-    let module = {};
+    let labelTypeModule = {};
 
-    // Renders the initial mission screen and initializes the slide deck
+    // Initializes the slide deck based on the LabelType.
     function initModule(LabelType) {
 
         if (!tutorialDescriptor[LabelType]) {
@@ -502,8 +51,8 @@ function MissionTutorial() {
             console.log('Unknown labelType: ' + LabelType);
         }
 
-        module = tutorialDescriptor[LabelType];
-        nSlides = module.slides.length;
+        labelTypeModule = tutorialDescriptor[LabelType];
+        nSlides = labelTypeModule.slides.length;
     }
 
     /**
@@ -522,19 +71,27 @@ function MissionTutorial() {
             }
         }
 
-        $('.mission-instruction-1').text(module.missionInstruction1);
-        $('.mission-instruction-2').text(module.missionInstruction2);
+        $('.mission-instruction-1').text(labelTypeModule.missionInstruction1);
+        $('.mission-instruction-2').text(labelTypeModule.missionInstruction2);
 
         renderLocationIndicators();
         renderSlide(currentSlideIdx);
     }
 
     /**
-     * Renders the slide for the given idx
-     * @param idx
+     * Renders the slide for the given idx which includes setting the title, subtitle, description,
+     * image, and on-image label.
+     * - Updates the current slide indicator.
+     * - Disables/enables the next/previous buttons based on the idx of the slide rendered.
+     * @param idx Index of the slide to be rendered.
      */
     function renderSlide(idx) {
 
+        /**
+         * Renders the 'on-image label' and positions it.
+         * @param onImageLabel info about the title, description, and position of the on-image label.
+         * @param iconID ID of the SVG icon to be shown on the label.
+         */
         function renderOnImageLabel(onImageLabel, iconID) {
 
             $onImageLabel.css({'top': onImageLabel.position.top, 'left': onImageLabel.position.left});
@@ -559,28 +116,33 @@ function MissionTutorial() {
         $('.previous-slide-button, .next-slide-button').removeClass('disabled');
         $onImageLabel.hide();
 
-        const slide = module.slides[idx];
+        const slide = labelTypeModule.slides[idx];
 
-        // Adds class for both correct and incorrect examples. Note: the class names should be
-        // exactly the same in the descriptor and CSS.
-        $missionTutorialSlide.addClass(slide.exampleType);
+        if (slide.isExampleCorrect) {
+            $missionTutorialSlide.addClass('correct');
+        } else {
+            $missionTutorialSlide.addClass('incorrect');
+        }
 
+        // Set the text and the icons
         $('.example-type-label').text(slide.exampleTypeLabel);
         $('.example-type-icon').find('use').attr('xlink:href', slide.exampleTypeIcon);
 
-        $('.label-type-title').html(slide.labelTypeTitle);
-        $('.label-type-description').html(slide.labelTypeDescription);
+        // Note: we should set this as HTML as some strings may contain HTML tags.
+        $('.label-type-title').html(slide.slideTitle);
+        $('.label-type-description').html(slide.slideDescription);
 
-        if (slide.labelTypeSubtitle) {
-            $labelTypeSubtitle.html(slide.labelTypeSubtitle);
+
+        if (slide.slideSubtitle) {  // Not all slides may contain a subtitle.
+            $labelTypeSubtitle.html(slide.slideSubtitle);
         }
 
         $mtsImage.attr('src', slide.imageURL);
 
         $(`.mission-carousel-location-indicator[data-idx=${idx}]`).addClass('current-location');
 
-        // If the slide has onImageLabel, then should draw it.
-        if (slide.onImageLabel) {
+
+        if (slide.onImageLabel) { // Just a defensive check.
             renderOnImageLabel(slide.onImageLabel, slide.exampleTypeIcon);
         }
 
@@ -592,7 +154,11 @@ function MissionTutorial() {
         }
     }
 
+    /**
+     * Attaches the event handlers required for the mission screen labelTypeModule.
+     */
     function attachEventHandlers() {
+
         $('.previous-slide-button').click(function() {
             currentSlideIdx = Math.max(currentSlideIdx - 1, 0);
             renderSlide(currentSlideIdx);

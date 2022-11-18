@@ -210,7 +210,479 @@ function Main (param) {
             $(".tool-ui").css('opacity', 0.5);
         });
 
-        const missionTutorial = new MissionTutorial();
+        // Validate mission tutorial descriptor.
+        // See MissionTutorial.js for documentation.
+        const tutorialDescriptor = {
+            'CurbRamp': {
+                'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+                'missionInstruction2': i18next.t('mission-tutorial.curb-ramp.instruction'),
+                'slides': [
+                    {
+                        'isExampleCorrect': true,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
+                        'exampleTypeIcon': '#smile-positive',
+                        'slideTitle': i18next.t('mission-tutorial.curb-ramp.slide-1.title'),
+                        'slideSubtitle': '',
+                        'slideDescription': i18next.t('mission-tutorial.curb-ramp.slide-1.description'),
+                        'imageURL': 'assets/images/tutorials/curbramp-correct-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
+                            'position' : {
+                                'left': '238px',
+                                'top': '222px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.curb-ramp.slide-2.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.curb-ramp.slide-2.description'),
+                        'imageURL': 'assets/images/tutorials/curbramp-incorrect-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '466px',
+                                'top': '257px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.curb-ramp.slide-3.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.curb-ramp.slide-3.description'),
+                        'imageURL': 'assets/images/tutorials/curbramp-incorrect-2.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '435px',
+                                'top': '257px'
+                            }
+                        }
+                    }
+                ]
+            },
+            'NoCurbRamp': {
+                'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+                'missionInstruction2': i18next.t('mission-tutorial.no-curb-ramp.instruction'),
+                'slides': [
+                    {
+                        'isExampleCorrect': true,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
+                        'exampleTypeIcon': '#smile-positive',
+                        'slideTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-1.title'),
+                        'slideSubtitle': '',
+                        'slideDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-1.description'),
+                        'imageURL': 'assets/images/tutorials/no-curbramp-correct-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
+                            'position' : {
+                                'left': '393px',
+                                'top': '157px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-2.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-2.description'),
+                        'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '325px',
+                                'top': '250px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-3.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-3.description'),
+                        'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-2.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '397px',
+                                'top': '320px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.no-curb-ramp.slide-4.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.no-curb-ramp.slide-4.description'),
+                        'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-3.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '326px',
+                                'top': '302px'
+                            }
+                        }
+                    }
+                ]
+            },
+            'Obstacle': {
+                'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+                'missionInstruction2': i18next.t('mission-tutorial.obstacle.instruction'),
+                'slides': [
+                    {
+                        'isExampleCorrect': true,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
+                        'exampleTypeIcon': '#smile-positive',
+                        'slideTitle': i18next.t('mission-tutorial.obstacle.slide-1.title'),
+                        'slideSubtitle': '',
+                        'slideDescription': i18next.t('mission-tutorial.obstacle.slide-1.description'),
+                        'imageURL': 'assets/images/tutorials/obstacle-correct-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
+                            'position' : {
+                                'left': '269px',
+                                'top': '301px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.obstacle.slide-2.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.obstacle.slide-2.description'),
+                        'imageURL': 'assets/images/tutorials/obstacle-incorrect-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '397px',
+                                'top': '286px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.obstacle.slide-3.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.obstacle.slide-3.description'),
+                        'imageURL': 'assets/images/tutorials/obstacle-incorrect-2.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '79.5px',
+                                'top': '112px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.obstacle.slide-4.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.obstacle.slide-4.description'),
+                        'imageURL': 'assets/images/tutorials/obstacle-incorrect-3.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '415px',
+                                'top': '187px'
+                            }
+                        }
+                    }
+                ]
+            },
+            'SurfaceProblem': {
+                'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+                'missionInstruction2': i18next.t('mission-tutorial.surface-problem.instruction'),
+                'slides': [
+                    {
+                        'isExampleCorrect': true,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
+                        'exampleTypeIcon': '#smile-positive',
+                        'slideTitle': i18next.t('mission-tutorial.surface-problem.slide-1.title'),
+                        'slideSubtitle': '',
+                        'slideDescription': i18next.t('mission-tutorial.surface-problem.slide-1.description'),
+                        'imageURL': 'assets/images/tutorials/surface-problem-correct-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
+                            'position' : {
+                                'left': '458px',
+                                'top': '203px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.surface-problem.slide-2.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.surface-problem.slide-2.description'),
+                        'imageURL': 'assets/images/tutorials/surface-problem-incorrect-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '400px',
+                                'top': '190px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.surface-problem.slide-3.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.surface-problem.slide-3.description'),
+                        'imageURL': 'assets/images/tutorials/surface-problem-incorrect-2.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '334px',
+                                'top': '221px'
+                            }
+                        }
+                    }
+                ]
+            },
+            'NoSideWalk': {
+                'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+                'missionInstruction2': i18next.t('mission-tutorial.no-sidewalk.instruction'),
+                'slides': [
+                    {
+                        'isExampleCorrect': true,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
+                        'exampleTypeIcon': '#smile-positive',
+                        'slideTitle': i18next.t('mission-tutorial.no-sidewalk.slide-1.title'),
+                        'slideSubtitle': '',
+                        'slideDescription': i18next.t('mission-tutorial.no-sidewalk.slide-1.description'),
+                        'imageURL': 'assets/images/tutorials/no-sidewalk-correct-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
+                            'position' : {
+                                'left': '290px',
+                                'top': '132px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.no-sidewalk.slide-2.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.no-sidewalk.slide-2.description'),
+                        'imageURL': 'assets/images/tutorials/no-sidewalk-incorrect-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '352px',
+                                'top': '312px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.no-sidewalk.slide-3.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.no-sidewalk.slide-3.description'),
+                        'imageURL': 'assets/images/tutorials/no-sidewalk-incorrect-2.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '185px',
+                                'top': '299px'
+                            }
+                        }
+                    }
+                ]
+            },
+            'Crosswalk': {
+                'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+                'missionInstruction2': i18next.t('mission-tutorial.crosswalk.instruction'),
+                'slides': [
+                    {
+                        'isExampleCorrect': true,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
+                        'exampleTypeIcon': '#smile-positive',
+                        'slideTitle': i18next.t('mission-tutorial.crosswalk.slide-1.title'),
+                        'slideSubtitle': '',
+                        'slideDescription': i18next.t('mission-tutorial.crosswalk.slide-1.description'),
+                        'imageURL': 'assets/images/tutorials/crosswalk-correct-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
+                            'position' : {
+                                'left': '175px',
+                                'top': '159px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.crosswalk.slide-2.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.crosswalk.slide-2.description'),
+                        'imageURL': 'assets/images/tutorials/crosswalk-incorrect-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '354px',
+                                'top': '241px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.crosswalk.slide-3.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.crosswalk.slide-3.description'),
+                        'imageURL': 'assets/images/tutorials/crosswalk-incorrect-2.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '249px',
+                                'top': '302px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.crosswalk.slide-4.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.crosswalk.slide-4.description'),
+                        'imageURL': 'assets/images/tutorials/crosswalk-incorrect-3.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '271px',
+                                'top': '102px'
+                            }
+                        }
+                    }
+                ]
+            },
+            'Signal': {
+                'missionInstruction1': i18next.t('mission-tutorial.mission-instruction-1'),
+                'missionInstruction2': i18next.t('mission-tutorial.signal.instruction'),
+                'slides': [
+                    {
+                        'isExampleCorrect': true,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-correct'),
+                        'exampleTypeIcon': '#smile-positive',
+                        'slideTitle': i18next.t('mission-tutorial.signal.slide-1.title'),
+                        'slideSubtitle': '',
+                        'slideDescription': i18next.t('mission-tutorial.signal.slide-1.description'),
+                        'imageURL': 'assets/images/tutorials/signal-correct-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-correct'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-correct'),
+                            'position' : {
+                                'left': '167px',
+                                'top': '325px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.signal.slide-2.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.signal.slide-2.description'),
+                        'imageURL': 'assets/images/tutorials/signal-incorrect-1.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '377px',
+                                'top': '86px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.signal.slide-3.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.signal.slide-3.description'),
+                        'imageURL': 'assets/images/tutorials/signal-incorrect-2.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '390px',
+                                'top': '203px'
+                            }
+                        }
+                    },
+                    {
+                        'isExampleCorrect': false,
+                        'exampleTypeLabel': i18next.t('mission-tutorial.example-type-label-incorrect'),
+                        'exampleTypeIcon': '#smile-negative',
+                        'slideTitle': i18next.t('mission-tutorial.signal.slide-4.title'),
+                        'slideSubtitle': i18next.t('mission-tutorial.label-type-subtitle'),
+                        'slideDescription': i18next.t('mission-tutorial.signal.slide-4.description'),
+                        'imageURL': 'assets/images/tutorials/signal-incorrect-3.png',
+                        'onImageLabel': {
+                            'title': i18next.t('mission-tutorial.on-image-label-title-incorrect'),
+                            'description': i18next.t('mission-tutorial.on-image-label-description-incorrect'),
+                            'position' : {
+                                'left': '359px',
+                                'top': '332px'
+                            }
+                        }
+                    }
+                ]
+            }
+        };
+
+        const missionTutorial = new MissionTutorial(tutorialDescriptor);
     }
 
     // Gets all the text on the validation page for the correct language.
