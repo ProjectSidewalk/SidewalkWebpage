@@ -682,7 +682,13 @@ function Main (param) {
             }
         };
 
-        const missionTutorial = new MissionTutorial(tutorialDescriptor);
+        // svv.labelTypeNames[mission.getProperty("labelTypeId")];
+        const LabelType = param.labelList[0].getAuditProperty('labelType');
+
+        // Defensive check to prevent unexpected errors.
+        if (tutorialDescriptor[LabelType]) {
+            const missionTutorial = new MissionTutorial(tutorialDescriptor[LabelType]);
+        }
     }
 
     // Gets all the text on the validation page for the correct language.

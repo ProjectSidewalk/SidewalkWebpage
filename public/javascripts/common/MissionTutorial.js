@@ -1,10 +1,8 @@
 /**
  * Provides structure for a slide based tutorial framework.
  *
- * @param tutorialDescriptor
- * Important JSON descriptor that defines the mission screens for all Label types.
- * Each key in this object is a LabelType.
- * And each value object contains the following:
+ * @param labelTypeModule
+ * This object contains the following:
  *     - missionInstruction1: Text to be shown at the very top, above the slides area.
  *     - missionInstruction2: Text to be shown below missionInstruction1, above the slides area.
  *     - slides: An array of 'slides'.
@@ -18,7 +16,7 @@
  *         - slideSubtitle: string, subtitle for the slide.
  *         - slideDescription: string, long form text description for the slide.
  *         - imageURL: string, URL to the image to be shown.
- *         - onImageLabel: object, containg the following:
+ *         - onImageLabel: object, containing the following:
  *             - title: string, title for the on-image label
  *             - description: string, description for the on-image label.
  *             - position: object, containing 'top' and 'left' attributes for the on-image label.
@@ -27,7 +25,7 @@
  *
  * @constructor
  */
-function MissionTutorial(tutorialDescriptor) {
+function MissionTutorial(labelTypeModule) {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -35,25 +33,12 @@ function MissionTutorial(tutorialDescriptor) {
         INCORRECT: 'incorrect'
     };
 
+    // @mikey, Is this the right method to get the LabelType?
     let LabelType = param.labelList[0].getAuditProperty('labelType');
 
     // Initialize variables.
     let currentSlideIdx = 0;
-    let nSlides = 2;
-
-    let labelTypeModule = {};
-
-    // Initializes the slide deck based on the LabelType.
-    function initModule(LabelType) {
-
-        if (!tutorialDescriptor[LabelType]) {
-            // Log here
-            console.log('Unknown labelType: ' + LabelType);
-        }
-
-        labelTypeModule = tutorialDescriptor[LabelType];
-        nSlides = labelTypeModule.slides.length;
-    }
+    let nSlides = labelTypeModule.slides.length;
 
     /**
      * Initializes the UI for the mission screens.
@@ -115,6 +100,7 @@ function MissionTutorial(tutorialDescriptor) {
         $labelTypeSubtitle.text('');
         $('.previous-slide-button, .next-slide-button').removeClass('disabled');
         $onImageLabel.hide();
+        $('.mission-tutorial-done-btn').removeClass('focus');
 
         const slide = labelTypeModule.slides[idx];
 
@@ -150,6 +136,7 @@ function MissionTutorial(tutorialDescriptor) {
         if (idx === 0) {
             $('.previous-slide-button').addClass('disabled');
         } else if (idx === nSlides - 1) {
+            $('.mission-tutorial-done-btn').addClass('focus');
             $('.next-slide-button').addClass('disabled');
         }
     }
@@ -175,7 +162,6 @@ function MissionTutorial(tutorialDescriptor) {
         });
     }
 
-    initModule(LabelType);
     initUI();
     attachEventHandlers();
 

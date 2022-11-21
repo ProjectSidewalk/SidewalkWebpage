@@ -94,6 +94,10 @@
     margin-left: 30px;
 }
 
+.next-slide-button.disabled, .previous-slide-button.disabled {
+    visibility: hidden;
+}
+
 .mission-tutorial-slide {
     height: 436px;
     display: flex;
@@ -152,10 +156,26 @@
     justify-content: center;
     align-items: center;
     cursor: pointer;
+    transition: all 2s;
 }
 
 .mission-tutorial-done-btn:hover {
     background: #ffc342;
+}
+
+@keyframes pulsate {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(0.9); }
+    50%  { transform: scale(1); }
+    50%  { transform: scale(1.1); }
+}
+
+/*We can do something to get attention after the user goes through all the slides*/
+.mission-tutorial-done-btn.focus {
+    animation: pulsate;
+    animation-duration: 2s;
+    animation-iteration-count: 3;
+    animation-delay: 1s;
 }
 
 .mts-image-area {
@@ -185,7 +205,7 @@
     min-height: 83px;
     min-width: 157px;
     max-height: 98px;
-    max-width: 167px;
+    max-width: 220px;
 }
 
 /* correct/incorrect classes are added to the slide element */
@@ -199,7 +219,7 @@
 }
 
 .on-image-label-type {
-    margin: 12px 12px 10px 12px;
+    margin: 12px 8px;
     display: flex;
     align-items: center;
 }
@@ -209,7 +229,7 @@
     width: 24px;
     fill: none;
     display: flex;
-    margin-right: 5px;
+    margin-right: 3px;
 }
 
 .correct .on-image-label-type-icon {
@@ -226,7 +246,7 @@
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 0;
-    margin-left: 5px;
+    margin-left: 3px;
 }
 
 .correct .on-image-label-type-title {
