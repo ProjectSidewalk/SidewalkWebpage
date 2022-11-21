@@ -42,13 +42,11 @@ function Severity (params, active){
         severityImage.id = properties.severity;
         severityImage.innerText = properties.severity;
 
-        // severityImage = $('<svg viewBox="0 0 24 24"><use xlink:href="#smile-negative"></use></svg>');
-
-        // if (filterActive) {
-        //     _showSelected();
-        // } else {
-        //     _showDeselected();
-        // }
+        if (filterActive) {
+            _showSelected();
+        } else {
+            _showDeselected();
+        }
 
         $(severityElement).append(severityImage);
 
@@ -76,11 +74,11 @@ function Severity (params, active){
     }
 
     function _showSelected() {
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted_green.png`;
+        $(severityImage).addClass('selected');
     }
 
     function _showDeselected() {
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_default.png`;
+        $(severityImage).removeClass('selected');
     }
 
     /**
