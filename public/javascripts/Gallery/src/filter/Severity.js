@@ -32,10 +32,6 @@ function Severity (params, active){
         severityElement = document.createElement('div');
         severityElement.className = 'severity-filter gallery-filter';
 
-        // severityImage = document.createElement('img');
-        // severityImage.className = 'severity-filter-image';
-        // severityImage.id = properties.severity;
-        // severityImage.innerText = properties.severity;
 
         severityImage = $(`.severity-filter-image.template.severity-${properties.severity}`).clone();
         severityImage.removeClass('template');

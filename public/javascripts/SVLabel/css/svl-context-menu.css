@@ -35,9 +35,6 @@
 
 #severity-menu .radio-inline {
     font-size: 10pt;
-    padding-bottom: 5px;
-    padding-left: 27px;
-    margin-left: 3px;
     text-align: center;
 }
 
@@ -50,22 +47,40 @@
 #severity-menu #column-not-passable, #severity-menu #column-passable {
     cursor: default;
     position: relative;
-    top: 8px;
-    margin-left: 0;
     padding: 5px;
     text-align: center;
 }
 
 #severity-menu .radio-inline label {
     position: relative;
-
+    margin: 0;
+    cursor: pointer;
 }
 
-#severity-menu .radio-inline label div {
+#severity-menu .severity-level {
+    padding: 5px;
+    margin: 5px;
+}
+
+.severity-level .severity-icon {
+    height: 25px;
+    width: 25px;
+    pointer-events: none;
+}
+
+.severity-level .severity-icon svg {
+    fill: white;
+}
+
+#severity-menu .radio-inline label div.severity-label {
     font-weight: 600;
-    left: -14px;
     position: relative;
-    top: 25px;
+}
+
+#severity-radio-holder {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 #severity-radio-holder span {
@@ -81,6 +96,10 @@
 #severity-radio-holder > .radio-inline > label > input {
     visibility: hidden;
     position: absolute;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    left: 0;
 }
 
 #severity-radio-holder > .radio-inline > .example-image > label > input + img {

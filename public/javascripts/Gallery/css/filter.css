@@ -16,6 +16,22 @@
 .severity-filter-image svg { fill: white; }
 .severity-filter-image.selected svg { fill: #78C8AA; }
 
+.severity-filter-image.highlight svg {
+    fill: #78C8AA;
+}
+
+.severity-filter-image.highlight .face-outline {
+    stroke: #2D2A3F;
+}
+
+.severity-filter-image.highlight svg {
+    fill: #2D2A3F;
+}
+
+.severity-filter-image.highlight svg .facial-feature {
+    fill: white !important;
+}
+
 .severity-filter {
     display: flex;
     flex-direction: column;
