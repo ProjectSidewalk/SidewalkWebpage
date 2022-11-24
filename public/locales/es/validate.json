@@ -145,15 +145,15 @@
     "info-title-crosswalk": "¿Qué es un Cruce Peatonal?",
     "info-title-signal": "¿Qué es un Semáforo Peatonal?"
   },
-  "mission-tutorial": {
-    "mission-instruction-1": "TU MISIÓN",
+  "mission-start-tutorial": {
+    "mst-instruction-1": "TU MISIÓN",
     "example-type-label-correct": "EJEMPLO CORRECTO",
     "example-type-label-incorrect": "EJEMPLO INCORRECTO",
     "label-type-subtitle": "¿Por qué está mal?",
-    "on-image-label-title-correct": "etiqueta correcta",
-    "on-image-label-title-incorrect": "etiqueta incorrecta",
-    "on-image-label-description-correct": "Marcar <b>de acuerdo</b>",
-    "on-image-label-description-incorrect": "Marca <b>en desacuerdo</b>",
+    "label-on-image-title-correct": "etiqueta correcta",
+    "label-on-image-title-incorrect": "etiqueta incorrecta",
+    "label-on-image-description-correct": "Marcar <b>de acuerdo</b>",
+    "label-on-image-description-incorrect": "Marca <b>en desacuerdo</b>",
     "curb-ramp": {
       "instruction": "Validar 10 etiquetas de rampa de bordillo",
       "slide-1": {

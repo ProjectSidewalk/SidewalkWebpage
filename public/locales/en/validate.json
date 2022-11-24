@@ -145,15 +145,15 @@
     "info-title-crosswalk": "What is a Crosswalk?",
     "info-title-signal": "What is a Pedestrian Signal?"
   },
-  "mission-tutorial": {
-    "mission-instruction-1": "YOUR MISSION",
+  "mission-start-tutorial": {
+    "mst-instruction-1": "YOUR MISSION",
     "example-type-label-correct": "CORRECT EXAMPLE",
     "example-type-label-incorrect": "WRONG EXAMPLE",
     "label-type-subtitle": "Why is this wrong?",
-    "on-image-label-title-correct": "Correct label",
-    "on-image-label-title-incorrect": "Wrong label",
-    "on-image-label-description-correct": "Mark <b>Agree</b>",
-    "on-image-label-description-incorrect": "Mark <b>Disagree</b>",
+    "label-on-image-title-correct": "Correct label",
+    "label-on-image-title-incorrect": "Wrong label",
+    "label-on-image-description-correct": "Mark <b>Agree</b>",
+    "label-on-image-description-incorrect": "Mark <b>Disagree</b>",
     "curb-ramp": {
       "instruction": "Validate 10 Curb Ramp Labels",
       "slide-1": {

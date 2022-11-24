@@ -20,7 +20,7 @@
                                   supported by Chrome, Edge, Opera and Firefox */
 }
 
-.mission-tutorial-overlay {
+.mission-start-tutorial-overlay {
     position: absolute;
     height: 100%;
     width: 100%;
@@ -34,7 +34,7 @@
     font-family: 'Open Sans', sans-serif;
 }
 
-.mission-tutorial-content {
+.mst-content {
     margin-top: 25px;
     display: flex;
     flex-shrink: 0;
@@ -43,7 +43,7 @@
     flex-direction: column;
 }
 
-.mission-instruction-1 {
+.mst-instruction-1 {
     font-weight: 700;
     font-size: 16px;
     letter-spacing: 0.05em;
@@ -54,7 +54,7 @@
     height: fit-content;
 }
 
-.mission-instruction-2 {
+.mst-instruction-2 {
     font-family: 'Raleway', 'Open Sans', sans-serif;
     font-style: normal;
     font-weight: 700;
@@ -66,7 +66,7 @@
     width: 100%;
 }
 
-.mission-carousel {
+.mst-carousel {
     display: flex;
     flex-shrink: 0;
     flex-wrap: wrap;
@@ -98,7 +98,7 @@
     visibility: hidden;
 }
 
-.mission-tutorial-slide {
+.mst-slide {
     height: 436px;
     display: flex;
     flex-shrink: 0;
@@ -141,12 +141,12 @@
     margin-top: 10px;
 }
 
-.mission-tutorial-overlay-footer {
+.mission-start-tutorial-overlay-footer {
     margin-top: 20px;
     width: 100%;
 }
 
-.mission-tutorial-done-btn {
+.mission-start-tutorial-done-btn {
     height: 36px;
     width: 249px;
     border-radius: 7.25px;
@@ -159,7 +159,7 @@
     transition: all 2s;
 }
 
-.mission-tutorial-done-btn:hover {
+.mission-start-tutorial-done-btn:hover {
     background: #ffc342;
 }
 
@@ -171,14 +171,14 @@
 }
 
 /*We can do something to get attention after the user goes through all the slides*/
-.mission-tutorial-done-btn.focus {
+.mission-start-tutorial-done-btn.focus {
     animation: pulsate;
     animation-duration: 2s;
     animation-iteration-count: 3;
     animation-delay: 1s;
 }
 
-.mts-image-area {
+.msts-image-area {
     width: 658px;
     height: 436px;
     float: right;
@@ -189,13 +189,13 @@
     overflow: hidden;
 }
 
-.mts-image {
+.msts-image {
     height: 100%;
     width: 100%;
     object-fit: contain;
 }
 
-.on-image-label {
+.label-on-image {
     display: none;
     position: absolute;
     background: white;
@@ -204,27 +204,26 @@
     box-sizing: content-box;
     min-height: 83px;
     min-width: 157px;
-    max-height: 98px;
     max-width: 220px;
 }
 
 /* correct/incorrect classes are added to the slide element */
-.correct .on-image-label {
+.correct .label-on-image {
     border-color: #30785D;
 }
 
 /* correct/incorrect classes are added to the slide element */
-.incorrect .on-image-label {
+.incorrect .label-on-image {
     border-color: #EB734D;
 }
 
-.on-image-label-type {
+.label-on-image-type {
     margin: 12px 8px;
     display: flex;
     align-items: center;
 }
 
-.on-image-label-type-icon {
+.label-on-image-type-icon {
     height: 24px;
     width: 24px;
     fill: none;
@@ -232,15 +231,15 @@
     margin-right: 3px;
 }
 
-.correct .on-image-label-type-icon {
+.correct .label-on-image-type-icon {
     stroke: #30785D;
 }
 
-.incorrect .on-image-label-type-icon {
+.incorrect .label-on-image-type-icon {
     stroke: #EB734D;
 }
 
-.on-image-label-type-title {
+.label-on-image-type-title {
     display: flex;
     font-family: 'Raleway', sans-serif;
     font-size: 16px;
@@ -249,15 +248,15 @@
     margin-left: 3px;
 }
 
-.correct .on-image-label-type-title {
+.correct .label-on-image-type-title {
     color: #30785D;
 }
 
-.incorrect .on-image-label-type-title {
+.incorrect .label-on-image-type-title {
     color: #EB734D;
 }
 
-.on-image-label-description {
+.label-on-image-description {
     font-family: 'Open Sans', sans-serif;
     font-size: 16px;
     letter-spacing: 0;
@@ -322,7 +321,7 @@
     color: #EB734D;
 }
 
-.mission-carousel-location-indicator-area {
+.mst-carousel-location-indicator-area {
     height: 30px;
     width: 100%;
     padding: 5px;
@@ -332,7 +331,7 @@
     align-items: center;
 }
 
-.mission-carousel-location-indicator {
+.mst-carousel-location-indicator {
     height: 7px;
     width: 40px;
     margin: 0 3.5px;
@@ -341,6 +340,6 @@
     border-radius: 100px;
 }
 
-.mission-carousel-location-indicator.current-location {
+.mst-carousel-location-indicator.current-location {
     background: #2C2A3D;
 }

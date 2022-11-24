@@ -145,15 +145,15 @@
     "info-title-crosswalk": "Wat is een Oversteekplaats?",
     "info-title-signal": "Wat is een Verkeerslicht?"
   },
-  "mission-tutorial": {
-    "mission-instruction-1": "JOUW MISSIE",
+  "mission-start-tutorial": {
+    "mst-instruction-1": "JOUW MISSIE",
     "example-type-label-correct": "JUISTE VOORBEELD",
     "example-type-label-incorrect": "VERKEERD VOORBEELD",
     "label-type-subtitle": "Waarom is dit verkeerd?",
-    "on-image-label-title-correct": "Correct etiket",
-    "on-image-label-title-incorrect": "Verkeerd etiket",
-    "on-image-label-description-correct": "Markeer <b>Akkoord</b>",
-    "on-image-label-description-incorrect": "Markeer <b>Niet akkoord</b>",
+    "label-on-image-title-correct": "Correct etiket",
+    "label-on-image-title-incorrect": "Verkeerd etiket",
+    "label-on-image-description-correct": "Markeer <b>Akkoord</b>",
+    "label-on-image-description-incorrect": "Markeer <b>Niet akkoord</b>",
     "curb-ramp": {
       "instruction": "Valideer 10 stoeprandlabels",
       "slide-1": {
