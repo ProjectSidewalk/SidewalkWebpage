@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: Project Sidewalk API
+  version: 1.0.1
+  description: The current iteration of the Project Sidewalk API allows you to retrieve data that has been collected through Project Sidewalk, in addition to accessibility ratings based on this data.
+  contact:
+    name: Project Sidewalk
+    email: sidewalk@cs.washington.edu
+    url: https://sidewalk-newberg-test.cs.washington.edu
+servers:
+  - url: https://sidewalk-newberg-test.cs.washington.edu
+    description: Test server for Newberg, Oregon
+  - url: https://sidewalk-sea-test.cs.washington.edu
+    description: Test server for Seattle, Washington
+paths:
+  /v2/overallStats:
+    get:
+      summary: Get overall stats
+      description: Get a bunch of stats about this city's Project Sidewalk data.
+      operationId: v2GetOverallStats
+      parameters:
+        - name: filterLowQuality
+          in: query
+          description: Optional parameter to remove low quality data
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: filetype
+          in: query
+          description: Optional parameter to choose output format; defaults to GeoJSON.
+          required: false
+          schema:
+            type: string
+            enum:
+              - geojson
+              - csv
+              - shapefile
+      responses:
+        '200':
+          description: Successful data retrieval
+  /v2/access/score/neighborhoods:
+    get:
+      summary: Get neighborhood Access Score
+      description: Get Access Score for the neighborhoods that are fully within the given lat/lng bounds.
+      operationId: v2AccessScoreNeighorhood
+      parameters:
+        - name: lat1
+          in: query
+          description: Latitude for first corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: 45.305
+        - name: lng1
+          in: query
+          description: Longitude for first corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: -123.01
+        - name: lat2
+          in: query
+          description: Latitude for second corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: 45.345
+        - name: lng2
+          in: query
+          description: Longitude for second corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: -122.95
+        - name: filetype
+          in: query
+          description: Optional parameter to choose output format; defaults to GeoJSON.
+          required: false
+          schema:
+            type: string
+            default: geojson
+            enum:
+              - geojson
+              - csv
+              - shapefile
+            example: geojson
+      responses:
+        '200':
+          description: Successful data retrieval
