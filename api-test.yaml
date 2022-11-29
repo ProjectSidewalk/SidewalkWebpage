@@ -38,7 +38,7 @@ paths:
               - shapefile
       responses:
         '200':
-          description: Successful data retrieval
+          description: Successful data retrieval!!
           content:
             application/json:
               examples:
@@ -102,10 +102,77 @@ paths:
       responses:
         '200':
           description: Successful data retrieval
+  /v2/access/attributes:
+    get:
+      summary: Get Accessibility Attribute Clusters
+      description: Get accessibility attributes that are within the given lat/lng bounds. These attributes are created from clustering user's labels, so they should represent one distinct problem or feature per cluster.
+      operationId: v2AccessAttributes
+      parameters:
+        - name: lat1
+          in: query
+          description: Latitude for first corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: 45.305
+        - name: lng1
+          in: query
+          description: Longitude for first corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: -123.01
+        - name: lat2
+          in: query
+          description: Latitude for second corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: 45.345
+        - name: lng2
+          in: query
+          description: Longitude for second corner of a bounding box
+          required: true
+          schema:
+            type: number
+            format: double
+            example: -122.95
+        - name: severity
+          in: query
+          description: Filter for clusters with the given severity rating as a rounded mean of the labels' severity.
+          required: false
+          schema:
+            type: string
+            nullable: true
+            enum:
+              - none
+              - 1
+              - 2
+              - 3
+              - 4
+              - 5
+        - name: filetype
+          in: query
+          description: Optional parameter to choose output format; defaults to GeoJSON.
+          required: false
+          schema:
+            type: string
+            default: geojson
+            enum:
+              - geojson
+              - csv
+              - shapefile
+            example: geojson
+      responses:
+        '200':
+          description: Successful data retrieval
           content:
             application/json:
               schema:
-                $ref: '#/components/Cluster'
+                $ref: '#/components/schemas/Cluster'
 components:
   schemas:
     Cluster:
