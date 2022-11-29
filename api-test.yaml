@@ -149,11 +149,11 @@ paths:
             nullable: true
             enum:
               - none
-              - 1
-              - 2
-              - 3
-              - 4
-              - 5
+              - '1'
+              - '2'
+              - '3'
+              - '4'
+              - '5'
         - name: filetype
           in: query
           description: Optional parameter to choose output format; defaults to GeoJSON.
@@ -172,25 +172,57 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Cluster'
+                $ref: '#/components/schemas/Attribute'
 components:
   schemas:
-    Cluster:
+    Point:
       type: object
+      description: GeoJSON point geometry
+      required:
+        - type
       properties:
-        cluster_id:
-          type: integer
-          format: int64
-          description: This is my description of a cluster.
-        label_type:
+        type:
           type: string
-          description: The type of label that was placed.
-          example: CurbRamp
           enum:
-            - CurbRamp
-            - NoCurbRamp
-            - SurfaceProblem
-            - Obstacle
-            - NoSidewalk
-            - Crosswalk
-            - Signal
+            - Point
+          description: The geometry type
+        coordinates:
+          type: array
+          description: A two item array showing [longitude, latitude] of the point.
+          items:
+            type: number
+            format: double
+          maxItems: 2
+          minItems: 2
+    Attribute:
+      type: object
+      description: GeoJSON Feature representing an accessibility attribute.
+      required:
+        - type
+        - geometry
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          $ref: '#/components/schemas/Point'
+        properties:
+          type: object
+          properties:
+            cluster_id:
+              type: integer
+              format: int64
+              description: A unique identifier for a cluster. This identifier is not guaranteed to persist over time.
+            label_type:
+              type: string
+              description: The type of label that was placed.
+              example: CurbRamp
+              enum:
+                - CurbRamp
+                - NoCurbRamp
+                - SurfaceProblem
+                - Obstacle
+                - NoSidewalk
+                - Crosswalk
+                - Signal
