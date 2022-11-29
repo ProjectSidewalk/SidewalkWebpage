@@ -39,6 +39,16 @@ paths:
       responses:
         '200':
           description: Successful data retrieval
+          content:
+            application/json:
+              examples:
+                first-example:
+                  summary: Example successful response
+                  value:
+                    km_explored: 38.436
+                    user_counts:
+                      all_users: 96
+                      labelers: 48
   /v2/access/score/neighborhoods:
     get:
       summary: Get neighborhood Access Score
@@ -92,3 +102,28 @@ paths:
       responses:
         '200':
           description: Successful data retrieval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/Cluster'
+components:
+  schemas:
+    Cluster:
+      type: object
+      properties:
+        cluster_id:
+          type: integer
+          format: int64
+          description: This is my description of a cluster.
+        label_type:
+          type: string
+          description: The type of label that was placed.
+          example: CurbRamp
+          enum:
+            - CurbRamp
+            - NoCurbRamp
+            - SurfaceProblem
+            - Obstacle
+            - NoSidewalk
+            - Crosswalk
+            - Signal
