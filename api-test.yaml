@@ -172,20 +172,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Attribute'
+                $ref: '#/components/schemas/AttributesList'
 components:
   schemas:
     Point:
       type: object
       description: GeoJSON point geometry
-      required:
-        - type
       properties:
-        type:
-          type: string
-          enum:
-            - Point
-          description: The geometry type
         coordinates:
           type: array
           description: A two item array showing [longitude, latitude] of the point.
@@ -198,13 +191,8 @@ components:
       type: object
       description: GeoJSON Feature representing an accessibility attribute.
       required:
-        - type
         - geometry
       properties:
-        type:
-          type: string
-          enum:
-            - Feature
         geometry:
           $ref: '#/components/schemas/Point'
         properties:
@@ -217,7 +205,6 @@ components:
             label_type:
               type: string
               description: The type of label that was placed.
-              example: CurbRamp
               enum:
                 - CurbRamp
                 - NoCurbRamp
@@ -226,3 +213,8 @@ components:
                 - NoSidewalk
                 - Crosswalk
                 - Signal
+    AttributesList:
+      type: array
+      description: A list of Attributes.
+      items:
+        $ref: '#/components/schemas/Attribute'
