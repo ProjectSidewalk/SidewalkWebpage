@@ -3,6 +3,14 @@ info:
   title: Project Sidewalk API
   version: 1.0.1
   description: The current iteration of the Project Sidewalk API allows you to retrieve data that has been collected through Project Sidewalk, in addition to accessibility ratings based on this data.
+                <div class="row">
+                  <div class="col-sm-4">
+                    <h3>Access Attributes Map</h3>
+                  </div>
+                  <div class="col-sm-4">
+                    <div id="developer-access-attribute-map" class="map"></div>
+                  </div>
+                </div>
   contact:
     name: Project Sidewalk
     email: sidewalk@cs.washington.edu
