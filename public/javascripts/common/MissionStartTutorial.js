@@ -37,7 +37,7 @@ function MissionStartTutorial(missionType, labelType) {
      *                         The 'top' and 'left' must be defined with respect to the top and left
      *                         of the 'image element.'
      */
-    const validateMissionTutorialDescriptor = {
+    const validateMSTDescriptor = {
         'CurbRamp': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('mission-start-tutorial.curb-ramp.instruction'),
@@ -415,7 +415,7 @@ function MissionStartTutorial(missionType, labelType) {
     // Initializes the variables needed for this module.
     function initModule(missionType) {
         if (missionType === MISSION_TYPES.VALIDATE) {
-            labelTypeModule = validateMissionTutorialDescriptor[labelType];
+            labelTypeModule = validateMSTDescriptor[labelType];
             nSlides = labelTypeModule.slides.length;
         }
     }
@@ -471,26 +471,27 @@ function MissionStartTutorial(missionType, labelType) {
             $labelOnImage.show();
         }
 
-        const $missionTutorialSlide = $('.mst-slide');
+        const $mstSlide = $('.mst-slide');
         const $labelTypeSubtitle = $('.label-type-subtitle');
-        const $mtsImage = $('.msts-image');
+        const $mstSlideImage = $('.msts-image');
         const $labelOnImage = $('.label-on-image');
+        const $mstDoneButton = $('.mission-start-tutorial-done-btn');
 
         // Reset the UI first.
         $('.mst-carousel-location-indicator').removeClass('current-location');
-        $missionTutorialSlide.removeClass(EXAMPLE_TYPES.CORRECT).removeClass(EXAMPLE_TYPES.INCORRECT);
-        $mtsImage.attr('src', '');
+        $mstSlide.removeClass(EXAMPLE_TYPES.CORRECT).removeClass(EXAMPLE_TYPES.INCORRECT);
+        $mstSlideImage.attr('src', '');
         $labelTypeSubtitle.text('');
         $('.previous-slide-button, .next-slide-button').removeClass('disabled');
         $labelOnImage.hide();
-        $('.mission-start-tutorial-done-btn').removeClass('focus');
+        $mstDoneButton.removeClass('focus');
 
         const slide = labelTypeModule.slides[idx];
 
         if (slide.isExampleCorrect) {
-            $missionTutorialSlide.addClass('correct');
+            $mstSlide.addClass('correct');
         } else {
-            $missionTutorialSlide.addClass('incorrect');
+            $mstSlide.addClass('incorrect');
         }
 
         // The icon is the same on the left panel and the labelOnImage.
@@ -526,7 +527,7 @@ function MissionStartTutorial(missionType, labelType) {
             $labelTypeSubtitle.html(slide.slideSubtitle);
         }
 
-        $mtsImage.attr('src', slide.imageURL);
+        $mstSlideImage.attr('src', slide.imageURL);
 
         $(`.mst-carousel-location-indicator[data-idx=${idx}]`).addClass('current-location');
 
@@ -539,7 +540,7 @@ function MissionStartTutorial(missionType, labelType) {
         if (idx === 0) {
             $('.previous-slide-button').addClass('disabled');
         } else if (idx === nSlides - 1) {
-            $('.mission-start-tutorial-done-btn').addClass('focus');
+            $mstDoneButton.addClass('focus');
             $('.next-slide-button').addClass('disabled');
         }
     }
