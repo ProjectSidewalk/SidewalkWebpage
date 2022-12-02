@@ -1,7 +1,7 @@
 
 
 
-function MissionStartTutorial(missionType, labelType) {
+function MissionStartTutorial(missionType, labelType, tracker) {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -553,16 +553,18 @@ function MissionStartTutorial(missionType, labelType) {
         $('.previous-slide-button').click(function() {
             currentSlideIdx = Math.max(currentSlideIdx - 1, 0);
             renderSlide(currentSlideIdx);
-
+            tracker.push('PreviousSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
         });
 
         $('.next-slide-button').click(function() {
             currentSlideIdx = Math.min(currentSlideIdx + 1, nSlides - 1);
             renderSlide(currentSlideIdx);
+            tracker.push('NextSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
         });
 
         $('.mission-start-tutorial-done-btn').click(function() {
             $('.mission-start-tutorial-overlay').fadeOut(100);
+            tracker.push('MSTDoneButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
         });
     }
 
