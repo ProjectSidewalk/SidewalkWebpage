@@ -40,11 +40,13 @@ function MissionStartTutorial(missionType, labelType, tracker) {
     const validateMSTDescriptor = {
         'CurbRamp': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.curb-ramp.instruction'),
+            'missionInstruction2': i18next.t('mission-start-tutorial.curb-ramp.instruction',
+                {'labelType': i18next.t('curb-ramp-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
-                    'slideTitle': i18next.t('mission-start-tutorial.curb-ramp.slide-1.title'),
+                    'slideTitle': i18next.t('mission-start-tutorial.curb-ramp.slide-1.title',
+                        {'labelType': i18next.t('curb-ramp-caps')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('mission-start-tutorial.curb-ramp.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/curbramp-correct-1.png',
@@ -85,11 +87,13 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'NoCurbRamp': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.no-curb-ramp.instruction'),
+            'missionInstruction2': i18next.t('mission-start-tutorial.no-curb-ramp.instruction',
+                {'labelType': i18next.t('missing-curb-ramp-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
-                    'slideTitle': i18next.t('mission-start-tutorial.no-curb-ramp.slide-1.title'),
+                    'slideTitle': i18next.t('mission-start-tutorial.no-curb-ramp.slide-1.title',
+                        {'labelType': i18next.t('missing-curb-ramp-caps')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('mission-start-tutorial.no-curb-ramp.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/no-curbramp-correct-1.png',
@@ -143,11 +147,13 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'Obstacle': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.obstacle.instruction'),
+            'missionInstruction2': i18next.t('mission-start-tutorial.obstacle.instruction',
+                {'labelType': i18next.t('obstacle-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
-                    'slideTitle': i18next.t('mission-start-tutorial.obstacle.slide-1.title'),
+                    'slideTitle': i18next.t('mission-start-tutorial.obstacle.slide-1.title',
+                        {'labelType': i18next.t('obstacle-caps')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('mission-start-tutorial.obstacle.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/obstacle-correct-1.png',
@@ -201,11 +207,13 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'SurfaceProblem': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.surface-problem.instruction'),
+            'missionInstruction2': i18next.t('mission-start-tutorial.surface-problem.instruction',
+                {'labelType': i18next.t('surface-problem-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
-                    'slideTitle': i18next.t('mission-start-tutorial.surface-problem.slide-1.title'),
+                    'slideTitle': i18next.t('mission-start-tutorial.surface-problem.slide-1.title',
+                        {'labelType': i18next.t('surface-problem-caps')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('mission-start-tutorial.surface-problem.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/surface-problem-correct-1.png',
@@ -246,11 +254,13 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'NoSideWalk': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.no-sidewalk.instruction'),
+            'missionInstruction2': i18next.t('mission-start-tutorial.no-sidewalk.instruction',
+                {'labelType': i18next.t('no-sidewalk-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
-                    'slideTitle': i18next.t('mission-start-tutorial.no-sidewalk.slide-1.title'),
+                    'slideTitle': i18next.t('mission-start-tutorial.no-sidewalk.slide-1.title',
+                        {'labelType': i18next.t('no-sidewalk-caps')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('mission-start-tutorial.no-sidewalk.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/no-sidewalk-correct-1.png',
@@ -291,11 +301,13 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'Crosswalk': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.crosswalk.instruction'),
+            'missionInstruction2': i18next.t('mission-start-tutorial.crosswalk.instruction',
+                {'labelType': i18next.t('crosswalk-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
-                    'slideTitle': i18next.t('mission-start-tutorial.crosswalk.slide-1.title'),
+                    'slideTitle': i18next.t('mission-start-tutorial.crosswalk.slide-1.title',
+                        {'labelType': i18next.t('crosswalk-caps')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('mission-start-tutorial.crosswalk.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/crosswalk-correct-1.png',
@@ -349,11 +361,13 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'Signal': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.signal.instruction'),
+            'missionInstruction2': i18next.t('mission-start-tutorial.signal.instruction',
+                {'labelType': i18next.t('signal-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
-                    'slideTitle': i18next.t('mission-start-tutorial.signal.slide-1.title'),
+                    'slideTitle': i18next.t('mission-start-tutorial.signal.slide-1.title',
+                        {'labelType': i18next.t('signal-caps')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('mission-start-tutorial.signal.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/signal-correct-1.png',
