@@ -78,3 +78,8 @@ input[type="radio"] {
     cursor: default;
     opacity: 0.5;
 }
+
+/* Common class used to hide template elements. */
+.template {
+    display: none;
+}

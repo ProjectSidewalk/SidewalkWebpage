@@ -72,6 +72,14 @@
     fill: white;
 }
 
+.severity-level:hover .severity-icon svg {
+    fill: #FFD74C;
+}
+
+.severity-level.selected .severity-icon svg {
+    fill: #78C8AA;
+}
+
 #severity-menu .radio-inline label div.severity-label {
     font-weight: 600;
     position: relative;
@@ -201,4 +209,12 @@
 tag-underline {
     text-decoration: underline;
     pointer-events: none;
+}
+
+.face-outline {
+    stroke: #2D2A3F;
+}
+
+.facial-feature {
+    fill: #2d2a3f;
 }
