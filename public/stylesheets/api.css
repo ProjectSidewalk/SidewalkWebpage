@@ -1,0 +1,28 @@
+.sidebar {
+    grid-area: sidebar;
+    /*padding-left: 10px;*/
+    /*padding-top: 20px;*/
+    /*min-height: calc(100vh - 610px);*/
+    /*width: 239px;*/
+    /*grid-row: 1/2;*/
+}
+
+#api-content {
+    grid-area: content;
+}
+
+.wrapper {
+    display: grid;
+    gap: 20px;
+    grid-template-areas:
+        "sidebar"
+        "content";
+}
+
+@media (min-width: 500px) {
+    .wrapper {
+        grid-template-columns: 1fr 4fr;
+        grid-template-areas:
+            "sidebar content";
+    }
+}

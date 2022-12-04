@@ -1,0 +1,33 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
+
+@main(title) {
+    @navbar(user, Some("/api"))
+    <div class="wrapper">
+        <aside id="sidebar" class="sidebar">A sidebar!</aside>
+        <div id="api-content" class="grid-container">
+            <h1 id="first-header">First header</h1>
+            <h1 id="second-header">Second header</h1>
+            <h2 id="first-subheader">A subheader</h2>
+            <h2 id="second-subheader">Another subheader</h2>
+        </div>
+    </div>
+
+@*  Description / use -> parameters defined -> examples -> output defined *@
+    <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/api.css")'/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/tocbot-4.18.2.min.js")'></script>
+    <link href='@routes.Assets.at("javascripts/lib/tocbot-4.18.2.css")' rel='stylesheet' />
+
+    <script type="text/javascript">
+        tocbot.init({
+            tocSelector: '#sidebar',
+            contentSelector: '#api-content',
+            hasInnerContainers: true,
+            headingsOffset: 100, // should be 70 I think
+            scrollSmoothOffset: 100,
+            fixedSidebarOffset: 100
+        });
+    </script>
+}

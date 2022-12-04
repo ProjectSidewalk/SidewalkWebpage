@@ -6,7 +6,7 @@
 GET     /                                                    @controllers.ApplicationController.index
 
 GET     /home                                                @controllers.ApplicationController.index
-GET     /api                                                 @controllers.ApplicationController.developer
+GET     /api                                                 @controllers.ApplicationController.api
 GET     /developer                                           @controllers.ApplicationController.developer
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo

@@ -202,6 +202,22 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns an API page.
+   */
+  def api = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
+        Future.successful(Ok(views.html.api("Project Sidewalk - API", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/api"))
+    }
+  }
+
+  /**
     * Returns a help  page.
     */
   def help = UserAwareAction.async { implicit request =>
