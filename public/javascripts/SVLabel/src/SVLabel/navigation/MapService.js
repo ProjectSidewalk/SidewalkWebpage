@@ -1027,7 +1027,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         uiMap.viewControlLayer.append($navArrows);
 
         // Add an event listener to the nav arrows to log their clicks.
-        if (!status.panoLinkListenerSet) {
+        if (!status.panoLinkListenerSet && $navArrows.length > 0) {
             // TODO We are adding click events to extra elements that don't need it, we shouldn't do that :)
             $navArrows[0].addEventListener('click', function (e) {
                 var targetPanoId = e.target.getAttribute('pano');
