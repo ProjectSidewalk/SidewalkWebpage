@@ -94,7 +94,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function adjustMap() {
         map.setOptions({styles: [{ featureType: "all", stylers: [{ visibility: "off" }] }]});
-        document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/TutorialMiniMap.jpg')";
+        svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`);
     }
 
     /**
@@ -394,8 +394,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             var len = state.properties.blinks.length;
             for (var i = 0; i < len; i++) {
                 switch (state.properties.blinks[i]) {
-                    case "google-maps":
-                        mapService.blinkGoogleMaps();
+                    case "minimap":
+                        mapService.blinkMinimap();
                         break;
                     case "compass":
                         compass.blink();
@@ -644,7 +644,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
             if ("blinks" in state.properties && state.properties.blinks) {
-                mapService.stopBlinkingGoogleMaps();
+                mapService.stopBlinkingMinimap();
                 compass.stopBlinking();
                 statusField.stopBlinking();
                 zoomControl.stopBlinking();

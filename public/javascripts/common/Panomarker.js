@@ -404,7 +404,7 @@
 
         // Basic style attributes for every marker
         marker.style.position = 'absolute';
-        marker.style.cursor = 'pointer';
+        marker.style.cursor = 'inherit';    // To keep the mouseover icon open hand. See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1393
         marker.style.width = this.size_.width + 'px';
         marker.style.height = this.size_.height + 'px';
         marker.style.display = this.visible_ ? 'block' : 'none';
@@ -429,7 +429,7 @@
         if (this.markerContainer_ == null) {
             this.markerContainer_ = this.getPanes().overlayMouseTarget;
         }
-        
+
         this.markerContainer_.appendChild(marker);
 
         // Attach to some global events

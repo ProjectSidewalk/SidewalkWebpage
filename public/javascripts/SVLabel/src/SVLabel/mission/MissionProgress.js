@@ -54,13 +54,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         _gameEffectModel.loadAudio({audioType: "success"});
         _gameEffectModel.playAudio({audioType: "success"});
 
-        // Update the neighborhood status
-        if ("labelContainer" in svl) {
-            var regionId = neighborhood.getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId);
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        }
-
         _missionModel.completeMission(mission);
 
         svl.missionsCompleted += 1;

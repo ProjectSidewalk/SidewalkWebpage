@@ -350,6 +350,7 @@ function Canvas(ribbon) {
             svl.tracker.push('Click_LabelDelete', {labelType: self.getCurrentLabel().getProperty('labelType')});
             var currLabel = self.getCurrentLabel();
             if (!currLabel) {
+                // TODO is the case described below still ever used? -- Mikey, Oct 2022
                 // Sometimes (especially during ground truth insertion if you force a delete icon to show up all the time),
                 // currLabel would not be set properly. In such a case, find a label underneath the delete icon.
                 var x = svl.ui.canvas.deleteIconHolder.css('left');
@@ -638,17 +639,6 @@ function Canvas(ribbon) {
         return this;
     }
 
-    /**
-     * This method removes all the labels stored in the labels array.
-     * @method
-     */
-    function removeAllLabels() {
-        if ("labelContainer" in svl) {
-            svl.labelContainer.removeAll();
-        }
-        return this;
-    }
-
 
     /**
      * Renders labels
@@ -667,7 +657,7 @@ function Canvas(ribbon) {
         // For the condition, when the interface loads for the first time
         // The pov is changed. Prevents the conversion function to be called
         // for the initial rendering pipeline
-        if (labels.length == 0 && povChange["status"]) {
+        if (labels.length === 0 && povChange["status"]) {
             povChange["status"] = false;
         }
 
@@ -919,7 +909,6 @@ function Canvas(ribbon) {
     self.lockDisableLabeling = lockDisableLabeling;
     self.lockShowLabelTag = lockShowLabelTag;
     self.pushLabel = pushLabel;
-    self.removeAllLabels = removeAllLabels;
     self.render = render2;
     self.render2 = render2;
     self.renderBoundingBox = renderBoundingBox;
