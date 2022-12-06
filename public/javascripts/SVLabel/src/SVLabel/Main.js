@@ -170,7 +170,7 @@ function Main (params) {
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
         loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
         var task = svl.taskContainer.getCurrentTask();
-        if (task && typeof google != "undefined") {
+        if (!svl.isOnboarding() && task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
