@@ -1977,6 +1977,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "walk-4": {
             "properties": {
                 "action": "Instruction",
+                "stopBlinking": true,
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1],
                 "blinks": ["minimap"]

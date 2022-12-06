@@ -186,6 +186,16 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         }
     }
 
+    function _stopAllBlinking() {
+        mapService.stopBlinkingMinimap();
+        compass.stopBlinking();
+        statusField.stopBlinking();
+        zoomControl.stopBlinking();
+        audioEffect.stopBlinking();
+        modalSkip.stopBlinking();
+        modalComment.stopBlinking();
+    }
+
     function _drawAnnotations(state) {
         var imX,
             imY,
@@ -456,8 +466,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Change behavior based on the current state.
         if ("properties" in state) {
-            if (state.properties.constructor === Array) {
+            // Remove blinking if necessary.
+            if (state.properties.stopBlinking) {
+                _stopAllBlinking();
+            }
 
+            if (state.properties.constructor === Array) {
                 // Restrict panning.
                 mapService.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
 
@@ -640,13 +654,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
             if ("blinks" in state.properties && state.properties.blinks) {
-                mapService.stopBlinkingMinimap();
-                compass.stopBlinking();
-                statusField.stopBlinking();
-                zoomControl.stopBlinking();
-                audioEffect.stopBlinking();
-                modalSkip.stopBlinking();
-                modalComment.stopBlinking();
+                _stopAllBlinking();
             }
             next.call(this, state.transition);
         };
