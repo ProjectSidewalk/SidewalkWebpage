@@ -154,6 +154,7 @@
     "label-on-image-title-incorrect": "Wrong label",
     "label-on-image-description-correct": "Mark <b>Agree</b>",
     "label-on-image-description-incorrect": "Mark <b>Disagree</b>",
+    "start-mission": "Start mission",
     "curb-ramp": {
       "instruction": "Validate 10 {{labelType}} Labels",
       "slide-1": {

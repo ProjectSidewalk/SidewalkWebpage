@@ -154,6 +154,7 @@
     "label-on-image-title-incorrect": "etiqueta incorrecta",
     "label-on-image-description-correct": "Marcar <b>de acuerdo</b>",
     "label-on-image-description-incorrect": "Marca <b>en desacuerdo</b>",
+    "start-mission": "Iniciar misión",
     "curb-ramp": {
       "instruction": "Validar 10 etiquetas de rampa de bordillo",
       "slide-1": {

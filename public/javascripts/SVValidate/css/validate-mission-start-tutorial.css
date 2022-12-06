@@ -22,13 +22,14 @@
 
 .mission-start-tutorial-overlay {
     position: absolute;
-    height: 100%;
+    height: calc(100vh - 91px); /* 91 is the height of the navbar + margin + border */
     width: 100%;
     min-width: 1170px; /*  */
     background: white;
     z-index: 10;
     display: flex;
     flex-shrink: 0;
+    justify-content: center;
 
     /* Default font should be defined only here and should be overridden wherever needed. */
     font-family: 'Open Sans', sans-serif;
@@ -39,7 +40,7 @@
     display: flex;
     flex-shrink: 0;
     flex-wrap: wrap;
-    width: calc(100% - 120px);
+    width: 1020px;
     flex-direction: column;
 }
 
@@ -157,6 +158,7 @@
     align-items: center;
     cursor: pointer;
     transition: all 2s;
+    font-weight: bold;
 }
 
 .mission-start-tutorial-done-btn:hover {
@@ -202,7 +204,8 @@
     border: 3px solid;
     border-radius: 10px;
     box-sizing: content-box;
-    height: 80px;
+    min-height: 80px;
+    max-height: 90px;
     min-width: 157px;
     max-width: 220px;
 }
@@ -218,7 +221,7 @@
 }
 
 .label-on-image-type {
-    margin: 12px 8px;
+    margin: 12px 10px;
     display: flex;
     align-items: center;
 }
@@ -260,7 +263,7 @@
     font-family: 'Open Sans', sans-serif;
     font-size: 16px;
     letter-spacing: 0;
-    margin-left: 12px;
+    margin: 0 12px;
 }
 
 .example-type-area {

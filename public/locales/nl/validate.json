@@ -154,6 +154,7 @@
     "label-on-image-title-incorrect": "Verkeerd etiket",
     "label-on-image-description-correct": "Markeer <b>Akkoord</b>",
     "label-on-image-description-incorrect": "Markeer <b>Niet akkoord</b>",
+    "start-mission": "Missie starten",
     "curb-ramp": {
       "instruction": "Valideer 10 stoeprandlabels",
       "slide-1": {

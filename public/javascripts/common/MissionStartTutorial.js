@@ -52,7 +52,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/curbramp-correct-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '238px',
+                            'left': '237px',
                             'top': '222px'
                         }
                     }
@@ -65,8 +65,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/curbramp-incorrect-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '466px',
-                            'top': '257px'
+                            'left': '329px',
+                            'top': '334px'
                         }
                     }
                 },
@@ -78,8 +78,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/curbramp-incorrect-2.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '435px',
-                            'top': '257px'
+                            'left': '295px',
+                            'top': '333px'
                         }
                     }
                 }
@@ -99,7 +99,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/no-curbramp-correct-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '393px',
+                            'left': '392px',
                             'top': '157px'
                         }
                     }
@@ -112,7 +112,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '325px',
+                            'left': '324px',
                             'top': '250px'
                         }
                     }
@@ -125,7 +125,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-2.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '397px',
+                            'left': '396px',
                             'top': '320px'
                         }
                     }
@@ -138,7 +138,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/no-curbramp-incorrect-3.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '326px',
+                            'left': '325px',
                             'top': '302px'
                         }
                     }
@@ -159,7 +159,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/obstacle-correct-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '269px',
+                            'left': '268px',
                             'top': '301px'
                         }
                     }
@@ -172,7 +172,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/obstacle-incorrect-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '397px',
+                            'left': '396px',
                             'top': '286px'
                         }
                     }
@@ -185,7 +185,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/obstacle-incorrect-2.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '79.5px',
+                            'left': '76px',
                             'top': '112px'
                         }
                     }
@@ -198,7 +198,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/obstacle-incorrect-3.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '415px',
+                            'left': '414px',
                             'top': '187px'
                         }
                     }
@@ -219,8 +219,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/surface-problem-correct-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '458px',
-                            'top': '203px'
+                            'left': '291px',
+                            'top': '45px'
                         }
                     }
                 },
@@ -232,7 +232,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/surface-problem-incorrect-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '400px',
+                            'left': '397px',
                             'top': '190px'
                         }
                     }
@@ -245,8 +245,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/surface-problem-incorrect-2.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '334px',
-                            'top': '221px'
+                            'left': '333px',
+                            'top': '219px'
                         }
                     }
                 }
@@ -292,8 +292,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/no-sidewalk-incorrect-2.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '185px',
-                            'top': '299px'
+                            'left': '183px',
+                            'top': '298px'
                         }
                     }
                 }
@@ -326,7 +326,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/crosswalk-incorrect-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '354px',
+                            'left': '353px',
                             'top': '241px'
                         }
                     }
@@ -339,8 +339,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/crosswalk-incorrect-2.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '249px',
-                            'top': '302px'
+                            'left': '247px',
+                            'top': '301px'
                         }
                     }
                 },
@@ -352,7 +352,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/crosswalk-incorrect-3.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '271px',
+                            'left': '267px',
                             'top': '102px'
                         }
                     }
@@ -373,7 +373,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/signal-correct-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '167px',
+                            'left': '170px',
                             'top': '325px'
                         }
                     }
@@ -386,7 +386,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/signal-incorrect-1.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '377px',
+                            'left': '376px',
                             'top': '86px'
                         }
                     }
@@ -399,7 +399,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/signal-incorrect-2.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '390px',
+                            'left': '389px',
                             'top': '203px'
                         }
                     }
@@ -412,7 +412,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
                     'imageURL': 'assets/images/tutorials/signal-incorrect-3.png',
                     'labelOnImage': {
                         'position' : {
-                            'left': '359px',
+                            'left': '358px',
                             'top': '332px'
                         }
                     }
@@ -429,7 +429,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
     // Initializes the variables needed for this module.
     function initModule(missionType) {
         if (missionType === MISSION_TYPES.VALIDATE) {
-            labelTypeModule = validateMSTDescriptor[labelType];
+            labelTypeModule = validateMSTDescriptor['Signal'];
             nSlides = labelTypeModule.slides.length;
         }
     }
@@ -453,6 +453,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
 
         $('.mst-instruction-1').text(labelTypeModule.missionInstruction1);
         $('.mst-instruction-2').text(labelTypeModule.missionInstruction2);
+
+        $('.mission-start-tutorial-done-btn').text(i18next.t('mission-start-tutorial.start-mission'));
 
         renderLocationIndicators();
         renderSlide(currentSlideIdx);
