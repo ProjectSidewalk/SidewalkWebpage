@@ -34,9 +34,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var canvasHeight = 480;
     var blink_timer = 0;
     var blink_function_identifier = [];
-    var status = {
-        isOnboarding: true
-    };
     var states = onboardingStates.get();
 
     var _mouseDownCanvasDrawingHandler;
@@ -44,7 +41,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var map = svl.map.getMap();
 
     this.start = function () {
-        status.isOnboarding = true;
         tracker.push('Onboarding_Start');
 
         adjustMap();
@@ -832,15 +828,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         $(document).on('RemoveLabel', deleteLabelCallback);
     }
 
-    /**
-     * Check if the user is working on the onboarding right now.
-     * @returns {boolean}
-     */
-    function isOnboarding() {
-        return status.isOnboarding;
-    }
-
     self.clear = clear;
     self.next = next;
-    self.isOnboarding = isOnboarding;
 }

@@ -21,7 +21,7 @@ function Main (params) {
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = function () {
-        return svl.onboarding != null && svl.onboarding.isOnboarding();
+        return params.mission.mission_type === 'auditOnboarding';
     };
     svl.missionsCompleted = params.missionSetProgress;
     svl.canvasWidth = 720;
@@ -71,7 +71,6 @@ function Main (params) {
         svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
         svl.alert = new Alert();
-        //svl.alert2 = new Alert();
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
         svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
