@@ -1027,7 +1027,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         uiMap.viewControlLayer.append($navArrows);
 
         // Add an event listener to the nav arrows to log their clicks.
-        if (!status.panoLinkListenerSet) {
+        if (!status.panoLinkListenerSet && $navArrows.length > 0) {
             // TODO We are adding click events to extra elements that don't need it, we shouldn't do that :)
             $navArrows[0].addEventListener('click', function (e) {
                 var targetPanoId = e.target.getAttribute('pano');
@@ -1173,6 +1173,25 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
         $(".gmnoprint path").css('visibility', 'visible');
         $(".gmnoprint path").css('pointer-events', 'all');
+    }
+
+    /**
+     * Make navigation arrows blink.
+     */
+    function blinkNavigationArrows() {
+        setTimeout(() => {
+            const arrows = document.querySelector("div.gmnoprint.SLHIdE-sv-links-control").querySelector("svg").querySelectorAll("path[fill-opacity='1']");
+            // Obtain interval id to allow for the interval to be cleaned up after the arrow leaves document context.
+            const intervalId = window.setInterval(function () {
+                // Blink logic.
+                arrows.forEach((arrow) => {
+                    arrow.setAttribute("fill", (arrow.getAttribute("fill") === "white" ? "yellow" : "white"));
+
+                    // Once the arrow is removed from the document, stop the interval for all arrows.
+                    if (!document.body.contains(arrow)) window.clearInterval(intervalId);
+                });
+            }, 500);
+        }, 500);
     }
 
     /*
@@ -1482,6 +1501,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     self.blinkMinimap = blinkMinimap;
     self.stopBlinkingMinimap = stopBlinkingMinimap;
+    self.blinkNavigationArrows = blinkNavigationArrows;
     self.disablePanning = disablePanning;
     self.disableWalking = disableWalking;
     self.enablePanning = enablePanning;
