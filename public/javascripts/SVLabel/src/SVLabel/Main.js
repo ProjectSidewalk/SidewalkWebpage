@@ -102,7 +102,6 @@ function Main (params) {
         neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
-        svl.statusFieldNeighborhood.setNeighborhoodName(params.regionName);
 
         if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
@@ -170,7 +169,7 @@ function Main (params) {
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
-        loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu, params.tutorialStreetId);
+        loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
@@ -240,7 +239,7 @@ function Main (params) {
         });
     }
 
-    function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
+    function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
         // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
         if (params.mission.mission_type === 'auditOnboarding') {
             loadingTasksCompleted = true;

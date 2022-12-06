@@ -160,10 +160,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param updatedPriorities
     */
     function updateTaskPriorities(updatedPriorities) {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            return null;
-        }
         // Loop through all updatedPriorities and update self._tasks with the new priorities.
         updatedPriorities.forEach(function (newPriority) {
             const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.streetEdgeId; });
@@ -279,13 +275,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {Array}
      */
     function getCompletedTasks() {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            return null;
-        }
-        return self._tasks.filter(function (task) {
-            return task.isComplete();
-        });
+        return self._tasks.filter(function (task) { return task.isComplete(); });
     }
 
     /**
@@ -293,13 +283,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {Array of tasks}
      */
     function getCompletedTasksAllUsersUsingPriority() {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            return null;
-        }
-        return self._tasks.filter(function (task) {
-            return task.getStreetPriority() < 1;
-        });
+        return self._tasks.filter(function (task) { return task.getStreetPriority() < 1; });
     }
 
     /**
@@ -387,7 +371,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             });
             // Indicates neighborhood is complete
             if (candidateTasks.length === 0) {
-
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
                 console.error('finished neighborhood screen has appeared, logging debug info');
                 console.trace();
@@ -563,13 +546,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {null|boolean}
      */
     function hasMaxPriorityTask() {
-        if (!Array.isArray(self._tasks)) {
-            console.error("_tasks is not an array. Probably the data is not loaded yet.");
-            return null;
-        }
-        return self._tasks.filter(function (task) {
-            return task.getStreetPriority() === 1;
-        }).length > 0;
+        return self._tasks.filter(function (task) { return task.getStreetPriority() === 1; }).length > 0;
     }
 
     /**
