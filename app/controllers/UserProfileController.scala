@@ -10,13 +10,14 @@ import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
-import models.mission.MissionTable
 import models.user.UserOrgTable
 import models.label.{LabelLocation, LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
+import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
+
 import scala.concurrent.Future
 
 /**
@@ -41,8 +42,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
       // Get distance audited by the user. If using metric units, convert from miles to kilometers.
       val auditedDistance: Float = {
-        if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
-        else MissionTable.getDistanceAudited(user.userId)
+        if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId)
+        else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
       }
       Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
     }
@@ -202,8 +203,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val userId: UUID = user.userId
         // Get distance audited by the user. If using metric units, convert from miles to kilometers.
         val auditedDistance: Float = {
-          if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(userId) * 1.60934.toFloat
-          else MissionTable.getDistanceAudited(userId)
+          if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId)
+          else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
         }
         Future.successful(Ok(Json.obj(
           "distance_audited" -> auditedDistance,
