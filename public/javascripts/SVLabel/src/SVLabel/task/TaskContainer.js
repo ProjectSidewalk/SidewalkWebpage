@@ -15,8 +15,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousTasks = [];
     var currentTask = null;
     var beforeJumpNewTask = null;
+    var tasksFinishedLoading = false;
 
     self._tasks = [];
+
+    self.tasksLoaded = function() {
+        return tasksFinishedLoading;
+    }
+
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
@@ -146,6 +152,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                         }
                     }
                 }
+                tasksFinishedLoading = true;
 
                 if (callback) callback();
             },
