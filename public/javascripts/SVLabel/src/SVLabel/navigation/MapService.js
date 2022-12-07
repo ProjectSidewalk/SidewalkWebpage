@@ -672,8 +672,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!status.labelBeforeJumpListenerSet) {
 
-            // Get a new task and check if its disconnected from the current task. If yes, then finish the current task
-            // after the user has labeling the the current location before jumping to the new location.
+            // Get a new task and check if it's disconnected from the current task. If yes, then finish the current task
+            // after the user has labeling the current location.
 
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
@@ -804,7 +804,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if ("compass" in svl) {
                 svl.compass.update();
             }
-            if (!isOnboarding && "taskContainer" in svl) {
+            if (!isOnboarding && "taskContainer" in svl && svl.taskContainer.tasksLoaded()) {
                 svl.taskContainer.update();
 
                 // End of the task if the user is close enough to the end point and we aren't in the tutorial.
