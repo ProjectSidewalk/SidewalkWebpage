@@ -1,6 +1,9 @@
-
-
-
+/**
+ * Initializes a full screen carousel for the mission start tutorial.
+ * @param missionType mission type. Currently only VALIDATE mission is supported.
+ * @param labelType one of the seven label types for which the tutorial needs to be initialized.
+ * @param tracker the tracker object to log interactions.
+ */
 function MissionStartTutorial(missionType, labelType, tracker) {
     let self = this;
 
@@ -429,7 +432,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
     // Initializes the variables needed for this module.
     function initModule(missionType) {
         if (missionType === MISSION_TYPES.VALIDATE) {
-            labelTypeModule = validateMSTDescriptor['Signal'];
+            labelTypeModule = validateMSTDescriptor[labelType];
             nSlides = labelTypeModule.slides.length;
         }
     }
@@ -530,7 +533,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         }
 
 
-        // Now that the variables have been inited, let's set them for the UI.
+        // Now that the variables have been initiated, let's set them for the UI.
         $('.example-type-label').text(exampleTypeLabel);
         $('.example-type-icon').find('use').attr('xlink:href', iconID);
 
