@@ -4,8 +4,7 @@ function StatusFieldNeighborhood (neighborhoodModel, userModel, uiStatus) {
     this._userModel = userModel;
     var labelCount = 0;
 
-    this._neighborhoodModel.on("NeighborhoodContainer:neighborhoodChanged", function (parameters) {
-        var newNeighborhood = parameters.newNeighborhood;
+    this._neighborhoodModel.on("NeighborhoodContainer:setNeighborhood", function (newNeighborhood) {
         self.setNeighborhoodName(newNeighborhood.getProperty("name"));
 
         var user = self._userModel.getUser();

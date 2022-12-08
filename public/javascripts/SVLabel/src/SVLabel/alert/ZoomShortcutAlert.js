@@ -11,8 +11,7 @@ function ZoomShortcutAlert(alertHandler) {
           self['zoomCount'] = 1;
       }
 
-        if (self['zoomCount'] >= MINIMUM_ZOOM_CLICKS_BEFORE_ALERT &&
-            (svl.onboarding == null || svl.onboarding.isOnboarding() == false)) {
+        if (self['zoomCount'] >= MINIMUM_ZOOM_CLICKS_BEFORE_ALERT && svl.isOnboarding() == false) {
                 alertHandler.showAlert(i18next.t('popup.zoom-shortcuts'), 'zoomMessage', true);
                 self['zoomCount'] = 0;
         }
