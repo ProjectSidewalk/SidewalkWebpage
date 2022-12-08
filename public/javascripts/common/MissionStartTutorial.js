@@ -43,8 +43,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
     const validateMSTDescriptor = {
         'CurbRamp': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.curb-ramp.instruction',
-                {'labelType': i18next.t('curb-ramp-caps')}),
+            'missionInstruction2': i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels':'10', 'labelType': i18next.t('curb-ramp-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -90,8 +90,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'NoCurbRamp': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.no-curb-ramp.instruction',
-                {'labelType': i18next.t('missing-curb-ramp-caps')}),
+            'missionInstruction2': i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels':'10', 'labelType': i18next.t('missing-curb-ramp-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -150,8 +150,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'Obstacle': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.obstacle.instruction',
-                {'labelType': i18next.t('obstacle-caps')}),
+            'missionInstruction2': i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels':'10', 'labelType': i18next.t('obstacle-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -210,8 +210,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'SurfaceProblem': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.surface-problem.instruction',
-                {'labelType': i18next.t('surface-problem-caps')}),
+            'missionInstruction2': i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels':'10', 'labelType': i18next.t('surface-problem-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -257,8 +257,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'NoSideWalk': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.no-sidewalk.instruction',
-                {'labelType': i18next.t('no-sidewalk-caps')}),
+            'missionInstruction2': i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels':'10', 'labelType': i18next.t('no-sidewalk-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -304,8 +304,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'Crosswalk': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.crosswalk.instruction',
-                {'labelType': i18next.t('crosswalk-caps')}),
+            'missionInstruction2': i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels':'10', 'labelType': i18next.t('crosswalk-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -364,8 +364,8 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         },
         'Signal': {
             'missionInstruction1': i18next.t('mission-start-tutorial.mst-instruction-1'),
-            'missionInstruction2': i18next.t('mission-start-tutorial.signal.instruction',
-                {'labelType': i18next.t('signal-caps')}),
+            'missionInstruction2': i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels':'10', 'labelType': i18next.t('signal-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
