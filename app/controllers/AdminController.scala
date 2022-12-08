@@ -13,6 +13,7 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import formats.json.LabelFormat._
+import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
@@ -80,8 +81,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
             else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
           }
-          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, Some(user), auditedDistance)))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity.get, user, auditedDistance)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -278,7 +279,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           }
           val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Future.successful(Ok(featureCollection))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -305,7 +306,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           }
           val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Future.successful(Ok(featureCollection))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -332,7 +333,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case Some(user) =>
           val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
