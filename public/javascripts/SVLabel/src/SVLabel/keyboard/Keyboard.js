@@ -251,18 +251,13 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 27:
                     // "Escape"
-                    if(contextMenu.isOpen()) {
+                    if (contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         svl.tracker.push("ContextMenu_CloseKeyboardShortcut");
                         contextMenu.hide();
                     }
 
-                    if (canvas.getStatus('drawing')) {
-                        canvas.cancelDrawing();
-                        svl.tracker.push("KeyboardShortcut_CancelDrawing");
-                    } else {
-                        ribbon.backToWalk();
-                    }
+                    ribbon.backToWalk();
                     svl.modalExample.hide();
                     break;
             }

@@ -77,11 +77,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
             var labelColors, borderColor;
 
-            // Whenever the ribbon menu is clicked, cancel drawing.
-            if ('canvas' in svl && svl.canvas && svl.canvas.isDrawing()) {
-                svl.canvas.cancelDrawing();
-            }
-
             labelColors = util.misc.getLabelColors();
             borderColor = labelColors[labelType].fillStyle;
 

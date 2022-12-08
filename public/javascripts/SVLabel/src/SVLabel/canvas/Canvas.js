@@ -21,19 +21,12 @@ function Canvas(ribbon) {
         prevMouseDownTime: 0,
         prevMouseUpTime: 0
     };
-    // Properties
-    var properties = {
-        drawingMode: "point",
-        radiusThresh: 7,
-        showDeleteMenuTimeOutToken: undefined,
-        tempPointRadius: 5
-    };
 
     var pointParameters = {
-        'fillStyleInnerCircle': 'rgba(0,0,0,1)', // labelColor.fillStyle,
-        'iconImagePath': undefined, // iconImagePath,
-        'radiusInnerCircle': 5, //13,
-        'radiusOuterCircle': 6, //14
+        fillStyleInnerCircle: 'rgba(0,0,0,1)', // labelColor.fillStyle,
+        iconImagePath: undefined, // iconImagePath,
+        radiusInnerCircle: 17, //13,
+        radiusOuterCircle: 14, //14
     };
 
     var status = {
@@ -42,7 +35,6 @@ function Canvas(ribbon) {
         disableLabelEdit: false,
         disableLabeling: false,
         disableWalking: false,
-        drawing: false,
 
         lockCurrentLabel: false,
         lockDisableLabelDelete: false,
@@ -83,15 +75,6 @@ function Canvas(ribbon) {
         if (svl.ui.canvas.deleteIcon) {
             svl.ui.canvas.deleteIcon.bind("click", labelDeleteIconClick);
         }
-
-        // Point radius
-        if (properties.drawingMode == 'path') {
-            properties.pointInnerCircleRadius = 5;
-            properties.pointOuterCircleRadius = 6;
-        } else {
-            properties.pointInnerCircleRadius = 17;
-            properties.pointOuterCircleRadius = 14;
-        }
     }
 
     /**
@@ -106,8 +89,6 @@ function Canvas(ribbon) {
 
         pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
         pointParameters.iconImagePath = iconImagePath;
-        pointParameters.radiusInnerCircle = properties.pointInnerCircleRadius;
-        pointParameters.radiusOuterCircle = properties.pointOuterCircleRadius;
 
         var points = [], pov = svl.map.getPov();
 
@@ -146,7 +127,6 @@ function Canvas(ribbon) {
         svl.labelContainer.push(status.currentLabel);
 
 
-        // TODO Instead of calling the contextMenu show, throw an Canvas:closeLabelPath event.
         if ('contextMenu' in svl) {
             svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
                 targetLabel: status.currentLabel,
@@ -225,65 +205,14 @@ function Canvas(ribbon) {
         currTime = new Date().getTime();
 
         if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
-            if (properties.drawingMode == "point") {
-                tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                closeLabelPath();
-            }
-            // NOT being used now in this tool
-            else if (properties.drawingMode == "path") {
-                // Path labeling.
-
-                // Define point parameters to draw
-                if (!status.drawing) {
-                    // Start drawing a path if a user hasn't started to do so.
-                    status.drawing = true;
-                    if ('tracker' in svl && svl.tracker) {
-                        svl.tracker.push('LabelingCanvas_StartLabeling');
-                    }
-                    tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                } else {
-                    // Close the current path if there are more than 2 points in the tempPath and
-                    // the user clicks on a point near the initial point.
-                    var closed = false;
-                    if (tempPath.length > 2) {
-                        var r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.leftUpX), 2) + Math.pow((tempPath[0].y - mouseStatus.leftUpY), 2));
-                        if (r < properties.radiusThresh) {
-                            closed = true;
-                            status.drawing = false;
-                            closeLabelPath();
-                        }
-                    }
-
-                    // Otherwise add a new point
-                    if (!closed) {
-                        tempPath.push({x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
-                    }
-                }
-
-            }
-
+            tempPath.push({ x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
+            closeLabelPath();
             clear();
             setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
             render2();
         }
-        // NOT being used now in this tool
-        else if (currTime - mouseStatus.prevMouseUpTime < 400) {
-            if (properties.drawingMode == "path") {
-                // This part is executed for a double click event
-                // If the current status.drawing = true, then close the current path.
-                if (status.drawing && tempPath.length > 2) {
-                    status.drawing = false;
 
-                    closeLabelPath();
-                    self.clear();
-                    self.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
-                    self.render2();
-                }
-            }
-        }
-
-
-        svl.tracker.push('LabelingCanvas_MouseUp', {x: mouseStatus.leftUpX, y: mouseStatus.leftUpY});
+        svl.tracker.push('LabelingCanvas_MouseUp', { x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
         mouseStatus.prevMouseUpTime = new Date().getTime();
         mouseStatus.prevMouseDownTime = 0;
     }
@@ -307,14 +236,12 @@ function Canvas(ribbon) {
         }
 
 
-        if (!status.drawing) {
-            var ret = isOn(mouseStatus.currX, mouseStatus.currY);
-            if (ret && ret.className === 'Path') {
-                showLabelTag(status.currentLabel);
-                ret.renderBoundingBox(ctx);
-            } else {
-                showLabelTag(undefined);
-            }
+        var ret = isOn(mouseStatus.currX, mouseStatus.currY);
+        if (ret && ret.className === 'Path') {
+            showLabelTag(status.currentLabel);
+            ret.renderBoundingBox(ctx);
+        } else {
+            showLabelTag(undefined);
         }
         clear();
         render2();
@@ -381,63 +308,6 @@ function Canvas(ribbon) {
                 }
             }
         }
-    }
-
-    /**
-     * Render a temporary path while the user is drawing.
-     */
-    function renderTempPath() {
-        var pathLen = tempPath.length,
-            labelColor = util.misc.getLabelColors()[ribbon.getStatus('selectedLabelType')],
-            pointFill = labelColor.fillStyle,
-            curr, prev, r;
-        pointFill = util.color.changeAlphaRGBA(pointFill, 0.5);
-
-
-        // Draw the first line.
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-        ctx.lineWidth = 2;
-        if (pathLen > 1) {
-            curr = tempPath[1];
-            prev = tempPath[0];
-            r = Math.sqrt(Math.pow((tempPath[0].x - mouseStatus.currX), 2) + Math.pow((tempPath[0].y - mouseStatus.currY), 2));
-
-            // Change the circle radius of the first point depending on the distance between a mouse cursor and the point coordinate.
-            if (r < properties.radiusThresh && pathLen > 2) {
-                util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 2 * properties.tempPointRadius, curr.x, curr.y, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
-            } else {
-                util.shape.lineWithRoundHead(ctx, prev.x, prev.y, properties.tempPointRadius, curr.x, curr.y, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
-            }
-        }
-
-        // Draw the lines in between
-        for (var i = 2; i < pathLen; i++) {
-            curr = tempPath[i];
-            prev = tempPath[i - 1];
-            util.shape.lineWithRoundHead(ctx, prev.x, prev.y, 5, curr.x, curr.y, 5, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
-        }
-
-        if (r < properties.radiusThresh && pathLen > 2) {
-            util.shape.lineWithRoundHead(ctx, tempPath[pathLen - 1].x, tempPath[pathLen - 1].y, properties.tempPointRadius, tempPath[0].x, tempPath[0].y, 2 * properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'none', 'rgba(255,255,255,1)', pointFill);
-        } else {
-            util.shape.lineWithRoundHead(ctx, tempPath[pathLen - 1].x, tempPath[pathLen - 1].y, properties.tempPointRadius, mouseStatus.currX, mouseStatus.currY, properties.tempPointRadius, 'both', 'rgba(255,255,255,1)', pointFill, 'stroke', 'rgba(255,255,255,1)', pointFill);
-        }
-    }
-
-    /**
-     * Cancel drawing while use is drawing a label
-     * @method
-     */
-    function cancelDrawing() {
-        // This method clears a tempPath and cancels drawing. This method is called by Keyboard when esc is pressed.
-        if ('tracker' in svl && svl.tracker && status.drawing) {
-            svl.tracker.push("LabelingCanvas_CancelLabeling");
-        }
-
-        tempPath = [];
-        status.drawing = false;
-        self.clear().render2();
-        return this;
     }
 
     /**
@@ -554,15 +424,6 @@ function Canvas(ribbon) {
             console.warn("You have passed an invalid key for status.")
         }
         return status[key];
-    }
-
-    /**
-     * This method returns the current status drawing.
-     * @method
-     * @return {boolean}
-     */
-    function isDrawing() {
-        return status.drawing;
     }
 
     /**
@@ -703,11 +564,6 @@ function Canvas(ribbon) {
             }
         }
         povChange["status"] = false;
-
-        // Draw a temporary path from the last point to where a mouse cursor is.
-        if (status.drawing) {
-            renderTempPath();
-        }
 
         // Update the opacity of Zoom In and Zoom Out buttons.
         if (svl.zoomControl) {
@@ -890,7 +746,6 @@ function Canvas(ribbon) {
     _init();
 
     // Put public methods to self and return them.
-    self.cancelDrawing = cancelDrawing;
     self.clear = clear;
     self.disableLabelDelete = disableLabelDelete;
     self.disableLabelEdit = disableLabelEdit;
@@ -901,7 +756,6 @@ function Canvas(ribbon) {
     self.getCurrentLabel = getCurrentLabel;
     self.getLock = getLock;
     self.getStatus = getStatus;
-    self.isDrawing = isDrawing;
     self.isOn = isOn;
     self.lockCurrentLabel = lockCurrentLabel;
     self.lockDisableLabelDelete = lockDisableLabelDelete;

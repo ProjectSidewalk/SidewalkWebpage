@@ -257,9 +257,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function setZoom (zoomLevelIn) {
         if (typeof zoomLevelIn !== "number") { return false; }
 
-        // Cancel drawing when zooming in or out.
-        if ('canvas' in svl) { canvas.cancelDrawing(); }
-
         // Set the zoom level and change the panorama properties.
         var zoomLevel = undefined;
         zoomLevelIn = parseInt(zoomLevelIn);
