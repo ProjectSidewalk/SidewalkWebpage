@@ -1,10 +1,12 @@
 package models.user
 
+import models.audit.AuditTaskTable
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+
 import java.util.UUID
-import models.mission.MissionTable
+import models.utils.CommonUtils.METERS_TO_MILES
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -37,7 +39,7 @@ object UserCurrentRegionTable {
     * Checks if the given user is "experienced" (have audited at least 2 miles).
     */
   def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
-    MissionTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
+    AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES > experiencedUserMileageThreshold
   }
 
   /**

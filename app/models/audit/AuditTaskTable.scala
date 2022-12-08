@@ -352,6 +352,17 @@ object AuditTaskTable {
   }
 
   /**
+    * Gets total distance audited by a user in meters.
+    */
+  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
+    completedTasks
+      .filter(_.userId === userId.toString)
+      .innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
+      .map(_._2.geom.transform(26918).length)
+      .sum.run.getOrElse(0F)
+  }
+
+  /**
     * Get the sum of the line distance of all streets in the region that the user has not audited.
     */
   def getUnauditedDistance(userId: UUID, regionId: Int): Float = db.withSession { implicit session =>
