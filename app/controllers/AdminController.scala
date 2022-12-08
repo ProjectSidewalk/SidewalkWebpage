@@ -23,12 +23,15 @@ import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
 import models.user._
+import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
+import play.api.i18n.Messages
+
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
@@ -70,7 +73,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
-        case Some(user) => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, Some(user))))
+        case Some(user) =>
+          // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
+          val auditedDistance: Float = {
+            val userId: UUID = UUID.fromString(user.userId)
+            if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
+            else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
+          }
+          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, Some(user), auditedDistance)))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {

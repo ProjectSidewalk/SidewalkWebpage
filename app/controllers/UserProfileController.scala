@@ -40,9 +40,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = request.remoteAddress
       WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
-      // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+      // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
       val auditedDistance: Float = {
-        if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId)
+        if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
         else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
       }
       Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
@@ -201,9 +201,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+        // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
         val auditedDistance: Float = {
-          if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId)
+          if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
           else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
         }
         Future.successful(Ok(Json.obj(

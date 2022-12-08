@@ -10,7 +10,7 @@
 
 @import models.region.RegionTable
 @import models.audit.AuditTaskInteractionTable
-@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))(implicit lang: Lang)
+@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")), auditedDistance: Float = 0F)(implicit lang: Lang)
 
 @main(title) {
     @navbar(admin)
@@ -68,7 +68,7 @@
                         <td>@MissionTable.countCompletedMissions(UUID.fromString(user.get.userId), includeOnboarding = false, includeSkipped = false)</td>
                         <td>@AuditTaskTable.countCompletedAudits(UUID.fromString(user.get.userId))</td>
                         <td>@LabelTable.countLabels(UUID.fromString(user.get.userId))</td>
-                        <td id="td-total-distance-audited-admin"></td>
+                        <td>@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</td>
                         <td>@{"%.2f".format(AuditTaskInteractionTable.getHoursAuditingAndValidating(user.get.userId))} hours</td>
                     </tr>
                 </table>

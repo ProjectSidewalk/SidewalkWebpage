@@ -29,9 +29,7 @@ function AdminUser(user) {
     var streetParams = {
         labelPopup: true,
         includeLabelCounts: true,
-        auditedStreetColor: 'black',
-        useTotalAuditedDistance: true,
-        progressElement: 'td-total-distance-audited-admin'
+        auditedStreetColor: 'black'
     };
     var map;
     var layers = [];
