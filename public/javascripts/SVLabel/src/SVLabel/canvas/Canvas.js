@@ -106,7 +106,9 @@ function Canvas(ribbon) {
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
-            labelFillStyle: labelColor.fillStyle,
+            canvasCoordinateX: tempPath[0].x,
+            canvasCoordinateY: tempPath[0].y,
+            pov: pov,
             panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,
             panoramaLng: latlng.lng,
@@ -234,39 +236,10 @@ function Canvas(ribbon) {
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }
-
-
-        var ret = isOn(mouseStatus.currX, mouseStatus.currY);
-        if (ret && ret.className === 'Path') {
-            showLabelTag(status.currentLabel);
-            ret.renderBoundingBox(ctx);
-        } else {
-            showLabelTag(undefined);
-        }
         clear();
         render2();
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
-    }
-
-    /**
-     */
-    function imageCoordinates2String(coordinates) {
-        if (!(coordinates instanceof Array)) {
-            throw self.className + '.imageCoordinates2String() expects Array as an input';
-        }
-        if (coordinates.length === 0) {
-            throw self.className + '.imageCoordinates2String(): Empty array';
-        }
-        var ret = '';
-        var i;
-        var len = coordinates.length;
-
-        for (i = 0; i < len; i += 1) {
-            ret += parseInt(coordinates[i].x) + ' ' + parseInt(coordinates[i].y) + ' ';
-        }
-
-        return ret;
     }
 
     /**
@@ -287,13 +260,8 @@ function Canvas(ribbon) {
                 x = parseInt(x, 10) + 5;
                 y = parseInt(y, 10) + 5;
                 var item = isOn(x, y);
-                if (item && item.className === "Point") {
-                    var path = item.belongsTo();
-                    currLabel = path.belongsTo();
-                } else if (item && item.className === "Label") {
+                if (item && item.className === "Label") {
                     currLabel = item;
-                } else if (item && item.className === "Path") {
-                    currLabel = item.belongsTo();
                 }
             }
 
@@ -539,7 +507,7 @@ function Canvas(ribbon) {
 
                     for (j = 0; j < pointsLen; j++) {
                         pointData = points[j].getProperties();
-                        svImageCoordinate = points[j].getGSVImageCoordinate();
+                        svImageCoordinate = label.getGSVImageCoordinate();
                         if ('photographerHeading' in pointData && pointData.photographerHeading) {
                             deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
                             deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
@@ -576,14 +544,6 @@ function Canvas(ribbon) {
     /**
      * @method
      */
-    function renderBoundingBox(path) {
-        path.renderBoundingBox(ctx);
-        return this;
-    }
-
-    /**
-     * @method
-     */
     function setCurrentLabel(label) {
         if (!status.lockCurrentLabel) {
             status.currentLabel = label;
@@ -606,9 +566,6 @@ function Canvas(ribbon) {
         }
     }
 
-    /**
-     * @method
-     */
     /**
      * This function sets the passed label's tagVisiblity to 'visible' and all the others to 'hidden'
      * @param label
@@ -641,16 +598,10 @@ function Canvas(ribbon) {
         }
     }
 
-    /**
-     * @method
-     */
     function setTagVisibility(labelIn) {
         return self.showLabelTag(labelIn);
     }
 
-    /**
-     * @method
-     */
     function setVisibility(visibility) {
         var labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
@@ -765,7 +716,6 @@ function Canvas(ribbon) {
     self.pushLabel = pushLabel;
     self.render = render2;
     self.render2 = render2;
-    self.renderBoundingBox = renderBoundingBox;
     self.setCurrentLabel = setCurrentLabel;
     self.setStatus = setStatus;
     self.showLabelTag = showLabelTag;

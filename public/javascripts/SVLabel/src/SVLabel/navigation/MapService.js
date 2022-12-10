@@ -885,11 +885,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         setViewControlLayerCursor('OpenHand');
         var currTime = new Date().getTime();
 
-        var point = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-        if (point && point.className === "Point") {
-            var path = point.belongsTo(),
-                selectedLabel = path.belongsTo(),
-                canvasCoordinate = point.getCanvasCoordinate(getPov());
+        var labelPoint = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+        if (labelPoint && labelPoint.className === "Label") {
+            var selectedLabel = labelPoint;
+            var canvasCoordinate = labelPoint.getCoordinate();
 
             _canvas.setCurrentLabel(selectedLabel);
 
@@ -899,7 +898,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 } else {
                     svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
                         targetLabel: selectedLabel,
-                        targetLabelColor: selectedLabel.getProperty("labelFillStyle")
+                        targetLabelColor: selectedLabel.getProperty("fillStyle")
                     });
                 }
                 contextMenuWasOpen = false;
@@ -948,25 +947,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         // Show label delete menu.
         var item = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-        if (item && item.className === "Point") {
-            var path = item.belongsTo();
-            var selectedLabel = path.belongsTo();
-
-            _canvas.setCurrentLabel(selectedLabel);
-            _canvas.showLabelTag(selectedLabel);
-            _canvas.clear();
-            _canvas.render2();
-        } else if (item && item.className === "Label") {
+        if (item && item.className === "Label") {
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
             _canvas.showLabelTag(selectedLabel);
-        } else if (item && item.className === "Path") {
-            var label = item.belongsTo();
             _canvas.clear();
             _canvas.render2();
-            _canvas.showLabelTag(label);
-        }
-        else {
+        } else {
             _canvas.showLabelTag(undefined);
             _canvas.setCurrentLabel(undefined);
         }

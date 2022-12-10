@@ -159,78 +159,12 @@ function Point (svl, x, y, pov, params) {
 
     function getCanvasCoordinate () { return $.extend(true, {}, self.canvasCoordinate); }
 
-    function getGSVImageCoordinate () { return $.extend(true, {}, self.svImageCoordinate); }
-
     function getProperty (name) { return (name in properties) ? properties[name] : null; }
 
     function getProperties () { return $.extend(true, {}, properties); }
 
-    function isOn (x, y) {
-        var margin = properties.radiusOuterCircle / 2 + 3;
-        if (x < self.canvasCoordinate.x + margin &&
-            x > self.canvasCoordinate.x - margin &&
-            y < self.canvasCoordinate.y + margin &&
-            y > self.canvasCoordinate.y - margin) {
-            return this;
-        } else {
-            return false;
-        }
-    }
-
-    function calculateCanvasCoordinate(pov){
-        var canvasCoord = getCanvasCoordinate();
-        var origPov = getOriginalPov();
-        self.canvasCoordinate =  util.panomarker.getCanvasCoordinate(canvasCoord, origPov, pov);
-        return self.canvasCoordinate;
-    }
-
     function calculatePointPov(x, y, pov){
         return util.panomarker.calculatePointPov(x, y, pov);
-    }
-
-    /**
-     * Renders label image icon
-     * @param pov
-     * @param ctx
-     */
-    function render (pov, ctx) {
-        if (status.visibility === 'visible') {
-            var coord = calculateCanvasCoordinate(pov),
-                x = coord.x,
-                y = coord.y,
-                r = properties.radiusInnerCircle;
-
-            // Update the new pov of the label
-            if (coord.x < 0){
-                self.pov = {};
-            }
-            else {
-                self.pov = calculatePointPov(coord.x, coord.y, pov);
-            }
-
-            // ctx.arc(x, y, properties.radiusOuterCircle, 2 * Math.PI, 0, true);
-
-            // Render an icon
-            var imagePath = getProperty("iconImagePath");
-            if (imagePath) {
-                var imageObj, imageHeight, imageWidth, imageX, imageY;
-                imageObj = new Image();
-                imageHeight = imageWidth = 2 * r - 3;
-                imageX =  x - r + 2;
-                imageY = y - r + 2;
-
-                imageObj.src = imagePath;
-
-                try {
-                    ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-                } catch (e) {
-                    // console.debug(e);
-                }
-
-                //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-            }
-            ctx.restore();
-        }
     }
 
     /**
@@ -299,7 +233,6 @@ function Point (svl, x, y, pov, params) {
     }
 
     self.belongsTo = getParent;
-    self.calculateCanvasCoordinate = calculateCanvasCoordinate;
     self.getCanvasX = getCanvasX;
     self.getCanvasY = getCanvasY;
     self.getCanvasCoordinate = getCanvasCoordinate;
@@ -307,11 +240,8 @@ function Point (svl, x, y, pov, params) {
     self.getOriginalPov = getOriginalPov;
     self.getFill = getFill;
     self.getFillStyle = getFillStyle;
-    self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getProperty = getProperty;
     self.getProperties = getProperties;
-    self.isOn = isOn;
-    self.render = render;
     self.resetFillStyle = resetFillStyle;
     self.resetSVImageCoordinate = resetSVImageCoordinate;
     self.setBelongsTo = setBelongsTo;

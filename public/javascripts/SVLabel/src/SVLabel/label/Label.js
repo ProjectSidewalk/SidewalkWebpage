@@ -39,6 +39,8 @@ function Label (svl, pathIn, params) {
             distanceCanvasYSlope: 0.0011071
         }
     };
+    var RADIUS_INNER_CIRCLE = 17;
+    var RADIUS_OUTER_CIRCLE = 14;
 
     var properties = {
         canvasWidth: undefined,
@@ -51,6 +53,11 @@ function Label (svl, pathIn, params) {
         labelType: undefined,
         labelDescription: undefined,
         labelFillStyle: undefined,
+        iconImagePath: undefined,
+        canvasCoordinate: undefined,
+        svImageCoordinate: undefined,
+        pov: undefined,
+        originalPov: undefined,
         labelLat: undefined,
         labelLng: undefined,
         latLngComputationMethod: undefined,
@@ -91,82 +98,72 @@ function Label (svl, pathIn, params) {
     var tagProperties = util.misc.getSeverityDescription();
 
     function _init (param, pathIn) {
-            if (!pathIn) {
-                throw 'The passed "path" is empty.';
-            } else {
-                path = pathIn;
-            }
-
-            for (var attrName in param) {
-                properties[attrName] = param[attrName];
-            }
-
-            // Set belongs to of the path.
-            path.setBelongsTo(self);
-
-            if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
-                googleMarker = createMinimapMarker(param.labelType);
-                googleMarker.setMap(svl.map.getMap());
-            }
-    }
-
-    /**
-     * Blink (highlight and fade) the color of this label. If fade is true, turn the label into gray.
-     * @param numberOfBlinks
-     * @param fade
-     * @returns {blink}
-     */
-    function blink (numberOfBlinks, fade) {
-        if (!numberOfBlinks) {
-            numberOfBlinks = 3;
-        } else if (numberOfBlinks < 0) {
-            numberOfBlinks = 0;
+        if (!pathIn) {
+            throw 'The passed "path" is empty.';
+        } else {
+            path = pathIn;
         }
-        var interval;
-        var highlighted = true;
-        var path = getPath();
-        var points = path.getPoints();
 
-        var i;
-        var len = points.length;
+        for (var attrName in param) {
+            properties[attrName] = param[attrName];
+        }
 
-        var fillStyle = 'rgba(200,200,200,0.1)';
-        var fillStyleHighlight = path.getFillStyle();
+        properties.iconImagePath = util.misc.getIconImagePaths(properties.labelType).iconImagePath;
+        properties.fillStyle = util.misc.getLabelColors()[properties.labelType].fillStyle;
 
-        interval = setInterval(function () {
-            if (numberOfBlinks > 0) {
-                if (highlighted) {
-                    highlighted = false;
-                    path.setFillStyle(fillStyle);
-                    for (i = 0; i < len; i++) {
-                        points[i].setFillStyle(fillStyle);
-                    }
-                    svl.canvas.clear().render2();
-                } else {
-                    highlighted = true;
-                    path.setFillStyle(fillStyleHighlight);
-                    for (i = 0; i < len; i++) {
-                        points[i].setFillStyle(fillStyleHighlight);
-                    }
-                    svl.canvas.clear().render2();
-                    numberOfBlinks -= 1;
-                }
-            } else {
-                if (fade) {
-                    path.setFillStyle(fillStyle);
-                    for (i = 0; i < len; i++) {
-                        points[i].setFillStyle(fillStyle);
-                    }
-                    svl.canvas.clear().render2();
-                }
 
-                setAlpha(0.05);
-                svl.canvas.clear().render2();
-                window.clearInterval(interval);
-            }
-        }, 500);
+        properties.pov = {
+            heading : param.pov.heading,
+            pitch : param.pov.pitch,
+            zoom : param.pov.zoom
+        };
+        if (!param.originalPov) {
+            properties.originalPov = {
+                heading: param.pov.heading,
+                pitch: param.pov.pitch,
+                zoom: param.pov.zoom
+            };
+        }
 
-        return this;
+        properties.canvasCoordinate = { x: param.canvasCoordinateX, y: param.canvasCoordinateY };
+
+
+
+        // Convert a canvas coordinate (x, y) into a sv image coordinate
+        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
+        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
+        var svImageWidth = svl.svImageWidth;
+        // var svImageHeight = svl.svImageHeight;
+
+        // Adjust the zoom level
+        /* old calculation
+        var zoom = pov.zoom;
+        var zoomFactor = svl.zoomFactor[zoom];
+        self.svImageCoordinate = {};
+        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
+        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
+        // svImageCoordinate.x could be negative, so adjust it.
+        if (self.svImageCoordinate.x < 0) {
+            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
+        }
+        */
+
+        var svImageCoord = util.panomarker.calculateImageCoordinateFromPointPov(properties.originalPov);
+
+        if (svImageCoord.x < 0) {
+            svImageCoord.x = svImageCoord.x + svImageWidth;
+        }
+        properties.svImageCoordinate = svImageCoord;
+
+
+
+        // Set belongs to of the path.
+        path.setBelongsTo(self);
+
+        if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
+            googleMarker = createMinimapMarker(param.labelType);
+            googleMarker.setMap(svl.map.getMap());
+        }
     }
 
     /**
@@ -194,18 +191,6 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This method changes the fill color of the path and points that constitute the path.
-     * @param fillColor
-     * @returns {fill}
-     */
-    function fill (fillColor) {
-        var path = getPath(), points = path.getPoints(), len = points.length;
-        path.setFillStyle(fillColor);
-        for (var i = 0; i < len; i++) { points[i].setFillStyle(fillColor); }
-        return this;
-    }
-
-    /**
      * This method returns the bounding box of the label's outline.
      * @param pov
      * @returns {*}
@@ -215,15 +200,11 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This function returns the coordinate of a point.
+     * This function returns the coordinate the label.
      * @returns {*}
      */
-    function getCoordinate () {
-        if (path && path.points.length > 0) {
-            var pov = svl.map.getPov();
-            return $.extend(true, {}, path.points[0].getCanvasCoordinate(pov));
-        }
-        return path;
+    function getCoordinate() {
+        return properties.canvasCoordinate;
     }
 
     /**
@@ -231,9 +212,7 @@ function Label (svl, pathIn, params) {
      * @returns {*}
      */
     function getGSVImageCoordinate () {
-        if (path && path.points.length > 0) {
-            return path.points[0].getGSVImageCoordinate();
-        }
+        return properties.svImageCoordinate;
     }
 
     /**
@@ -268,12 +247,6 @@ function Label (svl, pathIn, params) {
         }
         return false;
     }
-
-    /**
-     * This function returns the coordinate of the first point in the path.
-     * @returns {*}
-     */
-    function getPoint () { return (path && path.points.length > 0) ? path.points[0] : path; }
 
     /**
      * This function returns the point objects that constitute the path
@@ -324,9 +297,8 @@ function Label (svl, pathIn, params) {
     /**
      * Get a property
      * @param propName
-     * @returns {boolean}
      */
-    function getProperty (propName) { return (propName in properties) ? properties[propName] : false; }
+    function getProperty(propName) { return (propName in properties) ? properties[propName] : false; }
 
     /**
      * Get a status
@@ -359,8 +331,15 @@ function Label (svl, pathIn, params) {
      */
     function isOn (x, y) {
         if (status.deleted || status.visibility === 'hidden') {  return false; }
-        var result = path.isOn(x, y);
-        return result ? result : false;
+        var margin = RADIUS_OUTER_CIRCLE / 2 + 3;
+        if (x < properties.canvasCoordinate.x + margin &&
+            x > properties.canvasCoordinate.x - margin &&
+            y < properties.canvasCoordinate.y + margin &&
+            y > properties.canvasCoordinate.y - margin) {
+            return this;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -415,17 +394,53 @@ function Label (svl, pathIn, params) {
         if (!status.deleted && status.visibility === 'visible') {
             // Render a tag -- triggered by mouse hover event.
             // Get a text to render (e.g, attribute type), and canvas coordinate to render the tag.
-            if(status.tagVisibility === 'visible') {
+            if (status.tagVisibility === 'visible') {
                 renderTag(ctx);
-                // path.renderBoundingBox(ctx);
                 showDelete();
             }
 
-            // Renders the label image.
-            path.render2(ctx, pov);
+
+
+            // path.render2(ctx, pov);
+
+            // Find current pov of the label and update it.
+            var canvasCoord = getCoordinate();
+            console.log(`originalPov: {x: ${properties.originalPov.heading}}`);
+            console.log(`coord before: {x: ${canvasCoord.x}, y: ${canvasCoord.y}}`);
+            console.log(`pov before: {x: ${properties.pov.heading}}`);
+            canvasCoord =  util.panomarker.getCanvasCoordinate(canvasCoord, properties.originalPov, pov);
+            properties.canvasCoordinate = canvasCoord;
+
+            if (canvasCoord.x < 0) {
+                properties.pov = {};
+            }
+            else {
+                properties.pov = util.panomarker.calculatePointPov(canvasCoord.x, canvasCoord.y, pov);
+            }
+            // console.log(`coord after: {x: ${properties.canvasCoordinate.x}, y: ${properties.canvasCoordinate.y}}`);
+            // console.log(`pov after: {x: ${properties.pov.heading}}`);
+
+            // Draw the label type icon.
+            var imageObj, imageHeight, imageWidth, imageX, imageY;
+            imageObj = new Image();
+            imageHeight = imageWidth = 2 * RADIUS_INNER_CIRCLE - 3;
+            imageX =  canvasCoord.x - RADIUS_INNER_CIRCLE + 2;
+            imageY = canvasCoord.y - RADIUS_INNER_CIRCLE + 2;
+
+            imageObj.src = getProperty('iconImagePath');
+
+            try {
+                ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+            } catch (e) {
+                console.debug(e);
+            }
+            ctx.restore();
 
             // Draws label outline.
-            ctx.lineWidth = .7;
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle = getProperty('fillStyle');
+            ctx.lineWidth = 0.7;
             ctx.beginPath();
             ctx.arc(getCoordinate().x, getCoordinate().y, 15.3, 0, 2 * Math.PI);
             ctx.strokeStyle = 'black';
@@ -828,7 +843,7 @@ function Label (svl, pathIn, params) {
             var zoom = getProperty("panoramaZoom");
             var canvasX = getPath().getPoints()[0].originalCanvasCoordinate.x;
             var canvasY = getPath().getPoints()[0].originalCanvasCoordinate.y;
-            var svImageY = getPath().getPoints()[0].getGSVImageCoordinate().y;
+            var svImageY = getGSVImageCoordinate().y;
 
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
@@ -884,21 +899,19 @@ function Label (svl, pathIn, params) {
     }
 
     self.resetFillStyle = resetFillStyle;
-    self.blink = blink;
     self.getBoundingBox = getBoundingBox;
+    self.getCoordinate = getCoordinate;
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getPanoId = getPanoId;
     self.getPath = getPath;
-    self.getPoint = getPoint;
     self.getPoints = getPoints;
     self.getLabelPov = getLabelPov;
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.getstatus = getStatus;
     self.getVisibility = getVisibility;
-    self.fill = fill;
     self.isDeleted = isDeleted;
     self.isOn = isOn;
     self.isVisible = isVisible;

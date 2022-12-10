@@ -113,7 +113,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
             for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
                 var point = points[j],
-                    gsvImageCoordinate = point.getGSVImageCoordinate(),
+                    gsvImageCoordinate = label.getGSVImageCoordinate(),
                     pointParam = {
                         sv_image_x : gsvImageCoordinate.x,
                         sv_image_y : gsvImageCoordinate.y,

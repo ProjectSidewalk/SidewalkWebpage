@@ -45,6 +45,10 @@ function LabelContainer($) {
                 let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
                     originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov()
                 );
+                labelArr[i].canvasCoordinateX = rerenderCanvasCoord.x;
+                labelArr[i].canvasCoordinateY = rerenderCanvasCoord.y;
+                labelArr[i].pov = svl.map.getPov();
+                labelArr[i].originalPov = originalPointPov.originalPov;
 
                 // Return the status to original.
                 povChange["status"] = false;
@@ -69,7 +73,6 @@ function LabelContainer($) {
                 label.setProperty("audit_task_id", labelArr[i].audit_task_id);
                 label.setProperty("labelLat", labelArr[i].labelLat);
                 label.setProperty("labelLng", labelArr[i].labelLng);
-                label.setProperty("labelFillStyle", labelFillStyle);
 
                 // Prevent tag from being rendered initially
                 label.setTagVisibility('hidden');
