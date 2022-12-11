@@ -73,7 +73,7 @@
 }
 
 .severity-level:hover .severity-icon svg {
-    fill: #FFD74C;
+    fill: #b4ffe4;
 }
 
 .severity-level.selected .severity-icon svg {

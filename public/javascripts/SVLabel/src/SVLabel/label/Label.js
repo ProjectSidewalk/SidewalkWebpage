@@ -475,8 +475,7 @@ function Label (svl, pathIn, params) {
             i, height,
             width = 0,
             labelRows = 1,
-            severityImage = new Image(),
-            severityImagePath = undefined,
+            severityImage,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
             msg = i18next.t(util.camelToKebab(properties.labelType) + '-description'),
             messages = msg.split('\n'),
@@ -485,8 +484,8 @@ function Label (svl, pathIn, params) {
         if (hasSeverity) {
             labelRows = 2;
             if (properties.severity !== null) {
-                severityImagePath = tagProperties[properties.severity].severityImage;
-                severityImage.src = severityImagePath;
+                severityImage = $(`.severity-icon.template.severity-${properties.severity}`)
+                    .clone().removeClass('template');
                 severityMessage = tagProperties[properties.severity].message;
             }
         }
@@ -509,7 +508,7 @@ function Label (svl, pathIn, params) {
             // Do additional adjustments on tag width to make room for smiley icon.
             if (hasSeverity) {
                 secondRow = ctx.measureText(severityMessage).width;
-                if (severityImagePath != undefined) {
+                if (severityImage != undefined) {
                     if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
                         width += 15 - firstRow + secondRow;
                     } else if (firstRow - secondRow < 0) {
