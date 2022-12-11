@@ -147,7 +147,7 @@
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "JOUW MISSIE",
-    "mst-instruction-2": "Valideer {{nLabels}} {{labelType}}",
+    "mst-instruction-2": "Valideer {{nLabels}} {{labelType}} labels",
     "example-type-label-correct": "JUISTE VOORBEELD",
     "example-type-label-incorrect": "VERKEERD VOORBEELD",
     "label-type-subtitle": "Waarom is dit verkeerd?",
