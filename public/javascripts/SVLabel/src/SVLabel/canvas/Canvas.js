@@ -22,13 +22,6 @@ function Canvas(ribbon) {
         prevMouseUpTime: 0
     };
 
-    var pointParameters = {
-        fillStyleInnerCircle: 'rgba(0,0,0,1)', // labelColor.fillStyle,
-        iconImagePath: undefined, // iconImagePath,
-        radiusInnerCircle: 17, //13,
-        radiusOuterCircle: 14, //14
-    };
-
     var status = {
         currentLabel: null,
         disableLabelDelete: false,
@@ -40,7 +33,6 @@ function Canvas(ribbon) {
         lockDisableLabelDelete: false,
         lockDisableLabelEdit: false,
         lockDisableLabeling: false,
-        svImageCoordinatesAdjusted: false,
         totalLabelCount: 0,
         'visibilityMenu': 'hidden'
     };
@@ -87,16 +79,15 @@ function Canvas(ribbon) {
             labelDescription = util.misc.getLabelDescriptions(labelType),
             iconImagePath = util.misc.getIconImagePaths(labelDescription.id).iconImagePath;
 
-        pointParameters.fillStyleInnerCircle = labelColor.fillStyle;
-        pointParameters.iconImagePath = iconImagePath;
-
         var points = [], pov = svl.map.getPov();
 
         for (var i = 0, pathLen = tempPath.length; i < pathLen; i++) {
-            points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov, pointParameters));
+            points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov));
         }
 
-        var path = new Path(svl, points, {});
+
+
+        var path = new Path(svl, points);
         var latlng = svl.map.getPosition();
         var param = {
             canvasWidth: svl.canvasWidth,
@@ -106,8 +97,8 @@ function Canvas(ribbon) {
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
-            canvasCoordinateX: tempPath[0].x,
-            canvasCoordinateY: tempPath[0].y,
+            originalCanvasCoordinate: { x: tempPath[0].x, y: tempPath[0].y },
+            canvasCoordinate: { x: tempPath[0].x, y: tempPath[0].y },
             pov: pov,
             panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,
@@ -490,37 +481,6 @@ function Canvas(ribbon) {
             povChange["status"] = false;
         }
 
-        var points, pointsLen, pointData, svImageCoordinate, deltaHeading, deltaPitch, x, y;
-        // The image coordinates of the points in system labels shift as the projection parameters
-        // (i.e., heading and pitch) that
-        // you can get from Street View API change. So adjust the image coordinate
-        // Note that this adjustment happens only once
-        if (!status.svImageCoordinatesAdjusted) {
-            var currentPhotographerPov = svl.panorama.getPhotographerPov();
-            if (currentPhotographerPov && 'heading' in currentPhotographerPov && 'pitch' in currentPhotographerPov) {
-                lenLabels = labels.length;
-                for (i = 0; i < lenLabels; i += 1) {
-                    // Check if the label comes from current SV panorama
-                    label = labels[i];
-                    points = label.getPoints(true);
-                    pointsLen = points.length;
-
-                    for (j = 0; j < pointsLen; j++) {
-                        pointData = points[j].getProperties();
-                        svImageCoordinate = label.getGSVImageCoordinate();
-                        if ('photographerHeading' in pointData && pointData.photographerHeading) {
-                            deltaHeading = currentPhotographerPov.heading - pointData.photographerHeading;
-                            deltaPitch = currentPhotographerPov.pitch - pointData.photographerPitch;
-                            x = (svImageCoordinate.x + (deltaHeading / 360) * svl.svImageWidth + svl.svImageWidth) % svl.svImageWidth;
-                            y = svImageCoordinate.y + (deltaPitch / 90) * svl.svImageHeight;
-                            points[j].resetSVImageCoordinate({x: x, y: y})
-                        }
-                    }
-                }
-                status.svImageCoordinatesAdjusted = true;
-            }
-        }
-
         // Render user labels. First check if the label comes from current SV panorama
         lenLabels = labels.length;
         for (i = 0; i < lenLabels; i += 1) {
@@ -607,8 +567,7 @@ function Canvas(ribbon) {
             labelLen = labels.length;
 
         for (var i = 0; i < labelLen; i += 1) {
-            labels[i].unlockVisibility();
-            labels[i].setVisibility('visible');
+            labels[i].setVisibility(visibility);
         }
         return this;
     }
@@ -622,32 +581,6 @@ function Canvas(ribbon) {
 
         for (var i = 0; i < labelLen; i += 1) {
             labels[i].setVisibilityBasedOnLocation(visibility, panoramaId);
-        }
-        return this;
-    }
-
-    /**
-     * Hide labels that are not in LabelerIds
-     * @method
-     */
-    function setVisibilityBasedOnLabelerId(visibility, LabelerIds, included) {
-        var labels = svl.labelContainer.getCanvasLabels(),
-            labelLen = labels.length;
-
-        for (var i = 0; i < labelLen; i += 1) {
-            labels[i].setVisibilityBasedOnLabelerId(visibility, LabelerIds, included);
-        }
-        return this;
-    }
-
-    /**
-     * @method
-     */
-    function setVisibilityBasedOnLabelerIdAndLabelTypes(visibility, table, included) {
-        var labels = svl.labelContainer.getCanvasLabels(),
-            labelLen = labels.length;
-        for (var i = 0; i < labelLen; i += 1) {
-            labels[i].setVisibilityBasedOnLabelerIdAndLabelTypes(visibility, table, included);
         }
         return this;
     }
@@ -721,8 +654,6 @@ function Canvas(ribbon) {
     self.setTagVisibility = setTagVisibility;
     self.setVisibility = setVisibility;
     self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
-    self.setVisibilityBasedOnLabelerId = setVisibilityBasedOnLabelerId;
-    self.setVisibilityBasedOnLabelerIdAndLabelTypes = setVisibilityBasedOnLabelerIdAndLabelTypes;
     self.unlockCurrentLabel = unlockCurrentLabel;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
     self.unlockDisableLabelEdit = unlockDisableLabelEdit;

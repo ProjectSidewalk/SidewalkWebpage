@@ -8,23 +8,6 @@ var util = util || {};
 function UtilitiesColor () {
     var self = { className: "UtilitiesColor" };
 
-    function changeAlphaRGBA(rgba, alpha) {
-        // This function updates alpha value of the given rgba value. Example: if the input is rgba(200, 200, 200, 0.5)
-        // and alpha 0.8, the output will be rgba(200, 200, 200, 0.8).
-        var rgbaList = rgba.replace('rgba(','').replace(')','').split(",");
-        if (rgbaList.length === 4 && !isNaN(parseInt(alpha))) {
-            var newRgba;
-            newRgba = 'rgba(' +
-                rgbaList[0].trim() + ',' +
-                rgbaList[1].trim() + ',' +
-                rgbaList[2].trim() + ',' +
-                alpha + ')';
-            return newRgba;
-        } else {
-            return rgba;
-        }
-    }
-
     /**
      * Converts an RGB color value to HSV. Conversion formula adapted from http://en.wikipedia.org/wiki/HSV_color_space.
      * Assumes r, g, and b are contained in the set [0, 255] and returns h, s, and v in the set [0, 1].
@@ -86,7 +69,6 @@ function UtilitiesColor () {
         return [r * 255, g * 255, b * 255];
     }
 
-    self.changeAlphaRGBA = changeAlphaRGBA;
     self.rgbToHsv = rgbToHsv;
     self.hsvToRgb = hsvToRgb;
 

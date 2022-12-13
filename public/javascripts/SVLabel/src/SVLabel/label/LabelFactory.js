@@ -20,7 +20,7 @@ function LabelFactory (svl, nextTemporaryLabelId) {
                 return label;
             }
         } else {
-            path = new Path(svl, [new Point(svl, 0, 0, {}, {})]);
+            path = new Path(svl, [new Point(svl, 0, 0)]);
             return new Label(svl, path, param);
         }
     };

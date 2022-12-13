@@ -39,34 +39,24 @@ function LabelContainer($) {
                 };
 
                 let originalPointPov = {
-                    originalPov: util.panomarker.calculatePointPov(labelArr[i].canvasX, labelArr[i].canvasY, originalPov)
+                    originalPov: util.panomarker.calculatePointPov(originalCanvasCoord.x, originalCanvasCoord.y, originalPov)
                 };
+                console.log(labelArr[i].labelId);
+                console.log(originalPov);
+                console.log(originalPointPov.originalPov);
 
                 let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
                     originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov()
                 );
-                labelArr[i].canvasCoordinateX = rerenderCanvasCoord.x;
-                labelArr[i].canvasCoordinateY = rerenderCanvasCoord.y;
+                labelArr[i].canvasCoordinate = { x: rerenderCanvasCoord.x, y: rerenderCanvasCoord.y };
+                labelArr[i].originalCanvasCoordinate = originalCanvasCoord;
                 labelArr[i].pov = svl.map.getPov();
                 labelArr[i].originalPov = originalPointPov.originalPov;
 
                 // Return the status to original.
                 povChange["status"] = false;
 
-                let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
-                let labelFillStyle = util.misc.getLabelColors()[labelArr[i].labelType].fillStyle;
-
-                var pointParameters = {
-                    'originalPov': originalPointPov.originalPov,
-                    'fillStyleInnerCircle': labelFillStyle,
-                    'iconImagePath': iconImagePath,
-                    'radiusInnerCircle': 17,
-                    'radiusOuterCircle': 14
-                };
-
-                let labelPoint = new Point(
-                    svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters
-                );
+                let labelPoint = new Point(svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov());
 
                 let path = new Path(svl, [labelPoint]);
                 let label = svl.labelFactory.create(path, labelArr[i]);
