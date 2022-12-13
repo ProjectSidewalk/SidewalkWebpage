@@ -152,7 +152,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         svl.tracker.push("KeyboardShortcut_Severity_" + severity, {
                             keyCode: e.keyCode
                         });
-                        svl.canvas.clear().render2();
+                        svl.canvas.clear().render();
                     }
                 }
             } else {

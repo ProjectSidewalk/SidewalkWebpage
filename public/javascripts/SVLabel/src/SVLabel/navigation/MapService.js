@@ -629,7 +629,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             povChange["status"] = true;
                             _canvas.clear();
                             _canvas.setVisibilityBasedOnLocation('visible', panoId);
-                            _canvas.render2();
+                            _canvas.render();
                             povChange["status"] = false;
 
                             svl.tracker.push("PanoId_Changed");
@@ -952,7 +952,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
             _canvas.showLabelTag(selectedLabel);
             _canvas.clear();
-            _canvas.render2();
+            _canvas.render();
         } else {
             _canvas.showLabelTag(undefined);
             _canvas.setCurrentLabel(undefined);
@@ -1128,7 +1128,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
         }
         status.currentPanoId = getPanoId();
-        _canvas.render2();
+        _canvas.render();
     }
 
     function setViewControlLayerCursor(type) {
@@ -1258,7 +1258,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Changes the Street View pov. If a transition duration is given, smoothly updates the pov over that time.
      * @param pov Target pov
-     * @param durationMs Transition duration in milli-seconds
+     * @param durationMs Transition duration in milliseconds
      * @param callback Callback function executed after updating pov.
      * @returns {setPov}
      */

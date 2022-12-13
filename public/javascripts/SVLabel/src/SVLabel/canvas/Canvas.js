@@ -211,7 +211,7 @@ function Canvas(ribbon) {
             closeLabelPath();
             clear();
             setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
-            render2();
+            render();
         }
 
         svl.tracker.push('LabelingCanvas_MouseUp', { x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
@@ -237,7 +237,7 @@ function Canvas(ribbon) {
             $(this).css('cursor', cursorUrl);
         }
         clear();
-        render2();
+        render();
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
     }
@@ -473,7 +473,7 @@ function Canvas(ribbon) {
      * Renders labels
      * @method
      */
-    function render2() {
+    function render() {
         if (!ctx) {
             return this;
         }
@@ -593,7 +593,7 @@ function Canvas(ribbon) {
             }
 
             self.clear();
-            self.render2();
+            self.render();
             return this;
         }
     }
@@ -714,8 +714,7 @@ function Canvas(ribbon) {
     self.lockDisableLabeling = lockDisableLabeling;
     self.lockShowLabelTag = lockShowLabelTag;
     self.pushLabel = pushLabel;
-    self.render = render2;
-    self.render2 = render2;
+    self.render = render;
     self.setCurrentLabel = setCurrentLabel;
     self.setStatus = setStatus;
     self.showLabelTag = showLabelTag;
