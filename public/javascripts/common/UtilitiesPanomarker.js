@@ -295,13 +295,13 @@ function getCanvasCoordinate(canvasCoord, origPov, pov) {
     var povChange = svl.map.getPovChangeStatus(),
         povChangeStatus = povChange["status"];
 
-    if (canvasCoord == undefined){
+    if (canvasCoord === undefined) {
         canvasCoord = {x: undefined, y: undefined};
     }
 
-    if (povChangeStatus){
-        var currentPov = pov,
-            targetPov = origPov;
+    if (povChangeStatus) {
+        var currentPov = pov;
+        var targetPov = origPov;
         var zoom = currentPov.zoom;
         var viewport = document.getElementById('pano');
 
@@ -315,9 +315,8 @@ function getCanvasCoordinate(canvasCoord, origPov, pov) {
             canvasCoord.y = offset.top; //- origCoord.y;
 
         } else {
-            // If offset is null, the marker is "behind" the camera,
-            // therefore we position the marker outside of the viewport
-            var pointWidth = 3; //TODO: Get from Point class
+            // If offset is null, the marker is "behind" the camera, so we position the marker outside the viewport.
+            var pointWidth = 3; // TODO: Get from Point class
             canvasCoord.x = -(9999 + pointWidth);
             canvasCoord.y = 0;
         }

@@ -75,19 +75,20 @@ function Canvas(ribbon) {
      */
     function closeLabelPath() {
         var labelType = ribbon.getStatus('selectedLabelType');
-        var labelColor = util.misc.getLabelColors()[labelType],
-            labelDescription = util.misc.getLabelDescriptions(labelType),
-            iconImagePath = util.misc.getIconImagePaths(labelDescription.id).iconImagePath;
+        var labelColor = util.misc.getLabelColors()[labelType];
+        var labelDescription = util.misc.getLabelDescriptions(labelType);
 
-        var points = [], pov = svl.map.getPov();
+        var points = []
+        var pov = svl.map.getPov();
 
         for (var i = 0, pathLen = tempPath.length; i < pathLen; i++) {
             points.push(new Point(svl, tempPath[i].x, tempPath[i].y, pov));
         }
-
-
-
         var path = new Path(svl, points);
+
+        var ogCanvasCoord = { x: tempPath[0].x, y: tempPath[0].y };
+        var povOfLabel = util.panomarker.calculatePointPov(ogCanvasCoord.x, ogCanvasCoord.y, pov);
+
         var latlng = svl.map.getPosition();
         var param = {
             canvasWidth: svl.canvasWidth,
@@ -97,8 +98,9 @@ function Canvas(ribbon) {
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
-            originalCanvasCoordinate: { x: tempPath[0].x, y: tempPath[0].y },
-            canvasCoordinate: { x: tempPath[0].x, y: tempPath[0].y },
+            originalCanvasCoordinate: ogCanvasCoord,
+            canvasCoordinate: ogCanvasCoord,
+            originalPov: povOfLabel,
             pov: pov,
             panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,
