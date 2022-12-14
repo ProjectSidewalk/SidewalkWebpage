@@ -33,7 +33,6 @@ function Canvas(ribbon) {
         lockDisableLabelDelete: false,
         lockDisableLabelEdit: false,
         lockDisableLabeling: false,
-        totalLabelCount: 0,
         'visibilityMenu': 'hidden'
     };
 
@@ -44,8 +43,6 @@ function Canvas(ribbon) {
     // Canvas context
     var canvasProperties = {'height': 0, 'width': 0};
     var ctx;
-
-    var tempPath = [];
 
     // Initialization
     function _init() {
@@ -73,14 +70,12 @@ function Canvas(ribbon) {
      * Finish up labeling.
      * Clean this method when I get a chance.....
      */
-    function closeLabelPath() {
+    function createLabel(canvasX, canvasY) {
         var labelType = ribbon.getStatus('selectedLabelType');
         var labelColor = util.misc.getLabelColors()[labelType];
         var labelDescription = util.misc.getLabelDescriptions(labelType);
 
         var pov = svl.map.getPov();
-        var canvasX = tempPath[0].x;
-        var canvasY = tempPath[0].y;
         var povOfLabel = util.panomarker.calculatePointPov(canvasX, canvasY, pov);
 
         var latlng = svl.map.getPosition();
@@ -90,6 +85,7 @@ function Canvas(ribbon) {
             canvasDistortionAlphaX: svl.alpha_x,
             canvasDistortionAlphaY: svl.alpha_y,
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
+            auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             originalCanvasCoordinate: { x: canvasX, y: canvasY },
@@ -103,8 +99,7 @@ function Canvas(ribbon) {
             panoramaPitch: pov.pitch,
             panoramaZoom: parseInt(pov.zoom, 10),
             svImageWidth: svl.svImageWidth,
-            svImageHeight: svl.svImageHeight,
-            svMode: 'html4'
+            svImageHeight: svl.svImageHeight
         };
         if (("panorama" in svl) && ("getPhotographerPov" in svl.panorama)) {
             var photographerPov = svl.panorama.getPhotographerPov();
@@ -112,12 +107,12 @@ function Canvas(ribbon) {
             param.photographerPitch = photographerPov.pitch;
         }
 
-        status.currentLabel = svl.labelFactory.create(param);
+        status.currentLabel = svl.labelContainer.createLabel(param);
         svl.labelContainer.push(status.currentLabel);
 
 
         if ('contextMenu' in svl) {
-            svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
+            svl.contextMenu.show(canvasX, canvasY, {
                 targetLabel: status.currentLabel,
                 targetLabelColor: labelColor.fillStyle
             });
@@ -125,10 +120,10 @@ function Canvas(ribbon) {
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
             labelType: labelDescription.id,
-            canvasX: tempPath[0].x,
-            canvasY: tempPath[0].y
+            canvasX: canvasX,
+            canvasY: canvasY
         }, {
-            temporaryLabelId: status.currentLabel.getProperty('temporary_label_id')
+            temporaryLabelId: status.currentLabel.getProperty('temporaryLabelId')
         });
 
         // Sound effect.
@@ -136,10 +131,7 @@ function Canvas(ribbon) {
             svl.audioEffect.play('drip');
         }
 
-        // Initialize the tempPath.
-        tempPath = [];
         ribbon.backToWalk();
-
     }
 
     function handleDrawingLayerMouseOut(e) {
@@ -182,7 +174,7 @@ function Canvas(ribbon) {
     }
 
     /**
-     * This function is fired when at the time of mouse-up
+     * This function is fired at the time of mouse-up.
      */
     function handleDrawingLayerMouseUp(e) {
         var currTime;
@@ -194,8 +186,7 @@ function Canvas(ribbon) {
         currTime = new Date().getTime();
 
         if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
-            tempPath.push({ x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
-            closeLabelPath();
+            createLabel(mouseStatus.leftUpX, mouseStatus.leftUpY);
             clear();
             setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
             render();
@@ -234,9 +225,10 @@ function Canvas(ribbon) {
      */
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
-            svl.tracker.push('Click_LabelDelete', {labelType: self.getCurrentLabel().getProperty('labelType')});
             var currLabel = self.getCurrentLabel();
+            svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
             if (!currLabel) {
+                console.log('NOTE: labelDeleteIconClick() hit the case where currLabel is null!');
                 // TODO is the case described below still ever used? -- Mikey, Oct 2022
                 // Sometimes (especially during ground truth insertion if you force a delete icon to show up all the time),
                 // currLabel would not be set properly. In such a case, find a label underneath the delete icon.
@@ -464,9 +456,8 @@ function Canvas(ribbon) {
         if (!ctx) {
             return this;
         }
-        var i, j, label, lenLabels,
+        var i, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
-        status.totalLabelCount = 0;
         var pov = svl.map.getPov();
 
         var povChange = svl.map.getPovChangeStatus();
@@ -482,10 +473,6 @@ function Canvas(ribbon) {
         for (i = 0; i < lenLabels; i += 1) {
             label = labels[i];
             label.render(ctx, pov);
-
-            if (label.isVisible() && !label.isDeleted()) {
-                status.totalLabelCount += 1;
-            }
         }
         povChange["status"] = false;
 
@@ -535,7 +522,6 @@ function Canvas(ribbon) {
             var isAnyVisible = false;
             for (i = 0; i < labelLen; i += 1) {
                 labels[i].setTagVisibility('hidden');
-                labels[i].resetTagCoordinate();
             }
             if (label) {
                 label.setTagVisibility('visible');

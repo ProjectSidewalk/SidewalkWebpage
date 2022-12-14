@@ -1,12 +1,11 @@
 /**
  * A Label module.
- * @param svl
  * @param params
  * @returns {*}
  * @constructor
  * @memberof svl
  */
-function Label(svl, params) {
+function Label(params) {
     var self = { className: 'Label' };
 
     var googleMarker;
@@ -40,18 +39,21 @@ function Label(svl, params) {
     };
     var RADIUS_INNER_CIRCLE = 17;
     var RADIUS_OUTER_CIRCLE = 14;
+    var TAG_HEIGHT = 20;
 
     // TODO rename some things...
     // canvasCoordinate -> currentCanvasCoordinate
     // pov -> ???
     // originalPov -> povToCenterLabel ??
     // panoramaHeading, panoramaPitch, panoramaZoom -> povOfPanoWhenLabeled
+    // I think the originalPov is actually just the same as panoramaHeading, panoramaPitch, panoramaZoom..?
     var properties = {
         canvasWidth: undefined,
         canvasHeight: undefined,
         canvasDistortionAlphaX: undefined,
         canvasDistortionAlphaY: undefined,
         labelId: 'DefaultValue',
+        auditTaskId: undefined,
         missionId: undefined,
         labelType: undefined,
         labelDescription: undefined,
@@ -74,15 +76,10 @@ function Label(svl, params) {
         photographerPitch: undefined,
         svImageWidth: undefined,
         svImageHeight: undefined,
-        svMode: undefined,
-        tagHeight: 20,
         tagIds: [],
-        tagWidth: 1,
-        tagX: -1,
-        tagY: -1,
         severity: null,
         tutorial: null,
-        temporary_label_id: null,
+        temporaryLabelId: null,
         temporaryLabel: false,
         description: null
     };
@@ -117,8 +114,6 @@ function Label(svl, params) {
             };
         }
 
-
-
         // Convert a canvas coordinate (x, y) into a sv image coordinate
         // Note, svImageCoordinate.x varies from 0 to svImageWidth and
         // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
@@ -144,9 +139,6 @@ function Label(svl, params) {
             svImageCoord.x = svImageCoord.x + svImageWidth;
         }
         properties.svImageCoordinate = svImageCoord;
-
-
-
 
         if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
             googleMarker = createMinimapMarker(param.labelType);
@@ -198,14 +190,6 @@ function Label(svl, params) {
      */
     function getCoordinate() {
         return properties.canvasCoordinate;
-    }
-
-    /**
-     * This function return the coordinate of a point in the GSV image coordinate.
-     * @returns {*}
-     */
-    function getGSVImageCoordinate () {
-        return properties.svImageCoordinate;
     }
 
     /**
@@ -415,7 +399,7 @@ function Label(svl, params) {
         ctx.save();
         ctx.font = '13px Open Sans';
 
-        height = properties.tagHeight * labelRows;
+        height = TAG_HEIGHT * labelRows;
 
         for (i = 0; i < messages.length; i += 1) {
             // Width of the tag is determined by the width of the longest row.
@@ -436,7 +420,6 @@ function Label(svl, params) {
 
             width += Math.max(firstRow, secondRow) + 5;
         }
-        properties.tagWidth = width;
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
@@ -462,23 +445,13 @@ function Label(svl, params) {
         ctx.fillStyle = '#ffffff';
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
-            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
+            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + TAG_HEIGHT + padding.top);
             if (properties.severity !== null) {
               ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
             }
         }
 
         ctx.restore();
-    }
-
-    /**
-     * This function sets properties.tag.x and properties.tag.y to 0
-     * @returns {resetTagCoordinate}
-     */
-    function resetTagCoordinate () {
-        properties.tagX = 0;
-        properties.tagY = 0;
-        return this;
     }
 
     /**
@@ -608,7 +581,7 @@ function Label(svl, params) {
             var zoom = getProperty("panoramaZoom");
             var canvasX = getProperty('originalCanvasCoordinate').x;
             var canvasY = getProperty('originalCanvasCoordinate').y;
-            var svImageY = getGSVImageCoordinate().y;
+            var svImageY = getProperty('svImageCoordinate').y;
 
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
@@ -647,7 +620,6 @@ function Label(svl, params) {
 
     self.getBoundingBox = getBoundingBox;
     self.getCoordinate = getCoordinate;
-    self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getPanoId = getPanoId;
@@ -660,7 +632,6 @@ function Label(svl, params) {
     self.isVisible = isVisible;
     self.render = render;
     self.remove = remove;
-    self.resetTagCoordinate = resetTagCoordinate;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
     self.setTagVisibility = setTagVisibility;

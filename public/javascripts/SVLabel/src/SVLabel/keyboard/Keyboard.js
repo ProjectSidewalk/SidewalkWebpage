@@ -93,19 +93,18 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
 
 
     /**
-     * Change the heading of the current panorama point of view by a particular degree value
-     * Todo. Change the method name so it is more descriptive.
+     * Change the heading of the current panorama point of view by a particular degree value.
+     * TODO Change the method name so it is more descriptive.
      * @param degree
      */
     this._rotatePov = function (degree){
         if (!svl.map.getStatus("disablePanning")){
             svl.contextMenu.hide();
-            //panning hide label tag and delete icon
+            // Panning hide label tag and delete icon.
             var labels = svl.labelContainer.getCanvasLabels(),
                 labelLen = labels.length;
             for (var i=0; i<labelLen; i++){
                 labels[i].setTagVisibility('hidden');
-                labels[i].resetTagCoordinate();
             }
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             var heading =  svl.panorama.pov.heading;

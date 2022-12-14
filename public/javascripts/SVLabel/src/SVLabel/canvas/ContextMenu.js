@@ -646,7 +646,7 @@ function ContextMenu (uiContextMenu) {
                 var labelProperties = self.getTargetLabel().getProperties();
 
                 // Don't push event on Occlusion labels; they don't open ContextMenus.
-                svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.audit_task_id}, {'temporaryLabelId': labelProperties.temporary_label_id});
+                svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.auditTaskId}, {'temporaryLabelId': labelProperties.temporaryLabelId});
             }
             if (labelType !== 'Occlusion' && labelType !== 'Signal') {
                 self.updateRadioButtonImages();

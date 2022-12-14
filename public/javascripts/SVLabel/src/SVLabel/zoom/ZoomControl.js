@@ -254,7 +254,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     /**
      * This method sets the zoom level of the Street View.
      */
-    function setZoom (zoomLevelIn) {
+    function setZoom(zoomLevelIn) {
         if (typeof zoomLevelIn !== "number") { return false; }
 
         // Set the zoom level and change the panorama properties.
@@ -279,7 +279,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             labelLen = labels.length;
         for (i = 0; i < labelLen; i += 1) {
             labels[i].setTagVisibility('hidden');
-            labels[i].resetTagCoordinate();
         }
         svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
         svl.canvas.clear();

@@ -102,19 +102,18 @@ function Tracker() {
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
-
     this.create = function(action, notes, extraData) {
         if (!notes) notes = {};
         if (!extraData) extraData = {};
 
-        var pov, latlng, panoId, audit_task_id;
+        var pov, latlng, panoId, auditTaskId;
 
         var note = this._notesToString(notes);
 
         if ('canvas' in svl && svl.canvas.getCurrentLabel()) {
-            audit_task_id = svl.canvas.getCurrentLabel().getProperties().audit_task_id;
+            auditTaskId = svl.canvas.getCurrentLabel().getProperties().auditTaskId;
         } else {
-            audit_task_id = currentAuditTask;
+            auditTaskId = currentAuditTask;
         }
 
         if ('temporaryLabelId' in extraData) {
@@ -170,7 +169,7 @@ function Tracker() {
             zoom: pov.zoom,
             note: note,
             temporary_label_id: currentLabel,
-            audit_task_id: audit_task_id,
+            audit_task_id: auditTaskId,
             timestamp: timestamp
         };
     };
@@ -183,12 +182,12 @@ function Tracker() {
     this.push = function (action, notes, extraData) {
         if (self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
-            currentLabel = labelProperties.temporary_label_id;
+            currentLabel = labelProperties.temporaryLabelId;
 
             if (notes === null || typeof (notes) === 'undefined') {
-                notes = {'auditTaskId': labelProperties.audit_task_id};
+                notes = {'auditTaskId': labelProperties.auditTaskId};
             } else {
-                notes['auditTaskId'] = labelProperties.audit_task_id;
+                notes['auditTaskId'] = labelProperties.auditTaskId;
             }
 
             // Reset currentLabel to null if this is a context menu event that fired after the menu already closed.
@@ -201,14 +200,14 @@ function Tracker() {
 
         } else if (self._isClickLabelDeleteAction(action)) {
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
-            currentLabel = labelProperties.temporary_label_id;
+            currentLabel = labelProperties.temporaryLabelId;
             updatedLabels.push(currentLabel);
             svl.labelContainer.addUpdatedLabel(currentLabel);
 
             if (notes === null || typeof(notes) === 'undefined') {
-                notes = {'auditTaskId' : labelProperties.audit_task_id};
+                notes = {'auditTaskId' : labelProperties.auditTaskId};
             } else {
-                notes['auditTaskId'] = labelProperties.audit_task_id;
+                notes['auditTaskId'] = labelProperties.auditTaskId;
             }
         }
 

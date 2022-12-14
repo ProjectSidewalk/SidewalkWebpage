@@ -81,8 +81,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var label = labels[i];
             var prop = label.getProperties();
             var labelLatLng = label.toLatLng();
-            var tempLabelId = label.getProperty('temporary_label_id');
-            var auditTaskId = label.getProperty('audit_task_id');
+            var tempLabelId = label.getProperty('temporaryLabelId');
+            var auditTaskId = label.getProperty('auditTaskId');
 
             // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
             var associatedInteraction = data.interactions.find(interaction =>
@@ -111,10 +111,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             };
 
             // TODO include these as part of a label; no more need for points!
-            var gsvImageCoordinate = label.getGSVImageCoordinate();
             var pointParam = {
-                sv_image_x : gsvImageCoordinate.x,
-                sv_image_y : gsvImageCoordinate.y,
+                sv_image_x : prop.svImageCoordinate.x,
+                sv_image_y : prop.svImageCoordinate.y,
                 canvas_x: prop.originalCanvasCoordinate.x,
                 canvas_y: prop.originalCanvasCoordinate.y,
                 heading: prop.panoramaHeading,
