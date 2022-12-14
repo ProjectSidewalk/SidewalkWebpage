@@ -80,7 +80,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         for(var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
             var label = labels[i];
             var prop = label.getProperties();
-            var points = label.getPath().getPoints();
             var labelLatLng = label.toLatLng();
             var tempLabelId = label.getProperty('temporary_label_id');
             var auditTaskId = label.getProperty('audit_task_id');
@@ -111,32 +110,30 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 tutorial: prop.tutorial
             };
 
-            for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
-                var point = points[j],
-                    gsvImageCoordinate = label.getGSVImageCoordinate(),
-                    pointParam = {
-                        sv_image_x : gsvImageCoordinate.x,
-                        sv_image_y : gsvImageCoordinate.y,
-                        canvas_x: point.originalCanvasCoordinate.x,
-                        canvas_y: point.originalCanvasCoordinate.y,
-                        heading: point.panoramaPov.heading,
-                        pitch: point.panoramaPov.pitch,
-                        zoom : point.panoramaPov.zoom,
-                        canvas_height : prop.canvasHeight,
-                        canvas_width : prop.canvasWidth,
-                        alpha_x : prop.canvasDistortionAlphaX,
-                        alpha_y : prop.canvasDistortionAlphaY,
-                        lat : null,
-                        lng : null
-                    };
+            // TODO include these as part of a label; no more need for points!
+            var gsvImageCoordinate = label.getGSVImageCoordinate();
+            var pointParam = {
+                sv_image_x : gsvImageCoordinate.x,
+                sv_image_y : gsvImageCoordinate.y,
+                canvas_x: prop.originalCanvasCoordinate.x,
+                canvas_y: prop.originalCanvasCoordinate.y,
+                heading: prop.panoramaHeading,
+                pitch: prop.panoramaPitch,
+                zoom : prop.panoramaZoom,
+                canvas_height : prop.canvasHeight,
+                canvas_width : prop.canvasWidth,
+                alpha_x : prop.canvasDistortionAlphaX,
+                alpha_y : prop.canvasDistortionAlphaY,
+                lat : null,
+                lng : null
+            };
 
-                if (labelLatLng) {
-                    pointParam.lat = labelLatLng.lat;
-                    pointParam.lng = labelLatLng.lng;
-                    pointParam.computation_method = labelLatLng.latLngComputationMethod;
-                }
-                temp.label_points.push(pointParam);
+            if (labelLatLng) {
+                pointParam.lat = labelLatLng.lat;
+                pointParam.lng = labelLatLng.lng;
+                pointParam.computation_method = labelLatLng.latLngComputationMethod;
             }
+            temp.label_points.push(pointParam);
 
             data.labels.push(temp)
         }

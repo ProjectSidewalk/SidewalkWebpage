@@ -41,9 +41,6 @@ function LabelContainer($) {
                 let originalPointPov = {
                     originalPov: util.panomarker.calculatePointPov(originalCanvasCoord.x, originalCanvasCoord.y, originalPov)
                 };
-                console.log(labelArr[i].labelId);
-                console.log(originalPov);
-                console.log(originalPointPov.originalPov);
 
                 let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
                     originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov()
@@ -56,10 +53,7 @@ function LabelContainer($) {
                 // Return the status to original.
                 povChange["status"] = false;
 
-                let labelPoint = new Point(svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov());
-
-                let path = new Path(svl, [labelPoint]);
-                let label = svl.labelFactory.create(path, labelArr[i]);
+                let label = svl.labelFactory.create(labelArr[i]);
                 label.setProperty("audit_task_id", labelArr[i].audit_task_id);
                 label.setProperty("labelLat", labelArr[i].labelLat);
                 label.setProperty("labelLng", labelArr[i].labelLng);

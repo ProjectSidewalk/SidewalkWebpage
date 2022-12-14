@@ -1,17 +1,15 @@
 /**
  * A Label module.
  * @param svl
- * @param pathIn
  * @param params
  * @returns {*}
  * @constructor
  * @memberof svl
  */
-function Label (svl, pathIn, params) {
+function Label(svl, params) {
     var self = { className: 'Label' };
 
-    self.logged = 0;
-    var path, googleMarker;
+    var googleMarker;
 
     // Parameters determined from a series of linear regressions. Here links to the analysis and relevant Github issues:
     // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
@@ -43,6 +41,11 @@ function Label (svl, pathIn, params) {
     var RADIUS_INNER_CIRCLE = 17;
     var RADIUS_OUTER_CIRCLE = 14;
 
+    // TODO rename some things...
+    // canvasCoordinate -> currentCanvasCoordinate
+    // pov -> ???
+    // originalPov -> povToCenterLabel ??
+    // panoramaHeading, panoramaPitch, panoramaZoom -> povOfPanoWhenLabeled
     var properties = {
         canvasWidth: undefined,
         canvasHeight: undefined,
@@ -52,7 +55,6 @@ function Label (svl, pathIn, params) {
         missionId: undefined,
         labelType: undefined,
         labelDescription: undefined,
-        labelFillStyle: undefined,
         iconImagePath: undefined,
         originalCanvasCoordinate: undefined,
         canvasCoordinate: undefined,
@@ -93,13 +95,7 @@ function Label (svl, pathIn, params) {
 
     var tagProperties = util.misc.getSeverityDescription();
 
-    function _init (param, pathIn) {
-        if (!pathIn) {
-            throw 'The passed "path" is empty.';
-        } else {
-            path = pathIn;
-        }
-
+    function _init(param) {
         for (var attrName in param) {
             properties[attrName] = param[attrName];
         }
@@ -151,8 +147,6 @@ function Label (svl, pathIn, params) {
 
 
 
-        // Set belongs to of the path.
-        path.setBelongsTo(self);
 
         if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
             googleMarker = createMinimapMarker(param.labelType);
@@ -235,19 +229,6 @@ function Label (svl, pathIn, params) {
     function getPanoId () { return properties.panoId; }
 
     /**
-     * This function returns the coordinate of a point.
-     * If reference is true, return a reference to the path instead of a copy of the path
-     * @param reference
-     * @returns {*}
-     */
-    function getPath (reference) {
-        if (path) {
-            return reference ? path : $.extend(true, {}, path);
-        }
-        return false;
-    }
-
-    /**
      * Return deep copy of properties obj, so one can only modify props from setProperties() (not yet implemented).
      * JavaScript Deepcopy
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
@@ -279,7 +260,7 @@ function Label (svl, pathIn, params) {
 
 
     /**
-     * Check if a path is under a cursor
+     * Check if a label is under a cursor
      * @param x
      * @param y
      * @returns {boolean}
@@ -329,20 +310,11 @@ function Label (svl, pathIn, params) {
             }
 
 
-
-            // path.render2(ctx, pov);
-
             // Find current pov of the label and update it.
             // TODO maybe 'originalPov' should be renamed to 'previousPov' and it should update..?
             // var canvasCoord = getProperty('originalCanvasCoordinate');
             // var canvasCoord = { x: getProperty('originalCanvasCoordinate').x, y: getProperty('originalCanvasCoordinate').y };
             var canvasCoord = properties.canvasCoordinate;
-            if (self.logged < 2) {
-                console.log(`originalPov: {heading: ${properties.originalPov.heading}}`);
-                console.log(`coord before: {x: ${canvasCoord.x}, y: ${canvasCoord.y}}`);
-                console.log(`pov before: {x: ${properties.pov.heading}}`);
-                self.logged += 1;
-            }
             canvasCoord =  util.panomarker.getCanvasCoordinate(canvasCoord, properties.originalPov, pov);
             properties.canvasCoordinate = canvasCoord;
 
@@ -352,8 +324,6 @@ function Label (svl, pathIn, params) {
             else {
                 properties.pov = util.panomarker.calculatePointPov(canvasCoord.x, canvasCoord.y, pov);
             }
-            // console.log(`coord after: {x: ${properties.canvasCoordinate.x}, y: ${properties.canvasCoordinate.y}}`);
-            // console.log(`pov after: {x: ${properties.pov.heading}}`);
 
             // Draw the label type icon.
             var imageObj, imageHeight, imageWidth, imageX, imageY;
@@ -636,8 +606,8 @@ function Label (svl, pathIn, params) {
             var panoLng = getProperty("panoramaLng");
             var panoHeading = getProperty("panoramaHeading");
             var zoom = getProperty("panoramaZoom");
-            var canvasX = getPath().getPoints()[0].originalCanvasCoordinate.x;
-            var canvasY = getPath().getPoints()[0].originalCanvasCoordinate.y;
+            var canvasX = getProperty('originalCanvasCoordinate').x;
+            var canvasY = getProperty('originalCanvasCoordinate').y;
             var svImageY = getGSVImageCoordinate().y;
 
             // Estimate heading diff and distance from pano using output from a regression analysis.
@@ -681,7 +651,6 @@ function Label (svl, pathIn, params) {
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getPanoId = getPanoId;
-    self.getPath = getPath;
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.getstatus = getStatus;
@@ -699,6 +668,6 @@ function Label (svl, pathIn, params) {
     self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
     self.toLatLng = toLatLng;
 
-    _init(params, pathIn);
+    _init(params);
     return self;
 }
