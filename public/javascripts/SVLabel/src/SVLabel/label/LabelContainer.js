@@ -63,6 +63,7 @@ function LabelContainer($, nextTemporaryLabelId) {
                 labelArr[i].originalCanvasCoordinate = originalCanvasCoord;
                 labelArr[i].pov = svl.map.getPov();
                 labelArr[i].originalPov = originalPointPov.originalPov;
+                labelArr[i].svImageCoordinate = { x: labelArr[i].svImageX, y: labelArr[i].svImageY };
 
                 let label = self.createLabel(labelArr[i]);
 

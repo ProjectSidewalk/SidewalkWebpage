@@ -57,6 +57,8 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
             "description" -> label.labelData.description,
             "canvasX" -> label.pointData.canvasX,
             "canvasY" -> label.pointData.canvasY,
+            "svImageX" -> label.pointData.svImageX,
+            "svImageY" -> label.pointData.svImageY,
             "auditTaskId" -> label.labelData.auditTaskId,
             "missionId" -> label.labelData.missionId,
             "labelLat" -> label.pointData.lat,

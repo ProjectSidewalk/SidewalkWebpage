@@ -114,35 +114,29 @@ function Label(params) {
             };
         }
 
-        // Convert a canvas coordinate (x, y) into a sv image coordinate
-        // Note, svImageCoordinate.x varies from 0 to svImageWidth and
-        // svImageCoordinate.y varies from -(svImageHeight/2) to svImageHeight/2.
-        var svImageWidth = svl.svImageWidth;
-        // var svImageHeight = svl.svImageHeight;
+        // If we haven't determined the sv_image_x/y and image dim yet, fetch the pano metadata and update.
+        if (properties.svImageCoordinate === undefined) {
+            svl.panoramaContainer.fetchPanoramaMetaData(properties.panoId, function() {
+                var panoData = svl.panoramaContainer.getPanorama(properties.panoId).data();
 
-        // Adjust the zoom level
-        /* old calculation
-        var zoom = pov.zoom;
-        var zoomFactor = svl.zoomFactor[zoom];
-        self.svImageCoordinate = {};
-        self.svImageCoordinate.x = svImageWidth * pov.heading / 360 + (svl.alpha_x * (x - (svl.canvasWidth / 2)) / zoomFactor);
-        self.svImageCoordinate.y = (svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (y - (svl.canvasHeight / 2)) / zoomFactor);
-        // svImageCoordinate.x could be negative, so adjust it.
-        if (self.svImageCoordinate.x < 0) {
-            self.svImageCoordinate.x = self.svImageCoordinate.x + svImageWidth;
-        }
-        */
+                properties.svImageWidth = panoData.tiles.worldSize.width;
+                properties.svImageHeight = panoData.tiles.worldSize.height;
 
-        var svImageCoord = util.panomarker.calculateImageCoordinateFromPointPov(properties.originalPov);
+                var svCoord = util.panomarker.calculateImageCoordinateFromPointPov(properties.originalPov, properties.svImageWidth, properties.svImageHeight);
+                if (svCoord.x < 0) svCoord.x = svCoord.x + properties.svImageWidth;
+                properties.svImageCoordinate = svCoord;
 
-        if (svImageCoord.x < 0) {
-            svImageCoord.x = svImageCoord.x + svImageWidth;
-        }
-        properties.svImageCoordinate = svImageCoord;
-
-        if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
-            googleMarker = createMinimapMarker(param.labelType);
-            googleMarker.setMap(svl.map.getMap());
+                if (typeof google !== "undefined" && google && google.maps) {
+                    googleMarker = createMinimapMarker(properties.labelType);
+                    googleMarker.setMap(svl.map.getMap());
+                }
+            });
+        } else {
+            // If the sv_image_x/y were already calculated, then we can just create the marker on the minimap.
+            if (typeof google !== "undefined" && google && google.maps) {
+                googleMarker = createMinimapMarker(properties.labelType);
+                googleMarker.setMap(svl.map.getMap());
+            }
         }
     }
 
@@ -168,20 +162,6 @@ function Label(params) {
                 size: new google.maps.Size(20, 20)
             });
         }
-    }
-
-    /**
-     * This method returns the bounding box of the label's outline.
-     * @returns {*}
-     */
-    function getBoundingBox() {
-        var canvasCoord = getCoordinate();
-        var xMin, yMin, width, height;
-        xMin = canvasCoord.x;
-        yMin = canvasCoord.y;
-        width = 0;
-        height = 0;
-        return { x: xMin, y: yMin, width: width, height: height };
     }
 
     /**
@@ -529,15 +509,11 @@ function Label(params) {
      */
     function showDelete() {
         if (status.tagVisibility !== 'hidden') {
-            var boundingBox = getBoundingBox(),
-                x = boundingBox.x + boundingBox.width - 20,
-                y = boundingBox.y;
-
-            // Show a delete button.
+            var coord = getCoordinate();
             $("#delete-icon-holder").css({
                 visibility: 'visible',
-                left : x + 25, // + width - 5,
-                top : y - 20
+                left : coord.x + 5,
+                top : coord.y - 20
             });
         }
     }
@@ -618,7 +594,6 @@ function Label(params) {
 
     }
 
-    self.getBoundingBox = getBoundingBox;
     self.getCoordinate = getCoordinate;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;

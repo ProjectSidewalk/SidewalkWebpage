@@ -125,9 +125,11 @@ util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImag
  * This method returns the GSV image coordinate from the original pov of the label
  *
  * @param pov
+ * @param svImageWidth
+ * @param svImageHeight
  * @returns {{x: (number|*), y: (number|*)}}
  */
-function calculateImageCoordinateFromPointPov(pov) {
+function calculateImageCoordinateFromPointPov(pov, svImageWidth, svImageHeight) {
     var heading = pov.heading,
         pitch = pov.pitch,
         zoom = pov.zoom;
@@ -135,11 +137,11 @@ function calculateImageCoordinateFromPointPov(pov) {
     var imageX, imageY;
     var zoomFactor = svl.zoomFactor[zoom];
 
-    var svImageWidth = svl.svImageWidth * zoomFactor;
-    var svImageHeight = svl.svImageHeight * zoomFactor;
+    var imageWidth = svImageWidth * zoomFactor;
+    var imageHeight = svImageHeight * zoomFactor;
 
-    imageX = (svImageWidth * (heading / 360) + ((svImageWidth / 360) / 2)) / zoomFactor;
-    imageY = ((svImageHeight / 2) * (pitch / 90)) / zoomFactor;
+    imageX = (imageWidth * (heading / 360) + ((imageWidth / 360) / 2)) / zoomFactor;
+    imageY = ((imageHeight / 2) * (pitch / 90)) / zoomFactor;
 
     return {
         x: imageX,

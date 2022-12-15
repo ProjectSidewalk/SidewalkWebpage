@@ -43,19 +43,23 @@ function PanoramaContainer (streetViewService) {
     /**
      * Request the panorama meta data.
      */
-    function fetchPanoramaMetaData(panoramaId) {
-        // Shows tutorial panoramas as already submitted to server, no need to add to server.
-        if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
-            add(panoramaId, new Panorama({ submitted: true }));
+    function fetchPanoramaMetaData(panoramaId, callback) {
+        if (!(panoramaId in container)) {
+            if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
+                add(panoramaId, new Panorama({ submitted: true }));
+            } else {
+                streetViewService.getPanorama({ pano: panoramaId }, function (data, status) {
+                    if (status === google.maps.StreetViewStatus.OK) {
+                        add(data.location.pano, new Panorama(data));
+                        if (callback) callback();
+                    } else {
+                        console.error("Error retrieving Panorama: " + status);
+                        svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                    }
+                });
+            }
         } else {
-            streetViewService.getPanorama({ pano: panoramaId }, function (data, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    add(data.location.pano, new Panorama(data))
-                } else {
-                    console.error("Error retrieving Panorama: " + status);
-                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
-                }
-            });
+            if (callback) callback();
         }
     }
 
