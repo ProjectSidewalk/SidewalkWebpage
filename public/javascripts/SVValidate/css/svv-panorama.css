@@ -92,7 +92,7 @@
     height: 12px;
     width: 12px;
     display: flex;
-    margin-left: 5px;
+    margin-left: 8px;
 }
 
 .severity-image svg {
@@ -101,10 +101,3 @@
 
 .face-outline { stroke: white; }
 .facial-feature { fill: white; }
-
-@media only screen and (max-width: 480px) {
-    .severity-image {
-        height: 20px;
-        width: 20px;
-    }
-}

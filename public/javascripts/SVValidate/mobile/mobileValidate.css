@@ -326,3 +326,8 @@ html {
 .test-server-banner-content {
     font-size: xx-large;
 }
+
+.severity-image {
+    height: 30px;
+    width: 30px;
+}
