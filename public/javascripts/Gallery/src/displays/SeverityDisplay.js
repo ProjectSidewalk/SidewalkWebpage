@@ -70,8 +70,6 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
                 if (isModal) {
                     if (i <= severity) { // Filled in smileys.
                         $severityCircle.addClass('highlight');
-                    } else { // Empty smileys.
-
                     }
                 } else {
                     if (i <= severity) { // Fills in circles.

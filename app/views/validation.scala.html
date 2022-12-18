@@ -18,6 +18,8 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <div class="container tool-ui" style = "visibility: visible;">
 
+        @* These are templates and are not visible on the screen directly. *@
+        @* JS clones them, adjusts the attributes and the appends to DOM. *@
         <div class="severity-image severity-1 template">
             <svg viewBox="0 0 150 150"><use xlink:href="#smiley-neutral"></use></svg>
         </div>

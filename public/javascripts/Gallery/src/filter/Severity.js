@@ -11,7 +11,7 @@ function Severity (params, active){
 
     // UI element of the severity container and image.
     let severityElement = null;
-    let severityImage = null;
+    let $severityImage = null;
     let interactionEnabled = false;
 
     let properties = {
@@ -32,11 +32,8 @@ function Severity (params, active){
         severityElement = document.createElement('div');
         severityElement.className = 'severity-filter gallery-filter';
 
-
-        severityImage = $(`.severity-filter-image.template.severity-${properties.severity}`).clone();
-        severityImage.removeClass('template');
-        severityImage.id = properties.severity;
-        severityImage.innerText = properties.severity;
+        $severityImage = $(`.severity-filter-image.template.severity-${properties.severity}`).clone().removeClass('template');
+        $severityImage.attr('id', properties.severity);
 
         if (filterActive) {
             _showSelected();
@@ -44,7 +41,7 @@ function Severity (params, active){
             _showDeselected();
         }
 
-        $(severityElement).append(severityImage);
+        $(severityElement).append($severityImage);
 
         // Show inverted smiley face on click or hover.
         severityElement.onclick = handleOnClickCallback;
@@ -70,11 +67,11 @@ function Severity (params, active){
     }
 
     function _showSelected() {
-        $(severityImage).addClass('selected');
+        $($severityImage).addClass('selected');
     }
 
     function _showDeselected() {
-        $(severityImage).removeClass('selected');
+        $($severityImage).removeClass('selected');
     }
 
     /**
