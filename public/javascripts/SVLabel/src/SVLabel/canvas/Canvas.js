@@ -97,9 +97,7 @@ function Canvas(ribbon) {
             panoramaLng: latlng.lng,
             panoramaHeading: pov.heading,
             panoramaPitch: pov.pitch,
-            panoramaZoom: parseInt(pov.zoom, 10),
-            svImageWidth: svl.svImageWidth,
-            svImageHeight: svl.svImageHeight
+            panoramaZoom: parseInt(pov.zoom, 10)
         };
         if (("panorama" in svl) && ("getPhotographerPov" in svl.panorama)) {
             var photographerPov = svl.panorama.getPhotographerPov();

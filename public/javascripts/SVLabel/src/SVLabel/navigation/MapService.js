@@ -604,7 +604,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var panoId = getPanoId();
 
-            if (typeof panoId === "undefined" || panoId.length == 0) {
+            if (typeof panoId === "undefined" || panoId.length === 0) {
                 if ('compass' in svl) {
                     svl.compass.update();
                 }
@@ -615,9 +615,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // once moving between pano_ids and once for setting the new pano_id.
             if (svl.streetViewService && panoId.length > 0 && panoId !== prevPanoId) {
                 // Check if panorama exists.
-                svl.streetViewService.getPanorama({pano: panoId},
+                svl.streetViewService.getPanorama({ pano: panoId },
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            // Record the pano metadata.
+                            svl.panoramaContainer.addPanoMetadata(panoId, data);
+
                             // Mark that we visited this pano so that we can tell if they've gotten stuck.
                             svl.stuckAlert.panoVisited(panoId);
 
@@ -1077,7 +1080,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function setPosition(lat, lng, callback) {
         if (!status.disableWalking) {
-            // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
+            // Check the presence of the Google Street View. If it exists, then set the location. Otherwise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
             svl.streetViewService.getPanorama({location: gLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {

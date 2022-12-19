@@ -114,29 +114,19 @@ function Label(params) {
             };
         }
 
-        // If we haven't determined the sv_image_x/y and image dim yet, fetch the pano metadata and update.
+        // Calculate sv_image_x/y if the label is new.
         if (properties.svImageCoordinate === undefined) {
-            svl.panoramaContainer.fetchPanoramaMetaData(properties.panoId, function() {
-                var panoData = svl.panoramaContainer.getPanorama(properties.panoId).data();
+            var panoData = svl.panoramaContainer.getPanorama(properties.panoId).data();
 
-                properties.svImageWidth = panoData.tiles.worldSize.width;
-                properties.svImageHeight = panoData.tiles.worldSize.height;
+            properties.svImageWidth = panoData.tiles.worldSize.width;
+            properties.svImageHeight = panoData.tiles.worldSize.height;
+            properties.svImageCoordinate = util.panomarker.calculateImageCoordinateFromPointPov(properties.originalPov, properties.svImageWidth, properties.svImageHeight);
+        }
 
-                var svCoord = util.panomarker.calculateImageCoordinateFromPointPov(properties.originalPov, properties.svImageWidth, properties.svImageHeight);
-                if (svCoord.x < 0) svCoord.x = svCoord.x + properties.svImageWidth;
-                properties.svImageCoordinate = svCoord;
-
-                if (typeof google !== "undefined" && google && google.maps) {
-                    googleMarker = createMinimapMarker(properties.labelType);
-                    googleMarker.setMap(svl.map.getMap());
-                }
-            });
-        } else {
-            // If the sv_image_x/y were already calculated, then we can just create the marker on the minimap.
-            if (typeof google !== "undefined" && google && google.maps) {
-                googleMarker = createMinimapMarker(properties.labelType);
-                googleMarker.setMap(svl.map.getMap());
-            }
+        // Create the marker on the minimap.
+        if (typeof google !== "undefined" && google && google.maps) {
+            googleMarker = createMinimapMarker(properties.labelType);
+            googleMarker.setMap(svl.map.getMap());
         }
     }
 

@@ -130,23 +130,17 @@ util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImag
  * @returns {{x: (number|*), y: (number|*)}}
  */
 function calculateImageCoordinateFromPointPov(pov, svImageWidth, svImageHeight) {
-    var heading = pov.heading,
-        pitch = pov.pitch,
-        zoom = pov.zoom;
-
     var imageX, imageY;
-    var zoomFactor = svl.zoomFactor[zoom];
-
+    var zoomFactor = svl.zoomFactor[pov.zoom];
     var imageWidth = svImageWidth * zoomFactor;
     var imageHeight = svImageHeight * zoomFactor;
 
-    imageX = (imageWidth * (heading / 360) + ((imageWidth / 360) / 2)) / zoomFactor;
-    imageY = ((imageHeight / 2) * (pitch / 90)) / zoomFactor;
+    imageX = (imageWidth * (pov.heading / 360) + ((imageWidth / 360) / 2)) / zoomFactor;
+    imageY = ((imageHeight / 2) * (pov.pitch / 90)) / zoomFactor;
 
-    return {
-        x: imageX,
-        y: imageY
-    };
+    if (imageX < 0) imageX = imageX + svImageWidth;
+
+    return { x: imageX, y: imageY };
 }
 util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateFromPointPov;
 
@@ -164,13 +158,8 @@ function canvasCoordinateToImageCoordinate(canvasX, canvasY, pov) {
     // var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
     // var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
 
-    var svImageWidth = svl.svImageWidth;
     var pointPOV = calculatePointPov(canvasX, canvasY, pov);
     var svImageCoord = calculateImageCoordinateFromPointPov(pointPOV);
-
-    if (svImageCoord.x < 0) {
-        svImageCoord.x = svImageCoord.x + svImageWidth;
-    }
 
     return { x: svImageCoord.x, y: svImageCoord.y };
 }

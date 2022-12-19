@@ -170,12 +170,6 @@ function LabelContainer($, nextTemporaryLabelId) {
 
         currentCanvasLabels[label.getPanoId()].push(label);
         svl.labelCounter.increment(label.getProperty("labelType"));
-
-        // Keep pano metadata, esp the date when the StreetView img was taken to keep track of when the problem existed.
-        var panoramaId = label.getProperty("panoId");
-        if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
-            svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
-        }
     };
 
     /** Refresh */
