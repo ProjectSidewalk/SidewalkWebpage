@@ -15,6 +15,7 @@
 
 .severity-filter-image svg {
     fill: white;
+    transition: fill 0.3s;
 }
 
 .severity-filter-image.severity-1.selected svg, .severity-filter-image.severity-1.highlight svg {
