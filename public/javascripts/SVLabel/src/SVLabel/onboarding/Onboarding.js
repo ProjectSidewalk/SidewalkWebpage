@@ -771,6 +771,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             var i = 0;
             var labelAppliedCorrectly = false;
             var distance = []; // Keeps track of how far away the label is from each possible label.
+            var panoData = svl.panoramaContainer.getPanorama(state.panoId).data();
+            var svImgWidth = panoData.tiles.worldSize.width;
+            var svImgHeight = panoData.tiles.worldSize.height;
 
             while (i < properties.length && !labelAppliedCorrectly) {
                 var imageX = properties[i].imageX;
@@ -781,7 +784,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var pov = mapService.getPov();
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
-                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov, svImgWidth, svImgHeight);
+                console.log(properties[i]);
+                console.log(imageCoordinate);
 
                 distance[i] = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
                     (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);

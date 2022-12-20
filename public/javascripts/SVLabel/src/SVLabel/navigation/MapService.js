@@ -83,7 +83,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     };
 
     // Maps variables
-    var fenway, map, mapOptions, mapStyleOptions;
+    var startingLatLng, map, mapOptions, mapStyleOptions;
 
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
@@ -104,11 +104,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         throw self.className + ': latlng not defined.';
     }
 
-    // fenway = new google.maps.LatLng(params.targetLat, params.targetLng);
-    fenway = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
+    startingLatLng = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
 
     mapOptions = {
-        center: fenway,
+        center: startingLatLng,
         mapTypeControl:false,
         mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
         maxZoom : 20,
@@ -165,10 +164,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
         if (params.lat && params.lng) {
-            fenway = new google.maps.LatLng(params.lat, params.lng);
+            startingLatLng = new google.maps.LatLng(params.lat, params.lng);
             panoramaOptions = {
-                mode : 'html4',
-                position: fenway,
+                position: startingLatLng,
                 pov: properties.panoramaPov,
                 showRoadLabels: false,
                 motionTracking: false,
@@ -187,6 +185,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
             return null;
         });
+        svl.panoramaContainer.addPanoMetadata('tutorial', getCustomPanorama('tutorial'));
+        svl.panoramaContainer.addPanoMetadata('afterWalkTutorial', getCustomPanorama('afterWalkTutorial'));
 
         if (svl.panorama) {
             svl.panorama.set('addressControl', false);
@@ -1064,9 +1064,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {setPano}
      */
     function setPano(panoramaId, force) {
-        if (force == undefined) force = false;
+        if (force === undefined) force = false;
 
-        if (!status.disableWalking || force == true) {
+        if (!status.disableWalking || force) {
             svl.panorama.setPano(panoramaId);
         }
         return this;
@@ -1080,7 +1080,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function setPosition(lat, lng, callback) {
         if (!status.disableWalking) {
-            // Check the presence of the Google Street View. If it exists, then set the location. Otherwise error.
+            // Check the presence of the Google Street View. If it exists, then set the location, otherwise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
             svl.streetViewService.getPanorama({location: gLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {

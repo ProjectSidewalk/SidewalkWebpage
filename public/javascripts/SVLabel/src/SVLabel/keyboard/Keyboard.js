@@ -40,7 +40,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     // Move in the direction of a link closest to a given angle.
     // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
     // Todo. Make the method name more descriptive.
-    this._movePano = function (angle) {
+    this._movePano = function(angle) {
         if (googleMap.getStatus("disableWalking")) return;
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
         var cosines = svl.panorama.links.map(function(link) {
@@ -49,7 +49,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         });
         var maxVal = Math.max.apply(null, cosines);
         var maxIndex = cosines.indexOf(maxVal);
-        if(cosines[maxIndex] > 0.5){
+        if (cosines[maxIndex] > 0.5) {
             var panoramaId = svl.panorama.links[maxIndex].pano;
             googleMap.setPano(panoramaId);
             return true;

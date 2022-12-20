@@ -149,9 +149,11 @@ util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateF
  * @param canvasX
  * @param canvasY
  * @param pov
+ * @param svImageWidth
+ * @param svImageHeight
  * @returns {{x: number, y: number}}
  */
-function canvasCoordinateToImageCoordinate(canvasX, canvasY, pov) {
+function canvasCoordinateToImageCoordinate(canvasX, canvasY, pov, svImageWidth, svImageHeight) {
 
     // Old calculation
     // var zoomFactor = svl.zoomFactor[pov.zoom];
@@ -159,7 +161,9 @@ function canvasCoordinateToImageCoordinate(canvasX, canvasY, pov) {
     // var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
 
     var pointPOV = calculatePointPov(canvasX, canvasY, pov);
-    var svImageCoord = calculateImageCoordinateFromPointPov(pointPOV);
+    console.log(pov);
+    console.log(pointPOV);
+    var svImageCoord = calculateImageCoordinateFromPointPov(pointPOV, svImageWidth, svImageHeight);
 
     return { x: svImageCoord.x, y: svImageCoord.y };
 }

@@ -239,7 +239,7 @@ function Main (params) {
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
         // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
-        if (params.mission.mission_type === 'auditOnboarding') {
+        if (svl.isOnboarding()) {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
         } else {

@@ -10,10 +10,10 @@ function PanoramaContainer () {
     function addPanoMetadata(panoramaId, panoramaMetadata) {
         if (!(panoramaId in container)) {
             if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
-                container[panoramaId] = new Panorama({ submitted: true, tiles: { worldSize: { width: 13312, height: 6656 } } });
-            } else {
-                container[panoramaId] = new Panorama(panoramaMetadata);
+                panoramaMetadata.submitted = true;
+                // container[panoramaId] = new Panorama({ submitted: true, tiles: { worldSize: { width: 13312, height: 6656 } } });
             }
+            container[panoramaId] = new Panorama(panoramaMetadata);
         }
     }
 

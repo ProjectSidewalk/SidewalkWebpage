@@ -77,7 +77,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
         data.labels = [];
         var labels = labelContainer.getCurrentLabels();
-        for(var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
+        for (var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
             var label = labels[i];
             var prop = label.getProperties();
             var labelLatLng = label.toLatLng();
