@@ -14,16 +14,6 @@ function Main (param) {
 
     function _initUI() {
         // Maps label types to label names.
-        svv.labelNames = {
-            CurbRamp: i18next.t('curb-ramp-caps'),
-            NoCurbRamp: i18next.t('missing-curb-ramp-caps'),
-            Obstacle: i18next.t('obstacle-caps'),
-            SurfaceProblem: i18next.t('surface-problem-caps'),
-            NoSidewalk: i18next.t('no-sidewalk-caps'),
-            Crosswalk: i18next.t('crosswalk-caps'),
-            Signal: i18next.t('signal-caps')
-        };
-
         svv.labelTypeNames = {
             1: i18next.t('curb-ramp-caps'),
             2: i18next.t('missing-curb-ramp-caps'),
