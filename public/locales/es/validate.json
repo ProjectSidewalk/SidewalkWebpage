@@ -255,7 +255,7 @@
     "signal": {
       "slide-1": {
         "title": "{{labelType}}",
-        "description": "Una señal para peatones indica cuándo los peatones pueden cruzar la calle y les da tiempo para que lo hagan de manera segura.<br><br> Algunas señales para peatones se activan con un botón para peatones a la altura de la cintura."
+        "description": "Un semáforo peatonal indica cuándo los peatones pueden cruzar la calle y les da tiempo para que lo hagan de manera segura.<br><br> Algunas semáforos peatonales se activan con un botón para peatones a la altura de la cintura."
       },
       "slide-2": {
         "title": "Señalización",
@@ -266,7 +266,7 @@
         "description": "Este poste no muestra señales de tráfico a los peatones."
       },
       "slide-4": {
-        "title": "Semaforo para vehiculos",
+        "title": "Semáforo para vehículos",
         "description": "Este semáforo es solo para vehículos, no para peatones."
       }
     }
