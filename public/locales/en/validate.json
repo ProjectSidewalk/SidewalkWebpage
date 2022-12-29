@@ -184,7 +184,7 @@
         "description": "Curb ramps are not needed at paths <b>not</b> intended for pedestrians to pass."
       },
       "slide-4": {
-        "title": "Missing sidewalk",
+        "title": "$t(no-sidewalk-caps)",
         "description": "For corners with <b>no sidewalks</b>, use the No Sidewalk label rather than a Missing Curb Ramp label."
       }
     },
