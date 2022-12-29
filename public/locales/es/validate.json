@@ -191,7 +191,7 @@
     "obstacle": {
       "slide-1": {
         "title": "{{labelType}}",
-        "description": "Los obstáculos son barreras que impiden las <b>vías peatonales</b> para personas que usan sillas de ruedas, andadores u otras ayudas para la movilidad.<br><br>No todas las bocas de incendios, postes y letreros son obstáculos, solo aquellos que obstruyen claramente a los peatones. caminos."
+        "description": "Los obstáculos son barreras que impiden las <b>vías peatonales</b> para personas que usan sillas de ruedas, andadores u otras ayudas para la movilidad.<br><br>No todas las bocas de incendios, postes y letreros son obstáculos, solo aquellos que obstruyen claramente a los peatones caminos."
       },
       "slide-2": {
         "title": "Amplio espacio para maniobrar",
@@ -244,7 +244,7 @@
         "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales."
       },
       "slide-3": {
-        "title": "línea de parada",
+        "title": "Línea de parada",
         "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales."
       },
       "slide-4": {
