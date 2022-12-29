@@ -2,9 +2,10 @@
  * Initializes a full screen carousel for the mission start tutorial.
  * @param missionType mission type. Currently only VALIDATE mission is supported.
  * @param labelType one of the seven label types for which the tutorial needs to be initialized.
+ * @param labelCount the number of labels to validate in the current mission (VALIDATE mission only).
  * @param tracker the tracker object to log interactions.
  */
-function MissionStartTutorial(missionType, labelType, tracker) {
+function MissionStartTutorial(missionType, labelType, labelCount, tracker) {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -43,7 +44,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         'CurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels':'10', 'labelType': i18next.t('validate:curb-ramp-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('validate:curb-ramp-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -90,7 +91,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         'NoCurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels':'10', 'labelType': i18next.t('validate:missing-curb-ramp-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('validate:missing-curb-ramp-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -150,7 +151,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         'Obstacle': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels':'10', 'labelType': i18next.t('validate:obstacle-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('validate:obstacle-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -210,7 +211,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         'SurfaceProblem': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels':'10', 'labelType': i18next.t('validate:surface-problem-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('validate:surface-problem-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -257,7 +258,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         'NoSideWalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels':'10', 'labelType': i18next.t('validate:no-sidewalk-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('validate:no-sidewalk-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -304,7 +305,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         'Crosswalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels':'10', 'labelType': i18next.t('validate:crosswalk-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('validate:crosswalk-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -364,7 +365,7 @@ function MissionStartTutorial(missionType, labelType, tracker) {
         'Signal': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels':'10', 'labelType': i18next.t('validate:signal-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('validate:signal-caps')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
