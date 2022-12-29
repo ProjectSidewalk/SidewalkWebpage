@@ -163,11 +163,11 @@
       },
       "slide-2": {
         "title": "Oprit",
-        "description": "Opritten zijn <b>geen</b> stoephellingen. Ze zijn ontworpen voor voertuigen en niet voor voetgangers. Opritten mogen <b>niet</b> worden aangeduid als stoeprand."
+        "description": "Opritten zijn <b>geen</b> stoephellingen. Ze zijn ontworpen voor voertuigen en niet voor voetgangers. Opritten mogen <b>niet</b> worden aangeduid als stoepranden."
       },
       "slide-3": {
         "title": "Garage",
-        "description": "Opritten naar garages zijn <b>geen</b> stoephellingen. Opritten mogen <b>niet</b> worden aangeduid als stoeprand."
+        "description": "Opritten naar garages zijn <b>geen</b> stoephellingen. Opritten mogen <b>niet</b> worden aangeduid als stoepranden."
       }
     },
     "no-curb-ramp": {
@@ -237,7 +237,7 @@
     "crosswalk": {
       "slide-1": {
         "title": "Zebrapad",
-        "description": "Een oversteekplaats is een wettelijk gedefinieerde ruimte om een weg over te steken.<br><br>Oversteekplaatsen worden vaak aangegeven door <b>zebrapaden of loodrechte stippellijnen.</b>"
+        "description": "Een oversteekplaats is een wettelijk gedefinieerde ruimte om een weg over te steken.<br><br>Oversteekplaatsen worden vaak aangegeven door <b>evenwijdige stippellijnen.</b>"
       },
       "slide-2": {
         "title": "Geen visuele indicator",
@@ -245,7 +245,7 @@
       },
       "slide-3": {
         "title": "Lijn stoppen",
-        "description": "Stoplijnen mogen niet worden aangeduid als oversteekplaatsen."
+        "description": "Stoplijnen voor auto's mogen niet worden aangeduid als zebrapaden."
       },
       "slide-4": {
         "title": "Verkeersdrempel",

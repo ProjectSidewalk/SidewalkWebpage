@@ -163,11 +163,11 @@
       },
       "slide-2": {
         "title": "Entrada de coches",
-        "description": "Las entradas de vehículos <b>no</b> son rampas en los bordillos. Están diseñados para vehículos y no para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampa de bordillo."
+        "description": "Las entradas de vehículos <b>no</b> son rampas en los bordillos. Están diseñados para vehículos y no para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de bordillo."
       },
       "slide-3": {
         "title": "Garaje",
-        "description": "Las entradas a los garajes <b>no</b> son rampas en los bordillos. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampa de bordillo."
+        "description": "Las entradas a los garajes <b>no</b> son rampas en los bordillos. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de bordillo."
       }
     },
     "no-curb-ramp": {
@@ -237,7 +237,7 @@
     "crosswalk": {
       "slide-1": {
         "title": "Paso de peatones",
-        "description": "Un paso de peatones es un espacio legalmente definido para cruzar una calle.<br><br>Los pasos de peatones a menudo se indican con <b>pasos de cebra o líneas discontinuas perpendiculares.</b>"
+        "description": "Un paso de peatones es un espacio legalmente definido para cruzar una calle.<br><br>Los pasos de peatones a menudo se indican con <b>lineas discontinuas paralelas.</b>"
       },
       "slide-2": {
         "title": "Sin indicador visual",
@@ -245,7 +245,7 @@
       },
       "slide-3": {
         "title": "línea de parada",
-        "description": "Las líneas de parada no deben etiquetarse como cruces peatonales."
+        "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales."
       },
       "slide-4": {
         "title": "Banda de frenado",
