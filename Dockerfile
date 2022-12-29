@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-stretch
+FROM openjdk:8-jdk-buster
 
 RUN apt-get update && apt-get upgrade -y
 
@@ -18,10 +18,14 @@ RUN apt-get install -y \
     liblapack-dev \
     gfortran \
     python-numpy \
-    python-pandas \
-    sbt && \
+    python-pandas && \
   apt-get autoremove && \
   apt-get clean
+
+# Workaround because of bug in sbt from Debian.
+# See https://github.com/sbt/sbt/issues/6614
+RUN wget https://scala.jfrog.io/artifactory/debian/sbt-1.6.2.deb && \
+    apt install ./sbt-1.6.2.deb
 
 WORKDIR /opt
 
