@@ -158,34 +158,34 @@
     "start-mission": "Iniciar misión",
     "curb-ramp": {
       "slide-1": {
-        "title": "Rampa de bordillo",
+        "title": "Rampa peatonal",
         "description": "Las rampas en las aceras a menudo se encuentran en ambos extremos de los cruces de peatones, o cuando una acera continúa en el otro lado de la calle, incluso sin cruce de peatones."
       },
       "slide-2": {
         "title": "Entrada de coches",
-        "description": "Las entradas de vehículos <b>no</b> son rampas en los bordillos. Están diseñados para vehículos y no para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de bordillo."
+        "description": "Las entradas de vehículos <b>no</b> son rampas para peatones. Están diseñados para vehículos y no para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de peatonal."
       },
       "slide-3": {
         "title": "Garaje",
-        "description": "Las entradas a los garajes <b>no</b> son rampas en los bordillos. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de bordillo."
+        "description": "Las entradas a los garajes <b>no</b> son rampas para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de peatonal."
       }
     },
     "no-curb-ramp": {
       "slide-1": {
-        "title": "Rampa de bordillo faltante",
-        "description": "Las intersecciones de aceras deben tener rampas en las aceras, idealmente dos por esquina. Si una esquina tiene una acera pero no tiene una rampa en el bordillo, coloque la etiqueta Rampa en el bordillo faltante donde cree que debería existir una rampa en el bordillo."
+        "title": "Rampa peatonal ausente",
+        "description": "Las intersecciones de aceras deben tener rampas en las aceras, idealmente dos por esquina. Si una esquina tiene una acera pero no tiene una rampa peatonal, coloque la etiqueta Rampa peatonal ausente donde cree que debería existir una rampa peatonal."
       },
       "slide-2": {
         "title": "Pasarelas residenciales",
-        "description": "Los pasillos residenciales <b>no</b> deben estar etiquetados como Rampas de bordillo faltantes."
+        "description": "Los pasillos residenciales <b>no</b> deben estar etiquetados como Rampas peatonales ausentes."
       },
       "slide-3": {
         "title": "No en camino peatonal",
-        "description": "No se necesitan rampas en los bordillos en caminos <b>no</b> destinados al paso de peatones."
+        "description": "No se necesitan rampas peatonales en caminos <b>no</b> destinados al paso de peatones."
       },
       "slide-4": {
         "title": "acera faltante",
-        "description": "Para las esquinas sin <b>aceras</b>, use la etiqueta Sin acera en lugar de la etiqueta Rampa de bordillo faltante."
+        "description": "Para las esquinas sin <b>aceras</b>, use la etiqueta Sin acera en lugar de la etiqueta Rampa peatonal ausente."
       }
     },
     "obstacle": {
@@ -208,8 +208,8 @@
     },
     "surface-problem": {
       "slide-1": {
-        "title": "Problema de superficie",
-        "description": "Si hay algo en la superficie de la acera o del paso de peatones que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema de superficie."
+        "title": "Problema en superficie",
+        "description": "Si hay algo en la superficie de la acera o del paso de peatones que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema en superficie."
       },
       "slide-2": {
         "title": "Azulejos de acera normales",
