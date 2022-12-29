@@ -37,7 +37,7 @@
       },
       "obstacle": {
         "title": "Obstáculo <strong>correcto</strong>",
-        "example-1": "Estos conos de construcción están bloqueando un paso peatonal",
+        "example-1": "Estos conos de construcción están bloqueando un cruce peatonal",
         "example-2": "Este árbol bloquea toda la banqueta",
         "example-3": "Este poste bloquea la banqueta y la entrada de la rampa peatonal",
         "example-4": "Este hidrante contra incendio bloquea la banqueta"
@@ -181,7 +181,7 @@
       },
       "slide-3": {
         "title": "No en camino peatonal",
-        "description": "No se necesitan rampas peatonales en caminos <b>no</b> destinados al paso de peatones."
+        "description": "No se necesitan rampas peatonales en caminos <b>no</b> destinados al cruce peatonal."
       },
       "slide-4": {
         "title": "acera faltante",
@@ -209,7 +209,7 @@
     "surface-problem": {
       "slide-1": {
         "title": "Problema en superficie",
-        "description": "Si hay algo en la superficie de la acera o del paso de peatones que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema en superficie."
+        "description": "Si hay algo en la superficie de la acera o del cruce peatonal que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema en superficie."
       },
       "slide-2": {
         "title": "Azulejos de acera normales",
@@ -236,8 +236,8 @@
     },
     "crosswalk": {
       "slide-1": {
-        "title": "Paso de peatones",
-        "description": "Un paso de peatones es un espacio legalmente definido para cruzar una calle.<br><br>Los pasos de peatones a menudo se indican con <b>lineas discontinuas paralelas.</b>"
+        "title": "Cruce peatonal",
+        "description": "Un cruce peatonal es un espacio legalmente definido para cruzar una calle.<br><br>Los cruces peatonales a menudo se indican con <b>lineas discontinuas paralelas.</b>"
       },
       "slide-2": {
         "title": "Sin indicador visual",
