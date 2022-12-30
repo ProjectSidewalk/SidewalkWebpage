@@ -2,9 +2,9 @@
 <ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="joda-time"
 		module="joda-time"
-		revision="2.10.10"
+		revision="2.10.14"
 		status="release"
-		publication="20210205212143"
+		publication="20220320155626"
 	>
 		<license name="Apache License, Version 2.0" url="https://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="https://www.joda.org/joda-time/">
@@ -27,7 +27,7 @@
 		<m:properties__maven-release-plugin.version>2.5.3</m:properties__maven-release-plugin.version>
 		<m:properties__maven-resources-plugin.version>3.1.0</m:properties__maven-resources-plugin.version>
 		<m:properties__maven-project-info-reports-plugin.version>3.0.0</m:properties__maven-project-info-reports-plugin.version>
-		<e:sbtTransformHash>224a9c9ff2111cccc0ac1d4836a81fd89b94537a</e:sbtTransformHash>
+		<e:sbtTransformHash>7b15da5569f03f8acb845c9f5ee438c43e8ba024</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:properties__maven-checkstyle-plugin.version>2.17</m:properties__maven-checkstyle-plugin.version>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__null|org.codehaus.mojo__exec-maven-plugin__1.4.0|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-javadoc-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.codehaus.mojo__clirr-maven-plugin__2.6.1</m:maven.plugins>
@@ -50,7 +50,7 @@
 		<m:properties__maven.compiler.verbose>false</m:properties__maven.compiler.verbose>
 		<m:properties__maven-compiler-plugin.version>3.8.0</m:properties__maven-compiler-plugin.version>
 		<m:properties__maven-changes-plugin.version>2.12.1</m:properties__maven-changes-plugin.version>
-		<m:properties__tz.database.version>2021a</m:properties__tz.database.version>
+		<m:properties__tz.database.version>2022agtz</m:properties__tz.database.version>
 		<m:properties__maven.compiler.source>1.5</m:properties__maven.compiler.source>
 	</info>
 	<configurations>
