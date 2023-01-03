@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils.sha256Hash
 import formats.json.TaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit._
@@ -19,9 +20,15 @@ import models.region._
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.impl.client.DefaultHttpClient
 import play.api.Logger
+import play.api.Play.current
 import play.api.libs.json._
+import play.api.libs.ws.{WS, WSRequestHolder, WSResponse}
 import play.api.mvc._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
@@ -346,6 +353,37 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
       TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets)
     }
+
+    implicit val context = play.api.libs.concurrent.Execution.Implicits.defaultContext
+//    val labelCount: Int = submission.map(_.labels.length).sum
+//    val hashedEmail: String = sha256Hash(identity.get.email)
+//    println(hashedEmail)
+////    val url: String = "https://scistarter.org/api/participation/hashed/project-sidewalk?key=y-uczxNAxMK0zMH1z9tnwgBwp1i15axLdgBvFTFnt5OGs24PR09JEiJBV7aZgAGJMJdG8mnot1wMkPh9XSAAGg"
+//    val url: String = "https://scistarter.org/api"
+////    val url: String = "https://ljfsdlfkjsdl.org"
+//    val data = Json.obj("hashed" -> hashedEmail, "type" -> "classification", "duration" -> 31, "count" -> labelCount)
+////    val data = Json.obj()
+//    val holder: WSRequestHolder = WS.url(url)
+////    println(holder.toString)
+//    val futureResponse: Future[WSResponse] = holder.get()
+//    futureResponse.map { x =>
+//      println("we got a response!")
+//      println(x.json)
+//    }
+//    futureResponse.recover {
+//      case e: Exception =>
+//        println(e)
+//    }
+
+
+//    val post = new HttpPost("https://scistarter.org/api/participation/hashed/project-sidewalk?key=y-uczxNAxMK0zMH1z9tnwgBwp1i15axLdgBvFTFnt5OGs24PR09JEiJBV7aZgAGJMJdG8mnot1wMkPh9XSAAGg")
+//    val client = new DefaultHttpClient
+//    val response = client.execute(post)
+//    println(response)
+//    println("--- HEADERS ---")
+//    response.getAllHeaders.foreach(arg => println(arg))
+//    val inputStream = response.getEntity.getContent
+//    val content = io.Source.fromInputStream(inputStream).mkString
 
     Future.successful(Ok(Json.obj(
       "audit_task_id" -> returnValues.head.auditTaskId,
