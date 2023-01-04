@@ -3,9 +3,9 @@
  * @param missionType mission type. Currently only VALIDATE mission is supported.
  * @param labelType one of the seven label types for which the tutorial needs to be initialized.
  * @param labelCount the number of labels to validate in the current mission (VALIDATE mission only).
- * @param tracker the tracker object to log interactions.
+ * @param svv the svv object to log interactions and perform other actions upon closing the tutorial.
  */
-function MissionStartTutorial(missionType, labelType, labelCount, tracker) {
+function MissionStartTutorial(missionType, labelType, labelCount, svv) {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -568,22 +568,49 @@ function MissionStartTutorial(missionType, labelType, labelCount, tracker) {
      */
     function attachEventHandlers() {
 
+        // Hides the mission start tutorial, initializes the relevant svv variables,
+        // and logs the interaction.
+        function hideMST() {
+            // Update zoom availability on desktop.
+            if (svv.zoomControl) {
+                svv.zoomControl.updateZoomAvailability();
+            }
+
+            if (svv.keyboard) {
+                // We still want to disable keyboard shortcuts if the comment box is shown.
+                if ($('#modal-comment-box').is(":hidden")) {
+                    svv.keyboard.enableKeyboard();
+                } else {
+                    svv.keyboard.disableKeyboard();
+                }
+            }
+
+            $('.mission-start-tutorial-overlay').fadeOut(100);
+
+            const mission = svv.missionContainer.getCurrentMission();
+
+            svv.tracker.push('MSTDoneButton_Click',
+                {
+                    'currentSlideIdx': currentSlideIdx,
+                    'missionId': mission.getProperty("missionId"),
+                    'missionType': mission.getProperty("missionType"),
+                    'labelTypeId': mission.getProperty("labelTypeId"),
+                }, null);
+        }
+
         $('.previous-slide-button').click(function() {
             currentSlideIdx = Math.max(currentSlideIdx - 1, 0);
             renderSlide(currentSlideIdx);
-            tracker.push('PreviousSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
+            svv.tracker.push('PreviousSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
         });
 
         $('.next-slide-button').click(function() {
             currentSlideIdx = Math.min(currentSlideIdx + 1, nSlides - 1);
             renderSlide(currentSlideIdx);
-            tracker.push('NextSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
+            svv.tracker.push('NextSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
         });
 
-        $('.mission-start-tutorial-done-btn').click(function() {
-            $('.mission-start-tutorial-overlay').fadeOut(100);
-            tracker.push('MSTDoneButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
-        });
+        $('.mission-start-tutorial-done-btn').click(hideMST);
     }
 
     initModule(missionType);
