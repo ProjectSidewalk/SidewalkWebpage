@@ -70,6 +70,11 @@
 
 .severity-level .severity-icon svg {
     fill: white;
+}
+
+/* We should add transition only when the cursor is on the context menu. */
+/* Otherwise, it causes a delay when the context menu is closed and re-opened. */
+#context-menu-holder:hover .severity-level .severity-icon svg {
     transition: fill 0.3s;
 }
 
