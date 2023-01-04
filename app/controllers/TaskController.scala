@@ -182,6 +182,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * Helper function that updates database with all data submitted through the audit page.
    */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
+    var newLabelCount: Int = 0
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption: Option[User] = identity
       val streetEdgeId: Int = data.auditTask.streetEdgeId
@@ -267,6 +268,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               }
             }
 
+            newLabelCount += 1
             LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
               label.photographerHeading, label.photographerPitch, label.panoramaLat, label.panoramaLng, label.deleted,
               label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
@@ -358,7 +360,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
     implicit val context = play.api.libs.concurrent.Execution.Implicits.defaultContext
     val scistarterResponseCode: Future[Int] = Future {
-      val labelCount: Int = submission.map(_.labels.length).sum
       val hashedEmail: String = sha256Hash(identity.get.email)
       val url: String = "https://scistarter.org/api/participation/hashed/project-sidewalk?key=y-uczxNAxMK0zMH1z9tnwgBwp1i15axLdgBvFTFnt5OGs24PR09JEiJBV7aZgAGJMJdG8mnot1wMkPh9XSAAGg"
       val post: HttpPost = new HttpPost(url)
@@ -366,7 +367,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val nameValuePairs = new util.ArrayList[NameValuePair](1)
       nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail));
       nameValuePairs.add(new BasicNameValuePair("type", "classification"));
-      nameValuePairs.add(new BasicNameValuePair("count", labelCount.toString));
+      nameValuePairs.add(new BasicNameValuePair("count", newLabelCount.toString));
       nameValuePairs.add(new BasicNameValuePair("duration", "1"));
       post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
       val response = client.execute(post)
