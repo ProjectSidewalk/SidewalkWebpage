@@ -24,7 +24,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "anorm" % "2.3.10",
   "com.typesafe.play" %% "play-cache" % "2.3.10",
   "com.typesafe.play" %% "filters-helpers" % "2.3.10",
-  "com.typesafe.play" %% "play-ws" % "2.3.10",
   "com.vividsolutions" % "jts" % "1.13",
   "com.typesafe.slick" %% "slick" % "2.1.0",
   "com.typesafe.play" %% "play-slick" % "0.8.1",
