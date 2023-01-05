@@ -363,7 +363,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
 
     // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
-    if (newLabels.nonEmpty) {
+    if (newLabels.nonEmpty && List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))) {
       implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
       val scistarterResponseCode: Future[Int] = Future {
         val hashedEmail: String = sha256Hash(identity.get.email)
