@@ -22,7 +22,8 @@ import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
-import play.api.Logger
+import play.api.Play.current
+import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
 import scala.collection.mutable.ListBuffer
@@ -356,7 +357,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
 
     // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
-    if (newLabels.nonEmpty && List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))) {
+    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
+    val envType: String = Play.configuration.getString("environment-type").get
+    if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
       val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
       val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
     }
