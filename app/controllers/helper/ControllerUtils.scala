@@ -44,7 +44,8 @@ object ControllerUtils {
         println(contributions)
         println(timeSpent)
         println((timeSpent / contributions).toString)
-        val url: String = "https://scistarter.org/api/participation/hashed/project-sidewalk?key=y-uczxNAxMK0zMH1z9tnwgBwp1i15axLdgBvFTFnt5OGs24PR09JEiJBV7aZgAGJMJdG8mnot1wMkPh9XSAAGg"
+        val apiKey: String = Play.configuration.getString("scistarter-api-key").get
+        val url: String = s"https://scistarter.org/api/participation/hashed/project-sidewalk?key=${apiKey}"
         val post: HttpPost = new HttpPost(url)
         val client: DefaultHttpClient = new DefaultHttpClient
         val nameValuePairs = new util.ArrayList[NameValuePair](1)
