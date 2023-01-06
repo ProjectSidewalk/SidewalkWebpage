@@ -9,6 +9,7 @@
 @currentCity =@{Play.configuration.getString("city-id").get}
 
 @main(title, Some("/mobile")) {
+
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
@@ -16,6 +17,27 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+
+
+    @icons()
+
+    @* These are templates and are not visible on the screen directly. *@
+    @* JS clones them, adjusts the attributes and then appends to DOM. *@
+    <div class="severity-image severity-1 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-neutral"></use></svg>
+    </div>
+    <div class="severity-image severity-2 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-1"></use></svg>
+    </div>
+    <div class="severity-image severity-3 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
+    </div>
+    <div class="severity-image severity-4 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-3"></use></svg>
+    </div>
+    <div class="severity-image severity-5 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-4"></use></svg>
+    </div>
 
     <div id='status-current-mission-completion-bar'>
         <div id='status-current-mission-completion-bar-filler'>

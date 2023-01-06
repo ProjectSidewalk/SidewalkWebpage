@@ -166,8 +166,9 @@
 }
 
 .modal-severity-circle {
-    width: 1.75vw;
-    height: 1.75vw;
+    width: 1.5vw;
+    height: 1.5vw;
+    margin: 2px;
 }
 
 #modal-current-severity {

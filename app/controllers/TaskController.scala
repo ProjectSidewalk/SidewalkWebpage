@@ -8,8 +8,10 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
+import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
@@ -19,9 +21,12 @@ import models.region._
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
-import play.api.Logger
+import models.utils.CommonUtils.ordered
+import play.api.Play.current
+import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 
 /**
@@ -174,6 +179,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * Helper function that updates database with all data submitted through the audit page.
    */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
+    var newLabels: ListBuffer[(Int, Timestamp)] = ListBuffer()
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption: Option[User] = identity
       val streetEdgeId: Int = data.auditTask.streetEdgeId
@@ -259,10 +265,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               }
             }
 
-            LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
+            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
               label.photographerHeading, label.photographerPitch, label.panoramaLat, label.panoramaLng, label.deleted,
               label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
               label.severity, label.temporary, label.description))
+
+            newLabels += ((newLabelId, timeCreated))
+            newLabelId
         }
 
         // Insert label points.
@@ -345,6 +354,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
       TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets)
+    }
+
+    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
+    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
+    val envType: String = Play.configuration.getString("environment-type").get
+    if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
+      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
     }
 
     Future.successful(Ok(Json.obj(

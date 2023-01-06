@@ -10,7 +10,28 @@
 
 .severity-filter-image {
     background-color: white;
-    width: 30px;
+    width: 25px;
+}
+
+.severity-filter-image svg {
+    fill: white;
+    transition: fill 0.3s;
+}
+
+.severity-filter-image.severity-1.selected svg, .severity-filter-image.severity-1.highlight svg {
+    fill: #f4db48;
+}
+.severity-filter-image.severity-2.selected svg, .severity-filter-image.severity-2.highlight svg {
+    fill: #f1bc41;
+}
+.severity-filter-image.severity-3.selected svg, .severity-filter-image.severity-3.highlight svg {
+    fill: #ee9d3a;
+}
+.severity-filter-image.severity-4.selected svg, .severity-filter-image.severity-4.highlight svg {
+    fill: #eb7e32;
+}
+.severity-filter-image.severity-5.selected svg, .severity-filter-image.severity-5.highlight svg {
+    fill: #e85f2b;
 }
 
 .severity-filter {
