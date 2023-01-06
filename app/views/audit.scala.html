@@ -887,17 +887,16 @@
                         return new Promise((resolve) => setTimeout(resolve, time));
                     }
                     @if(panoId.isDefined) {
-                        sleep(2000).then(() => {
-                            try {
-                                svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
-                                    var lat = panoData.location.latLng.lat();
-                                    var lng = panoData.location.latLng.lng();
-                                    svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
-                                });
-                            } catch (e) {
-                                console.error("Invalid panorama ID");
-                            }
-                        });
+                        sleep(2000).then(() =>{
+                        try {
+                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
+                                var lat = panoData.location.latLng.lat();
+                                var lng = panoData.location.latLng.lng();
+                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
+                            });
+                        } catch (e) {
+                            console.error("Invalid panorama ID");
+                        }});
                     } else { @if(lat && lng) {
                         sleep(2000).then(() => {
                             svl.map.setPosition(@lat.get, @lng.get);

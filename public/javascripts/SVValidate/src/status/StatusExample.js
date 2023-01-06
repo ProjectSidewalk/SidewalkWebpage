@@ -7,7 +7,6 @@
 function StatusExample (statusUI) {
     let self = this;
     let labelType = undefined;
-    let labelName = undefined;
     let examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
     let counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
@@ -25,7 +24,6 @@ function StatusExample (statusUI) {
      */
     function updateLabelImage (label) {
         labelType = label;
-        labelName = svv.labelNames[labelType];
 
         _updateCounterExamples();
         _updateExamples();
