@@ -11,7 +11,7 @@ function Severity (params, active){
 
     // UI element of the severity container and image.
     let severityElement = null;
-    let severityImage = null;
+    let $severityImage = null;
     let interactionEnabled = false;
 
     let properties = {
@@ -23,7 +23,7 @@ function Severity (params, active){
 
     /**
      * Initialize Severity.
-     * 
+     *
      * @param {int} param Severity.
      */
     function _init(param) {
@@ -32,17 +32,16 @@ function Severity (params, active){
         severityElement = document.createElement('div');
         severityElement.className = 'severity-filter gallery-filter';
 
-        severityImage = document.createElement('img');
-        severityImage.className = 'severity-filter-image';
-        severityImage.id = properties.severity;
-        severityImage.innerText = properties.severity;
+        $severityImage = $(`.severity-filter-image.template.severity-${properties.severity}`).clone().removeClass('template');
+        $severityImage.attr('id', properties.severity);
+
         if (filterActive) {
             _showSelected();
         } else {
             _showDeselected();
         }
-        
-        severityElement.appendChild(severityImage);
+
+        $(severityElement).append($severityImage);
 
         // Show inverted smiley face on click or hover.
         severityElement.onclick = handleOnClickCallback;
@@ -68,11 +67,11 @@ function Severity (params, active){
     }
 
     function _showSelected() {
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}_inverted_green.png`;
+        $($severityImage).addClass('selected');
     }
 
     function _showDeselected() {
-        severityImage.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${properties.severity}-Gray.png`;
+        $($severityImage).removeClass('selected');
     }
 
     /**
@@ -97,7 +96,7 @@ function Severity (params, active){
 
     /**
      * Renders Severity in sidebar.
-     * 
+     *
      * @param {*} filterContainer UI element to render Severity in.
      */
     function render(filterContainer) {
