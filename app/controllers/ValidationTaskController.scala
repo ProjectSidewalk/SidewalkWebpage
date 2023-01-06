@@ -101,7 +101,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
     val labels: Seq[LabelValidationSubmission] = submission.flatMap(_.labels)
     if (labels.nonEmpty && List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))) {
-      val timeSpent: Float = labels.map(l => l.endTimestamp - l.startTimestamp).sum / 1000F
+      // Cap time for each validation at 1 minute.
+      val timeSpent: Float = labels.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
       val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, labels.length, timeSpent)
     }
 
