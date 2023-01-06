@@ -568,34 +568,14 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
      */
     function attachEventHandlers() {
 
-        // Hides the mission start tutorial, initializes the relevant svv variables,
-        // and logs the interaction.
+        // Hides the mission start tutorial, initializes the relevant svv variables, and logs the interaction.
         function hideMST() {
-            // Update zoom availability on desktop.
-            if (svv.zoomControl) {
-                svv.zoomControl.updateZoomAvailability();
-            }
-
-            if (svv.keyboard) {
-                // We still want to disable keyboard shortcuts if the comment box is shown.
-                if ($('#modal-comment-box').is(":hidden")) {
-                    svv.keyboard.enableKeyboard();
-                } else {
-                    svv.keyboard.disableKeyboard();
-                }
-            }
+            if (svv.zoomControl) svv.zoomControl.updateZoomAvailability();
+            if (svv.keyboard) svv.keyboard.enableKeyboard();
 
             $('.mission-start-tutorial-overlay').fadeOut(100);
 
-            const mission = svv.missionContainer.getCurrentMission();
-
-            svv.tracker.push('MSTDoneButton_Click',
-                {
-                    'currentSlideIdx': currentSlideIdx,
-                    'missionId': mission.getProperty("missionId"),
-                    'missionType': mission.getProperty("missionType"),
-                    'labelTypeId': mission.getProperty("labelTypeId"),
-                }, null);
+            svv.tracker.push('MSTDoneButton_Click', { 'currentSlideIdx': currentSlideIdx }, null);
         }
 
         $('.previous-slide-button').click(function() {
