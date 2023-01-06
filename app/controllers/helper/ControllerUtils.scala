@@ -1,6 +1,6 @@
 package controllers.helper
 
-import play.api.Play
+import play.api.{Logger, Play}
 import play.api.Play.current
 import play.api.mvc.Request
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,12 +40,16 @@ object ControllerUtils {
      * @return Response code from the API request.
      */
     def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int] = Future {
-        val hashedEmail: String = sha256Hash(email)
         println(contributions)
         println(timeSpent)
         println((timeSpent / contributions).toString)
-        val apiKey: String = Play.configuration.getString("scistarter-api-key").get
-        val url: String = s"https://scistarter.org/api/participation/hashed/project-sidewalk?key=${apiKey}"
+        val apiKey: Option[String] = Play.configuration.getString("scistarter-api-key")
+        if (apiKey.isEmpty) {
+            Logger.error("SciStarter API key not found.")
+            throw new Exception("SciStarter API key not found.")
+        }
+        val hashedEmail: String = sha256Hash(email)
+        val url: String = s"https://scistarter.org/api/participation/hashed/project-sidewalk?key=${apiKey.get}"
         val post: HttpPost = new HttpPost(url)
         val client: DefaultHttpClient = new DefaultHttpClient
         val nameValuePairs = new util.ArrayList[NameValuePair](1)
@@ -54,10 +58,16 @@ object ControllerUtils {
         nameValuePairs.add(new BasicNameValuePair("count", contributions.toString));
         nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString));
         post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-        val response = client.execute(post)
-        val inputStream: InputStream = response.getEntity.getContent
-        val content: String = io.Source.fromInputStream(inputStream).mkString
-        println(content)
-        response.getStatusLine.getStatusCode
+        try {
+            val response = client.execute(post)
+            val inputStream: InputStream = response.getEntity.getContent
+            val content: String = io.Source.fromInputStream(inputStream).mkString
+            println(content)
+            response.getStatusLine.getStatusCode
+        } catch {
+            case e: Exception =>
+                Logger.warn(e.getMessage)
+                throw e
+        }
     }
 }
