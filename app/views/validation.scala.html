@@ -16,6 +16,9 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
+
+    @missionStartTutorial()
+
     <div class="container tool-ui" style = "visibility: visible;">
 
         @* These are templates and are not visible on the screen directly. *@
@@ -122,7 +125,7 @@
                     </form>
                 </div>
             </div>
-            <div id="modal-mission-holder">
+            <div id="modal-mission-holder" style="display: none;">
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center"></h1>

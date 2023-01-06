@@ -11,19 +11,9 @@ function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
-    
+
     function _initUI() {
         // Maps label types to label names.
-        svv.labelNames = {
-            CurbRamp: i18next.t('curb-ramp-caps'),
-            NoCurbRamp: i18next.t('missing-curb-ramp-caps'),
-            Obstacle: i18next.t('obstacle-caps'),
-            SurfaceProblem: i18next.t('surface-problem-caps'),
-            NoSidewalk: i18next.t('no-sidewalk-caps'),
-            Crosswalk: i18next.t('crosswalk-caps'),
-            Signal: i18next.t('signal-caps')
-        };
-
         svv.labelTypeNames = {
             1: i18next.t('curb-ramp-caps'),
             2: i18next.t('missing-curb-ramp-caps'),
@@ -141,7 +131,7 @@ function Main (param) {
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
 
         let statusFieldParam = {
-            completedValidations: param.completedValidations  
+            completedValidations: param.completedValidations
         };
         svv.statusField = new StatusField(statusFieldParam);
         svv.statusExample = new StatusExample(svv.ui.status.examples);
@@ -209,6 +199,10 @@ function Main (param) {
             svv.keyboard.disableKeyboard();
             $(".tool-ui").css('opacity', 0.5);
         });
+
+        const labelType = param.labelList[0].getAuditProperty('labelType');
+
+        const missionStartTutorial = new MissionStartTutorial('validate', labelType, param.mission.labels_validated, svv);
     }
 
     // Gets all the text on the validation page for the correct language.
