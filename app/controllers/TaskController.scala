@@ -8,7 +8,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.sha256Hash
+import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit.AuditTaskInteractionTable.secondsAudited
@@ -22,18 +22,11 @@ import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
-import org.apache.http.NameValuePair
-import org.apache.http.client.entity.UrlEncodedFormEntity
-import org.apache.http.client.methods.HttpPost
-import org.apache.http.impl.client.DefaultHttpClient
-import org.apache.http.message.BasicNameValuePair
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
-import java.io.InputStream
-import java.util
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 /**
  * Holds the HTTP requests associated with tasks submitted through the audit page.
@@ -364,28 +357,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
     // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
     if (newLabels.nonEmpty && List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))) {
-      implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
-      val scistarterResponseCode: Future[Int] = Future {
-        val hashedEmail: String = sha256Hash(identity.get.email)
-        val auditTime: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
-        println(newLabels.length)
-        println(auditTime)
-        println((auditTime / newLabels.length).toString)
-        val url: String = "https://scistarter.org/api/participation/hashed/project-sidewalk?key=y-uczxNAxMK0zMH1z9tnwgBwp1i15axLdgBvFTFnt5OGs24PR09JEiJBV7aZgAGJMJdG8mnot1wMkPh9XSAAGg"
-        val post: HttpPost = new HttpPost(url)
-        val client: DefaultHttpClient = new DefaultHttpClient
-        val nameValuePairs = new util.ArrayList[NameValuePair](1)
-        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail));
-        nameValuePairs.add(new BasicNameValuePair("type", "classification"));
-        nameValuePairs.add(new BasicNameValuePair("count", newLabels.length.toString));
-        nameValuePairs.add(new BasicNameValuePair("duration", (auditTime / newLabels.length).toString));
-        post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-        val response = client.execute(post)
-        val inputStream: InputStream = response.getEntity.getContent
-        val content: String = io.Source.fromInputStream(inputStream).mkString
-        println(content)
-        response.getStatusLine.getStatusCode
-      }
+      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
     }
 
     Future.successful(Ok(Json.obj(

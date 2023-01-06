@@ -6,7 +6,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.sha256Hash
+import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.ValidationTaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
@@ -17,17 +17,10 @@ import models.validation._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
-import org.apache.http.NameValuePair
-import org.apache.http.client.entity.UrlEncodedFormEntity
-import org.apache.http.client.methods.HttpPost
-import org.apache.http.impl.client.DefaultHttpClient
-import org.apache.http.message.BasicNameValuePair
-import java.io.InputStream
-import java.util
 import java.time.Instant
 
 /**
@@ -108,28 +101,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
     val labels: Seq[LabelValidationSubmission] = submission.flatMap(_.labels)
     if (labels.nonEmpty && List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))) {
-      implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
-      val scistarterResponseCode: Future[Int] = Future {
-        val hashedEmail: String = sha256Hash(identity.get.email)
-        val auditTime: Float = labels.map(l => l.endTimestamp - l.startTimestamp).sum / 1000F
-        println(labels.length)
-        println(auditTime)
-        println((auditTime / labels.length).toString)
-        val url: String = "https://scistarter.org/api/participation/hashed/project-sidewalk?key=y-uczxNAxMK0zMH1z9tnwgBwp1i15axLdgBvFTFnt5OGs24PR09JEiJBV7aZgAGJMJdG8mnot1wMkPh9XSAAGg"
-        val post: HttpPost = new HttpPost(url)
-        val client: DefaultHttpClient = new DefaultHttpClient
-        val nameValuePairs = new util.ArrayList[NameValuePair](1)
-        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail));
-        nameValuePairs.add(new BasicNameValuePair("type", "classification"));
-        nameValuePairs.add(new BasicNameValuePair("count", labels.length.toString));
-        nameValuePairs.add(new BasicNameValuePair("duration", (auditTime / labels.length).toString));
-        post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-        val response = client.execute(post)
-        val inputStream: InputStream = response.getEntity.getContent
-        val content: String = io.Source.fromInputStream(inputStream).mkString
-        println(content)
-        response.getStatusLine.getStatusCode
-      }
+      val timeSpent: Float = labels.map(l => l.endTimestamp - l.startTimestamp).sum / 1000F
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, labels.length, timeSpent)
     }
 
     // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
