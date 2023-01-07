@@ -31,8 +31,6 @@ function Progress (_, $, difficultRegionIds, userRole) {
     var streetParams = {
         includeLabelCounts: true,
         auditedStreetColor: 'black',
-        useTotalAuditedDistance: false,
-        progressElement: 'td-total-distance-audited',
         userRole: userRole
     };
     var map;

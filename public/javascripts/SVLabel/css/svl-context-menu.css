@@ -35,9 +35,6 @@
 
 #severity-menu .radio-inline {
     font-size: 10pt;
-    padding-bottom: 5px;
-    padding-left: 27px;
-    margin-left: 3px;
     text-align: center;
 }
 
@@ -50,22 +47,79 @@
 #severity-menu #column-not-passable, #severity-menu #column-passable {
     cursor: default;
     position: relative;
-    top: 8px;
-    margin-left: 0;
     padding: 5px;
     text-align: center;
 }
 
 #severity-menu .radio-inline label {
     position: relative;
-
+    margin: 0;
+    cursor: pointer;
 }
 
-#severity-menu .radio-inline label div {
+#severity-menu .severity-level {
+    padding: 5px;
+    margin: 5px;
+}
+
+.severity-level .severity-icon {
+    height: 25px;
+    width: 25px;
+    pointer-events: none;
+}
+
+.severity-level .severity-icon svg {
+    fill: white;
+}
+
+/* We should add transition only when the cursor is on the context menu. */
+/* Otherwise, it causes a delay when the context menu is closed and re-opened. */
+#context-menu-holder:hover .severity-level .severity-icon svg {
+    transition: fill 0.3s;
+}
+
+.severity-level:hover .severity-icon.severity-1 svg {
+    fill: rgba(244, 219, 72, 0.55);
+}
+.severity-level:hover .severity-icon.severity-2 svg {
+    fill: rgba(241, 188, 65, 0.55);
+}
+.severity-level:hover .severity-icon.severity-3 svg {
+    fill: rgba(238, 157, 58, 0.55);
+}
+.severity-level:hover .severity-icon.severity-4 svg {
+    fill: rgba(235, 126, 50, 0.55);
+}
+.severity-level:hover .severity-icon.severity-5 svg {
+    fill: rgba(232, 95, 43, 0.55);
+}
+
+.severity-level.selected .severity-icon.severity-1 svg {
+    fill: #f4db48;
+}
+.severity-level.selected .severity-icon.severity-2 svg {
+    fill: #f1bc41;
+}
+.severity-level.selected .severity-icon.severity-3 svg {
+    fill: #ee9d3a;
+}
+.severity-level.selected .severity-icon.severity-4 svg {
+    fill: #eb7e32;
+}
+.severity-level.selected .severity-icon.severity-5 svg {
+    fill: #e85f2b;
+}
+
+
+#severity-menu .radio-inline label div.severity-label {
     font-weight: 600;
-    left: -14px;
     position: relative;
-    top: 25px;
+}
+
+#severity-radio-holder {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 #severity-radio-holder span {
@@ -81,6 +135,10 @@
 #severity-radio-holder > .radio-inline > label > input {
     visibility: hidden;
     position: absolute;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    left: 0;
 }
 
 #severity-radio-holder > .radio-inline > .example-image > label > input + img {
@@ -182,4 +240,12 @@
 tag-underline {
     text-decoration: underline;
     pointer-events: none;
+}
+
+.face-outline {
+    stroke: #2D2A3F;
+}
+
+.facial-feature {
+    fill: #2d2a3f;
 }

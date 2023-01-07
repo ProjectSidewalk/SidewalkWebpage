@@ -476,7 +476,7 @@ function Label (svl, pathIn, params) {
             width = 0,
             labelRows = 1,
             severityImage = new Image(),
-            severityImagePath = undefined,
+            severitySVGElement,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
             msg = i18next.t(util.camelToKebab(properties.labelType) + '-description'),
             messages = msg.split('\n'),
@@ -485,8 +485,8 @@ function Label (svl, pathIn, params) {
         if (hasSeverity) {
             labelRows = 2;
             if (properties.severity !== null) {
-                severityImagePath = tagProperties[properties.severity].severityImage;
-                severityImage.src = severityImagePath;
+                severitySVGElement = $(`.severity-icon.template.severity-${properties.severity}`).clone().removeClass('template').find('svg');
+                severityImage.src = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent($(severitySVGElement).prop('outerHTML'));
                 severityMessage = tagProperties[properties.severity].message;
             }
         }
@@ -509,7 +509,7 @@ function Label (svl, pathIn, params) {
             // Do additional adjustments on tag width to make room for smiley icon.
             if (hasSeverity) {
                 secondRow = ctx.measureText(severityMessage).width;
-                if (severityImagePath != undefined) {
+                if (severitySVGElement != undefined) {
                     if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
                         width += 15 - firstRow + secondRow;
                     } else if (firstRow - secondRow < 0) {
@@ -546,9 +546,12 @@ function Label (svl, pathIn, params) {
         ctx.fillStyle = '#ffffff';
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
-            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
+            ctx.fillText(severityMessage, labelCoordinate.x + padding.left,
+                labelCoordinate.y + properties.tagHeight + padding.top);
+
             if (properties.severity !== null) {
-              ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
+                ctx.drawImage(severityImage, labelCoordinate.x + padding.left +
+                    ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
             }
         }
 

@@ -90,3 +90,14 @@ We should allow the pointer events to pass through and behave the same way as th
 .label-icon-gallery, .icon-outline {
     pointer-events: none;
 }
+
+/* Template elements should be hidden by default. */
+.template { display: none; }
+
+.face-outline {
+    stroke: #2D2A3F;
+}
+
+.facial-feature {
+    fill: #2D2A3F;
+}

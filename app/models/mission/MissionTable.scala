@@ -98,7 +98,6 @@ object MissionTable {
   }
   val validationMissions = missions.filter(_.missionTypeId === validationMissionTypeId)
 
-  val METERS_TO_MILES: Float = 0.000621371F
 
   // Distances for first few missions: 250 ft, 250 ft, then 500 ft for all remaining.
   val distancesForFirstAuditMissions: List[Float] = List(76.2F, 76.2F)
@@ -327,15 +326,6 @@ object MissionTable {
     */
   def totalRewardEarned(userId: UUID): Double = db.withSession { implicit session =>
     missions.filter(m => m.userId === userId.toString && m.completed).map(_.pay).sum.run.getOrElse(0.0D)
-  }
-
-  /**
-    * Gets total distance audited by a user in miles.
-    *
-    * @param userId the UUID of the user
-    */
-  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
-    missions.filter(_.userId === userId.toString).map(_.distanceProgress).sum.run.getOrElse(0F) * METERS_TO_MILES
   }
 
   /**

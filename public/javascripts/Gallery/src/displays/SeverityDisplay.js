@@ -1,7 +1,7 @@
 
 /**
  * An object that creates a display for the severity.
- * 
+ *
  * @param {HTMLElement} container The DOM element that contains the display
  * @param {Number} severity The severity to display
  * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
@@ -47,33 +47,37 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
         // We do so by darkening a number of circles from the left equal to the severity. For example, if the severity
         // is 3, we will darken the left 3 circles.
         for (let i = 1; i <= 5; i++) {
-            let severityCircle = isModal ? new Image() : document.createElement('div');
-            severityCircle.className = severityCircleClass;
+
+            let $severityCircle;
+
+            if (isModal) {
+                $severityCircle = $(`.severity-filter-image.template.severity-${i}`).clone().removeClass('template');
+            } else {
+                $severityCircle = $('<div></div>');
+            }
+            $severityCircle.addClass(severityCircleClass);
 
             if (unsupported || severity == null) {
                 // Create grayed out empty circles/smileys.
                 if (isModal) {
-                    severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
-                    severityCircle.classList.add('modal-no-severity');
+                    $severityCircle.addClass('modal-no-severity');
                 } else {
-                    severityCircle.classList.add(severityCircleClass, 'no-severity-circle');
+                    $severityCircle.addClass('no-severity-circle');
                 }
-                circles.push(severityCircle);
+                circles.push($severityCircle);
             } else {
                 // Create severity circle elements.
                 if (isModal) {
                     if (i <= severity) { // Filled in smileys.
-                        severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_inverted.png`;
-                    } else { // Empty smileys.
-                        severityCircle.src = `/assets/javascripts/SVLabel/img/misc/SmileyRating_${i}_gallery.png`;
+                        $severityCircle.addClass('highlight');
                     }
                 } else {
                     if (i <= severity) { // Fills in circles.
-                        severityCircle.id = selectedCircleID
+                        $severityCircle.attr('id', selectedCircleID);
                     }
                 }
             }
-            circles.push(severityCircle);
+            circles.push($severityCircle);
         }
 
         if (severity == null) {
@@ -92,7 +96,7 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
 
         // Add all of the severity circles to the DOM.
         for (let i = 0; i < circles.length; i++) {
-            holder.appendChild(circles[i]);
+            $(holder).append($(circles[i]));
         }
         container.append(holder);
     }
