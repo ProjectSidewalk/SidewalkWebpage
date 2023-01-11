@@ -13,6 +13,7 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import formats.json.LabelFormat._
+import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
@@ -23,12 +24,15 @@ import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
 import models.user._
+import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
+import play.api.i18n.Messages
+
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
@@ -70,8 +74,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
-        case Some(user) => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, Some(user))))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case Some(user) =>
+          // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
+          val auditedDistance: Float = {
+            val userId: UUID = UUID.fromString(user.userId)
+            if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
+            else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
+          }
+          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity.get, user, auditedDistance)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -268,7 +279,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           }
           val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Future.successful(Ok(featureCollection))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -295,7 +306,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           }
           val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Future.successful(Ok(featureCollection))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -322,7 +333,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case Some(user) =>
           val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))

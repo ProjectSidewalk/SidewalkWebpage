@@ -9,7 +9,6 @@
 */
 function InitializeStreets(map, params, streetData) {
     let streetLayer;
-    let distanceAudited = 0;  // Distance audited in km.
     let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
@@ -35,28 +34,20 @@ function InitializeStreets(map, params, streetData) {
         onEachFeature: onEachStreetFeature
     })
         .addTo(map);
-    if (params.useTotalAuditedDistance) {
-        // Calculate total distance audited in km/miles depending on the measurement system used in the user's country.
-        for (let i = streetData.features.length - 1; i >= 0; i--) {
-            if (!hasUnauditedStreets || streetData.features[i].properties.audited) {
-                distanceAudited += turf.length(streetData.features[i], {units: i18next.t('common:unit-distance')});
+
+    // Get total reward if a turker.
+    if (params.userRole === 'Turker') {
+        $.ajax({
+            async: true,
+            url: '/rewardEarned',
+            type: 'get',
+            success: function(rewardData) {
+                document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(thrownError);
             }
-        }
-        document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + ' ' + i18next.t('common:unit-distance-abbreviation');
-        // Get total reward if a turker.
-        if (params.userRole === 'Turker') {
-            $.ajax({
-                async: true,
-                url: '/rewardEarned',
-                type: 'get',
-                success: function(rewardData) {
-                    document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
-                },
-                error: function (xhr, ajaxOptions, thrownError) {
-                    console.log(thrownError);
-                }
-            })
-        }
+        })
     }
     return streetLayer;
 }

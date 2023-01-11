@@ -36,11 +36,8 @@ NeighborhoodContainer.prototype.getStatus = function (key) {
 };
 
 NeighborhoodContainer.prototype.setCurrentNeighborhood = function (newNeighborhood) {
-    var oldNeighborhood = this.getCurrentNeighborhood();
-    var parameters = { oldNeighborhood: oldNeighborhood, newNeighborhood: newNeighborhood };
     this.setStatus('currentNeighborhood', newNeighborhood);
-
-    this._neighborhoodModel.trigger("NeighborhoodContainer:neighborhoodChanged", parameters);
+    this._neighborhoodModel.trigger("NeighborhoodContainer:setNeighborhood", newNeighborhood);
 };
 
 NeighborhoodContainer.prototype.setStatus = function (key, value) {

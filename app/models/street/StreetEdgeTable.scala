@@ -75,7 +75,12 @@ object StreetEdgeTable {
   val userRoles = TableQuery[UserRoleTable]
   val userTable = TableQuery[UserTable]
   val roleTable = TableQuery[RoleTable]
-  val completedAuditTasks = auditTasks.filter(_.completed === true)
+
+  val completedAuditTasks = for {
+    _tasks <- auditTasks
+    _stat <- UserStatTable.userStats if _tasks.userId === _stat.userId
+    if _tasks.completed && !_stat.excluded
+  } yield _tasks
 
   val turkerCompletedAuditTasks = for {
     _tasks <- completedAuditTasks
@@ -179,7 +184,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTaskQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && !stats.excluded
+            if stats.highQuality
         } yield tasks
       } else {
           auditTaskQuery
@@ -304,7 +309,7 @@ object StreetEdgeTable {
         for {
             tasks <- auditTasksQuery
             stats <- UserStatTable.userStats if tasks.userId === stats.userId
-            if stats.highQuality && !stats.excluded
+            if stats.highQuality
         } yield tasks
       } else {
           auditTasksQuery

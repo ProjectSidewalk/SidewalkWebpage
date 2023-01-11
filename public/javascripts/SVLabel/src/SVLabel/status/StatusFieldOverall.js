@@ -39,7 +39,7 @@ function StatusFieldOverall(uiStatus) {
         var tooltipText;
         if (result.accuracy !== null) {
             stats.accuracy = 100 * result.accuracy;
-            uiStatus.overallAccuracy.html(`${i18next.t('common:format-number', {val: stats.accuracy.toFixed(2)})}%`);
+            uiStatus.overallAccuracy.html(`${i18next.t('common:format-number', {val: stats.accuracy.toFixed(1)})}%`);
             tooltipText = i18next.t('right-ui.accuracy-tooltip');
         } else {
             uiStatus.overallAccuracy.html('N/A');

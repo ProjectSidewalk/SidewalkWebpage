@@ -6,6 +6,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.ValidationTaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
@@ -14,12 +15,13 @@ import models.mission.{Mission, MissionTable}
 import models.user.{User, UserStatTable}
 import models.validation._
 import play.api.libs.json._
-import play.api.Logger
+import play.api.{Logger, Play}
 import play.api.mvc._
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
+import play.api.Play.current
 import java.time.Instant
 
 /**
@@ -95,6 +97,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         case None =>
           ValidationTaskPostReturnValue (None, None, None, None)
       }
+    }
+
+    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
+    val labels: Seq[LabelValidationSubmission] = submission.flatMap(_.labels)
+    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
+    val envType: String = Play.configuration.getString("environment-type").get
+    if (labels.nonEmpty && envType == "prod" && eligibleUser) {
+      // Cap time for each validation at 1 minute.
+      val timeSpent: Float = labels.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, labels.length, timeSpent)
     }
 
     // If this user is a turker who has just finished 3 validation missions, switch them to auditing.

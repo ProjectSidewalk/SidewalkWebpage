@@ -3,14 +3,18 @@ package models.user
 import formats.json.UserFormats.labelTypeStatWrites
 import models.attribute.UserAttributeLabelTable.userAttributeLabels
 import models.attribute.UserClusteringSessionTable
+import models.audit.AuditTaskTable
+
 import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelValidationTable}
 import models.mission.MissionTable
+import models.street.StreetEdgeTable
 import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
+
 import java.sql.Timestamp
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -166,11 +170,12 @@ object UserStatTable {
       if _mission.missionEnd > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1).list
 
-    // Computes the audited distance in meters using the distance_progress column of the mission table.
+    // Computes the audited distance in meters using the audit_task and street_edge tables.
     val auditedDists: List[(String, Option[Float])] =
-      MissionTable.auditMissions
+      AuditTaskTable.completedTasks
         .filter(_.userId inSet usersToUpdate)
-        .groupBy(_.userId).map(x => (x._1, x._2.map(_.distanceProgress).sum))
+        .innerJoin(StreetEdgeTable.streetEdges).on(_.streetEdgeId === _.streetEdgeId)
+        .groupBy(_._1.userId).map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
         .list
 
     // Update the meters_audited column in the user_stat table.
@@ -264,7 +269,7 @@ object UserStatTable {
     // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsers: List[(String, Boolean)] =
       userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-        .map(x => (x.userId, x.highQualityManual.get)).list
+        .map(x => (x.userId, false)).list
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
     // low quality are filtered out later (using results from the previous query).
@@ -396,13 +401,23 @@ object UserStatTable {
         |) "label_counts"
         |$usernamesJoin
         |INNER JOIN (
-        |    SELECT $groupingCol, COUNT(mission_id) AS mission_count, COALESCE(SUM(distance_progress), 0) AS distance_meters
+        |    SELECT $groupingCol, COUNT(mission_id) AS mission_count
         |    FROM mission
         |    INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
         |    $joinUserOrgTable
         |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingCol
-        |) "missions_and_distance" ON label_counts.$groupingColName = missions_and_distance.$groupingColName
+        |) "missions_counts" ON label_counts.$groupingColName = missions_counts.$groupingColName
+        |INNER JOIN (
+        |    SELECT $groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
+        |    FROM street_edge
+        |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |    INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
+        |    $joinUserOrgTable
+        |    WHERE audit_task.completed
+        |        AND (task_end AT TIME ZONE 'US/Pacific') > $statStartTime
+        |    GROUP BY $groupingCol
+        |) "distance" ON label_counts.$groupingColName = distance.$groupingColName
         |LEFT JOIN (
         |    SELECT $groupingColName,
         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
