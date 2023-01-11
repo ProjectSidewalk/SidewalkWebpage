@@ -36,6 +36,8 @@ function Card (params, imageUrl, modal) {
         street_edge_id: undefined,
         region_id: undefined,
         user_validation: undefined,
+        agree: undefined,
+        disagree: undefined,
         tags: []
     };
 
@@ -124,6 +126,13 @@ function Card (params, imageUrl, modal) {
         cardSeverity.className = 'card-severity';
         new SeverityDisplay(cardSeverity, properties.severity, getLabelType());
         cardData.appendChild(cardSeverity);
+
+        // Create the div to store the validation info of the label.
+        let cardValidationInfo = document.createElement('div');
+        cardValidationInfo.className = 'card-validation-info';
+        new ValidationInfoDisplay(cardValidationInfo, properties.agree, properties.disagree, getLabelType());
+        cardData.appendChild(cardValidationInfo);
+
 
         // Create the div to store the tags related to a card. Tags won't be populated until card is added to the DOM.
         let cardTags = document.createElement('div');

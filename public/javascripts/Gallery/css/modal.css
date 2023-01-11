@@ -112,14 +112,24 @@
 }
 
 .gallery-modal-info-severity {
-    width: 40%;
+    width: 25%;
     height: 40%;
     display: flex;
     flex-direction: column;
 }
 
+.gallery-modal-info-validation {
+    width: 20%;
+    height: 40%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0px 7px;
+}
+
 .gallery-modal-info-tags {
-    width: 60%;
+    width: 55%;
     height: 5.5vw;
     overflow-y: auto;
 }

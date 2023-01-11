@@ -158,14 +158,15 @@ object LabelTable {
                                      timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                                      severity: Option[Int], temporary: Boolean, description: Option[String],
-                                     streetEdgeId: Int, regionId: Int, userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
+                                     streetEdgeId: Int, regionId: Int, userValidation: Option[Int], agree: Int,
+                                     disagree: Int, tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageDate: String, timestamp: java.sql.Timestamp, heading: Float,
                                                 pitch: Float, zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int,
                                                 canvasHeight: Int, severity: Option[Int], temporary: Boolean,
-                                                description: Option[String], streetEdgeId: Int, regionId: Int,
-                                                userValidation: Option[Int]) extends BasicLabelMetadata
+                                                description: Option[String], streetEdgeId: Int, regionId: Int, agree: Int,
+                                                disagree: Int, userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, tagIds: List[Int])
@@ -189,7 +190,7 @@ object LabelTable {
     LabelValidationMetadataWithoutTags(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat,
       r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
-      r.nextStringOption, r.nextInt, r.nextInt, r.nextIntOption
+      r.nextStringOption, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption
     )
   )
 
@@ -197,7 +198,7 @@ object LabelTable {
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
       r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
-      r.nextInt, r.nextIntOption, r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+      r.nextInt, r.nextIntOption, r.nextInt, r.nextInt, r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
 
@@ -518,7 +519,7 @@ object LabelTable {
           |        label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
           |        label_point.canvas_y, label_point.canvas_width, label_point.canvas_height, label.severity,
           |        label.temporary, label.description, label.street_edge_id, street_edge_region.region_id,
-          |        user_validation.validation_result, the_tags.tag_list
+          |        user_validation.validation_result, label.agree_count, label.disagree_count, the_tags.tag_list
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -636,7 +637,7 @@ object LabelTable {
       (l, v) <- _galleryLabels.leftJoin(userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
       l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, v._2.?)
+      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, l._1.agreeCount, l._1.disagreeCount, v._2.?)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val uniqueLabels = addValidations.groupBy(x => x).map(_._1)
@@ -684,7 +685,7 @@ object LabelTable {
       (l, v) <- _labels.leftJoin(userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
       l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, v._2.?)
+      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, l._1.agreeCount, l._1.disagreeCount, v._2.?)
 
     // Run query, group by label type, and randomize order.
     val potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
@@ -730,7 +731,7 @@ object LabelTable {
       (l, v) <- _labels.leftJoin(userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
       l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, v._2.?)
+      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, l._1.agreeCount, l._1.disagreeCount, v._2.?)
 
     // Randomize and convert to LabelValidationMetadataWithoutTags.
     val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
@@ -899,7 +900,8 @@ object LabelTable {
       LabelValidationMetadata(
         label.labelId, label.labelType, label.gsvPanoramaId, label.imageDate, label.timestamp, label.heading,
         label.pitch, label.zoom, label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.severity,
-        label.temporary, label.description, label.streetEdgeId, label.regionId, label.userValidation, tags
+        label.temporary, label.description, label.streetEdgeId, label.regionId, label.userValidation, label.agree,
+        label.disagree, tags
       )
   }
 

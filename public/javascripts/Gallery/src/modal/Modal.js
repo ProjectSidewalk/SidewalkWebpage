@@ -54,6 +54,8 @@ function Modal(uiModal) {
         streetEdgeId: undefined,
         regionId: undefined,
         user_validation: undefined,
+        agree: undefined,
+        disagree: undefined,
         tags: []
     };
 
@@ -67,6 +69,7 @@ function Modal(uiModal) {
         self.timestamps = $('.gallery-modal-info-timestamps');
         self.severity = $('.gallery-modal-info-severity');
         self.temporary = $('.gallery-modal-info-temporary');
+        self.validation_info = $('.gallery-modal-info-validation');
         self.description = $('.gallery-modal-info-description');
         self.header = $('.gallery-modal-header');
         self.pano = new GalleryPanorama(self.panoHolder);
@@ -123,6 +126,7 @@ function Modal(uiModal) {
     function resetModal() {
         self.description.empty();
         self.temporary.empty();
+        self.validation_info.empty()
         self.severity.empty();
         self.timestamps.empty();
     }
@@ -153,8 +157,9 @@ function Modal(uiModal) {
             function () { return properties['label_id']; }
         );
 
-        // Add severity and tag display to the modal.
+        // Add severity, validation info, and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
+        new ValidationInfoDisplay(self.validation_info, properties.agree, properties.disagree, properties.label_type, true);
         new TagDisplay(self.tags, properties.tags, true);
 
         // Add the information about the temporary property to the Modal.
