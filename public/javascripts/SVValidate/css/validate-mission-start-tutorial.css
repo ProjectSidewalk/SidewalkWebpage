@@ -352,6 +352,8 @@
     .mst-content {
         width: 900px;
     }
+
+    /* We need to create space for the image at this zoom level. */
     .mts-text-area {
         width: 230px;
     }
