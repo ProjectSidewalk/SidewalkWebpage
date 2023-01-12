@@ -22,7 +22,7 @@
 
 .mission-start-tutorial-overlay {
     position: absolute;
-    height: calc(100vh - 91px); /* 91 is the height of the navbar + margin + border */
+    height: 710px;
     width: 100%;
     min-width: 1170px; /*  */
     background: white;
@@ -30,6 +30,7 @@
     display: flex;
     flex-shrink: 0;
     justify-content: center;
+    overflow: auto;
 
     /* Default font should be defined only here and should be overridden wherever needed. */
     font-family: 'Open Sans', sans-serif;
@@ -37,11 +38,7 @@
 
 .mst-content {
     margin-top: 25px;
-    display: flex;
-    flex-shrink: 0;
-    flex-wrap: wrap;
     width: 1020px;
-    flex-direction: column;
 }
 
 .mst-instruction-1 {
@@ -345,4 +342,17 @@
 
 .mst-carousel-location-indicator.current-location {
     background: #2C2A3D;
+}
+
+/* This block handles layout on browser zoom. */
+@media (max-width: 1170px) {
+    .mission-start-tutorial-overlay {
+        min-width: 1069px;
+    }
+    .mst-content {
+        width: 900px;
+    }
+    .mts-text-area {
+        width: 230px;
+    }
 }
