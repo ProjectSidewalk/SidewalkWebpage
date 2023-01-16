@@ -31,6 +31,7 @@ WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the
 
 1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/). When prompted, ensure the **Use WSL 2** instead of Hyper-V option on the Configuration page is selected
 1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10) using the default Linux distribution (Ubuntu). Open PowerShell in **administrator** mode by right-clicking and selecting "Run as adminstrator" then enter `wsl --install`, which will use **WSL 2** to install **Ubuntu** by default (see [Microsoft's WSL instructions](https://learn.microsoft.com/en-us/windows/wsl/install)).
+1. Make sure you are also running the latest version of WSL. Again, in PowerShell, run `wsl --update`
 1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
 1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
 1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository.
