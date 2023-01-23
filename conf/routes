@@ -27,6 +27,7 @@ GET     /turkerIdExists                                      @controllers.Applic
 GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                            @controllers.ApplicationController.serviceHoursInstructions
 GET     /timeCheck                                           @controllers.ApplicationController.timeCheck
+GET     /buildRoute                                          @controllers.ApplicationController.buildExploreRoute
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")

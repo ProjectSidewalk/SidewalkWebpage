@@ -435,6 +435,21 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns a page that allows a user to build a custom audit route.
+   */
+  def buildExploreRoute = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_BuildRoute", timestamp))
+        Future.successful(Ok(views.html.buildExploreRoute(Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/buildRoute"))
+    }
+  }
+
+  /**
     * Returns the demo page that contains a cool visualization that is a work-in-progress.
     */
   def demo = UserAwareAction.async { implicit request =>
