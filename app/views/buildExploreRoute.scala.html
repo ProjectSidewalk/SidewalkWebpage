@@ -7,13 +7,8 @@
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/buildExploreRoute.js")'></script>
+
     <div id='route-builder-map' style='width: 98%; height: 800px; margin-top: 25px; left: 1%;'></div>
-    <script>
-            mapboxgl.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-            var map = new mapboxgl.Map({
-                container: 'route-builder-map',
-                style: 'mapbox://styles/mapbox/streets-v11'
-            });
-    </script>
 
 }
