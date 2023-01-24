@@ -29,7 +29,12 @@ $(document).ready(function () {
                         ['boolean', ['feature-state', 'hover'], false], '#da1',
                         '#888'
                     ],
-                    'line-width': 5,
+                    // Line width scales based on zoom level.
+                    'line-width': [
+                        'interpolate', ['linear'], ['zoom'],
+                        12, 1,
+                        15, 5
+                    ],
                     'line-opacity': 0.75
                 }
             });
