@@ -12,7 +12,8 @@ $(document).ready(function () {
         map.on('load', () => {
             map.addSource('streets', {
                 type: 'geojson',
-                data: data
+                data: data,
+                promoteId: 'street_edge_id'
             });
             map.addLayer({
                 'id': 'streets',
@@ -23,23 +24,52 @@ $(document).ready(function () {
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': '#888',
-                    'line-width': 5
+                    'line-color': ['case',
+                        ['boolean', ['feature-state', 'chosen'], false], '#4a6',
+                        ['boolean', ['feature-state', 'hover'], false], '#da1',
+                        '#888'
+                    ],
+                    'line-width': 5,
+                    'line-opacity': 0.75
                 }
             });
 
-            // Testing out showing tooltip when hovering over a street.
+            let streetId = null;
+
+            // Mark when a street is being hovered over.
             map.on('mousemove', (event) => {
-                const street = map.queryRenderedFeatures(event.point, {
-                    layers: ['streets']
-                });
+                const street = map.queryRenderedFeatures(event.point, { layers: ['streets'] });
                 if (!street.length) return;
 
-                const popup = new mapboxgl.Popup({ offset: [0, -15] })
-                    .setLngLat(street[0].geometry.coordinates[0])
-                    .setHTML(`<h3>${street[0].properties.street_edge_id}</h3><p>${street[0].properties.way_type}</p>`)
-                    .addTo(map);
+                // If we moved directly from hovering over one street to another, set the previous as hover: false.
+                if (streetId) map.setFeatureState({ source: 'streets', id: streetId }, { hover: false });
+                streetId = street[0].properties.street_edge_id;
+
+                map.getCanvas().style.cursor = 'pointer';
+                map.setFeatureState({ source: 'streets', id: streetId }, { hover: true });
+
+                // const popup = new mapboxgl.Popup({ offset: [0, -15] })
+                //     .setLngLat(street[0].geometry.coordinates[0])
+                //     .setHTML(`<h3>${street[0].properties.street_edge_id}</h3><p>${street[0].properties.way_type}</p>`)
+                //     .addTo(map);
             });
+
+            // When not hovering over any streets, set prev street to hover: false and reset cursor.
+            map.on('mouseleave', 'streets', () => {
+                if (streetId) map.setFeatureState({ source: 'streets', id: streetId }, { hover: false });
+                streetId = null;
+                map.getCanvas().style.cursor = '';
+            });
+
+            // When a street is clicked, toggle it as being chosen for the route or not.
+            map.on('click', (event) => {
+                const street = map.queryRenderedFeatures(event.point, { layers: ['streets'] });
+                if (!street.length) return;
+
+                streetId = street[0].properties.street_edge_id;
+                let currState = map.getFeatureState({ source: 'streets', id: streetId });
+                map.setFeatureState({ source: 'streets', id: streetId }, { chosen: !currState.chosen });
+            })
         });
     })
 
