@@ -27,6 +27,19 @@ $(document).ready(function () {
                     'line-width': 5
                 }
             });
+
+            // Testing out showing tooltip when hovering over a street.
+            map.on('mousemove', (event) => {
+                const street = map.queryRenderedFeatures(event.point, {
+                    layers: ['streets']
+                });
+                if (!street.length) return;
+
+                const popup = new mapboxgl.Popup({ offset: [0, -15] })
+                    .setLngLat(street[0].geometry.coordinates[0])
+                    .setHTML(`<h3>${street[0].properties.street_edge_id}</h3><p>${street[0].properties.way_type}</p>`)
+                    .addTo(map);
+            });
         });
     })
 
