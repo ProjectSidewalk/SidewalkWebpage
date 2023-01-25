@@ -1,13 +1,13 @@
 @import models.user.User
 @(user: Option[User] = None)(implicit lang: Lang)
 
-@main("Sidewalk - Build Route") {
-    @navbar(user, Some("/buildRoute"))
+@main("Sidewalk - RouteBuilder") {
+    @navbar(user, Some("/routeBuilder"))
 
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/buildExploreRoute.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/routeBuilder.js")'></script>
 
     <div id='route-builder-map' style='width: 98%; height: 800px; margin-top: 25px; left: 1%;'></div>
 
