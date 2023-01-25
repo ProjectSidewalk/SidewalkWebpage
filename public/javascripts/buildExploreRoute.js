@@ -74,9 +74,10 @@ $(document).ready(function () {
                 streetId = street[0].properties.street_edge_id;
                 let currState = map.getFeatureState({ source: 'streets', id: streetId });
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: !currState.chosen });
-            })
+            });
+            console.log(map);
         });
-    })
+    });
 
 
     // Get city-specific parameters for the map.

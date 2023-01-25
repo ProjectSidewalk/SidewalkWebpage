@@ -15,6 +15,7 @@ CREATE TABLE route_street
     route_street_id SERIAL NOT NULL,
     route_id INT NOT NULL,
     street_edge_id INT NOT NULL,
+    first_street BOOLEAN NOT NULL,
     PRIMARY KEY (route_street_id),
     FOREIGN KEY (route_id) REFERENCES route(route_id),
     FOREIGN KEY (street_edge_id) REFERENCES street_edge(street_edge_id)
