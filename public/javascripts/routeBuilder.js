@@ -1,4 +1,6 @@
 $(document).ready(function () {
+    let currRoute = [];
+
     mapboxgl.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var map = new mapboxgl.Map({
         container: 'route-builder-map',
@@ -73,6 +75,8 @@ $(document).ready(function () {
 
                 streetId = street[0].properties.street_edge_id;
                 let currState = map.getFeatureState({ source: 'streets', id: streetId });
+                if (currState.chosen) currRoute = currRoute.filter(s => s !== streetId);
+                else currRoute.push(streetId);
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: !currState.chosen });
             });
             console.log(map);
@@ -89,4 +93,17 @@ $(document).ready(function () {
             [data.northeast_boundary.lng, data.northeast_boundary.lat]
         ]);
     });
+
+    window.saveRoute = function() {
+        console.log(currRoute);
+        fetch('/saveRoute', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(currRoute)
+        })
+            .then(response => console.log(JSON.stringify(response.json())));
+    };
 });

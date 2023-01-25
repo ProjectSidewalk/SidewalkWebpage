@@ -13,7 +13,7 @@ class RouteStreetTable(tag: slick.lifted.Tag) extends Table[RouteStreet](tag, So
   def streetEdgeId: Column[Int] = column[Int]("street_edge_id", O.NotNull)
   def firstStreet: Column[Boolean] = column[Boolean]("first_street", O.NotNull)
 
-  def * = (routeId, routeId, streetEdgeId, firstStreet) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
+  def * = (routeStreetId, routeId, streetEdgeId, firstStreet) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
 
   def route: ForeignKeyQuery[RouteTable, Route] = foreignKey("route_street_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] = foreignKey("route_street_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -30,6 +30,6 @@ object RouteStreetTable {
    * Saves a new route_street.
    */
   def save(newRouteStreet: RouteStreet): Int = db.withSession { implicit session =>
-    routeStreets.insertOrUpdate(newRouteStreet)
+    (routeStreets returning routeStreets.map(_.routeStreetId)) += newRouteStreet
   }
 }

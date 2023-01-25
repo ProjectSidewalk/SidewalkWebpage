@@ -7,7 +7,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class AuditTaskUserRoute(auditTaskUserRouteId: Int, userRouteId: Int, auditTaskId: Int)
 
-class AuditTaskUserRouteTable(tag: slick.lifted.Tag) extends Table[AuditTaskUserRoute](tag, Some("sidewalk"), "route") {
+class AuditTaskUserRouteTable(tag: slick.lifted.Tag) extends Table[AuditTaskUserRoute](tag, Some("sidewalk"), "audit_task_user_route") {
   def auditTaskUserRouteId: Column[Int] = column[Int]("audit_task_user_route_id", O.PrimaryKey, O.AutoInc)
   def userRouteId: Column[Int] = column[Int]("user_route_id", O.NotNull)
   def auditTaskId: Column[Int] = column[Int]("audit_task_id", O.NotNull)

@@ -30,6 +30,6 @@ object RouteTable {
    * Saves a new route.
    */
   def save(newRoute: Route): Int = db.withSession { implicit session =>
-    routes.insertOrUpdate(newRoute)
+    (routes returning routes.map(_.routeId)) += newRoute
   }
 }
