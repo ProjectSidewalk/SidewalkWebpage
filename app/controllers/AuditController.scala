@@ -100,12 +100,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
           else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
 
-//        val routeTask: Option[NewTask] = routeId.map(rId => UserRouteTable.getRouteTask(rId, user.userId, resumeRoute))
 
         // If there is a partially completed task in this route or mission, get that, o/w make a new one.
         val task: Option[NewTask] =
           if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
             Some(AuditTaskTable.getATutorialTask(mission.missionId))
+          else if (routeId.isDefined) // TODO Maybe don't do this if retaking tutorial..?
+            UserRouteTable.getRouteTask(routeId.get, user.userId, resumeRoute, mission.missionId)
           else if (mission.currentAuditTaskId.isDefined)
             AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
           else

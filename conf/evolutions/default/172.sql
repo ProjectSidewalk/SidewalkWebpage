@@ -37,9 +37,11 @@ CREATE TABLE audit_task_user_route
     audit_task_user_route_id SERIAL NOT NULL,
     user_route_id INT NOT NULL,
     audit_task_id INT NOT NULL,
+    route_street_id INT NOT NULL,
     PRIMARY KEY (audit_task_user_route_id),
     FOREIGN KEY (user_route_id) REFERENCES user_route(user_route_id),
-    FOREIGN KEY (audit_task_id) REFERENCES audit_task(audit_task_id)
+    FOREIGN KEY (audit_task_id) REFERENCES audit_task(audit_task_id),
+    FOREIGN KEY (route_street_id) REFERENCES route_street(route_street_id)
 );
 
 # --- !Downs
