@@ -119,7 +119,8 @@ function Main (params) {
             svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
-            currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
+            var currTaskId = currTask.getProperty('auditTaskId');
+            if (!currTaskId) currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
         } else {
             svl.tracker.initTaskId();
         }

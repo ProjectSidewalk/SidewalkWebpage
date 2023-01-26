@@ -96,22 +96,27 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
           else MissionTable.defaultAuditMissionSetProgress
 
-        val mission: Mission =
+        var mission: Mission =
           if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
           else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
-
 
         // If there is a partially completed task in this route or mission, get that, o/w make a new one.
         val task: Option[NewTask] =
           if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
             Some(AuditTaskTable.getATutorialTask(mission.missionId))
-          else if (routeId.isDefined) // TODO Maybe don't do this if retaking tutorial..?
+          else if (routeId.isDefined)
             UserRouteTable.getRouteTask(routeId.get, user.userId, resumeRoute, mission.missionId)
           else if (mission.currentAuditTaskId.isDefined)
             AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
           else
             AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
         val nextTempLabelId: Int = LabelTable.nextTempLabelId(user.userId)
+
+        // If the mission has the wrong audit_task_id, update it.
+        if (task.isDefined && task.get.auditTaskId != mission.currentAuditTaskId) {
+          MissionTable.updateAuditProgressOnly(user.userId, mission.missionId, mission.distanceProgress.getOrElse(0F), task.get.auditTaskId)
+          mission = MissionTable.getMission(mission.missionId).get
+        }
 
         // Check if they have already completed an audit mission. We send them to /validate after their first audit
         // mission, but only after every third audit mission after that.

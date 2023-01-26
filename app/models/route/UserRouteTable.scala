@@ -29,24 +29,26 @@ object UserRouteTable {
   val userRoutes = TableQuery[UserRouteTable]
 
   def getRouteTask(routeId: Int, userId: UUID, resumeRoute: Boolean, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
-    val existingUserRoute: Option[UserRoute] = userRoutes
+    val currRoute: Option[UserRoute] = userRoutes
       .filter(ur => ur.routeId === routeId && ur.userId === userId.toString && !ur.completed)
       .sortBy(_.userRouteId.desc).firstOption
-    if (!resumeRoute || existingUserRoute.isEmpty) {
+
+    if (!resumeRoute || currRoute.isEmpty) {
       save(UserRoute(0, routeId, userId.toString, false))
       val firstStreet: Option[Int] = RouteStreetTable.routeStreets.filter(rs => rs.routeId === routeId && rs.firstStreet).map(_.streetEdgeId).firstOption
       firstStreet.map(AuditTaskTable.selectANewTask(_, missionId))
     } else {
       val currTaskId: Option[Int] = AuditTaskUserRouteTable.auditTaskUserRoutes
         .innerJoin(AuditTaskTable.auditTasks).on(_.auditTaskId === _.auditTaskId)
-        .filter(x => x._1.userRouteId === existingUserRoute.get.userRouteId && x._2.completed === false)
+        .filter(x => x._1.userRouteId === currRoute.get.userRouteId && x._2.completed === false)
         .map(_._1.auditTaskId).firstOption
-      val possibleTask: Option[NewTask] = currTaskId.flatMap(AuditTaskTable.selectTaskFromTaskId(_))
+      val possibleTask: Option[NewTask] = currTaskId.flatMap(AuditTaskTable.selectTaskFromTaskId)
       if (possibleTask.isDefined) {
         possibleTask
       } else {
+        val userTasks = AuditTaskUserRouteTable.auditTaskUserRoutes.filter(_.userRouteId === currRoute.get.userRouteId)
         val nextStreetId: Option[Int] = RouteStreetTable.routeStreets
-          .leftJoin(AuditTaskUserRouteTable.auditTaskUserRoutes).on(_.routeStreetId === _.routeStreetId)
+          .leftJoin(userTasks).on(_.routeStreetId === _.routeStreetId)
           .filter(x => x._1.routeId === routeId && x._2.auditTaskUserRouteId.?.isEmpty)
           .sortBy(_._1.routeStreetId)
           .map(_._1.streetEdgeId).firstOption
