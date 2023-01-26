@@ -28,6 +28,22 @@ object AuditTaskUserRouteTable {
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTable]
 
   /**
+   * Adds a new entry if one doesn't exist. Returns true of a new entry was created.
+   */
+  def insertIfNew(userRouteId: Int, auditTaskId: Int): Boolean = db.withSession { implicit session =>
+    val entryExists = auditTaskUserRoutes.filter(x => x.userRouteId === userRouteId && x.auditTaskId === auditTaskId).size.run > 0
+    if (entryExists) {
+      false
+    } else {
+      val routeStreetId: Int = AuditTaskTable.auditTasks
+        .innerJoin(RouteStreetTable.routeStreets).on(_.streetEdgeId === _.streetEdgeId)
+        .map(_._2.routeStreetId).first
+      save(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
+      true
+    }
+  }
+
+  /**
    * Saves a new route.
    */
   def save(newAuditTaskUserRoute: AuditTaskUserRoute): Int = db.withSession { implicit session =>

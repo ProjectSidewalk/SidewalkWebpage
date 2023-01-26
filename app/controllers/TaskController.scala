@@ -18,7 +18,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
-import models.route.UserRouteTable
+import models.route.{AuditTaskUserRouteTable, UserRouteTable}
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
@@ -223,6 +223,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       // Update the AuditTaskTable and get auditTaskId.
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
+
+      // Add to the audit_task_user_route table if needed.
+      data.userRouteId.map(AuditTaskUserRouteTable.insertIfNew(_, auditTaskId))
 
       // Update MissionStart.
       if (data.auditTask.currentMissionStart.isDefined) updateMissionStart(auditTaskId, data.auditTask.currentMissionStart.get)
