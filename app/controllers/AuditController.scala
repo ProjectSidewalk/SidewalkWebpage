@@ -16,7 +16,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.region._
-import models.route.UserRouteTable
+import models.route.{UserRoute, UserRouteTable}
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgeRegionTable}
 import models.user._
 import play.api.libs.json._
@@ -100,6 +100,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
           else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
 
+        val userRoute: Option[UserRoute] = routeId.map(UserRouteTable.resumeOrCreateNewUserRoute(_, user.userId, resumeRoute))
+
         // If there is a partially completed task in this route or mission, get that, o/w make a new one.
         val task: Option[NewTask] =
           if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
@@ -120,7 +122,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Check if they have already completed an audit mission. We send them to /validate after their first audit
         // mission, but only after every third audit mission after that.
-        val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
+        val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
         val cityStr: String = Play.configuration.getString("city-id").get
         val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
@@ -128,7 +130,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         if (missionSetProgress.missionType != "audit") {
           Future.successful(Redirect("/validate"))
         } else {
-          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
         }
       // For anonymous users.
       case None =>
@@ -186,7 +188,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (missionSetProgress.missionType != "audit") {
               Future.successful(Redirect("/validate"))
             } else {
-              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
             }
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
@@ -256,15 +258,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
             if (isAdmin(request.identity) && (startAtPano || startAtLatLng)) {
               panoId match {
-                case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
+                case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
                 case None =>
                   (lat, lng) match {
-                    case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
-                    case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityShortName, tutorialStreetId)))
+                    case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
+                    case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityShortName, tutorialStreetId)))
                   }
               }
             } else {
-              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
             }
           }
         }

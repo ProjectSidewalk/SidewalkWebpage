@@ -133,9 +133,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (typeof async == "undefined") async = true;
         var currMission = svl.missionContainer.getCurrentMission();
         var currMissionId = currMission.getProperty('missionId');
+        var url;
+        if (svl.userRouteId) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
+        else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getProperty('regionId')}`;
 
         $.ajax({
-            url: "/tasks?regionId=" + svl.neighborhoodModel.currentNeighborhood().getProperty("regionId"),
+            url: url,
             async: async,
             type: 'get',
             success: function (result) {

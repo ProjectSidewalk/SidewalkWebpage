@@ -41,6 +41,8 @@ function Main (params) {
         params = params || {};
 
         svl.userHasCompletedAMission = params.hasCompletedAMission;
+        svl.routeId = params.routeId;
+        svl.userRouteId = params.userRouteId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();

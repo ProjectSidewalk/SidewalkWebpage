@@ -18,6 +18,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
+import models.route.UserRouteTable
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
@@ -61,6 +62,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/tasks?regionId=${regionId}"))
     }
+  }
+
+  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
+      val tasks: List[JsObject] = UserRouteTable.selectTasksInRoute(userRouteId).map(_.toJSON)
+      Future.successful(Ok(JsArray(tasks)))
   }
 
   /**

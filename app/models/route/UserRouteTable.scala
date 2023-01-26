@@ -2,8 +2,11 @@ package models.route
 
 import models.audit.{AuditTaskTable, NewTask}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.street.{StreetEdgePriorityTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -27,6 +30,45 @@ class UserRouteTable(tag: slick.lifted.Tag) extends Table[UserRoute](tag, Some("
 object UserRouteTable {
   val db = play.api.db.slick.DB
   val userRoutes = TableQuery[UserRouteTable]
+
+  def resumeOrCreateNewUserRoute(routeId: Int, userId: UUID, resumeRoute: Boolean): UserRoute = db.withSession { implicit session =>
+    // If we are not resuming, create a new UserRoute.
+    if (!resumeRoute) {
+      save(UserRoute(0, routeId, userId.toString, false))
+    } else {
+      userRoutes
+        .filter(ur => ur.routeId === routeId && ur.userId === userId.toString && !ur.completed)
+        .sortBy(_.userRouteId.desc).firstOption
+        .getOrElse(save(UserRoute(0, routeId, userId.toString, false)))
+    }
+  }
+
+  def selectTasksInRoute(userRouteId: Int): List[NewTask] = db.withSession { implicit session =>
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
+    val edgesInRoute = userRoutes
+      .filter(_.userRouteId === userRouteId)
+      .innerJoin(RouteStreetTable.routeStreets).on(_.routeId === _.routeId)
+      .innerJoin(StreetEdgeTable.streetEdgesWithoutDeleted).on(_._2.streetEdgeId === _.streetEdgeId)
+      .map(_._2)
+
+    // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
+    // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
+    val userCompletedStreets = AuditTaskUserRouteTable.auditTaskUserRoutes
+      .innerJoin(AuditTaskTable.completedTasks).on(_.auditTaskId === _.auditTaskId)
+      .groupBy(_._2.streetEdgeId).map(_._2.map(_._2.auditTaskId).max)
+      .innerJoin(AuditTaskTable.auditTasks).on(_ === _.auditTaskId)
+      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
+
+    val tasks = for {
+      (ser, ucs) <- edgesInRoute.leftJoin(userCompletedStreets).on(_.streetEdgeId === _._1)
+      se <- StreetEdgeTable.streetEdges if ser.streetEdgeId === se.streetEdgeId
+      sep <- StreetEdgePriorityTable.streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+      scau <- AuditTaskTable.streetCompletedByAnyUser if sep.streetEdgeId === scau._1
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, ucs._2.?.getOrElse(timestamp), scau._2, sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5)
+
+    tasks.list.map(NewTask.tupled(_))
+  }
 
   def getRouteTask(routeId: Int, userId: UUID, resumeRoute: Boolean, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
     val currRoute: Option[UserRoute] = userRoutes
@@ -60,7 +102,7 @@ object UserRouteTable {
   /**
    * Saves a new route.
    */
-  def save(newUserRoute: UserRoute): Int = db.withSession { implicit session =>
-    userRoutes.insertOrUpdate(newUserRoute)
+  def save(newUserRoute: UserRoute): UserRoute = db.withSession { implicit session =>
+    (userRoutes returning userRoutes) += newUserRoute
   }
 }
