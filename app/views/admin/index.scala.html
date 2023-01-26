@@ -1,12 +1,10 @@
 @import models.user.User
-@import models.region.RegionTable
 @import models.daos.slick._
 @import models.audit._
 @import models.label._
 @import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
-@import play.api.libs.json.Json
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @convertDistance(distance: Float) = @{
@@ -980,8 +978,7 @@
                 lng: '@lang.code',
                 debug: false
             }, function(err, t) {
-                var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-                window.admin = Admin(_, $, difficultRegionIds);
+                window.admin = Admin(_, $);
                 $('#comments-table').dataTable();
                 $('#label-table').dataTable();
                 $('#user-table').dataTable();

@@ -2,7 +2,6 @@
  * Central function that handles the creation of choropleths and maps.
  * @param _ Allows the use of Underscore.js
  * @param $ Allows the use of jQuery.
- * @param difficultRegionIds Used to identify difficult regions.
  * @param params Object that includes properties that can change the process of choropleth creation.
  * @param params.mapName {string} name of the HTML ID of the map.
  * @param params.mapStyle {string} URL of a Mapbox style.
@@ -24,7 +23,7 @@
  * @param polygonRateData Rate data of each neighborhood polygon.
  * @param mapParamData Data used to initialize the choropleth properties.
  */
-function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polygonRateData, mapParamData) {
+function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParamData) {
     const labelText = {
         'NoSidewalk': 'Missing Sidewalks',
         'NoCurbRamp': 'Missing Curb Ramps',
@@ -124,32 +123,28 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                     if (measurementSystem === 'metric') distanceLeft *= 0.001;
                     else distanceLeft *= 0.000621371;
                     distanceLeft = Math.round(distanceLeft);
-                    let advancedMessage = '';
-                    if (difficultRegionIds.includes(feature.properties.region_id)) {
-                        advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
-                    }
                     if (userCompleted) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.100-percent-complete') + '<br>' +
                             i18next.t('common:map.thanks');
                     } else if (compRate === 100) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
-                            i18next.t('common:map.100-percent-complete') + '<br>' + advancedMessage +
+                            i18next.t('common:map.100-percent-complete') + '<br>' +
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     } else if (distanceLeft === 0) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
-                            i18next.t('common:map.less-than-one-unit-left') + '<br>' + advancedMessage +
+                            i18next.t('common:map.less-than-one-unit-left') + '<br>' +
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     } else if (distanceLeft === 1) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
-                            i18next.t('common:map.distance-left-one-unit') + '<br>' + advancedMessage +
+                            i18next.t('common:map.distance-left-one-unit') + '<br>' +
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     } else {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
-                            i18next.t('common:map.distance-left', {n: distanceLeft}) + '<br>' + advancedMessage +
+                            i18next.t('common:map.distance-left', {n: distanceLeft}) + '<br>' +
                             i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
                     }
                     if (params.popupType === 'issueCounts')

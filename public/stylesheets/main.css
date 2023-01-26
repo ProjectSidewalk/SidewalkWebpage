@@ -1011,7 +1011,6 @@ kbd {
 }
 
 /*Overlay box - start*/
-#advanced-overlay,
 #neighborhood-completion-overlay,
 #already-completed-neighborhood-overlay,
 #HIT-expiration-overlay {
@@ -1026,7 +1025,6 @@ kbd {
     background: rgba(0,0,0,0.89);
     z-index: 5;
 }
-#advanced-neighborhood-text,
 #neighborhood-completion-text,
 #already-completed-neighborhood-text,
 #HIT-expiration-text {
@@ -1038,10 +1036,10 @@ kbd {
     border-radius: 5px;
     font-size: 21px;
 }
-#advanced-neighborhood-text, #neighborhood-completion-text, #already-completed-neighborhood-text, #HIT-expiration-text {
+#neighborhood-completion-text, #already-completed-neighborhood-text, #HIT-expiration-text {
     top: 28%;
 }
-#advanced-neighborhood-text p, #neighborhood-completion-text p, #already-completed-neighborhood-text p, #HIT-expiration-text p {
+#neighborhood-completion-text p, #already-completed-neighborhood-text p, #HIT-expiration-text p {
     border-radius: 5px;
     padding: 7px;
 }

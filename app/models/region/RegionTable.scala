@@ -63,9 +63,6 @@ object RegionTable {
   val regions = TableQuery[RegionTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
-  // These regions are buggy, so we steer new users away from them.
-  // TODO make this city-agnostic. List(251, 281, 317, 366) for DC.
-  val difficultRegionIds: List[Int] = List()
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   /**
@@ -83,47 +80,19 @@ object RegionTable {
   }
 
   /**
-    * Picks one of the regions with highest average priority.
-    */
-  def selectAHighPriorityRegion: Option[Region] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] = regionsWithoutDeleted.map(_.regionId).list
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => None // Should never happen.
-    }
-  }
-
-  /**
     * Picks one of the regions with highest average priority out of those that the user has not completed.
     */
   def selectAHighPriorityRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
+    val regionsNotFinishedByUser: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
 
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => selectAHighPriorityRegion // Should only happen if user has completed all regions.
-    }
-  }
-
-  /**
-    * Picks one of the easy regions with highest average priority out of those that the user has not completed.
-    */
-  def selectAHighPriorityEasyRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] =
-      AuditTaskTable.selectIncompleteRegions(userId).filterNot(difficultRegionIds.contains(_)).toList
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => selectAHighPriorityRegion(userId) // Should only happen if user has completed all easy regions.
-    }
+    if (regionsNotFinishedByUser.nonEmpty) selectAHighPriorityRegionGeneric(regionsNotFinishedByUser)
+    else selectAHighPriorityRegionGeneric(regionsWithoutDeleted.map(_.regionId).list)
   }
 
   /**
     * Out of the provided regions, picks one of the 5 with highest average priority across their street edges.
     */
   def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[Region] = db.withSession { implicit session =>
-
     val highestPriorityRegions: List[Int] =
       StreetEdgeRegionTable.streetEdgeRegionTable
       .filter(_.regionId inSet possibleRegionIds)

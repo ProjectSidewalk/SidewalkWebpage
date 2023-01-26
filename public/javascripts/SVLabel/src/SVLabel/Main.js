@@ -14,7 +14,6 @@ function Main (params) {
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
-    var loadDifficultNeighborhoodsCompleted = false;
     var loadLabelTags = false;
 
 
@@ -63,7 +62,6 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
-        svl.advancedOverlay = params.advancedOverlay;
 
 
         // Set map parameters and instantiate it.
@@ -261,11 +259,6 @@ function Main (params) {
             handleDataLoadComplete();
         });
 
-        neighborhoodModel.fetchDifficultNeighborhoods(function () {
-            loadDifficultNeighborhoodsCompleted = true;
-            handleDataLoadComplete();
-        });
-
         contextMenu.fetchLabelTags(function () {
             loadLabelTags = true;
             handleDataLoadComplete();
@@ -347,8 +340,7 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingTasksCompleted && loadingMissionsCompleted && loadNeighborhoodsCompleted &&
-            loadDifficultNeighborhoodsCompleted && loadLabelTags) {
+        if (loadingTasksCompleted && loadingMissionsCompleted && loadNeighborhoodsCompleted && loadLabelTags) {
 
             // Mark neighborhood as complete if there are no streets left with max priority (= 1).
             if(!svl.taskContainer.hasMaxPriorityTask()) {
@@ -368,11 +360,6 @@ function Main (params) {
                 var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
 
-                var regionId = currentNeighborhood.getProperty("regionId");
-                var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
-                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay) {
-                    $('#advanced-overlay').show();
-                }
                 startTheMission(mission, currentNeighborhood);
             }
         }

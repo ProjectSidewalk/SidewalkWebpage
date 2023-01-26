@@ -79,7 +79,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      */
      this._handleClickRedirect = function(e) {
         tracker.push("ModalSkip_ClickRedirect");
-         window.location.replace('/audit?nextRegion=regular');
+         window.location.replace('/audit?newRegion=true');
      };
 
     /**

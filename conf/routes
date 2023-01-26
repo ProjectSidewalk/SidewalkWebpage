@@ -89,7 +89,7 @@ GET     /labels/all                                          @controllers.AdminC
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
+GET     /audit                                               @controllers.AuditController.audit(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
@@ -123,7 +123,6 @@ POST    /label/geo/random/:labelType/:labelId                @controllers.Valida
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
-GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
 
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
