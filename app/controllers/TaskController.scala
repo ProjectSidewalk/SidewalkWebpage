@@ -224,8 +224,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
-      // Add to the audit_task_user_route table if needed.
-      data.userRouteId.map(AuditTaskUserRouteTable.insertIfNew(_, auditTaskId))
+      // Add to the audit_task_user_route and user_route tables if needed.
+      if (data.userRouteId.isDefined) {
+        AuditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId)
+        UserRouteTable.updateCompleteness(data.userRouteId.get)
+      }
 
       // Update MissionStart.
       if (data.auditTask.currentMissionStart.isDefined) updateMissionStart(auditTaskId, data.auditTask.currentMissionStart.get)

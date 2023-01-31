@@ -55,6 +55,7 @@ object UserRouteTable {
     // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
     // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
     val userCompletedStreets = AuditTaskUserRouteTable.auditTaskUserRoutes
+      .filter(_.userRouteId === userRouteId)
       .innerJoin(AuditTaskTable.completedTasks).on(_.auditTaskId === _.auditTaskId)
       .groupBy(_._2.streetEdgeId).map(_._2.map(_._2.auditTaskId).max)
       .innerJoin(AuditTaskTable.auditTasks).on(_ === _.auditTaskId)
@@ -97,6 +98,30 @@ object UserRouteTable {
         nextStreetId.map(AuditTaskTable.selectANewTask(_, missionId))
       }
     }
+  }
+
+  /**
+   * Check if the given user route has been finished based on the audit_task table. Mark as complete if so.
+   *
+   * @param userRouteId
+   * @return
+   */
+  def updateCompleteness(userRouteId: Int): Boolean = db.withSession { implicit session =>
+    // Get the completed audit_tasks that are a part of this user_route.
+    val userAudits = AuditTaskUserRouteTable.auditTaskUserRoutes
+      .innerJoin(AuditTaskTable.completedTasks).on(_.auditTaskId === _.auditTaskId)
+      .filter(_._1.userRouteId === userRouteId)
+
+    // Check if all streets in the route have a completed audit using an outer join. If so, mark as complete in db.
+    val complete: Boolean = userRoutes
+      .innerJoin(RouteStreetTable.routeStreets).on(_.routeId === _.routeId)
+      .leftJoin(userAudits).on(_._2.routeStreetId === _._1.routeStreetId)
+      .filter(x => x._1._1.userRouteId === userRouteId && x._2._2.auditTaskId.?.isEmpty).size.run == 0
+    if (complete) {
+      val q = for { ur <- userRoutes if ur.userRouteId === userRouteId } yield ur.completed
+      q.update(complete)
+    }
+    complete
   }
 
   /**

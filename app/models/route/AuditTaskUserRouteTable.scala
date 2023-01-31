@@ -35,8 +35,13 @@ object AuditTaskUserRouteTable {
     if (entryExists) {
       false
     } else {
+      val streetsInRoute = UserRouteTable.userRoutes
+        .innerJoin(RouteStreetTable.routeStreets).on(_.routeId === _.routeId)
+        .filter(_._1.userRouteId === userRouteId)
+        .map(_._2)
       val routeStreetId: Int = AuditTaskTable.auditTasks
-        .innerJoin(RouteStreetTable.routeStreets).on(_.streetEdgeId === _.streetEdgeId)
+        .filter(_.auditTaskId === auditTaskId)
+        .innerJoin(streetsInRoute).on(_.streetEdgeId === _.streetEdgeId)
         .map(_._2.routeStreetId).first
       save(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
       true
