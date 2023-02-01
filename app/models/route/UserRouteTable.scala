@@ -10,15 +10,16 @@ import java.time.Instant
 import java.util.UUID
 import scala.slick.lifted.ForeignKeyQuery
 
-case class UserRoute(userRouteId: Int, routeId: Int, userId: String, completed: Boolean)
+case class UserRoute(userRouteId: Int, routeId: Int, userId: String, completed: Boolean, discarded: Boolean)
 
 class UserRouteTable(tag: slick.lifted.Tag) extends Table[UserRoute](tag, Some("sidewalk"), "user_route") {
   def userRouteId: Column[Int] = column[Int]("user_route_id", O.PrimaryKey, O.AutoInc)
   def routeId: Column[Int] = column[Int]("route_id", O.NotNull)
   def userId: Column[String] = column[String]("user_id", O.NotNull)
   def completed: Column[Boolean] = column[Boolean]("completed", O.NotNull)
+  def discarded: Column[Boolean] = column[Boolean]("discarded", O.NotNull)
 
-  def * = (userRouteId, routeId, userId, completed) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
+  def * = (userRouteId, routeId, userId, completed, discarded) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
 
   def route: ForeignKeyQuery[RouteTable, Route] = foreignKey("user_route_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
   def user: ForeignKeyQuery[UserTable, DBUser] = foreignKey("user_route_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
@@ -30,16 +31,28 @@ class UserRouteTable(tag: slick.lifted.Tag) extends Table[UserRoute](tag, Some("
 object UserRouteTable {
   val db = play.api.db.slick.DB
   val userRoutes = TableQuery[UserRouteTable]
+  val activeRoutes = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
-  def resumeOrCreateNewUserRoute(routeId: Int, userId: UUID, resumeRoute: Boolean): UserRoute = db.withSession { implicit session =>
-    // If we are not resuming, create a new UserRoute.
-    if (!resumeRoute) {
-      save(UserRoute(0, routeId, userId.toString, false))
-    } else {
-      userRoutes
-        .filter(ur => ur.routeId === routeId && ur.userId === userId.toString && !ur.completed)
-        .sortBy(_.userRouteId.desc).firstOption
-        .getOrElse(save(UserRoute(0, routeId, userId.toString, false)))
+  def setUpPossibleUserRoute(routeId: Option[Int], userId: UUID, resumeRoute: Boolean): Option[UserRoute] = db.withSession { implicit session =>
+    (routeId, resumeRoute) match {
+      case (Some(rId), true) =>
+        // Delete routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
+        activeRoutes.filter(x => x.routeId =!= rId && x.userId === userId.toString).map(_.discarded).update(true)
+
+        Some(activeRoutes
+          .filter(ur => ur.routeId === rId && ur.userId === userId.toString)
+          .firstOption.getOrElse(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false))))
+      case (Some(rId), false) =>
+        // Delete old routes, save a new one with given routeId.
+        activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
+        Some(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false)))
+      case (None, true) =>
+        // Get an in progress route (with any routeId) if it exists, otherwise return None.
+        activeRoutes.filter(_.userId === userId.toString).firstOption
+      case (None, false) =>
+        // Discard old routes, return None.
+        activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
+        None
     }
   }
 
@@ -71,32 +84,30 @@ object UserRouteTable {
     tasks.list.map(NewTask.tupled(_))
   }
 
-  def getRouteTask(routeId: Int, userId: UUID, resumeRoute: Boolean, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
-    val currRoute: Option[UserRoute] = userRoutes
-      .filter(ur => ur.routeId === routeId && ur.userId === userId.toString && !ur.completed)
-      .sortBy(_.userRouteId.desc).firstOption
+  /**
+   * Get the active audit_task for the given UserRoute. If there is none, create a new task and return it.
+   *
+   * @param currRoute
+   * @param missionId
+   * @return
+   */
+  def getRouteTask(currRoute: UserRoute, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
+    val currTaskId: Option[Int] = AuditTaskUserRouteTable.auditTaskUserRoutes
+      .innerJoin(AuditTaskTable.auditTasks).on(_.auditTaskId === _.auditTaskId)
+      .filter(x => x._1.userRouteId === currRoute.userRouteId && x._2.completed === false)
+      .map(_._1.auditTaskId).firstOption
+    val possibleTask: Option[NewTask] = currTaskId.flatMap(AuditTaskTable.selectTaskFromTaskId)
 
-    if (!resumeRoute || currRoute.isEmpty) {
-      save(UserRoute(0, routeId, userId.toString, false))
-      val firstStreet: Option[Int] = RouteStreetTable.routeStreets.filter(rs => rs.routeId === routeId && rs.firstStreet).map(_.streetEdgeId).firstOption
-      firstStreet.map(AuditTaskTable.selectANewTask(_, missionId))
+    if (possibleTask.isDefined) {
+      possibleTask
     } else {
-      val currTaskId: Option[Int] = AuditTaskUserRouteTable.auditTaskUserRoutes
-        .innerJoin(AuditTaskTable.auditTasks).on(_.auditTaskId === _.auditTaskId)
-        .filter(x => x._1.userRouteId === currRoute.get.userRouteId && x._2.completed === false)
-        .map(_._1.auditTaskId).firstOption
-      val possibleTask: Option[NewTask] = currTaskId.flatMap(AuditTaskTable.selectTaskFromTaskId)
-      if (possibleTask.isDefined) {
-        possibleTask
-      } else {
-        val userTasks = AuditTaskUserRouteTable.auditTaskUserRoutes.filter(_.userRouteId === currRoute.get.userRouteId)
-        val nextStreetId: Option[Int] = RouteStreetTable.routeStreets
-          .leftJoin(userTasks).on(_.routeStreetId === _.routeStreetId)
-          .filter(x => x._1.routeId === routeId && x._2.auditTaskUserRouteId.?.isEmpty)
-          .sortBy(_._1.routeStreetId)
-          .map(_._1.streetEdgeId).firstOption
-        nextStreetId.map(AuditTaskTable.selectANewTask(_, missionId))
-      }
+      val userTasks = AuditTaskUserRouteTable.auditTaskUserRoutes.filter(_.userRouteId === currRoute.userRouteId)
+      val nextStreetId: Option[Int] = RouteStreetTable.routeStreets
+        .leftJoin(userTasks).on(_.routeStreetId === _.routeStreetId)
+        .filter(x => x._1.routeId === currRoute.routeId && x._2.auditTaskUserRouteId.?.isEmpty)
+        .sortBy(_._1.routeStreetId)
+        .map(_._1.streetEdgeId).firstOption
+      nextStreetId.map(AuditTaskTable.selectANewTask(_, missionId))
     }
   }
 

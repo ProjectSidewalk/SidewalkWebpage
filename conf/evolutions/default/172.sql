@@ -27,6 +27,7 @@ CREATE TABLE user_route
     route_id INT NOT NULL,
     user_id TEXT NOT NULL,
     completed BOOLEAN NOT NULL,
+    discarded BOOLEAN NOT NULL,
     PRIMARY KEY (user_route_id),
     FOREIGN KEY (route_id) REFERENCES route(route_id),
     FOREIGN KEY (user_id) REFERENCES sidewalk_user(user_id)
