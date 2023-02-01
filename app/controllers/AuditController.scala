@@ -107,14 +107,18 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // If there is a partially completed task in this route or mission, get that, o/w make a new one.
         val task: Option[NewTask] =
-          if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
+          if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding") {
             Some(AuditTaskTable.getATutorialTask(mission.missionId))
-          else if (userRoute.isDefined)
+          } else if (userRoute.isDefined) {
             UserRouteTable.getRouteTask(userRoute.get, mission.missionId)
-          else if (mission.currentAuditTaskId.isDefined)
-            AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
-          else
+          } else if (mission.currentAuditTaskId.isDefined) {
+            val currTask: Option[NewTask] = AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
+            // If we found no task with the given ID, try to get any new task in the neighborhood.
+            if (currTask.isDefined) currTask
+            else AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
+          } else {
             AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
+          }
         val nextTempLabelId: Int = LabelTable.nextTempLabelId(user.userId)
 
         // If the mission has the wrong audit_task_id, update it.

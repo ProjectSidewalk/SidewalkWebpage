@@ -133,6 +133,10 @@ object AuditTaskTable {
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val users = TableQuery[UserTable]
 
+  val activeTasks = auditTasks
+    .leftJoin(AuditTaskIncompleteTable.incompletes).on(_.auditTaskId === _.auditTaskId)
+    .filter(x => !x._1.completed && x._2.auditTaskIncompleteId.?.isEmpty)
+    .map(_._1)
   val completedTasks = auditTasks.filter(_.completed)
   val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
   val nonDeletedStreetEdgeRegions = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions
@@ -432,7 +436,7 @@ object AuditTaskTable {
     */
   def selectTaskFromTaskId(taskId: Int): Option[NewTask] = db.withSession { implicit session =>
     val newTask = for {
-      at <- auditTasks if at.auditTaskId === taskId
+      at <- activeTasks if at.auditTaskId === taskId
       se <- streetEdges if at.streetEdgeId === se.streetEdgeId
       sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
