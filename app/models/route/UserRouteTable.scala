@@ -36,14 +36,14 @@ object UserRouteTable {
   def setUpPossibleUserRoute(routeId: Option[Int], userId: UUID, resumeRoute: Boolean): Option[UserRoute] = db.withSession { implicit session =>
     (routeId, resumeRoute) match {
       case (Some(rId), true) =>
-        // Delete routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
+        // Discard routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         activeRoutes.filter(x => x.routeId =!= rId && x.userId === userId.toString).map(_.discarded).update(true)
 
         Some(activeRoutes
           .filter(ur => ur.routeId === rId && ur.userId === userId.toString)
           .firstOption.getOrElse(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false))))
       case (Some(rId), false) =>
-        // Delete old routes, save a new one with given routeId.
+        // Discard old routes, save a new one with given routeId.
         activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
         Some(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false)))
       case (None, true) =>
