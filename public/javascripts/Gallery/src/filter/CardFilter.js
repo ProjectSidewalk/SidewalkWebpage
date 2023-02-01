@@ -35,6 +35,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
 
     // Collection of severities.
     let severities = new SeverityBucket();
+
+    let validationOptions = new ValidationOptionBucket();
    
     /**
      * Initialize CardFilter.
@@ -90,7 +92,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
      */
     function render() {
         if (currentTags.getTags().length > 0) {
-            // TODO: think about to better show tags header in an organized manner.
+            // TODO: think about how to better show tags header in an organized manner.
             $("#tags-header").show();
             currentTags.render(uiCardFilter.tags);
         } else {
@@ -112,6 +114,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
         }
 
         severities.render(uiCardFilter.severity);
+        validationOptions.render(uiCardFilter.validationOptions)
     }
 
     /**
@@ -195,6 +198,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
      */
     function disable() {
         severities.disable();
+        validationOptions.disable();
         $('.gallery-tag').prop("disabled", true);
     }
 
@@ -203,6 +207,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
      */
     function enable() {
         severities.enable();
+        validationOptions.enable();
         $('.gallery-tag').prop("disabled", false);
     }
 

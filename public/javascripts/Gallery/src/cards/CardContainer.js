@@ -294,6 +294,7 @@ function CardContainer(uiCardContainer) {
 
     /**
      * When a tag or severity filter is updated, update Cards to be shown.
+     * TODO rename this function.
      */
     function updateCardsByTagsAndSeverity() {
         setPage(1);
