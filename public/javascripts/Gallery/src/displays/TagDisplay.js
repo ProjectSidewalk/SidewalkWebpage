@@ -111,7 +111,7 @@ function TagDisplay(container, tags, isModal=false) {
      */
     function orderTags(tags) {
         let orderedTags = [];
-        let appliedTags = sg.tagContainer.getAppliedTagNames();
+        let appliedTags = sg.cardFilter.getAppliedTagNames();
         for (let tag of tags) {
             if (orderedTags.length === 0) {
                 orderedTags.push(tag);

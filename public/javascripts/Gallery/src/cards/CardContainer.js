@@ -78,13 +78,13 @@ function CardContainer(uiCardContainer) {
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
         sg.ui.pageControl.hide();
-        sg.tagContainer.disable();
+        sg.cardFilter.disable();
         sg.ui.cardContainer.prevPage.prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
 
 
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds.Assorted, initialLoad, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function() {
+        fetchLabels(labelTypeIds.Assorted, initialLoad, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
@@ -241,14 +241,14 @@ function CardContainer(uiCardContainer) {
     function updateCardsByType() {
         refreshUI();
 
-        let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
+        let filterLabelType = sg.cardFilter.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
             // Reset back to the first page.
             setPage(1);
-            sg.tagContainer.unapplyTags(currentLabelType);
+            sg.cardFilter.unapplyTags(currentLabelType);
             currentLabelType = filterLabelType;
 
-            fetchLabels(labelTypeIds[filterLabelType], cardsPerPage * 2, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
+            fetchLabels(labelTypeIds[filterLabelType], cardsPerPage * 2, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
                 currentCards = cardsByType[currentLabelType].copy();
 
                 // We query double the amount of cards per page, "prepping" for the next page. If after querying we see
@@ -265,9 +265,9 @@ function CardContainer(uiCardContainer) {
     function updateCardsNewPage() {
         refreshUI();
 
-        let appliedTags = sg.tagContainer.getAppliedTagNames();
-        let appliedSeverities = sg.tagContainer.getAppliedSeverities();
-        let appliedValOptions = sg.tagContainer.getAppliedValidationOptions();
+        let appliedTags = sg.cardFilter.getAppliedTagNames();
+        let appliedSeverities = sg.cardFilter.getAppliedSeverities();
+        let appliedValOptions = sg.cardFilter.getAppliedValidationOptions();
 
         currentCards = cardsByType[currentLabelType].copy();
         currentCards.filterOnTags(appliedTags);
@@ -277,13 +277,13 @@ function CardContainer(uiCardContainer) {
         if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
             if (currentLabelType === "Occlusion") {
-                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
+                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
                     currentCards = cardsByType[currentLabelType].copy();
                     lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });
             } else {
-                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
                     currentCards = cardsByType[currentLabelType].copy();
                     currentCards.filterOnTags(appliedTags);
                     currentCards.filterOnSeverities(appliedSeverities);
@@ -346,7 +346,7 @@ function CardContainer(uiCardContainer) {
                 sg.ui.cardFilter.wrapper.css('top', '');
                 uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
                 sg.scrollStatus.stickySidebar = true;
-                sg.tagContainer.enable();
+                sg.cardFilter.enable();
                 sg.ui.labelTypeMenu.select.prop("disabled", false);
                 sg.ui.cityMenu.select.prop("disabled", false);
             });
@@ -354,7 +354,7 @@ function CardContainer(uiCardContainer) {
             // TODO: figure out how to better do the toggling of this element.
             sg.labelsNotFound.show();
             sg.pageLoading.hide();
-            sg.tagContainer.enable();
+            sg.cardFilter.enable();
             sg.ui.labelTypeMenu.select.prop("disabled", false);
             sg.ui.cityMenu.select.prop("disabled", false);
         }
@@ -378,7 +378,7 @@ function CardContainer(uiCardContainer) {
         sg.pageLoading.show();
 
         // Disable interactable UI elements while query loads.
-        sg.tagContainer.disable();
+        sg.cardFilter.disable();
         sg.ui.labelTypeMenu.select.prop("disabled", true);
         sg.ui.cityMenu.select.prop("disabled", true);
         sg.labelsNotFound.hide();
