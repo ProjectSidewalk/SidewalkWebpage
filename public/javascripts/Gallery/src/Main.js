@@ -70,11 +70,11 @@ function Main (params) {
 
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
-        sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu);
+        sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
 
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
-        sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu);
-        sg.cardContainer = new CardContainer(sg.ui.cardContainer);
+        sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
+        sg.cardContainer = new CardContainer(sg.ui.cardContainer, params.initialFilters);
         sg.modal = sg.cardContainer.getModal;
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl);

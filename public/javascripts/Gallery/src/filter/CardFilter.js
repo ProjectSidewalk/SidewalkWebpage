@@ -5,15 +5,16 @@
  * @param uiCardFilter UI element representing filter components of sidebar.
  * @param labelTypeMenu UI element representing dropdown to select label type in sidebar.
  * @param cityMenu UI element representing dropdown to select city in sidebar.
+ * @param initialFilters Object containing initial set of filters to pass along.
  * @returns {CardFilter}
  * @constructor
  */
-function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
+function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     let self = this;
 
     let status = {
         currentCity: cityMenu.getCurrentCity(),
-        currentLabelType: "Assorted"
+        currentLabelType: initialFilters.labelType
     };
 
     // Map label type to their collection of tags.

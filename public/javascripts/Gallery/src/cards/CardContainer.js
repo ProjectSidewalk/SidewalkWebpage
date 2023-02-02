@@ -2,10 +2,11 @@
  * Card Container module. This is responsible for managing the Card objects that are to be rendered.
  * 
  * @param {*} uiCardContainer UI element tied with this CardContainer.
+ * @param initialFilters Object containing initial set of filters in sidebar.
  * @returns {CardContainer}
  * @constructor
  */
-function CardContainer(uiCardContainer) {
+function CardContainer(uiCardContainer, initialFilters) {
     let self = this;
 
     // The number of labels to grab from database on initial page load.
@@ -35,7 +36,7 @@ function CardContainer(uiCardContainer) {
     };
 
     // Current label type of cards being shown.
-    let currentLabelType = 'Assorted';
+    let currentLabelType = initialFilters.labelType;
     let currentPage = 1;
     let lastPage = false;
     let pageNumberDisplay = null;
@@ -83,8 +84,9 @@ function CardContainer(uiCardContainer) {
         cardsByType[currentLabelType] = new CardBucket();
 
 
+        let appliedSeverities = sg.cardFilter.getAppliedSeverities();
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds.Assorted, initialLoad, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function() {
+        fetchLabels(labelTypeIds[currentLabelType], initialLoad, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
@@ -178,6 +180,7 @@ function CardContainer(uiCardContainer) {
      * @param {*} callback Function to be called when labels arrive.
      */
     function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, severities, tags, callback) {
+        console.trace();
         var url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,

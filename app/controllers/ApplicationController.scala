@@ -385,12 +385,12 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
-        val realLabel: String = if (labels.exists(x => {x._1 == labelType.getOrElse("Assorted")})) {
+        val labType: String = if (labels.exists(x => {x._1 == labelType.getOrElse("Assorted")})) {
           labelType.getOrElse("Assorted")
         } else {
           "Assorted"
         }
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, realLabel, labels, List())))
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labels, List())))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26

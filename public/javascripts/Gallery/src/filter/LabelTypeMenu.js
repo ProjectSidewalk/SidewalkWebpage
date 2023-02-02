@@ -2,23 +2,23 @@
  * Label Type Menu module.
  * This is responsible for holding the buttons allowing users to filter labels by label type.
  *
- * @param labelTypeMenu UI element corresponding to LabelTypeMenu.
+ * @param uiLabelTypeMenu UI element corresponding to LabelTypeMenu.
  * @returns {LabelTypeMenu}
  * @constructor
  */
-function LabelTypeMenu(labelTypeMenu) {
+function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
     let self = this;
 
     let status = {
-        currentLabelType: null
+        currentLabelType: initialLabelType
     };
 
     /**
      * Initialize LabelTypeMenu.
      */
     function _init() {
-        if (labelTypeMenu) {
-            labelTypeMenu.select.bind({
+        if (uiLabelTypeMenu) {
+            uiLabelTypeMenu.select.bind({
                 change: labelSelectCallback
             })
         }

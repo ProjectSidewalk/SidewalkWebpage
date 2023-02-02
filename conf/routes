@@ -13,7 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
-GET     /gallery                                             @controllers.ApplicationController.gallery(label: Option[String], severity: Option[String])
+GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: Option[String], severity: Option[String])
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
