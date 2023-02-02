@@ -82,8 +82,9 @@ function CardContainer(uiCardContainer) {
         sg.ui.cardContainer.prevPage.prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
 
+
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds.Assorted, initialLoad, Array.from(loadedLabelIds), undefined, undefined, function() {
+        fetchLabels(labelTypeIds.Assorted, initialLoad, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
@@ -167,20 +168,21 @@ function CardContainer(uiCardContainer) {
 
     /**
      * Grab n assorted labels of specified label type, severities, and tags.
-     * 
+     *
      * @param {*} labelTypeId Label type id specifying labels of what label type to grab.
      * @param {*} n Number of labels to grab.
+     * @param validationOptions List of validation options for fetched labels: correct, incorrect, and/or unvalidated.
      * @param {*} loadedLabels Label Ids of labels already grabbed.
      * @param {*} severities Severities the labels to be grabbed can have. (Set to undefined if N/A)
      * @param {*} tags Tags the labels to be grabbed can have. (Set to undefined if N/A)
      * @param {*} callback Function to be called when labels arrive.
      */
-    function fetchLabels(labelTypeId, n, loadedLabels, severities, tags, callback) {
+    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, severities, tags, callback) {
         var url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,
             n: n,
-            validation_options: ['correct', 'unvalidated'],
+            validation_options: validationOptions,
             ...(severities !== undefined && {severities: severities}),
             ...(tags !== undefined && {tags: tags}),
             loaded_labels: loadedLabels
@@ -246,7 +248,7 @@ function CardContainer(uiCardContainer) {
             sg.tagContainer.unapplyTags(currentLabelType);
             currentLabelType = filterLabelType;
 
-            fetchLabels(labelTypeIds[filterLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), undefined, undefined, function () {
+            fetchLabels(labelTypeIds[filterLabelType], cardsPerPage * 2, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
                 currentCards = cardsByType[currentLabelType].copy();
 
                 // We query double the amount of cards per page, "prepping" for the next page. If after querying we see
@@ -265,24 +267,27 @@ function CardContainer(uiCardContainer) {
 
         let appliedTags = sg.tagContainer.getAppliedTagNames();
         let appliedSeverities = sg.tagContainer.getAppliedSeverities();
+        let appliedValOptions = sg.tagContainer.getAppliedValidationOptions();
 
         currentCards = cardsByType[currentLabelType].copy();
         currentCards.filterOnTags(appliedTags);
         currentCards.filterOnSeverities(appliedSeverities);
+        currentCards.filterOnValidationOptions(appliedValOptions);
 
         if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
             if (currentLabelType === "Occlusion") {
-                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), undefined, undefined, function () {
+                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
                     currentCards = cardsByType[currentLabelType].copy();
                     lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });
             } else {
-                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.tagContainer.getAppliedValidationOptions(), Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
                     currentCards = cardsByType[currentLabelType].copy();
                     currentCards.filterOnTags(appliedTags);
                     currentCards.filterOnSeverities(appliedSeverities);
+                    currentCards.filterOnValidationOptions(appliedValOptions);
                     lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                     render();
                 });

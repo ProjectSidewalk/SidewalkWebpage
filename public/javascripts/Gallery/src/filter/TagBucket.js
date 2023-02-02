@@ -1,7 +1,7 @@
 /**
  * A Tag Bucket to store Tags.
  * 
- * @param bucket array containing Tags
+ * @param inputTags array containing Tags
  * @returns {TagBucket}
  * @constructor
  */

@@ -174,6 +174,20 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     }
 
     /**
+     * Return list of validationOptions.
+     */
+    function getValidationOptions() {
+        return validationOptions.getValidationOptions();
+    }
+
+    /**
+     * Return list of selected validationOptions by user.
+     */
+    function getAppliedValidationOptions() {
+        return validationOptions.getAppliedValidationOptions();
+    }
+
+    /**
      * Unapply all tags of specified label type.
      * 
      * @param {*} labelType Label type of tags to unapply.
@@ -220,6 +234,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     self.setStatus = setStatus;
     self.getSeverities = getSeverities;
     self.getAppliedSeverities = getAppliedSeverities;
+    self.getValidationOptions = getValidationOptions;
+    self.getAppliedValidationOptions = getAppliedValidationOptions;
     self.unapplyTags = unapplyTags;
     self.disable = disable;
     self.enable = enable;

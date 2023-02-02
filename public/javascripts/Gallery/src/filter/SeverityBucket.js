@@ -1,7 +1,7 @@
 /**
  * A Severity Bucket to store Severities.
  * 
- * @param bucket array containing Severities
+ * @param inputSeverities array containing Severities
  * @returns {SeverityBucket}
  * @constructor
  */

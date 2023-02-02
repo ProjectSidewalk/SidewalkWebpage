@@ -31,7 +31,7 @@ function CardBucket(inputCards) {
 
     /**
      * Filters cards upon a non-empty array of severities.
-     * 
+     *
      * @param {*} severities Severities to filter upon.
      */
     function filterOnSeverities(severities) {
@@ -39,6 +39,16 @@ function CardBucket(inputCards) {
             let severitySet = new Set(severities);
             bucket = bucket.filter(card => severitySet.has(card.getProperty("severity")));
         }
+    }
+
+    /**
+     * Filters cards upon an array of validation options.
+     *
+     * @param {*} validationOptions Validation Options to filter upon.
+     */
+    function filterOnValidationOptions(validationOptions) {
+        let validationOptionsSet = new Set(validationOptions);
+        bucket = bucket.filter(card => validationOptionsSet.has(card.getProperty("correctness")));
     }
 
     /**
@@ -93,6 +103,7 @@ function CardBucket(inputCards) {
     self.push = push;
     self.filterOnTags = filterOnTags;
     self.filterOnSeverities = filterOnSeverities;
+    self.filterOnValidationOptions = filterOnValidationOptions;
     self.getCards = getCards;
     self.getSize = getSize;
     self.copy = copy;

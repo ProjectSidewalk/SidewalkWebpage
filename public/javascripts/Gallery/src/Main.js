@@ -73,6 +73,7 @@ function Main (params) {
         sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu);
 
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
+        // TODO rename sg.tagContainer because it holds all the filters.
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
         sg.modal = sg.cardContainer.getModal;

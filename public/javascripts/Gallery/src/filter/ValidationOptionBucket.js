@@ -1,7 +1,7 @@
 /**
  * A Validation Option Bucket to store ValidationOptions.
  * 
- * @param bucket array containing ValidationOptions
+ * @param inputValidationOptions array containing ValidationOptions
  * @returns {ValidationOptionBucket}
  * @constructor
  */
@@ -15,9 +15,9 @@ function ValidationOptionBucket(inputValidationOptions) {
      * Initialize ValidationOptionBucket.
      */
     function _init() {
-        for (const valOption of ['Validated Correct', 'Validated Incorrect', 'Unvalidated']) {
-            push(new ValidationOption({ validationOption: valOption }, false));
-        }
+        push(new ValidationOption({ validationOption: 'correct'}, true));
+        push(new ValidationOption({ validationOption: 'incorrect'}, false));
+        push(new ValidationOption({ validationOption: 'unvalidated'}, true));
     }
 
     /**
