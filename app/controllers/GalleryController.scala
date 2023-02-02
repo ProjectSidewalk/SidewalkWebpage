@@ -42,7 +42,9 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
       submission => {
         request.identity match {
           case Some(user) =>
+            val n: Int = submission.n
             val loadedLabelIds: Set[Int] = submission.loadedLabels.toSet
+            val valOptions: Set[String] = submission.validationOptions.toSet
             val severitiesToSelect: Set[Int] = submission.severities.getOrElse(Seq()).toSet
             val tagsToSelect: Set[String] = submission.tags.getOrElse(Seq()).toSet
 
@@ -50,18 +52,18 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
             val labels: Seq[LabelValidationMetadata] =
               if (validLabTypes.contains(submission.labelTypeId)) {
                 if (severitiesToSelect.isEmpty && tagsToSelect.isEmpty) {
-                  LabelTable.getLabelsByType(submission.labelTypeId, submission.n, loadedLabelIds, user.userId)
+                  LabelTable.getLabelsByType(submission.labelTypeId, n, loadedLabelIds, valOptions, user.userId)
                 } else {
                   LabelTable.getLabelsOfTypeBySeverityAndTags(
-                    submission.labelTypeId, submission.n, loadedLabelIds, severitiesToSelect, tagsToSelect, user.userId
+                    submission.labelTypeId, n, loadedLabelIds, valOptions, severitiesToSelect, tagsToSelect, user.userId
                   )
                 }
               } else {
-                LabelTable.getAssortedLabels(submission.n, loadedLabelIds, user.userId, Some(severitiesToSelect))
+                LabelTable.getAssortedLabels(n, loadedLabelIds, valOptions, user.userId, Some(severitiesToSelect))
               }
-            // Shuffle labels if needed
-            val realLabels =
-              if (submission.severities == None && submission.tags == None) {
+            // Shuffle labels if needed.
+            val realLabels: Seq[LabelValidationMetadata] =
+              if (submission.severities.isEmpty && submission.tags.isEmpty) {
                 scala.util.Random.shuffle(labels)
               } else labels
 

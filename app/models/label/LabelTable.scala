@@ -639,17 +639,29 @@ object LabelTable {
    * @param labelTypeId Label type specifying what type of labels to grab.
    * @param n Number of labels to grab.
    * @param loadedLabelIds Set of labelIds already grabbed as to not grab them again.
+   * @param validationOptions Set of correctness values to filter for: correct, incorrect, and/or unvalidated.
    * @param severity  Set of severities the labels grabbed can have.
    * @param tags Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def getLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def getLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], validationOptions: Set[String], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
+    // Filter labels based on correctness.
+    val labelsFilteredByCorrectness: Query[LabelTable, Label, Seq] =
+      if (validationOptions.isEmpty)                                      labels.filter(_.labelId === -1)
+      else if (validationOptions.equals(Set("correct")))                  labels.filter(_.correct)
+      else if (validationOptions.equals(Set("incorrect")))                labels.filter(!_.correct)
+      else if (validationOptions.equals(Set("unvalidated")))              labels.filter(_.correct.isEmpty)
+      else if (validationOptions.equals(Set("correct", "incorrect")))     labels.filter(_.correct.isDefined)
+      else if (validationOptions.equals(Set("correct", "unvalidated")))   labels.filter(l => l.correct || l.correct.isEmpty)
+      else if (validationOptions.equals(Set("incorrect", "unvalidated"))) labels.filter(l => !l.correct || l.correct.isEmpty)
+      else                                                                labels
+
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _galleryLabels = for {
-      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
+      _lb <- labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
@@ -689,13 +701,25 @@ object LabelTable {
    *
    * @param n Number of labels to grab.
    * @param loadedLabelIds Label Ids of labels already grabbed.
+   * @param validationOptions Set of correctness values to filter for: correct, incorrect, and/or unvalidated.
    * @param severity Optional set of severities the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], validationOptions: Set[String], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    // Filter labels based on correctness.
+    val labelsFilteredByCorrectness: Query[LabelTable, Label, Seq] =
+      if (validationOptions.isEmpty)                                      labels.filter(_.labelId === -1)
+      else if (validationOptions.equals(Set("correct")))                  labels.filter(_.correct)
+      else if (validationOptions.equals(Set("incorrect")))                labels.filter(!_.correct)
+      else if (validationOptions.equals(Set("unvalidated")))              labels.filter(_.correct.isEmpty)
+      else if (validationOptions.equals(Set("correct", "incorrect")))     labels.filter(_.correct.isDefined)
+      else if (validationOptions.equals(Set("correct", "unvalidated")))   labels.filter(l => l.correct || l.correct.isEmpty)
+      else if (validationOptions.equals(Set("incorrect", "unvalidated"))) labels.filter(l => !l.correct || l.correct.isEmpty)
+      else                                                                labels
+
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labelsUnfiltered = for {
-      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
+      _lb <- labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId && (_lt.labelTypeId inSet LabelTypeTable.primaryLabelTypeIds)
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
@@ -738,15 +762,27 @@ object LabelTable {
    * @param labelTypeId Label Type ID of labels requested.
    * @param n Number of labels to grab.
    * @param loadedLabelIds Label Ids of labels already grabbed.
+   * @param validationOptions Set of correctness values to filter for: correct, incorrect, and/or unvalidated.
    * @return Seq[LabelValidationMetadata]
    */
-  def getLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def getLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], validationOptions: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Init random function.
     val rand = SimpleFunction.nullary[Double]("random")
 
+    // Filter labels based on correctness.
+    val labelsFilteredByCorrectness: Query[LabelTable, Label, Seq] =
+      if (validationOptions.isEmpty)                                      labels.filter(_.labelId === -1)
+      else if (validationOptions.equals(Set("correct")))                  labels.filter(_.correct)
+      else if (validationOptions.equals(Set("incorrect")))                labels.filter(!_.correct)
+      else if (validationOptions.equals(Set("unvalidated")))              labels.filter(_.correct.isEmpty)
+      else if (validationOptions.equals(Set("correct", "incorrect")))     labels.filter(_.correct.isDefined)
+      else if (validationOptions.equals(Set("correct", "unvalidated")))   labels.filter(l => l.correct || l.correct.isEmpty)
+      else if (validationOptions.equals(Set("incorrect", "unvalidated"))) labels.filter(l => !l.correct || l.correct.isEmpty)
+      else                                                                labels
+
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _labels = for {
-      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
+      _lb <- labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId

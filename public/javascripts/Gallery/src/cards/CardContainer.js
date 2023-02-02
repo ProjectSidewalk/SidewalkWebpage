@@ -178,11 +178,12 @@ function CardContainer(uiCardContainer) {
     function fetchLabels(labelTypeId, n, loadedLabels, severities, tags, callback) {
         var url = "/label/labels";
         let data = {
-            labelTypeId: labelTypeId,
+            label_type_id: labelTypeId,
             n: n,
+            validation_options: ['correct', 'unvalidated'],
             ...(severities !== undefined && {severities: severities}),
             ...(tags !== undefined && {tags: tags}),
-            loadedLabels: loadedLabels
+            loaded_labels: loadedLabels
         }
         $.ajax({
             async: true,
