@@ -1,23 +1,23 @@
 /**
  * A Validation Option Bucket to store ValidationOptions.
  * 
- * @param inputValidationOptions array containing ValidationOptions
+ * @param initialValidationOptions array containing validation options to set on page load.
  * @returns {ValidationOptionBucket}
  * @constructor
  */
-function ValidationOptionBucket(inputValidationOptions) {
+function ValidationOptionBucket(initialValidationOptions) {
     let self = this;
 
     // List of validationOptions.
-    let bucket = inputValidationOptions || [];
+    let bucket = [];
 
     /**
      * Initialize ValidationOptionBucket.
      */
     function _init() {
-        push(new ValidationOption({ validationOption: 'correct'}, true));
-        push(new ValidationOption({ validationOption: 'incorrect'}, false));
-        push(new ValidationOption({ validationOption: 'unvalidated'}, true));
+        push(new ValidationOption({ validationOption: 'correct'}, initialValidationOptions.includes('correct')));
+        push(new ValidationOption({ validationOption: 'incorrect'}, initialValidationOptions.includes('incorrect')));
+        push(new ValidationOption({ validationOption: 'unvalidated'}, initialValidationOptions.includes('unvalidated')));
     }
 
     /**

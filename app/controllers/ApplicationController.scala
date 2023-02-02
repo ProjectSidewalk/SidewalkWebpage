@@ -361,7 +361,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery(labelType: String, severities: String) = UserAwareAction.async { implicit request =>
+  def gallery(labelType: String, severities: String, validationOptions: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -387,14 +387,15 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         )
         val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
 
-        // Make sure that list of severities is formatted correctly.
+        // Make sure that list of severities and validation options are formatted correctly.
         val severityList: List[Int] = severities.split(",").flatMap(s => Try(s.toInt).toOption).filter(s => s > 0 && s < 6).toList
+        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unvalidated").contains(_)).toList
 
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labelTypes, severityList)))
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labelTypes, severityList, valOptions)))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3labelType=$labelType%26severities=$severities"))
+        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3labelType=$labelType%26severities=$severities%26validationOptions=${validationOptions}"))
     }
   }
 

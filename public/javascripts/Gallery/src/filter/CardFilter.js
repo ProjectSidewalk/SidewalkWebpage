@@ -37,7 +37,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     // Collection of severities.
     let severities = new SeverityBucket(initialFilters.severities);
 
-    let validationOptions = new ValidationOptionBucket();
+    let validationOptions = new ValidationOptionBucket(initialFilters.validationOptions);
    
     /**
      * Initialize CardFilter.

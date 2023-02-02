@@ -84,7 +84,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds[currentLabelType], initialLoad, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), initialFilters.severities, undefined, function() {
+        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.severities, undefined, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
