@@ -31,7 +31,7 @@ function ValidationOption (params, applied){
         Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
 
         validationOptionElement = document.createElement('button');
-        validationOptionElement.className = "gallery-tag gallery-tag-sidebar gallery-filter";
+        validationOptionElement.className = "gallery-filter-validation-button gallery-filter-button gallery-filter";
         validationOptionElement.id = properties.validationOption;
         validationOptionElement.innerText = properties.validationOption;
 

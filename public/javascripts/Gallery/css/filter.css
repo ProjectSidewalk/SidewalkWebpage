@@ -46,3 +46,27 @@
     flex-direction: row;
     margin-left: -3px;
 }
+
+.gallery-filter-button, .gallery-tag {
+    padding: 0px 5px;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    text-align: left;
+    color: black;
+    width: fit-content;
+    white-space: nowrap;
+    max-width: 98%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-filter-button:hover {
+    background-color: #78c8aa;
+    white-space: normal;
+}
+
+.gallery-filter-validation-button {
+    display: block;
+    margin: 4px 2px;
+}
