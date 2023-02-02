@@ -361,7 +361,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery(label: Option[String], severity: Option[String]) = UserAwareAction.async { implicit request =>
+  def gallery(labelType: Option[String], severity: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -385,15 +385,22 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
-        val realLabel: String = if (labels.exists(x => {x._1 == label.getOrElse("Assorted")})) {
-          label.getOrElse("Assorted")
+        val realLabel: String = if (labels.exists(x => {x._1 == labelType.getOrElse("Assorted")})) {
+          labelType.getOrElse("Assorted")
         } else {
           "Assorted"
         }
         Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, realLabel, labels, List())))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
-        Future.successful(Redirect("/anonSignUp?url=/gallery"))
+        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
+        val redirecetURL: String = (labelType, severity) match {
+          case (None, None) => s"/anonSignUp?url=/gallery"
+          case (Some(lType), None) => s"/anonSignUp?url=/gallery%3labelType=$lType"
+          case (None, Some(sev)) => s"/anonSignUp?url=/gallery%3severity=$sev"
+          case (Some(lType), Some(sev)) => s"/anonSignUp?url=/gallery%3labelType=$lType%26severity=$sev"
+        }
+        Future.successful(Redirect(redirecetURL))
     }
   }
 

@@ -73,7 +73,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
         let currentCity = cityMenu.getCurrentCity();
         if (status.currentCity !== currentCity) {
             // Future: add URI parameters to link.
-            window.location.href = currentCity + '/gallery?label=' + status.currentLabelType;
+            window.location.href = currentCity + '/gallery?labelType=' + status.currentLabelType;
         } else {
             let currentLabelType = labelTypeMenu.getCurrentLabelType();
             if (status.currentLabelType !== currentLabelType) {
