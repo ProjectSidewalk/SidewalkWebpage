@@ -83,10 +83,8 @@ function CardContainer(uiCardContainer, initialFilters) {
         sg.ui.cardContainer.prevPage.prop("disabled", true);
         cardsByType[currentLabelType] = new CardBucket();
 
-
-        let appliedSeverities = sg.cardFilter.getAppliedSeverities();
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds[currentLabelType], initialLoad, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function() {
+        fetchLabels(labelTypeIds[currentLabelType], initialLoad, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), initialFilters.severities, undefined, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });

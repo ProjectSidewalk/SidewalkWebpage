@@ -20,7 +20,7 @@ import play.api.i18n.Messages
 import java.util.Calendar
 import play.api.mvc._
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
 
 /**
  * Holds the HTTP requests for some of the basic web pages.
@@ -361,7 +361,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery(labelType: Option[String], severity: Option[String]) = UserAwareAction.async { implicit request =>
+  def gallery(labelType: String, severities: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -373,7 +373,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val cityStr: String = Play.configuration.getString("city-id").get
         // Get names and URLs for cities to display in Gallery dropdown.
         val cityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo()
-        val labels: List[(String, String)] = List(
+        val labelTypes: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
           ("CurbRamp", Messages("curb.ramp")),
           ("NoCurbRamp", Messages("missing.ramp")),
@@ -385,22 +385,16 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
-        val labType: String = if (labels.exists(x => {x._1 == labelType.getOrElse("Assorted")})) {
-          labelType.getOrElse("Assorted")
-        } else {
-          "Assorted"
-        }
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labels, List())))
+        val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
+
+        // Make sure that list of severities is formatted correctly.
+        val severityList: List[Int] = severities.split(",").flatMap(s => Try(s.toInt).toOption).filter(s => s > 0 && s < 6).toList
+
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labelTypes, severityList)))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        val redirecetURL: String = (labelType, severity) match {
-          case (None, None) => s"/anonSignUp?url=/gallery"
-          case (Some(lType), None) => s"/anonSignUp?url=/gallery%3labelType=$lType"
-          case (None, Some(sev)) => s"/anonSignUp?url=/gallery%3severity=$sev"
-          case (Some(lType), Some(sev)) => s"/anonSignUp?url=/gallery%3labelType=$lType%26severity=$sev"
-        }
-        Future.successful(Redirect(redirecetURL))
+        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3labelType=$labelType%26severities=$severities"))
     }
   }
 

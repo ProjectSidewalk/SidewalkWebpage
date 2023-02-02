@@ -6,7 +6,7 @@
  * @returns {Severity}
  * @constructor
  */
-function Severity (params, active){
+function Severity (params, active) {
     let self = this;
 
     // UI element of the severity container and image.

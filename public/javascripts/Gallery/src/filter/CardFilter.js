@@ -35,7 +35,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     let currentTags = new TagBucket();
 
     // Collection of severities.
-    let severities = new SeverityBucket();
+    let severities = new SeverityBucket(initialFilters.severities);
 
     let validationOptions = new ValidationOptionBucket();
    
@@ -74,7 +74,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         let currentCity = cityMenu.getCurrentCity();
         if (status.currentCity !== currentCity) {
             // Future: add URI parameters to link.
-            window.location.href = currentCity + '/gallery?labelType=' + status.currentLabelType;
+            window.location.href = currentCity + `/gallery?labelType=${status.currentLabelType}&severities=${severities.getAppliedSeverities()}`;
         } else {
             let currentLabelType = labelTypeMenu.getCurrentLabelType();
             if (status.currentLabelType !== currentLabelType) {

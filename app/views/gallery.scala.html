@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severity: List[Int])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int])(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -123,7 +123,8 @@
 
             // Initial set of sidebar filters.
             params.initialFilters = {
-                labelType: '@labelType'
+                labelType: '@labelType',
+                severities: @{severities.mkString("[", ",", "]")}
             }
 
             params.language = "@lang.code";
