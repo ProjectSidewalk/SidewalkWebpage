@@ -45,8 +45,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     function _init() {
         getTags(function () {
             render();
+            updateURL();
         });
-        updateURL();
     }
 
     /**
