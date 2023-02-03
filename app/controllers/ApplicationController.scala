@@ -369,8 +369,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        // Log visit to Gallery.
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
         // Get current city.
         val cityStr: String = Play.configuration.getString("city-id").get
         // Get names and URLs for cities to display in Gallery dropdown.
@@ -395,6 +393,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val severityList: List[Int] = severities.split(",").flatMap(s => Try(s.toInt).toOption).filter(s => s > 0 && s < 6).toList
         val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unvalidated").contains(_)).toList
+
+        // Log visit to Gallery.
+        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 
         Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labelTypes, severityList, tagList, valOptions)))
       case None =>
