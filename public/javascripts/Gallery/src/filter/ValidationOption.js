@@ -33,7 +33,7 @@ function ValidationOption (params, applied) {
         validationOptionElement = document.createElement('button');
         validationOptionElement.className = "gallery-filter-validation-button gallery-filter-button gallery-filter";
         validationOptionElement.id = properties.validationOption;
-        validationOptionElement.innerText = properties.validationOption;
+        validationOptionElement.innerText = i18next.t('gallery:' + properties.validationOption);
 
         if (status.applied) {
             apply();
