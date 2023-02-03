@@ -13,7 +13,6 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskInteractionTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.TagTable.selectTagsByLabelType
-import models.label.Tag
 import models.street.StreetEdgePriorityTable
 import models.utils.Configs
 import play.api.Play

@@ -32,7 +32,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         NoSidewalk: 7,
         Crosswalk: 9,
         Signal: 10,
-        Assorted: -1
+        Assorted: null
     };
 
     // Current label type of cards being shown.
