@@ -2,10 +2,11 @@
  * A Tag module.
  * 
  * @param {*} params Properties of tag.
+ * @param applied A boolean to see if the tag filter is active.
  * @returns {Tag}
  * @constructor
  */
-function Tag (params) {
+function Tag (params, applied) {
     let self = this;
 
     // UI element of Tag.
@@ -20,7 +21,7 @@ function Tag (params) {
 
     // Status of the tag.
     let status = {
-        applied: false
+        applied: applied
     };
 
     /**
@@ -36,6 +37,10 @@ function Tag (params) {
         tagElement.id = properties.tag;
         tagElement.innerText = i18next.t('tag.' + properties.tag);
         tagElement.disabled = true;
+
+        if (status.applied) {
+            apply()
+        }
 
         tagElement.onclick = tagClickCallback;
     }

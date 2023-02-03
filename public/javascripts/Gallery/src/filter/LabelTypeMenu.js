@@ -19,7 +19,7 @@ function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
     function _init() {
         if (uiLabelTypeMenu) {
             uiLabelTypeMenu.select.bind({
-                change: labelSelectCallback
+                change: labelTypeSelectCallback
             })
         }
     }
@@ -27,11 +27,15 @@ function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
     /**
      * Handles what happens when a label type is selected.
      */
-    function labelSelectCallback() {
-        let labelType = $(this).val();
-        setStatus("currentLabelType", labelType);
-        sg.tracker.push("Filter_LabelType=" + labelType);
-        sg.cardFilter.update();
+    function labelTypeSelectCallback() {
+        let newLabelType = $(this).val();
+        let oldLabelType = status.currentLabelType;
+        // Check if the label type changed. Prevents this code from running on initial page load.
+        if (newLabelType !== oldLabelType) {
+            setStatus("currentLabelType", newLabelType);
+            sg.tracker.push("Filter_LabelType=" + newLabelType);
+            sg.cardFilter.update();
+        }
     }
 
     /**

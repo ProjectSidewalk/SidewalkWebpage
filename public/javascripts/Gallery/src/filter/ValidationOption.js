@@ -6,7 +6,7 @@
  * @returns {ValidationOption}
  * @constructor
  */
-function ValidationOption (params, applied){
+function ValidationOption (params, applied) {
     let self = this;
 
     // UI element of the validation option container and image.
@@ -37,8 +37,6 @@ function ValidationOption (params, applied){
 
         if (status.applied) {
             apply();
-        } else {
-            unapply();
         }
 
         validationOptionElement.onclick = handleOnClickCallback;

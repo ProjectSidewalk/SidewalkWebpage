@@ -59,7 +59,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
                   )
                 }
               } else {
-                LabelTable.getAssortedLabels(n, loadedLabelIds, valOptions, user.userId, Some(severitiesToSelect))
+                LabelTable.getAssortedLabels(n, loadedLabelIds, valOptions, user.userId, severitiesToSelect)
               }
             // Shuffle labels if needed.
             val realLabels: Seq[LabelValidationMetadata] =

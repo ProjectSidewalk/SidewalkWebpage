@@ -661,22 +661,31 @@ object LabelTable {
       else if (validationOptions.equals(Set("incorrect", "unvalidated"))) labels.filter(l => !l.correct || l.correct.isEmpty)
       else                                                                labels
 
+    // Only join with the tag table if we are filtering on tags, o/w we will be missing labels without tags.
+    val labelsFilteredByTags = if (tags.nonEmpty) {
+      for {
+        _lb <- labelsFilteredByCorrectness
+        _lt <- labelTags if _lb.labelId === _lt.labelId
+        _t <- tagTable if _lt.tagId === _t.tagId && (_t.tag inSet tags)
+      } yield _lb
+    } else {
+      labelsFilteredByCorrectness
+    }
+
     // Grab labels and associated information if severity and tags satisfy query conditions.
     val _galleryLabels = for {
-      _lb <- labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
+      _lb <- labelsFilteredByTags if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-      _labelTags <- labelTags if _lb.labelId === _labelTags.labelId
-      _tags <- tagTable if _labelTags.tagId === _tags.tagId && ((_tags.tag inSet tags) || tags.isEmpty)
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _lb.streetEdgeId === _ser.streetEdgeId
       if _lb.labelTypeId === labelTypeId
       if _gd.expired === false
+      if (_lb.severity inSet severity) || severity.isEmpty
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-      if _lb.severity.isEmpty || (_lb.severity inSet severity)
     } yield (_lb, _lp, _lt, _gd, _ser)
 
     // Join with the validations that the user has given.
@@ -707,7 +716,7 @@ object LabelTable {
    * @param severity Optional set of severities the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], validationOptions: Set[String], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], validationOptions: Set[String], userId: UUID, severity: Set[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Filter labels based on correctness.
     val labelsFilteredByCorrectness: Query[LabelTable, Label, Seq] =
       if (validationOptions.isEmpty)                                      labels.filter(_.labelId === -1)
@@ -720,7 +729,7 @@ object LabelTable {
       else                                                                labels
 
     // Grab labels and associated information if severity and tags satisfy query conditions.
-    val _labelsUnfiltered = for {
+    val _labels = for {
       _lb <- labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId && (_lt.labelTypeId inSet LabelTypeTable.primaryLabelTypeIds)
       _lp <- labelPoints if _lb.labelId === _lp.labelId
@@ -729,15 +738,10 @@ object LabelTable {
       _us <- UserStatTable.userStats if _a.userId === _us.userId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
+      if (_lb.severity inSet severity) || severity.isEmpty
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _lt, _gd, _ser)
-
-    // If severities are specified, filter by whether a label has a valid severity.
-    val _labels = if (severity.isDefined && severity.get.nonEmpty)
-      _labelsUnfiltered.filter(_._1.severity inSet severity.get)
-    else
-      _labelsUnfiltered
 
     // Join with the validations that the user has given.
     val userValidations = validationsFromUser(userId)

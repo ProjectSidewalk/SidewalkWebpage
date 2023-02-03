@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], validationOptions: List[String])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -125,7 +125,8 @@
             params.initialFilters = {
                 labelType: '@labelType',
                 severities: @{severities.mkString("[", ",", "]")},
-                validationOptions: @{if (validationOptions.isEmpty) "[]" else Html(validationOptions.mkString("['", "','", "']"))}
+                validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
+                tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))}
             }
 
             params.language = "@lang.code";

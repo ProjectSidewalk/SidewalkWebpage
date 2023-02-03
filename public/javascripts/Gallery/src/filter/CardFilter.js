@@ -32,7 +32,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     };
 
     // Tags of the current label type.
-    let currentTags = new TagBucket();
+    let currentTags = tagsByType[status.currentLabelType];
 
     // Collection of severities.
     let severities = new SeverityBucket(initialFilters.severities);
@@ -59,7 +59,10 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             let i = 0;
             let len = data.length;
             for (; i < len; i++) {
-                tag = new Tag(data[i]);
+                if (data[i].label_type === status.currentLabelType && initialFilters.tags.includes(data[i].tag))
+                    tag = new Tag(data[i], true);
+                else
+                    tag = new Tag(data[i], false);
                 tagsByType[tag.getLabelType()].push(tag);
             }
 
@@ -104,11 +107,16 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         let newUrl = '/gallery';
         let firstQueryParam = true;
         let currSeverities = severities.getAppliedSeverities();
+        let currAppliedTags = currentTags.getAppliedTags().map(t => t.getTag()).join();
         let currValOptions = validationOptions.getAppliedValidationOptions().sort().join();
 
         // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
         if (status.currentLabelType !== 'Assorted') {
             newUrl += `?labelType=${status.currentLabelType}`;
+            // Can only have applied tags if there is a specific label type chosen.
+            if (currAppliedTags.length > 0) {
+                newUrl += `&tags=${currAppliedTags}`;
+            }
             firstQueryParam = false;
         }
         if (currSeverities.length > 0) {
