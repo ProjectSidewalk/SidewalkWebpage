@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], label: String, labels: List[(String, String)], severity: List[Int])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -55,7 +55,7 @@
                         <h4><b>@Messages("gallery.show")</b></h4>
                         <select id="label-select" class="gallery-filter" disabled>
                             @for((value, message) <- labels) {
-                                @if(value == label) {
+                                @if(value == labelType) {
                                     <option value="@value" selected>@message</option>
                                 } else {
                                     <option value="@value">@message</option>
@@ -71,6 +71,8 @@
                     <span id="severity-select"></span>
                     <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
                     <span id="tags"></span>
+                    <h5 id="validation-options-header" class="filter-subheader">@Messages("gallery.validations")</h5>
+                    <span id="validation-options"></span>
                 </div>
             </div>
         </div>
@@ -118,6 +120,14 @@
             // URLs for where to send interaction data
             params.dataStoreUrl = '@routes.GalleryTaskController.post';
             params.beaconDataStoreUrl = params.dataStoreUrl + "Beacon";
+
+            // Initial set of sidebar filters.
+            params.initialFilters = {
+                labelType: '@labelType',
+                severities: @{severities.mkString("[", ",", "]")},
+                validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
+                tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))}
+            }
 
             params.language = "@lang.code";
 

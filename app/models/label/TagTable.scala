@@ -27,4 +27,11 @@ object TagTable {
   def selectAllTags(): List[Tag] = db.withSession { implicit session =>
     tagTable.list
   }
+
+  def selectTagsByLabelType(labelType: String): List[Tag] = db.withSession { implicit session =>
+    tagTable
+      .innerJoin(LabelTypeTable.labelTypes).on(_.labelTypeId === _.labelTypeId)
+      .filter(_._2.labelType === labelType)
+      .map(_._1).list
+  }
 }

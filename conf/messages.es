@@ -333,6 +333,7 @@ gallery.show = Mostrar
 gallery.filter.by = Filtrar por
 gallery.severity = Calificación
 gallery.tags = Etiquitas
+gallery.validations = Validaciones
 gallery.all = Todos
 gallery.occlusion = No puedo ver la banqueta
 gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
