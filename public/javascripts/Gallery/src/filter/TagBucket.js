@@ -1,15 +1,14 @@
 /**
  * A Tag Bucket to store Tags.
- * 
- * @param bucket array containing Tags
+ *
  * @returns {TagBucket}
  * @constructor
  */
-function TagBucket(inputTags) {
+function TagBucket() {
     let self = this;
 
     // List of Tags.
-    let bucket = inputTags || [];
+    let bucket = [];
 
     /**
      * Add Tag.

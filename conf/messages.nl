@@ -332,6 +332,7 @@ gallery.show = Tonen
 gallery.filter.by = Filteren op
 gallery.severity = Ernst
 gallery.tags = Tags
+gallery.validations = Validaties
 gallery.all = Alles
 gallery.occlusion = Kan de stoep niet zien
 gallery.labels.not.found = Geen overeenkomsten. <a href="/audit">Begin met verkennen</a> om meer data bij te dragen!
