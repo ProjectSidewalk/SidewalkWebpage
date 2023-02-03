@@ -400,7 +400,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3labelType=$labelType%26severities=$severities%26tags=$tags%26validationOptions=${validationOptions}"))
+        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3FlabelType=$labelType%26severities=$severities%26tags=$tags%26validationOptions=$validationOptions"))
     }
   }
 

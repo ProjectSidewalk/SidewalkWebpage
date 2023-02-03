@@ -46,6 +46,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         getTags(function () {
             render();
         });
+        updateURL();
     }
 
     /**
@@ -83,12 +84,17 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             render();
         }
         sg.cardContainer.updateCardsByFilter();
+        updateURL();
+    }
 
-        // If the city was changed, redirect to that server. Otherwise, update the URL query params.
+    /**
+     * If the city was changed, redirect to that server. Otherwise, update the URL query params.
+     */
+    function updateURL() {
         let newUrl = _buildCurrentURL();
         let currentCity = cityMenu.getCurrentCity();
         if (status.currentCity !== currentCity) {
-            // window.location.href = currentCity + newUrl;
+            window.location.href = currentCity + newUrl;
         } else {
             let fullUrl = `${window.location.protocol}//${window.location.host}${newUrl}`;
             if (fullUrl !== window.location.href) {
