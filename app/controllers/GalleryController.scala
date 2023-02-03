@@ -63,9 +63,8 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
               }
             // Shuffle labels if needed.
             val realLabels: Seq[LabelValidationMetadata] =
-              if (submission.severities.isEmpty && submission.tags.isEmpty) {
-                scala.util.Random.shuffle(labels)
-              } else labels
+              if (severitiesToSelect.isEmpty && tagsToSelect.isEmpty) scala.util.Random.shuffle(labels) else labels
+
 
             val jsonList: Seq[JsObject] = realLabels.map(l => Json.obj(
                 "label" -> LabelFormat.validationLabelMetadataToJson(l),
