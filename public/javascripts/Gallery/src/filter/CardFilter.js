@@ -132,26 +132,18 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      * Render tags and severities in sidebar.
      */
     function render() {
+        if (['Signal', 'Occlusion'].includes(status.currentLabelType)) {
+            $('#severity-header').hide();
+            $('#severity-select').hide();
+        } else {
+            $('#severity-header').show();
+            $('#severity-select').show();
+        }
         if (currentTags.getTags().length > 0) {
-            // TODO: think about how to better show tags header in an organized manner.
             $("#tags-header").show();
             currentTags.render(uiCardFilter.tags);
         } else {
             $("#tags-header").hide();
-        }
-        if (status.currentLabelType === "Occlusion") {
-            $("#filters").hide();
-            $("#horizontal-line").hide();
-        } else {
-            $("#filters").show();
-            $("#horizontal-line").show();
-            if (status.currentLabelType === 'Signal') {
-                $('#severity-header').hide();
-                $('#severity-select').hide();
-            } else {
-                $('#severity-header').show();
-                $('#severity-select').show();
-            }
         }
 
         severities.render(uiCardFilter.severity);
