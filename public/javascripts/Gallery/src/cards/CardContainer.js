@@ -178,7 +178,6 @@ function CardContainer(uiCardContainer, initialFilters) {
      * @param {*} callback Function to be called when labels arrive.
      */
     function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, severities, tags, callback) {
-        console.trace();
         var url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,
