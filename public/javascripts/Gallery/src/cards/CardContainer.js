@@ -237,30 +237,6 @@ function CardContainer(uiCardContainer, initialFilters) {
     }
 
     /**
-     * Updates cardsOfType when new label type selected.
-     */
-    function updateCardsByLabelType() {
-        refreshUI();
-
-        let filterLabelType = sg.cardFilter.getStatus().currentLabelType;
-        if (currentLabelType !== filterLabelType) {
-            // Reset back to the first page.
-            setPage(1);
-            sg.cardFilter.unapplyTags(currentLabelType);
-            currentLabelType = filterLabelType;
-
-            fetchLabels(labelTypeIds[filterLabelType], cardsPerPage * 2, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
-                currentCards = cardsByType[currentLabelType].copy();
-
-                // We query double the amount of cards per page, "prepping" for the next page. If after querying we see
-                // that we still only have enough labels to fill up to the current page, the current page must be the last page.
-                lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
-                render();
-            });
-        }
-    }
-
-    /**
      * Updates Cards being shown when user moves to next/previous page.
      */
     function updateCardsNewPage() {
@@ -270,6 +246,10 @@ function CardContainer(uiCardContainer, initialFilters) {
         let appliedSeverities = sg.cardFilter.getAppliedSeverities();
         let appliedValOptions = sg.cardFilter.getAppliedValidationOptions();
 
+        // Occlusion and Signal don't have severity, Occlusion does not have tags.
+        if (['Occlusion', 'Signal'].includes(currentLabelType)) appliedSeverities = undefined;
+        if ('Occlusion' === currentLabelType) appliedTags = undefined;
+
         currentCards = cardsByType[currentLabelType].copy();
         currentCards.filterOnTags(appliedTags);
         currentCards.filterOnSeverities(appliedSeverities);
@@ -277,22 +257,14 @@ function CardContainer(uiCardContainer, initialFilters) {
 
         if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
-            if (currentLabelType === "Occlusion") {
-                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), undefined, undefined, function () {
-                    currentCards = cardsByType[currentLabelType].copy();
-                    lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
-                    render();
-                });
-            } else {
-                fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, sg.cardFilter.getAppliedValidationOptions(), Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
-                    currentCards = cardsByType[currentLabelType].copy();
-                    currentCards.filterOnTags(appliedTags);
-                    currentCards.filterOnSeverities(appliedSeverities);
-                    currentCards.filterOnValidationOptions(appliedValOptions);
-                    lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
-                    render();
-                });
-            }
+            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                currentCards = cardsByType[currentLabelType].copy();
+                currentCards.filterOnTags(appliedTags);
+                currentCards.filterOnSeverities(appliedSeverities);
+                currentCards.filterOnValidationOptions(appliedValOptions);
+                lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
+                render();
+            });
         } else {
             lastPage = false;
             render();
@@ -300,10 +272,16 @@ function CardContainer(uiCardContainer, initialFilters) {
     }
 
     /**
-     * When a severity, tag, or validation filter is updated; update Cards to be shown.
-     * TODO rename this function.
+     * When a filter is updated; update which Cards are shown.
      */
-    function updateCardsBySeverityTagsOrValidation() {
+    function updateCardsByFilter() {
+        // Only need to refresh UI if label type changed, since the tags are swapped out.
+        let newLabelType = sg.cardFilter.getStatus().currentLabelType;
+        if (currentLabelType !== newLabelType) {
+            currentLabelType = newLabelType;
+            refreshUI();
+        }
+
         setPage(1);
         updateCardsNewPage();
     }
@@ -467,8 +445,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     self.getCurrentCards = getCurrentCards;
     self.isLastPage = isLastPage;
     self.push = push;
-    self.updateCardsByLabelType = updateCardsByLabelType;
-    self.updateCardsBySeverityTagsOrValidation = updateCardsBySeverityTagsOrValidation;
+    self.updateCardsByFilter = updateCardsByFilter;
     self.updateCardsNewPage = updateCardsNewPage;
     self.sortCards = sortCards;
     self.render = render;

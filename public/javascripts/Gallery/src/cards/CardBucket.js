@@ -23,7 +23,7 @@ function CardBucket(inputCards) {
      * @param {*} tags Tags to filter upon.
      */
     function filterOnTags(tags) {
-        if (tags.length > 0) {
+        if (tags !== undefined && tags.length > 0) {
             let tagSet = new Set(tags);
             bucket = bucket.filter(card => card.getProperty("tags").some(tag => tagSet.has(tag)));
         }
@@ -35,7 +35,7 @@ function CardBucket(inputCards) {
      * @param {*} severities Severities to filter upon.
      */
     function filterOnSeverities(severities) {
-        if (severities.length > 0) {
+        if (severities !== undefined && severities.length > 0) {
             let severitySet = new Set(severities);
             bucket = bucket.filter(card => severitySet.has(card.getProperty("severity")));
         }

@@ -80,11 +80,9 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             clearCurrentTags();
             setStatus('currentLabelType', currLabelType);
             currentTags = tagsByType[currLabelType];
-            sg.cardContainer.updateCardsByLabelType();
             render();
-        } else {
-            sg.cardContainer.updateCardsBySeverityTagsOrValidation();
         }
+        sg.cardContainer.updateCardsByFilter();
 
         // If the city was changed, redirect to that server. Otherwise, update the URL query params.
         let newUrl = _buildCurrentURL();
