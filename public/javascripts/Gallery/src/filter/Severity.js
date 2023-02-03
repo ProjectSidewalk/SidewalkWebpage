@@ -63,7 +63,7 @@ function Severity (params, active) {
             apply();
         }
 
-        sg.cardContainer.updateCardsByTagsAndSeverity();
+        sg.cardFilter.update();
     }
 
     function _showSelected() {

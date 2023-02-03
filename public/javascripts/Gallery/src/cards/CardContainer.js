@@ -239,7 +239,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Updates cardsOfType when new label type selected.
      */
-    function updateCardsByType() {
+    function updateCardsByLabelType() {
         refreshUI();
 
         let filterLabelType = sg.cardFilter.getStatus().currentLabelType;
@@ -300,10 +300,10 @@ function CardContainer(uiCardContainer, initialFilters) {
     }
 
     /**
-     * When a tag or severity filter is updated, update Cards to be shown.
+     * When a severity, tag, or validation filter is updated; update Cards to be shown.
      * TODO rename this function.
      */
-    function updateCardsByTagsAndSeverity() {
+    function updateCardsBySeverityTagsOrValidation() {
         setPage(1);
         updateCardsNewPage();
     }
@@ -467,8 +467,8 @@ function CardContainer(uiCardContainer, initialFilters) {
     self.getCurrentCards = getCurrentCards;
     self.isLastPage = isLastPage;
     self.push = push;
-    self.updateCardsByType = updateCardsByType;
-    self.updateCardsByTagsAndSeverity = updateCardsByTagsAndSeverity;
+    self.updateCardsByLabelType = updateCardsByLabelType;
+    self.updateCardsBySeverityTagsOrValidation = updateCardsBySeverityTagsOrValidation;
     self.updateCardsNewPage = updateCardsNewPage;
     self.sortCards = sortCards;
     self.render = render;

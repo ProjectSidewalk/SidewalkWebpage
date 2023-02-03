@@ -68,25 +68,59 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     }
 
     /**
-     * Update filter components when city or label type changes.
+     * Update filter components and URL when a filter changes.
      */
     function update() {
+        // If label type was changed: clear tags, update cards, and rerender sidebar. Otherwise, just update the cards.
+        let currLabelType = labelTypeMenu.getCurrentLabelType();
+        if (status.currentLabelType !== currLabelType) {
+            clearCurrentTags();
+            setStatus('currentLabelType', currLabelType);
+            currentTags = tagsByType[currLabelType];
+            sg.cardContainer.updateCardsByLabelType();
+            render();
+        } else {
+            sg.cardContainer.updateCardsBySeverityTagsOrValidation();
+        }
+
+        // If the city was changed, redirect to that server. Otherwise, update the URL query params.
+        let newUrl = _buildCurrentURL();
         let currentCity = cityMenu.getCurrentCity();
         if (status.currentCity !== currentCity) {
-            // Future: add URI parameters to link.
-            window.location.href = currentCity + `/gallery?labelType=${status.currentLabelType}&severities=${severities.getAppliedSeverities()}`;
+            // window.location.href = currentCity + newUrl;
         } else {
-            let currentLabelType = labelTypeMenu.getCurrentLabelType();
-            if (status.currentLabelType !== currentLabelType) {
-                clearCurrentTags();
-                severities.unapplySeverities();
-                setStatus('currentLabelType', currentLabelType);
-                currentTags = tagsByType[currentLabelType];
-                sg.cardContainer.updateCardsByType();
+            let fullUrl = `${window.location.protocol}//${window.location.host}${newUrl}`;
+            if (fullUrl !== window.location.href) {
+                window.history.pushState({ },'', fullUrl);
             }
-            render();
         }
     }
+
+    /**
+     * Return a string representing /gallery URL with correct query params. Excluding params if they match the default.
+     * @private
+     */
+    function _buildCurrentURL() {
+        let newUrl = '/gallery';
+        let firstQueryParam = true;
+        let currSeverities = severities.getAppliedSeverities();
+        let currValOptions = validationOptions.getAppliedValidationOptions().sort().join();
+
+        // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
+        if (status.currentLabelType !== 'Assorted') {
+            newUrl += `?labelType=${status.currentLabelType}`;
+            firstQueryParam = false;
+        }
+        if (currSeverities.length > 0) {
+            newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
+            firstQueryParam = false;
+        }
+        if (currValOptions !== 'correct,unvalidated') {
+            newUrl += firstQueryParam ? `?validationOptions=${currValOptions}` : `&validationOptions=${currValOptions}`;
+        }
+        return newUrl;
+    }
+
 
     /**
      * Render tags and severities in sidebar.
