@@ -63,6 +63,13 @@ function Neighborhood (parameters) {
         return this;
     }
 
+    /**
+     * @returns region id of this neighborhood
+     */
+    function getRegionId () {
+        return getProperty('regionId');
+    }
+
     function totalLineDistanceInNeighborhood (unit) {
         if (!unit) unit = {units: 'kilometers'};
         if ("taskContainer" in svl && svl.taskContainer) {
@@ -90,5 +97,6 @@ function Neighborhood (parameters) {
     self.setProperty = setProperty;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.getGeoJSON = getGeoJSON;
+    self.getRegionId = getRegionId;
     return self;
 }
