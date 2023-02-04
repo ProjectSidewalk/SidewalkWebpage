@@ -146,7 +146,7 @@
 
 .mission-start-tutorial-done-btn {
     height: 36px;
-    width: 100%;
+    width: calc(100% - 20px);
     border-radius: 7.25px;
     float: right;
     background: #F6D795;
@@ -158,6 +158,7 @@
     font-weight: bold;
     position: absolute;
     bottom: 0;
+    margin: 0 10px;
 }
 
 .mission-start-tutorial-done-btn:hover {
