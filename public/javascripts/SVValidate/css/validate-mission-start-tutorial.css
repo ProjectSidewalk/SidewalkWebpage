@@ -37,8 +37,7 @@
 }
 
 .mst-content {
-    margin-top: 25px;
-    width: 1020px;
+    width: 1095px;
 }
 
 .mst-instruction-1 {
@@ -47,7 +46,7 @@
     letter-spacing: 0.05em;
     color: #525252;
     margin: 5px 0;
-    padding: 0 10px;
+    padding: 0 70px;
     width: 100%;
     height: fit-content;
 }
@@ -58,7 +57,7 @@
     font-weight: 700;
     font-size: 24px;
     margin: 5px 0;
-    padding: 0 10px;
+    padding: 0 70px;
 
     color: #000000;
     width: 100%;
@@ -67,9 +66,9 @@
 .mst-carousel {
     display: flex;
     flex-shrink: 0;
-    flex-wrap: wrap;
     width: 100%;
-    margin-top: 30px;
+    height: 436px;
+    margin-top: 10px;
 }
 
 .previous-slide-button, .next-slide-button {
@@ -97,20 +96,21 @@
 }
 
 .mst-slide {
-    height: 436px;
+    height: 100%;
     display: flex;
     flex-shrink: 0;
     flex-wrap: wrap;
-    width: 100%;
+    width: calc(100% - 120px); /* subtract the next and previous slide button widths from the total */
     justify-content: space-between;
 }
 
 .mts-text-area {
-    width: 294px;
+    width: 290px;
     display: flex;
     flex-shrink: 0;
     flex-wrap: wrap;
     flex-direction: column;
+    position: relative;
 }
 
 .label-type-title {
@@ -140,13 +140,13 @@
 }
 
 .mission-start-tutorial-overlay-footer {
-    margin-top: 20px;
+    margin-top: 15px;
     width: 100%;
 }
 
 .mission-start-tutorial-done-btn {
     height: 36px;
-    width: 249px;
+    width: 100%;
     border-radius: 7.25px;
     float: right;
     background: #F6D795;
@@ -156,6 +156,8 @@
     cursor: pointer;
     transition: all 2s;
     font-weight: bold;
+    position: absolute;
+    bottom: 0;
 }
 
 .mission-start-tutorial-done-btn:hover {
@@ -322,10 +324,10 @@
 }
 
 .mst-carousel-location-indicator-area {
-    height: 30px;
+    height: 12px;
     width: 100%;
     padding: 5px;
-    margin-top: 15px;
+    margin-top: 25px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -350,7 +352,7 @@
         min-width: 1069px;
     }
     .mst-content {
-        width: 900px;
+        width: 1020px;
     }
 
     /* We need to create space for the image at this zoom level. */
