@@ -252,6 +252,7 @@ authenticate.error.generic = Something went wrong processing your request. Pleas
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = No worries, type in your email and we’ll send you a link to reset your password.
+reset.pw.forgot.suggest = Note: Accounts are not interchangeable between different cities. You will need to make an account for each city.
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password
