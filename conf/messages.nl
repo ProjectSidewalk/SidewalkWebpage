@@ -251,6 +251,8 @@ authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzo
 
 reset.pw.forgot.title = Wachtwoord vergeten?
 reset.pw.forgot.submit.email = Geen zorgen, typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
+reset.pw.forgot.suggest = Opmerking: Accounts zijn niet uitwisselbaar tussen verschillende steden. Je moet voor elke stad een account aanmaken.
+
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-account

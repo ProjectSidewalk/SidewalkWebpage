@@ -251,6 +251,7 @@ authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+reset.pw.forgot.suggest = Nota: Las cuentas no son intercambiables entre diferentes ciudades. Deberá crear una cuenta para cada ciudad.
 
 reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
