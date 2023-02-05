@@ -35,6 +35,7 @@ function Card (params, imageUrl, modal) {
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
+        correctness: undefined,
         user_validation: undefined,
         agree: undefined,
         disagree: undefined,
@@ -85,6 +86,9 @@ function Card (params, imageUrl, modal) {
                 properties[attrName] = param[attrName];
             }
         }
+        if (properties.correctness) properties.correctness = "correct";
+        else if (properties.correctness === false) properties.correctness = "incorrect";
+        else properties.correctness = "unvalidated";
 
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
@@ -130,7 +134,7 @@ function Card (params, imageUrl, modal) {
         // Create the div to store the validation info of the label.
         let cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
-        new ValidationInfoDisplay(cardValidationInfo, properties.agree, properties.disagree, getLabelType());
+        new ValidationInfoDisplay(cardValidationInfo, properties.agree, properties.disagree);
         cardData.appendChild(cardValidationInfo);
 
 

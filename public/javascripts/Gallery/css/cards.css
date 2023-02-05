@@ -125,7 +125,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     flex-direction: row;
 }
 
-.no-data-header {
+.no-severity-header {
     opacity: 60%;
 }
 

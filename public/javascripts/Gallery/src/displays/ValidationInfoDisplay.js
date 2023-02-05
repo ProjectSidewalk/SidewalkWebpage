@@ -8,17 +8,11 @@
  * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
  * @returns {ValidationInfoDisplay} the generated object
  */
-function ValidationInfoDisplay(container, agree, disagree, labelType, isModal=false) {
+function ValidationInfoDisplay(container, agree, disagree, isModal=false) {
     let self = this;
     self.agree = agree;
     self.disagree = disagree;
     self.validationContainer = container;
-
-    // List of label types where severity ratings are not supported.
-    // If more unsupported label types are made, add them here!
-    const unsupportedLabels = ['Occlusion', 'Signal'];
-
-    let unsupported = unsupportedLabels.includes(labelType);
 
     function _init() {
         let holder = document.createElement('div');
@@ -48,23 +42,6 @@ function ValidationInfoDisplay(container, agree, disagree, labelType, isModal=fa
         agreeIcon.src = 'assets/javascripts/SVLabel/img/misc/thumbs_up.png';
         disagreeIcon.src = 'assets/javascripts/SVLabel/img/misc/thumbs_down.png';
 
-        if (unsupported) {
-            // Create grayed out images.
-            agreeIcon.classList.add('modal-no-severity');
-            disagreeIcon.classList.add('modal-no-severity');
-
-            // gray out title
-            agreeText.classList.add('no-data-header');
-            disagreeText.classList.add('no-data-header');
-
-            // create tooltip
-            holder.setAttribute('data-toggle', 'tooltip');
-            holder.setAttribute('data-placement', 'top');
-
-            holder.setAttribute('title', `${i18next.t("unsupported")}`);
-            $(holder).tooltip('hide');
-        }
-
         agreeText.innerText = `${agree}`;
         disagreeText.innerText = `${disagree}`;
 
@@ -86,7 +63,6 @@ function ValidationInfoDisplay(container, agree, disagree, labelType, isModal=fa
         $(disagreeContainer).tooltip('hide');
 
         // Add all of the severity circles to the DOM.
-
         agreeContainer.append(agreeCountContainer);
         disagreeContainer.append(disagreeCountContainer);
 

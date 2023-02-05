@@ -39,7 +39,7 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
         title.innerText = `${i18next.t("severity")}`;
         // If no severity rating, gray out title.
         if (unsupported || severity == null) {
-            title.classList.add('no-data-header')
+            title.classList.add('no-severity-header')
         }
         container.append(title);
 

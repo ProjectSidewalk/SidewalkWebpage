@@ -159,7 +159,7 @@ function Modal(uiModal) {
 
         // Add severity, validation info, and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
-        new ValidationInfoDisplay(self.validation_info, properties.agree, properties.disagree, properties.label_type, true);
+        new ValidationInfoDisplay(self.validation_info, properties.agree, properties.disagree, true);
         new TagDisplay(self.tags, properties.tags, true);
 
         // Add the information about the temporary property to the Modal.
