@@ -57,10 +57,10 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "is_temporary" -> temporary,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
-        "notsure_count" -> notsureCount
-      ),
-      "users" -> Json.obj(
-        "user_ids" -> usersList
+        "notsure_count" -> notsureCount,
+        "users" -> Json.obj(
+          "user_ids" -> usersList
+        )
       )
     )
   }
@@ -232,29 +232,25 @@ object GlobalAttributeTable {
           |INNER JOIN label ON user_attribute_label.label_id = label.label_id
           |GROUP BY global_attribute.global_attribute_id"""
     // Select the average image date and number of images for each attribute.
-    // Subquery selects the dates of all images of interest, once per attribute.
-    val imageDates = """SELECT panorama_dates.global_attribute_id AS global_attribute_id,
+    // Subquery selects the dates of all images of interest and a list of user_ids
+    // associated with the attribute, once per attribute
+    val imageDatesAndUserIds = """SELECT panorama_dates.global_attribute_id AS global_attribute_id,
           |        TO_TIMESTAMP(AVG(EXTRACT(epoch from panorama_dates.panorama_date))) AS avg_img_date,
-          |        COUNT(panorama_dates.panorama_date) AS image_count
+          |        COUNT(panorama_dates.panorama_date) AS image_count,
+          |        array_to_string(array_agg(DISTINCT panorama_dates.users_list), ',') AS users_list
           |FROM (
           |    SELECT global_attribute.global_attribute_id,
-          |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.image_date || '-01' AS DATE)))) AS panorama_date
+          |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.image_date || '-01' AS DATE)))) AS panorama_date,
+          |           array_to_string(array_agg(DISTINCT audit_task.user_id), ',') AS users_list
           |    FROM global_attribute
           |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
           |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
           |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
           |    INNER JOIN sidewalk.gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
           |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
           |) panorama_dates
           |GROUP BY panorama_dates.global_attribute_id"""
-    // Puts set of user_ids associated with the attribute in a comma-separated list in a string
-    val userIds = """SELECT global_attribute.global_attribute_id, array_to_string(array_agg(DISTINCT audit_task.user_id), ',') AS users_list
-          |    FROM global_attribute
-          |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
-          |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
-          |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
-          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-          |    GROUP BY global_attribute.global_attribute_id"""
     val attributes = Q.queryNA[GlobalAttributeForAPI](
           s"""SELECT global_attribute.global_attribute_id,
           |          label_type.label_type,
@@ -272,14 +268,13 @@ object GlobalAttributeTable {
           |          validation_counts.avg_label_date,
           |          validation_counts.label_count,
           |          image_dates.image_count,
-          |          users_list.users_list
+          |          image_dates.users_list
           |FROM global_attribute
           |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
           |INNER JOIN region ON global_attribute.region_id = region.region_id
           |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
           |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
-          |INNER JOIN ($imageDates) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
-          |LEFT JOIN ($userIds) users_list ON global_attribute.global_attribute_id = users_list.global_attribute_id
+          |INNER JOIN ($imageDatesAndUserIds) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
           |WHERE label_type.label_type <> 'Problem'
           |    AND global_attribute.lat > $minLat
           |    AND global_attribute.lat < $maxLat
