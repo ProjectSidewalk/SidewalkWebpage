@@ -40,8 +40,6 @@
         "zoom-out": "Laten we nu uitzoomen en de volgende hoek op het kruispunt bekijken. <span class=\"bold\">Klik de “Zoom Uit knop</span>.",
         "adjust-heading-angle-2": "Kijk naar links door <span class=\"bold\">de Street View image te selecteren en te slepen.</span>",
         "adjust-heading-angle-3": "Blijf <span class=\"bold\">links</span> kijken.",
-
-
         "select-label-type-4": "Oké, deze hoek heeft twee trottoir opritten. Laten we ze beide labelen! <span class=\"bold\">Klik op de \"trottoir oprit\" knop.</span>",
         "label-both-curbs": "Vervolgens <span class=\"bold\">klik op een van de trottoir opritten</span> om die te labelen.",
         "select-label-type-6": "Merk op dat het trottoir hier plotseling ophoudt. Laten we dit labelen. Klik de <span class=\"bold\">\"Geen Trottoir\"</span> knop om het te labelen.",
@@ -107,9 +105,15 @@
         }
     },
     "right-ui": {
+        "accuracy-tooltip": "Nauwkeurigheid is gebaseerd op validaties van andere gebruikers. Als uw nauwkeurigheid laag is, bekijk dan enkele recente fouten op <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">uw gebruikersdashboard</a> om u te helpen verbeteren!",
+        "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",
         "current-mission": {
             "message-first-mission": "Zoek voor __PLACEHOLDER__ en vind alle trottoir toegankelijkheidskenmerken",
             "message": "Zoek __PLACEHOLDER__ voor deze wijk"
+        },
+        "minimap": {
+            "follow-red-line": "Volg de rode lijn om de missie voort te zetten",
+            "explore-current-location": "Verken deze locatie voor toegankelijkheidsproblemen"
         }
     },
     "center-ui": {

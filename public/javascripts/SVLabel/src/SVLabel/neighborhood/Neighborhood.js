@@ -44,10 +44,9 @@ function Neighborhood (parameters) {
         }
     }
 
-    function completedLineDistanceAcrossAllUsersUsingPriority(unit) {
-        if (!unit) unit = {units: 'kilometers'};
+    function completedLineDistanceAcrossAllUsersUsingPriority() {
         if ("taskContainer" in svl && svl.taskContainer) {
-            return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority(unit);
+            return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority();
         } else {
             return null;
         }
@@ -62,6 +61,13 @@ function Neighborhood (parameters) {
     function setProperty (key, value) {
         properties[key] = value;
         return this;
+    }
+
+    /**
+     * @returns region id of this neighborhood
+     */
+    function getRegionId () {
+        return getProperty('regionId');
     }
 
     function totalLineDistanceInNeighborhood (unit) {
@@ -91,5 +97,6 @@ function Neighborhood (parameters) {
     self.setProperty = setProperty;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.getGeoJSON = getGeoJSON;
+    self.getRegionId = getRegionId;
     return self;
 }

@@ -25,6 +25,17 @@
     color: #2d2a3f;
 }
 
+.label-timestamp {
+    display: flex;
+}
+
+#gsv-info-button {
+    width: 0.9vw;
+    height: 0.9vw;
+    margin-left: 5px;
+    margin-top: 2px;
+}
+
 .modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
     font-weight: bold;
     color: #2d2a3f;
@@ -96,7 +107,8 @@
     justify-content: space-between;
     width: 100%;
     font-size: .8vw;
-    padding-bottom: 1%;
+    padding-bottom: 0.9%;
+    padding-top: 0.1%;
 }
 
 .gallery-modal-info-severity {
@@ -154,8 +166,9 @@
 }
 
 .modal-severity-circle {
-    width: 1.75vw;
-    height: 1.75vw;
+    width: 1.5vw;
+    height: 1.5vw;
+    margin: 2px;
 }
 
 #modal-current-severity {

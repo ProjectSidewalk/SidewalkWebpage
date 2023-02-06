@@ -10,13 +10,14 @@ import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
-import models.mission.MissionTable
 import models.user.UserOrgTable
-import models.label.{LabelTable, LabelValidationTable}
+import models.label.{LabelLocation, LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
+import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
+
 import scala.concurrent.Future
 
 /**
@@ -39,10 +40,10 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = request.remoteAddress
       WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
-      // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+      // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
       val auditedDistance: Float = {
-        if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
-        else MissionTable.getDistanceAudited(user.userId)
+        if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
+        else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
       }
       Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
     }
@@ -100,11 +101,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedLabels(regionId: Option[Int]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels = regionId match {
-          case Some(rid) => LabelTable.getLabelLocations(user.userId, rid)
-          case None => LabelTable.getLabelLocations(user.userId)
-        }
-
+        val labels: List[LabelLocation] = LabelTable.getLabelLocations(user.userId, regionId)
         val features: List[JsObject] = labels.map { label =>
           val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
           val properties = Json.obj(
@@ -192,10 +189,30 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           }
         }
         Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
+      case None =>
+        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
+    }
+  }
+
+  /**
+   * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.
+   */
+  def getBasicUserStats = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val userId: UUID = user.userId
+        // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
+        val auditedDistance: Float = {
+          if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
+          else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
+        }
+        Future.successful(Ok(Json.obj(
+          "distance_audited" -> auditedDistance,
+          "label_count" -> LabelTable.countLabels(userId),
+          "accuracy" -> LabelValidationTable.getUserAccuracy(userId)
+        )))
+      case None =>
+        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }
   }
 }

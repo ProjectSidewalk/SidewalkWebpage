@@ -26,7 +26,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 2;
+    z-index: 3;
     font-size: 14pt;
 
     border-radius: 3px 3px 3px 3px;
@@ -124,7 +124,7 @@
 }
 
 .tutorial-table-cell {
-    text-align:center; 
+    text-align:center;
 }
 
 .tutorial-cell-intro {

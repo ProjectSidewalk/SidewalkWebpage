@@ -1906,7 +1906,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
-                "blinks": ["google-maps"]
+                "blinks": ["minimap"]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-1'),
@@ -1955,6 +1955,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "walk-3": {
             "properties": {
                 "action": "WalkTowards",
+                "blinks": ["compass", "movement-arrow"],
                 "panoId": afterWalkPanoId,
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
@@ -1969,16 +1970,17 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 _updateProgressBar(36);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-4", step: 36});
                 mapService.setPov({heading: 330, pitch: 0, zoom: 1});
-                document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/afterWalkTutorialMiniMap.jpg')";
+                svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/afterWalkTutorialMiniMap.jpg')`);
                 return "walk-4";
             }
         },
         "walk-4": {
             "properties": {
                 "action": "Instruction",
+                "stopBlinking": true,
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1],
-                "blinks": ["google-maps"]
+                "blinks": ["minimap"]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-4'),
@@ -2077,7 +2079,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "instruction-1": {
             "properties": {
                 "action": "Instruction",
-                "blinks": ["google-maps"],
+                "blinks": ["minimap"],
                 "minHeading": headingRanges["stage-6"][0],
                 "maxHeading": headingRanges["stage-6"][1]
             },

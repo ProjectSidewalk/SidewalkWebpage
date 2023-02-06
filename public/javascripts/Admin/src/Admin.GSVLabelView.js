@@ -23,90 +23,106 @@ function AdminGSVLabelView(admin) {
                             '<h4 class="modal-title" id="myModalLabel"></h4>' +
                         '</div>' +
                         '<div class="modal-body">' +
-                            '<div id="svholder" style="width: 540px; height:360px">' +
-                        '</div>' +
-                        '<div id="validation-input-holder">' +
-                            '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
-                            '<div id="validation-button-holder" style="padding-top: 10px;">' +
-                                '<button id="validation-agree-button" class="validation-button"' +
-                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                    'Agree' +
-                                '</button>' +
-                                '<button id="validation-disagree-button" class="validation-button"' +
-                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                    'Disagree' +
-                                '</button>' +
-                                '<button id="validation-not-sure-button" class="validation-button"' +
-                                    'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                    'Not sure' +
-                                '</button>' +
+                            '<div id="svholder" style="width: 540px; height:360px"></div>' +
+                            '<div id="validation-input-holder">' +
+                                '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
+                                '<div id="validation-button-holder" style="padding-top: 10px;">' +
+                                    '<button id="validation-agree-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        'Agree' +
+                                    '</button>' +
+                                    '<button id="validation-disagree-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        'Disagree' +
+                                    '</button>' +
+                                    '<button id="validation-not-sure-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        'Not sure' +
+                                    '</button>' +
+                                '</div>' +
+                                '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
+                                    '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
+                                    '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
+                                        i18next.t('common:label-map.submit') +
+                                    '</button>' +
+                                '</div>' +
                             '</div>' +
-                            '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
-                                '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                '<button id="comment-button" class="submit-button" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
-                                    i18next.t('common:label-map.submit') +
-                                '</button>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
-                            '<table class="table table-striped" style="font-size:small;>' +
-                                '<tr>' +
-                                    '<th>Label Type</th>' +
-                                    '<td id="label-type-value"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:severity') + '</th>' +
-                                    '<td id="severity"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:temporary') + '</th>' +
-                                    '<td id="temporary"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:tags') + '</th>' +
-                                    '<td colspan="3" id="tags"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:description') + '</th>' +
-                                    '<td colspan="3" id="label-description"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>Validations</th>' +
-                                    '<td colspan="3" id="label-validations"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>' + i18next.t('common:labeled') + '</th>' +
-                                    '<td id="timestamp" colspan="3"></td>' +
-                                '</tr>' +
-                                    '<th>' + i18next.t('common:image-date') + '</th>' +
-                                    '<td id="image-date" colspan="3"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>Pano ID</th>' +
-                                    '<td id="pano-id" colspan="3"></td>' +
-                                '</tr>';
+                            '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
+                                '<table class="table table-striped" style="font-size:small;>' +
+                                    '<tr>' +
+                                        '<th>Label Type</th>' +
+                                        '<td id="label-type-value"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:severity')}</th>` +
+                                        '<td id="severity"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:temporary')}</th>` +
+                                        '<td id="temporary"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:tags')}</th>` +
+                                        '<td colspan="3" id="tags"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:description')}</th>` +
+                                        '<td colspan="3" id="label-description"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Validations</th>' +
+                                        '<td colspan="3" id="label-validations"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:labeled')}</th>` +
+                                        '<td id="timestamp" colspan="3"></td>' +
+                                    '</tr>' +
+                                        '<th>' + i18next.t('common:image-date') + '</th>' +
+                                        '<td id="image-date" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.panorama-id')}</th>` +
+                                        '<td id="pano-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Google Street View</th>' +
+                                        '<td id="view-in-gsv" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.latitude')}</th>` +
+                                        '<td id="lat" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.longitude')}</th>` +
+                                        '<td id="lng" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.label-id')}</th>` +
+                                        '<td id="label-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.street-id')}</th>` +
+                                        '<td id="street-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.region-id')}</th>` +
+                                        '<td id="region-id" colspan="3"></td>' +
+                                    '</tr>';
         if (self.admin) {
             modalText +=
-                                '<tr>' +
-                                    '<th>Label ID</th>' +
-                                    '<td id="label-id" colspan="3"></td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<th>Task ID</th>' +
-                                    '<td id="task"></td>' +
-                                '</tr>' +
-                            '</table>' +
+                                    '<tr>' +
+                                        '<th>Task ID</th>' +
+                                        '<td id="task"></td>' +
+                                    '</tr>'
+        }
+        modalText +=
+                                '</table>' +
+                            '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                '</div>'
-        } else {
-            modalText += '</table>' +
-                '</div>' +
-                '</div>' +
-                '</div>' +
-                '</div>'
-        }
+            '</div>'
+
         self.modal = $(modalText);
 
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
@@ -152,8 +168,13 @@ function AdminGSVLabelView(admin) {
         self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-date");
         self.modalTask = self.modal.find("#task");
-        self.modalLabelId = self.modal.find("#label-id");
         self.modalPanoId = self.modal.find('#pano-id');
+        self.modalGsvLink = self.modal.find('#view-in-gsv');
+        self.modalLat = self.modal.find('#lat');
+        self.modalLng = self.modal.find('#lng');
+        self.modalLabelId = self.modal.find("#label-id");
+        self.modalStreetId = self.modal.find('#street-id');
+        self.modalRegionId = self.modal.find('#region-id');
     }
 
     /**
@@ -305,13 +326,21 @@ function AdminGSVLabelView(admin) {
     }
 
     function _handleData(labelMetadata) {
+        // Pass a callback function that fills in the pano lat/lng.
+        var panoCallback = function () {
+            var lat = self.panorama.panorama.getPosition().lat();
+            var lng = self.panorama.panorama.getPosition().lng();
+            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}" target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+            self.modalLat.html(lat.toFixed(8) + '°');
+            self.modalLng.html(lng.toFixed(8) + '°');
+        }
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
-            labelMetadata['pitch'], labelMetadata['zoom']);
+            labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
-            labelMetadata['canvas_x'], labelMetadata['canvas_y'],
-            labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
-            labelMetadata['pitch'], labelMetadata['zoom']);
+            labelMetadata['canvas_x'], labelMetadata['canvas_y'], labelMetadata['canvas_width'],
+            labelMetadata['canvas_height'], labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'],
+            labelMetadata['street_edge_id']);
         self.panorama.setLabel(adminPanoramaLabel);
 
         var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
@@ -321,17 +350,19 @@ function AdminGSVLabelView(admin) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
         self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
-        self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalValidations.html(validationsText);
+        self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
+        self.modalLabelId.html(labelMetadata['label_id']);
+        self.modalStreetId.html(labelMetadata['street_edge_id']);
+        self.modalRegionId.html(labelMetadata['region_id']);
         if (self.admin) {
-            self.modalLabelId.html(labelMetadata['label_id']);
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
                 labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
                 labelMetadata['username'] + "</a>");

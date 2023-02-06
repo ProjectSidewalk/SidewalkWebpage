@@ -1,7 +1,6 @@
 package models.label
 
 import com.vividsolutions.jts.geom.Point
-
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
@@ -11,6 +10,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
+import models.street.StreetEdgeRegionTable
 import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -20,7 +20,6 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.Json
-
 import java.io.InputStream
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -37,6 +36,13 @@ case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, 
 case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
                                      lat: Float, lng: Float, correct: Option[Boolean], expired: Boolean,
                                      highQualityUser: Boolean, severity: Option[Int])
+
+case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
+case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
+case class ProjectSidewalkStats(kmExplored: Float, kmExploreNoOverlap: Float, nUsers: Int, nExplorers: Int,
+                                nValidators: Int, nRegistered: Int, nAnon: Int, nTurker: Int, nResearcher: Int,
+                                nLabels: Int, severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
+                                accuracyByLabelType: Map[String, LabelAccuracy])
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -80,7 +86,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
  */
 object LabelTable {
   import MyPostgresDriver.plainImplicits._
-  
+
   val db = play.api.db.slick.DB
   val labelsUnfiltered = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
@@ -143,12 +149,12 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
-  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String, heading: Float,
-                           pitch: Float, zoom: Int, canvasXY: (Int, Int), canvasWidth: Int, canvasHeight: Int,
-                           auditTaskId: Int, userId: String, username: String, timestamp: java.sql.Timestamp,
-                           labelTypeKey: String, labelTypeValue: String, severity: Option[Int], temporary: Boolean,
-                           description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
-                           tags: List[String])
+  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String,
+                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), canvasWidthHeight: (Int, Int),
+                           auditTaskId: Int, streetEdgeId: Int, regionId: Int, userId: String, username: String,
+                           timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
+                           severity: Option[Int], temporary: Boolean, description: Option[String],
+                           userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                                    canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, labelType: String,
@@ -159,13 +165,15 @@ object LabelTable {
                                      timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                                      severity: Option[Int], temporary: Boolean, description: Option[String],
+                                     streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
                                      userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageDate: String, timestamp: java.sql.Timestamp, heading: Float,
                                                 pitch: Float, zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int,
                                                 canvasHeight: Int, severity: Option[Int], temporary: Boolean,
-                                                description: Option[String], userValidation: Option[Int]) extends BasicLabelMetadata
+                                                description: Option[String], streetEdgeId: Int, regionId: Int,
+                                                correct: Option[Boolean], userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, tagIds: List[Int])
@@ -177,9 +185,9 @@ object LabelTable {
 
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
-      r.nextInt, r.nextString, r.nextBoolean, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, (r.nextInt, r.nextInt),
-      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp, r.nextString, r.nextString,
-      r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
+      r.nextInt, r.nextString, r.nextBoolean, r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
+      (r.nextInt, r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
+      r.nextTimestamp, r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
@@ -189,14 +197,15 @@ object LabelTable {
     LabelValidationMetadataWithoutTags(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat,
       r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
-      r.nextStringOption, r.nextIntOption
+      r.nextStringOption, r.nextInt, r.nextInt, r.nextBooleanOption, r.nextIntOption
     )
   )
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
+      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
+      r.nextInt, r.nextBooleanOption, r.nextIntOption,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
@@ -219,6 +228,34 @@ object LabelTable {
       r.nextStringOption.map(tags => tags.split(",").map(_.toInt).toList).getOrElse(List())
     )
   )
+
+  implicit val projectSidewalkStatsConverter = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
+    r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+    Map(
+      "CurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "NoCurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Obstacle" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "SurfaceProblem" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "NoSidewalk" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Crosswalk" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Signal" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Occlusion" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
+      "Other" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption)
+    ),
+    r.nextInt,
+    Map(
+      "Overall" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "CurbRamp" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "NoCurbRamp" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Obstacle" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "SurfaceProblem" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "NoSidewalk" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Crosswalk" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Signal" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Occlusion" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
+      "Other" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption)
+    )
+  ))
 
   // Valid label type ids for the /validate -- excludes Other and Occlusion labels.
   val valLabelTypeIds: List[Int] = List(1, 2, 3, 4, 7, 9, 10)
@@ -396,6 +433,8 @@ object LabelTable {
         |       lp.canvas_width,
         |       lp.canvas_height,
         |       lb1.audit_task_id,
+        |       lb1.street_edge_id,
+        |       ser.region_id,
         |       u.user_id,
         |       u.username,
         |       lb1.time_created,
@@ -410,6 +449,7 @@ object LabelTable {
         |FROM label AS lb1,
         |     gsv_data,
         |     audit_task AS at,
+        |     street_edge_region AS ser,
         |     sidewalk_user AS u,
         |     label_point AS lp,
         |     (
@@ -444,6 +484,7 @@ object LabelTable {
         |    AND lb1.audit_task_id = at.audit_task_id
         |    AND lb1.label_id = lb_big.label_id
         |    AND at.user_id = u.user_id
+        |    AND lb1.street_edge_id = ser.street_edge_id
         |    AND lb1.label_id = lp.label_id
         |    AND lb1.label_id = val.label_id
         |    $labelFilter
@@ -513,7 +554,8 @@ object LabelTable {
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.image_date,
           |        label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
           |        label_point.canvas_y, label_point.canvas_width, label_point.canvas_height, label.severity,
-          |        label.temporary, label.description, user_validation.validation_result, the_tags.tag_list
+          |        label.temporary, label.description, label.street_edge_id, street_edge_region.region_id,
+          |        label.correct, user_validation.validation_result, the_tags.tag_list
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -521,6 +563,7 @@ object LabelTable {
           |INNER JOIN mission ON label.mission_id = mission.mission_id
           |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
           |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+          |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
           |LEFT JOIN (
           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
           |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
@@ -593,142 +636,84 @@ object LabelTable {
   }
 
   /**
-   * Retrieves n labels of specified type, severities, and tags.
+   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
    *
-   * @param labelTypeId Label type specifying what type of labels to grab.
    * @param n Number of labels to grab.
-   * @param loadedLabelIds Set of labelIds already grabbed as to not grab them again.
-   * @param severity  Set of severities the labels grabbed can have.
-   * @param tags Set of tags the labels grabbed can have.
+   * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
+   * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
+   * @param valOptions Set of correctness values to filter for: correct, incorrect, and/or unvalidated.
+   * @param severity          Set of severities the labels grabbed can have.
+   * @param tags              Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def getLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // Init random function.
-    val rand = SimpleFunction.nullary[Double]("random")
+  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    // Filter labels based on correctness.
+    val _labelsFilteredByCorrectness: Query[LabelTable, Label, Seq] =
+      if      (valOptions.isEmpty)                                 labels.filter(_.labelId === -1)
+      else if (valOptions.equals(Set("correct")))                  labels.filter(_.correct)
+      else if (valOptions.equals(Set("incorrect")))                labels.filter(!_.correct)
+      else if (valOptions.equals(Set("unvalidated")))              labels.filter(_.correct.isEmpty)
+      else if (valOptions.equals(Set("correct", "incorrect")))     labels.filter(_.correct.isDefined)
+      else if (valOptions.equals(Set("correct", "unvalidated")))   labels.filter(l => l.correct || l.correct.isEmpty)
+      else if (valOptions.equals(Set("incorrect", "unvalidated"))) labels.filter(l => !l.correct || l.correct.isEmpty)
+      else                                                         labels
 
-    // Grab labels and associated information if severity and tags satisfy query conditions.
-    val _galleryLabels = for {
-      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
+    // Filter for labels with any of the given tags.
+    val _labelsFilteredByTags = if (tags.nonEmpty) {
+      for {
+        _lb <- _labelsFilteredByCorrectness
+        _lt <- labelTags if _lb.labelId === _lt.labelId
+        _t <- tagTable if _lt.tagId === _t.tagId && (_t.tag inSet tags)
+      } yield _lb
+    } else {
+      _labelsFilteredByCorrectness
+    }
+
+    // Grab labels and associated information. Label type and severity filters are included here.
+    val _labelInfo = for {
+      _lb <- _labelsFilteredByTags if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-      _labelTags <- labelTags if _lb.labelId === _labelTags.labelId
-      _tags <- tagTable if _labelTags.tagId === _tags.tagId && ((_tags.tag inSet tags) || tags.isEmpty)
       _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _us <- UserStatTable.userStats if _a.userId === _us.userId
-      if _lb.labelTypeId === labelTypeId
+      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
+      if _lb.labelTypeId === labelTypeId || labelTypeId.isEmpty
+      if (_lb.severity inSet severity) || severity.isEmpty
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-      if _lb.severity.isEmpty || (_lb.severity inSet severity)
-    } yield (_lb, _lp, _lt, _gd)
+    } yield (_lb, _lp, _lt, _gd, _ser)
 
     // Join with the validations that the user has given.
-    val userValidations = validationsFromUser(userId)
-    val addValidations = for {
-      (l, v) <- _galleryLabels.leftJoin(userValidations).on(_._1.labelId === _._1)
+    val _userValidations = validationsFromUser(userId)
+    val _labelInfoWithUserVals = for {
+      (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
       l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, v._2.?)
+      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, l._1.correct, v._2.?)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
-    val uniqueLabels = addValidations.groupBy(x => x).map(_._1)
+    val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
 
-    // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+    // Randomize, check for GSV imagery, & add tag info. If no label type is specified, do it by label type.
+    if (labelTypeId.isDefined) {
+      val rand = SimpleFunction.nullary[Double]("random")
+      val _randomLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
-    // Take the first `n` labels with non-expired GSV imagery.
-    checkForGsvImagery(newRandomLabelsList, n)
-      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
-  }
+      // Take the first `n` labels with non-expired GSV imagery.
+      checkForGsvImagery(_randomLabels, n)
+        .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
+    } else {
+      val _potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
+        _labelInfoWithUserVals.list.map(LabelValidationMetadataWithoutTags.tupled)
+          .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
+      val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
-  /**
-   * Retrieve n random labels of assorted types.
-   *
-   * @param n Number of labels to grab.
-   * @param loadedLabelIds Label Ids of labels already grabbed.
-   * @param severity Optional set of severities the labels grabbed can have.
-   * @return Seq[LabelValidationMetadata]
-   */
-  def getAssortedLabels(n: Int, loadedLabelIds: Set[Int], userId: UUID, severity: Option[Set[Int]] = None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // Grab labels and associated information if severity and tags satisfy query conditions.
-    val _labelsUnfiltered = for {
-      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId && (_lt.labelTypeId inSet LabelTypeTable.primaryLabelTypeIds)
-      _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
-      _us <- UserStatTable.userStats if _a.userId === _us.userId
-      if _gd.expired === false
-      if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
-      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _lt, _gd)
-
-    // If severities are specified, filter by whether a label has a valid severity.
-    val _labels = if (severity.isDefined && severity.get.nonEmpty)
-      _labelsUnfiltered.filter(_._1.severity inSet severity.get)
-    else
-      _labelsUnfiltered
-
-    // Join with the validations that the user has given.
-    val userValidations = validationsFromUser(userId)
-    val addValidations = for {
-      (l, v) <- _labels.leftJoin(userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
-      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, v._2.?)
-
-    // Run query, group by label type, and randomize order.
-    val potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
-      addValidations.list.map(LabelValidationMetadataWithoutTags.tupled)
-        .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
-    val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
-
-    // Get final label list by checking for GSV imagery, then add tags to the selected labels.
-    checkForImageryByLabelType(potentialLabels, nPerType)
-      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
-  }
-
-  /**
-   * Retrieve n random labels of a specified type.
-   *
-   * @param labelTypeId Label Type ID of labels requested.
-   * @param n Number of labels to grab.
-   * @param loadedLabelIds Label Ids of labels already grabbed.
-   * @return Seq[LabelValidationMetadata]
-   */
-  def getLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // Init random function.
-    val rand = SimpleFunction.nullary[Double]("random")
-
-    // Grab labels and associated information if severity and tags satisfy query conditions.
-    val _labels = for {
-      _lb <- labels if !(_lb.labelId inSet loadedLabelIds)
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-      _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
-      _us <- UserStatTable.userStats if _a.userId === _us.userId
-      if _lb.labelTypeId === labelTypeId
-      if _gd.expired === false
-      if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
-      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _lt, _gd)
-
-    // Join with the validations that the user has given.
-    val userValidations = validationsFromUser(userId)
-    val addValidations = for {
-      (l, v) <- _labels.leftJoin(userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
-      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, v._2.?)
-
-    // Randomize and convert to LabelValidationMetadataWithoutTags.
-    val newRandomLabelsList = addValidations.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
-
-    // Take the first `n` labels with non-expired GSV imagery.
-    checkForGsvImagery(newRandomLabelsList, n)
-      .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
+      // Take the first `nPerType` labels with non-expired GSV imagery for each label type.
+      checkForImageryByLabelType(_potentialLabels, nPerType)
+        .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
+    }
   }
 
   /**
@@ -890,7 +875,7 @@ object LabelTable {
       LabelValidationMetadata(
         label.labelId, label.labelType, label.gsvPanoramaId, label.imageDate, label.timestamp, label.heading,
         label.pitch, label.zoom, label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.severity,
-        label.temporary, label.description, label.userValidation, tags
+        label.temporary, label.description, label.streetEdgeId, label.regionId, label.correct, label.userValidation, tags
       )
   }
 
@@ -997,41 +982,20 @@ object LabelTable {
   }
 
   /**
-   * Returns a list of labels submitted by the given user.
+   * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
    */
-  def getLabelLocations(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+  def getLabelLocations(userId: UUID, regionId: Option[Int] = None): List[LabelLocation] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labelsWithExcludedUsers
-      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _lt <- labelTypes if _l.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _l.labelId === _lp.labelId
+      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
+      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _at.streetEdgeId === _ser.streetEdgeId
       if _at.userId === userId.toString
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.getOrElse(0F), _lp.lng.getOrElse(0F))
+      if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
+      if _lp.lat.isDefined && _lp.lng.isDefined
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.get, _lp.lng.get)
     _labels.list.map(LabelLocation.tupled)
-  }
-
-  def getLabelLocations(userId: UUID, regionId: Int): List[LabelLocation] = db.withSession { implicit session =>
-    val selectQuery = Q.query[(String, Int), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng,
-        |       region.region_id
-        |FROM label
-        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN label_point ON label.label_id = label_point.label_id
-        |INNER JOIN audit_task ON audit_task.audit_task_id = label.audit_task_id
-        |INNER JOIN street_edge_region ON street_edge_region.street_edge_id = audit_task.street_edge_id
-        |INNER JOIN region ON street_edge_region.region_id = region.region_id
-        |WHERE label.deleted = FALSE
-        |    AND label_point.lat IS NOT NULL
-        |    AND region.deleted = FALSE
-        |    AND audit_task.user_id = ?
-        |    AND region.region_id = ?""".stripMargin
-    )
-    selectQuery((userId.toString, regionId)).list
   }
 
   /**
@@ -1091,21 +1055,6 @@ object LabelTable {
   }
 
   /**
-    * Gets the labels placed in the most recent mission.
-    */
-  def getLabelsFromCurrentAuditMission(regionId: Int, userId: UUID): List[Label] = db.withSession { implicit session =>
-    val recentMissionId: Option[Int] = MissionTable.missions
-        .filter(m => m.userId === userId.toString && m.regionId === regionId)
-        .sortBy(_.missionStart.desc)
-        .map(_.missionId).firstOption
-
-    recentMissionId match {
-      case Some(missionId) => labelsWithTutorialAndExcludedUsers.filter(_.missionId === missionId).list
-      case None => List()
-    }
-  }
-
-  /**
    * Gets the labels placed by a user in a region.
    *
    * @param regionId Region ID to get labels from
@@ -1145,6 +1094,231 @@ object LabelTable {
         |   AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL;""".stripMargin
     )
     labelsInRegionQuery.list
+  }
+
+  def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>
+    // We use a different filter in all the sub-queries, depending on whether or not we filter out low quality data.
+    val userFilter: String =
+      if (filterLowQuality) "user_stat.high_quality"
+      else "NOT user_stat.excluded"
+
+    val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
+      s"""SELECT km_audited.km_audited AS km_audited,
+         |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
+         |       users.total_users,
+         |       users.audit_users,
+         |       users.validation_users,
+         |       users.registered_users,
+         |       users.anon_users,
+         |       users.turker_users,
+         |       users.researcher_users,
+         |       label_counts_and_severity.label_count,
+         |       label_counts_and_severity.n_ramp,
+         |       label_counts_and_severity.n_ramp_with_sev,
+         |       label_counts_and_severity.ramp_sev_mean,
+         |       label_counts_and_severity.ramp_sev_sd,
+         |       label_counts_and_severity.n_noramp,
+         |       label_counts_and_severity.n_noramp_with_sev,
+         |       label_counts_and_severity.noramp_sev_mean,
+         |       label_counts_and_severity.noramp_sev_sd,
+         |       label_counts_and_severity.n_obs,
+         |       label_counts_and_severity.n_obs_with_sev,
+         |       label_counts_and_severity.obs_sev_mean,
+         |       label_counts_and_severity.obs_sev_sd,
+         |       label_counts_and_severity.n_surf,
+         |       label_counts_and_severity.n_surf_with_sev,
+         |       label_counts_and_severity.surf_sev_mean,
+         |       label_counts_and_severity.surf_sev_sd,
+         |       label_counts_and_severity.n_nosidewalk,
+         |       label_counts_and_severity.n_nosidewalk_with_sev,
+         |       label_counts_and_severity.nosidewalk_sev_mean,
+         |       label_counts_and_severity.nosidewalk_sev_sd,
+         |       label_counts_and_severity.n_crswlk,
+         |       label_counts_and_severity.n_crswlk_with_sev,
+         |       label_counts_and_severity.crswlk_sev_mean,
+         |       label_counts_and_severity.crswlk_sev_sd,
+         |       label_counts_and_severity.n_signal,
+         |       0 AS signal_with_sev,
+         |       NULL AS signal_sev_mean,
+         |       NULL AS signal_sev_sd,
+         |       label_counts_and_severity.n_occlusion,
+         |       0 AS occlusion_with_sev,
+         |       NULL AS occlusion_sev_mean,
+         |       NULL AS occlusion_sev_sd,
+         |       label_counts_and_severity.n_other,
+         |       label_counts_and_severity.n_other_with_sev,
+         |       label_counts_and_severity.other_sev_mean,
+         |       label_counts_and_severity.other_sev_sd,
+         |       total_val_count.validation_count,
+         |       val_counts.n_validated,
+         |       val_counts.n_agree,
+         |       val_counts.n_disagree,
+         |       1.0 * val_counts.n_agree / NULLIF(val_counts.n_validated, 0) AS overall_accuracy,
+         |       val_counts.n_ramp_total,
+         |       val_counts.n_ramp_agree,
+         |       val_counts.n_ramp_disagree,
+         |       1.0 * val_counts.n_ramp_agree / NULLIF(val_counts.n_ramp_total, 0) AS ramp_accuracy,
+         |       val_counts.n_noramp_total,
+         |       val_counts.n_noramp_agree,
+         |       val_counts.n_noramp_disagree,
+         |       1.0 * val_counts.n_noramp_agree / NULLIF(val_counts.n_noramp_total, 0) AS noramp_accuracy,
+         |       val_counts.n_obs_total,
+         |       val_counts.n_obs_agree,
+         |       val_counts.n_obs_disagree,
+         |       1.0 * val_counts.n_obs_agree / NULLIF(val_counts.n_obs_total, 0) AS obs_accuracy,
+         |       val_counts.n_surf_total,
+         |       val_counts.n_surf_agree,
+         |       val_counts.n_surf_disagree,
+         |       1.0 * val_counts.n_surf_agree / NULLIF(val_counts.n_surf_total, 0) AS surf_accuracy,
+         |       val_counts.n_nosidewalk_total,
+         |       val_counts.n_nosidewalk_agree,
+         |       val_counts.n_nosidewalk_disagree,
+         |       1.0 * val_counts.n_nosidewalk_agree / NULLIF(val_counts.n_nosidewalk_total, 0) AS nosidewalk_accuracy,
+         |       val_counts.n_crswlk_total,
+         |       val_counts.n_crswlk_agree,
+         |       val_counts.n_crswlk_disagree,
+         |       1.0 * val_counts.n_crswlk_agree / NULLIF(val_counts.n_crswlk_total, 0) AS crswlk_accuracy,
+         |       val_counts.n_signal_total,
+         |       val_counts.n_signal_agree,
+         |       val_counts.n_signal_disagree,
+         |       1.0 * val_counts.n_signal_agree / NULLIF(val_counts.n_signal_total, 0) AS signal_accuracy,
+         |       val_counts.n_occlusion_total,
+         |       val_counts.n_occlusion_agree,
+         |       val_counts.n_occlusion_disagree,
+         |       1.0 * val_counts.n_occlusion_agree / NULLIF(val_counts.n_occlusion_total, 0) AS occlusion_accuracy,
+         |       val_counts.n_other_total,
+         |       val_counts.n_other_agree,
+         |       val_counts.n_other_disagree,
+         |       1.0 * val_counts.n_other_agree / NULLIF(val_counts.n_other_total, 0) AS other_accuracy
+         |FROM (
+         |    SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+         |    FROM street_edge
+         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |    INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+         |    WHERE completed = TRUE AND $userFilter
+         |) AS km_audited, (
+         |    SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
+         |    FROM (
+         |        SELECT DISTINCT street_edge.street_edge_id, geom
+         |        FROM street_edge
+         |        INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |        INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+         |        WHERE completed = TRUE AND $userFilter
+         |    ) distinct_streets
+         |) AS km_audited_no_overlap, (
+         |    SELECT COUNT(DISTINCT(users.user_id)) AS total_users,
+         |           COUNT(CASE WHEN mission_type = 'validation' THEN 1 END) AS validation_users,
+         |           COUNT(CASE WHEN mission_type = 'audit' THEN 1 END) AS audit_users,
+         |           COUNT(DISTINCT(CASE WHEN role = 'Registered' THEN user_id END)) AS registered_users,
+         |           COUNT(DISTINCT(CASE WHEN role = 'Anonymous' THEN user_id END)) AS anon_users,
+         |           COUNT(DISTINCT(CASE WHEN role = 'Turker' THEN user_id END)) AS turker_users,
+         |           COUNT(DISTINCT(CASE WHEN role IN ('Researcher', 'Administrator', 'Owner') THEN user_id END)) AS researcher_users
+         |    FROM (
+         |        SELECT users_with_type.user_id, mission_type, role.role
+         |        FROM (
+         |            SELECT DISTINCT(label_validation.user_id), 'validation' AS mission_type
+         |            FROM label_validation
+         |            UNION
+         |            SELECT DISTINCT(user_id), 'audit' AS mission_type
+         |            FROM audit_task
+         |            WHERE audit_task.completed = TRUE
+         |        ) users_with_type
+         |        INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
+         |        INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
+         |        INNER JOIN role ON user_role.role_id = role.role_id
+         |        WHERE $userFilter
+         |    ) users
+         |) AS users, (
+         |    SELECT COUNT(*) AS label_count,
+         |           COUNT(CASE WHEN label_type.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
+         |           COUNT(CASE WHEN label_type.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN 1 END) AS n_noramp,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoCurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_noramp_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'Obstacle' THEN 1 END) AS n_obs,
+         |           COUNT(CASE WHEN label_type.label_type = 'Obstacle' AND severity IS NOT NULL THEN 1 END) AS n_obs_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'Obstacle' THEN severity END) AS obs_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'Obstacle' THEN severity END) AS obs_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN 1 END) AS n_surf,
+         |           COUNT(CASE WHEN label_type.label_type = 'SurfaceProblem' AND severity IS NOT NULL THEN 1 END) AS n_surf_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoSidewalk' THEN 1 END) AS n_nosidewalk,
+         |           COUNT(CASE WHEN label_type.label_type = 'NoSidewalk' AND severity IS NOT NULL THEN 1 END) AS n_nosidewalk_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'NoSidewalk' THEN severity END) AS nosidewalk_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'NoSidewalk' THEN severity END) AS nosidewalk_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'Crosswalk' THEN 1 END) AS n_crswlk,
+         |           COUNT(CASE WHEN label_type.label_type = 'Crosswalk' AND severity IS NOT NULL THEN 1 END) AS n_crswlk_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_sd,
+         |           COUNT(CASE WHEN label_type.label_type = 'Signal' THEN 1 END) AS n_signal,
+         |           COUNT(CASE WHEN label_type.label_type = 'Occlusion' THEN 1 END) AS n_occlusion,
+         |           COUNT(CASE WHEN label_type.label_type = 'Other' THEN 1 END) AS n_other,
+         |           COUNT(CASE WHEN label_type.label_type = 'Other' AND severity IS NOT NULL THEN 1 END) AS n_other_with_sev,
+         |           avg(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_mean,
+         |           stddev(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_sd
+         |    FROM label
+         |    INNER JOIN mission ON label.mission_id = mission.mission_id
+         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         |    WHERE $userFilter
+         |        AND deleted = FALSE
+         |        AND tutorial = FALSE
+         |        AND label.street_edge_id <> $tutorialStreetId
+         |        AND audit_task.street_edge_id <> $tutorialStreetId
+         |) AS label_counts_and_severity, (
+         |    SELECT COUNT(*) AS validation_count
+         |    FROM label_validation
+         |    INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+         |    WHERE $userFilter
+         |) AS total_val_count, (
+         |    SELECT COUNT(CASE WHEN correct THEN 1 END) AS n_agree,
+         |           COUNT(CASE WHEN NOT correct THEN 1 END) AS n_disagree,
+         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS n_validated,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS n_ramp_agree,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS n_ramp_disagree,
+         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_ramp_total,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS n_noramp_agree,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS n_noramp_disagree,
+         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_noramp_total,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS n_obs_agree,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS n_obs_disagree,
+         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NOT NULL THEN 1 END) AS n_obs_total,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS n_surf_agree,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS n_surf_disagree,
+         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NOT NULL THEN 1 END) AS n_surf_total,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS n_nosidewalk_agree,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS n_nosidewalk_disagree,
+         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NOT NULL THEN 1 END) AS n_nosidewalk_total,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS n_crswlk_agree,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS n_crswlk_disagree,
+         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NOT NULL THEN 1 END) AS n_crswlk_total,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS n_signal_agree,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS n_signal_disagree,
+         |           COUNT(CASE WHEN label_type = 'Signal' AND correct IS NOT NULL THEN 1 END) AS n_signal_total,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS n_occlusion_agree,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS n_occlusion_disagree,
+         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NOT NULL THEN 1 END) AS n_occlusion_total,
+         |           COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS n_other_agree,
+         |           COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS n_other_disagree,
+         |           COUNT(CASE WHEN label_type = 'Other' AND correct IS NOT NULL THEN 1 END) AS n_other_total
+         |    FROM label
+         |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |    INNER JOIN mission ON label.mission_id = mission.mission_id
+         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         |    WHERE $userFilter
+         |        AND deleted = FALSE
+         |        AND tutorial = FALSE
+         |        AND label.street_edge_id <> $tutorialStreetId
+         |        AND audit_task.street_edge_id <> $tutorialStreetId
+         |) AS val_counts;""".stripMargin
+    )
+    overallStatsQuery.first
   }
 
   /**

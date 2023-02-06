@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], label: String, labels: List[(String, String)], severity: List[Int])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -11,6 +11,27 @@
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
 
     @navbar(user, Some("/gallery"))
+
+    @icons()
+
+    @* These are templates and are not visible on the screen directly. *@
+    @* JS clones them, adjusts the attributes and then appends to DOM. *@
+    <div class="severity-filter-image severity-1 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-neutral"></use></svg>
+    </div>
+    <div class="severity-filter-image severity-2 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-1"></use></svg>
+    </div>
+    <div class="severity-filter-image severity-3 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
+    </div>
+    <div class="severity-filter-image severity-4 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-3"></use></svg>
+    </div>
+    <div class="severity-filter-image severity-5 template">
+        <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-4"></use></svg>
+    </div>
+
     <div id="gallery">
         <div class="sidebar">
             <div id="card-filter">
@@ -34,7 +55,7 @@
                         <h4><b>@Messages("gallery.show")</b></h4>
                         <select id="label-select" class="gallery-filter" disabled>
                             @for((value, message) <- labels) {
-                                @if(value == label) {
+                                @if(value == labelType) {
                                     <option value="@value" selected>@message</option>
                                 } else {
                                     <option value="@value">@message</option>
@@ -50,6 +71,8 @@
                     <span id="severity-select"></span>
                     <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
                     <span id="tags"></span>
+                    <h5 id="validation-options-header" class="filter-subheader">@Messages("gallery.validations")</h5>
+                    <span id="validation-options"></span>
                 </div>
             </div>
         </div>
@@ -97,6 +120,14 @@
             // URLs for where to send interaction data
             params.dataStoreUrl = '@routes.GalleryTaskController.post';
             params.beaconDataStoreUrl = params.dataStoreUrl + "Beacon";
+
+            // Initial set of sidebar filters.
+            params.initialFilters = {
+                labelType: '@labelType',
+                severities: @{severities.mkString("[", ",", "]")},
+                validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
+                tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))}
+            }
 
             params.language = "@lang.code";
 

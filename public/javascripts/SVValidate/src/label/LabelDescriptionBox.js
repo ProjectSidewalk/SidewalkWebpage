@@ -9,14 +9,6 @@ function LabelDescriptionBox () {
     let self = this;
     let descriptionBox = $("#label-description-box");
 
-    let smileyScale = {
-        1: '/assets/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
-        2: '/assets/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
-        3: '/assets/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
-        4: '/assets/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
-        5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
-    };
-
     /**
      * Sets the box's descriptions for the given label.
      *
@@ -36,23 +28,13 @@ function LabelDescriptionBox () {
         desBox.style['background-color'] = util.misc.getLabelColors(label.getAuditProperty('labelType'));
 
         if (severity && severity != 0) {
-            let span = document.createElement('span');
-            let htmlString = document.createTextNode(i18next.t('common:severity') + ": " +  severity + ' ');
-            desBox.appendChild(htmlString);
-            let img = document.createElement('img');
-            img.setAttribute('src', smileyScale[severity]);
-            if (isMobile()) {
-                img.setAttribute('width', '20px');
-                img.setAttribute('height', '20px');
-            } else {
-                img.setAttribute('width', '12px');
-                img.setAttribute('height', '12px');
-            }
+            let $line1 = $('<div class="label-description-box-line-1"></div>');
+            $line1.append('<div>' + i18next.t('common:severity') + ': ' +  severity + '</div>');
 
-            img.style.verticalAlign = 'middle';
-            span.appendChild(img);
-            desBox.appendChild(span);
-            desBox.appendChild(document.createElement("br"));
+            // Clone the template SVG element and remove the 'template' class.
+            let $severityImage = $('.severity-image.template.severity-' + severity).clone().removeClass('template');
+            $line1.append($severityImage);
+            $(desBox).append($line1);
         }
 
         if (temporary) {

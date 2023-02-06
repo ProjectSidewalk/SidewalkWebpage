@@ -1,5 +1,5 @@
 /**
- * Label Counter module. 
+ * Label Counter module.
  * @param d3 d3 module
  * @returns {{className: string}}
  * @constructor
@@ -13,10 +13,10 @@ function LabelCounter (d3) {
     var margin = {top: 10, right: 10, bottom: 10, left: 0};
     var padding = {left: 5, top: 15};
     var width = 200 - margin.left - margin.right;
-    var height = 40 - margin.top - margin.bottom;
+    var height = 34 - margin.top - margin.bottom;
     var colorScheme = util.misc.getLabelColors();
-    var imageWidth = 21;
-    var imageHeight = 21;
+    var imageWidth = 18;
+    var imageHeight = 18;
     var rightColumn = 1.8;
 
     // Prepare a group to store svg elements, and declare a text
@@ -176,7 +176,7 @@ function LabelCounter (d3) {
 
         // Actual update function
         function _update(key) {
-            if (keys.indexOf(key) == -1) { key = "Other"; }
+            if (keys.indexOf(key) === -1) { key = "Other"; }
 
             var hundredCircles = parseInt(dotPlots[key].count / 100);
             var fiftyCircles = parseInt((dotPlots[key].count % 100) / 50);
@@ -205,7 +205,7 @@ function LabelCounter (d3) {
                      x(tenCircles * 1.95 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
                }
             }
-            
+
             function setCY(d, i){
               if (i < hundredCircles && hundredCircles != 0) {
                 return 0;
@@ -264,7 +264,7 @@ function LabelCounter (d3) {
                   dotPlots[key].data.push([len + i, 0, radius])
               }
               dotPlots[key].plot.selectAll("circle")
-                .attr("r", setR) 
+                .attr("r", setR)
                 .attr("cy", setCY)
                 .attr("cx", setCX)
                 .data(dotPlots[key].data)
@@ -291,21 +291,18 @@ function LabelCounter (d3) {
      * @param key {string} Label type
      */
     this.decrement = function (key) {
-        if(svl.isOnboarding()) {
+        if (svl.isOnboarding()) {
             $(document).trigger('RemoveLabel');
         }
 
-        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (keys.indexOf(key) === -1) { key = "Other"; }
         if (key in dotPlots && dotPlots[key].count > 0) {
             dotPlots[key].count -= 1;
         }
         update(key);
 
-        if ("labelContainer" in svl) {
-            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId) - 1;
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        }
+        svl.statusFieldOverall.decrementLabelCount();
+        svl.statusFieldNeighborhood.decrementLabelCount();
 
     };
 
@@ -314,17 +311,14 @@ function LabelCounter (d3) {
      * @param key {string} Label type
      */
     this.increment = function (key) {
-        if (keys.indexOf(key) == -1) { key = "Other"; }
+        if (keys.indexOf(key) === -1) { key = "Other"; }
         if (key in dotPlots) {
             dotPlots[key].count += 1;
             update(key);
         }
 
-        if ("labelContainer" in svl) {
-            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId) + 1;
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        }
+        svl.statusFieldOverall.incrementLabelCount();
+        svl.statusFieldNeighborhood.incrementLabelCount();
     };
 
     /**

@@ -15,8 +15,7 @@ function RatingReminderAlert(alertHandler) {
         else {
             self['ratingCount'] = 0;
         }//reset counter if user labels once
-        if (self['ratingCount'] >= MINIMUM_NO_RATING_BEFORE_ALERT
-            && (svl.onboarding == null || !svl.onboarding.isOnboarding())) {
+        if (self['ratingCount'] >= MINIMUM_NO_RATING_BEFORE_ALERT && !svl.isOnboarding()) {
 
             alertHandler.showAlert(i18next.t('popup.severity-shortcuts'), 'reminderMessage', true);
             self['ratingCount'] = 0;

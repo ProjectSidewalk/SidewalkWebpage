@@ -2,7 +2,7 @@ import play.PlayScala
 
 name := """sidewalk-webpage"""
 
-version := "7.8.3"
+version := "7.10.0"
 
 scalaVersion := "2.10.7"
 
@@ -33,7 +33,7 @@ libraryDependencies ++= Seq(
   "net.codingwell" %% "scala-guice" % "4.1.1",
   "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
   "com.github.tminglei" %% "slick-pg" % "0.8.6",
-  "joda-time" % "joda-time" % "2.10.10",
+  "joda-time" % "joda-time" % "2.10.14",
   "org.geotools" % "gt-epsg-hsql" % "25.0" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-shapefile" % "25.0" exclude("javax.media", "jai_core"),
   // Below are transitive dependencies that were missing jars in default repositories.

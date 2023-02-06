@@ -8,8 +8,10 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
+import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
@@ -19,9 +21,12 @@ import models.region._
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
-import play.api.Logger
+import models.utils.CommonUtils.ordered
+import play.api.Play.current
+import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 
 /**
@@ -46,16 +51,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-    * This method returns a task definition specified by the streetEdgeId.
-    *
-    * @return Task definition
-    */
-  def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
-    Future.successful(Ok(task.toJSON))
-  }
-
-  /**
    * Get the audit tasks in the given region for the signed in user.
    */
   def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
@@ -64,9 +59,15 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)
         Future.successful(Ok(JsArray(tasks)))
       case None =>
-        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId).map(_.toJSON)
-        Future.successful(Ok(JsArray(tasks)))
+        Future.successful(Redirect(s"/anonSignUp?url=/tasks?regionId=${regionId}"))
     }
+  }
+
+  /**
+   * Save completion end point of a partially complete task
+   */
+  def updateMissionStart(auditTaskId: Int, missionStart: Point) = {
+    AuditTaskTable.updateMissionStart(auditTaskId, missionStart);
   }
 
   /**
@@ -75,24 +76,24 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   def updateAuditTaskTable(user: Option[User], auditTask: TaskSubmission, missionId: Int, amtAssignmentId: Option[Int]): Int = {
     if (auditTask.auditTaskId.isDefined) {
       // Update the existing audit task row (don't update if they are in the tutorial).
-      val id = auditTask.auditTaskId.get
+      val id: Int = auditTask.auditTaskId.get
       if (MissionTable.getMissionType(missionId) == Some("audit")) {
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng)
+        AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng, missionId, auditTask.currentMissionStart)
       }
       id
     } else {
       // Insert audit task.
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-      val auditTaskObj = user match {
+      val auditTaskObj: AuditTask = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
-          Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-          auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed)
+          new Timestamp(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,
+          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
-          AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId,
-            Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
-            auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed)
+          AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId, new Timestamp(auditTask.taskStart),
+            timestamp, completed=false, auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed,
+            Some(missionId), auditTask.currentMissionStart)
       }
       AuditTaskTable.save(auditTaskObj)
     }
@@ -178,6 +179,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * Helper function that updates database with all data submitted through the audit page.
    */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
+    var newLabels: ListBuffer[(Int, Timestamp)] = ListBuffer()
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption: Option[User] = identity
       val streetEdgeId: Int = data.auditTask.streetEdgeId
@@ -213,9 +215,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
 
       // Update the AuditTaskTable and get auditTaskId.
-      // Set the task to be completed and increment task completion count.
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
+
+      // Update MissionStart.
+      if (data.auditTask.currentMissionStart.isDefined) updateMissionStart(auditTaskId, data.auditTask.currentMissionStart.get)
 
       // Update the MissionTable.
       val possibleNewMission: Option[Mission] = updateMissionTable(userOption, data.missionProgress)
@@ -261,10 +265,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               }
             }
 
-            LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
+            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
               label.photographerHeading, label.photographerPitch, label.panoramaLat, label.panoramaLng, label.deleted,
               label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
               label.severity, label.temporary, label.description))
+
+            newLabels += ((newLabelId, timeCreated))
+            newLabelId
         }
 
         // Insert label points.
@@ -347,6 +354,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
       TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets)
+    }
+
+    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
+    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
+    val envType: String = Play.configuration.getString("environment-type").get
+    if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
+      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
     }
 
     Future.successful(Ok(Json.obj(

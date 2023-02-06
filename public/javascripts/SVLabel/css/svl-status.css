@@ -4,15 +4,15 @@
     padding: 0;
     position: absolute;
     left: 735px;
-    top: 31px;
+    top: 5px;
     width: 200px;
     color: rgb(127, 127, 127);
 }
 
 .status-box {
     border-bottom: 1px dotted #ccc;
-    margin: 3px 0 15px 0;
-    padding: 0 0 10px 0;
+    margin: 3px 0 5px 0;
+    padding: 0 0 5px 0;
     text-align: left;
 }
 
@@ -27,22 +27,54 @@
 }
 
 .status-box h2 {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: normal;
     margin: 1px 0 5px 1px;
 }
 
-.status-column-half {
-    white-space: nowrap;    
-    padding: 5px 5px 5px 5px;
-    margin: 5px 0 5px 0;
-    width: 50%;
+.status-box span {
+    font-size: 10pt;
+    vertical-align: middle;
+}
+
+#status-neighborhood-name {
+    vertical-align: text-bottom;
+}
+
+#label-counter-status-box {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
 
 .status-icon {
-    width: 25px;
+    width: 20px;
 }
 
-#status-holder-neighborhood-name {
-    display: inline;
+#accuracy-rating-tooltip {
+    background-color:rgba(58,58,58, 0.9);
+    color: white;
+    width: 276px;
+    top: 18px;
+    border-radius: 15px;
+    font-size: 10px;
+}
+
+#accuracy-rating-tooltip a {
+    color: white;
+}
+
+#accuracy-rating-tooltip > .popover-content {
+    padding: 6px 10px;
+    display: block;
+}
+
+#accuracy-rating-tooltip.top > .arrow {
+    left: 75px;
+    border-top-color:rgba(58,58,58, 0.9);
+}
+
+#accuracy-rating-tooltip.top > .arrow:after {
+    bottom: 2px;
+    border-top-color: rgba(58, 58, 58, 0.9);
 }

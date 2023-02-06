@@ -4,7 +4,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.LabelFormat._
 import models.label._
 import models.user.User
 import play.api.libs.json._
@@ -21,20 +20,6 @@ import scala.concurrent.Future
  */
 class LabelController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
-
-  /**
-   * Get the list of labels applied by the given user for their current audit mission in the given region.
-   */
-  def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val labels = LabelTable.getLabelsFromCurrentAuditMission(regionId, user.userId)
-        val jsLabels = JsArray(labels.map(l => Json.toJson(l)))
-        Future.successful(Ok(jsLabels))
-      case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
-    }
-  }
 
   /**
    * Fetches the labels that a user has added in the current region they are working in.
@@ -73,6 +58,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
             "canvasX" -> label.pointData.canvasX,
             "canvasY" -> label.pointData.canvasY,
             "audit_task_id" -> label.labelData.auditTaskId,
+            "missionId" -> label.labelData.missionId,
             "labelLat" -> label.pointData.lat,
             "labelLng" -> label.pointData.lng
           )

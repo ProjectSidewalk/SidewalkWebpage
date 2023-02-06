@@ -1,6 +1,6 @@
 /**
  * A holder class that inserts a GSV Pano into the supplied DOM element.
- * 
+ *
  * @param {HTMLElement} svHolder The DOM element that the GSV Pano will be placed in.
  * @returns {GalleryPanorama} The gallery panorama that was generated.
  */
@@ -190,7 +190,7 @@
             });
             self.labelMarker.marker.setIcon(url);
         }
-        
+
         // Make our newly set panomarker visible.
         self.labelMarker.marker.setVisible(true);
 
@@ -273,11 +273,47 @@
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally.
     }
 
+    /**
+     * Gets the current coordinates.
+     * @returns {{lng: float, lat: float}}
+     */
+    function getCoords() {
+        let coords = self.panorama.getPosition();
+        // Creates "TypeError: Cannot read properties of undefined (reading 'lat')", but still works fine.
+        return coords ? { 'lat' : coords.lat(), 'lng' : coords.lng() } : undefined;
+    }
+
+    /**
+     * Get the current point of view.
+     * @returns {object} pov
+     */
+    function getPov() {
+        var pov = self.panorama.getPov();
+
+        // Pov can be less than 0. So adjust it.
+        while (pov.heading < 0) {
+            pov.heading += 360;
+        }
+
+        // Pov can be more than 360. Adjust it.
+        while (pov.heading > 360) {
+            pov.heading -= 360;
+        }
+        return pov;
+    }
+
+    function getPanoId() {
+        return self.panoId;
+    }
+
     _init();
 
     self.setPov = setPov;
     self.setPano = setPano;
     self.renderLabel = renderLabel;
     self.getOriginalPosition = getOriginalPosition;
+    self.getPosition = getCoords;
+    self.getPov = getPov;
+    self.getPanoId = getPanoId;
     return self;
 }

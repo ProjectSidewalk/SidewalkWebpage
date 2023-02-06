@@ -1,10 +1,12 @@
 package models.user
 
-import models.region.{NamedRegion, RegionTable}
+import models.audit.AuditTaskTable
+import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+
 import java.util.UUID
-import models.mission.MissionTable
+import models.utils.CommonUtils.METERS_TO_MILES
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -37,14 +39,14 @@ object UserCurrentRegionTable {
     * Checks if the given user is "experienced" (have audited at least 2 miles).
     */
   def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
-    MissionTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
+    AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES > experiencedUserMileageThreshold
   }
 
   /**
     * Select an easy region w/ high avg street priority where the user hasn't completed all missions; assign it to them.
     */
-  def assignEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    val newRegion: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion(userId)
+  def assignEasyRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
+    val newRegion: Option[Region] = RegionTable.selectAHighPriorityEasyRegion(userId)
     newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
     newRegion
   }
@@ -52,9 +54,9 @@ object UserCurrentRegionTable {
   /**
     * Select a region with high avg street priority, where the user hasn't completed all missions; assign it to them.
     */
-  def assignRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def assignRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
     // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
-    val newRegion: Option[NamedRegion] =
+    val newRegion: Option[Region] =
       if(isUserExperienced(userId)) RegionTable.selectAHighPriorityRegion(userId)
       else RegionTable.selectAHighPriorityEasyRegion(userId)
     newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.

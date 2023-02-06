@@ -4,7 +4,7 @@
 }
 
 #card-filter {
-    padding: 5px;
+    padding: 0 5px 5px 5px;
     width: inherit;
 }
 
@@ -17,12 +17,12 @@
 }
 
 .paging {
-    display: inline-block; 
+    display: inline-block;
     font-size: 30px;
     background-color: white;
     border-radius: 5px;
     border-width: 1px;
-    margin: 0px 2px;
+    margin: 0 2px;
 }
 
 .paging:disabled {
@@ -45,15 +45,14 @@
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
-    padding-top: 20px;
     min-height: calc(100vh - 610px);
     width: 239px;
     grid-row: 1/2;
 }
 
 #labels-not-found-text {
-    position: absolute; 
-    width: 100%; 
+    position: absolute;
+    width: 100%;
     text-align: center;
     padding-top: 20px;
 }
@@ -72,11 +71,11 @@
 
 .grid-container {
     display: grid;
-    grid-template-areas: 
+    grid-template-areas:
         'main gallery-modal'
         'paging gallery-modal';
     grid-gap: 2px;
-    padding: 10px;
+    padding: 0 10px 10px 10px;
 }
 
 .cards {
@@ -85,3 +84,19 @@
     margin-left: 239px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 
+/* There is no specific intended function for hover/click on labels on the gallery page.
+We should allow the pointer events to pass through and behave the same way as they do on the background. */
+.label-icon-gallery, .icon-outline {
+    pointer-events: none;
+}
+
+/* Template elements should be hidden by default. */
+.template { display: none; }
+
+.face-outline {
+    stroke: #2D2A3F;
+}
+
+.facial-feature {
+    fill: #2D2A3F;
+}

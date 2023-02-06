@@ -25,8 +25,9 @@ function Main (params) {
         sg.ui.cardFilter = {};
         sg.ui.cardFilter.wrapper = $(".sidebar");
         sg.ui.cardFilter.holder = $("#card-filter");
-        sg.ui.cardFilter.tags = $("#tags");
         sg.ui.cardFilter.severity = $("#severity-select");
+        sg.ui.cardFilter.tags = $("#tags");
+        sg.ui.cardFilter.validationOptions = $("#validation-options");
 
         // Initializes city select component in sidebar.
         sg.ui.cityMenu = {};
@@ -64,17 +65,19 @@ function Main (params) {
     }
 
     function _init() {
+
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
-        sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu);
-        
+        sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
+
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
-        sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu);
-        sg.cardContainer = new CardContainer(sg.ui.cardContainer);
+        sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
+        sg.cardContainer = new CardContainer(sg.ui.cardContainer, params.initialFilters);
+        sg.modal = sg.cardContainer.getModal;
         // Initialize data collection.
-        sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl)
+        sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl);
         sg.tracker = new Tracker();
 
         let sidebarWrapper = sg.ui.cardFilter.wrapper;

@@ -54,13 +54,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         _gameEffectModel.loadAudio({audioType: "success"});
         _gameEffectModel.playAudio({audioType: "success"});
 
-        // Update the neighborhood status
-        if ("labelContainer" in svl) {
-            var regionId = neighborhood.getProperty("regionId");
-            var count = svl.labelContainer.countLabels(regionId);
-            svl.statusFieldNeighborhood.setLabelCount(count);
-        }
-
         _missionModel.completeMission(mission);
 
         svl.missionsCompleted += 1;
@@ -82,10 +75,17 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     };
 
     /**
-     * This method updates the mission completion rate and its visualization.
+     * This method updates audited distance and mission completion rate in the right sidebar.
      */
     this.update = function (currentMission, currentRegion) {
         if (svl.isOnboarding()) return;
+
+        // Update audited distance in both Overall and Neighborhood stats in right sidebar.
+        var distance = svl.taskContainer.getCompletedTaskDistance();
+        svl.statusFieldNeighborhood.setAuditedDistance(distance);
+        svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
+
+        // Update mission completion rate in right sidebar.
         var completionRate = currentMission.getMissionCompletionRate();
         statusModel.setMissionCompletionRate(completionRate);
         statusModel.setProgressBar(completionRate);

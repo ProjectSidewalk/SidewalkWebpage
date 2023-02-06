@@ -41,8 +41,6 @@ function ContextMenu (uiContextMenu) {
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
     uiContextMenu.closeButton.on('click', handleCloseButtonClick);
     $OKButton.on('click', _handleOKButtonClick);
-    $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
-    $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
     $tags.on('click', _handleTagClick);
 
     var down = {};
@@ -146,13 +144,16 @@ function ContextMenu (uiContextMenu) {
     function handleSeverityPopup() {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
-        if (labels.length == 0) {
+        if (labels.length === 0) {
             labels = prev_labels;
         }
         if (labels.length > 0) {
             var last_label = labels[labels.length - 1];
             var prop = last_label.getProperties();
-            svl.ratingReminderAlert.ratingClicked(prop.severity);
+            // If the label is Pedestrian Signal, do not call ratingReminderAlert()
+            if (prop.labelDescription !== 'Pedestrian Signal') {
+                svl.ratingReminderAlert.ratingClicked(prop.severity);
+            }
         }
     }
 
@@ -172,15 +173,6 @@ function ContextMenu (uiContextMenu) {
         }
     }
 
-    function _handleRadioButtonLabelMouseEnter() {
-        var radioValue = parseInt($(this).find("input").attr("value"), 10);
-        self.updateRadioButtonImages(radioValue);
-    }
-
-    function _handleRadioButtonLabelMouseLeave() {
-        self.updateRadioButtonImages();
-    }
-
     self.fetchLabelTags = function (callback) {
         $.when($.ajax({
             contentType: 'application/json; charset=utf-8',
@@ -195,32 +187,13 @@ function ContextMenu (uiContextMenu) {
         })).done(callback);
     };
 
-    self.updateRadioButtonImages = function (hoveredRadioButtonValue) {
-        var $radioButtonImages = $radioButtonLabels.find("input + img");
-        var $selectedRadioButtonImage;
-        var $hoveredRadioButtonImage;
-        var imageURL;
+    self.updateRadioButtonImages = function () {
 
-        $radioButtonImages.each(function (i, element) {
-            imageURL = $(element).attr("default-src");
-            $(element).attr("src", imageURL);
-        });
-
-        // Update the hovered radio button image
-        if (hoveredRadioButtonValue && hoveredRadioButtonValue > 0 && hoveredRadioButtonValue <= 5) {
-            $hoveredRadioButtonImage = $radioButtonLabels.find("input[value='" + hoveredRadioButtonValue + "'] + img");
-            imageURL = $hoveredRadioButtonImage.attr("default-src");
-            imageURL = imageURL.replace("_BW.png", ".png");
-            $hoveredRadioButtonImage.attr("src", imageURL);
-        }
+        $('#severity-radio-holder .severity-level').removeClass('selected');
 
         // Update the selected radio button image
-        $selectedRadioButtonImage = $radioButtonLabels.find("input:checked + img");
-        if ($selectedRadioButtonImage.length > 0) {
-            imageURL = $selectedRadioButtonImage.attr("default-src");
-            imageURL = imageURL.replace("_BW.png", ".png");
-            $selectedRadioButtonImage.attr("src", imageURL);
-        }
+        const $selectedRadioButtonImage = $radioButtonLabels.find("input:checked").closest('.severity-level');
+        $selectedRadioButtonImage.addClass('selected');
     };
 
     /**

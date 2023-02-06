@@ -5,6 +5,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
+import java.sql.Timestamp
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -235,4 +236,39 @@ object AuditTaskInteractionTable {
          |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
     ).first
   }
+
+  /**
+   * Calculate the time spent auditing by the given user for a specified time range, starting at a label creation time.
+   *
+   * To do this, we take the important events from the audit_task_interaction table, get the difference between each
+   * consecutive timestamp, filter out the timestamp diffs that are greater than five minutes, and then sum those time
+   * diffs.
+   *
+   * @param userId
+   * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
+   * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
+   * @return
+   */
+  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Float = db.withSession { implicit session =>
+    Q.queryNA[Float](
+      s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
+         |FROM (
+         |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |    FROM audit_task_interaction
+         |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
+         |    WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
+         |        AND audit_task.user_id = '$userId'
+         |        AND audit_task_interaction.timestamp < '$timeRangeEnd'
+         |        AND audit_task_interaction.timestamp > (
+         |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
+         |            FROM label
+         |            INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         |            WHERE audit_task.user_id = '$userId'
+         |                AND label.label_id < $timeRangeStartLabelId
+         |    )
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
+  }
+
 }

@@ -13,6 +13,6 @@ pandas # added by JEF 05/19/2022 to run check_gsv_image_dates.py
 #  WindowsError: [Error 126] The specified module could not be found
 # I downloaded Shapely-1.6.4.post2-cp27-cp27m-win_amd64.whl from the website above
 # and then typed pip install Shapely-1.6.4.post2-cp27-cp27m-win_amd64.whl
-shapely==1.7.1
+# shapely==1.7.1
 
 

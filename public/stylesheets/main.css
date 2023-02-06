@@ -368,8 +368,8 @@ p#conditional-text {
 }
 
 #skyline-spacing {
-    margin: 0 auto; 
-    width: fit-content; 
+    margin: 0 auto;
+    width: fit-content;
     margin-top: 135px;
 }
 
@@ -386,7 +386,7 @@ p#conditional-text {
     font-variant: normal;
     line-height: 1.1em;
     color: #2D2A3F;
-} 
+}
 
 .ps-skyline-overlay-btn {
     background-color: #eb734d;
@@ -445,7 +445,7 @@ p#conditional-text {
     margin: -35px auto 0 auto;
     min-width: 800px;
     max-width: 1400px;
-    
+
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
     grid-gap: 8px;
@@ -718,6 +718,54 @@ p#conditional-text {
 #info-footer a {
     color:#fff;
     text-decoration:underline;
+}
+
+/* GSV Info Popover styling. */
+.info-key {
+    font-weight: bold;
+    margin-right: 20px;
+}
+
+.info-list-item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.popover {
+    max-width: 400px;
+}
+
+.popover-title {
+    display: flex;
+    justify-content: space-between;
+    height: 36px;
+}
+
+.popover-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#gsv-link {
+    text-align: center;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#clipboard {
+    max-height: 100%;
+    cursor: pointer;
+}
+
+#clipboard:active {
+    opacity: 50%;
+}
+
+.clipboard-tooltip {
+    font-size: 12px;
+    white-space: nowrap;
 }
 
 @media only screen and (max-device-width: 500px) {
@@ -1187,7 +1235,7 @@ kbd {
     line-height: normal;
     border-width: 2px;
     border-color: grey;
-    resize: none;    
+    resize: none;
     outline: none;
     vertical-align: middle;
     margin-right: 2px;
@@ -1202,6 +1250,14 @@ kbd {
     border-width: 2px;
     border-color: lightgrey;
     vertical-align: middle;
+}
+
+#gsv-info-button {
+    cursor: pointer;
+}
+
+.gsv-info-list-group {
+    margin-bottom: 8px;
 }
 
 .mobile-popover {
@@ -1300,7 +1356,7 @@ kbd {
     line-height: 0.8;
     top: 30px;
 }
-  
+
 .ml-gif-header-1 {
     position: absolute;
     text-align: center;
@@ -1325,45 +1381,45 @@ kbd {
 #mlgif-bottom-text-1 {
     left: -285px;
     max-width: 50px;
-} 
+}
 
 #mlgif-bottom-text-2 {
     left: -20px;
     max-width: 500px;
-} 
+}
 
 #mlgif-bottom-text-3 {
     left: 395px;
     max-width: 200px;
-} 
+}
 
 #mlgif-label-text-1 {
     text-align: center;
     bottom: -170px;
     left: -285px;
     max-width: 160px;
-} 
+}
 
 #mlgif-label-text-2 {
     bottom: -30px;
     left: -20px;
     max-width: 250px;
-} 
+}
 
 #mlgif-semicircle-text-1 {
     bottom: -240px;
     left: 258px;
-} 
+}
 
 #mlgif-semicircle-text-2 {
-    bottom:-210px; 
+    bottom:-210px;
     left:388px;
-} 
+}
 
 #mlgif-semicircle-text-3 {
     bottom: -225px;
     left: 527px;
-} 
+}
 
 #mlgif-semicircle-text-4  {
     bottom: -320px;
@@ -1527,4 +1583,9 @@ kbd {
     .navbar-nav.navbar-right:last-child {
         margin-right: 0px;
     }
+}
+
+/* Common class used to hide template elements. */
+.template {
+    display: none;
 }
