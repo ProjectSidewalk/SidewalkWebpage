@@ -227,9 +227,9 @@ object GlobalAttributeTable {
           |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
           |INNER JOIN label ON user_attribute_label.label_id = label.label_id
           |GROUP BY global_attribute.global_attribute_id"""
-    // Select the average image date and number of images for each attribute.
-    // Subquery selects the dates of all images of interest and a list of user_ids
-    // associated with the attribute, once per attribute
+    // Select the average image date and number of images for each attribute. Subquery selects the dates of all images
+    // of interest and a list of user_ids associated with the attribute, once per attribute. The users_list might have
+    // duplicate id's, but we fix this in the `GlobalAttributeForAPIConverter`.
     val imageDatesAndUserIds = """SELECT panorama_dates.global_attribute_id AS global_attribute_id,
           |        TO_TIMESTAMP(AVG(EXTRACT(epoch from panorama_dates.panorama_date))) AS avg_img_date,
           |        COUNT(panorama_dates.panorama_date) AS image_count,
