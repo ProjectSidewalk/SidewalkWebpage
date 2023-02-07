@@ -1,11 +1,9 @@
 package models.attribute
 
 import java.sql.Timestamp
-import models.gsv.GSVDataTable
 import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
-import models.street.OsmWayStreetEdgeTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -58,9 +56,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
         "notsure_count" -> notsureCount,
-        "users" -> Json.obj(
-          "user_ids" -> usersList
-        )
+        "users" -> usersList
       )
     )
   }
@@ -190,7 +186,7 @@ object GlobalAttributeTable {
     GlobalAttributeForAPI(
       r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
       r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt,
-      r.nextString.split(",").toList
+      r.nextString.split(",").toList.distinct
     )
   )
 
@@ -237,7 +233,7 @@ object GlobalAttributeTable {
     val imageDatesAndUserIds = """SELECT panorama_dates.global_attribute_id AS global_attribute_id,
           |        TO_TIMESTAMP(AVG(EXTRACT(epoch from panorama_dates.panorama_date))) AS avg_img_date,
           |        COUNT(panorama_dates.panorama_date) AS image_count,
-          |        array_to_string(array_agg(DISTINCT panorama_dates.users_list), ',') AS users_list
+          |        string_agg(panorama_dates.users_list, ',') AS users_list
           |FROM (
           |    SELECT global_attribute.global_attribute_id,
           |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.image_date || '-01' AS DATE)))) AS panorama_date,
