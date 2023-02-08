@@ -269,10 +269,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         return _geojson.features[0].properties.street_edge_id;
     };
 
-    this.getRegionId = function () {
-        return _geojson.features[0].properties.region_id;
-    }
-
     this.streetCompletedByAnyUser = function () {
         return properties.completedByAnyUser;
     };

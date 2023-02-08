@@ -6,7 +6,7 @@
  * @returns {Severity}
  * @constructor
  */
-function Severity (params, active){
+function Severity (params, active) {
     let self = this;
 
     // UI element of the severity container and image.
@@ -63,7 +63,7 @@ function Severity (params, active){
             apply();
         }
 
-        sg.cardContainer.updateCardsByTagsAndSeverity();
+        sg.cardFilter.update();
     }
 
     function _showSelected() {

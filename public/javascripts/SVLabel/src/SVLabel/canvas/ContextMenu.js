@@ -150,7 +150,10 @@ function ContextMenu (uiContextMenu) {
         if (labels.length > 0) {
             var last_label = labels[labels.length - 1];
             var prop = last_label.getProperties();
-            svl.ratingReminderAlert.ratingClicked(prop.severity);
+            // If the label is Pedestrian Signal, do not call ratingReminderAlert()
+            if (prop.labelDescription !== 'Pedestrian Signal') {
+                svl.ratingReminderAlert.ratingClicked(prop.severity);
+            }
         }
     }
 

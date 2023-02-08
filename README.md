@@ -29,12 +29,13 @@ There are two methods to setup your Docker dev environment with Windows: with WS
     
 WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/). WSL2 offers faster compile times and is better supported by Docker.
 
-1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/).
-1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10) using the default Linux distribution (Ubuntu).
+1. [Install  Docker Desktop](https://www.docker.com/get-started). Follow the official [Docker Windows Install Guide](https://docs.docker.com/desktop/windows/install/). When prompted, ensure the **Use WSL 2** instead of Hyper-V option on the Configuration page is selected
+1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10) using the default Linux distribution (Ubuntu). Open PowerShell in **administrator** mode by right-clicking and selecting "Run as adminstrator" then enter `wsl --install`, which will use **WSL 2** to install **Ubuntu** by default (see [Microsoft's WSL instructions](https://learn.microsoft.com/en-us/windows/wsl/install)). We recommend pinning Ubuntu to your taskbar to open up the shell easily but you can easily find it in the future by searching "Ubuntu" from the Windows Start menu.
+1. Make sure you are also running the latest version of WSL. Again, in PowerShell, run `wsl --update`
 1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
-1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
-1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository.
-1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
+1. Proceed by clicking **Resources &rarr; WSL Integration** and making sure the "Enable integration with my default WSL distro" is checked. If you have multiple Linux distros, then select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
+1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository. For me, that's `/home/jonf/projects/`.
+1. From your Linux VM shell, run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
 
 ##### Transferring files from Windows to Linux VM
 One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.
@@ -43,6 +44,12 @@ One issue you may encounter when setting up your dev environment within the Linu
 1. Locate the Linux VM within your Project Sidewalk directory (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
 1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
 1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage directory where you can drag and drop files.
+
+For even easier access to the Linux filesystem in the future, we recommend mapping the Linux VM to a Windows drive letter.
+1. Type Windows+R to open the Run menu
+2. Type `\\wsl$`
+3. You should see your installed Linux VMs as networked folders. Right-click on Ubuntu (or whatever distro you are using) and select `Map network drive...`
+4. Map to a drive letter like "Z:". Now, when you type z:\ in PowerShell or File Explorer, you will be navigating the Linux filesystem (making it easy to copy files back and forth, as necessary)
 
 </details>
 

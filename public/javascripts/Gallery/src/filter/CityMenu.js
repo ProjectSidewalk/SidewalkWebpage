@@ -31,7 +31,7 @@ function CityMenu(uiCityMenu) {
         let city = $(this).val();
         setStatus("currentCity", city);
         sg.tracker.push("Filter_City=" + city);
-        sg.tagContainer.update();
+        sg.cardFilter.update();
     }
 
     /**
