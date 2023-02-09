@@ -1,11 +1,9 @@
 package models.attribute
 
 import java.sql.Timestamp
-import models.gsv.GSVDataTable
 import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
-import models.street.OsmWayStreetEdgeTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -39,7 +37,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val avgImageDate: Timestamp,
                                  val avgLabelDate: Timestamp,
                                  val imageCount: Int,
-                                 val labelCount: Int) {
+                                 val labelCount: Int,
+                                 val usersList: List[String]) {
   def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
@@ -56,13 +55,14 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "is_temporary" -> temporary,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
-        "notsure_count" -> notsureCount
+        "notsure_count" -> notsureCount,
+        "users" -> usersList
       )
     )
   }
   val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
                                 lng.toString, avgImageDate, avgLabelDate.toString, severity.getOrElse("NA").toString, temporary.toString,
-                                agreeCount.toString, disagreeCount.toString, notsureCount.toString)
+                                agreeCount.toString, disagreeCount.toString, notsureCount.toString, "\"[" + usersList.mkString(",") + "]\"")
 }
 
 case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
@@ -79,14 +79,13 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val headingPitchZoom: (Float, Float, Int),
                                           val canvasXY: (Int, Int),
                                           val canvasWidthHeight: (Int, Int),
-                                          val agreeCount: Int,
-                                          val disagreeCount: Int,
-                                          val notsureCount: Int,
+                                          val agreeDisagreeNotsureCount: (Int, Int, Int),
                                           val labelSeverity: Option[Int],
                                           val labelTemporary: Boolean,
                                           val imageLabelDates: (String, Timestamp),
                                           val labelTags: List[String],
-                                          val labelDescription: Option[String]) {
+                                          val labelDescription: Option[String],
+                                          val userId: String) {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${canvasWidthHeight._1}x${canvasWidthHeight._2}
                   |&pano=${gsvPanoramaId}
@@ -122,11 +121,12 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "label_date" -> imageLabelDates._2.toString(),
         "label_severity" -> labelSeverity,
         "label_is_temporary" -> labelTemporary,
-        "agree_count" -> agreeCount,
-        "disagree_count" -> disagreeCount,
-        "notsure_count" -> notsureCount,
+        "agree_count" -> agreeDisagreeNotsureCount._1,
+        "disagree_count" -> agreeDisagreeNotsureCount._2,
+        "notsure_count" -> agreeDisagreeNotsureCount._3,
         "label_tags" -> labelTags,
-        "label_description" -> labelDescription
+        "label_description" -> labelDescription,
+        "user_id" -> userId
       )
     )
   }
@@ -137,9 +137,9 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
                                 canvasXY._1.toString, canvasXY._2.toString, canvasWidthHeight._1.toString,
                                 canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"", imageLabelDates._1, imageLabelDates._2.toString,
-                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeCount.toString,
-                                disagreeCount.toString, notsureCount.toString, "\"[" + labelTags.mkString(",") + "]\"",
-                                "\"" + labelDescription.getOrElse("NA") + "\"")
+                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeDisagreeNotsureCount._1.toString,
+                                agreeDisagreeNotsureCount._2.toString, agreeDisagreeNotsureCount._3.toString,
+                                "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"", userId)
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
@@ -185,7 +185,8 @@ object GlobalAttributeTable {
   implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
     GlobalAttributeForAPI(
       r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt
+      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt,
+      r.nextString.split(",").toList.distinct
     )
   )
 
@@ -193,8 +194,8 @@ object GlobalAttributeTable {
     GlobalAttributeWithLabelForAPI(
       r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt, r.nextString,
       r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, (r.nextFloat, r.nextFloat, r.nextInt), (r.nextInt,
-      r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, (r.nextString,
-      r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption()
+      r.nextInt), (r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean, (r.nextString,
+      r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString
     )
   )
 
@@ -226,19 +227,23 @@ object GlobalAttributeTable {
           |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
           |INNER JOIN label ON user_attribute_label.label_id = label.label_id
           |GROUP BY global_attribute.global_attribute_id"""
-    // Select the average image date and number of images for each attribute.
-    // Subquery selects the dates of all images of interest, once per attribute.
-    val imageDates = """SELECT panorama_dates.global_attribute_id AS global_attribute_id,
+    // Select the average image date and number of images for each attribute. Subquery selects the dates of all images
+    // of interest and a list of user_ids associated with the attribute, once per attribute. The users_list might have
+    // duplicate id's, but we fix this in the `GlobalAttributeForAPIConverter`.
+    val imageDatesAndUserIds = """SELECT panorama_dates.global_attribute_id AS global_attribute_id,
           |        TO_TIMESTAMP(AVG(EXTRACT(epoch from panorama_dates.panorama_date))) AS avg_img_date,
-          |        COUNT(panorama_dates.panorama_date) AS image_count
+          |        COUNT(panorama_dates.panorama_date) AS image_count,
+          |        string_agg(panorama_dates.users_list, ',') AS users_list
           |FROM (
           |    SELECT global_attribute.global_attribute_id,
-          |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.image_date || '-01' AS DATE)))) AS panorama_date
+          |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.image_date || '-01' AS DATE)))) AS panorama_date,
+          |           array_to_string(array_agg(DISTINCT audit_task.user_id), ',') AS users_list
           |    FROM global_attribute
           |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
           |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
           |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
           |    INNER JOIN sidewalk.gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
           |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
           |) panorama_dates
           |GROUP BY panorama_dates.global_attribute_id"""
@@ -258,13 +263,14 @@ object GlobalAttributeTable {
           |          image_dates.avg_img_date,
           |          validation_counts.avg_label_date,
           |          validation_counts.label_count,
-          |          image_dates.image_count
+          |          image_dates.image_count,
+          |          image_dates.users_list
           |FROM global_attribute
           |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
           |INNER JOIN region ON global_attribute.region_id = region.region_id
           |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
           |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
-          |INNER JOIN ($imageDates) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
+          |INNER JOIN ($imageDatesAndUserIds) image_dates ON global_attribute.global_attribute_id = image_dates.global_attribute_id
           |WHERE label_type.label_type <> 'Problem'
           |    AND global_attribute.lat > $minLat
           |    AND global_attribute.lat < $maxLat
@@ -313,7 +319,8 @@ object GlobalAttributeTable {
           |        gsv_data.image_date,
           |        label.time_created,
           |        the_tags.tag_list,
-          |        label.description
+          |        label.description,
+          |        audit_task.user_id
           |FROM global_attribute
           |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
           |INNER JOIN region ON global_attribute.region_id = region.region_id
@@ -323,6 +330,7 @@ object GlobalAttributeTable {
           |INNER JOIN label_point ON label.label_id = label_point.label_id
           |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
           |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+          |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
           |LEFT JOIN (
           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
           |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
