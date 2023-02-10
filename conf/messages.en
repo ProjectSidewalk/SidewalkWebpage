@@ -328,7 +328,7 @@ leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your lab
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/audit"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organization</u></a> to compete against your teammates!
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organization</u></a> and work together as a team to map and assess sidewalks!
 
 gallery = Gallery
 gallery.show = Show
