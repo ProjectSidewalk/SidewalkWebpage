@@ -494,6 +494,17 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
+     * Get street id of current task
+     */
+    function getCurrentTaskStreetEdgeId() {
+        return currentTask ? currentTask.getStreetEdgeId() : null;
+    }
+
+    function getCurrentTaskStreetEdgeIdFunction() {
+        return getCurrentTaskStreetEdgeId;
+    }
+
+    /**
      * Store the before jump new task
      * @param task
      */
@@ -585,4 +596,5 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
     self.updateTaskPriorities = updateTaskPriorities;
+    self.getCurrentTaskStreetEdgeIdFunction = getCurrentTaskStreetEdgeIdFunction();
 }
