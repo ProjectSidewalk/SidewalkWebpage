@@ -250,7 +250,8 @@ authenticate.error.invalid.credentials = Ongeldige inloggegevens!
 authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
 reset.pw.forgot.title = Wachtwoord vergeten?
-reset.pw.forgot.submit.email = Geen zorgen, typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
+reset.pw.forgot.submit.email = Typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
+reset.pw.forgot.suggest = Als je problemen hebt met inloggen of het resetten van je wachtwoord, controleer dan of je naar de stad kijkt waar je je account hebt aangemaakt door naar de navigatiebalk rechtsboven op de pagina te kijken. Accounts zijn niet uitwisselbaar tussen verschillende steden, dus je moet voor elke stad een nieuw account aanmaken (je kunt dezelfde gebruikersnaam en hetzelfde wachtwoord gebruiken).
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-account
