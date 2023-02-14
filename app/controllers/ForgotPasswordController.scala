@@ -48,7 +48,7 @@ class ForgotPasswordController @Inject() (
         val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
 
         // Log the user's attempt to reset password here
-        WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "PasswordResetAttempt_Email=" + email, timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"PasswordResetAttempt_Email=$email", timestamp))
 
         userService.retrieve(loginInfo).flatMap {
           case Some(user) =>
@@ -64,11 +64,11 @@ class ForgotPasswordController @Inject() (
 
               try {
                 MailerPlugin.send(resetEmail)
-                WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "PasswordResetSuccess_Email=" + email, timestamp))
+                WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"PasswordResetSuccess_Email=$email", timestamp))
                 Future.successful(result)
               } catch {
                 case e: Exception => {
-                  WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "PasswordResetFail_Email=" + email + "_Reason=" + e.getClass.getCanonicalName, timestamp))
+                  WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"PasswordResetFail_Email=${email}_Reason=${e.getClass.getCanonicalName}", timestamp))
                   Logger.error(e.getCause + "")
                   Future.failed(e)
                 }
@@ -77,7 +77,7 @@ class ForgotPasswordController @Inject() (
 
           // This is the case where the email was not found in the database
           case None =>
-            WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "PasswordResetFail_Email=" + email + "_Reason=EmailNotFound", timestamp))
+            WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"PasswordResetFail_Email=${email}_Reason=EmailNotFound", timestamp))
             Future.successful(result)
         }
       }
