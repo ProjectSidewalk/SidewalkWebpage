@@ -78,7 +78,6 @@ class ForgotPasswordController @Inject() (
           // This is the case where the email was not found in the database
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "PasswordResetFail_Email=" + email + "_Reason=EmailNotFound", timestamp))
-            // Should this be returned or should it be Future.failed(result)?
             Future.successful(result)
         }
       }
