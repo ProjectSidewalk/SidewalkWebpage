@@ -8,7 +8,7 @@ object GalleryFormats {
   case class GalleryEnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], operatingSystem: Option[String], language: String)
   case class GalleryInteractionSubmission(action: String, panoId: Option[String], note: Option[String], timestamp: Long)
   case class GalleryTaskSubmission(environment: GalleryEnvironmentSubmission, interactions: Seq[GalleryInteractionSubmission])
-  case class GalleryLabelsRequest(labelTypeId: Int, n: Int, severities: Option[Seq[Int]], tags: Option[Seq[String]], loadedLabels: Seq[Int])
+  case class GalleryLabelsRequest(n: Int, labelTypeId: Option[Int], validationOptions: Option[Seq[String]], severities: Option[Seq[Int]], tags: Option[Seq[String]], loadedLabels: Seq[Int])
 
   implicit val galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] = (
     (JsPath \ "browser").readNullable[String] and
@@ -36,10 +36,11 @@ object GalleryFormats {
     )(GalleryTaskSubmission.apply _)
 
   implicit val galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = (
-    (JsPath \ "labelTypeId").read[Int] and
-      (JsPath \ "n").read[Int] and
+    (JsPath \ "n").read[Int] and
+      (JsPath \ "label_type_id").readNullable[Int] and
+      (JsPath \ "validation_options").readNullable[Seq[String]] and
       (JsPath \ "severities").readNullable[Seq[Int]] and
       (JsPath \ "tags").readNullable[Seq[String]] and
-      (JsPath \ "loadedLabels").read[Seq[Int]]
+      (JsPath \ "loaded_labels").read[Seq[Int]]
   )(GalleryLabelsRequest.apply _)
 }

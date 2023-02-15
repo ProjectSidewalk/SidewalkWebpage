@@ -35,6 +35,7 @@ function Card (params, imageUrl, modal) {
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
+        correctness: undefined,
         user_validation: undefined,
         tags: []
     };
@@ -83,6 +84,9 @@ function Card (params, imageUrl, modal) {
                 properties[attrName] = param[attrName];
             }
         }
+        if (properties.correctness) properties.correctness = "correct";
+        else if (properties.correctness === false) properties.correctness = "incorrect";
+        else properties.correctness = "unvalidated";
 
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];

@@ -49,7 +49,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         self.setProperty("priority", _geojson.features[0].properties.priority);
         self.setProperty("currentMissionId", currMissionId);
         self.setProperty("auditTaskId", _geojson.features[0].properties.audit_task_id);
-        self.setProperty("taskStart", new Date(`${_geojson.features[0].properties.task_start} UTC`));
+        self.setProperty("taskStart", new Date(`${_geojson.features[0].properties.task_start}Z`));
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
         }
@@ -269,10 +269,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     this.getStreetEdgeId = function () {
         return _geojson.features[0].properties.street_edge_id;
     };
-
-    this.getRegionId = function () {
-        return _geojson.features[0].properties.region_id;
-    }
 
     this.streetCompletedByAnyUser = function () {
         return properties.completedByAnyUser;

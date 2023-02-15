@@ -250,7 +250,8 @@ authenticate.error.invalid.credentials = Credenciales inválidas
 authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 
 reset.pw.forgot.title = Olvidaste tu contraseña
-reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+reset.pw.forgot.submit.email = Escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+reset.pw.forgot.suggest = Si tiene problemas para iniciar sesión o restablecer su contraseña, compruebe que está mirando la ciudad donde creó su cuenta consultando la barra de navegación en la parte superior derecha de la página. Las cuentas no son intercambiables entre diferentes ciudades, por lo que deberá crear una nueva cuenta para cada ciudad (puede usar el mismo nombre de usuario/contraseña).
 
 reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
@@ -333,6 +334,7 @@ gallery.show = Mostrar
 gallery.filter.by = Filtrar por
 gallery.severity = Calificación
 gallery.tags = Etiquitas
+gallery.validations = Validaciones
 gallery.all = Todos
 gallery.occlusion = No puedo ver la banqueta
 gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!

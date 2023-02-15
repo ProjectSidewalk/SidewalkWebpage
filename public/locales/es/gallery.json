@@ -3,5 +3,8 @@
     "none": "ninguna",
     "agree": "De acuerdo",
     "disagree": "No estoy de acuerdo",
-    "not-sure": "No estoy de seguro"
+    "not-sure": "No estoy de seguro",
+    "correct": "Validada correcta",
+    "incorrect": "Validada incorrecta",
+    "unvalidated": "No validada"
 }
