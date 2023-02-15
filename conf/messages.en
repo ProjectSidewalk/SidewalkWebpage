@@ -251,7 +251,8 @@ authenticate.error.invalid.credentials = Invalid credentials!
 authenticate.error.generic = Something went wrong processing your request. Please make sure all your information is correct and then try again
 
 reset.pw.forgot.title = Forgot your password?
-reset.pw.forgot.submit.email = No worries, type in your email and we’ll send you a link to reset your password.
+reset.pw.forgot.submit.email = Type in your email and we’ll send you a link to reset your password.
+reset.pw.forgot.suggest = If you are having trouble logging in or resetting your password, check that you are looking at the city where you made your account by checking the navbar on the top-right of the page. Accounts are not interchangeable between different cities, so you'll need to make a new account for each city (you can use the same username/password).
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password

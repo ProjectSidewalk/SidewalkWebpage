@@ -46,9 +46,13 @@ class ForgotPasswordController @Inject() (
       email => {
         val loginInfo = LoginInfo(CredentialsProvider.ID, email.toLowerCase)
         val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
+
+        // Log the user's attempt to reset password here
+        WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"""PasswordResetAttempt_Email="${email}"""", timestamp))
+
         userService.retrieve(loginInfo).flatMap {
           case Some(user) =>
-            authTokenService.create(user.userId).map { authTokenID =>
+            authTokenService.create(user.userId).flatMap { authTokenID =>
               val url = routes.UserController.resetPassword(authTokenID).absoluteURL()
 
               val resetEmail = Email(
@@ -58,14 +62,22 @@ class ForgotPasswordController @Inject() (
                 bodyHtml = Some(views.html.emails.resetPasswordEmail(user, url).body)
               )
 
-              MailerPlugin.send(resetEmail)
-              WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "PasswordResetRequest=" + email, timestamp))
-              result
+              try {
+                MailerPlugin.send(resetEmail)
+                WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""", timestamp))
+                Future.successful(result)
+              } catch {
+                case e: Exception => {
+                  WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"""PasswordResetFail_Email="${email}"_Reason=${e.getClass.getCanonicalName}""", timestamp))
+                  Logger.error(e.getCause + "")
+                  Future.failed(e)
+                }
+              }
             }
 
+          // This is the case where the email was not found in the database
           case None =>
-            Logger.warn("Tried to reset password, but email not found in database: " + email)
-            WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "PasswordResetRequestFailed=" + email, timestamp))
+            WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, s"""PasswordResetFail_Email="${email}"_Reason=EmailNotFound""", timestamp))
             Future.successful(result)
         }
       }
