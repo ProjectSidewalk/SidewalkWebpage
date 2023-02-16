@@ -81,7 +81,7 @@ case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
   }
 }
 
-case class StreetEdgeWithAuditStatus(streetEdgeId: Int, geom: LineString, wayType: String, audited: Boolean)
+case class StreetEdgeWithAuditStatus(streetEdgeId: Int, geom: LineString, regionId: Int, wayType: String, audited: Boolean)
 
 class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
@@ -325,8 +325,9 @@ object AuditTaskTable {
 
     // Left join list of streets with list of audited streets to record whether each street has been audited.
     val streetsWithAuditedStatus = streetEdgesWithoutDeleted
-      .leftJoin(_distinctCompleted).on(_.streetEdgeId === _)
-      .map(s => (s._1.streetEdgeId, s._1.geom, s._1.wayType, !s._2.?.isEmpty))
+      .innerJoin(StreetEdgeRegionTable.streetEdgeRegionTable).on(_.streetEdgeId === _.streetEdgeId)
+      .leftJoin(_distinctCompleted).on(_._1.streetEdgeId === _)
+      .map(s => (s._1._1.streetEdgeId, s._1._1.geom, s._1._2.regionId, s._1._1.wayType, !s._2.?.isEmpty))
 
     streetsWithAuditedStatus.list.map(StreetEdgeWithAuditStatus.tupled)
   }

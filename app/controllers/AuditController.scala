@@ -65,7 +65,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // newRegion is set to true, assign a new region. Otherwise, get their previously assigned region.
         var region: Option[Region] =
           if (userRoute.isDefined) {
-            val regionId: Int = UserCurrentRegionTable.saveOrUpdate(user.userId, 10)
+            val regionId: Int = UserCurrentRegionTable.saveOrUpdate(user.userId, 555)
             RegionTable.getRegion(regionId)
           } else if (newRegion || !UserCurrentRegionTable.isAssigned(user.userId)) {
             UserCurrentRegionTable.assignRegion(user.userId)
