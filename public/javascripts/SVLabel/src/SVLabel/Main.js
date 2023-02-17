@@ -157,7 +157,7 @@ function Main (params) {
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
-            svl.taskContainer.getCurrentTaskStreetEdgeIdFunction, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
+            svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
             svl.map.getPov, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }

@@ -494,14 +494,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Get street id of current task
+     * Get the street id of the current task.
      */
     function getCurrentTaskStreetEdgeId() {
         return currentTask ? currentTask.getStreetEdgeId() : null;
-    }
-
-    function getCurrentTaskStreetEdgeIdFunction() {
-        return getCurrentTaskStreetEdgeId;
     }
 
     /**
@@ -596,5 +592,5 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
     self.updateTaskPriorities = updateTaskPriorities;
-    self.getCurrentTaskStreetEdgeIdFunction = getCurrentTaskStreetEdgeIdFunction();
+    self.getCurrentTaskStreetEdgeId = getCurrentTaskStreetEdgeId;
 }
