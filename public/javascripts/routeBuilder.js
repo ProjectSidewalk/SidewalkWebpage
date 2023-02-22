@@ -97,7 +97,7 @@ $(document).ready(function () {
 
                 if (currState.chosen) {
                     // If the street was in the route, remove it from the route.
-                    currRoute = currRoute.filter(s => s !== streetId);
+                    currRoute = currRoute.filter(s => s.properties.street_edge_id !== streetId);
 
                     // If there are no longer any streets in the route, any street can now be selected. Update styles.
                     if (currRoute.length === 0) {
@@ -115,7 +115,7 @@ $(document).ready(function () {
                 }
                 else {
                     // Add the new street to the route.
-                    currRoute.push(streetId);
+                    currRoute.push(street[0]);
 
                     // If this was the first street added, change style to show that streets in other regions can't be chosen.
                     if (currRoute.length === 1) {
@@ -132,6 +132,7 @@ $(document).ready(function () {
                         );
                     }
                 }
+                document.getElementById('street-distance').innerText = currRoute.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
             });
             console.log(map);
         });
@@ -156,7 +157,7 @@ $(document).ready(function () {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(currRoute)
+            body: JSON.stringify(currRoute.map(s => s.properties.street_edge_id))
         })
             .then(response => console.log(JSON.stringify(response.json())));
     };
