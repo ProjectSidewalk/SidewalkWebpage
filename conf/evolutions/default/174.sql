@@ -3,11 +3,13 @@ CREATE TABLE route
 (
     route_id SERIAL NOT NULL,
     user_id TEXT NOT NULL,
+    region_id INT NOT NULL,
     name TEXT NOT NULL,
     public BOOLEAN NOT NULL,
     deleted BOOLEAN NOT NULL,
     PRIMARY KEY (route_id),
-    FOREIGN KEY (user_id) REFERENCES sidewalk_user(user_id)
+    FOREIGN KEY (user_id) REFERENCES sidewalk_user(user_id),
+    FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
 CREATE TABLE route_street

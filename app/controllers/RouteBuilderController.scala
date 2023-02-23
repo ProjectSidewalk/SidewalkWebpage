@@ -5,6 +5,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
+import formats.json.RouteBuilderFormats.NewRoute
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
@@ -24,7 +25,7 @@ class RouteBuilderController @Inject() (implicit val env: Environment[User, Sess
   val anonymousUser: DBUser = UserTable.find("anonymous").get
 
   def saveRoute = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val submission = request.body.validate[Seq[Int]]
+    val submission = request.body.validate[NewRoute]
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
@@ -38,9 +39,9 @@ class RouteBuilderController @Inject() (implicit val env: Environment[User, Sess
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "SaveRoute", timestamp))
         }
-        val newRouteId: Int = RouteTable.save(Route(0, request.identity.get.userId.toString, "test route", false, false))
-        RouteStreetTable.save(RouteStreet(0, newRouteId, submission.head, true))
-        submission.drop(1).map(s => RouteStreetTable.save(RouteStreet(0, newRouteId, s, false)))
+        val newRouteId: Int = RouteTable.save(Route(0, request.identity.get.userId.toString, submission.regionId, "test route", public = false, deleted = false))
+        RouteStreetTable.save(RouteStreet(0, newRouteId, submission.streetIds.head, firstStreet = true))
+        submission.streetIds.drop(1).map(s => RouteStreetTable.save(RouteStreet(0, newRouteId, s, firstStreet = false)))
         Future.successful(Ok(Json.obj()))
       }
     )

@@ -15,7 +15,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.region._
-import models.route.{UserRoute, UserRouteTable}
+import models.route.{Route, RouteTable, UserRoute, UserRouteTable}
 import models.street.StreetEdgeRegionTable
 import models.user._
 import play.api.libs.json._
@@ -59,12 +59,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
         // routeId was supplied, then the function should return None and the user is not sent on a specific route.
         val userRoute: Option[UserRoute] = UserRouteTable.setUpPossibleUserRoute(routeId, user.userId, resumeRoute)
+        val route: Option[Route] = userRoute.flatMap(ur => RouteTable.getRoute(ur.routeId))
 
         // If user is on a specific route, assign them to the correct region. If they have no region assigned or
         // newRegion is set to true, assign a new region. Otherwise, get their previously assigned region.
         var region: Option[Region] =
-          if (userRoute.isDefined) {
-            val regionId: Int = UserCurrentRegionTable.saveOrUpdate(user.userId, 555)
+          if (route.isDefined) {
+            val regionId: Int = UserCurrentRegionTable.saveOrUpdate(user.userId, route.get.regionId)
             RegionTable.getRegion(regionId)
           } else if (newRegion || !UserCurrentRegionTable.isAssigned(user.userId)) {
             UserCurrentRegionTable.assignRegion(user.userId)
@@ -74,13 +75,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Log visit to the Explore page.
         val activityStr: String =
-          if (userRoute.isDefined) s"Visit_Audit_Route=${userRoute.get.routeId}"
-          else if (newRegion)       "Visit_Audit_NewRegionSelected"
-          else                       "Visit_Audit"
+          if (route.isDefined) s"Visit_Audit_Route=${route.get.routeId}"
+          else if (newRegion)   "Visit_Audit_NewRegionSelected"
+          else                   "Visit_Audit"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 
         // Check if a user still has tasks available in this region. This also should never really happen.
-        if (userRoute.isDefined && region.isEmpty) {
+        if (route.isDefined && region.isEmpty) {
           Logger.error("Unable to assign a region for the route.")
         } else if (region.isEmpty || !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
           region = UserCurrentRegionTable.assignRegion(user.userId)
@@ -108,7 +109,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val task: Option[NewTask] =
           if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding") {
             Some(AuditTaskTable.getATutorialTask(mission.missionId))
-          } else if (userRoute.isDefined) {
+          } else if (route.isDefined) {
             UserRouteTable.getRouteTask(userRoute.get, mission.missionId)
           } else if (mission.currentAuditTaskId.isDefined) {
             val currTask: Option[NewTask] = AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)

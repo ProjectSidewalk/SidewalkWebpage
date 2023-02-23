@@ -94,7 +94,7 @@ GET     /audit/region/:id                                    @controllers.AuditC
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
 POST    /audit/comment                                       @controllers.AuditController.postComment
-POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
+POST    /audit/nostreetview                                  @controllers.TaskController.postNoStreetView
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate

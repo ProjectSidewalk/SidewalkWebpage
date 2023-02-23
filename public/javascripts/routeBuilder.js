@@ -157,7 +157,7 @@ $(document).ready(function () {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(currRoute.map(s => s.properties.street_edge_id))
+            body: JSON.stringify({ region_id: currRegionId, street_ids: currRoute.map(s => s.properties.street_edge_id) })
         })
             .then(response => console.log(JSON.stringify(response.json())));
     };
