@@ -2,6 +2,9 @@ $(document).ready(function () {
     let currRoute = [];
     let currRegionId = null;
 
+    let saveButton = $('#route-builder-save-button');
+    let streetDistanceElem = $('#street-distance');
+
     mapboxgl.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var map = new mapboxgl.Map({
         container: 'route-builder-map',
@@ -102,6 +105,7 @@ $(document).ready(function () {
                     // If there are no longer any streets in the route, any street can now be selected. Update styles.
                     if (currRoute.length === 0) {
                         currRegionId = null;
+                        saveButton.prop('disabled', true);
                         map.setPaintProperty(
                             'streets',
                             'line-color',
@@ -120,6 +124,7 @@ $(document).ready(function () {
                     // If this was the first street added, change style to show that streets in other regions can't be chosen.
                     if (currRoute.length === 1) {
                         currRegionId = street[0].properties.region_id;
+                        saveButton.prop('disabled', false);
                         map.setPaintProperty(
                             'streets',
                             'line-color',
@@ -132,7 +137,7 @@ $(document).ready(function () {
                         );
                     }
                 }
-                document.getElementById('street-distance').innerText = currRoute.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
+                streetDistanceElem.text(`Route length: ${currRoute.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0)}`);
             });
             console.log(map);
         });
@@ -149,7 +154,7 @@ $(document).ready(function () {
         ]);
     });
 
-    window.saveRoute = function() {
+    let saveRoute = function() {
         console.log(currRoute);
         fetch('/saveRoute', {
             method: 'POST',
@@ -161,4 +166,5 @@ $(document).ready(function () {
         })
             .then(response => console.log(JSON.stringify(response.json())));
     };
+    saveButton.click(saveRoute);
 });
