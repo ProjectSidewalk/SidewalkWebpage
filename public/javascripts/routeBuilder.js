@@ -2,8 +2,9 @@ $(document).ready(function () {
     let currRoute = [];
     let currRegionId = null;
 
-    let saveButton = $('#route-builder-save-button');
     let streetDistanceElem = $('#street-distance');
+    let saveButton = $('#route-builder-save-button');
+    let exploreButton = $('#route-builder-explore-button');
 
     mapboxgl.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var map = new mapboxgl.Map({
@@ -164,7 +165,14 @@ $(document).ready(function () {
             },
             body: JSON.stringify({ region_id: currRegionId, street_ids: currRoute.map(s => s.properties.street_edge_id) })
         })
-            .then(response => console.log(JSON.stringify(response.json())));
+            .then((response) => response.json())
+            .then((data) => {
+                console.log(data);
+                exploreButton.click(function () {
+                    window.location.replace(`/audit?routeId=${data.route_id}`);
+                });
+                exploreButton.prop('disabled', false);
+            });
     };
     saveButton.click(saveRoute);
 });

@@ -42,7 +42,7 @@ class RouteBuilderController @Inject() (implicit val env: Environment[User, Sess
         val newRouteId: Int = RouteTable.save(Route(0, request.identity.get.userId.toString, submission.regionId, "test route", public = false, deleted = false))
         RouteStreetTable.save(RouteStreet(0, newRouteId, submission.streetIds.head, firstStreet = true))
         submission.streetIds.drop(1).map(s => RouteStreetTable.save(RouteStreet(0, newRouteId, s, firstStreet = false)))
-        Future.successful(Ok(Json.obj()))
+        Future.successful(Ok(Json.obj("route_id" -> newRouteId)))
       }
     )
   }
