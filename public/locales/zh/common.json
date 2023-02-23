@@ -3,7 +3,7 @@
   "admin-clear-play-cache": "已成功清除快取記憶體",
   "unit-distance-abbreviation": "公里",
   "unit-abbreviation-mission-distance": "公尺",
-  "unit-distance": "公里",
+  "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
   "curb-ramp": "路緣斜坡",
   "no-curb-ramp": "無路緣斜坡",
