@@ -20,7 +20,7 @@ import models.mission.{Mission, MissionTable}
 import models.region._
 import models.route.{AuditTaskUserRouteTable, UserRouteTable}
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
-import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
 import play.api.Play.current
@@ -49,6 +49,35 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         "updated_street_priorities" -> updatedStreetPriorities.map(_.toJSON)
       )
     }
+  }
+
+  /**
+   * This method handles a POST request in which user reports a missing Street View image.
+   */
+  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[Int]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      streetEdgeId => {
+        val userId: String = request.identity match {
+          case Some(user) => user.userId.toString
+          case None =>
+            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
+            val user: Option[DBUser] = UserTable.find("anonymous")
+            user.get.userId.toString
+        }
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        val issue: StreetEdgeIssue = StreetEdgeIssue(0, streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
+        StreetEdgeIssueTable.save(issue)
+
+        Future.successful(Ok)
+      }
+    )
   }
 
   /**

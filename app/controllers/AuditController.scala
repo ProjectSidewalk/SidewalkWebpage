@@ -8,7 +8,6 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.IssueFormats._
 import formats.json.CommentSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit._
@@ -17,7 +16,7 @@ import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.region._
 import models.route.{UserRoute, UserRouteTable}
-import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgeRegionTable}
+import models.street.StreetEdgeRegionTable
 import models.user._
 import play.api.libs.json._
 import play.api.{Logger, Play}
@@ -310,35 +309,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val commentId: Int = AuditTaskCommentTable.save(comment)
 
         Future.successful(Ok(Json.obj("comment_id" -> commentId)))
-      }
-    )
-  }
-
-  /**
-    * This method handles a POST request in which user reports a missing Street View image.
-    */
-  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[NoStreetView]
-
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-        val userId: String = request.identity match {
-          case Some(user) => user.userId.toString
-          case None =>
-            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
-            val user: Option[DBUser] = UserTable.find("anonymous")
-            user.get.userId.toString
-        }
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-
-        val issue = StreetEdgeIssue(0, submission.streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
-        StreetEdgeIssueTable.save(issue)
-
-        Future.successful(Ok)
       }
     )
   }

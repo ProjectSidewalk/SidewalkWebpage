@@ -414,7 +414,7 @@ function UtilitiesMisc (JSON) {
         var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
         x.open('POST', url, async);
         x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        x.send(JSON.stringify({issue: "NoStreetView", street_edge_id: streetEdgeId}));
+        x.send(JSON.stringify({ street_edge_id: streetEdgeId }));
     }
 
     const colors = {
