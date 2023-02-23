@@ -20,7 +20,7 @@ function updateTimestamps(locale) {
     
             // Converts to local time and changes to local date format.
             moment.locale(locale);
-            let localDate = moment(timestampText + ' UTC');
+            let localDate = moment(timestampText + 'Z');
     
             // If the date cannot be parsed, ignore it and leave the text as-is. O/w, parse into local datetime format.
             if (localDate.isValid()) {
