@@ -119,9 +119,8 @@
 }
 
 .gallery-modal-info-tags {
-    width: 60%;
-    height: 5.5vw;
-    overflow-y: auto;
+    width: 40%;
+    height: 40%;
 }
 
 .gallery-modal-info-temporary {
@@ -132,7 +131,7 @@
 }
 
 .gallery-modal-info-description {
-    width: 60%;
+    width: 40%;
     height: 60%;
     display: flex;
     flex-direction: column;
@@ -155,6 +154,96 @@
 .gallery-modal-pano:hover .modal-validation-button-selected {
     opacity: 1;
     background-color: gray;
+}
+
+.gallery-modal-share {
+    display: flex;
+    flex-direction: column;
+}
+
+.share-button-image {
+    width: 45%;
+    height: auto;
+}
+
+.modal-share-button {
+    flex-direction: row;
+    width: 10%;
+    padding: 8px 0px;
+    position: absolute;
+    border-radius: 14px;
+    flex-wrap: wrap;
+    border: none;
+    background-color: Transparent;
+    transition: 0.6s;
+    bottom: 7%;
+    right: 6%;
+}
+
+.modal-share-button:hover {
+    transition: 0.6s;
+    background-color: #e5e5e5;
+}
+
+#share-popup {
+    z-index: 10;
+    display: none;
+    align-content: center;
+    justify-content: space-evenly;
+    position: absolute;
+    bottom: 20%;
+    right: 5%;
+    border-radius: 6px;
+    border-color: black;
+    border-style: solid;
+    border-width: 1.5px;
+    background-color: #fff;
+    width: 40%;
+    height: 8%;
+}
+
+.share-button {
+    width: 10%;
+    background: none;
+    aspect-ratio: 1/1;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    align-self: center;
+    justify-self: center;
+    border-radius: 25px;
+    border-style: none;
+    transition: 0.6s;
+}
+
+.share-button:hover {
+    transition: 0.6s;
+    background-color: #e5e5e5;
+}
+
+
+.share-icon {
+    height: 100%;
+    width: auto;
+}
+
+.copy {
+    height: 50%;
+    width: 40%;
+    aspect-ratio: initial;
+}
+
+.copy-text {
+    margin-left: 5px;
+    align-self: center;
+    font-size: 115%;
+}
+
+.vertical-divider {
+    align-self: center;
+    background: black;
+    height: 80%;
+    width: 2px;
 }
 
 .modal-top-holder {

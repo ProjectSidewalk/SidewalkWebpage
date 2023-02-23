@@ -94,6 +94,12 @@ function CardContainer(uiCardContainer, initialFilters) {
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
+
+            // Set share preview image to image of modal that is currently active
+            let newImageUrl = event.target.src;
+            document.querySelector('meta[property="og:image"]').setAttribute("content", newImageUrl);
+            document.querySelector('meta[name="twitter:image"]').setAttribute("content", newImageUrl);
+
             // If the user clicks on the image body in the card, just use the provided id.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in

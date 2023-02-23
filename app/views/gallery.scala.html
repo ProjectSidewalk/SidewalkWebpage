@@ -2,6 +2,15 @@
 @(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
 
 @main(title) {
+    <head>
+        <meta property="og:type" content="website">
+        <meta property="og:image" content="https://sidewalk-columbus.cs.washington.edu/assets/assets/sidewalk-logo.png">
+        <meta property="og:image:width" content="720">
+        <meta property="og:image:height" content="480">
+        <meta property="og:title" content="Sidewalk Gallery">
+        <meta property="og:url" content="https://sidewalk-sea.cs.washington.edu/gallery">
+        <meta property="og:description" content="Checkout this accesabilty issue I saw">
+    </head>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
@@ -97,6 +106,31 @@
                     <div class="gallery-modal-info-tags"></div>
                     <div class="gallery-modal-info-temporary"></div>
                     <div class="gallery-modal-info-description"></div>
+                    <div class="gallery-modal-share">
+                        <div id="share-popup">
+                            <button class="facebook share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/facebook_share_icon.svg">
+                            </button>
+                            <button class="twitter share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/twitter_share_icon.svg">
+                            </button>
+                            <button class="linkedin share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/linkedin_share_icon.svg">
+                            </button>
+                            <button class="tumblr share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/tumblr_share_icon.svg">
+                            </button>
+                            <div class="vertical-divider"></div>
+                            <button class="copy share-button">
+                                <img class="share-icon" src="/assets/javascripts/SVLabel/img/icons/copy_icon.svg">
+                                <div class="copy-text">copy link</div>
+                            </button>
+                        </div>
+                        <button class="modal-share-button">
+                            <img class="share-button-image" src="/assets/javascripts/SVLabel/img/icons/share_icon.svg">
+                            Share
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -130,6 +164,79 @@
             params.language = "@lang.code";
 
             sg.main = new Main(params);
+    </script>
+    <script type="text/javascript">
+            let current_url = window.location.href;
+            let title = document.title;
+
+            $(document).click(function(event) {
+                var $target = $(event.target);
+                if(!$target.closest('.gallery-modal-share').length && $('#share-popup').is(":visible")) {
+                    $('#share-popup').hide("fast");
+                    $('.copy-text').text("copy link")
+                }
+            });
+
+            $('.modal-share-button').click(function() {
+                $('#share-popup').show("fast", function() {
+                    $('#share-popup').css("display", "flex");
+                });
+            });
+
+            $('.facebook').click(function() {
+               let share_url =  "https://www.facebook.com/sharer/sharer.php?u=" + current_url;
+               window.open(share_url, "_blank");
+                saveImagePost(current_url);
+            });
+
+            $('.twitter').click(function() {
+                let share_url =  "https://twitter.com/intent/tweet?text=" + title + "&url=" + current_url;
+                window.open(share_url, "_blank");
+                saveImagePost(current_url);
+            });
+
+            $('.linkedin').click(function() {
+                let share_url =  "https://www.linkedin.com/cws/share?url=" + current_url;
+                window.open(share_url, "_blank");
+                saveImagePost(current_url);
+            });
+
+            $('.tumblr').click(function() {
+                let share_url =  "http://tumblr.com/widgets/share/tool?canonicalUrl=" + current_url;
+                window.open(share_url, "_blank");
+                saveImagePost(current_url);
+            });
+
+            $('.copy').click(async function() {
+                navigator.clipboard.writeText(current_url);
+                $('.copy-text').text("copied!")
+                saveImagePost(current_url);
+            });
+
+            function saveImagePost(url) {
+                let imageSaveLocation = url.substring(0, url.length - 8) + "/assets/assets/share-images/"
+                // Save the image on server via post request
+                $.ajax({
+                    async: true,
+                    contentType: 'application/json; charset=utf-8',
+                    url: "/saveShareImage?url=" +
+                            encodeURIComponent(document.querySelector('meta[property="og:image"]')
+                                    .getAttribute("content")),
+                    type: 'GET',
+                    dataType: "json",
+                    success: function (result) {
+                        document.querySelector('meta[property="og:image"]').setAttribute("content",
+                                imageSaveLocation + result.filename);
+                        document.querySelector('meta[name="twitter:image"]').setAttribute("content",
+                                imageSaveLocation + result.filename);
+                    },
+                    error: function(xhr, textStatus, error){
+                        console.error(xhr.statusText);
+                        console.error(textStatus);
+                        console.error(error);
+                    }
+                });
+            }
     </script>
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/Gallery/build/Gallery.css")'/>

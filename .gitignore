@@ -110,3 +110,6 @@ nohup.out
 
 # docker db files
 db/dump
+
+#share images
+public/assets/share-images
