@@ -126,7 +126,7 @@ object TaskSubmissionFormats {
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "distance_progress").readNullable[Float] and
       (JsPath \ "completed").read[Boolean] and
-      (JsPath \ "audit_task_id").read[Option[Int]] and
+      (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "skipped").read[Boolean]
   )(AuditMissionProgress.apply _)
 
