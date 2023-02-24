@@ -93,6 +93,28 @@ function RouteBuilder ($, mapParamData) {
 
     function renderNeighborhoodsHelper() {
         // TODO and render it below the streets using the beforeId param in addLayer().
+        console.log(neighborhoodData);
+        map.addSource('neighborhoods', {
+            type: 'geojson',
+            data: neighborhoodData,
+            promoteId: 'region_id'
+        });
+        map.addLayer({
+            id: 'neighborhoods',
+            type: 'fill',
+            source: 'neighborhoods',
+            paint: {
+                'fill-opacity': 0.1,
+                'fill-color': ['case',
+                    ['boolean', ['feature-state', 'current'], false], '#4a6',
+                    '#222'
+                ]
+            }
+        });
+        // Make sure that the polygons are visually below the streets.
+        if (map.getLayer('streets')) {
+            map.moveLayer('neighborhoods', 'streets');
+        }
     }
     function renderNeighborhoods(neighborhoodDataIn) {
         neighborhoodData = neighborhoodDataIn;
@@ -110,14 +132,14 @@ function RouteBuilder ($, mapParamData) {
             promoteId: 'street_edge_id'
         });
         map.addLayer({
-            'id': 'streets',
-            'type': 'line',
-            'source': 'streets',
-            'layout': {
+            id: 'streets',
+            type: 'line',
+            source: 'streets',
+            layout: {
                 'line-join': 'round',
                 'line-cap': 'round'
             },
-            'paint': {
+            paint: {
                 'line-color': ['case',
                     ['boolean', ['feature-state', 'chosen'], false], '#4a6',
                     // ['all', currRegionId !== null, ['!=', currRegionId, ['get', 'region_id']]], '#bbb', // try with currRegionId === null.
@@ -191,6 +213,8 @@ function RouteBuilder ($, mapParamData) {
 
                 // If there are no longer any streets in the route, any street can now be selected. Update styles.
                 if (currRoute.length === 0) {
+                    map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
+
                     currRegionId = null;
                     saveButton.prop('disabled', true);
                     map.setPaintProperty(
@@ -212,6 +236,7 @@ function RouteBuilder ($, mapParamData) {
                 if (currRoute.length === 1) {
                     currRegionId = street[0].properties.region_id;
                     saveButton.prop('disabled', false);
+                    map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                     map.setPaintProperty(
                         'streets',
                         'line-color',
