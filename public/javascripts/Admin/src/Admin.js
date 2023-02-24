@@ -355,17 +355,13 @@ function Admin(_, $, difficultRegionIds) {
                 $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
                 $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
 
-                var pedestrianSignalStats = getSummaryStats(pedestrianSignals, "severity");
-                $("#signal-mean").html((pedestrianSignalStats.mean).toFixed(2));
-                $("#signal-std").html((pedestrianSignalStats.std).toFixed(2));
-
                 var allData = data.features;
                 var allDataStats = getSummaryStats(allData, "severity");
                 $("#labels-mean").html((allDataStats.mean).toFixed(2));
                 $("#labels-std").html((allDataStats.std).toFixed(2));
 
                 var subPlotHeight = 150; // Before, it was 150
-                var subPlotWidth = 130; // Before, it was 149
+                var subPlotWidth = 149; // It was 130 when there were 4 plots in one line
 
                 var chart = {
                     "hconcat": [
@@ -399,17 +395,6 @@ function Admin(_, $, difficultRegionIds) {
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
-                            }
-                        },
-                        {
-                            "height": subPlotHeight,
-                            "width": subPlotWidth,
-                            "data": {"values": pedestrianSignals},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Pedestrian Signal Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
