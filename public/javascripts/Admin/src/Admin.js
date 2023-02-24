@@ -360,8 +360,8 @@ function Admin(_, $, difficultRegionIds) {
                 $("#labels-mean").html((allDataStats.mean).toFixed(2));
                 $("#labels-std").html((allDataStats.std).toFixed(2));
 
-                var subPlotHeight = 150; // Before, it was 150
-                var subPlotWidth = 149; // It was 130 when there were 4 plots in one line
+                var subPlotHeight = 155; // Before, it was 150
+                var subPlotWidth = 220; // Before, it was 130
 
                 var chart = {
                     "hconcat": [
