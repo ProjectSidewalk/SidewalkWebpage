@@ -4,6 +4,8 @@
 @main("Sidewalk - RouteBuilder") {
     @navbar(user, Some("/routeBuilder"))
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet" />
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
@@ -18,4 +20,33 @@
         <button type="button" class="route-builder-button" id="route-builder-share-button" disabled>Copy link to route</button>
     </div>
 
+    <script>
+        $(document).ready(function () {
+            // Gets all translations before loading the choropleth.
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['common'],
+                defaultNS: 'common',
+                lng: '@lang.code',
+                debug: false
+            }, function(err, t) {
+                var routeBuilder;
+                var loadMapParams = $.getJSON('/cityMapParams');
+                var loadPolygons = $.getJSON('/neighborhoods');
+                var loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
+
+                var initMap = $.when(loadMapParams).done(function(mapParams) {
+                    routeBuilder = RouteBuilder($, mapParams);
+                });
+                $.when(initMap, loadPolygons).done(function(d0, neighborhoodData) {
+                    routeBuilder.renderNeighborhoods(neighborhoodData[0]);
+                });
+                $.when(initMap, loadStreets).done(function(d0, streetData) {
+                    routeBuilder.renderStreets(streetData[0]);
+                });
+            });
+        });
+    </script>
 }
