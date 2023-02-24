@@ -5,6 +5,7 @@ $(document).ready(function () {
     let streetDistanceElem = $('#street-distance');
     let saveButton = $('#route-builder-save-button');
     let exploreButton = $('#route-builder-explore-button');
+    let shareButton = $('#route-builder-share-button');
 
     mapboxgl.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var map = new mapboxgl.Map({
@@ -155,6 +156,23 @@ $(document).ready(function () {
         ]);
     });
 
+
+    // Create the tooltip for the share button that says it's copied to the clipboard.
+    shareButton.tooltip({
+        trigger: 'manual'
+    });
+    function setTooltip(btn, message) {
+        $(btn).tooltip('hide')
+            .attr('data-original-title', message)
+            .tooltip('show');
+        hideTooltip(btn);
+    }
+    function hideTooltip(btn) {
+        setTimeout(function() {
+            $(btn).tooltip('hide');
+        }, 1000);
+    }
+
     let saveRoute = function() {
         console.log(currRoute);
         fetch('/saveRoute', {
@@ -168,10 +186,19 @@ $(document).ready(function () {
             .then((response) => response.json())
             .then((data) => {
                 console.log(data);
+                let exploreURL = `/audit?routeId=${data.route_id}`;
                 exploreButton.click(function () {
-                    window.location.replace(`/audit?routeId=${data.route_id}`);
+                    window.location.replace(exploreURL);
                 });
                 exploreButton.prop('disabled', false);
+
+                // Add the 'copied to clipboard' tooltip.
+                shareButton.click(function (e) {
+                    console.log(e);
+                    navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
+                    setTooltip(e.currentTarget, 'Copied to clipboard!');
+                });
+                shareButton.prop('disabled', false);
             });
     };
     saveButton.click(saveRoute);
