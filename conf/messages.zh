@@ -328,7 +328,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/audit"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>請註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一个组织</u></a>并作为一个团队一起工作来绘制和评估人行道!
 
 gallery = 藝廊
 gallery.show = 展示
