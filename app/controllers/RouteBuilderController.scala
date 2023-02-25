@@ -37,7 +37,7 @@ class RouteBuilderController @Inject() (implicit val env: Environment[User, Sess
         WebpageActivityTable.save(WebpageActivity(0, userIdStr, ipAddress, "SaveRoute", timestamp))
 
         // Save new route in the database.
-        val newRouteId: Int = RouteTable.save(Route(0, userIdStr, submission.regionId, "test route", public = false, deleted = false))
+        val newRouteId: Int = RouteTable.save(Route(0, userIdStr, submission.regionId, "temp", public = false, deleted = false))
         val newRouteStreets: Seq[RouteStreet] = submission.streetIds.zipWithIndex.map { case (streetId, index) =>
           RouteStreet(0, newRouteId, streetId, firstStreet = index == 0)
         }

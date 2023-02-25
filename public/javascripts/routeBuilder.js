@@ -43,6 +43,10 @@ function RouteBuilder ($, mapParamData) {
         [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat]
     ]);
 
+    // Set up the route length in the top-right of the map.
+    let units = i18next.t('common:unit-distance');
+    let unitAbbreviation = i18next.t('common:unit-distance-abbreviation');
+    setStreetDistance();
 
     // Create the tooltip for the share button that says it's copied to the clipboard.
     shareButton.tooltip({
@@ -249,7 +253,7 @@ function RouteBuilder ($, mapParamData) {
                     );
                 }
             }
-            streetDistanceElem.text(`Route length: ${currRoute.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0)}`);
+            setStreetDistance();
         });
         console.log(map);
     }
@@ -259,6 +263,11 @@ function RouteBuilder ($, mapParamData) {
         if (self.status.mapLoaded) {
             renderStreetsHelper(streetData);
         }
+    }
+
+    function setStreetDistance() {
+        let routeDistance = currRoute.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
+        streetDistanceElem.text(`Route length: ${routeDistance.toFixed(2)} ${unitAbbreviation}`);
     }
 
     self.map = map;
