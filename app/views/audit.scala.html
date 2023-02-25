@@ -559,9 +559,9 @@
                             <div id="modal-mission-complete-map">
                             </div>
                             <div id="map-legend">
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> @Messages("audit.mission.complete.legend.this.mission")</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> @Messages("audit.mission.complete.legend.previous.missions")</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg> @Messages("audit.mission.complete.legend.others.missions")</span>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="green-square"></rect></svg><span id="modal-mission-complete-map-legend-label-1">@Messages("audit.mission.complete.legend.this.mission")</span><br>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="blue-square"></rect></svg><span id="modal-mission-complete-map-legend-label-2">@Messages("audit.mission.complete.legend.previous.missions")</span><br>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="gray-square"></rect></svg><span id="modal-mission-complete-map-legend-label-3">@Messages("audit.mission.complete.legend.others.missions")</span>
                             </div>
 
                         </div>
@@ -594,7 +594,7 @@
                                     <td id="modal-mission-complete-other-count" class="col-right"></td>
                                 </tr>
                             </table>
-                            <h3>@Messages("audit.mission.complete.progress.title")</h3>
+                            <h3 id="modal-mission-complete-progress-title"></h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
                                 @if(user.isDefined) {
@@ -610,15 +610,15 @@
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("audit.mission.complete.progress.neighborhood.you")</th>
+                                    <th id="modal-mission-complete-progress-you"></th>
                                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("audit.mission.complete.progress.neighborhood.others")</th>
+                                    <th id="modal-mission-complete-progress-others">@Messages("audit.mission.complete.progress.neighborhood.others")</th>
                                     <td id="modal-mission-complete-others-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("audit.mission.complete.progress.neighborhood.remaining")</th>
+                                    <th id="modal-mission-complete-progress-remaining"></th>
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>

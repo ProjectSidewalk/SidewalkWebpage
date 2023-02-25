@@ -507,21 +507,28 @@ function Main (params) {
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
-        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
-        svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
-        svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
-        svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
-        svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
-        svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
-        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
-        svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
+        svl.ui.modalMissionComplete.mapLegendLabel1 = $("#modal-mission-complete-map-legend-label-1");
+        svl.ui.modalMissionComplete.mapLegendLabel2 = $("#modal-mission-complete-map-legend-label-2");
+        svl.ui.modalMissionComplete.mapLegendLabel3 = $("#modal-mission-complete-map-legend-label-3");
         svl.ui.modalMissionComplete.curbRampCount = $("#modal-mission-complete-curb-ramp-count");
         svl.ui.modalMissionComplete.noCurbRampCount = $("#modal-mission-complete-no-curb-ramp-count");
         svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
         svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
         svl.ui.modalMissionComplete.noSidewalk = $("#modal-mission-complete-no-sidewalk-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
+        svl.ui.modalMissionComplete.progressTitle = $("#modal-mission-complete-progress-title");
+        svl.ui.modalMissionComplete.completeBar = $("#modal-mission-complete-complete-bar");
+        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
+        svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
+        svl.ui.modalMissionComplete.progressYou = $("#modal-mission-complete-progress-you");
+        svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
+        svl.ui.modalMissionComplete.progressOthers = $("#modal-mission-complete-progress-others");
+        svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
+        svl.ui.modalMissionComplete.progressRemaining = $("#modal-mission-complete-progress-remaining");
+        svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
         svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
+        svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
+        svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
 
         // Zoom control
         svl.ui.zoomControl = {};

@@ -152,14 +152,10 @@ audit.center.ui.add.tags = Add Tags:
 audit.center.ui.temporary = Temporary (e.g., construction)
 
 audit.mission.complete.labels.title = Mission Labels
-audit.mission.complete.progress.title = Neighborhood Progress
 audit.mission.complete.progress.mission.you = You explored in this mission
-audit.mission.complete.progress.neighborhood.you = You explored in this neighborhood
 audit.mission.complete.progress.neighborhood.others = Others explored in this neighborhood
-audit.mission.complete.progress.neighborhood.remaining = Remaining in this neighborhood
 audit.mission.complete.legend.this.mission = This Mission
 audit.mission.complete.legend.previous.missions = Previous Missions
-audit.mission.complete.legend.others.missions = Other Users'' Missions
 
 audit.survey.title = Please take this one-time survey about Project Sidewalk
 audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
