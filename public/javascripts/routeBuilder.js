@@ -85,9 +85,9 @@ function RouteBuilder ($, mapParamData) {
 
                 // Add the 'copied to clipboard' tooltip.
                 shareButton.click(function (e) {
-                    console.log(e);
                     navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
                     setTooltip(e.currentTarget, 'Copied to clipboard!');
+                    logActivity('RouteBuilder_Click=CopyRoute');
                 });
                 shareButton.prop('disabled', false);
             });
@@ -268,6 +268,23 @@ function RouteBuilder ($, mapParamData) {
     function setStreetDistance() {
         let routeDistance = currRoute.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
         streetDistanceElem.text(`Route length: ${routeDistance.toFixed(2)} ${unitAbbreviation}`);
+    }
+
+    function logActivity(activity) {
+        var url = "/userapi/logWebpageActivity";
+        var async = false;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activity),
+            dataType: 'json',
+            success: function(result) { },
+            error: function (result) {
+                console.error(result);
+            }
+        });
     }
 
     self.map = map;
