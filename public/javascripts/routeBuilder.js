@@ -65,7 +65,6 @@ function RouteBuilder ($, mapParamData) {
     }
 
     let saveRoute = function() {
-        console.log(currRoute);
         fetch('/saveRoute', {
             method: 'POST',
             headers: {
@@ -76,7 +75,6 @@ function RouteBuilder ($, mapParamData) {
         })
             .then((response) => response.json())
             .then((data) => {
-                console.log(data);
                 let exploreURL = `/audit?routeId=${data.route_id}`;
                 exploreButton.click(function () {
                     window.location.replace(exploreURL);
@@ -96,8 +94,6 @@ function RouteBuilder ($, mapParamData) {
 
 
     function renderNeighborhoodsHelper() {
-        // TODO and render it below the streets using the beforeId param in addLayer().
-        console.log(neighborhoodData);
         map.addSource('neighborhoods', {
             type: 'geojson',
             data: neighborhoodData,
@@ -129,7 +125,6 @@ function RouteBuilder ($, mapParamData) {
     }
 
     function renderStreetsHelper() {
-        console.log(streetData);
         map.addSource('streets', {
             type: 'geojson',
             data: streetData,
@@ -255,7 +250,6 @@ function RouteBuilder ($, mapParamData) {
             }
             setStreetDistance();
         });
-        console.log(map);
     }
     function renderStreets(streetDataIn) {
         streetData = streetDataIn;
