@@ -26,10 +26,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
-            var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
             svl.neighborhoodModel.neighborhoodCompleted();
-            tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
+            if (svl.userRouteId) {
+                tracker.push("RouteComplete", { 'UserRouteId': svl.userRouteId });
+            } else {
+                var currentNeighborhoodId = svl.neighborhoodModel.currentNeighborhood().getProperty("regionId");
+                tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
+            }
         } else {
             svl.taskContainer.initNextTask(newTask);
         }
@@ -313,17 +316,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     /**
-     * Used to set target distance for Mission Progress
-     *
-     * @param unit {string} Distance unit
-     */
-    self.getIncompleteTaskDistance = function (unit) {
-        var incompleteTasks = self.getIncompleteTasks();
-        var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
-        return taskDistances.reduce(function (a, b) { return a + b; }, 0);
-    };
-
-    /**
      * Find incomplete tasks by the user.
      */
     self.getIncompleteTasks = function () {
@@ -372,14 +364,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param finishedTask
      */
     function updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask) {
-        var wasNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
-
-        // Only run this code if the neighborhood was set as incomplete
-        if (!wasNeighborhoodCompleteAcrossAllUsers) {
+        // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
+        if (!svl.userRouteId && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
             var candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
             });
-            // Indicates neighborhood is complete
+            // Indicates neighborhood is complete.
             if (candidateTasks.length === 0) {
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
                 console.error('finished neighborhood screen has appeared, logging debug info');
@@ -389,13 +379,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
 
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-                $('#neighborhood-completion-overlay').show();
+                svl.ui.areaComplete.overlay.show();
                 var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
                 var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
 
                 console.log('neighborhood: ' + currentNeighborhoodId + ": " + currentNeighborhood);
 
-                tracker.push("NeighborhoodComplete_AcrossAllUsers", {'RegionId': currentNeighborhoodId})
+                tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });
             }
         }
     }

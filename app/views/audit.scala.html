@@ -143,15 +143,11 @@
     </div>
 
     <div class="container tool-ui" style = "visibility: hidden;">
-        <div id="neighborhood-completion-overlay">
+        <div id="area-completion-overlay-wrapper">
             <div class="overlay-text">
-                <div id="neighborhood-completion-text">
-                    <p>
-                        <span class="overlay-header">Neighborhood Completed!</span>
-                    </p>
-                    <p>
-                        <b>Hurray!</b> You just helped complete this neighborhood! You can:
-                    </p>
+                <div id="area-completion-overlay">
+                    <p id="area-completion-title" class="overlay-header">Neighborhood Complete!</p>
+                    <p id="area-completion-body"><b>Hurray!</b> You just helped complete this neighborhood! You can:</p>
                     <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
                     <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
                 </div>
@@ -971,7 +967,7 @@
 
             // Neighborhood Completion Overlay
             $('#continue-current').on('click', function() {
-                $('#neighborhood-completion-overlay').hide();
+                $('#area-completion-overlay-wrapper').hide();
             });
 
             $('#redirect-new').on('click', function() {

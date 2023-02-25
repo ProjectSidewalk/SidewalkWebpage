@@ -387,7 +387,7 @@ function Main (params) {
         svl.ui.counterHolder = $("#counter-holder");
         svl.ui.labelCounter = $("#label-counter");
 
-        // Map DOMs
+        // Map DOMs.
         svl.ui.map = {};
         svl.ui.map.canvas = $("canvas#labelCanvas");
         svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
@@ -404,7 +404,7 @@ function Main (params) {
         svl.ui.minimap.percentObserved = $("#minimap-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
 
-        // Status holder
+        // Status holder.
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
         svl.ui.status.overallDistance = $("#status-overall-audited-distance");
@@ -419,13 +419,13 @@ function Main (params) {
         svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
 
-        // MissionDescription DOMs
+        // MissionDescription DOMs.
         svl.ui.statusMessage = {};
         svl.ui.statusMessage.holder = $("#current-status-holder");
         svl.ui.statusMessage.title = $("#current-status-title");
         svl.ui.statusMessage.description = $("#current-status-description");
 
-        // OverlayMessage
+        // OverlayMessage.
         svl.ui.overlayMessage = {};
         svl.ui.overlayMessage.holder = $("#overlay-message-holder");
         svl.ui.overlayMessage.holder.append("<span id='overlay-message-box'>" +
@@ -433,7 +433,7 @@ function Main (params) {
         svl.ui.overlayMessage.box = $("#overlay-message-box");
         svl.ui.overlayMessage.message = $("#overlay-message");
 
-        // Pop up message
+        // Pop up message.
         svl.ui.popUpMessage = {};
         svl.ui.popUpMessage.holder = $("#pop-up-message-holder");
         svl.ui.popUpMessage.foreground = $("#pop-up-message-foreground");
@@ -443,7 +443,7 @@ function Main (params) {
         svl.ui.popUpMessage.imageHolder = $("#pop-up-message-img-holder");
         svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder");
 
-        // Ribbon menu DOMs
+        // Ribbon menu DOMs.
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
@@ -452,7 +452,7 @@ function Main (params) {
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategory");
 
-        // Context menu
+        // Context menu.
         svl.ui.contextMenu = {};
         svl.ui.contextMenu.holder = $("#context-menu-holder");
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
@@ -464,7 +464,7 @@ function Main (params) {
         svl.ui.contextMenu.textBox = $("#context-menu-problem-description-text-box");
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");
 
-        // Modal
+        // Modal.
         svl.ui.modalSkip = {};
         svl.ui.modalSkip.holder = $("#modal-skip-holder");
         svl.ui.modalSkip.firstBox = $("#modal-skip-box");
@@ -498,8 +498,7 @@ function Main (params) {
         svl.ui.modalMission.instruction = $("#modal-mission-instruction");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
-
-        // Modal Mission Complete
+        // Modal Mission Complete.
         svl.ui.modalMissionComplete = {};
         svl.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
         svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
@@ -530,12 +529,12 @@ function Main (params) {
         svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
         svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
 
-        // Zoom control
+        // Zoom control.
         svl.ui.zoomControl = {};
         svl.ui.zoomControl.zoomIn = $("#left-column-zoom-in-button");
         svl.ui.zoomControl.zoomOut = $("#left-column-zoom-out-button");
 
-        // Form
+        // Form/logging.
         svl.ui.form = {};
         svl.ui.form.skipButton = $("#skip-button");
         svl.ui.form.submitButton = $("#submit-button");
@@ -548,12 +547,12 @@ function Main (params) {
         svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
 
-        // Navigation compass
+        // Navigation compass.
         svl.ui.compass = {};
         svl.ui.compass.messageHolder = $("#compass-message-holder");
         svl.ui.compass.message = $("#compass-message");
 
-        // Canvas for the labeling area
+        // Canvas for the labeling area.
         svl.ui.canvas = {};
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
@@ -561,9 +560,10 @@ function Main (params) {
         svl.ui.canvas.deleteIcon = $("#label-delete-icon");
         svl.ui.canvas.severityIcon = $("#severity-icon");
 
-        // Interaction viewer
+        // Interaction viewer.
         svl.ui.task = {};
 
+        // Tutorial.
         svl.ui.onboarding = {};
         svl.ui.onboarding.holder = $("#onboarding-holder");
         svl.ui.onboarding.messageHolder = $("#onboarding-message-holder");
@@ -571,6 +571,12 @@ function Main (params) {
         svl.ui.onboarding.foreground = $("#onboarding-foreground");
         svl.ui.onboarding.canvas = $("#onboarding-canvas");
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
+
+        // Neighborhood / route complete overlays.
+        svl.ui.areaComplete = {};
+        svl.ui.areaComplete.overlay = $("#area-completion-overlay-wrapper");
+        svl.ui.areaComplete.title = $("#area-completion-title");
+        svl.ui.areaComplete.body = $("#area-completion-body");
     }
 
     // Gets all the text on the audit page for the correct language.
