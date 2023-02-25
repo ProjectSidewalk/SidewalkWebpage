@@ -33,15 +33,16 @@ class RouteBuilderController @Inject() (implicit val env: Environment[User, Sess
       submission => {
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
-        request.identity match {
-          case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SaveRoute", timestamp))
-          case None =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "SaveRoute", timestamp))
+        val userIdStr: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId)
+        WebpageActivityTable.save(WebpageActivity(0, userIdStr, ipAddress, "SaveRoute", timestamp))
+
+        // Save new route in the database.
+        val newRouteId: Int = RouteTable.save(Route(0, userIdStr, submission.regionId, "test route", public = false, deleted = false))
+        val newRouteStreets: Seq[RouteStreet] = submission.streetIds.zipWithIndex.map { case (streetId, index) =>
+          RouteStreet(0, newRouteId, streetId, firstStreet = index == 0)
         }
-        val newRouteId: Int = RouteTable.save(Route(0, request.identity.get.userId.toString, submission.regionId, "test route", public = false, deleted = false))
-        RouteStreetTable.save(RouteStreet(0, newRouteId, submission.streetIds.head, firstStreet = true))
-        submission.streetIds.drop(1).map(s => RouteStreetTable.save(RouteStreet(0, newRouteId, s, firstStreet = false)))
+        RouteStreetTable.saveMultiple(newRouteStreets)
+
         Future.successful(Ok(Json.obj("route_id" -> newRouteId)))
       }
     )
