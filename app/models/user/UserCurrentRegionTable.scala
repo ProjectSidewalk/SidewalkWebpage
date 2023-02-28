@@ -24,9 +24,7 @@ object UserCurrentRegionTable {
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
   val regions = TableQuery[RegionTable]
 
-  val neighborhoods = regions.filter(_.deleted === false)
-
-  val experiencedUserMileageThreshold = 2.0
+  val regionsWithoutDeleted = RegionTable.regionsWithoutDeleted
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
@@ -36,29 +34,10 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Checks if the given user is "experienced" (have audited at least 2 miles).
-    */
-  def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
-    AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES > experiencedUserMileageThreshold
-  }
-
-  /**
-    * Select an easy region w/ high avg street priority where the user hasn't completed all missions; assign it to them.
-    */
-  def assignEasyRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    val newRegion: Option[Region] = RegionTable.selectAHighPriorityEasyRegion(userId)
-    newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
-    newRegion
-  }
-
-  /**
-    * Select a region with high avg street priority, where the user hasn't completed all missions; assign it to them.
+    * Select a region with high avg street priority, where the user hasn't explored every street; assign it to them.
     */
   def assignRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
-    val newRegion: Option[Region] =
-      if(isUserExperienced(userId)) RegionTable.selectAHighPriorityRegion(userId)
-      else RegionTable.selectAHighPriorityEasyRegion(userId)
+    val newRegion: Option[Region] = RegionTable.selectAHighPriorityRegion(userId)
     newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
     newRegion
   }
@@ -67,24 +46,14 @@ object UserCurrentRegionTable {
     * Returns the region id that is currently assigned to the given user.
     */
   def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
-    // Get rid of deleted regions.
-    val ucr = for {
-      (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
-    } yield ucr
-
-    ucr.filter(_.userId === userId.toString).list.map(_.regionId).headOption
+    userCurrentRegions.filter(_.userId === userId.toString).map(_.regionId).firstOption
   }
 
   /**
-    * Check if a user has been assigned to some region.
+    * Check if a user is assigned to some region.
     */
   def isAssigned(userId: UUID): Boolean = db.withSession { implicit session =>
-    val _userCurrentRegions = for {
-      (_regions, _userCurrentRegions) <- neighborhoods.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
-      if _userCurrentRegions.userId === userId.toString
-    } yield _userCurrentRegions
-
-    _userCurrentRegions.list.nonEmpty
+    userCurrentRegions.filter(_.userId === userId.toString).size.run > 0
   }
 
   /**

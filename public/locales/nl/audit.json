@@ -84,6 +84,13 @@
     "mission-complete": {
         "distance-type-display-string": "kilometers",
         "title": "Missie geslaagd!",
+        "map-legend-label-other-users": "Missies Van Anderen",
+        "progress-neighborhood-title": "Wijk voortgang",
+        "progress-route-title": "Routevoortgang",
+        "progress-neighborhood-you": "Je ontdekte in deze wijk",
+        "progress-route-you": "Verkend in je route",
+        "progress-neighborhood-remaining": "Overblijvenden in deze wijk",
+        "progress-route-remaining": "Op uw route blijven",
         "button-start-validating": "Start met valideren",
         "button-keep-exploring": "Blijf verkennen",
         "button-continue": "Ga verder"

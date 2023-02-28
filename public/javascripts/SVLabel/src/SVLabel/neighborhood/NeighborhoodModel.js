@@ -3,7 +3,6 @@ function NeighborhoodModel () {
     this._neighborhoodContainer = null;
     this.isNeighborhoodCompleted = false;
     this.isNeighborhoodCompletedAcrossAllUsers = null;
-    this.difficultRegionIds = [];
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -24,20 +23,6 @@ function NeighborhoodModel () {
         } else {
             $.when($.ajax("/neighborhoods")).done(self._handleFetchComplete)
         }
-    };
-
-    this.fetchDifficultNeighborhoods = function (callback) {
-        $.when($.ajax({
-            contentType: 'application/json; charset=utf-8',
-            url: "/neighborhoods/difficult",
-            type: 'get',
-            success: function (json) {
-                self.difficultRegionIds = json.regionIds;
-            },
-            error: function (result) {
-                throw result;
-            }
-        })).done(callback);
     };
 }
 _.extend(NeighborhoodModel.prototype, Backbone.Events);

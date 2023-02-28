@@ -87,6 +87,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       val properties = Json.obj(
         "street_edge_id" -> edge.streetEdgeId,
         "way_type" -> edge.wayType,
+        "region_id" -> edge.regionId,
         "audited" -> edge.audited
       )
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
