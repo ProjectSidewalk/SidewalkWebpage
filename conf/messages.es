@@ -152,14 +152,10 @@ audit.center.ui.add.tags = Agregar etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
 
 audit.mission.complete.labels.title = Etiquetas de la misión
-audit.mission.complete.progress.title = Progreso del barrio
 audit.mission.complete.progress.mission.you = Exploraste en esta misión
-audit.mission.complete.progress.neighborhood.you = Exploraste en este barrio
 audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en este barrio
-audit.mission.complete.progress.neighborhood.remaining = Restante en este barrio
 audit.mission.complete.legend.this.mission = Esta misión
 audit.mission.complete.legend.previous.missions = Misiones anteriores
-audit.mission.complete.legend.others.missions = Misiones de otras
 
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?

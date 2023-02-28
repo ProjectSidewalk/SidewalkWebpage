@@ -152,14 +152,10 @@ audit.center.ui.add.tags = 新增標籤：
 audit.center.ui.temporary = 暫時的 (例如：施工)
 
 audit.mission.complete.labels.title = 任務標記
-audit.mission.complete.progress.title = 鄰里進度
 audit.mission.complete.progress.mission.you = 您於此任務的探索
-audit.mission.complete.progress.neighborhood.you = 您於此鄰里的探索
 audit.mission.complete.progress.neighborhood.others = 其他標記者於此鄰里的探索
-audit.mission.complete.progress.neighborhood.remaining = 留在此鄰里
 audit.mission.complete.legend.this.mission = 此任務
 audit.mission.complete.legend.previous.missions = 前一任務
-audit.mission.complete.legend.others.missions = 其他標記者的任務
 
 audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷
 audit.survey.enjoyment.question = 您對使用Project Sidewalk平台的滿意度？

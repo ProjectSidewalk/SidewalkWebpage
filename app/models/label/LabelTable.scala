@@ -699,10 +699,10 @@ object LabelTable {
     // Randomize, check for GSV imagery, & add tag info. If no label type is specified, do it by label type.
     if (labelTypeId.isDefined) {
       val rand = SimpleFunction.nullary[Double]("random")
-      val _randomLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
       // Take the first `n` labels with non-expired GSV imagery.
-      checkForGsvImagery(_randomLabels, n)
+      checkForGsvImagery(_randomizedLabels, n)
         .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
     } else {
       val _potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
@@ -710,9 +710,10 @@ object LabelTable {
           .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
-      // Take the first `nPerType` labels with non-expired GSV imagery for each label type.
-      checkForImageryByLabelType(_potentialLabels, nPerType)
+      // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then randomize them.
+      val chosenLabels: Seq[LabelValidationMetadata] = checkForImageryByLabelType(_potentialLabels, nPerType)
         .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
+      scala.util.Random.shuffle(chosenLabels)
     }
   }
 

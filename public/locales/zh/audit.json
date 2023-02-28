@@ -86,6 +86,13 @@
     "mission-complete": {
         "distance-type-display-string": "公里",
         "title": "任務完成！",
+        "map-legend-label-other-users": "其他標記者的任務",
+        "progress-neighborhood-title": "鄰里進度",
+        "progress-route-title": "路线进度",
+        "progress-neighborhood-you": "您於此鄰里的探索",
+        "progress-route-you": "在您的路线中探索",
+        "progress-neighborhood-remaining": "留在此鄰里",
+        "progress-route-remaining": "留在你的路线上",
         "button-start-validating": "開始檢核",
         "button-keep-exploring": "繼續探索",
         "button-continue": "繼續"

@@ -38,6 +38,22 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     this._uiModalMissionComplete = uiModalMissionComplete;
     this._modalMissionCompleteMap = modalMissionCompleteMap;
 
+    // Initialize the mission complete modal differently if it's a designated route vs free auditing of a neighborhood.
+    if (svl.userRouteId) {
+        this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('mission-complete.progress-route-remaining'));
+        this._uiModalMissionComplete.progressTitle.html(i18next.t('mission-complete.progress-route-title'));
+        this._uiModalMissionComplete.progressYou.html(i18next.t('mission-complete.progress-route-you'));
+        this._uiModalMissionComplete.progressRemaining.html(i18next.t('mission-complete.progress-route-remaining'));
+
+        // If this is a designated route, remove element(s) related to the entire neighborhood.
+        this._uiModalMissionComplete.progressOthers.parent().remove();
+    } else {
+        this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('map-legend-label-other-users'));
+        this._uiModalMissionComplete.progressTitle.html(i18next.t('mission-complete.progress-neighborhood-title'));
+        this._uiModalMissionComplete.progressYou.html(i18next.t('mission-complete.progress-neighborhood-you'));
+        this._uiModalMissionComplete.progressRemaining.html(i18next.t('mission-complete.progress-neighborhood-remaining'));
+    }
+
     _modalModel.on("ModalMissionComplete:update", function (parameters) {
         self.update(parameters.mission, parameters.neighborhood);
     });
@@ -55,10 +71,16 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     });
 
     svl.neighborhoodModel.on("Neighborhood:completed", function() {
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-        var neighborhoodName = neighborhood.getProperty("name");
-        self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
-        uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
+        // Show different text if it's a route vs neighborhood that's finished.
+        if (svl.userRouteId) {
+            self.setMissionTitle("Bravo! You completed your route!");
+            uiModalMissionComplete.closeButtonPrimary.html('Keep exploring');
+        } else {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            var neighborhoodName = neighborhood.getProperty("name");
+            self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
+            uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
+        }
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
             self._enableContinueButton();
@@ -310,14 +332,14 @@ ModalMissionComplete.prototype._updateMissionProgressStatistics = function (miss
     }
     var positiveRemainingDistance = Math.max(remainingDistance, 0);
     var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
-    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + distanceType);
-    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + distanceType);
-    this._uiModalMissionComplete.othersAuditedDistance.html(positiveOthersAuditedDistance.toFixed(1) + " " + distanceType);
-    this._uiModalMissionComplete.remainingDistance.html(positiveRemainingDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.missionDistance.html(`${missionDistance.toFixed(1)} ${distanceType}`);
+    this._uiModalMissionComplete.totalAuditedDistance.html(`${userTotalDistance.toFixed(1)} ${distanceType}`);
+    this._uiModalMissionComplete.othersAuditedDistance.html(`${positiveOthersAuditedDistance.toFixed(1)} ${distanceType}`);
+    this._uiModalMissionComplete.remainingDistance.html(`${positiveRemainingDistance.toFixed(1)} ${distanceType}`);
 
     // Update the reward HTML if the user is a turker.
     if (this._userModel.getUser().getProperty("role") === "Turker") {
-        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
+        svl.ui.modalMissionComplete.missionReward.html(`<span style='color:forestgreen'>$${missionReward.toFixed(2)}</span>`);
     }
 };
 

@@ -1,13 +1,12 @@
 @import models.user.User
-@import models.region.RegionTable
 @import models.region.Region
 @import models.mission.{MissionTable, Mission}
 @import models.survey._
 @import models.amt.AMTAssignmentTable
-@import play.api.libs.json.Json
+@import models.route.UserRoute
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -144,32 +143,11 @@
     </div>
 
     <div class="container tool-ui" style = "visibility: hidden;">
-        <div id="advanced-overlay">
+        <div id="area-completion-overlay-wrapper">
             <div class="overlay-text">
-                <div id="advanced-neighborhood-text">
-                    <p>
-                        <span class="overlay-header">Advanced Neighborhood</span>
-                    </p>
-                    <p>
-                        <b>Warning:</b> This neighborhood is difficult to travel and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
-                    </p>
-                    <p>
-                        If you get stuck, click the Jump button to navigate to a different area.
-                    </p>
-                    <span class="overlay-option" id="continue-advanced">Yes, continue in this neighborhood</span>
-                    <span class="overlay-option" id="redirect-advanced">No, go to another neighborhood</span>
-                </div>
-            </div>
-        </div>
-        <div id="neighborhood-completion-overlay">
-            <div class="overlay-text">
-                <div id="neighborhood-completion-text">
-                    <p>
-                        <span class="overlay-header">Neighborhood Completed!</span>
-                    </p>
-                    <p>
-                        <b>Hurray!</b> You just helped complete this neighborhood! You can:
-                    </p>
+                <div id="area-completion-overlay">
+                    <p id="area-completion-title" class="overlay-header">Neighborhood Complete!</p>
+                    <p id="area-completion-body"><b>Hurray!</b> You just helped complete this neighborhood! You can:</p>
                     <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
                     <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
                 </div>
@@ -577,9 +555,9 @@
                             <div id="modal-mission-complete-map">
                             </div>
                             <div id="map-legend">
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> @Messages("audit.mission.complete.legend.this.mission")</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> @Messages("audit.mission.complete.legend.previous.missions")</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg> @Messages("audit.mission.complete.legend.others.missions")</span>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="green-square"></rect></svg><span id="modal-mission-complete-map-legend-label-1">@Messages("audit.mission.complete.legend.this.mission")</span><br>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="blue-square"></rect></svg><span id="modal-mission-complete-map-legend-label-2">@Messages("audit.mission.complete.legend.previous.missions")</span><br>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="gray-square"></rect></svg><span id="modal-mission-complete-map-legend-label-3">@Messages("audit.mission.complete.legend.others.missions")</span>
                             </div>
 
                         </div>
@@ -612,7 +590,7 @@
                                     <td id="modal-mission-complete-other-count" class="col-right"></td>
                                 </tr>
                             </table>
-                            <h3>@Messages("audit.mission.complete.progress.title")</h3>
+                            <h3 id="modal-mission-complete-progress-title"></h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
                                 @if(user.isDefined) {
@@ -628,15 +606,15 @@
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("audit.mission.complete.progress.neighborhood.you")</th>
+                                    <th id="modal-mission-complete-progress-you"></th>
                                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("audit.mission.complete.progress.neighborhood.others")</th>
+                                    <th id="modal-mission-complete-progress-others">@Messages("audit.mission.complete.progress.neighborhood.others")</th>
                                     <td id="modal-mission-complete-others-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("audit.mission.complete.progress.neighborhood.remaining")</th>
+                                    <th id="modal-mission-complete-progress-remaining"></th>
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
@@ -987,24 +965,13 @@
             };
             enableTouchSupport();
 
-            // Advanced Neighborhood Overlay
-            $('#continue-advanced').on('click', function() {
-                mainParam.advancedOverlay = false;
-                $('#advanced-overlay').hide();
-            });
-
-            $('#redirect-advanced').on('click', function() {
-                mainParam.advancedOverlay = false;
-                $(location).attr('href', '/audit?nextRegion=easy');
-            });
-
             // Neighborhood Completion Overlay
             $('#continue-current').on('click', function() {
-                $('#neighborhood-completion-overlay').hide();
+                $('#area-completion-overlay-wrapper').hide();
             });
 
             $('#redirect-new').on('click', function() {
-                $(location).attr('href', '/audit?nextRegion=regular');
+                $(location).attr('href', '/audit?newRegion=true');
             });
 
             // Already Completed Neighborhood Overlay
@@ -1075,16 +1042,17 @@
             mainParam.regionId = @region.regionId;
             mainParam.regionName = '@region.name';
             mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
-            @if(RegionTable.difficultRegionIds.contains(region.regionId)) {
-                $('#advanced-overlay').show();
-                mainParam.advancedOverlay = true
-            }
 
             mainParam.nextTemporaryLabelId = @nextTempLabelId;
             mainParam.mission = @Html(mission.toJSON.toString);
             mainParam.tutorialStreetId = @tutorialStreetId;
             mainParam.missionSetProgress = @missionSetProgress;
             mainParam.hasCompletedAMission = @hasCompletedMission;
+
+            @if(userRoute.isDefined) {
+                mainParam.routeId = @userRoute.get.routeId;
+                mainParam.userRouteId = @userRoute.get.userRouteId;
+            }
 
             mainParam.language = "@lang.code";
 
