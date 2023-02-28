@@ -251,8 +251,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      */
     function disable() {
         severities.disable();
-        validationOptions.disable();
-        $('.gallery-tag').prop("disabled", true);
+        $('.gallery-filter').prop("disabled", true);
     }
 
     /**
@@ -260,8 +259,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      */
     function enable() {
         severities.enable();
-        validationOptions.enable();
-        $('.gallery-tag').prop("disabled", false);
+        $('.gallery-filter').prop("disabled", false);
     }
 
     self.update = update;

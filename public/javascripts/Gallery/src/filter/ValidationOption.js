@@ -11,7 +11,6 @@ function ValidationOption (params, applied) {
 
     // UI element of the validation option container and image.
     let validationOptionElement = null;
-    let interactionEnabled = false;
 
     let properties = {
         validationOption: undefined
@@ -34,6 +33,7 @@ function ValidationOption (params, applied) {
         validationOptionElement.className = "gallery-filter-validation-button gallery-filter-button gallery-filter";
         validationOptionElement.id = properties.validationOption;
         validationOptionElement.innerText = i18next.t('gallery:' + properties.validationOption);
+        validationOptionElement.disabled = true; // Will be enabled once images load.
 
         if (status.applied) {
             apply();
@@ -62,7 +62,7 @@ function ValidationOption (params, applied) {
      */
     function apply() {
         status.applied = true;
-        validationOptionElement.setAttribute("style", "background-color: #78c8aa");
+        validationOptionElement.classList.add("gallery-filter-button-selected");
     }
 
     /**
@@ -70,7 +70,7 @@ function ValidationOption (params, applied) {
      */
     function unapply() {
         status.applied = false;
-        validationOptionElement.setAttribute("style", "background-color: none");
+        validationOptionElement.classList.remove("gallery-filter-button-selected");
     }
 
     /**
@@ -96,28 +96,12 @@ function ValidationOption (params, applied) {
         return properties.validationOption;
     }
 
-    /**
-     * Disables interaction with ValidationOption.
-     */
-    function disable() {
-        interactionEnabled = false;
-    }
-
-    /**
-     * Enables interaction with ValidationOption.
-     */
-    function enable() {
-        interactionEnabled = true;
-    }
-
     self.handleOnClickCallback = handleOnClickCallback;
     self.apply = apply;
     self.unapply = unapply;
     self.getActive = getActive;
     self.getValidationOption = getValidationOption;
     self.render = render;
-    self.disable = disable;
-    self.enable = enable;
 
     _init(params);
 
