@@ -48,7 +48,7 @@ function Card (params, imageUrl, modal) {
         Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
         SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
         Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Other.png',
+        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
         NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
         Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
         Signal : '/assets/images/icons/AdminTool_Signal.png'

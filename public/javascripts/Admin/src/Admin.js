@@ -1,4 +1,4 @@
-function Admin(_, $, difficultRegionIds) {
+function Admin(_, $) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
@@ -239,7 +239,7 @@ function Admin(_, $, difficultRegionIds) {
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                map = Choropleth(_, $, difficultRegionIds, mapTabMapParams, [], data1[0], data2[0], data3[0]);
+                map = Choropleth(_, $, mapTabMapParams, [], data1[0], data2[0], data3[0]);
             });
             // When the polygons have been rendered and the audited streets have loaded, the streets can be rendered.
             var renderStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
@@ -458,7 +458,7 @@ function Admin(_, $, difficultRegionIds) {
                 var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
                 var loadMapParams = $.getJSON('/cityMapParams');
                 $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                    Choropleth(_, $, difficultRegionIds, analyticsTabMapParams, [], data1[0], data2[0], data3[0]);
+                    Choropleth(_, $, analyticsTabMapParams, [], data1[0], data2[0], data3[0]);
                 });
 
                 // Make charts showing neighborhood completion rate.
