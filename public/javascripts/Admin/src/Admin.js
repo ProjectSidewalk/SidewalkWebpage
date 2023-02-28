@@ -355,10 +355,6 @@ function Admin(_, $, difficultRegionIds) {
                 $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
                 $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
 
-                var pedestrianSignalStats = getSummaryStats(pedestrianSignals, "severity");
-                $("#signal-mean").html((pedestrianSignalStats.mean).toFixed(2));
-                $("#signal-std").html((pedestrianSignalStats.std).toFixed(2));
-
                 var allData = data.features;
                 var allDataStats = getSummaryStats(allData, "severity");
                 $("#labels-mean").html((allDataStats.mean).toFixed(2));
