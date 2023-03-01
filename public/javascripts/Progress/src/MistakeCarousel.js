@@ -35,14 +35,6 @@ function MistakeCarousel() {
             mistakesSubheader.textContent += " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
         }
 
-        // if (subheader.equals('mistakes-subheader') && labelTypesWithData.length !== labelTypes.length) {
-        //     console.log("here")
-        //     mistakesSubheader.textContent = i18next.t(subheader) + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
-        // } else {
-        //     mistakesSubheader.textContent = i18next.t('no-mistakes-subheader')
-        //     console.log("here2")
-        // }
-
         let mistakesHolder = document.getElementById('mistake-carousels-holder');
 
         for (const [typeIndex, labelType] of labelTypesWithData.entries()) {
