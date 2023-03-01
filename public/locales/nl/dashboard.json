@@ -32,7 +32,9 @@
   "badge-distance-earned-all": "Gefeliciteerd, je hebt alle afstandbadges behaald!",
   "badge-labels-earned-all": "Gefeliciteerd, je hebt alle labelingbadges behaald!",
   "badge-validations-earned-all": "Gefeliciteerd, je hebt alle validatiebadges behaald!",
-  "mistakes-subheader": "Hieronder tonen we labels die door andere Project Sidewalk-gebruikers als onjuist zijn gemarkeerd. We tonen geen labels voor {{labelTypes, list}} omdat geen enkele als onjuist is gemarkeerd.",
+  "mistakes-info": "We tonen geen labels voor {{labelTypes, list}} omdat geen enkele als onjuist is gemarkeerd.",
+  "mistakes-subheader": "Hieronder tonen we labels die door andere Project Sidewalk-gebruikers als onjuist zijn gemarkeerd.",
+  "no-mistakes-subheader": "Er zijn tot nu toe geen labels als onjuist gerapporteerd, goed gedaan! Ga meer ontdekken!",
   "validator-comment": "Commentaar van validator: {{c}}",
   "validator-no-comment": "Geen commentaar geleverd door validator."
 }

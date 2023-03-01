@@ -32,7 +32,9 @@
   "badge-distance-earned-all": "恭喜, 您獲得所有的距離徽章！",
   "badge-labels-earned-all": "恭喜, 您獲得所有的標記徽章！",
   "badge-validations-earned-all": "恭喜, 您獲得所有的檢核徽章！！",
-  "mistakes-subheader": "以下為其他使用者標示為不正確的標記。現在沒有顯示 {{labelTypes, list}} 的標記是因為沒有任何標記為不正確。",
+  "mistakes-info": "現在沒有顯示 {{labelTypes, list}} 的標記是因為沒有任何標記為不正確。",
+  "mistakes-subheader": "以下為其他使用者標示為不正確的標記。",
+  "no-mistakes-subheader": "到目前為止，沒有任何標籤被報告為不正確，幹得好！去做更多的探索！",
   "validator-comment": "其他檢核者評論：{{c}}",
   "validator-no-comment": "無其他檢核者評論。"
 }
