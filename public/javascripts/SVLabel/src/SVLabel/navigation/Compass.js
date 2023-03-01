@@ -104,13 +104,13 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         window.clearTimeout(blinkTimer);
     }
 
-    function resetBeforeJump () {
+    function resetBeforeJump() {
         cancelTimer();
         removeLabelBeforeJumpMessage();
         mapService.resetBeforeJumpLocationAndListener();
     }
 
-    function _jumpToTheNewRoute () {
+    function _jumpToTheNewRoute() {
 
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
@@ -126,7 +126,13 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function _makeTheLabelBeforeJumpMessageBoxClickable () {
-        uiCompass.messageHolder.on('click', _jumpToTheNewRoute);
+        let jumpMessageOnclick;
+        if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') {
+            jumpMessageOnclick = function() { svl.neighborhoodModel.neighborhoodCompleted(); }
+        } else {
+            jumpMessageOnclick = _jumpBackToTheRoute
+        }
+        uiCompass.messageHolder.on('click', jumpMessageOnclick);
         uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
@@ -135,8 +141,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.messageHolder.css('cursor', 'default');
     }
 
-    function showLabelBeforeJumpMessage () {
-        // Start blinking after 15 seconds
+    function showLabelBeforeJumpMessage() {
+        // Start blinking after 15 seconds.
         blinkTimer = window.setTimeout(function () {
             svl.tracker.push('LabelBeforeJump_Blink');
             self.blink();
@@ -146,7 +152,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         self.setLabelBeforeJumpMessage();
     }
 
-    function removeLabelBeforeJumpMessage () {
+    function removeLabelBeforeJumpMessage() {
         self.stopBlinking();
         _makeTheLabelBeforeJumpMessageBoxUnclickable();
         self.enableCompassClick();
@@ -209,7 +215,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.message.html(message);
     }
 
-    function setLabelBeforeJumpMessage () {
+    function setLabelBeforeJumpMessage() {
         uiCompass.message.html("<div style='width: 20%'>" + i18next.t('center-ui.compass.end-of-route') + "</div>");
     }
 

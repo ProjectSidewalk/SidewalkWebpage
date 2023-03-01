@@ -69,8 +69,12 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             if (svl.modalMissionComplete.isOpen())
                 return;
 
-            _modalModel.updateModalMissionComplete(mission, neighborhood);
-            _modalModel.showModalMissionComplete();
+            // Show the mission complete screen unless we're at the end of a route so that they can finish the route.
+            // TODO we need a way to distinguish the end of a route besides the `LabelBeforeJumpListenerStatus`.
+            if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'neighborhood' || !svl.map.getLabelBeforeJumpListenerStatus()) {
+                _modalModel.updateModalMissionComplete(mission, neighborhood);
+                _modalModel.showModalMissionComplete();
+            }
         }
     };
 

@@ -31,7 +31,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     this._status = {
         isOpen: false
     };
-    this._closeModalClicked = false;
     this.showingMissionCompleteScreen = false;
     this._canShowContinueButton = false;
 
@@ -39,7 +38,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     this._modalMissionCompleteMap = modalMissionCompleteMap;
 
     // Initialize the mission complete modal differently if it's a designated route vs free auditing of a neighborhood.
-    if (svl.userRouteId) {
+    if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') {
         this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('mission-complete.progress-route-remaining'));
         this._uiModalMissionComplete.progressTitle.html(i18next.t('mission-complete.progress-route-title'));
         this._uiModalMissionComplete.progressYou.html(i18next.t('mission-complete.progress-route-you'));
@@ -72,9 +71,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     svl.neighborhoodModel.on("Neighborhood:completed", function() {
         // Show different text if it's a route vs neighborhood that's finished.
-        if (svl.userRouteId) {
+        if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') {
             self.setMissionTitle("Bravo! You completed your route!");
-            uiModalMissionComplete.closeButtonPrimary.html('Keep exploring');
         } else {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var neighborhoodName = neighborhood.getProperty("name");
@@ -124,7 +122,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     // TODO maybe deal with lost connection causing modal to not close
     this._handleCloseButtonClick = function (event) {
-        self._closeModalClicked = true;
         self._closeModal(event);
     };
 
@@ -197,7 +194,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         // button that has them audit more.
         var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
-        if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0) {
+        if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteComplete) {
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
 
             if (self._userModel.getUser().getProperty("role") === 'Turker') {

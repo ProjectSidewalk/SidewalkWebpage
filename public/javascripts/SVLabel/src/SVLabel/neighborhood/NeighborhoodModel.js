@@ -1,6 +1,9 @@
-function NeighborhoodModel () {
+// TODO generalize this whole thing so that it functions as either a neighborhood OR a route.
+function NeighborhoodModel() {
     var self = this;
     this._neighborhoodContainer = null;
+    this.routeOrNeighborhood = null;
+    this.isRouteComplete = null;
     this.isNeighborhoodCompleted = false;
     this.isNeighborhoodCompletedAcrossAllUsers = null;
 
@@ -48,6 +51,20 @@ NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function () 
 NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function () {
     this.isNeighborhoodCompletedAcrossAllUsers = true;
 };
+
+NeighborhoodModel.prototype.isRouteOrNeighborhood = function () {
+    return this.routeOrNeighborhood;
+};
+
+NeighborhoodModel.prototype.setAsRouteOrNeighborhood = function (routeOrNeighborhood) {
+    if (['route', 'neighborhood'].indexOf(routeOrNeighborhood) > 0) this.routeOrNeighborhood = routeOrNeighborhood;
+    if (routeOrNeighborhood === 'route') this.isRouteComplete = false;
+};
+
+NeighborhoodModel.prototype.routeComplete = function () {
+    if (!this._neighborhoodContainer) return;
+    this.isRouteComplete = true;
+}
 
 NeighborhoodModel.prototype.neighborhoodCompleted = function () {
     if (!this._neighborhoodContainer) return;

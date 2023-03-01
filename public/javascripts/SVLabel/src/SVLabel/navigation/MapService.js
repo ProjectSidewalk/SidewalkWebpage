@@ -673,17 +673,20 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.labelBeforeJumpListenerSet) {
 
             // Get a new task and check if it's disconnected from the current task. If yes, then finish the current task
-            // after the user has labeling the current location.
+            // after the user has finished labeling the current location.
 
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
 
-            if (nextTask && !task.isConnectedTo(nextTask)) {
-                // Check if the interface jumped the user to another discontinuous location. If the user has indeed
-                // jumped, [UPDATE] before jumping, let the user know to label the location before proceeding.
+            // TODO we should probably only do this if it's the last street in the route?
+            if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route' || (nextTask && !task.isConnectedTo(nextTask))) {
+                // Check if the user will jump to another discontinuous location or if this is the last street in their
+                // route. If either is the case, let the user know to label the location before proceeding.
 
-                // Set the newTask before jumping
-                svl.taskContainer.setBeforeJumpNewTask(nextTask);
+                // Set the newTask before jumping.
+                if (nextTask && !task.isConnectedTo(nextTask)) {
+                    svl.taskContainer.setBeforeJumpNewTask(nextTask);
+                }
                 status.labelBeforeJumpListenerSet = true;
 
                 // Store before jump location for tracking pre-jump actions when the user leaves their location.
@@ -704,7 +707,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     moveToTheTaskLocation(nextTask);
                 }
             }
-            if (!nextTask) {
+            if (!nextTask && svl.neighborhoodModel.isRouteOrNeighborhood() === 'neighborhood') {
                 finishNeighborhood();
             }
         }
@@ -720,16 +723,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 jumpPosition = turf.point([jumpLocation.lng, jumpLocation.lat]),
                 distance = turf.distance(jumpPosition, currentPosition, {units: 'kilometers'});
 
-            // Jump to the new location if it's really far away from his location.
             if (!status.jumpMsgShown && distance >= 0.01) {
-
                 // Show message to the user instructing them to label the current location.
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
                 status.jumpMsgShown = true
 
-            }
-            else if (distance > 0.07) {
+            } else if (distance > 0.07) {
+                // Jump to the new location if it's really far away from their location.
                 svl.tracker.push('LabelBeforeJump_AutoJump');
 
                 // Finish the current task

@@ -26,12 +26,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
-            svl.neighborhoodModel.neighborhoodCompleted();
-            if (svl.userRouteId) {
+            if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') {
                 tracker.push("RouteComplete", { 'UserRouteId': svl.userRouteId });
+                svl.neighborhoodModel.routeComplete();
             } else {
                 var currentNeighborhoodId = svl.neighborhoodModel.currentNeighborhood().getProperty("regionId");
                 tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
+                svl.neighborhoodModel.neighborhoodCompleted();
             }
         } else {
             svl.taskContainer.initNextTask(newTask);
@@ -137,7 +138,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var currMission = svl.missionContainer.getCurrentMission();
         var currMissionId = currMission.getProperty('missionId');
         var url;
-        if (svl.userRouteId) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
+        if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') url = `/routeTasks?userRouteId=${svl.userRouteId}`;
         else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getProperty('regionId')}`;
 
         $.ajax({
