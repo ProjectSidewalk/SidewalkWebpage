@@ -13,12 +13,38 @@ function MistakeCarousel() {
         let labelTypesWithoutData = [];
         labelTypes.forEach((l) => (data[l].length > 0 ? labelTypesWithData : labelTypesWithoutData).push(l));
 
-        // Add subheader for labeling mistakes section, listing label types without validations.
-        let mistakesSubheader = document.getElementById('mistakes-subheader');
         const translatedTypes = labelTypesWithoutData.map((l) => i18next.t(`common:${util.camelToKebab(l)}`));
-        mistakesSubheader.textContent = i18next.t('mistakes-subheader', { labelTypes: translatedTypes });
+
+        // Add subheader for labeling mistakes section, listing label types without validations.
+        let subheader = '';
+        if (labelTypesWithoutData.length === labelTypes.length) {
+            subheader = 'no-mistakes-subheader'
+        } else {
+            subheader = 'mistakes-subheader'
+        }
+
+        let mistakesSubheader = document.getElementById(subheader);
+
+        console.log(mistakesSubheader)
+
+        console.log("here1")
+
+        mistakesSubheader.textContent = i18next.t(subheader)
+
+        if (subheader === 'mistakes-subheader' && labelTypesWithData.length !== labelTypes.length) {
+            mistakesSubheader.textContent += " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+        }
+
+        // if (subheader.equals('mistakes-subheader') && labelTypesWithData.length !== labelTypes.length) {
+        //     console.log("here")
+        //     mistakesSubheader.textContent = i18next.t(subheader) + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+        // } else {
+        //     mistakesSubheader.textContent = i18next.t('no-mistakes-subheader')
+        //     console.log("here2")
+        // }
 
         let mistakesHolder = document.getElementById('mistake-carousels-holder');
+
         for (const [typeIndex, labelType] of labelTypesWithData.entries()) {
             // Add the header for this label type.
             let labelTypeHeader = document.createElement('h3');
