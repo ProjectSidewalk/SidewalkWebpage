@@ -58,6 +58,12 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     });
 
     _modalModel.on("ModalMissionComplete:show", function () {
+        // Play mission complete sound effect.
+        svl.gameEffectModel.loadAudio({ audioType: "success" });
+        svl.gameEffectModel.playAudio({ audioType: "success" });
+
+        // TODO I don't know why some of this code is here and some of it is in self.show().
+        // Set mission complete title text differently if user finished their route or the whole neighborhood.
         if (svl.neighborhoodModel.isRouteComplete) {
             self.setMissionTitle("Bravo! You completed your route!");
             self._canShowContinueButton = true;

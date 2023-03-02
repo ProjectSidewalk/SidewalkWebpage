@@ -113,8 +113,8 @@ function Main (params) {
 
         // Mission
         svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
-        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
-            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
+        svl.missionProgress = new MissionProgress(svl, svl.missionModel, svl.modalModel, svl.neighborhoodModel,
+            svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current

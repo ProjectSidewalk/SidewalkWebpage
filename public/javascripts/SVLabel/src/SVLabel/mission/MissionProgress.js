@@ -6,10 +6,9 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel,
-                          missionContainer, neighborhoodContainer, tracker) {
+function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statusModel, missionContainer,
+                         neighborhoodContainer, tracker) {
     var self = this;
-    var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
     var _modalModel = modalModel;
     var _neighborhoodModel = neighborhoodModel;
@@ -29,7 +28,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var mission = missionContainer.getCurrentMission();
         var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
 
-        self._completeTheCurrentMission(mission, neighborhood);
         _modalModel.updateModalMissionComplete(mission, neighborhood);
         _modalModel.showModalMissionComplete();
     });
@@ -52,8 +50,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         );
         mission.complete();
 
-        _gameEffectModel.loadAudio({ audioType: "success" });
-        _gameEffectModel.playAudio({ audioType: "success" });
 
         _missionModel.completeMission(mission);
 
@@ -72,6 +68,8 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
             // Show the mission complete screen unless we're at the end of a route so that they can finish the route.
             // TODO we need a way to distinguish the end of a route besides the `LabelBeforeJumpListenerStatus`.
+            console.log(!svl.neighborhoodModel.isRoute);
+            console.log(!svl.neighborhoodModel.isRouteComplete);
             if (!svl.neighborhoodModel.isRoute || !svl.map.getLabelBeforeJumpListenerStatus()) {
                 _modalModel.updateModalMissionComplete(mission, neighborhood);
                 _modalModel.showModalMissionComplete();
