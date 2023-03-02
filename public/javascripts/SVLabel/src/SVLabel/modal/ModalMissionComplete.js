@@ -38,7 +38,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     this._modalMissionCompleteMap = modalMissionCompleteMap;
 
     // Initialize the mission complete modal differently if it's a designated route vs free auditing of a neighborhood.
-    if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') {
+    if (svl.neighborhoodModel.isRoute) {
         this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('mission-complete.progress-route-remaining'));
         this._uiModalMissionComplete.progressTitle.html(i18next.t('mission-complete.progress-route-title'));
         this._uiModalMissionComplete.progressYou.html(i18next.t('mission-complete.progress-route-you'));
@@ -58,6 +58,16 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     });
 
     _modalModel.on("ModalMissionComplete:show", function () {
+        if (svl.neighborhoodModel.isRouteComplete) {
+            self.setMissionTitle("Bravo! You completed your route!");
+            self._canShowContinueButton = true;
+        } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            var neighborhoodName = neighborhood.getProperty("name");
+            self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
+            uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
+            self._canShowContinueButton = true;
+        }
         self.show();
     });
 
@@ -67,22 +77,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     onboardingModel.on("Onboarding:startOnboarding", function () {
         self.hide();
-    });
-
-    svl.neighborhoodModel.on("Neighborhood:completed", function() {
-        // Show different text if it's a route vs neighborhood that's finished.
-        if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') {
-            self.setMissionTitle("Bravo! You completed your route!");
-        } else {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            var neighborhoodName = neighborhood.getProperty("name");
-            self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
-            uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
-        }
-        self._canShowContinueButton = true;
-        if (self.showingMissionCompleteScreen) {
-            self._enableContinueButton();
-        }
     });
 
     _missionModel.on("MissionProgress:complete", function (parameters) {
@@ -139,7 +133,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
         if (event.data.button === 'primary' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0)) {
             window.location.replace('/validate');
-        } else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
+        } else if (svl.neighborhoodModel.isRouteComplete || svl.neighborhoodModel.isNeighborhoodComplete) {
             // Reload the page to load another neighborhood.
             window.location.replace('/audit');
         } else {

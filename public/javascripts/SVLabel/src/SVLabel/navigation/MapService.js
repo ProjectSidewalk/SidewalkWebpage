@@ -377,14 +377,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }, 500);
     }
 
-    function hideMinimap() {
-        svl.ui.minimap.holder.hide();
-    }
-
-    svl.neighborhoodModel.on("Neighborhood:completed", function() {
-        hideMinimap();
-    });
-
     /**
      * Disable panning on Street View
      * @returns {disablePanning}
@@ -529,7 +521,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 _jumpToNewTask(newTask, "jumpImageryNotFound");
             } else {
                 // Complete current neighborhood if no new task available.
-                finishNeighborhood();
+                svl.neighborhoodModel.setComplete();
                 status.jumpImageryNotFoundStatus = true;
             }
         } else {
@@ -651,13 +643,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-    function finishNeighborhood() {
-        var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-        svl.neighborhoodModel.neighborhoodCompleted();
-        svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': currentNeighborhoodId });
-    }
-
     function finishCurrentTaskBeforeJumping(mission, nextTask) {
         if (mission === undefined) {
             mission = missionJump;
@@ -679,7 +664,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var nextTask = svl.taskContainer.nextTask(task);
 
             // TODO we should probably only do this if it's the last street in the route?
-            if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route' || (nextTask && !task.isConnectedTo(nextTask))) {
+            if (svl.neighborhoodModel.isRoute || (nextTask && !task.isConnectedTo(nextTask))) {
                 // Check if the user will jump to another discontinuous location or if this is the last street in their
                 // route. If either is the case, let the user know to label the location before proceeding.
 
@@ -707,8 +692,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     moveToTheTaskLocation(nextTask);
                 }
             }
-            if (!nextTask && svl.neighborhoodModel.isRouteOrNeighborhood() === 'neighborhood') {
-                finishNeighborhood();
+            if (!nextTask) {
+                svl.neighborhoodModel.setComplete();
             }
         }
     }

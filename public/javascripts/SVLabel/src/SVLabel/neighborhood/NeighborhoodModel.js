@@ -2,10 +2,10 @@
 function NeighborhoodModel() {
     var self = this;
     this._neighborhoodContainer = null;
-    this.routeOrNeighborhood = null;
+    this.isRoute = null;
     this.isRouteComplete = null;
-    this.isNeighborhoodCompleted = false;
-    this.isNeighborhoodCompletedAcrossAllUsers = null;
+    this.isNeighborhoodComplete = false;
+    this.isNeighborhoodCompleteAcrossAllUsers = null;
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -45,29 +45,29 @@ NeighborhoodModel.prototype.currentNeighborhood = function () {
 };
 
 NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function () {
-    return this.isNeighborhoodCompletedAcrossAllUsers;
+    return this.isNeighborhoodCompleteAcrossAllUsers;
 };
 
 NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function () {
-    this.isNeighborhoodCompletedAcrossAllUsers = true;
-};
-
-NeighborhoodModel.prototype.isRouteOrNeighborhood = function () {
-    return this.routeOrNeighborhood;
+    this.isNeighborhoodCompleteAcrossAllUsers = true;
 };
 
 NeighborhoodModel.prototype.setAsRouteOrNeighborhood = function (routeOrNeighborhood) {
-    if (['route', 'neighborhood'].indexOf(routeOrNeighborhood) > 0) this.routeOrNeighborhood = routeOrNeighborhood;
-    if (routeOrNeighborhood === 'route') this.isRouteComplete = false;
+    if (routeOrNeighborhood === 'route') {
+        this.isRoute = true;
+        this.isRouteComplete = false;
+    } else {
+        this.isRoute = false;
+    }
 };
 
-NeighborhoodModel.prototype.routeComplete = function () {
-    if (!this._neighborhoodContainer) return;
-    this.isRouteComplete = true;
+NeighborhoodModel.prototype.setComplete = function () {
+    if (this.isRoute) {
+        svl.tracker.push("RouteComplete", { 'UserRouteId': svl.userRouteId });
+        this.isRouteComplete = true;
+    } else {
+        if (!this._neighborhoodContainer) return;
+        svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': this.currentNeighborhood().getRegionId() });
+        this.isNeighborhoodComplete = true;
+    }
 }
-
-NeighborhoodModel.prototype.neighborhoodCompleted = function () {
-    if (!this._neighborhoodContainer) return;
-    this.trigger("Neighborhood:completed");
-    this.isNeighborhoodCompleted = true;
-};

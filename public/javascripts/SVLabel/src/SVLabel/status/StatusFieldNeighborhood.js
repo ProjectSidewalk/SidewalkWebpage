@@ -9,7 +9,7 @@ function StatusFieldNeighborhood (neighborhoodModel, userModel, uiStatus) {
 
         var user = self._userModel.getUser();
         if (user && user.getProperty("role") !== "Anonymous") {
-            var href = "/dashboard" + "?regionId=" + newNeighborhood.getProperty("regionId");
+            var href = "/dashboard" + "?regionId=" + newNeighborhood.getRegionId();
             self.setHref(href);
         }
     });

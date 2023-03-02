@@ -20,9 +20,11 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         self.update(mission, neighborhood);
     });
 
-    _neighborhoodModel.on("Neighborhood:completed", function () {
-        // When the user has complete auditing all the streets in the neighborhood,
-        // show the 100% coverage mission completion message.
+    _neighborhoodModel.on("Neighborhood:wrapUpFinishedRouteOrNeighborhood", function () {
+        // When the user has finished every street in their route or neighborhood and have confirmed that they've
+        // finished auditing their last intersection, mark task/mission as complete and show the mission complete modal.
+        var currentTask = svl.taskContainer.getCurrentTask();
+        svl.taskContainer.endTask(currentTask);
 
         var mission = missionContainer.getCurrentMission();
         var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
@@ -45,14 +47,13 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                 missionId: mission.getProperty("missionId"),
                 missionType: mission.getProperty("missionType"),
                 distanceMeters: Math.round(mission.getDistance("meters")),
-                regionId: neighborhood.getProperty("regionId")
+                regionId: neighborhood.getRegionId()
             }
         );
         mission.complete();
 
-        // TODO Audio should listen to MissionProgress instead of MissionProgress telling what to do.
-        _gameEffectModel.loadAudio({audioType: "success"});
-        _gameEffectModel.playAudio({audioType: "success"});
+        _gameEffectModel.loadAudio({ audioType: "success" });
+        _gameEffectModel.playAudio({ audioType: "success" });
 
         _missionModel.completeMission(mission);
 
@@ -71,7 +72,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
             // Show the mission complete screen unless we're at the end of a route so that they can finish the route.
             // TODO we need a way to distinguish the end of a route besides the `LabelBeforeJumpListenerStatus`.
-            if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'neighborhood' || !svl.map.getLabelBeforeJumpListenerStatus()) {
+            if (!svl.neighborhoodModel.isRoute || !svl.map.getLabelBeforeJumpListenerStatus()) {
                 _modalModel.updateModalMissionComplete(mission, neighborhood);
                 _modalModel.showModalMissionComplete();
             }
@@ -93,7 +94,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var completionRate = currentMission.getMissionCompletionRate();
         statusModel.setMissionCompletionRate(completionRate);
         statusModel.setProgressBar(completionRate);
-        this._checkMissionComplete(currentMission, currentRegion);
+        if (!_neighborhoodModel.isRouteComplete && !_neighborhoodModel.isNeighborhoodComplete) {
+            this._checkMissionComplete(currentMission, currentRegion);
+        }
 
         // Survey prompt. Modal should display survey if
         // 1. User has completed numMissionsBeforeSurvey number of missions

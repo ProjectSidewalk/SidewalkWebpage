@@ -74,7 +74,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                     missionId: mission.getProperty("missionId"),
                     missionType: mission.getProperty("missionType"),
                     distanceMeters: Math.round(mission.getDistance("meters")),
-                    regionId: mission.getProperty("regionId")
+                    regionId: mission.getProperty('regionId')
                 }
             );
         }

@@ -26,14 +26,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
-            if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') {
-                tracker.push("RouteComplete", { 'UserRouteId': svl.userRouteId });
-                svl.neighborhoodModel.routeComplete();
-            } else {
-                var currentNeighborhoodId = svl.neighborhoodModel.currentNeighborhood().getProperty("regionId");
-                tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
-                svl.neighborhoodModel.neighborhoodCompleted();
-            }
+            svl.neighborhoodModel.setComplete();
         } else {
             svl.taskContainer.initNextTask(newTask);
         }
@@ -138,8 +131,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var currMission = svl.missionContainer.getCurrentMission();
         var currMissionId = currMission.getProperty('missionId');
         var url;
-        if (svl.neighborhoodModel.isRouteOrNeighborhood() === 'route') url = `/routeTasks?userRouteId=${svl.userRouteId}`;
-        else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getProperty('regionId')}`;
+        if (svl.neighborhoodModel.isRoute) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
+        else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getRegionId()}`;
 
         $.ajax({
             url: url,
@@ -382,7 +375,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
                 svl.ui.areaComplete.overlay.show();
                 var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                var currentNeighborhoodId = currentNeighborhood.getRegionId();
 
                 console.log('neighborhood: ' + currentNeighborhoodId + ": " + currentNeighborhood);
 

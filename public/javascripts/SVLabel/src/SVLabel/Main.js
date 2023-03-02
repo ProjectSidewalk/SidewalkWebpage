@@ -314,7 +314,7 @@ function Main (params) {
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
 
-        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty('regionId'), function (result) {
+        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
             svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
 
