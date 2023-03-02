@@ -359,7 +359,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     function updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask) {
         // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
-        if (!svl.userRouteId && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
+        if (!neighborhoodModel.isRoute && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
             var candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
             });

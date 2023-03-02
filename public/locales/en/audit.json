@@ -202,7 +202,8 @@
             "slight-left": "Turn slightly left",
             "slight-right": "Turn slightly right",
             "u-turn": "U turn",
-            "end-of-route": "You have reached the end of this route. Finish labeling this intersection then <br><span class='bold'>click here to move to a new location.</span>",
+            "end-route": "You're at the end of your route! Finish labeling this intersection, then <br><span class='bold'>click here to complete the route.</span>",
+            "end-street": "We need to move you to a new location. Finish labeling this intersection, then <br><span class='bold'>click here to move to a new location.</span>",
             "far-away": "Uh-oh, you're quite far away from the route. <br><span class='bold'>Click here to jump back.</span>"
         }
     },

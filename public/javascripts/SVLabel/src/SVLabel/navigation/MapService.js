@@ -316,7 +316,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * A helper function to move a user to the task location.
+     * A helper function to move a user to the task location if they are far from it.
      * @param task
      * @param caller
      * @private
@@ -653,22 +653,28 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mission.pushATaskToTheRoute(currentTask);
     }
 
+    /**
+     * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
+     * the user has finished labeling the current location.
+     * @param task
+     * @param mission
+     * @private
+     */
     function _endTheCurrentTask(task, mission) {
 
         if (!status.labelBeforeJumpListenerSet) {
-
-            // Get a new task and check if it's disconnected from the current task. If yes, then finish the current task
-            // after the user has finished labeling the current location.
-
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
 
-            // TODO we should probably only do this if it's the last street in the route?
-            if (svl.neighborhoodModel.isRoute || (nextTask && !task.isConnectedTo(nextTask))) {
-                // Check if the user will jump to another discontinuous location or if this is the last street in their
-                // route. If either is the case, let the user know to label the location before proceeding.
+            // If we are out of streets, set the route/neighborhood as complete.
+            if (!nextTask) {
+                svl.neighborhoodModel.setComplete();
+            }
 
-                // Set the newTask before jumping.
+            // Check if the user will jump to another discontinuous location or if this is the last street in their
+            // route. If either is the case, let the user know to label the location before proceeding.
+            if (svl.neighborhoodModel.isRouteComplete || (nextTask && !task.isConnectedTo(nextTask))) {
+                // If jumping to a new place, set the newTask before jumping.
                 if (nextTask && !task.isConnectedTo(nextTask)) {
                     svl.taskContainer.setBeforeJumpNewTask(nextTask);
                 }
@@ -677,23 +683,19 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Store before jump location for tracking pre-jump actions when the user leaves their location.
                 setBeforeJumpLocation();
 
-                // Listener activated for tracking before-jump actions
+                // Listener activated for tracking before-jump actions.
                 try {
                     listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
                         "pano_changed", trackBeforeJumpActions);
                 } catch (err) {}
-            }
-            else {
+            } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
 
-                // Move to the new task if the neighborhood has not finished
+                // Move to the new task if the route/neighborhood has not finished.
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);
                     moveToTheTaskLocation(nextTask);
                 }
-            }
-            if (!nextTask) {
-                svl.neighborhoodModel.setComplete();
             }
         }
     }

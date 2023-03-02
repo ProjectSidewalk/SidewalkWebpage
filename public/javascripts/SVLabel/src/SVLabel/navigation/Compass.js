@@ -216,7 +216,11 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function setLabelBeforeJumpMessage() {
-        uiCompass.message.html("<div style='width: 20%'>" + i18next.t('center-ui.compass.end-of-route') + "</div>");
+        if (svl.neighborhoodModel.isRouteComplete) {
+            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-route')}</div>`);
+        } else {
+            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-street')}</div>`);
+        }
     }
 
     function _setBackToRouteMessage() {
