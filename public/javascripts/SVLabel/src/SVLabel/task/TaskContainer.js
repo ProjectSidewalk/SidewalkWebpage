@@ -14,7 +14,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     var previousTasks = [];
     var currentTask = null;
-    var beforeJumpNewTask = null;
+    var afterJumpNewTask = null;
     var tasksFinishedLoading = false;
 
     self._tasks = [];
@@ -191,25 +191,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             tasks = tasks.filter(function (t) { return t.streetCompletedByAnyUser(); });
         }
 
-        if (tasks) {
+        if (taskIn && tasks) {
             var connectedTasks = [];
             if (!threshold) threshold = 0.01;  // 0.01 km.
             if (!unit) unit = {units: 'kilometers'};
 
-            tasks = tasks.filter(function (t) { return !t.isComplete(); });
+            tasks = tasks.filter(function (t) {
+                return !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId();
+            });
 
-            if (taskIn) {
-                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() !== taskIn.getStreetEdgeId(); });
-
-                for (var i = 0, len = tasks.length; i < len; i++) {
-                    if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                        connectedTasks.push(tasks[i]);
-                    }
+            for (var i = 0, len = tasks.length; i < len; i++) {
+                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                    connectedTasks.push(tasks[i]);
                 }
-                return connectedTasks;
-            } else {
-                return util.shuffle(tasks);
             }
+            return connectedTasks;
         } else {
             return [];
         }
@@ -297,7 +293,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the current task
      * @returns {*}
      */
-    function getCurrentTask () {
+    function getCurrentTask() {
         return currentTask;
     }
 
@@ -305,8 +301,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the before jump task
      * @returns {*}
      */
-    function getBeforeJumpTask () {
-        return beforeJumpNewTask;
+    function getAfterJumpNewTask() {
+        return afterJumpNewTask;
     }
 
     /**
@@ -492,7 +488,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param task
      */
     this.setBeforeJumpNewTask = function (task) {
-        beforeJumpNewTask = task;
+        afterJumpNewTask = task;
     };
 
     /**
@@ -569,7 +565,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCompletedTaskDistanceAcrossAllUsersUsingPriority = getCompletedTaskDistanceAcrossAllUsersUsingPriority;
     self.getCurrentTask = getCurrentTask;
-    self.getBeforeJumpNewTask = getBeforeJumpTask;
+    self.getAfterJumpNewTask = getAfterJumpNewTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = pushATask;

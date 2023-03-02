@@ -19,7 +19,7 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
         self.update(mission, neighborhood);
     });
 
-    _neighborhoodModel.on("Neighborhood:wrapUpFinishedRouteOrNeighborhood", function () {
+    _neighborhoodModel.on("Neighborhood:wrapUpRouteOrNeighborhood", function () {
         // When the user has finished every street in their route or neighborhood and have confirmed that they've
         // finished auditing their last intersection, mark task/mission as complete and show the mission complete modal.
         var currentTask = svl.taskContainer.getCurrentTask();

@@ -111,7 +111,6 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function _jumpToTheNewRoute() {
-
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
         mapService.finishCurrentTaskBeforeJumping();
@@ -119,7 +118,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         // Finish clean up tasks before jumping
         resetBeforeJump();
 
-        var task = taskContainer.getBeforeJumpNewTask();
+        var task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
         mapService.moveToTheTaskLocation(task);
         svl.jumpModel.triggerUserClickJumpMessage();
@@ -128,9 +127,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _makeTheLabelBeforeJumpMessageBoxClickable() {
         let jumpMessageOnclick;
         if (svl.neighborhoodModel.isRoute) {
-            jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpFinishedRouteOrNeighborhood"); }
+            jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood"); }
         } else {
-            jumpMessageOnclick = _jumpBackToTheRoute
+            jumpMessageOnclick = _jumpToTheNewRoute
         }
         uiCompass.messageHolder.on('click', jumpMessageOnclick);
         uiCompass.messageHolder.css('cursor', 'pointer');

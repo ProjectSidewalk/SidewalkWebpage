@@ -672,8 +672,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
 
             // Check if the user will jump to another discontinuous location or if this is the last street in their
-            // route. If either is the case, let the user know to label the location before proceeding.
-            if (svl.neighborhoodModel.isRouteComplete || (nextTask && !task.isConnectedTo(nextTask))) {
+            // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
+            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
                 // If jumping to a new place, set the newTask before jumping.
                 if (nextTask && !task.isConnectedTo(nextTask)) {
                     svl.taskContainer.setBeforeJumpNewTask(nextTask);
@@ -727,7 +727,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.resetBeforeJump();
 
                 // Jump to the new task
-                var newTask = svl.taskContainer.getBeforeJumpNewTask();
+                var newTask = svl.taskContainer.getAfterJumpNewTask();
                 _jumpToNewTask(newTask);
                 svl.jumpModel.triggerTooFarFromJumpLocation();
             }

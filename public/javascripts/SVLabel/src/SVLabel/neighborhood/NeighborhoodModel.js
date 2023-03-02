@@ -4,7 +4,7 @@ function NeighborhoodModel() {
     this._neighborhoodContainer = null;
     this.isRoute = null;
     this.isRouteComplete = null;
-    this.isNeighborhoodComplete = false;
+    this.isNeighborhoodComplete = null;
     this.isNeighborhoodCompleteAcrossAllUsers = null;
 
     this._handleFetchComplete = function (geojson) {
@@ -58,6 +58,7 @@ NeighborhoodModel.prototype.setAsRouteOrNeighborhood = function (routeOrNeighbor
         this.isRouteComplete = false;
     } else {
         this.isRoute = false;
+        this.isNeighborhoodComplete = false;
     }
 };
 
@@ -70,4 +71,8 @@ NeighborhoodModel.prototype.setComplete = function () {
         svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': this.currentNeighborhood().getRegionId() });
         this.isNeighborhoodComplete = true;
     }
+}
+
+NeighborhoodModel.prototype.isRouteOrNeighborhoodComplete = function () {
+    return this.isRouteComplete || this.isNeighborhoodComplete
 }
