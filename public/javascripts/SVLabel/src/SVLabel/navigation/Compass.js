@@ -126,7 +126,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
     function _makeTheLabelBeforeJumpMessageBoxClickable() {
         let jumpMessageOnclick;
-        if (svl.neighborhoodModel.isRoute) {
+        if (svl.neighborhoodModel.isRouteComplete) {
             jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood"); }
         } else {
             jumpMessageOnclick = _jumpToTheNewRoute

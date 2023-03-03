@@ -500,12 +500,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
-        if (caller === undefined) {
-            moveToTheTaskLocation(task);
-        }
-        else {
-            moveToTheTaskLocation(task, caller);
-        }
+        moveToTheTaskLocation(task, caller);
     }
 
     function _jumpToNewLocation() {

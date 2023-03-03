@@ -66,11 +66,8 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
             if (svl.modalMissionComplete.isOpen())
                 return;
 
-            // Show the mission complete screen unless we're at the end of a route so that they can finish the route.
-            // TODO we need a way to distinguish the end of a route besides the `LabelBeforeJumpListenerStatus`.
-            console.log(!svl.neighborhoodModel.isRoute);
-            console.log(!svl.neighborhoodModel.isRouteComplete);
-            if (!svl.neighborhoodModel.isRoute || !svl.map.getLabelBeforeJumpListenerStatus()) {
+            // Show the mission complete screen unless we're at the end of a route/neighborhood.
+            if (!svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
                 _modalModel.updateModalMissionComplete(mission, neighborhood);
                 _modalModel.showModalMissionComplete();
             }
