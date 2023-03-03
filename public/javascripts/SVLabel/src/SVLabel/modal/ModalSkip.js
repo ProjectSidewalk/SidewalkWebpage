@@ -73,7 +73,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         self.hideSkipMenu();
 
         // If the user was following a route, refresh the page so that they are no longer on the route.
-        if (svl.userRouteId) {
+        if (svl.neighborhoodModel.isRoute) {
             window.location.replace('/audit?resumeRoute=false');
         }
     };

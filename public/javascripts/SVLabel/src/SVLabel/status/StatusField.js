@@ -20,13 +20,4 @@ function StatusField (uiStatusField) {
         window.clearInterval(_blinkInterval);
         uiStatusField.holder.removeClass("highlight-50");
     };
-
-    this.hide = function() {
-        uiStatusField.holder.hide();
-    };
-
-    svl.neighborhoodModel.on("Neighborhood:completed", function() {
-        svl.statusField.hide();
-    });
 }
-

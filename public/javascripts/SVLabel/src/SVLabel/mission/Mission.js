@@ -166,16 +166,6 @@ function Mission(parameters) {
     }
 
     /**
-     * Return a string describing this data
-     * @returns {string}
-     */
-    function toString () {
-        return "Mission ID: " + getProperty("missionId") + ", Mission Type: " + getProperty("missionType") +
-            ", Region Id: " + getProperty("regionId") + ", Complete: " + getProperty("isComplete") +
-            ", Distance: " + getDistance("meters") + "\n";
-    }
-
-    /**
      * Total line distance in this mission.
      * @param unit
      */
@@ -203,6 +193,5 @@ function Mission(parameters) {
     self.isComplete = isComplete;
     self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.setProperty = setProperty;
-    self.toString = toString;
     self.getDistance = getDistance;
 }
