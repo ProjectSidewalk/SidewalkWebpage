@@ -126,7 +126,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
     function _makeTheLabelBeforeJumpMessageBoxClickable() {
         let jumpMessageOnclick;
-        if (svl.neighborhoodModel.isRouteComplete) {
+        if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood"); }
         } else {
             jumpMessageOnclick = _jumpToTheNewRoute
@@ -217,6 +217,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function setLabelBeforeJumpMessage() {
         if (svl.neighborhoodModel.isRouteComplete) {
             uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-route')}</div>`);
+        } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
+            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
         } else {
             uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-street')}</div>`);
         }

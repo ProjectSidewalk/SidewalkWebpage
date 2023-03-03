@@ -139,8 +139,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
         if (event.data.button === 'primary' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0)) {
             window.location.replace('/validate');
-        } else if (svl.neighborhoodModel.isRouteComplete || svl.neighborhoodModel.isNeighborhoodComplete) {
-            // Reload the page to load another neighborhood.
+        } else if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             window.location.replace('/audit');
         } else {
             var nextMission = missionContainer.getCurrentMission();
@@ -194,7 +193,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         // button that has them audit more.
         var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
-        if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteComplete) {
+        if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
 
             if (self._userModel.getUser().getProperty("role") === 'Turker') {
@@ -218,7 +217,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         } else {
             self._disableContinueButton();
         }
-        // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
         // If the user has completed their first mission then display the confirmation code and show the confirmation
