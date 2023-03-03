@@ -200,7 +200,9 @@
             "slight-left": "Gira ligeramente a la izquierda",
             "slight-right": "Gira ligeramente a la derecha",
             "u-turn": "Da la vuelta",
-            "end-of-route": "Has llegado al final de esta ruta. Termina de etiquetar esta intersección y luego <br><span class='bold'>haz clic aquí para moverte a una nueva ubicación.</span>",
+            "end-route": "¡Estás al final de tu ruta! Termina de etiquetar esta intersección, luego <br><span class='bold'>haz clic aquí para completar la ruta.</span>",
+            "end-neighborhood": "¡Has explorado todo este vecindario! Termine de etiquetar esta intersección, luego <br><span class='bold'>haga clic aquí para completar el vecindario.</span>",
+            "end-street": "Necesitamos trasladarte a una nueva ubicación. Termine de etiquetar esta intersección, luego <br><span class='bold'>haga clic aquí para moverse a una nueva ubicación.</span>",
             "far-away": "Oh-oh, estás bastante lejos de la ruta. <br><span class='bold'>Haz clic aquí para volver atrás.</span>"
         }
     },

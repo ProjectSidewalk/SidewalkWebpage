@@ -5,7 +5,7 @@
 .gallery-filter:disabled {
     cursor: default;
     opacity: 50%;
-    background-color: white;
+    pointer-events: none;
 }
 
 .severity-filter-image {
@@ -53,7 +53,9 @@
     border-width: 1px;
     border-radius: 5px;
     text-align: left;
+    background-color: white;
     color: black;
+    border-color: black;
     width: fit-content;
     white-space: nowrap;
     max-width: 98%;
@@ -61,8 +63,16 @@
     text-overflow: ellipsis;
 }
 
+.gallery-filter-button-selected {
+    background-color: #76c9ab;
+    color: white;
+    border-color: #76c9ab;
+}
+
 .gallery-filter-button:hover {
-    background-color: #78c8aa;
+    background-color: rgba(167,222,202,0.1);
+    color: #40bd90;
+    border-color: #40bd90;
     white-space: normal;
 }
 

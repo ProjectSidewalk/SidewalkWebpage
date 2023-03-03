@@ -66,7 +66,7 @@ function Neighborhood (parameters) {
     /**
      * @returns region id of this neighborhood
      */
-    function getRegionId () {
+    function getRegionId() {
         return getProperty('regionId');
     }
 
