@@ -34,7 +34,7 @@
   "badge-validations-earned-all": "Congratulations, you've earned all validation badges!",
   "mistakes-info": "We are not showing labels for {{labelTypes, list}} because none were marked as incorrect.",
   "mistakes-subheader": "Below, we are showing labels that have been marked as incorrect by other Project Sidewalk users.",
-  "no-mistakes-subheader": "No labels have been reported as incorrect so far, good job! Go do more exploring!",
+  "no-mistakes-subheader": "No labels have been reported as incorrect so far, good job! Start exploring to keep up the good work! ",
   "validator-comment": "Comment from validator: {{c}}",
   "validator-no-comment": "No comment supplied by validator."
 }
