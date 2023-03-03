@@ -1,11 +1,9 @@
 @import models.user.User
 @import models.user.OrganizationTable
 @import models.user.UserOrgTable
-@import models.region.RegionTable
 @import models.mission.MissionTable
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
-@import play.api.libs.json.Json
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
@@ -68,7 +66,7 @@
                 <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
                 <span class="user-stats-header">@Messages("dashboard.distance")</span>
                 <span class="user-stats-header">@Messages("dashboard.labels")</span>
-                <span class="user-stats-header">@Messages("dashboard.validations")</span>
+                <span class="user-stats-header">@Messages("validations")</span>
                 <span class="user-stats-header">@Messages("accuracy.caps")</span>
 
                 <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
@@ -149,7 +147,7 @@
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
                 <div class="achievements-outer-col3">
-                    <h3>@Messages("dashboard.validations")</h3>
+                    <h3>@Messages("validations")</h3>
                     <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
                     <div id="validations-badge-grid" class="achievements-badge-grid">
                         <img id="validations-badge1" src='@routes.Assets.at("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
@@ -196,8 +194,7 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-                Progress(_, $, difficultRegionIds, '@user.get.role');
+                Progress(_, $, '@user.get.role');
 
                 const achievementTracker = new AchievementTracker();
                 achievementTracker.updateBadgeAchievementGrid(

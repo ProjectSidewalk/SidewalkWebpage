@@ -1,9 +1,11 @@
-function NeighborhoodModel () {
+// TODO generalize this whole thing so that it functions as either a neighborhood OR a route.
+function NeighborhoodModel() {
     var self = this;
     this._neighborhoodContainer = null;
-    this.isNeighborhoodCompleted = false;
-    this.isNeighborhoodCompletedAcrossAllUsers = null;
-    this.difficultRegionIds = [];
+    this.isRoute = null;
+    this.isRouteComplete = null;
+    this.isNeighborhoodComplete = null;
+    this.isNeighborhoodCompleteAcrossAllUsers = null;
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -25,20 +27,6 @@ function NeighborhoodModel () {
             $.when($.ajax("/neighborhoods")).done(self._handleFetchComplete)
         }
     };
-
-    this.fetchDifficultNeighborhoods = function (callback) {
-        $.when($.ajax({
-            contentType: 'application/json; charset=utf-8',
-            url: "/neighborhoods/difficult",
-            type: 'get',
-            success: function (json) {
-                self.difficultRegionIds = json.regionIds;
-            },
-            error: function (result) {
-                throw result;
-            }
-        })).done(callback);
-    };
 }
 _.extend(NeighborhoodModel.prototype, Backbone.Events);
 
@@ -57,15 +45,34 @@ NeighborhoodModel.prototype.currentNeighborhood = function () {
 };
 
 NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function () {
-    return this.isNeighborhoodCompletedAcrossAllUsers;
+    return this.isNeighborhoodCompleteAcrossAllUsers;
 };
 
 NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function () {
-    this.isNeighborhoodCompletedAcrossAllUsers = true;
+    this.isNeighborhoodCompleteAcrossAllUsers = true;
 };
 
-NeighborhoodModel.prototype.neighborhoodCompleted = function () {
-    if (!this._neighborhoodContainer) return;
-    this.trigger("Neighborhood:completed");
-    this.isNeighborhoodCompleted = true;
+NeighborhoodModel.prototype.setAsRouteOrNeighborhood = function (routeOrNeighborhood) {
+    if (routeOrNeighborhood === 'route') {
+        this.isRoute = true;
+        this.isRouteComplete = false;
+    } else {
+        this.isRoute = false;
+        this.isNeighborhoodComplete = false;
+    }
 };
+
+NeighborhoodModel.prototype.setComplete = function () {
+    if (this.isRoute) {
+        svl.tracker.push("RouteComplete", { 'UserRouteId': svl.userRouteId });
+        this.isRouteComplete = true;
+    } else {
+        if (!this._neighborhoodContainer) return;
+        svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': this.currentNeighborhood().getRegionId() });
+        this.isNeighborhoodComplete = true;
+    }
+}
+
+NeighborhoodModel.prototype.isRouteOrNeighborhoodComplete = function () {
+    return this.isRouteComplete || this.isNeighborhoodComplete
+}

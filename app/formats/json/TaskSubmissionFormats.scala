@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.json.{JsPath, Reads, Json}
+import play.api.libs.json.{JsPath, Reads}
 import com.vividsolutions.jts.geom._
 
 import scala.collection.immutable.Seq
@@ -16,7 +16,7 @@ object TaskSubmissionFormats {
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
-  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int])
+  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
   implicit val pointReads: Reads[Point] = (
@@ -126,7 +126,7 @@ object TaskSubmissionFormats {
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "distance_progress").readNullable[Float] and
       (JsPath \ "completed").read[Boolean] and
-      (JsPath \ "audit_task_id").read[Option[Int]] and
+      (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "skipped").read[Boolean]
   )(AuditMissionProgress.apply _)
 
@@ -138,7 +138,8 @@ object TaskSubmissionFormats {
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
       (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]] and
-      (JsPath \ "amt_assignment_id").readNullable[Int]
+      (JsPath \ "amt_assignment_id").readNullable[Int] and
+      (JsPath \ "user_route_id").readNullable[Int]
     )(AuditTaskSubmission.apply _)
 
   implicit val amtAssignmentCompletionReads: Reads[AMTAssignmentCompletionSubmission] = (

@@ -435,7 +435,7 @@ $(document).ready(function () {
                 svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
                 svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
                 var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                var href = "/dashboard" + "?regionId=" + neighborhood.getProperty("regionId");
+                var href = "/dashboard" + "?regionId=" + neighborhood.getRegionId();
                 svl.statusFieldNeighborhood.setHref(href);
 
                 // init: noInit is a flag that prevents the init functions in main from running.

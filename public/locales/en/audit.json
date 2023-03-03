@@ -86,6 +86,13 @@
     "mission-complete": {
         "distance-type-display-string": "kilometers",
         "title": "Mission Complete!",
+        "map-legend-label-other-users": "Other Users' Missions",
+        "progress-neighborhood-title": "Neighborhood Progress",
+        "progress-route-title": "Route Progress",
+        "progress-neighborhood-you": "You explored in this neighborhood",
+        "progress-route-you": "Explored in your route",
+        "progress-neighborhood-remaining": "Remaining in this neighborhood",
+        "progress-route-remaining": "Remaining in your route",
         "button-start-validating": "Start validating",
         "button-keep-exploring": "Keep exploring",
         "button-continue": "Continue"
@@ -195,7 +202,9 @@
             "slight-left": "Turn slightly left",
             "slight-right": "Turn slightly right",
             "u-turn": "U turn",
-            "end-of-route": "You have reached the end of this route. Finish labeling this intersection then <br><span class='bold'>click here to move to a new location.</span>",
+            "end-route": "You're at the end of your route! Finish labeling this intersection, then <br><span class='bold'>click here to complete the route.</span>",
+            "end-neighborhood": "You've explored this entire neighborhood! Finish labeling this intersection, then <br><span class='bold'>click here to complete the neighborhood.</span>",
+            "end-street": "We need to move you to a new location. Finish labeling this intersection, then <br><span class='bold'>click here to move to a new location.</span>",
             "far-away": "Uh-oh, you're quite far away from the route. <br><span class='bold'>Click here to jump back.</span>"
         }
     },

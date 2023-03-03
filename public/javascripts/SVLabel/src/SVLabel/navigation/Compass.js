@@ -104,14 +104,13 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         window.clearTimeout(blinkTimer);
     }
 
-    function resetBeforeJump () {
+    function resetBeforeJump() {
         cancelTimer();
         removeLabelBeforeJumpMessage();
         mapService.resetBeforeJumpLocationAndListener();
     }
 
-    function _jumpToTheNewRoute () {
-
+    function _jumpToTheNewRoute() {
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
         mapService.finishCurrentTaskBeforeJumping();
@@ -119,14 +118,20 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         // Finish clean up tasks before jumping
         resetBeforeJump();
 
-        var task = taskContainer.getBeforeJumpNewTask();
+        var task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
         mapService.moveToTheTaskLocation(task);
         svl.jumpModel.triggerUserClickJumpMessage();
     }
 
-    function _makeTheLabelBeforeJumpMessageBoxClickable () {
-        uiCompass.messageHolder.on('click', _jumpToTheNewRoute);
+    function _makeTheLabelBeforeJumpMessageBoxClickable() {
+        let jumpMessageOnclick;
+        if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+            jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood"); }
+        } else {
+            jumpMessageOnclick = _jumpToTheNewRoute
+        }
+        uiCompass.messageHolder.on('click', jumpMessageOnclick);
         uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
@@ -135,8 +140,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.messageHolder.css('cursor', 'default');
     }
 
-    function showLabelBeforeJumpMessage () {
-        // Start blinking after 15 seconds
+    function showLabelBeforeJumpMessage() {
+        // Start blinking after 15 seconds.
         blinkTimer = window.setTimeout(function () {
             svl.tracker.push('LabelBeforeJump_Blink');
             self.blink();
@@ -146,7 +151,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         self.setLabelBeforeJumpMessage();
     }
 
-    function removeLabelBeforeJumpMessage () {
+    function removeLabelBeforeJumpMessage() {
         self.stopBlinking();
         _makeTheLabelBeforeJumpMessageBoxUnclickable();
         self.enableCompassClick();
@@ -209,8 +214,14 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         uiCompass.message.html(message);
     }
 
-    function setLabelBeforeJumpMessage () {
-        uiCompass.message.html("<div style='width: 20%'>" + i18next.t('center-ui.compass.end-of-route') + "</div>");
+    function setLabelBeforeJumpMessage() {
+        if (svl.neighborhoodModel.isRouteComplete) {
+            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-route')}</div>`);
+        } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
+            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
+        } else {
+            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-street')}</div>`);
+        }
     }
 
     function _setBackToRouteMessage() {

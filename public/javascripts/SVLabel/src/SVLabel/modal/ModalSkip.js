@@ -71,6 +71,11 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
 
         ribbonMenu.backToWalk();
         self.hideSkipMenu();
+
+        // If the user was following a route, refresh the page so that they are no longer on the route.
+        if (svl.neighborhoodModel.isRoute) {
+            window.location.replace('/audit?resumeRoute=false');
+        }
     };
 
     /**
@@ -79,7 +84,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      */
      this._handleClickRedirect = function(e) {
         tracker.push("ModalSkip_ClickRedirect");
-         window.location.replace('/audit?nextRegion=regular');
+         window.location.replace('/audit?newRegion=true&resumeRoute=false');
      };
 
     /**

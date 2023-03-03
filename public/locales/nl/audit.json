@@ -84,6 +84,13 @@
     "mission-complete": {
         "distance-type-display-string": "kilometers",
         "title": "Missie geslaagd!",
+        "map-legend-label-other-users": "Missies Van Anderen",
+        "progress-neighborhood-title": "Wijk voortgang",
+        "progress-route-title": "Routevoortgang",
+        "progress-neighborhood-you": "Je ontdekte in deze wijk",
+        "progress-route-you": "Verkend in je route",
+        "progress-neighborhood-remaining": "Overblijvenden in deze wijk",
+        "progress-route-remaining": "Op uw route blijven",
         "button-start-validating": "Start met valideren",
         "button-keep-exploring": "Blijf verkennen",
         "button-continue": "Ga verder"
@@ -193,7 +200,9 @@
             "slight-left": "Sla flauw links af",
             "slight-right": "Sla flauw rechts af",
             "u-turn": "Keer om",
-            "end-of-route": "Je hebt het einde van de route bereikt. Voltooi de labeling van dit kruispunt en <br><span class='bold'>klik hier om je naar een nieuwe locatie te begeven.</span>",
+            "end-route": "Je bent aan het einde van je route! Voltooi het labelen van dit kruispunt en <br><span class='bold'>klik hier om de route te voltooien.</span>",
+            "end-neighborhood": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <br><span class='bold'>klik hier om de buurt te voltooien.</span>",
+            "end-street": "We moeten u verhuizen naar een nieuwe locatie. Voltooi het labelen van dit kruispunt en <br><span class='bold'>klik hier om naar een nieuwe locatie te gaan.</span>",
             "far-away": "Oh oh, je bent nogal ver weg van de route. <br><span class='bold'>Klik hier om terug te gaan.</span>"
         }
     },

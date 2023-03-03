@@ -34,7 +34,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/backbone-min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@Play.configuration.getString("google-maps-api-key").get&language=@lang.code">
+        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@Play.configuration.getString("google-maps-api-key").get&language=@lang.code&callback=Function.prototype">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/main.css")'>
@@ -249,6 +249,8 @@
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/nl.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/zh-tw.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
