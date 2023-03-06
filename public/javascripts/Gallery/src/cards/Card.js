@@ -35,6 +35,7 @@ function Card (params, imageUrl, modal) {
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
+        correctness: undefined,
         user_validation: undefined,
         tags: []
     };
@@ -47,7 +48,7 @@ function Card (params, imageUrl, modal) {
         Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
         SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
         Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Other.png',
+        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
         NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
         Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
         Signal : '/assets/images/icons/AdminTool_Signal.png'
@@ -83,6 +84,9 @@ function Card (params, imageUrl, modal) {
                 properties[attrName] = param[attrName];
             }
         }
+        if (properties.correctness) properties.correctness = "correct";
+        else if (properties.correctness === false) properties.correctness = "incorrect";
+        else properties.correctness = "unvalidated";
 
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];

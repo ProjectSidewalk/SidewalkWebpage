@@ -4,7 +4,7 @@
 }
 
 #card-filter {
-    padding: 5px;
+    padding: 0 5px 5px 5px;
     width: inherit;
 }
 
@@ -22,7 +22,7 @@
     background-color: white;
     border-radius: 5px;
     border-width: 1px;
-    margin: 0px 2px;
+    margin: 0 2px;
 }
 
 .paging:disabled {
@@ -45,7 +45,6 @@
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
-    padding-top: 20px;
     min-height: calc(100vh - 610px);
     width: 239px;
     grid-row: 1/2;
@@ -76,7 +75,7 @@
         'main gallery-modal'
         'paging gallery-modal';
     grid-gap: 2px;
-    padding: 10px;
+    padding: 0 10px 10px 10px;
 }
 
 .cards {

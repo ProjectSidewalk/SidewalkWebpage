@@ -8,7 +8,6 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.IssueFormats._
 import formats.json.CommentSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit._
@@ -16,7 +15,8 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.region._
-import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgeRegionTable}
+import models.route.{Route, RouteTable, UserRoute, UserRouteTable}
+import models.street.StreetEdgeRegionTable
 import models.user._
 import play.api.libs.json._
 import play.api.{Logger, Play}
@@ -42,7 +42,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
     * Returns an audit page.
     */
-  def audit(nextRegion: Option[String], retakeTutorial: Option[Boolean]) = UserAwareAction.async { implicit request =>
+  def audit(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
@@ -56,87 +56,94 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           UserCurrentRegionTable.delete(user.userId)
         }
 
-        // Get current region if we aren't assigning new one; otherwise assign new region.
-        var region: Option[Region] = nextRegion match {
-          case Some("easy") => // Assign an easy region if the query string has nextRegion=easy.
-            UserCurrentRegionTable.assignEasyRegion(user.userId)
-          case Some("regular") => // Assign any region if nextRegion=regular and the user is experienced.
+        // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
+        // routeId was supplied, then the function should return None and the user is not sent on a specific route.
+        val userRoute: Option[UserRoute] = UserRouteTable.setUpPossibleUserRoute(routeId, user.userId, resumeRoute)
+        val route: Option[Route] = userRoute.flatMap(ur => RouteTable.getRoute(ur.routeId))
+
+        // If user is on a specific route, assign them to the correct region. If they have no region assigned or
+        // newRegion is set to true, assign a new region. Otherwise, get their previously assigned region.
+        var region: Option[Region] =
+          if (route.isDefined) {
+            val regionId: Int = UserCurrentRegionTable.saveOrUpdate(user.userId, route.get.regionId)
+            RegionTable.getRegion(regionId)
+          } else if (newRegion || !UserCurrentRegionTable.isAssigned(user.userId)) {
             UserCurrentRegionTable.assignRegion(user.userId)
-          case Some(illformedString) => // Log warning, assign new region if one is not already assigned.
-            Logger.warn(s"Parameter to audit must be \'easy\' or \'regular\', but \'$illformedString\' was passed.")
-            if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.getCurrentRegion(user.userId)
-            else UserCurrentRegionTable.assignRegion(user.userId)
-          case None => // Assign new region if one is not already assigned.
-            if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.getCurrentRegion(user.userId)
-            else UserCurrentRegionTable.assignRegion(user.userId)
-        }
+          } else {
+            RegionTable.getCurrentRegion(user.userId)
+          }
+
+        // Log visit to the Explore page.
+        val activityStr: String =
+          if (route.isDefined) s"Visit_Audit_Route=${route.get.routeId}"
+          else if (newRegion)   "Visit_Audit_NewRegionSelected"
+          else                   "Visit_Audit"
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 
         // Check if a user still has tasks available in this region. This also should never really happen.
-        if (region.isEmpty || !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
+        if (route.isDefined && region.isEmpty) {
+          Logger.error("Unable to assign a region for the route.")
+        } else if (region.isEmpty || !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
           region = UserCurrentRegionTable.assignRegion(user.userId)
-        }
-        // This should _really_ never happen.
-        if (region.isEmpty) {
-          Logger.error("Unable to assign a region to a user.")
+        } else if (region.isEmpty) {
+          Logger.error("Unable to assign a region to a user.") // This should _really_ never happen.
         }
 
-        nextRegion match {
-          case Some("easy") | Some("regular") =>
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit_NewRegionSelected", timestamp))
-            Future.successful(Redirect("/audit"))
-          case Some(illformedString) =>
-            Future.successful(Redirect("/audit"))
-          case None =>
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
-            val regionId: Int = region.get.regionId
+        val regionId: Int = region.get.regionId
 
-            val role: String = user.role.getOrElse("")
-            val payPerMeter: Double = if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
-            val tutorialPay: Double =
-              if (retakingTutorial || role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-              else AMTAssignmentTable.TURKER_TUTORIAL_PAY
+        val role: String = user.role.getOrElse("")
+        val payPerMeter: Double = if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
+        val tutorialPay: Double =
+          if (retakingTutorial || role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+          else AMTAssignmentTable.TURKER_TUTORIAL_PAY
 
-            val missionSetProgress: MissionSetProgress =
-              if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
-              else MissionTable.defaultAuditMissionSetProgress
+        val missionSetProgress: MissionSetProgress =
+          if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
+          else MissionTable.defaultAuditMissionSetProgress
 
-            val mission: Mission =
-              if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
-              else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
+        var mission: Mission =
+          if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
+          else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
 
-            // If there is a partially completed task in this mission, get that, o/w make a new one.
-            val task: Option[NewTask] =
-              if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
-                Some(AuditTaskTable.getATutorialTask(mission.missionId))
-              else if (mission.currentAuditTaskId.isDefined)
-                AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
-              else
-                AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
-            val nextTempLabelId: Int = LabelTable.nextTempLabelId(user.userId)
+        // If there is a partially completed task in this route or mission, get that, o/w make a new one.
+        val task: Option[NewTask] =
+          if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding") {
+            Some(AuditTaskTable.getATutorialTask(mission.missionId))
+          } else if (route.isDefined) {
+            UserRouteTable.getRouteTask(userRoute.get, mission.missionId)
+          } else if (mission.currentAuditTaskId.isDefined) {
+            val currTask: Option[NewTask] = AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
+            // If we found no task with the given ID, try to get any new task in the neighborhood.
+            if (currTask.isDefined) currTask
+            else AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
+          } else {
+            AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
+          }
+        val nextTempLabelId: Int = LabelTable.nextTempLabelId(user.userId)
 
-            // Check if they have already completed an audit mission. We send them to /validate after their first audit
-            // mission, but only after every third audit mission after that.
-            val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
+        // If the mission has the wrong audit_task_id, update it.
+        if (task.isDefined && task.get.auditTaskId != mission.currentAuditTaskId) {
+          MissionTable.updateAuditProgressOnly(user.userId, mission.missionId, mission.distanceProgress.getOrElse(0F), task.get.auditTaskId)
+          mission = MissionTable.getMission(mission.missionId).get
+        }
 
-            val cityStr: String = Play.configuration.getString("city-id").get
-            val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
-            val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-            if (missionSetProgress.missionType != "audit") {
-              Future.successful(Redirect("/validate"))
-            } else {
-              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
-            }
+        // Check if they have already completed an audit mission. We send them to /validate after their first audit
+        // mission, but only after every third audit mission after that.
+        val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
+
+        val cityStr: String = Play.configuration.getString("city-id").get
+        val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+        val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+        if (missionSetProgress.missionType != "audit") {
+          Future.successful(Redirect("/validate"))
+        } else {
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
         }
       // For anonymous users.
       case None =>
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        val redirectString: String = (nextRegion, retakeTutorial) match {
-          case (Some(nextR), Some(retakeT)) => s"/anonSignUp?url=/audit%3FnextRegion=$nextR%26retakeTutorial=$retakeT"
-          case (Some(nextR), None         ) => s"/anonSignUp?url=/audit%3FnextRegion=$nextR"
-          case (None,        Some(retakeT)) => s"/anonSignUp?url=/audit%3FretakeTutorial=$retakeT"
-          case _                            => s"/anonSignUp?url=/audit"
-        }
-        Future.successful(Redirect(redirectString))
+        val queryParams: String = routeId.map(rId => s"%3FrouteId=$rId").getOrElse("")
+        Future.successful(Redirect("/anonSignUp?url=/audit" + queryParams))
     }
   }
 
@@ -188,7 +195,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (missionSetProgress.missionType != "audit") {
               Future.successful(Redirect("/validate"))
             } else {
-              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
             }
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
@@ -258,15 +265,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
             if (isAdmin(request.identity) && (startAtPano || startAtLatLng)) {
               panoId match {
-                case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
+                case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
                 case None =>
                   (lat, lng) match {
-                    case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
-                    case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityShortName, tutorialStreetId)))
+                    case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
+                    case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityShortName, tutorialStreetId)))
                   }
               }
             } else {
-              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+              Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
             }
           }
         }
@@ -303,35 +310,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val commentId: Int = AuditTaskCommentTable.save(comment)
 
         Future.successful(Ok(Json.obj("comment_id" -> commentId)))
-      }
-    )
-  }
-
-  /**
-    * This method handles a POST request in which user reports a missing Street View image.
-    */
-  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[NoStreetView]
-
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-        val userId: String = request.identity match {
-          case Some(user) => user.userId.toString
-          case None =>
-            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
-            val user: Option[DBUser] = UserTable.find("anonymous")
-            user.get.userId.toString
-        }
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-
-        val issue = StreetEdgeIssue(0, submission.streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
-        StreetEdgeIssueTable.save(issue)
-
-        Future.successful(Ok)
       }
     )
   }

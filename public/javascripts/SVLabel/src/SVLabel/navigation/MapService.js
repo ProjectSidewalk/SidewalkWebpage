@@ -316,7 +316,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * A helper function to move a user to the task location.
+     * A helper function to move a user to the task location if they are far from it.
      * @param task
      * @param caller
      * @private
@@ -376,14 +376,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.ui.minimap.overlay.toggleClass("highlight-50");
         }, 500);
     }
-
-    function hideMinimap() {
-        svl.ui.minimap.holder.hide();
-    }
-
-    svl.neighborhoodModel.on("Neighborhood:completed", function() {
-        hideMinimap();
-    });
 
     /**
      * Disable panning on Street View
@@ -508,12 +500,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
-        if (caller === undefined) {
-            moveToTheTaskLocation(task);
-        }
-        else {
-            moveToTheTaskLocation(task, caller);
-        }
+        moveToTheTaskLocation(task, caller);
     }
 
     function _jumpToNewLocation() {
@@ -529,7 +516,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 _jumpToNewTask(newTask, "jumpImageryNotFound");
             } else {
                 // Complete current neighborhood if no new task available.
-                finishNeighborhood();
+                svl.neighborhoodModel.setComplete();
                 status.jumpImageryNotFoundStatus = true;
             }
         } else {
@@ -654,13 +641,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-    function finishNeighborhood() {
-        var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-        svl.neighborhoodModel.neighborhoodCompleted();
-        svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': currentNeighborhoodId });
-    }
-
     function finishCurrentTaskBeforeJumping(mission, nextTask) {
         if (mission === undefined) {
             mission = missionJump;
@@ -671,44 +651,49 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mission.pushATaskToTheRoute(currentTask);
     }
 
+    /**
+     * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
+     * the user has finished labeling the current location.
+     * @param task
+     * @param mission
+     * @private
+     */
     function _endTheCurrentTask(task, mission) {
 
         if (!status.labelBeforeJumpListenerSet) {
-
-            // Get a new task and check if it's disconnected from the current task. If yes, then finish the current task
-            // after the user has labeling the current location.
-
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
 
-            if (nextTask && !task.isConnectedTo(nextTask)) {
-                // Check if the interface jumped the user to another discontinuous location. If the user has indeed
-                // jumped, [UPDATE] before jumping, let the user know to label the location before proceeding.
+            // If we are out of streets, set the route/neighborhood as complete.
+            if (!nextTask) {
+                svl.neighborhoodModel.setComplete();
+            }
 
-                // Set the newTask before jumping
-                svl.taskContainer.setBeforeJumpNewTask(nextTask);
+            // Check if the user will jump to another discontinuous location or if this is the last street in their
+            // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
+            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
+                // If jumping to a new place, set the newTask before jumping.
+                if (nextTask && !task.isConnectedTo(nextTask)) {
+                    svl.taskContainer.setBeforeJumpNewTask(nextTask);
+                }
                 status.labelBeforeJumpListenerSet = true;
 
                 // Store before jump location for tracking pre-jump actions when the user leaves their location.
                 setBeforeJumpLocation();
 
-                // Listener activated for tracking before-jump actions
+                // Listener activated for tracking before-jump actions.
                 try {
                     listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
                         "pano_changed", trackBeforeJumpActions);
                 } catch (err) {}
-            }
-            else {
+            } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
 
-                // Move to the new task if the neighborhood has not finished
+                // Move to the new task if the route/neighborhood has not finished.
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);
                     moveToTheTaskLocation(nextTask);
                 }
-            }
-            if (!nextTask) {
-                finishNeighborhood();
             }
         }
     }
@@ -723,16 +708,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 jumpPosition = turf.point([jumpLocation.lng, jumpLocation.lat]),
                 distance = turf.distance(jumpPosition, currentPosition, {units: 'kilometers'});
 
-            // Jump to the new location if it's really far away from his location.
             if (!status.jumpMsgShown && distance >= 0.01) {
-
                 // Show message to the user instructing them to label the current location.
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
                 status.jumpMsgShown = true
 
-            }
-            else if (distance > 0.07) {
+            } else if (distance > 0.07) {
+                // Jump to the new location if it's really far away from their location.
                 svl.tracker.push('LabelBeforeJump_AutoJump');
 
                 // Finish the current task
@@ -742,7 +725,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.resetBeforeJump();
 
                 // Jump to the new task
-                var newTask = svl.taskContainer.getBeforeJumpNewTask();
+                var newTask = svl.taskContainer.getAfterJumpNewTask();
                 _jumpToNewTask(newTask);
                 svl.jumpModel.triggerTooFarFromJumpLocation();
             }

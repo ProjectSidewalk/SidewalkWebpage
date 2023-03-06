@@ -1,25 +1,6 @@
 .gallery-tag {
     display: inline-block;
-    padding: 0px 5px;
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 5px;
     margin: 2px 2px;
-    text-align: left;
-    color: black;
-    width: fit-content;
-    white-space: nowrap;
-}
-
-.gallery-tag, .gallery-tag-sidebar {
-    max-width: 98%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.gallery-tag-sidebar:hover {
-    background-color: #78c8aa;
-    white-space: normal;
 }
 
 .thumbnail-tag {
@@ -40,6 +21,7 @@
     border-style: none;
     font-weight: bold;
     cursor: pointer;
+    background-color: inherit;
 }
 
 #tags-header {

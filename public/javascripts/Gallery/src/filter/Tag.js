@@ -2,10 +2,11 @@
  * A Tag module.
  * 
  * @param {*} params Properties of tag.
+ * @param applied A boolean to see if the tag filter is active.
  * @returns {Tag}
  * @constructor
  */
-function Tag (params) {
+function Tag (params, applied) {
     let self = this;
 
     // UI element of Tag.
@@ -20,7 +21,7 @@ function Tag (params) {
 
     // Status of the tag.
     let status = {
-        applied: false
+        applied: applied
     };
 
     /**
@@ -32,10 +33,14 @@ function Tag (params) {
         Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
 
         tagElement = document.createElement('button');
-        tagElement.className = "gallery-tag gallery-tag-sidebar gallery-filter";
+        tagElement.className = "gallery-tag gallery-filter-button gallery-filter";
         tagElement.id = properties.tag;
         tagElement.innerText = i18next.t('tag.' + properties.tag);
-        tagElement.disabled = true;
+        tagElement.disabled = true; // Will be enabled once images load.
+
+        if (status.applied) {
+            apply()
+        }
 
         tagElement.onclick = tagClickCallback;
     }
@@ -58,7 +63,7 @@ function Tag (params) {
             apply();
         }
 
-        sg.cardContainer.updateCardsByTagsAndSeverity();
+        sg.cardFilter.update();
     }
 
     /**
@@ -66,7 +71,7 @@ function Tag (params) {
      */
     function apply() {
         setStatus("applied", true);
-        tagElement.setAttribute("style", "background-color: #78c8aa");
+        tagElement.classList.add("gallery-filter-button-selected");
     }
 
     /**
@@ -74,7 +79,7 @@ function Tag (params) {
      */
     function unapply() {
         setStatus("applied", false);
-        tagElement.setAttribute("style", "background-color: none");
+        tagElement.classList.remove("gallery-filter-button-selected");
     }
 
     /**

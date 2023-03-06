@@ -5,15 +5,16 @@
  * @param uiCardFilter UI element representing filter components of sidebar.
  * @param labelTypeMenu UI element representing dropdown to select label type in sidebar.
  * @param cityMenu UI element representing dropdown to select city in sidebar.
+ * @param initialFilters Object containing initial set of filters to pass along.
  * @returns {CardFilter}
  * @constructor
  */
-function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
+function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     let self = this;
 
     let status = {
         currentCity: cityMenu.getCurrentCity(),
-        currentLabelType: "Assorted"
+        currentLabelType: initialFilters.labelType
     };
 
     // Map label type to their collection of tags.
@@ -31,10 +32,12 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     };
 
     // Tags of the current label type.
-    let currentTags = new TagBucket();
+    let currentTags = tagsByType[status.currentLabelType];
 
     // Collection of severities.
-    let severities = new SeverityBucket();
+    let severities = new SeverityBucket(initialFilters.severities);
+
+    let validationOptions = new ValidationOptionBucket(initialFilters.validationOptions);
    
     /**
      * Initialize CardFilter.
@@ -42,6 +45,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     function _init() {
         getTags(function () {
             render();
+            updateURL();
         });
     }
 
@@ -56,7 +60,10 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
             let i = 0;
             let len = data.length;
             for (; i < len; i++) {
-                tag = new Tag(data[i]);
+                if (data[i].label_type === status.currentLabelType && initialFilters.tags.includes(data[i].tag))
+                    tag = new Tag(data[i], true);
+                else
+                    tag = new Tag(data[i], false);
                 tagsByType[tag.getLabelType()].push(tag);
             }
 
@@ -65,53 +72,88 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     }
 
     /**
-     * Update filter components when city or label type changes.
+     * Update filter components and URL when a filter changes.
      */
     function update() {
-        let currentCity = cityMenu.getCurrentCity();
-        if (status.currentCity !== currentCity) {
-            // Future: add URI parameters to link.
-            window.location.href = currentCity + '/gallery?label=' + status.currentLabelType;
-        } else {
-            let currentLabelType = labelTypeMenu.getCurrentLabelType();
-            if (status.currentLabelType !== currentLabelType) {
-                clearCurrentTags();
-                severities.unapplySeverities();
-                setStatus('currentLabelType', currentLabelType);
-                currentTags = tagsByType[currentLabelType];
-                sg.cardContainer.updateCardsByType();
-            }
+        // If label type was changed: clear tags, update cards, and rerender sidebar. Otherwise, just update the cards.
+        let currLabelType = labelTypeMenu.getCurrentLabelType();
+        if (status.currentLabelType !== currLabelType) {
+            clearCurrentTags();
+            setStatus('currentLabelType', currLabelType);
+            currentTags = tagsByType[currLabelType];
             render();
         }
+        sg.cardContainer.updateCardsByFilter();
+        updateURL();
     }
+
+    /**
+     * If the city was changed, redirect to that server. Otherwise, update the URL query params.
+     */
+    function updateURL() {
+        let newUrl = _buildCurrentURL();
+        let currentCity = cityMenu.getCurrentCity();
+        if (status.currentCity !== currentCity) {
+            window.location.href = currentCity + newUrl;
+        } else {
+            let fullUrl = `${window.location.protocol}//${window.location.host}${newUrl}`;
+            if (fullUrl !== window.location.href) {
+                window.history.pushState({ },'', fullUrl);
+            }
+        }
+    }
+
+    /**
+     * Return a string representing /gallery URL with correct query params. Excluding params if they match the default.
+     * @private
+     */
+    function _buildCurrentURL() {
+        let newUrl = '/gallery';
+        let firstQueryParam = true;
+        let currSeverities = severities.getAppliedSeverities();
+        let currAppliedTags = currentTags.getAppliedTags().map(t => t.getTag()).join();
+        let currValOptions = validationOptions.getAppliedValidationOptions().sort().join();
+
+        // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
+        if (status.currentLabelType !== 'Assorted') {
+            newUrl += `?labelType=${status.currentLabelType}`;
+            // Can only have applied tags if there is a specific label type chosen.
+            if (currAppliedTags.length > 0) {
+                newUrl += `&tags=${currAppliedTags}`;
+            }
+            firstQueryParam = false;
+        }
+        if (currSeverities.length > 0) {
+            newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
+            firstQueryParam = false;
+        }
+        if (currValOptions !== 'correct,unvalidated') {
+            newUrl += firstQueryParam ? `?validationOptions=${currValOptions}` : `&validationOptions=${currValOptions}`;
+        }
+        return newUrl;
+    }
+
 
     /**
      * Render tags and severities in sidebar.
      */
     function render() {
+        if (['Signal', 'Occlusion'].includes(status.currentLabelType)) {
+            $('#severity-header').hide();
+            $('#severity-select').hide();
+        } else {
+            $('#severity-header').show();
+            $('#severity-select').show();
+        }
         if (currentTags.getTags().length > 0) {
-            // TODO: think about to better show tags header in an organized manner.
             $("#tags-header").show();
             currentTags.render(uiCardFilter.tags);
         } else {
             $("#tags-header").hide();
         }
-        if (status.currentLabelType === "Occlusion") {
-            $("#filters").hide();
-            $("#horizontal-line").hide();
-        } else {
-            $("#filters").show();
-            $("#horizontal-line").show();
-            if (status.currentLabelType === 'Signal') {
-                $('#severity-header').hide();
-                $('#severity-select').hide();
-            } else {
-                $('#severity-header').show();
-                $('#severity-select').show();
-            }
-        }
 
         severities.render(uiCardFilter.severity);
+        validationOptions.render(uiCardFilter.validationOptions)
     }
 
     /**
@@ -171,6 +213,20 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     }
 
     /**
+     * Return list of validationOptions.
+     */
+    function getValidationOptions() {
+        return validationOptions.getValidationOptions();
+    }
+
+    /**
+     * Return list of selected validationOptions by user.
+     */
+    function getAppliedValidationOptions() {
+        return validationOptions.getAppliedValidationOptions();
+    }
+
+    /**
      * Unapply all tags of specified label type.
      * 
      * @param {*} labelType Label type of tags to unapply.
@@ -195,7 +251,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
      */
     function disable() {
         severities.disable();
-        $('.gallery-tag').prop("disabled", true);
+        $('.gallery-filter').prop("disabled", true);
     }
 
     /**
@@ -203,7 +259,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
      */
     function enable() {
         severities.enable();
-        $('.gallery-tag').prop("disabled", false);
+        $('.gallery-filter').prop("disabled", false);
     }
 
     self.update = update;
@@ -215,6 +271,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu) {
     self.setStatus = setStatus;
     self.getSeverities = getSeverities;
     self.getAppliedSeverities = getAppliedSeverities;
+    self.getValidationOptions = getValidationOptions;
+    self.getAppliedValidationOptions = getAppliedValidationOptions;
     self.unapplyTags = unapplyTags;
     self.disable = disable;
     self.enable = enable;

@@ -97,7 +97,7 @@ class SignUpController @Inject() (
                   } yield {
                     // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
                     UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
-                    UserCurrentRegionTable.assignEasyRegion(user.userId)
+                    UserCurrentRegionTable.assignRegion(user.userId)
                     UserStatTable.addUserStatIfNew(user.userId)
 
                     // Log the sign up/in.
@@ -292,7 +292,7 @@ class SignUpController @Inject() (
         } yield {
           // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
           UserRoleTable.setRole(user.userId, "Turker", Some(false))
-          UserCurrentRegionTable.assignEasyRegion(user.userId)
+          UserCurrentRegionTable.assignRegion(user.userId)
           UserStatTable.addUserStatIfNew(user.userId)
 
           // Log the sign up/in.
@@ -323,7 +323,7 @@ class SignUpController @Inject() (
     val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-      UserCurrentRegionTable.assignEasyRegion(user.userId)
+      UserCurrentRegionTable.assignRegion(user.userId)
     }
 
     // Log the sign in.

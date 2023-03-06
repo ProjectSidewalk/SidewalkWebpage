@@ -155,7 +155,7 @@
     position: absolute;
     top: 360px;
     right: 20px;
-    width: 140px;
+    width: 145px;
     height: 55px;
     border-radius: 3px;
     background-color: rgba(240,240,240,1);
@@ -164,6 +164,10 @@
 .modal-foreground .mapbox #map-legend .legend-label {
     margin-left: 5px;
     margin-top: 5px;
+}
+
+.legend-label {
+    margin-right: 5px;
 }
 
 .modal-foreground .mapbox #map-legend #green-square {

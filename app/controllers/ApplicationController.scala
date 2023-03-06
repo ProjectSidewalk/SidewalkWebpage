@@ -12,6 +12,7 @@ import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskInteractionTable
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.label.TagTable.selectTagsByLabelType
 import models.street.StreetEdgePriorityTable
 import models.utils.Configs
 import play.api.Play
@@ -20,7 +21,7 @@ import play.api.i18n.Messages
 import java.util.Calendar
 import play.api.mvc._
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
 
 /**
  * Holds the HTTP requests for some of the basic web pages.
@@ -361,19 +362,17 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery(label: Option[String], severity: Option[String]) = UserAwareAction.async { implicit request =>
+  def gallery(labelType: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        // Log visit to Gallery.
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Gallery", timestamp))
         // Get current city.
         val cityStr: String = Play.configuration.getString("city-id").get
         // Get names and URLs for cities to display in Gallery dropdown.
         val cityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo()
-        val labels: List[(String, String)] = List(
+        val labelTypes: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
           ("CurbRamp", Messages("curb.ramp")),
           ("NoCurbRamp", Messages("missing.ramp")),
@@ -385,15 +384,24 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
-        val realLabel: String = if (labels.exists(x => {x._1 == label.getOrElse("Assorted")})) {
-          label.getOrElse("Assorted")
-        } else {
-          "Assorted"
-        }
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, realLabel, labels, List())))
+        val (labType, possibleTags): (String, List[String]) =
+          if (labelTypes.exists(x => { x._1 == labelType })) (labelType, selectTagsByLabelType(labelType).map(_.tag))
+          else ("Assorted", List())
+
+        // Make sure that list of severities and validation options are formatted correctly.
+        val severityList: List[Int] = severities.split(",").flatMap(s => Try(s.toInt).toOption).filter(s => s > 0 && s < 6).toList
+        val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
+        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unvalidated").contains(_)).toList
+
+        // Log visit to Gallery.
+        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
+
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labelTypes, severityList, tagList, valOptions)))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
-        Future.successful(Redirect("/anonSignUp?url=/gallery"))
+        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
+        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3FlabelType=$labelType%26severities=$severities%26tags=$tags%26validationOptions=$validationOptions"))
     }
   }
 
@@ -431,6 +439,21 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         }
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/timeCheck"))
+    }
+  }
+
+  /**
+   * Returns a page that allows a user to build a custom audit route.
+   */
+  def routeBuilder = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_RouteBuilder", timestamp))
+        Future.successful(Ok(views.html.routeBuilder(Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/routeBuilder"))
     }
   }
 

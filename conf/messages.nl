@@ -11,6 +11,7 @@ no.sidewalk = Geen Trottoir
 crosswalk = Oversteekplaats
 signal = Verkeerslicht
 other = Anders
+validations = Validaties
 labels = labels
 label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
 accuracy = nauwkeurigheid
@@ -151,14 +152,10 @@ audit.center.ui.add.tags = Voeg<br>Tags toe:
 audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
 
 audit.mission.complete.labels.title = Missie labels
-audit.mission.complete.progress.title = Wijk voortgang
 audit.mission.complete.progress.mission.you = Je ontdekte in deze missie
-audit.mission.complete.progress.neighborhood.you = Je ontdekte in deze wijk
 audit.mission.complete.progress.neighborhood.others = Anderen ontdekten in deze wijk
-audit.mission.complete.progress.neighborhood.remaining = Overblijvenden in deze wijk
 audit.mission.complete.legend.this.mission = Deze Missie
 audit.mission.complete.legend.previous.missions = Vorige Missies
-audit.mission.complete.legend.others.missions = Missies Van Anderen
 
 audit.survey.title = Een vriendelijk verzoek om deze eenmalige enquete over Project Sidewalk in te vullen
 audit.survey.enjoyment.question = Hoe vond je het om Project Sidewalk te gebruiken?
@@ -250,7 +247,8 @@ authenticate.error.invalid.credentials = Ongeldige inloggegevens!
 authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
 reset.pw.forgot.title = Wachtwoord vergeten?
-reset.pw.forgot.submit.email = Geen zorgen, typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
+reset.pw.forgot.submit.email = Typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
+reset.pw.forgot.suggest = Als je problemen hebt met inloggen of het resetten van je wachtwoord, controleer dan of je naar de stad kijkt waar je je account hebt aangemaakt door naar de navigatiebalk rechtsboven op de pagina te kijken. Accounts zijn niet uitwisselbaar tussen verschillende steden, dus je moet voor elke stad een nieuw account aanmaken (je kunt dezelfde gebruikersnaam en hetzelfde wachtwoord gebruiken).
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-account
@@ -286,7 +284,6 @@ dashboard.missions = Missies
 dashboard.your.missions = Jouw missies
 dashboard.distance = Afstand
 dashboard.labels = Labels
-dashboard.validations = Validaties
 dashboard.mission.icon.alt = Rolstoelgebruiker met een vlag
 dashboard.validation.icon.alt = Checklist naast een potlood
 dashboard.accuracy.icon.tooltip = je labelnauwkeurigheid. Als N/A wordt weergegeven, zijn er niet genoeg van je labels gevalideerd door andere gebruikers.
@@ -325,7 +322,7 @@ leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten m
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/audit"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Word lid van een organisatie</u></a> om het op te nemen tegen je teamgenoten!
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Sluit je aan bij een organisatie</u></a> en werk samen als een team om trottoirs in kaart te brengen en te beoordelen!
 
 gallery = Galerij
 gallery.show = Tonen

@@ -1,6 +1,4 @@
 @import models.user.User
-@import models.region.RegionTable
-@import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
@@ -114,8 +112,6 @@
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -196,7 +192,6 @@
             lng: '@lang.code',
             debug: false
         }, function(err, t) {
-            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             var params = {
                 popupType: 'none',
                 neighborhoodPolygonStyle: {
@@ -239,7 +234,7 @@
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                map = Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
+                map = Choropleth(_, $, params, [], data1[0], data2[0], data3[0]);
                 self.map = map;
             });
             // When polygons have rendered and audited streets have loaded, streets can be rendered.

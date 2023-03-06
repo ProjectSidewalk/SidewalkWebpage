@@ -22,7 +22,7 @@
 
 .mission-start-tutorial-overlay {
     position: absolute;
-    height: calc(100vh - 91px); /* 91 is the height of the navbar + margin + border */
+    height: 710px;
     width: 100%;
     min-width: 1170px; /*  */
     background: white;
@@ -30,18 +30,14 @@
     display: flex;
     flex-shrink: 0;
     justify-content: center;
+    overflow: auto;
 
     /* Default font should be defined only here and should be overridden wherever needed. */
     font-family: 'Open Sans', sans-serif;
 }
 
 .mst-content {
-    margin-top: 25px;
-    display: flex;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    width: 1020px;
-    flex-direction: column;
+    width: 1095px;
 }
 
 .mst-instruction-1 {
@@ -50,7 +46,7 @@
     letter-spacing: 0.05em;
     color: #525252;
     margin: 5px 0;
-    padding: 0 10px;
+    padding: 0 70px;
     width: 100%;
     height: fit-content;
 }
@@ -61,7 +57,7 @@
     font-weight: 700;
     font-size: 24px;
     margin: 5px 0;
-    padding: 0 10px;
+    padding: 0 70px;
 
     color: #000000;
     width: 100%;
@@ -70,9 +66,9 @@
 .mst-carousel {
     display: flex;
     flex-shrink: 0;
-    flex-wrap: wrap;
     width: 100%;
-    margin-top: 30px;
+    height: 436px;
+    margin-top: 10px;
 }
 
 .previous-slide-button, .next-slide-button {
@@ -100,20 +96,21 @@
 }
 
 .mst-slide {
-    height: 436px;
+    height: 100%;
     display: flex;
     flex-shrink: 0;
     flex-wrap: wrap;
-    width: 100%;
+    width: calc(100% - 120px); /* subtract the next and previous slide button widths from the total */
     justify-content: space-between;
 }
 
 .mts-text-area {
-    width: 294px;
+    width: 290px;
     display: flex;
     flex-shrink: 0;
     flex-wrap: wrap;
     flex-direction: column;
+    position: relative;
 }
 
 .label-type-title {
@@ -122,7 +119,7 @@
     font-weight: 700;
     letter-spacing: 0;
     text-align: left;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
     padding: 0 10px;
 }
 
@@ -143,13 +140,13 @@
 }
 
 .mission-start-tutorial-overlay-footer {
-    margin-top: 20px;
+    margin-top: 15px;
     width: 100%;
 }
 
 .mission-start-tutorial-done-btn {
     height: 36px;
-    width: 249px;
+    width: calc(100% - 20px);
     border-radius: 7.25px;
     float: right;
     background: #F6D795;
@@ -159,6 +156,9 @@
     cursor: pointer;
     transition: all 2s;
     font-weight: bold;
+    position: absolute;
+    bottom: 0;
+    margin: 0 10px;
 }
 
 .mission-start-tutorial-done-btn:hover {
@@ -269,7 +269,7 @@
 .example-type-area {
     display: flex;
     padding: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     position: relative;
 }
 
@@ -325,10 +325,10 @@
 }
 
 .mst-carousel-location-indicator-area {
-    height: 30px;
+    height: 12px;
     width: 100%;
     padding: 5px;
-    margin-top: 15px;
+    margin-top: 25px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -345,4 +345,19 @@
 
 .mst-carousel-location-indicator.current-location {
     background: #2C2A3D;
+}
+
+/* This block handles layout on browser zoom. */
+@media (max-width: 1170px) {
+    .mission-start-tutorial-overlay {
+        min-width: 1069px;
+    }
+    .mst-content {
+        width: 1020px;
+    }
+
+    /* We need to create space for the image at this zoom level. */
+    .mts-text-area {
+        width: 230px;
+    }
 }

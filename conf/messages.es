@@ -11,6 +11,7 @@ no.sidewalk = No hay banqueta
 crosswalk = Cruce peatonal
 signal = Semáforo peatonal
 other = Otro
+validations = Validaciones
 labels = etiquetas
 label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
 accuracy = de precisión
@@ -151,14 +152,10 @@ audit.center.ui.add.tags = Agregar etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
 
 audit.mission.complete.labels.title = Etiquetas de la misión
-audit.mission.complete.progress.title = Progreso del barrio
 audit.mission.complete.progress.mission.you = Exploraste en esta misión
-audit.mission.complete.progress.neighborhood.you = Exploraste en este barrio
 audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en este barrio
-audit.mission.complete.progress.neighborhood.remaining = Restante en este barrio
 audit.mission.complete.legend.this.mission = Esta misión
 audit.mission.complete.legend.previous.missions = Misiones anteriores
-audit.mission.complete.legend.others.missions = Misiones de otras
 
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?
@@ -250,7 +247,8 @@ authenticate.error.invalid.credentials = Credenciales inválidas
 authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 
 reset.pw.forgot.title = Olvidaste tu contraseña
-reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+reset.pw.forgot.submit.email = Escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+reset.pw.forgot.suggest = Si tiene problemas para iniciar sesión o restablecer su contraseña, compruebe que está mirando la ciudad donde creó su cuenta consultando la barra de navegación en la parte superior derecha de la página. Las cuentas no son intercambiables entre diferentes ciudades, por lo que deberá crear una nueva cuenta para cada ciudad (puede usar el mismo nombre de usuario/contraseña).
 
 reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
@@ -286,7 +284,6 @@ dashboard.missions = Misiones
 dashboard.your.missions = Tus misiones
 dashboard.distance = Distancia
 dashboard.labels = Etiquetas
-dashboard.validations = Validaciones
 dashboard.mission.icon.alt = Usuario de silla de ruedas sosteniendo una bandera
 dashboard.validation.icon.alt = Listado junto a un lápiz
 dashboard.accuracy.icon.tooltip = Tu precisión de etiquetado. Si se muestra N/A, significa que no se han validado suficientes de tus etiquetas por otras personas usuarias
@@ -326,7 +323,7 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/audit"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
-leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard"><u>Únete a una organización</u></a> para competir contra tus compañeros!
+leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard"><u>Únase a una organización</u></a> y trabaje en equipo para mapear y evaluar las aceras!
 
 gallery = Galería
 gallery.show = Mostrar

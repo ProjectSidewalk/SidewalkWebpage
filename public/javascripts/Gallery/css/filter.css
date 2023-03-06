@@ -5,7 +5,7 @@
 .gallery-filter:disabled {
     cursor: default;
     opacity: 50%;
-    background-color: white;
+    pointer-events: none;
 }
 
 .severity-filter-image {
@@ -45,4 +45,38 @@
     display: flex;
     flex-direction: row;
     margin-left: -3px;
+}
+
+.gallery-filter-button, .gallery-tag {
+    padding: 0px 5px;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    text-align: left;
+    background-color: white;
+    color: black;
+    border-color: black;
+    width: fit-content;
+    white-space: nowrap;
+    max-width: 98%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-filter-button-selected {
+    background-color: #76c9ab;
+    color: white;
+    border-color: #76c9ab;
+}
+
+.gallery-filter-button:hover {
+    background-color: rgba(167,222,202,0.1);
+    color: #40bd90;
+    border-color: #40bd90;
+    white-space: normal;
+}
+
+.gallery-filter-validation-button {
+    display: block;
+    margin: 4px 2px;
 }
