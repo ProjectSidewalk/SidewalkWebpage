@@ -17,7 +17,7 @@ import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.gsv.GSVDataTable
+import models.gsv.{GSVDataExtended, GSVDataTable}
 import models.label.LabelTable.{LabelCVMetadata, LabelMetadata}
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
@@ -32,7 +32,6 @@ import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
 import play.api.i18n.Messages
-
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
@@ -403,11 +402,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    * Get the list of pano IDs in our database.
    * TODO remove the /adminapi/labels/panoid endpoint once all have shifted to /adminapi/panos
    */
-  def getAllPanoIds() = UserAwareAction.async { implicit request =>
-    val panos: List[(String, Option[Int], Option[Int])] = GSVDataTable.getAllPanos()
-    val json: JsValue = Json.toJson(panos.map(p =>
-      Json.obj("gsv_panorama_id" -> p._1, "image_width" -> p._2, "image_height" -> p._3)
-    ))
+  def getAllPanoIds = UserAwareAction.async { implicit request =>
+    val panos: List[GSVDataExtended] = GSVDataTable.getAllPanos
+    val json: JsValue = Json.toJson(panos.map(p => Json.toJson(p)))
     Future.successful(Ok(json))
   }
 
