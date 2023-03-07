@@ -28,8 +28,6 @@ function Card (params, imageUrl, modal) {
         zoom: undefined,
         canvas_x: undefined,
         canvas_y: undefined,
-        canvas_width: undefined,
-        canvas_height: undefined,
         severity: undefined,
         temporary: undefined,
         description: undefined,
@@ -148,8 +146,8 @@ function Card (params, imageUrl, modal) {
      */
     function getIconPercent () {
         return {
-            x: 100 * properties.canvas_x / (properties.canvas_width),
-            y: 100 * properties.canvas_y / (properties.canvas_height)
+            x: 100 * properties.canvas_x / (sg.auditCanvasWidth),
+            y: 100 * properties.canvas_y / (sg.auditCanvasHeight)
         };
     }
 

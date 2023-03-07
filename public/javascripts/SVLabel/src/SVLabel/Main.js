@@ -27,8 +27,8 @@ function Main (params) {
     svl.canvasHeight = 480;
     svl.svImageHeight = 6656;
     svl.svImageWidth = 13312;
-    svl.alpha_x = 4.6;
-    svl.alpha_y = -4.65;
+    svl.alphaX = 4.6;
+    svl.alphaY = -4.65;
     svl.zoomFactor = {
         1: 1,
         2: 2.1,

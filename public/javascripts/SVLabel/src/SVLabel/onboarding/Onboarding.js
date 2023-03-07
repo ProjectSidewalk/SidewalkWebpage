@@ -30,8 +30,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     contextMenu, uiOnboarding, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
-    var canvasWidth = 720;
-    var canvasHeight = 480;
     var blink_timer = 0;
     var blink_function_identifier = [];
     var states = onboardingStates.get();
@@ -98,7 +96,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @returns {clear}
      */
     function clear() {
-        if (ctx) ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        if (ctx) ctx.clearRect(0, 0, svl.canvasWidth, svl.canvasHeight);
         return this;
     }
 

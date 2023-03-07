@@ -78,8 +78,8 @@ function MistakeCarousel() {
                 labelIcon.src = `/assets/images/icons/AdminTool_${labelType}.png`;
                 labelIcon.classList.add('label-icon');
                 Object.assign(labelIcon.style, {
-                    left: `${100 * label.canvas_x / label.canvas_width}%`,
-                    top: `${100 * label.canvas_y / label.canvas_height}%`
+                    left: `${100 * label.canvas_x / 720}%`,
+                    top: `${100 * label.canvas_y / 480}%`
                 });
                 imageWrapper.appendChild(labelIcon);
                 slide.appendChild(imageWrapper);

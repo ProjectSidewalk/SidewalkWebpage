@@ -46,9 +46,8 @@ function AdminGSVCommentView(admin) {
 
     function setLabel(labelMetadata) {
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
-            labelMetadata['canvas_x'], labelMetadata['canvas_y'],
-            labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
-            labelMetadata['pitch'], labelMetadata['zoom']);
+            labelMetadata['canvas_x'], labelMetadata['canvas_y'], 720, 480,
+            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom']);
         self.panorama.setLabel(adminPanoramaLabel);
     }
  

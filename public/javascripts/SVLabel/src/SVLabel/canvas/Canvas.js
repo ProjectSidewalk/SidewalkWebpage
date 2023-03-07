@@ -80,10 +80,6 @@ function Canvas(ribbon) {
 
         var latlng = svl.map.getPosition();
         var param = {
-            canvasWidth: svl.canvasWidth,
-            canvasHeight: svl.canvasHeight,
-            canvasDistortionAlphaX: svl.alpha_x,
-            canvasDistortionAlphaY: svl.alpha_y,
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
             labelType: labelDescription.id,

@@ -46,8 +46,6 @@ function Modal(uiModal) {
         zoom: undefined,
         canvas_x: undefined,
         canvas_y: undefined,
-        canvas_width: undefined,
-        canvas_height: undefined,
         severity: undefined,
         temporary: undefined,
         description: undefined,
@@ -243,7 +241,7 @@ function Modal(uiModal) {
         }
         self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type,
                                               properties.canvas_x, properties.canvas_y,
-                                              properties.canvas_width, properties.canvas_height,
+                                              sg.auditCanvasWidth, sg.auditCanvasHeight,
                                               properties.heading, properties.pitch, properties.zoom);
 
         self.validationMenu.updateCardProperties(properties);

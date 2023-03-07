@@ -102,38 +102,30 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 temporary_label_id: tempLabelId,
                 audit_task_id: auditTaskId,
                 gsv_panorama_id : prop.panoId,
-                label_points : [],
                 severity: label.getProperty('severity'),
                 temporary: label.getProperty('temporaryLabel'),
                 tag_ids: label.getProperty('tagIds'),
                 description: label.getProperty('description') ? label.getProperty('description') : null,
                 time_created: timeCreated,
-                tutorial: prop.tutorial
-            };
-
-            // TODO include these as part of a label; no more need for points!
-            var pointParam = {
-                sv_image_x : prop.svImageCoordinate.x,
-                sv_image_y : prop.svImageCoordinate.y,
-                canvas_x: prop.originalCanvasCoordinate.x,
-                canvas_y: prop.originalCanvasCoordinate.y,
-                heading: prop.panoramaHeading,
-                pitch: prop.panoramaPitch,
-                zoom : prop.panoramaZoom,
-                canvas_height : prop.canvasHeight,
-                canvas_width : prop.canvasWidth,
-                alpha_x : prop.canvasDistortionAlphaX,
-                alpha_y : prop.canvasDistortionAlphaY,
-                lat : null,
-                lng : null
+                tutorial: prop.tutorial,
+                label_point: {
+                    sv_image_x : prop.svImageCoordinate.x,
+                    sv_image_y : prop.svImageCoordinate.y,
+                    canvas_x: prop.originalCanvasCoordinate.x,
+                    canvas_y: prop.originalCanvasCoordinate.y,
+                    heading: prop.panoramaHeading,
+                    pitch: prop.panoramaPitch,
+                    zoom : prop.panoramaZoom,
+                    lat : null,
+                    lng : null
+                }
             };
 
             if (labelLatLng) {
-                pointParam.lat = labelLatLng.lat;
-                pointParam.lng = labelLatLng.lng;
-                pointParam.computation_method = labelLatLng.latLngComputationMethod;
+                temp.label_point.lat = labelLatLng.lat;
+                temp.label_point.lng = labelLatLng.lng;
+                temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
             }
-            temp.label_points.push(pointParam);
 
             data.labels.push(temp)
         }

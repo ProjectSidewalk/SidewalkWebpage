@@ -33,10 +33,6 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         val labels: List[LabelTable.ResumeLabelMetadata] = LabelTable.getLabelsFromUserInRegion(regionId, user.userId)
         val jsLabels: List[JsObject] = labels.map { label =>
           Json.obj(
-            "canvasWidth" -> label.pointData.canvasWidth,
-            "canvasHeight" -> label.pointData.canvasHeight,
-            "canvasDistortionAlphaX" -> label.pointData.alphaX,
-            "canvasDistortionAlphaY" -> label.pointData.alphaY,
             "labelId" -> label.labelData.labelId,
             "labelType" -> label.labelType,
             "panoId" -> label.labelData.gsvPanoramaId,

@@ -176,8 +176,8 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
             heading: currCardProperties.heading,
             pitch: currCardProperties.pitch,
             zoom: currCardProperties.zoom,
-            canvas_height: currCardProperties.canvas_height,
-            canvas_width: currCardProperties.canvas_width,
+            canvas_height: sg.auditCanvasHeight,
+            canvas_width: sg.auditCanvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
             is_mobile: false

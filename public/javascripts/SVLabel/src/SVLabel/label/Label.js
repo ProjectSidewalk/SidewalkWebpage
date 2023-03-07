@@ -48,10 +48,6 @@ function Label(params) {
     // panoramaHeading, panoramaPitch, panoramaZoom -> povOfPanoWhenLabeled
     // I think the originalPov is actually just the same as panoramaHeading, panoramaPitch, panoramaZoom..?
     var properties = {
-        canvasWidth: undefined,
-        canvasHeight: undefined,
-        canvasDistortionAlphaX: undefined,
-        canvasDistortionAlphaY: undefined,
         labelId: 'DefaultValue',
         auditTaskId: undefined,
         missionId: undefined,
