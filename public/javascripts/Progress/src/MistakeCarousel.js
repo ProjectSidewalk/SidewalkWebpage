@@ -15,25 +15,17 @@ function MistakeCarousel() {
 
         // This is the list of label types without validations.
         const translatedTypes = labelTypesWithoutData.map((l) => i18next.t(`common:${util.camelToKebab(l)}`));
-
-        // Get state of user (has no mistakes or has a mistake labeling).
-        let userState = '';
-        // User has no mistakes with their labels.
-        if (labelTypesWithoutData.length === labelTypes.length) {
-            userState = 'no-mistakes-subheader'
-        // Otherwise user has at least one mistake with their labels.
-        } else {
-            userState = 'mistakes-subheader'
-        }
-
         let mistakesSubheader = document.getElementById('mistakes-subheader-display');
 
-        // If the user has made a mistake, and they have not made a mistake of all types
-        // append the text regarding what label types they have not made a mistake on.
-        if (userState === 'mistakes-subheader' && labelTypesWithData.length !== labelTypes.length) {
-            mistakesSubheader.textContent += i18next.t(userState) + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+        // User has no mistakes with their labels.
+        if (labelTypesWithoutData.length === labelTypes.length) {
+            mistakesSubheader.innerHTML = i18next.t('no-mistakes-subheader')
+        // User has not made one mistake with at least one of their labels.
+        } else if (labelTypesWithData.length !== labelTypes.length) {
+            mistakesSubheader.textContent += i18next.t('mistakes-subheader') + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+        // User has made a mistake for all types of labels.
         } else {
-            mistakesSubheader.innerHTML = i18next.t(userState)
+            mistakesSubheader.textContent = i18next.t('mistakes-subheader')
         }
 
         let mistakesHolder = document.getElementById('mistake-carousels-holder');
