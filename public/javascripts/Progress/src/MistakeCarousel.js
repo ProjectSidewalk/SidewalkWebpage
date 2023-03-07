@@ -31,10 +31,10 @@ function MistakeCarousel() {
         // If the user has made a mistake, and they have not made a mistake of all types
         // append the text regarding what label types they have not made a mistake on.
         if (userState === 'mistakes-subheader' && labelTypesWithData.length !== labelTypes.length) {
-            mistakesSubheader.textContent += " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+            mistakesSubheader.textContent += i18next.t(userState) + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+        } else {
+            mistakesSubheader.innerHTML = i18next.t(userState)
         }
-
-        mistakesSubheader.innerHTML = i18next.t(userState)
 
         let mistakesHolder = document.getElementById('mistake-carousels-holder');
 
