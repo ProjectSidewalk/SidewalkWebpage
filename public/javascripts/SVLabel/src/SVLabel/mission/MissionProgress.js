@@ -6,10 +6,9 @@
  * @constructor
  * @memberof svl
  */
-function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighborhoodModel, statusModel,
-                          missionContainer, neighborhoodContainer, tracker) {
+function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statusModel, missionContainer,
+                         neighborhoodContainer, tracker) {
     var self = this;
-    var _gameEffectModel = gameEffectModel;
     var _missionModel = missionModel;
     var _modalModel = modalModel;
     var _neighborhoodModel = neighborhoodModel;
@@ -20,14 +19,15 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         self.update(mission, neighborhood);
     });
 
-    _neighborhoodModel.on("Neighborhood:completed", function () {
-        // When the user has complete auditing all the streets in the neighborhood,
-        // show the 100% coverage mission completion message.
+    _neighborhoodModel.on("Neighborhood:wrapUpRouteOrNeighborhood", function () {
+        // When the user has finished every street in their route or neighborhood and have confirmed that they've
+        // finished auditing their last intersection, mark task/mission as complete and show the mission complete modal.
+        var currentTask = svl.taskContainer.getCurrentTask();
+        svl.taskContainer.endTask(currentTask);
 
         var mission = missionContainer.getCurrentMission();
         var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
 
-        self._completeTheCurrentMission(mission, neighborhood);
         _modalModel.updateModalMissionComplete(mission, neighborhood);
         _modalModel.showModalMissionComplete();
     });
@@ -45,14 +45,11 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                 missionId: mission.getProperty("missionId"),
                 missionType: mission.getProperty("missionType"),
                 distanceMeters: Math.round(mission.getDistance("meters")),
-                regionId: neighborhood.getProperty("regionId")
+                regionId: neighborhood.getRegionId()
             }
         );
         mission.complete();
 
-        // TODO Audio should listen to MissionProgress instead of MissionProgress telling what to do.
-        _gameEffectModel.loadAudio({audioType: "success"});
-        _gameEffectModel.playAudio({audioType: "success"});
 
         _missionModel.completeMission(mission);
 
@@ -69,8 +66,11 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             if (svl.modalMissionComplete.isOpen())
                 return;
 
-            _modalModel.updateModalMissionComplete(mission, neighborhood);
-            _modalModel.showModalMissionComplete();
+            // Show the mission complete screen unless we're at the end of a route/neighborhood.
+            if (!svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+                _modalModel.updateModalMissionComplete(mission, neighborhood);
+                _modalModel.showModalMissionComplete();
+            }
         }
     };
 
@@ -89,7 +89,9 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var completionRate = currentMission.getMissionCompletionRate();
         statusModel.setMissionCompletionRate(completionRate);
         statusModel.setProgressBar(completionRate);
-        this._checkMissionComplete(currentMission, currentRegion);
+        if (!_neighborhoodModel.isRouteComplete && !_neighborhoodModel.isNeighborhoodComplete) {
+            this._checkMissionComplete(currentMission, currentRegion);
+        }
 
         // Survey prompt. Modal should display survey if
         // 1. User has completed numMissionsBeforeSurvey number of missions
