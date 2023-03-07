@@ -27,13 +27,14 @@ function MistakeCarousel() {
         }
 
         let mistakesSubheader = document.getElementById('mistakes-subheader-display');
-        mistakesSubheader.innerHTML = i18next.t(userState)
 
         // If the user has made a mistake, and they have not made a mistake of all types
         // append the text regarding what label types they have not made a mistake on.
         if (userState === 'mistakes-subheader' && labelTypesWithData.length !== labelTypes.length) {
             mistakesSubheader.textContent += " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
         }
+
+        mistakesSubheader.innerHTML = i18next.t(userState)
 
         let mistakesHolder = document.getElementById('mistake-carousels-holder');
 
