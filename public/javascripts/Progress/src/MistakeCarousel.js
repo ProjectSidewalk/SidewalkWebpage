@@ -17,21 +17,21 @@ function MistakeCarousel() {
         const translatedTypes = labelTypesWithoutData.map((l) => i18next.t(`common:${util.camelToKebab(l)}`));
 
         // Get state of user (has no mistakes or has a mistake labeling).
-        let subheader = '';
+        let userState = '';
         // User has no mistakes with their labels.
         if (labelTypesWithoutData.length === labelTypes.length) {
-            subheader = 'no-mistakes-subheader'
+            userState = 'no-mistakes-subheader'
         // Otherwise user has at least one mistake with their labels.
         } else {
-            subheader = 'mistakes-subheader'
+            userState = 'mistakes-subheader'
         }
 
         let mistakesSubheader = document.getElementById('mistakes-subheader-display');
-        mistakesSubheader.textContent = i18next.t(subheader)
+        mistakesSubheader.innerHTML = i18next.t(userState)
 
         // If the user has made a mistake, and they have not made a mistake of all types
         // append the text regarding what label types they have not made a mistake on.
-        if (subheader === 'mistakes-subheader' && labelTypesWithData.length !== labelTypes.length) {
+        if (userState === 'mistakes-subheader' && labelTypesWithData.length !== labelTypes.length) {
             mistakesSubheader.textContent += " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
         }
 
