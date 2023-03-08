@@ -39,7 +39,7 @@ function Label(params) {
     };
     var RADIUS_INNER_CIRCLE = 17;
     var RADIUS_OUTER_CIRCLE = 14;
-    var TAG_HEIGHT = 20;
+    var HOVER_INFO_HEIGHT = 20;
 
     // TODO rename some things...
     // canvasCoordinate -> currentCanvasCoordinate
@@ -82,11 +82,11 @@ function Label(params) {
 
     var status = {
         deleted : false,
-        tagVisibility : 'visible',
+        hoverInfoVisibility : 'visible',
         visibility : 'visible'
     };
 
-    var tagProperties = util.misc.getSeverityDescription();
+    var hoverInfoProperties = util.misc.getSeverityDescription();
 
     function _init(param) {
         for (var attrName in param) {
@@ -252,11 +252,10 @@ function Label(params) {
      */
     function render(ctx, pov) {
         if (!status.deleted && status.visibility === 'visible') {
-            // Render a tag -- triggered by mouse hover event.
-            // Get a text to render (e.g, attribute type), and canvas coordinate to render the tag.
-            if (status.tagVisibility === 'visible') {
-                renderTag(ctx);
-                showDelete();
+            if (status.hoverInfoVisibility === 'visible') {
+                // Render hover info and delete button.
+                renderHoverInfo(ctx);
+                showDeleteButton();
             }
 
 
@@ -327,18 +326,17 @@ function Label(params) {
     }
 
     /**
-     * This function renders a tag on a canvas to show a property of the label.
+     * This function renders hover info on a canvas to show an overview of the label info.
      *
-     * NOTE "tag" here means the box that is shown when hovering over a label. This doesn't refer to tags for a label.
      * @param ctx
      * @returns {boolean}
      */
-    function renderTag(ctx) {
+    function renderHoverInfo(ctx) {
         if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
             return false;
         }
 
-        // labelCoordinate represents the upper left corner of the tag.
+        // labelCoordinate represents the upper left corner of the hover info.
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
             hasSeverity = (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal'),
@@ -357,22 +355,22 @@ function Label(params) {
             if (properties.severity !== null) {
                 severitySVGElement = $(`.severity-icon.template.severity-${properties.severity}`).clone().removeClass('template').find('svg');
                 severityImage.src = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent($(severitySVGElement).prop('outerHTML'));
-                severityMessage = tagProperties[properties.severity].message;
+                severityMessage = hoverInfoProperties[properties.severity].message;
             }
         }
 
-        // Set rendering properties and draw a tag.
+        // Set rendering properties and draw the hover info.
         ctx.save();
         ctx.font = '13px Open Sans';
 
-        height = TAG_HEIGHT * labelRows;
+        height = HOVER_INFO_HEIGHT * labelRows;
 
         for (i = 0; i < messages.length; i += 1) {
-            // Width of the tag is determined by the width of the longest row.
+            // Width of the hover info is determined by the width of the longest row.
             var firstRow = ctx.measureText(messages[i]).width;
             var secondRow = -1;
 
-            // Do additional adjustments on tag width to make room for smiley icon.
+            // Do additional adjustments on the width to make room for smiley icon.
             if (hasSeverity) {
                 secondRow = ctx.measureText(severityMessage).width;
                 if (severitySVGElement != undefined) {
@@ -393,7 +391,7 @@ function Label(params) {
         ctx.strokeStyle = 'rgba(255,255,255,1)';
 
 
-        // Tag background
+        // Hover info background.
         ctx.beginPath();
         ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
         ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right - cornerRadius, labelCoordinate.y);
@@ -407,11 +405,11 @@ function Label(params) {
         ctx.stroke();
         ctx.closePath();
 
-        // Tag text and image
+        // Hover info text and image.
         ctx.fillStyle = '#ffffff';
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
-            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + TAG_HEIGHT + padding.top);
+            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + HOVER_INFO_HEIGHT + padding.top);
             if (properties.severity !== null) {
                 ctx.drawImage(severityImage, labelCoordinate.x + padding.left +
                     ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
@@ -441,8 +439,8 @@ function Label(params) {
         if (key in status) {
             if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
                 setVisibility(value);
-            } else if (key === 'tagVisibility' && (value === 'visible' || value === 'hidden')) {
-                setTagVisibility(value);
+            } else if (key === 'hoverInfoVisibility' && (value === 'visible' || value === 'hidden')) {
+                setHoverInfoVisibility(value);
             } else if (key === 'deleted' && typeof value === 'boolean') {
                 status[key] = value;
             } else if (key === 'severity') {
@@ -452,13 +450,13 @@ function Label(params) {
     }
 
     /**
-     * Set the visibility of the tag
+     * Set the visibility of the hover info.
      * @param visibility {string} visible or hidden
-     * @returns {setTagVisibility}
+     * @returns {setHoverInfoVisibility}
      */
-    function setTagVisibility (visibility) {
+    function setHoverInfoVisibility (visibility) {
         if (visibility === 'visible' || visibility === 'hidden') {
-            status['tagVisibility'] = visibility;
+            status['hoverInfoVisibility'] = visibility;
         }
         return this;
     }
@@ -491,13 +489,10 @@ function Label(params) {
         return this;
     }
 
-    /**
-     * Show the delete button
-     */
-    function showDelete() {
-        if (status.tagVisibility !== 'hidden') {
+    function showDeleteButton() {
+        if (status.hoverInfoVisibility !== 'hidden') {
             var coord = getCoordinate();
-            $("#delete-icon-holder").css({
+            svl.ui.canvas.deleteIconHolder.css({
                 visibility: 'visible',
                 left : coord.x + 5,
                 top : coord.y - 20
@@ -596,7 +591,7 @@ function Label(params) {
     self.remove = remove;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
-    self.setTagVisibility = setTagVisibility;
+    self.setHoverInfoVisibility = setHoverInfoVisibility;
     self.setVisibility = setVisibility;
     self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
     self.toLatLng = toLatLng;

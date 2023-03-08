@@ -936,11 +936,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (item && item.className === "Label") {
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
-            _canvas.showLabelTag(selectedLabel);
+            _canvas.showLabelHoverInfo(selectedLabel);
             _canvas.clear();
             _canvas.render();
         } else {
-            _canvas.showLabelTag(undefined);
+            _canvas.showLabelHoverInfo(undefined);
             _canvas.setCurrentLabel(undefined);
         }
 

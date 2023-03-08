@@ -68,7 +68,7 @@ function LabelContainer($, nextTemporaryLabelId) {
                 let label = self.createLabel(labelArr[i]);
 
                 // Prevent tag from being rendered initially
-                label.setTagVisibility('hidden');
+                label.setHoverInfoVisibility('hidden');
 
                 if (!(label.getPanoId() in prevCanvasLabels)) {
                     prevCanvasLabels[label.getPanoId()] = [];

@@ -104,7 +104,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             var labels = svl.labelContainer.getCanvasLabels(),
                 labelLen = labels.length;
             for (var i=0; i<labelLen; i++){
-                labels[i].setTagVisibility('hidden');
+                labels[i].setHoverInfoVisibility('hidden');
             }
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             var heading =  svl.panorama.pov.heading;

@@ -36,10 +36,6 @@ function Canvas(ribbon) {
         'visibilityMenu': 'hidden'
     };
 
-    var lock = {
-        showLabelTag: false
-    };
-
     // Canvas context
     var canvasProperties = {'height': 0, 'width': 0};
     var ctx;
@@ -220,33 +216,10 @@ function Canvas(ribbon) {
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
             var currLabel = self.getCurrentLabel();
-            svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
-            if (!currLabel) {
-                console.log('NOTE: labelDeleteIconClick() hit the case where currLabel is null!');
-                // TODO is the case described below still ever used? -- Mikey, Oct 2022
-                // Sometimes (especially during ground truth insertion if you force a delete icon to show up all the time),
-                // currLabel would not be set properly. In such a case, find a label underneath the delete icon.
-                var x = svl.ui.canvas.deleteIconHolder.css('left');
-                var y = svl.ui.canvas.deleteIconHolder.css('top');
-                x = x.replace("px", "");
-                y = y.replace("px", "");
-                x = parseInt(x, 10) + 5;
-                y = parseInt(y, 10) + 5;
-                var item = isOn(x, y);
-                if (item && item.className === "Label") {
-                    currLabel = item;
-                }
-            }
-
             if (currLabel) {
+                svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-
-                // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
-                // a label is deleted.
-                if (lock.showLabelTag) {
-                    self.unlockShowLabelTag();
-                }
             }
         }
     }
@@ -256,7 +229,7 @@ function Canvas(ribbon) {
      * @method
      */
     function clear() {
-        // Clears the canvas
+        // Clears the canvas.
         if (ctx) {
             ctx.clearRect(0, 0, canvasProperties.width, canvasProperties.height);
         } else {
@@ -424,15 +397,6 @@ function Canvas(ribbon) {
     }
 
     /**
-     * This method locks showLabelTag
-     * @method
-     */
-    function lockShowLabelTag() {
-        lock.showLabelTag = true;
-        return this;
-    }
-
-    /**
      * @method
      */
     function pushLabel(label) {
@@ -450,19 +414,18 @@ function Canvas(ribbon) {
         if (!ctx) {
             return this;
         }
-        var i, label, lenLabels,
-            labels = svl.labelContainer.getCanvasLabels();
+        var i, label, lenLabels;
+        var labels = svl.labelContainer.getCanvasLabels();
         var pov = svl.map.getPov();
 
         var povChange = svl.map.getPovChangeStatus();
-        // For the condition, when the interface loads for the first time
-        // The pov is changed. Prevents the conversion function to be called
-        // for the initial rendering pipeline
+        // For the condition, when the interface loads for the first time, the pov is changed. Prevents the conversion
+        // function to be called for the initial rendering pipeline.
         if (labels.length === 0 && povChange["status"]) {
             povChange["status"] = false;
         }
 
-        // Render user labels. First check if the label comes from current SV panorama
+        // Render user labels.
         lenLabels = labels.length;
         for (i = 0; i < lenLabels; i += 1) {
             label = labels[i];
@@ -504,38 +467,31 @@ function Canvas(ribbon) {
     }
 
     /**
-     * This function sets the passed label's tagVisiblity to 'visible' and all the others to 'hidden'
+     * This function sets the passed label's hoverInfoVisibility to 'visible' and all the others to 'hidden'.
      * @param label
-     * @returns {showLabelTag}
+     * @returns {showLabelHoverInfo}
      */
-    function showLabelTag(label) {
-        if (!lock.showLabelTag) {
-            var i,
-                labels = svl.labelContainer.getCanvasLabels(),
-                labelLen = labels.length;
-            var isAnyVisible = false;
-            for (i = 0; i < labelLen; i += 1) {
-                labels[i].setTagVisibility('hidden');
-            }
-            if (label) {
-                label.setTagVisibility('visible');
-                isAnyVisible = true;
-            } else {
-                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-            }
-            // If any of the tags is visible, show a deleting icon on it.
-            if (!isAnyVisible) {
-                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-            }
-
-            self.clear();
-            self.render();
-            return this;
+    function showLabelHoverInfo(label) {
+        var i;
+        var labels = svl.labelContainer.getCanvasLabels();
+        var labelLen = labels.length;
+        for (i = 0; i < labelLen; i += 1) {
+            labels[i].setHoverInfoVisibility('hidden');
         }
+        if (label) {
+            label.setHoverInfoVisibility('visible');
+        } else {
+            // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
+            svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+        }
+
+        self.clear();
+        self.render();
+        return this;
     }
 
-    function setTagVisibility(labelIn) {
-        return self.showLabelTag(labelIn);
+    function setHoverInfoVisibility(labelIn) {
+        return self.showLabelHoverInfo(labelIn);
     }
 
     function setVisibility(visibility) {
@@ -593,15 +549,6 @@ function Canvas(ribbon) {
         return this;
     }
 
-    /**
-     * @method
-     */
-    function unlockShowLabelTag() {
-        // This method locks showLabelTag
-        lock.showLabelTag = false;
-        return this;
-    }
-
     // Initialization
     _init();
 
@@ -621,20 +568,18 @@ function Canvas(ribbon) {
     self.lockDisableLabelDelete = lockDisableLabelDelete;
     self.lockDisableLabelEdit = lockDisableLabelEdit;
     self.lockDisableLabeling = lockDisableLabeling;
-    self.lockShowLabelTag = lockShowLabelTag;
     self.pushLabel = pushLabel;
     self.render = render;
     self.setCurrentLabel = setCurrentLabel;
     self.setStatus = setStatus;
-    self.showLabelTag = showLabelTag;
-    self.setTagVisibility = setTagVisibility;
+    self.showLabelHoverInfo = showLabelHoverInfo;
+    self.setHoverInfoVisibility = setHoverInfoVisibility;
     self.setVisibility = setVisibility;
     self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
     self.unlockCurrentLabel = unlockCurrentLabel;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
     self.unlockDisableLabelEdit = unlockDisableLabelEdit;
     self.unlockDisableLabeling = unlockDisableLabeling;
-    self.unlockShowLabelTag = unlockShowLabelTag;
 
     return self;
 }
