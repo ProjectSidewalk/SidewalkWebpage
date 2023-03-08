@@ -74,6 +74,8 @@ function Card (params, imageUrl, modal) {
                 properties[attrName] = param[attrName];
             }
         }
+        properties.originalCanvasX = param.canvas_x;
+        properties.originalCanvasY = param.canvas_y;
         if (properties.correctness) properties.correctness = "correct";
         else if (properties.correctness === false) properties.correctness = "incorrect";
         else properties.correctness = "unvalidated";
@@ -81,8 +83,8 @@ function Card (params, imageUrl, modal) {
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.classList.add("label-icon", "label-icon-gallery");
-        labelIcon.style.left = `calc(${100 * properties.canvas_x / (sg.auditCanvasWidth)}% - var(--iconWidth) / 2)`;
-        labelIcon.style.top = `calc(${100 * properties.canvas_y / (sg.auditCanvasHeight)}% - var(--iconWidth) / 2)`;
+        labelIcon.style.left = `calc(${100 * properties.originalCanvasX / (sg.auditCanvasWidth)}% - var(--iconWidth) / 2)`;
+        labelIcon.style.top = `calc(${100 * properties.originalCanvasY / (sg.auditCanvasHeight)}% - var(--iconWidth) / 2)`;
 
         // Create an element for the image in the card.
         imageId = "label_id_" + properties.label_id;
