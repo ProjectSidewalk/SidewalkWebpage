@@ -13,7 +13,6 @@ function Card (params, imageUrl, modal) {
     let card = null;
 
     let validationMenu = null;
-    let widthHeightRatio = (4/3);
     let imageId = null;
 
     // Properties of the label in the card.
@@ -55,14 +54,6 @@ function Card (params, imageUrl, modal) {
     // Status to determine if static imagery has been loaded.
     let status = {
         imageFetched: false
-    };
-
-    // Default image width.
-    let width = 360;
-
-    let imageDim = {
-        w: 0,
-        h: 0
     };
 
     // The label icon to be placed on the static pano image.
@@ -138,7 +129,7 @@ function Card (params, imageUrl, modal) {
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(self, imageHolder, properties, modal, false);
+        validationMenu = new ValidationMenu(self, $(imageHolder), properties, modal, false);
     }
 
     /**
@@ -157,10 +148,6 @@ function Card (params, imageUrl, modal) {
      * @param {*} w New width.
      */
     function updateWidth(w) {
-        width = w;
-        imageDim.w = w - 10;
-        imageDim.h = imageDim.w / widthHeightRatio;       
-
         let iconCoords = getIconPercent();
         labelIcon.style.left = iconCoords.x + "%";
         labelIcon.style.top = iconCoords.y + "%";
@@ -234,8 +221,6 @@ function Card (params, imageUrl, modal) {
         // TODO: should there be a safety check here to make sure pano is loaded?
         // If the card had transparent background from the modal being open earlier, remove transparency on rerender.
         if (card.classList.contains('modal-background-card')) card.classList.remove('modal-background-card');
-        panoImage.width = imageDim.w;
-        panoImage.height = imageDim.h;
         cardContainer.append(card);
     }
 
