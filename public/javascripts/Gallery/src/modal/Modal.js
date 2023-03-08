@@ -44,8 +44,8 @@ function Modal(uiModal) {
         heading: undefined,
         pitch: undefined,
         zoom: undefined,
-        canvas_x: undefined,
-        canvas_y: undefined,
+        originalCanvasX: undefined,
+        originalCanvasY: undefined,
         severity: undefined,
         temporary: undefined,
         description: undefined,
@@ -235,12 +235,12 @@ function Modal(uiModal) {
      */
     function updateProperties(newProps) {
         for (const attrName in newProps) {
-            if (newProps.hasOwnProperty(attrName)) {
+            if (newProps.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
                 properties[attrName] = newProps[attrName];
             }
         }
         self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type,
-                                              properties.canvas_x, properties.canvas_y,
+                                              properties.originalCanvasX, properties.originalCanvasY,
                                               sg.auditCanvasWidth, sg.auditCanvasHeight,
                                               properties.heading, properties.pitch, properties.zoom);
 

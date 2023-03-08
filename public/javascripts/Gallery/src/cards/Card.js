@@ -25,8 +25,6 @@ function Card (params, imageUrl, modal) {
         heading: undefined,
         pitch: undefined,
         zoom: undefined,
-        canvas_x: undefined,
-        canvas_y: undefined,
         severity: undefined,
         temporary: undefined,
         description: undefined,
@@ -70,7 +68,7 @@ function Card (params, imageUrl, modal) {
      */
     function _init (param) {
         for (const attrName in param) {
-            if (param.hasOwnProperty(attrName)) {
+            if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
                 properties[attrName] = param[attrName];
             }
         }
