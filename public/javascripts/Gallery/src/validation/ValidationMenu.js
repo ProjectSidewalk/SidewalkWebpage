@@ -180,11 +180,12 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         // Record current POV and canvas X/Y position of the label at the current view. This does not change for the
         // static cards, but we need to calculate the current position if it's in the dynamic street view.
         if (!onExpandedView) {
+            let labelIcon = refCard.labelIcon;
             data.heading = currCardProperties.heading;
             data.pitch = currCardProperties.pitch;
             data.zoom = currCardProperties.zoom;
-            data.canvas_x = currCardProperties.canvas_x;
-            data.canvas_y = currCardProperties.canvas_y;
+            data.canvas_x = Math.round(labelIcon.offsetLeft + labelIcon.getBoundingClientRect().width / 2);
+            data.canvas_y = Math.round(labelIcon.offsetTop + labelIcon.getBoundingClientRect().height / 2);
         } else {
             let currPov = modal.pano.panorama.getPov();
             data.heading = currPov.heading;

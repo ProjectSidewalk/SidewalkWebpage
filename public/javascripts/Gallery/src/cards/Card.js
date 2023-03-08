@@ -58,6 +58,7 @@ function Card (params, imageUrl, modal) {
 
     // The label icon to be placed on the static pano image.
     const labelIcon = new Image();
+    self.labelIcon = labelIcon;
 
     // The static pano image.
     const panoImage = new Image();
@@ -80,9 +81,8 @@ function Card (params, imageUrl, modal) {
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.classList.add("label-icon", "label-icon-gallery");
-        let iconCoords = getIconPercent();
-        labelIcon.style.left = iconCoords.x + "px";
-        labelIcon.style.top = iconCoords.y + "px";
+        labelIcon.style.left = `calc(${100 * properties.canvas_x / (sg.auditCanvasWidth)}% - var(--iconWidth) / 2)`;
+        labelIcon.style.top = `calc(${100 * properties.canvas_y / (sg.auditCanvasHeight)}% - var(--iconWidth) / 2)`;
 
         // Create an element for the image in the card.
         imageId = "label_id_" + properties.label_id;
@@ -130,27 +130,6 @@ function Card (params, imageUrl, modal) {
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
         validationMenu = new ValidationMenu(self, $(imageHolder), properties, modal, false);
-    }
-
-    /**
-     * Return object with label coords on static image.
-     */
-    function getIconPercent () {
-        return {
-            x: 100 * properties.canvas_x / (sg.auditCanvasWidth),
-            y: 100 * properties.canvas_y / (sg.auditCanvasHeight)
-        };
-    }
-
-    /**
-     * Update image width.
-     * 
-     * @param {*} w New width.
-     */
-    function updateWidth(w) {
-        let iconCoords = getIconPercent();
-        labelIcon.style.left = iconCoords.x + "%";
-        labelIcon.style.top = iconCoords.y + "%";
     }
 
     /**
@@ -212,24 +191,16 @@ function Card (params, imageUrl, modal) {
     }
 
     /**
-     * Renders the card. 
+     * Renders the card.
+     * TODO: should there be a safety check here to make sure pano is loaded?
      * 
      * @param cardContainer UI element to render card in.
      * @returns {self}
      */
-    function render (cardContainer) {
-        // TODO: should there be a safety check here to make sure pano is loaded?
+    function render(cardContainer) {
         // If the card had transparent background from the modal being open earlier, remove transparency on rerender.
         if (card.classList.contains('modal-background-card')) card.classList.remove('modal-background-card');
         cardContainer.append(card);
-    }
-
-    /**
-     * Render with an overload that allows you to set the width and height of the card.
-     */
-    function renderSize(cardContainer, width) {
-        updateWidth(width);
-        render(cardContainer);
         renderTags();
     }
 
@@ -282,7 +253,6 @@ function Card (params, imageUrl, modal) {
     self.getStatus = getStatus;
     self.loadImage = loadImage;
     self.render = render;
-    self.renderSize = renderSize;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
     self.getImageId = getImageId;
