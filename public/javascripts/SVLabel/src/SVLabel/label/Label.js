@@ -48,7 +48,7 @@ function Label(params) {
         labelDescription: undefined,
         iconImagePath: undefined,
         originalCanvasCoordinate: undefined,
-        currentCanvasCoordinate: undefined,
+        currCanvasCoordinate: undefined,
         svImageCoordinate: undefined,
         originalPov: undefined,
         povOfLabelIfCentered: undefined,
@@ -133,7 +133,7 @@ function Label(params) {
      * @returns {*}
      */
     function getCoordinate() {
-        return properties.currentCanvasCoordinate;
+        return properties.currCanvasCoordinate;
     }
 
     /**
@@ -196,10 +196,10 @@ function Label(params) {
     function isOn (x, y) {
         if (status.deleted || status.visibility === 'hidden') {  return false; }
         var margin = svl.LABEL_ICON_RADIUS / 2 + 2;
-        if (x < properties.currentCanvasCoordinate.x + margin &&
-            x > properties.currentCanvasCoordinate.x - margin &&
-            y < properties.currentCanvasCoordinate.y + margin &&
-            y > properties.currentCanvasCoordinate.y - margin) {
+        if (x < properties.currCanvasCoordinate.x + margin &&
+            x > properties.currCanvasCoordinate.x - margin &&
+            y < properties.currCanvasCoordinate.y + margin &&
+            y > properties.currCanvasCoordinate.y - margin) {
             return this;
         } else {
             return false;
@@ -236,22 +236,19 @@ function Label(params) {
                 showDeleteButton();
             }
 
+            // Update the coordinates of the label on the canvas.
+            if (svl.map.getPovChangeStatus()) {
+                properties.currCanvasCoordinate = util.panomarker.getCanvasCoordinate(
+                    properties.povOfLabelIfCentered, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                );
+            }
 
-            // Find current pov of the label and update it.
-            // var canvasCoord = getProperty('originalCanvasCoordinate');
-            // var canvasCoord = { x: getProperty('originalCanvasCoordinate').x, y: getProperty('originalCanvasCoordinate').y };
-            var canvasCoord = properties.currentCanvasCoordinate;
-            canvasCoord =  util.panomarker.getCanvasCoordinate(
-                canvasCoord, properties.povOfLabelIfCentered, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
-            );
-            properties.currentCanvasCoordinate = canvasCoord;
-
-            // Draw the label type icon.
+            // Draw the label icon.
             var imageObj, imageHeight, imageWidth, imageX, imageY;
             imageObj = new Image();
             imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
-            imageX =  canvasCoord.x - svl.LABEL_ICON_RADIUS + 2;
-            imageY = canvasCoord.y - svl.LABEL_ICON_RADIUS + 2;
+            imageX =  properties.currCanvasCoordinate.x - svl.LABEL_ICON_RADIUS + 2;
+            imageY = properties.currCanvasCoordinate.y - svl.LABEL_ICON_RADIUS + 2;
 
             imageObj.src = getProperty('iconImagePath');
 
@@ -268,11 +265,11 @@ function Label(params) {
             ctx.fillStyle = getProperty('fillStyle');
             ctx.lineWidth = 0.7;
             ctx.beginPath();
-            ctx.arc(canvasCoord.x, canvasCoord.y, 15.3, 0, 2 * Math.PI);
+            ctx.arc(properties.currCanvasCoordinate.x, properties.currCanvasCoordinate.y, 15.3, 0, 2 * Math.PI);
             ctx.strokeStyle = 'black';
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(canvasCoord.x, canvasCoord.y, 16.2, 0, 2 * Math.PI);
+            ctx.arc(properties.currCanvasCoordinate.x, properties.currCanvasCoordinate.y, 16.2, 0, 2 * Math.PI);
             ctx.strokeStyle = 'white';
             ctx.stroke();
 

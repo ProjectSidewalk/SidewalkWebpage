@@ -39,28 +39,21 @@ function LabelContainer($, nextTemporaryLabelId) {
                     y: labelArr[i].canvasY
                 };
 
-                let povChange = svl.map.getPovChangeStatus();
-
-                // Temporarily change pov change status to true so that we can use util function to calculate the canvas
-                // coord to place label upon rerender, putting in the correct location relative to the initial POV.
-                povChange["status"] = true;
+                // Get the canvas coordinates for the label given the current POV.
                 let povOfLabelIfCentered = util.panomarker.calculatePointPov(
                     labelArr[i].originalPov, originalCanvasCoord.x, originalCanvasCoord.y, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT
                 );
                 let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
-                    originalCanvasCoord, povOfLabelIfCentered, svl.map.getPov(), svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                    povOfLabelIfCentered, svl.map.getPov(), svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
-                // Return the status to original.
-                povChange["status"] = false;
 
-                labelArr[i].currentCanvasCoordinate = { x: rerenderCanvasCoord.x, y: rerenderCanvasCoord.y };
+                labelArr[i].currCanvasCoordinate = { x: rerenderCanvasCoord.x, y: rerenderCanvasCoord.y };
                 labelArr[i].originalCanvasCoordinate = originalCanvasCoord;
                 labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
                 labelArr[i].svImageCoordinate = { x: labelArr[i].svImageX, y: labelArr[i].svImageY };
-
                 let label = self.createLabel(labelArr[i]);
 
-                // Prevent tag from being rendered initially
+                // Prevent tag from being rendered initially.
                 label.setHoverInfoVisibility('hidden');
 
                 if (!(label.getPanoId() in prevCanvasLabels)) {

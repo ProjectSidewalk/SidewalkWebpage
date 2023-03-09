@@ -275,27 +275,19 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, canvasWidth, canvasHeig
 }
 
 /**
- * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point
- * when the pov is changed. If the pov is not changed, then the passed canvas Coordinate is returned.
- * @param canvasCoord
+ * Take current POV of the Street View and returns a canvas coordinate of a point given the new POV.
  * @param origPov
- * @param canvasCoord
- * @param origPov
- * @param pov
+ * @param newPov
  * @param canvasWidth
  * @param canvasHeight
  * @param iconWidth
  * @returns {{x, y}}
  */
-function getCanvasCoordinate(canvasCoord, origPov, pov, canvasWidth, canvasHeight, iconWidth) {
-    if (svl.map.getPovChangeStatus()["status"]) {
+function getCanvasCoordinate(origPov, newPov, canvasWidth, canvasHeight, iconWidth) {
         var outputCoord = { x: undefined, y: undefined };
-        var currentPov = pov;
-        var targetPov = origPov;
-        var zoom = currentPov.zoom;
 
         // Calculate the position according to the canvas.
-        var offset = povToPixel3DOffset(targetPov, currentPov, zoom, canvasWidth, canvasHeight);
+        var offset = povToPixel3DOffset(origPov, newPov, newPov.zoom, canvasWidth, canvasHeight);
 
         // Set coordinates to null if label is outside the viewport.
         if (offset !== null
@@ -307,10 +299,6 @@ function getCanvasCoordinate(canvasCoord, origPov, pov, canvasWidth, canvasHeigh
             outputCoord.x = null;
             outputCoord.y = null;
         }
-        console.log(outputCoord);
         return outputCoord;
-    } else {
-        return canvasCoord;
-    }
 }
 util.panomarker.getCanvasCoordinate = getCanvasCoordinate;

@@ -81,7 +81,7 @@ function Canvas(ribbon) {
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             originalCanvasCoordinate: { x: canvasX, y: canvasY },
-            currentCanvasCoordinate: { x: canvasX, y: canvasY },
+            currCanvasCoordinate: { x: canvasX, y: canvasY },
             povOfLabelIfCentered: povOfLabel,
             panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,

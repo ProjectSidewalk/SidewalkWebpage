@@ -203,7 +203,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             x2,
             y1,
             y2,
-            origPointPov;
+            povOfLabelIfCentered,
+            i,
+            len;
 
         var currentPov = mapService.getPov();
         var povChange = svl.map.getPovChangeStatus();
@@ -213,16 +215,16 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         clear();
 
         var blink_frequency_modifier = 0;
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
+        for (i = 0, len = state.annotations.length; i < len; i++) {
             if (state.annotations[i].type === "arrow") {
                 blink_frequency_modifier = blink_frequency_modifier + 1;
             }
         }
 
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
+        for (i = 0, len = state.annotations.length; i < len; i++) {
             imX = state.annotations[i].x;
             imY = state.annotations[i].y;
-            origPointPov = null;
+            povOfLabelIfCentered = null;
 
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
             if (currentPov.heading < 180) {
@@ -234,9 +236,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     imX += svl.SV_IMAGE_WIDTH;
                 }
             }
-            origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
+            povOfLabelIfCentered = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
             var canvasCoordinate = util.panomarker.getCanvasCoordinate(
-                undefined, origPointPov, currentPov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                povOfLabelIfCentered, currentPov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
 
             if (state.annotations[i].type === "arrow") {
