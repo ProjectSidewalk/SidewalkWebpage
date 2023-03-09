@@ -33,9 +33,11 @@ function sgn(x) {
  * @param canvasX
  * @param canvasY
  * @param pov
+ * @param canvasWidth
+ * @param canvasHeight
  * @returns {{heading: number, pitch: number, zoom: Number}}
  */
-function calculatePointPov(canvasX, canvasY, pov) {
+function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
     var heading = parseInt(pov.heading, 10),
         pitch = parseInt(pov.pitch, 10),
         zoom = parseInt(pov.zoom, 10);
@@ -49,20 +51,18 @@ function calculatePointPov(canvasX, canvasY, pov) {
     var asin = Math.asin;
 
     var fov = get3dFov(zoom) * PI / 180.0;
-    var width = svl.canvasWidth;
-    var height = svl.canvasHeight;
 
     var h0 = heading * PI / 180.0;
     var p0 = pitch * PI / 180.0;
 
-    var f = 0.5 * width / tan(0.5 * fov);
+    var f = 0.5 * canvasWidth / tan(0.5 * fov);
 
     var x0 = f * cos(p0) * sin(h0);
     var y0 = f * cos(p0) * cos(h0);
     var z0 = f * sin(p0);
 
-    var du = canvasX - width / 2;
-    var dv = height / 2 - canvasY;
+    var du = canvasX - canvasWidth / 2;
+    var dv = canvasHeight / 2 - canvasY;
 
     var ux = sgn(cos(p0)) * cos(h0);
     var uy = -sgn(cos(p0)) * sin(h0);
@@ -102,9 +102,9 @@ function calculatePointPovFromImageCoordinate(imageX, imageY, pov) {
     var heading, pitch,
         zoom = parseInt(pov.zoom, 10);
 
-    var zoomFactor = svl.zoomFactor[zoom];
-    var svImageWidth = svl.svImageWidth * zoomFactor;
-    var svImageHeight = svl.svImageHeight * zoomFactor;
+    var zoomFactor = svl.ZOOM_FACTOR[zoom];
+    var svImageWidth = svl.SV_IMAGE_WIDTH * zoomFactor;
+    var svImageHeight = svl.SV_IMAGE_HEIGHT * zoomFactor;
 
     imageX = imageX * zoomFactor;
     imageY = imageY * zoomFactor;
@@ -131,7 +131,7 @@ util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImag
  */
 function calculateImageCoordinateFromPointPov(pov, svImageWidth, svImageHeight) {
     var imageX, imageY;
-    var zoomFactor = svl.zoomFactor[pov.zoom];
+    var zoomFactor = svl.ZOOM_FACTOR[pov.zoom];
     var imageWidth = svImageWidth * zoomFactor;
     var imageHeight = svImageHeight * zoomFactor;
 
@@ -149,18 +149,20 @@ util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateF
  * @param canvasX
  * @param canvasY
  * @param pov
+ * @param canvasWidth
+ * @param canvasHeight
  * @param svImageWidth
  * @param svImageHeight
  * @returns {{x: number, y: number}}
  */
-function canvasCoordinateToImageCoordinate(canvasX, canvasY, pov, svImageWidth, svImageHeight) {
+function canvasCoordinateToImageCoordinate(pov, canvasX, canvasY, canvasWidth, canvasHeight, svImageWidth, svImageHeight) {
 
     // Old calculation
-    // var zoomFactor = svl.zoomFactor[pov.zoom];
-    // var x = svl.svImageWidth * pov.heading / 360 + (svl.alpha_x * (canvasX - (svl.canvasWidth / 2)) / zoomFactor);
-    // var y = (svl.svImageHeight / 2) * pov.pitch / 90 + (svl.alpha_y * (canvasY - (svl.canvasHeight / 2)) / zoomFactor);
+    // var zoomFactor = svl.ZOOM_FACTOR[pov.zoom];
+    // var x = svl.SV_IMAGE_WIDTH * pov.heading / 360 + (svl.ALPHA_X * (canvasX - (canvasWidth / 2)) / zoomFactor);
+    // var y = (svl.SV_IMAGE_HEIGHT / 2) * pov.pitch / 90 + (svl.ALPHA_Y * (canvasY - (canvasWidth / 2)) / zoomFactor);
 
-    var pointPOV = calculatePointPov(canvasX, canvasY, pov);
+    var pointPOV = calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight);
     console.log(pov);
     console.log(pointPOV);
     var svImageCoord = calculateImageCoordinateFromPointPov(pointPOV, svImageWidth, svImageHeight);
@@ -174,14 +176,12 @@ util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoord
  * @return {Object} Top and Left offsets for the given viewport that point to
  *     the desired point-of-view.
  */
-function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
+function povToPixel3DOffset(targetPov, currentPov, zoom, canvasWidth, canvasHeight) {
 
     // Gather required variables and convert to radians where necessary.
-    var width = viewport.offsetWidth;
-    var height = viewport.offsetHeight;
     var target = {
-        left: width / 2,
-        top: height / 2
+        left: canvasWidth / 2,
+        top: canvasHeight / 2
     };
 
     var DEG_TO_RAD = Math.PI / 180.0;
@@ -192,7 +192,7 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
     var p = targetPov.pitch * DEG_TO_RAD;
 
     // f = focal length = distance of current POV to image plane
-    var f = (width / 2) / Math.tan(fov / 2);
+    var f = (canvasWidth / 2) / Math.tan(fov / 2);
 
     // our coordinate system: camera at (0,0,0), heading = pitch = 0 at (0,f,0)
     // calculate 3d coordinates of viewport center and target
@@ -282,25 +282,25 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
  * @param canvasCoord
  * @param origPov
  * @param pov
+ * @param canvasWidth
+ * @param canvasHeight
  * @param iconWidth
  * @returns {{x, y}}
  */
-function getCanvasCoordinate(canvasCoord, origPov, pov, iconWidth) {
+function getCanvasCoordinate(canvasCoord, origPov, pov, canvasWidth, canvasHeight, iconWidth) {
     if (svl.map.getPovChangeStatus()["status"]) {
         var outputCoord = { x: undefined, y: undefined };
         var currentPov = pov;
         var targetPov = origPov;
         var zoom = currentPov.zoom;
-        var viewport = document.getElementById('pano');
 
-        // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath the
-        // panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
-        var offset = povToPixel3DOffset(targetPov, currentPov, zoom, viewport);
+        // Calculate the position according to the canvas.
+        var offset = povToPixel3DOffset(targetPov, currentPov, zoom, canvasWidth, canvasHeight);
 
         // Set coordinates to null if label is outside the viewport.
         if (offset !== null
-            && offset.left > -iconWidth && offset.left < svl.canvasWidth + iconWidth
-            && offset.top > -iconWidth && offset.top < svl.canvasHeight + iconWidth) {
+            && offset.left > -iconWidth && offset.left < canvasWidth + iconWidth
+            && offset.top > -iconWidth && offset.top < canvasHeight + iconWidth) {
             outputCoord.x = offset.left;
             outputCoord.y = offset.top;
         } else {

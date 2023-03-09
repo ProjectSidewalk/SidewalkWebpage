@@ -923,7 +923,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var dy = mouseStatus.currY - mouseStatus.prevY;
             var pov = getPov();
             var zoom = Math.round(pov.zoom);
-            var zoomLevel = svl.zoomFactor[zoom];
+            var zoomLevel = svl.ZOOM_FACTOR[zoom];
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 1.5;

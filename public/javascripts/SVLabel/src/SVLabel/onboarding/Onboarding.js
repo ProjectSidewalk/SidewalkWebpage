@@ -96,7 +96,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @returns {clear}
      */
     function clear() {
-        if (ctx) ctx.clearRect(0, 0, svl.canvasWidth, svl.canvasHeight);
+        if (ctx) ctx.clearRect(0, 0, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT);
         return this;
     }
 
@@ -226,16 +226,18 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
             if (currentPov.heading < 180) {
-                if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                    imX -= svl.svImageWidth;
+                if (imX > svl.SV_IMAGE_WIDTH - 3328 && imX > 3328) {
+                    imX -= svl.SV_IMAGE_WIDTH;
                 }
             } else {
-                if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                    imX += svl.svImageWidth;
+                if (imX < 3328 && imX < svl.SV_IMAGE_WIDTH - 3328) {
+                    imX += svl.SV_IMAGE_WIDTH;
                 }
             }
             origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-            var canvasCoordinate = util.panomarker.getCanvasCoordinate(undefined, origPointPov, currentPov, svl.LABEL_ICON_RADIUS);
+            var canvasCoordinate = util.panomarker.getCanvasCoordinate(
+                undefined, origPointPov, currentPov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            );
 
             if (state.annotations[i].type === "arrow") {
                 lineLength = state.annotations[i].length;
@@ -781,7 +783,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var pov = mapService.getPov();
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
-                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov, svImgWidth, svImgHeight);
+                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(
+                    pov, canvasX, canvasY, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svImgWidth, svImgHeight
+                );
                 console.log(properties[i]);
                 console.log(imageCoordinate);
 

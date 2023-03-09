@@ -262,14 +262,18 @@ function Label(params) {
             // var canvasCoord = getProperty('originalCanvasCoordinate');
             // var canvasCoord = { x: getProperty('originalCanvasCoordinate').x, y: getProperty('originalCanvasCoordinate').y };
             var canvasCoord = properties.canvasCoordinate;
-            canvasCoord =  util.panomarker.getCanvasCoordinate(canvasCoord, properties.originalPov, pov, svl.LABEL_ICON_RADIUS);
+            canvasCoord =  util.panomarker.getCanvasCoordinate(
+                canvasCoord, properties.originalPov, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            );
             properties.canvasCoordinate = canvasCoord;
 
             if (canvasCoord.x === null || canvasCoord.y === null) {
                 properties.pov = {};
             }
             else {
-                properties.pov = util.panomarker.calculatePointPov(canvasCoord.x, canvasCoord.y, pov);
+                properties.pov = util.panomarker.calculatePointPov(
+                    pov, canvasCoord.x, canvasCoord.y, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT
+                );
             }
 
             // Draw the label type icon.

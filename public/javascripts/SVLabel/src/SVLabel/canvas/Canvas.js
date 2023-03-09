@@ -72,7 +72,7 @@ function Canvas(ribbon) {
         var labelDescription = util.misc.getLabelDescriptions(labelType);
 
         var pov = svl.map.getPov();
-        var povOfLabel = util.panomarker.calculatePointPov(canvasX, canvasY, pov);
+        var povOfLabel = util.panomarker.calculatePointPov(pov, canvasX, canvasY, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT);
 
         var latlng = svl.map.getPosition();
         var param = {

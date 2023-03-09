@@ -25,13 +25,13 @@ function Main (params) {
     svl.missionsCompleted = params.missionSetProgress;
 
     svl.LABEL_ICON_RADIUS = 17;
-    svl.canvasWidth = 720;
-    svl.canvasHeight = 480;
-    svl.svImageHeight = 6656;
-    svl.svImageWidth = 13312;
-    svl.alphaX = 4.6;
-    svl.alphaY = -4.65;
-    svl.zoomFactor = {
+    svl.CANVAS_WIDTH = 720;
+    svl.CANVAS_HEIGHT = 480;
+    svl.SV_IMAGE_HEIGHT = 6656;
+    svl.SV_IMAGE_WIDTH = 13312;
+    svl.ALPHA_X = 4.6;
+    svl.ALPHA_Y = -4.65;
+    svl.ZOOM_FACTOR = {
         1: 1,
         2: 2.1,
         3: 4,
