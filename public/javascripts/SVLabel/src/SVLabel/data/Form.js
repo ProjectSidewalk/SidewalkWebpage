@@ -113,9 +113,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     sv_image_y : prop.svImageCoordinate.y,
                     canvas_x: prop.originalCanvasCoordinate.x,
                     canvas_y: prop.originalCanvasCoordinate.y,
-                    heading: prop.panoramaHeading,
-                    pitch: prop.panoramaPitch,
-                    zoom : prop.panoramaZoom,
+                    heading: prop.originalPov.heading,
+                    pitch: prop.originalPov.pitch,
+                    zoom : prop.originalPov.zoom,
                     lat : null,
                     lng : null
                 }

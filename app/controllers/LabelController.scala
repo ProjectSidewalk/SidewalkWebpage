@@ -38,9 +38,11 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
             "panoId" -> label.labelData.gsvPanoramaId,
             "panoramaLat" -> label.labelData.panoramaLat,
             "panoramaLng" -> label.labelData.panoramaLng,
-            "panoramaHeading" -> label.pointData.heading,
-            "panoramaPitch" -> label.pointData.pitch,
-            "panoramaZoom" -> label.pointData.zoom,
+            "originalPov" -> Json.obj(
+              "heading" -> label.pointData.heading,
+              "pitch" -> label.pointData.pitch,
+              "zoom" -> label.pointData.zoom
+            ),
             "photographerHeading" -> label.labelData.photographerHeading,
             "photographerPitch" -> label.labelData.photographerPitch,
             "svImageWidth" -> label.svImageWidth,

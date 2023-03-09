@@ -38,32 +38,24 @@ function LabelContainer($, nextTemporaryLabelId) {
                     x: labelArr[i].canvasX,
                     y: labelArr[i].canvasY
                 };
-                let originalPov = {
-                    heading: labelArr[i].panoramaHeading,
-                    pitch: labelArr[i].panoramaPitch,
-                    zoom: labelArr[i].panoramaZoom
-                };
 
                 let povChange = svl.map.getPovChangeStatus();
 
                 // Temporarily change pov change status to true so that we can use util function to calculate the canvas
-                // coordinate to place label upon rerender. This is so the labels appear in the correct location
-                // relative to the initial POV.
+                // coord to place label upon rerender, putting in the correct location relative to the initial POV.
                 povChange["status"] = true;
-                let originalPointPov = {
-                    originalPov: util.panomarker.calculatePointPov(
-                        originalPov, originalCanvasCoord.x, originalCanvasCoord.y, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT
-                    )
-                };
+                let povOfLabelIfCentered = util.panomarker.calculatePointPov(
+                    labelArr[i].originalPov, originalCanvasCoord.x, originalCanvasCoord.y, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT
+                );
                 let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
-                    originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov(), svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                    originalCanvasCoord, povOfLabelIfCentered, svl.map.getPov(), svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
                 // Return the status to original.
                 povChange["status"] = false;
 
-                labelArr[i].canvasCoordinate = { x: rerenderCanvasCoord.x, y: rerenderCanvasCoord.y };
+                labelArr[i].currentCanvasCoordinate = { x: rerenderCanvasCoord.x, y: rerenderCanvasCoord.y };
                 labelArr[i].originalCanvasCoordinate = originalCanvasCoord;
-                labelArr[i].originalPov = originalPointPov.originalPov;
+                labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
                 labelArr[i].svImageCoordinate = { x: labelArr[i].svImageX, y: labelArr[i].svImageY };
 
                 let label = self.createLabel(labelArr[i]);

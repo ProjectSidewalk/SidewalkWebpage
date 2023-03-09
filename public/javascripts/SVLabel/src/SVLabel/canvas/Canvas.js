@@ -81,14 +81,12 @@ function Canvas(ribbon) {
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             originalCanvasCoordinate: { x: canvasX, y: canvasY },
-            canvasCoordinate: { x: canvasX, y: canvasY },
-            originalPov: povOfLabel,
+            currentCanvasCoordinate: { x: canvasX, y: canvasY },
+            povOfLabelIfCentered: povOfLabel,
             panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,
             panoramaLng: latlng.lng,
-            panoramaHeading: pov.heading,
-            panoramaPitch: pov.pitch,
-            panoramaZoom: parseInt(pov.zoom, 10)
+            originalPov: pov
         };
         if (("panorama" in svl) && ("getPhotographerPov" in svl.panorama)) {
             var photographerPov = svl.panorama.getPhotographerPov();

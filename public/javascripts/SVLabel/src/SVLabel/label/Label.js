@@ -39,10 +39,6 @@ function Label(params) {
     };
     var HOVER_INFO_HEIGHT = 20;
 
-    // TODO rename some things...
-    // canvasCoordinate -> currentCanvasCoordinate
-    // originalPov -> povToCenterLabel ??
-    // panoramaHeading, panoramaPitch, panoramaZoom -> povOfPanoWhenLabeled
     var properties = {
         labelId: 'DefaultValue',
         auditTaskId: undefined,
@@ -52,18 +48,16 @@ function Label(params) {
         labelDescription: undefined,
         iconImagePath: undefined,
         originalCanvasCoordinate: undefined,
-        canvasCoordinate: undefined,
+        currentCanvasCoordinate: undefined,
         svImageCoordinate: undefined,
         originalPov: undefined,
+        povOfLabelIfCentered: undefined,
         labelLat: undefined,
         labelLng: undefined,
         latLngComputationMethod: undefined,
         panoId: undefined,
         panoramaLat: undefined,
         panoramaLng: undefined,
-        panoramaHeading: undefined,
-        panoramaPitch: undefined,
-        panoramaZoom: undefined,
         photographerHeading: undefined,
         photographerPitch: undefined,
         svImageWidth: undefined,
@@ -100,7 +94,7 @@ function Label(params) {
 
             properties.svImageWidth = panoData.tiles.worldSize.width;
             properties.svImageHeight = panoData.tiles.worldSize.height;
-            properties.svImageCoordinate = util.panomarker.calculateImageCoordinateFromPointPov(properties.originalPov, properties.svImageWidth, properties.svImageHeight);
+            properties.svImageCoordinate = util.panomarker.calculateImageCoordinateFromPointPov(properties.povOfLabelIfCentered, properties.svImageWidth, properties.svImageHeight);
         }
 
         // Create the marker on the minimap.
@@ -139,7 +133,7 @@ function Label(params) {
      * @returns {*}
      */
     function getCoordinate() {
-        return properties.canvasCoordinate;
+        return properties.currentCanvasCoordinate;
     }
 
     /**
@@ -202,10 +196,10 @@ function Label(params) {
     function isOn (x, y) {
         if (status.deleted || status.visibility === 'hidden') {  return false; }
         var margin = svl.LABEL_ICON_RADIUS / 2 + 2;
-        if (x < properties.canvasCoordinate.x + margin &&
-            x > properties.canvasCoordinate.x - margin &&
-            y < properties.canvasCoordinate.y + margin &&
-            y > properties.canvasCoordinate.y - margin) {
+        if (x < properties.currentCanvasCoordinate.x + margin &&
+            x > properties.currentCanvasCoordinate.x - margin &&
+            y < properties.currentCanvasCoordinate.y + margin &&
+            y > properties.currentCanvasCoordinate.y - margin) {
             return this;
         } else {
             return false;
@@ -244,14 +238,13 @@ function Label(params) {
 
 
             // Find current pov of the label and update it.
-            // TODO maybe 'originalPov' should be renamed to 'previousPov' and it should update..?
             // var canvasCoord = getProperty('originalCanvasCoordinate');
             // var canvasCoord = { x: getProperty('originalCanvasCoordinate').x, y: getProperty('originalCanvasCoordinate').y };
-            var canvasCoord = properties.canvasCoordinate;
+            var canvasCoord = properties.currentCanvasCoordinate;
             canvasCoord =  util.panomarker.getCanvasCoordinate(
-                canvasCoord, properties.originalPov, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                canvasCoord, properties.povOfLabelIfCentered, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
-            properties.canvasCoordinate = canvasCoord;
+            properties.currentCanvasCoordinate = canvasCoord;
 
             // Draw the label type icon.
             var imageObj, imageHeight, imageWidth, imageX, imageY;
@@ -512,8 +505,8 @@ function Label(params) {
             // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
             var panoLat = getProperty("panoramaLat");
             var panoLng = getProperty("panoramaLng");
-            var panoHeading = getProperty("panoramaHeading");
-            var zoom = getProperty("panoramaZoom");
+            var panoHeading = getProperty("originalPov").heading;
+            var zoom = getProperty("originalPov").zoom;
             var canvasX = getProperty('originalCanvasCoordinate').x;
             var canvasY = getProperty('originalCanvasCoordinate').y;
             var svImageY = getProperty('svImageCoordinate').y;
