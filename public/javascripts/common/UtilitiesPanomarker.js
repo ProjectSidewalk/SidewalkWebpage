@@ -176,7 +176,7 @@ util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoord
  */
 function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
 
-    // Gather required variables and convert to radians where necessary
+    // Gather required variables and convert to radians where necessary.
     var width = viewport.offsetWidth;
     var height = viewport.offsetHeight;
     var target = {
@@ -276,46 +276,41 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
 
 /**
  * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point
- * when the pov is changed.
- * If the pov is not changed, then the passed canvas Coordinate is returned
+ * when the pov is changed. If the pov is not changed, then the passed canvas Coordinate is returned.
  * @param canvasCoord
  * @param origPov
  * @param canvasCoord
  * @param origPov
  * @param pov
+ * @param iconWidth
  * @returns {{x, y}}
  */
-function getCanvasCoordinate(canvasCoord, origPov, pov) {
-
-    var povChange = svl.map.getPovChangeStatus(),
-        povChangeStatus = povChange["status"];
-
-    if (canvasCoord === undefined) {
-        canvasCoord = {x: undefined, y: undefined};
-    }
-
-    if (povChangeStatus) {
+function getCanvasCoordinate(canvasCoord, origPov, pov, iconWidth) {
+    if (svl.map.getPovChangeStatus()["status"]) {
+        var outputCoord = { x: undefined, y: undefined };
         var currentPov = pov;
         var targetPov = origPov;
         var zoom = currentPov.zoom;
         var viewport = document.getElementById('pano');
 
-        // Calculate the position according to the viewport. Even though the marker
-        // doesn't sit directly underneath the panorama container, we pass it on as
-        // the viewport because it has the actual viewport dimensions.
+        // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath the
+        // panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
         var offset = povToPixel3DOffset(targetPov, currentPov, zoom, viewport);
 
-        if (offset !== null) {
-            canvasCoord.x = offset.left; // - origCoord.x;
-            canvasCoord.y = offset.top; //- origCoord.y;
-
+        // Set coordinates to null if label is outside the viewport.
+        if (offset !== null
+            && offset.left > -iconWidth && offset.left < svl.canvasWidth + iconWidth
+            && offset.top > -iconWidth && offset.top < svl.canvasHeight + iconWidth) {
+            outputCoord.x = offset.left;
+            outputCoord.y = offset.top;
         } else {
-            // If offset is null, the marker is "behind" the camera, so we position the marker outside the viewport.
-            var pointWidth = 3; // TODO: Get from Point class
-            canvasCoord.x = -(9999 + pointWidth);
-            canvasCoord.y = 0;
+            outputCoord.x = null;
+            outputCoord.y = null;
         }
+        console.log(outputCoord);
+        return outputCoord;
+    } else {
+        return canvasCoord;
     }
-    return canvasCoord;
 }
 util.panomarker.getCanvasCoordinate = getCanvasCoordinate;

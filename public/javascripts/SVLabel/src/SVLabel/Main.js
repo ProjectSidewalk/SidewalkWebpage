@@ -23,6 +23,8 @@ function Main (params) {
         return params.mission.mission_type === 'auditOnboarding';
     };
     svl.missionsCompleted = params.missionSetProgress;
+
+    svl.LABEL_ICON_RADIUS = 17;
     svl.canvasWidth = 720;
     svl.canvasHeight = 480;
     svl.svImageHeight = 6656;

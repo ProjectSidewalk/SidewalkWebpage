@@ -54,7 +54,7 @@ function LabelContainer($, nextTemporaryLabelId) {
                     originalPov: util.panomarker.calculatePointPov(originalCanvasCoord.x, originalCanvasCoord.y, originalPov)
                 };
                 let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
-                    originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov()
+                    originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov(), svl.LABEL_ICON_RADIUS
                 );
                 // Return the status to original.
                 povChange["status"] = false;

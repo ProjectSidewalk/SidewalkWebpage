@@ -37,8 +37,6 @@ function Label(params) {
             distanceCanvasYSlope: 0.0011071
         }
     };
-    var RADIUS_INNER_CIRCLE = 17;
-    var RADIUS_OUTER_CIRCLE = 14;
     var HOVER_INFO_HEIGHT = 20;
 
     // TODO rename some things...
@@ -217,7 +215,7 @@ function Label(params) {
      */
     function isOn (x, y) {
         if (status.deleted || status.visibility === 'hidden') {  return false; }
-        var margin = RADIUS_OUTER_CIRCLE / 2 + 3;
+        var margin = svl.LABEL_ICON_RADIUS / 2 + 2;
         if (x < properties.canvasCoordinate.x + margin &&
             x > properties.canvasCoordinate.x - margin &&
             y < properties.canvasCoordinate.y + margin &&
@@ -264,10 +262,10 @@ function Label(params) {
             // var canvasCoord = getProperty('originalCanvasCoordinate');
             // var canvasCoord = { x: getProperty('originalCanvasCoordinate').x, y: getProperty('originalCanvasCoordinate').y };
             var canvasCoord = properties.canvasCoordinate;
-            canvasCoord =  util.panomarker.getCanvasCoordinate(canvasCoord, properties.originalPov, pov);
+            canvasCoord =  util.panomarker.getCanvasCoordinate(canvasCoord, properties.originalPov, pov, svl.LABEL_ICON_RADIUS);
             properties.canvasCoordinate = canvasCoord;
 
-            if (canvasCoord.x < 0) {
+            if (canvasCoord.x === null || canvasCoord.y === null) {
                 properties.pov = {};
             }
             else {
@@ -277,9 +275,9 @@ function Label(params) {
             // Draw the label type icon.
             var imageObj, imageHeight, imageWidth, imageX, imageY;
             imageObj = new Image();
-            imageHeight = imageWidth = 2 * RADIUS_INNER_CIRCLE - 3;
-            imageX =  canvasCoord.x - RADIUS_INNER_CIRCLE + 2;
-            imageY = canvasCoord.y - RADIUS_INNER_CIRCLE + 2;
+            imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
+            imageX =  canvasCoord.x - svl.LABEL_ICON_RADIUS + 2;
+            imageY = canvasCoord.y - svl.LABEL_ICON_RADIUS + 2;
 
             imageObj.src = getProperty('iconImagePath');
 
@@ -296,19 +294,17 @@ function Label(params) {
             ctx.fillStyle = getProperty('fillStyle');
             ctx.lineWidth = 0.7;
             ctx.beginPath();
-            ctx.arc(getCoordinate().x, getCoordinate().y, 15.3, 0, 2 * Math.PI);
+            ctx.arc(canvasCoord.x, canvasCoord.y, 15.3, 0, 2 * Math.PI);
             ctx.strokeStyle = 'black';
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(getCoordinate().x, getCoordinate().y, 16.2, 0, 2 * Math.PI);
+            ctx.arc(canvasCoord.x, canvasCoord.y, 16.2, 0, 2 * Math.PI);
             ctx.strokeStyle = 'white';
             ctx.stroke();
 
             // Only render severity warning if there's a severity option.
-            if (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal') {
-                if (properties.severity === null) {
-                    showSeverityAlert(ctx);
-                }
+            if (!['Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
+                showSeverityAlert(ctx);
             }
         }
 

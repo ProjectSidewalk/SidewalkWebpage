@@ -203,8 +203,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             x2,
             y1,
             y2,
-            origPointPov,
-            canvasCoordinate;
+            origPointPov;
 
         var currentPov = mapService.getPov();
         var povChange = svl.map.getPovChangeStatus();
@@ -236,7 +235,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 }
             }
             origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-            canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
+            var canvasCoordinate = util.panomarker.getCanvasCoordinate(undefined, origPointPov, currentPov, svl.LABEL_ICON_RADIUS);
 
             if (state.annotations[i].type === "arrow") {
                 lineLength = state.annotations[i].length;
