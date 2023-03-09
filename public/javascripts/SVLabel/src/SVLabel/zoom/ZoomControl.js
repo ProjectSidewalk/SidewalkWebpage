@@ -182,8 +182,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
-            canvas.clear();
-            canvas.render();
+            canvas.clear().render();
             $(document).trigger('ZoomIn');
         }
     }
@@ -223,8 +222,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
-            canvas.clear();
-            canvas.render();
+            canvas.clear().render();
             $(document).trigger('ZoomIn');
             return this;
         } else {
@@ -242,8 +240,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
-            canvas.clear();
-            canvas.render();
+            canvas.clear().render();
             $(document).trigger('ZoomOut');
             return this;
         } else {
@@ -281,8 +278,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             labels[i].setHoverInfoVisibility('hidden');
         }
         svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-        svl.canvas.clear();
-        svl.canvas.render();
+        svl.canvas.clear().render();
         return zoomLevel;
     }
 

@@ -937,8 +937,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
             _canvas.showLabelHoverInfo(selectedLabel);
-            _canvas.clear();
-            _canvas.render();
+            _canvas.clear().render();
         } else {
             _canvas.showLabelHoverInfo(undefined);
             _canvas.setCurrentLabel(undefined);

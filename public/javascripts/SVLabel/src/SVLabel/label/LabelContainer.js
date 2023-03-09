@@ -63,7 +63,6 @@ function LabelContainer($, nextTemporaryLabelId) {
 
                 labelArr[i].canvasCoordinate = { x: rerenderCanvasCoord.x, y: rerenderCanvasCoord.y };
                 labelArr[i].originalCanvasCoordinate = originalCanvasCoord;
-                labelArr[i].pov = svl.map.getPov();
                 labelArr[i].originalPov = originalPointPov.originalPov;
                 labelArr[i].svImageCoordinate = { x: labelArr[i].svImageX, y: labelArr[i].svImageY };
 
@@ -202,8 +201,7 @@ function LabelContainer($, nextTemporaryLabelId) {
         svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
-        svl.canvas.clear();
-        svl.canvas.render();
+        svl.canvas.clear().render();
         return this;
     };
 }

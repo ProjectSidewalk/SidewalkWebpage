@@ -41,21 +41,19 @@ function Label(params) {
 
     // TODO rename some things...
     // canvasCoordinate -> currentCanvasCoordinate
-    // pov -> ???
     // originalPov -> povToCenterLabel ??
     // panoramaHeading, panoramaPitch, panoramaZoom -> povOfPanoWhenLabeled
-    // I think the originalPov is actually just the same as panoramaHeading, panoramaPitch, panoramaZoom..?
     var properties = {
         labelId: 'DefaultValue',
         auditTaskId: undefined,
         missionId: undefined,
         labelType: undefined,
+        fillStyle: undefined,
         labelDescription: undefined,
         iconImagePath: undefined,
         originalCanvasCoordinate: undefined,
         canvasCoordinate: undefined,
         svImageCoordinate: undefined,
-        pov: undefined,
         originalPov: undefined,
         labelLat: undefined,
         labelLng: undefined,
@@ -88,25 +86,13 @@ function Label(params) {
 
     function _init(param) {
         for (var attrName in param) {
-            properties[attrName] = param[attrName];
+            if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
+                properties[attrName] = param[attrName];
+            }
         }
 
         properties.iconImagePath = util.misc.getIconImagePaths(properties.labelType).iconImagePath;
         properties.fillStyle = util.misc.getLabelColors()[properties.labelType].fillStyle;
-
-
-        properties.pov = {
-            heading : param.pov.heading,
-            pitch : param.pov.pitch,
-            zoom : param.pov.zoom
-        };
-        if (!param.originalPov) {
-            properties.originalPov = {
-                heading: param.pov.heading,
-                pitch: param.pov.pitch,
-                zoom: param.pov.zoom
-            };
-        }
 
         // Calculate sv_image_x/y if the label is new.
         if (properties.svImageCoordinate === undefined) {
@@ -266,15 +252,6 @@ function Label(params) {
                 canvasCoord, properties.originalPov, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
             properties.canvasCoordinate = canvasCoord;
-
-            if (canvasCoord.x === null || canvasCoord.y === null) {
-                properties.pov = {};
-            }
-            else {
-                properties.pov = util.panomarker.calculatePointPov(
-                    pov, canvasCoord.x, canvasCoord.y, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT
-                );
-            }
 
             // Draw the label type icon.
             var imageObj, imageHeight, imageWidth, imageX, imageY;
