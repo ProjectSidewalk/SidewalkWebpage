@@ -33,6 +33,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         var data = {};
 
         data.amt_assignment_id = svl.amtAssignmentId;
+        data.user_route_id = svl.userRouteId;
 
         var mission = missionContainer.getCurrentMission();
         var missionId = mission.getProperty("missionId");

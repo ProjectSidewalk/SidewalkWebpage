@@ -14,7 +14,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     var previousTasks = [];
     var currentTask = null;
-    var beforeJumpNewTask = null;
+    var afterJumpNewTask = null;
     var tasksFinishedLoading = false;
 
     self._tasks = [];
@@ -26,10 +26,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
-            var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-            var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-            svl.neighborhoodModel.neighborhoodCompleted();
-            tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
+            svl.neighborhoodModel.setComplete();
         } else {
             svl.taskContainer.initNextTask(newTask);
         }
@@ -133,9 +130,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (typeof async == "undefined") async = true;
         var currMission = svl.missionContainer.getCurrentMission();
         var currMissionId = currMission.getProperty('missionId');
+        var url;
+        if (svl.neighborhoodModel.isRoute) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
+        else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getRegionId()}`;
 
         $.ajax({
-            url: "/tasks?regionId=" + svl.neighborhoodModel.currentNeighborhood().getProperty("regionId"),
+            url: url,
             async: async,
             type: 'get',
             success: function (result) {
@@ -191,25 +191,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             tasks = tasks.filter(function (t) { return t.streetCompletedByAnyUser(); });
         }
 
-        if (tasks) {
+        if (taskIn && tasks) {
             var connectedTasks = [];
             if (!threshold) threshold = 0.01;  // 0.01 km.
             if (!unit) unit = {units: 'kilometers'};
 
-            tasks = tasks.filter(function (t) { return !t.isComplete(); });
+            tasks = tasks.filter(function (t) {
+                return !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId();
+            });
 
-            if (taskIn) {
-                tasks = tasks.filter(function (t) { return t.getStreetEdgeId() !== taskIn.getStreetEdgeId(); });
-
-                for (var i = 0, len = tasks.length; i < len; i++) {
-                    if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-                        connectedTasks.push(tasks[i]);
-                    }
+            for (var i = 0, len = tasks.length; i < len; i++) {
+                if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
+                    connectedTasks.push(tasks[i]);
                 }
-                return connectedTasks;
-            } else {
-                return util.shuffle(tasks);
             }
+            return connectedTasks;
         } else {
             return [];
         }
@@ -297,7 +293,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the current task
      * @returns {*}
      */
-    function getCurrentTask () {
+    function getCurrentTask() {
         return currentTask;
     }
 
@@ -305,20 +301,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the before jump task
      * @returns {*}
      */
-    function getBeforeJumpTask () {
-        return beforeJumpNewTask;
+    function getAfterJumpNewTask() {
+        return afterJumpNewTask;
     }
-
-    /**
-     * Used to set target distance for Mission Progress
-     *
-     * @param unit {string} Distance unit
-     */
-    self.getIncompleteTaskDistance = function (unit) {
-        var incompleteTasks = self.getIncompleteTasks();
-        var taskDistances = incompleteTasks.map(function (task) { return task.lineDistance(unit); });
-        return taskDistances.reduce(function (a, b) { return a + b; }, 0);
-    };
 
     /**
      * Find incomplete tasks by the user.
@@ -369,14 +354,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param finishedTask
      */
     function updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask) {
-        var wasNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
-
-        // Only run this code if the neighborhood was set as incomplete
-        if (!wasNeighborhoodCompleteAcrossAllUsers) {
+        // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
+        if (!neighborhoodModel.isRoute && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
             var candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
             });
-            // Indicates neighborhood is complete
+            // Indicates neighborhood is complete.
             if (candidateTasks.length === 0) {
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
                 console.error('finished neighborhood screen has appeared, logging debug info');
@@ -386,13 +369,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
 
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-                $('#neighborhood-completion-overlay').show();
+                svl.ui.areaComplete.overlay.show();
                 var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-                var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+                var currentNeighborhoodId = currentNeighborhood.getRegionId();
 
                 console.log('neighborhood: ' + currentNeighborhoodId + ": " + currentNeighborhood);
 
-                tracker.push("NeighborhoodComplete_AcrossAllUsers", {'RegionId': currentNeighborhoodId})
+                tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });
             }
         }
     }
@@ -494,11 +477,18 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
+     * Get the street id of the current task.
+     */
+    function getCurrentTaskStreetEdgeId() {
+        return currentTask ? currentTask.getStreetEdgeId() : null;
+    }
+
+    /**
      * Store the before jump new task
      * @param task
      */
     this.setBeforeJumpNewTask = function (task) {
-        beforeJumpNewTask = task;
+        afterJumpNewTask = task;
     };
 
     /**
@@ -575,7 +565,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCompletedTaskDistanceAcrossAllUsersUsingPriority = getCompletedTaskDistanceAcrossAllUsersUsingPriority;
     self.getCurrentTask = getCurrentTask;
-    self.getBeforeJumpNewTask = getBeforeJumpTask;
+    self.getAfterJumpNewTask = getAfterJumpNewTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = pushATask;
@@ -585,4 +575,5 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
     self.updateTaskPriorities = updateTaskPriorities;
+    self.getCurrentTaskStreetEdgeId = getCurrentTaskStreetEdgeId;
 }

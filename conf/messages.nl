@@ -152,14 +152,10 @@ audit.center.ui.add.tags = Voeg<br>Tags toe:
 audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
 
 audit.mission.complete.labels.title = Missie labels
-audit.mission.complete.progress.title = Wijk voortgang
 audit.mission.complete.progress.mission.you = Je ontdekte in deze missie
-audit.mission.complete.progress.neighborhood.you = Je ontdekte in deze wijk
 audit.mission.complete.progress.neighborhood.others = Anderen ontdekten in deze wijk
-audit.mission.complete.progress.neighborhood.remaining = Overblijvenden in deze wijk
 audit.mission.complete.legend.this.mission = Deze Missie
 audit.mission.complete.legend.previous.missions = Vorige Missies
-audit.mission.complete.legend.others.missions = Missies Van Anderen
 
 audit.survey.title = Een vriendelijk verzoek om deze eenmalige enquete over Project Sidewalk in te vullen
 audit.survey.enjoyment.question = Hoe vond je het om Project Sidewalk te gebruiken?
@@ -326,7 +322,7 @@ leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten m
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/audit"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Word lid van een organisatie</u></a> om het op te nemen tegen je teamgenoten!
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Sluit je aan bij een organisatie</u></a> en werk samen als een team om trottoirs in kaart te brengen en te beoordelen!
 
 gallery = Galerij
 gallery.show = Tonen

@@ -152,14 +152,10 @@ audit.center.ui.add.tags = Agregar etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
 
 audit.mission.complete.labels.title = Etiquetas de la misión
-audit.mission.complete.progress.title = Progreso del barrio
 audit.mission.complete.progress.mission.you = Exploraste en esta misión
-audit.mission.complete.progress.neighborhood.you = Exploraste en este barrio
 audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en este barrio
-audit.mission.complete.progress.neighborhood.remaining = Restante en este barrio
 audit.mission.complete.legend.this.mission = Esta misión
 audit.mission.complete.legend.previous.missions = Misiones anteriores
-audit.mission.complete.legend.others.missions = Misiones de otras
 
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?
@@ -327,7 +323,7 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/audit"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
-leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard"><u>Únete a una organización</u></a> para competir contra tus compañeros!
+leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard"><u>Únase a una organización</u></a> y trabaje en equipo para mapear y evaluar las aceras!
 
 gallery = Galería
 gallery.show = Mostrar

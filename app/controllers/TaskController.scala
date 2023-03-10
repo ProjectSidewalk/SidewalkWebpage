@@ -18,8 +18,9 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
+import models.route.{AuditTaskUserRouteTable, UserRouteTable}
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
-import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
 import play.api.Play.current
@@ -51,6 +52,35 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+   * This method handles a POST request in which user reports a missing Street View image.
+   */
+  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[Int]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      streetEdgeId => {
+        val userId: String = request.identity match {
+          case Some(user) => user.userId.toString
+          case None =>
+            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
+            val user: Option[DBUser] = UserTable.find("anonymous")
+            user.get.userId.toString
+        }
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        val issue: StreetEdgeIssue = StreetEdgeIssue(0, streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
+        StreetEdgeIssueTable.save(issue)
+
+        Future.successful(Ok)
+      }
+    )
+  }
+
+  /**
    * Get the audit tasks in the given region for the signed in user.
    */
   def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
@@ -61,6 +91,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/tasks?regionId=${regionId}"))
     }
+  }
+
+  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
+      val tasks: List[JsObject] = UserRouteTable.selectTasksInRoute(userRouteId).map(_.toJSON)
+      Future.successful(Ok(JsArray(tasks)))
   }
 
   /**
@@ -217,6 +252,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       // Update the AuditTaskTable and get auditTaskId.
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
+
+      // Add to the audit_task_user_route and user_route tables if we are on a route and not in the tutorial.
+      if (data.userRouteId.isDefined && MissionTable.getMissionType(missionId) == Some("audit")) {
+        AuditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId)
+        UserRouteTable.updateCompleteness(data.userRouteId.get)
+      }
 
       // Update MissionStart.
       if (data.auditTask.currentMissionStart.isDefined) updateMissionStart(auditTaskId, data.auditTask.currentMissionStart.get)

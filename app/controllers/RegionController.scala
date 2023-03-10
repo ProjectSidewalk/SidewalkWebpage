@@ -23,13 +23,6 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-    * This returns the list of difficult neighborhood ids.
-    */
-  def getDifficultNeighborhoods = Action.async { implicit request =>
-    Future.successful(Ok(Json.obj("regionIds" -> RegionTable.difficultRegionIds)))
-  }
-
-  /**
     * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
     */
   def listNeighborhoods = UserAwareAction.async { implicit request =>

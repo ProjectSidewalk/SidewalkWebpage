@@ -1,11 +1,9 @@
 @import models.user.User
 @import models.user.OrganizationTable
 @import models.user.UserOrgTable
-@import models.region.RegionTable
 @import models.mission.MissionTable
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
-@import play.api.libs.json.Json
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
@@ -196,8 +194,7 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-                Progress(_, $, difficultRegionIds, '@user.get.role');
+                Progress(_, $, '@user.get.role');
 
                 const achievementTracker = new AchievementTracker();
                 achievementTracker.updateBadgeAchievementGrid(

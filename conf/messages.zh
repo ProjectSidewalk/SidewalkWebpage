@@ -152,14 +152,10 @@ audit.center.ui.add.tags = 新增標籤：
 audit.center.ui.temporary = 暫時的 (例如：施工)
 
 audit.mission.complete.labels.title = 任務標記
-audit.mission.complete.progress.title = 鄰里進度
 audit.mission.complete.progress.mission.you = 您於此任務的探索
-audit.mission.complete.progress.neighborhood.you = 您於此鄰里的探索
 audit.mission.complete.progress.neighborhood.others = 其他標記者於此鄰里的探索
-audit.mission.complete.progress.neighborhood.remaining = 留在此鄰里
 audit.mission.complete.legend.this.mission = 此任務
 audit.mission.complete.legend.previous.missions = 前一任務
-audit.mission.complete.legend.others.missions = 其他標記者的任務
 
 audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷
 audit.survey.enjoyment.question = 您對使用Project Sidewalk平台的滿意度？
@@ -328,7 +324,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/audit"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>請註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一个组织</u></a>并作为一个团队一起工作来绘制和评估人行道!
 
 gallery = 藝廊
 gallery.show = 展示

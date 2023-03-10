@@ -86,6 +86,13 @@
     "mission-complete": {
         "distance-type-display-string": "公里",
         "title": "任務完成！",
+        "map-legend-label-other-users": "其他標記者的任務",
+        "progress-neighborhood-title": "鄰里進度",
+        "progress-route-title": "路线进度",
+        "progress-neighborhood-you": "您於此鄰里的探索",
+        "progress-route-you": "在您的路线中探索",
+        "progress-neighborhood-remaining": "留在此鄰里",
+        "progress-route-remaining": "留在你的路线上",
         "button-start-validating": "開始檢核",
         "button-keep-exploring": "繼續探索",
         "button-continue": "繼續"
@@ -195,7 +202,9 @@
             "slight-left": "稍微向左轉",
             "slight-right": "稍微向右轉",
             "u-turn": "迴轉",
-            "end-of-route": "您已經抵達這條路線的終點了。請完成這個路口的標記並請<br><span class='bold'>點選這裡以前往新的地點。</span>",
+            "end-route": "你在你的路线的尽头！ 完成标记此交叉路口，然后<br><span class='bold'>单击此处完成路线。</span>",
+            "end-neighborhood": "您探索了整个街区！ 完成标记此交叉路口，然后<br><span class='bold'>单击此处完成邻域。</span>",
+            "end-street": "我们需要将您转移到新位置。 完成标记此交叉路口，然后<br><span class='bold'>单击此处移动到新位置。</span>",
             "far-away": "噢喔，您已經離路線很遠了。<br><span class='bold'>點選這裡以回到路線。</span>"
         }
     },

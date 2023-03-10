@@ -19,7 +19,7 @@ function NeighborhoodContainer (neighborhoodModel) {
 
 
 NeighborhoodContainer.prototype.add = function (neighborhood) {
-    var id = neighborhood.getProperty("regionId");
+    var id = neighborhood.getRegionId();
     this._neighborhoods[id] = neighborhood;
 };
 
