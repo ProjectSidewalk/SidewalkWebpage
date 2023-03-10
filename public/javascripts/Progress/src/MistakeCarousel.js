@@ -22,14 +22,14 @@ function MistakeCarousel() {
             mistakesSubheader.innerHTML = i18next.t('no-mistakes-subheader')
         // User has not made one mistake with at least one of their labels.
         } else if (labelTypesWithData.length !== labelTypes.length) {
-            mistakesSubheader.textContent += i18next.t('mistakes-subheader') + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+            mistakesSubheader.innerHTML =
+                i18next.t('mistakes-subheader') + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
         // User has made a mistake for all types of labels.
         } else {
-            mistakesSubheader.textContent = i18next.t('mistakes-subheader')
+            mistakesSubheader.innerHTML = i18next.t('mistakes-subheader')
         }
 
         let mistakesHolder = document.getElementById('mistake-carousels-holder');
-
         for (const [typeIndex, labelType] of labelTypesWithData.entries()) {
             // Add the header for this label type.
             let labelTypeHeader = document.createElement('h3');
