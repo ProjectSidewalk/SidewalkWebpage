@@ -27,8 +27,7 @@ function sgn(x) {
 }
 
 /**
- * This method returns the pov of a point on the canvas based on panorama's POV
- * and the canvas coordinate
+ * This method returns the pov of a point on the canvas based on panorama's POV and the canvas coordinate.
  *
  * @param canvasX
  * @param canvasY
@@ -99,9 +98,7 @@ util.panomarker.calculatePointPov = calculatePointPov;
  * @returns {{heading: Number, pitch: Number, zoom: Number}}
  */
 function calculatePointPovFromImageCoordinate(imageX, imageY, pov) {
-    var heading, pitch,
-        zoom = parseInt(pov.zoom, 10);
-
+    var zoom = Math.round(pov.zoom);
     var zoomFactor = svl.ZOOM_FACTOR[zoom];
     var svImageWidth = svl.SV_IMAGE_WIDTH * zoomFactor;
     var svImageHeight = svl.SV_IMAGE_HEIGHT * zoomFactor;
@@ -109,12 +106,12 @@ function calculatePointPovFromImageCoordinate(imageX, imageY, pov) {
     imageX = imageX * zoomFactor;
     imageY = imageY * zoomFactor;
 
-    heading = parseInt((imageX / svImageWidth) * 360, 10) % 360;
-    pitch = parseInt((imageY / (svImageHeight/2)) * 90 , 10);
+    var heading = Math.round((imageX / svImageWidth) * 360) % 360;
+    var pitch = Math.round((imageY / (svImageHeight/2)) * 90);
 
     return {
-        heading: parseInt(heading, 10),
-        pitch: parseInt(pitch, 10),
+        heading: heading,
+        pitch: pitch,
         zoom: zoom
     };
 }
