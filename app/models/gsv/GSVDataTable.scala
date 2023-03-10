@@ -1,5 +1,6 @@
 package models.gsv
 
+import models.label.LabelTable
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -7,6 +8,10 @@ import play.api.Play.current
 case class GSVData(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], imageDate: String, copyright: String, expired: Boolean,
                    lastViewed: Option[java.sql.Timestamp])
+
+case class GSVDataExtended(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int],
+                           panoramaLat: Option[Float], panoramaLng: Option[Float], photographerHeading: Option[Float],
+                           photographerPitch: Option[Float])
 
 class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_data") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
@@ -27,8 +32,26 @@ object GSVDataTable {
   val db = play.api.db.slick.DB
   val gsvDataRecords = TableQuery[GSVDataTable]
 
-  def getAllPanos(): List[(String, Option[Int], Option[Int])] = db.withSession { implicit session =>
-    gsvDataRecords.filter(_.gsvPanoramaId =!= "tutorial").map(p => (p.gsvPanoramaId, p.imageWidth, p.imageHeight)).list
+  /**
+   * List all panos with some metadata. For the metadata that we get from the label table (panorama_lat, panorama_lng,
+   * photographer_heading, and photographer_pitch), we are getting different values from Google's API over time. We are
+   * not totally sure why, but for now we are grabbing the most recent metadata we've gotten from Google.
+   */
+  def getAllPanos: List[GSVDataExtended] = db.withSession { implicit session =>
+    // Get most recent labels for each pano_id so that we have the most recent metadata from Google.
+    val mostRecentLabels = LabelTable.labelsUnfiltered
+      .filter(_.gsvPanoramaId =!= "tutorial")
+      .groupBy(_.gsvPanoramaId).map(_._2.map(_.labelId).max)
+      .leftJoin(LabelTable.labelsUnfiltered).on(_ === _.labelId)
+      .map(_._2)
+
+    // Left join with the most recent labels that we found above, grabbing the metadata.
+    gsvDataRecords
+      .filter(_.gsvPanoramaId =!= "tutorial")
+      .leftJoin(mostRecentLabels).on(_.gsvPanoramaId === _.gsvPanoramaId)
+      .map{ case (g, l) => (
+        g.gsvPanoramaId, g.imageWidth, g.imageHeight, l.panoramaLat.?, l.panoramaLng.?, l.photographerPitch.?, l.photographerHeading.?
+      )}.list.map(GSVDataExtended.tupled)
   }
 
   /**

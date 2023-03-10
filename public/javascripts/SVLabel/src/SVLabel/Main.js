@@ -47,6 +47,7 @@ function Main (params) {
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+        svl.neighborhoodModel.setAsRouteOrNeighborhood(svl.userRouteId ? 'route' : 'neighborhood');
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -112,8 +113,8 @@ function Main (params) {
 
         // Mission
         svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
-        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
-            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
+        svl.missionProgress = new MissionProgress(svl, svl.missionModel, svl.modalModel, svl.neighborhoodModel,
+            svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
@@ -313,7 +314,7 @@ function Main (params) {
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
 
-        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty('regionId'), function (result) {
+        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
             svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
 

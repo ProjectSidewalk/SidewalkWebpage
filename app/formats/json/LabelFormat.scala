@@ -1,6 +1,7 @@
 package formats.json
 
 import controllers.helper.GoogleMapsHelper
+import models.gsv.GSVDataExtended
 import models.label.LabelTable.{LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata}
 import java.sql.Timestamp
 import models.label._
@@ -30,7 +31,7 @@ object LabelFormat {
       (__ \ "severity").writeNullable[Int] and
       (__ \ "temporary").write[Boolean] and
       (__ \ "description").writeNullable[String]
-    )(unlift(Label.unapply _))
+    )(unlift(Label.unapply))
 
   implicit val labelCVMetadataWrite: Writes[LabelTable.LabelCVMetadata] = (
     (__ \ "label_id").write[Int] and
@@ -52,7 +53,17 @@ object LabelFormat {
       (__ \ "pitch").write[Float] and
       (__ \ "photographer_heading").write[Float] and
       (__ \ "photographer_pitch").write[Float]
-  )(unlift(LabelTable.LabelCVMetadata.unapply _))
+  )(unlift(LabelTable.LabelCVMetadata.unapply))
+
+  implicit val gsvDataExtendedWrite: Writes[GSVDataExtended] = (
+    (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "image_width").writeNullable[Int] and
+      (__ \ "image_height").writeNullable[Int] and
+      (__ \ "panorama_lat").writeNullable[Float] and
+      (__ \ "panorama_lng").writeNullable[Float] and
+      (__ \ "photographer_heading").writeNullable[Float] and
+      (__ \ "photographer_pitch").writeNullable[Float]
+    )(unlift(GSVDataExtended.unapply))
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
     Json.obj(

@@ -40,7 +40,7 @@ function AdminUser(user) {
     var loadSubmittedLabels = $.getJSON('/adminapi/labelLocations/' + encodeURI(user));
     // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
     var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-        map = Choropleth(_, $, 'null', params, layers, data1[0], data2[0], data3[0]);
+        map = Choropleth(_, $, params, layers, data1[0], data2[0], data3[0]);
     });
     // When the polygons have been rendered and the audited streets have loaded,
     // the audited streets can be rendered.
