@@ -348,10 +348,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       AuditTaskEnvironmentTable.save(taskEnv)
 
       // Insert Street View metadata.
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       for (pano <- data.gsvPanoramas) {
-        // Check the presence of the data.
-        if (!GSVDataTable.panoramaExists(pano.gsvPanoramaId)) {
-          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        // Insert new entry to gsv_data table, or update the last_viewed column if we've already recorded it.
+        if (GSVDataTable.panoramaExists(pano.gsvPanoramaId)) {
+          GSVDataTable.markLastViewedForPanorama(pano.gsvPanoramaId, timestamp)
+        } else {
           val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.imageWidth, pano.imageHeight, pano.tileWidth,
             pano.tileHeight, pano.imageDate, pano.copyright, expired = false, Some(timestamp))
           GSVDataTable.save(gsvData)
