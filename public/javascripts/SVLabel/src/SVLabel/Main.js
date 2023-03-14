@@ -27,8 +27,9 @@ function Main (params) {
     svl.LABEL_ICON_RADIUS = 17;
     svl.CANVAS_WIDTH = 720;
     svl.CANVAS_HEIGHT = 480;
-    svl.SV_IMAGE_HEIGHT = 6656;
-    svl.SV_IMAGE_WIDTH = 13312;
+    svl.TUTORIAL_PANO_HEIGHT = 6656;
+    svl.TUTORIAL_PANO_WIDTH = 13312;
+    svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
     svl.ALPHA_X = 4.6;
     svl.ALPHA_Y = -4.65;
     svl.ZOOM_FACTOR = {

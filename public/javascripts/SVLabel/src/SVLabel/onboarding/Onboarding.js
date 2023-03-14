@@ -228,12 +228,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
             if (currentPov.heading < 180) {
-                if (imX > svl.SV_IMAGE_WIDTH - 3328 && imX > 3328) {
-                    imX -= svl.SV_IMAGE_WIDTH;
+                if (imX > svl.TUTORIAL_PANO_WIDTH - 3328 && imX > 3328) {
+                    imX -= svl.TUTORIAL_PANO_WIDTH;
                 }
             } else {
-                if (imX < 3328 && imX < svl.SV_IMAGE_WIDTH - 3328) {
-                    imX += svl.SV_IMAGE_WIDTH;
+                if (imX < 3328 && imX < svl.TUTORIAL_PANO_WIDTH - 3328) {
+                    imX += svl.TUTORIAL_PANO_WIDTH;
                 }
             }
             povOfLabelIfCentered = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
@@ -768,6 +768,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var properties = state.properties;
         var transition = state.transition;
 
+        // TODO instead of having this callback on click, make an event when a label is created. Use .getProperty('svImageCoordinate') instead of all the math we do now.
         var callback = function (e) {
             var i = 0;
             var labelAppliedCorrectly = false;
@@ -788,8 +789,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(
                     pov, canvasX, canvasY, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svImgWidth, svImgHeight
                 );
-                console.log(properties[i]);
-                console.log(imageCoordinate);
+                imageCoordinate.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
+                imageCoordinate.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;
 
                 distance[i] = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
                     (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
