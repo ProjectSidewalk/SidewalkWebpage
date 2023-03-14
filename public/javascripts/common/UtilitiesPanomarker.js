@@ -27,7 +27,7 @@ function sgn(x) {
 }
 
 /**
- * This method returns the pov of a point on the canvas based on panorama's POV and the canvas coordinate.
+ * Returns the centered pov of a point on the canvas based on panorama's POV and the canvas coordinate.
  *
  * @param canvasX
  * @param canvasY
@@ -88,40 +88,24 @@ function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
 util.panomarker.calculatePointPov = calculatePointPov;
 
 /**
- * Calculate POV
- * This method returns the pov of this label based on panorama's POV using
- * panorama image coordinates
+ * Returns the pov of this label if it were centered based on panorama's POV using panorama image coordinates.
  *
  * @param imageX
  * @param imageY
  * @param svImageWidth
  * @param svImageHeight
- * @param pov
- * @returns {{heading: Number, pitch: Number, zoom: Number}}
+ * @returns {{heading: Number, pitch: Number}}
  */
-function calculatePointPovFromImageCoordinate(imageX, imageY, svImageWidth, svImageHeight, pov) {
-    var zoom = Math.round(pov.zoom);
-    var zoomFactor = svl.ZOOM_FACTOR[zoom];
-    var imageWidth = svImageWidth * zoomFactor;
-    var imageHeight = svImageHeight * zoomFactor;
-
-    imageX = imageX * zoomFactor;
-    imageY = imageY * zoomFactor;
-
-    var heading = Math.round((imageX / imageWidth) * 360) % 360;
-    var pitch = Math.round((imageY / (imageHeight/2)) * 90);
-
+function calculatePointPovFromImageCoordinate(imageX, imageY, svImageWidth, svImageHeight) {
     return {
-        heading: heading,
-        pitch: pitch,
-        zoom: zoom
+        heading: Math.round((imageX / svImageWidth) * 360) % 360,
+        pitch: Math.round((imageY / (svImageHeight / 2)) * 90)
     };
 }
 util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImageCoordinate;
 
 /**
- * Calculate Image Coordinate
- * This method returns the GSV image coordinate from the original pov of the label
+ * Returns the GSV image coordinate from the original pov of the label if it was centered.
  *
  * @param pov
  * @param svImageWidth
@@ -129,13 +113,8 @@ util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImag
  * @returns {{x: (number|*), y: (number|*)}}
  */
 function calculateImageCoordinateFromPointPov(pov, svImageWidth, svImageHeight) {
-    var imageX, imageY;
-    var zoomFactor = svl.ZOOM_FACTOR[pov.zoom];
-    var imageWidth = svImageWidth * zoomFactor;
-    var imageHeight = svImageHeight * zoomFactor;
-
-    imageX = (imageWidth * (pov.heading / 360) + ((imageWidth / 360) / 2)) / zoomFactor;
-    imageY = ((imageHeight / 2) * (pov.pitch / 90)) / zoomFactor;
+    var imageX = svImageWidth * (pov.heading / 360) + ((svImageWidth / 360) / 2);
+    var imageY = (svImageHeight / 2) * (pov.pitch / 90);
 
     if (imageX < 0) imageX = imageX + svImageWidth;
 
@@ -144,7 +123,7 @@ function calculateImageCoordinateFromPointPov(pov, svImageWidth, svImageHeight) 
 util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateFromPointPov;
 
 /**
- * This function maps canvas coordinate to image coordinate
+ * This function maps canvas coordinates to image coordinates.
  * @param canvasX
  * @param canvasY
  * @param pov
@@ -155,15 +134,8 @@ util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateF
  * @returns {{x: number, y: number}}
  */
 function canvasCoordinateToImageCoordinate(pov, canvasX, canvasY, canvasWidth, canvasHeight, svImageWidth, svImageHeight) {
-
-    // Old calculation
-    // var zoomFactor = svl.ZOOM_FACTOR[pov.zoom];
-    // var x = svImageWidth * pov.heading / 360 + (svl.ALPHA_X * (canvasX - (canvasWidth / 2)) / zoomFactor);
-    // var y = (svImageHeight / 2) * pov.pitch / 90 + (svl.ALPHA_Y * (canvasY - (canvasWidth / 2)) / zoomFactor);
-
     var pointPOV = calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight);
     var svImageCoord = calculateImageCoordinateFromPointPov(pointPOV, svImageWidth, svImageHeight);
-
     return { x: svImageCoord.x, y: svImageCoord.y };
 }
 util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;

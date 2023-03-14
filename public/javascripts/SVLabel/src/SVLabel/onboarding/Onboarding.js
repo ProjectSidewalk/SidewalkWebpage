@@ -237,7 +237,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 }
             }
             povOfLabelIfCentered = util.panomarker.calculatePointPovFromImageCoordinate(
-                imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT, currentPov
+                imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT
             );
             var canvasCoordinate = util.panomarker.getCanvasCoordinate(
                 povOfLabelIfCentered, currentPov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
