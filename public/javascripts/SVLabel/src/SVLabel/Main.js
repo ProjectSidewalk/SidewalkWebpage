@@ -406,6 +406,7 @@ function Main (params) {
         svl.ui.minimap.progressCircle = $("#minimap-progress-circle-canvas");
         svl.ui.minimap.percentObserved = $("#minimap-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
+        svl.ui.date = $("#svl-panorama-date");
 
         // Status holder.
         svl.ui.status = {};

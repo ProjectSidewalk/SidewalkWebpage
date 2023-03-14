@@ -251,6 +251,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     latLng: new google.maps.LatLng(38.94042608, -77.06766133)
                 },
                 links: [],
+                imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
@@ -268,6 +269,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     latLng: new google.maps.LatLng(38.94061618, -77.06768201)
                 },
                 links: [],
+                imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(1700, 850),
@@ -612,7 +614,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             svl.stuckAlert.panoVisited(panoId);
 
                             // Updates the date overlay to match when the current panorama was taken.
-                            document.getElementById("svl-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
+                            svl.ui.date.text(moment(data.imageDate).format('MMM YYYY'));
                             var panoramaPosition = svl.panorama.getPosition(); // Current position.
                             map.setCenter(panoramaPosition);
 
@@ -626,7 +628,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             prevPanoId = panoId;
 
                         } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
-                            document.getElementById("svl-panorama-date").innerText = "May 2014";
+                            var imageDate = svl.panoramaContainer.getPanorama(panoId).data().imageDate;
+                            svl.ui.date.text(moment(imageDate).format('MMM YYYY'));
                         } else {
                             handleImageryNotFound(panoId, panoStatus);
                         }
