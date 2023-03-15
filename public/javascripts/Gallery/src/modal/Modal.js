@@ -44,13 +44,14 @@ function Modal(uiModal) {
         heading: undefined,
         pitch: undefined,
         zoom: undefined,
-        originalCanvasX: undefined,
-        originalCanvasY: undefined,
+        original_canvas_x: undefined,
+        original_canvas_y: undefined,
         severity: undefined,
         temporary: undefined,
         description: undefined,
-        streetEdgeId: undefined,
-        regionId: undefined,
+        street_edge_id: undefined,
+        region_id: undefined,
+        correctness: undefined,
         user_validation: undefined,
         tags: []
     };
@@ -239,9 +240,8 @@ function Modal(uiModal) {
                 properties[attrName] = newProps[attrName];
             }
         }
-        self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type,
-                                              properties.originalCanvasX, properties.originalCanvasY,
-                                              sg.auditCanvasWidth, sg.auditCanvasHeight,
+        self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type, properties.original_canvas_x,
+                                              properties.original_canvas_y, sg.auditCanvasWidth, sg.auditCanvasHeight,
                                               properties.heading, properties.pitch, properties.zoom);
 
         self.validationMenu.updateCardProperties(properties);
