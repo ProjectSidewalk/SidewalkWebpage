@@ -15,6 +15,7 @@ function get3dFov(zoom) {
     return zoom <= 2 ?
     126.5 - zoom * 36.75 :  // linear descent
     195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
+    // return 180 / Math.pow(2, zoom);
 }
 
 /**
@@ -145,7 +146,7 @@ util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoord
  * @return {Object} Top and Left offsets for the given viewport that point to
  *     the desired point-of-view.
  */
-function povToPixel3DOffset(targetPov, currentPov, zoom, canvasWidth, canvasHeight) {
+function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
 
     // Gather required variables and convert to radians where necessary.
     var target = {
@@ -154,7 +155,7 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, canvasWidth, canvasHeig
     };
 
     var DEG_TO_RAD = Math.PI / 180.0;
-    var fov = get3dFov(zoom) * DEG_TO_RAD;
+    var fov = get3dFov(currentPov.zoom) * DEG_TO_RAD;
     var h0 = currentPov.heading * DEG_TO_RAD;
     var p0 = currentPov.pitch * DEG_TO_RAD;
     var h = targetPov.heading * DEG_TO_RAD;
@@ -256,7 +257,7 @@ function getCanvasCoordinate(origPov, newPov, canvasWidth, canvasHeight, iconWid
         var outputCoord = { x: undefined, y: undefined };
 
         // Calculate the position according to the canvas.
-        var offset = povToPixel3DOffset(origPov, newPov, newPov.zoom, canvasWidth, canvasHeight);
+        var offset = povToPixel3DOffset(origPov, newPov, canvasWidth, canvasHeight);
 
         // Set coordinates to null if label is outside the viewport.
         if (offset !== null

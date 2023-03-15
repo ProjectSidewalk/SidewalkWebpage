@@ -73,6 +73,9 @@ function Canvas(ribbon) {
 
         var pov = svl.map.getPov();
         var povOfLabel = util.panomarker.calculatePointPov(pov, canvasX, canvasY, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT);
+        let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
+            povOfLabel, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+        );
 
         var latlng = svl.map.getPosition();
         var param = {
@@ -81,7 +84,7 @@ function Canvas(ribbon) {
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             originalCanvasCoordinate: { x: canvasX, y: canvasY },
-            currCanvasCoordinate: { x: canvasX, y: canvasY },
+            currCanvasCoordinate: rerenderCanvasCoord,
             povOfLabelIfCentered: povOfLabel,
             panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,
@@ -99,10 +102,7 @@ function Canvas(ribbon) {
 
 
         if ('contextMenu' in svl) {
-            svl.contextMenu.show(canvasX, canvasY, {
-                targetLabel: status.currentLabel,
-                targetLabelColor: labelColor.fillStyle
-            });
+            svl.contextMenu.show(status.currentLabel);
         }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', {

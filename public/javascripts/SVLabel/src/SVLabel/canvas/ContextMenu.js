@@ -201,7 +201,6 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleTagClick (e) {
         var label = getTargetLabel();
-        var labelType = label.getLabelType();
         var labelTags = label.getProperty('tagIds');
 
         // Use position of cursor to determine whether or not the click came from the mouse, or from a keyboard shortcut
@@ -541,90 +540,86 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
-     * Show the context menu
-     * @param x x-coordinate on the canvas pane
-     * @param y y-coordinate on the canvas pane
-     * @param param a parameter object
+     * Show the context menu.
+     * @param targetLabel the label whose context menu should be shown.
      */
-    function show (x, y, param) {
+    function show(targetLabel) {
         setStatus('targetLabel', null);
         $radioButtons.prop('checked', false);
         $temporaryLabelCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
-        if (x && y && ('targetLabel' in param)) {
-            var labelType = param.targetLabel.getLabelType();
-            if (labelType !== 'Occlusion') {
-                setStatus('targetLabel', param.targetLabel);
-                setTags(param.targetLabel);
-                setTagColor(param.targetLabel);
-                if (getStatus('disableTagging')) { disableTagging(); }
-                windowHeight = $('#context-menu-holder').outerHeight();
 
-                // Determine coordinates for context menu when displayed below the label.
-                var topCoordinate = y + 20;
-                var connectorCoordinate = -5;
+        var labelType = targetLabel.getLabelType();
+        var labelColor = util.misc.getLabelColors()[labelType].fillStyle;
+        var labelCoord = targetLabel.getCoordinate();
+        if (labelType !== 'Occlusion') {
+            setStatus('targetLabel', targetLabel);
+            setTags(targetLabel);
+            setTagColor(targetLabel);
+            if (getStatus('disableTagging')) { disableTagging(); }
+            windowHeight = $('#context-menu-holder').outerHeight();
 
-                // Determine coordinates for context menu when displayed above the label.
-                if (y + windowHeight + 22 > 480) {
-                    topCoordinate = y - windowHeight - 22;
-                    connectorCoordinate = windowHeight;
-                }
+            // Determine coordinates for context menu when displayed below the label.
+            var topCoordinate = labelCoord.y + 20;
+            var connectorCoordinate = -5;
 
-                if (param) {
-                    if ('targetLabelColor' in param) {
-                        setBorderColor(param.targetLabelColor);
-                        lastShownLabelColor = param.targetLabelColor;
-                    }
-                }
-
-                // Set the menu value if label has it's value set.
-                var severity = param.targetLabel.getProperty('severity'),
-                    temporaryLabel = param.targetLabel.getProperty('temporaryLabel'),
-                    description = param.targetLabel.getProperty('description');
-                if (severity) {
-                    $radioButtons.each(function (i, v) {
-                       if (severity === i + 1) { $(this).prop("checked", true); }
-                    });
-                }
-
-                $temporaryLabelCheckbox.prop("checked", temporaryLabel);
-
-                $menuWindow.css({
-                    visibility: 'visible',
-                    left: x - windowWidth / 2,
-                    top: topCoordinate
-                });
-
-                $connector.css({
-                    visibility: 'visible',
-                    top: topCoordinate + connectorCoordinate,
-                    left: x - 3
-                });
-
-                // Hide the severity menu for the Pedestrian Signal label type.
-                if (labelType === 'Signal') {
-                    $severityMenu.css({visibility: 'hidden', height: '0px'});
-                } else {
-                    $severityMenu.css({visibility: 'inherit', height: '50px'});
-                }
-
-                setStatus('visibility', 'visible');
-
-                if (description) {
-                    $descriptionTextBox.val(description);
-                } else {
-                    var defaultText = i18next.t('center-ui.context-menu.description');
-                    $descriptionTextBox.prop("placeholder", defaultText);
-                }
-                var labelProperties = self.getTargetLabel().getProperties();
-
-                // Don't push event on Occlusion labels; they don't open ContextMenus.
-                svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.auditTaskId}, {'temporaryLabelId': labelProperties.temporaryLabelId});
+            // Determine coordinates for context menu when displayed above the label.
+            if (labelCoord.y + windowHeight + 22 > 480) {
+                topCoordinate = labelCoord.y - windowHeight - 22;
+                connectorCoordinate = windowHeight;
             }
-            if (labelType !== 'Occlusion' && labelType !== 'Signal') {
-                self.updateRadioButtonImages();
-                _setSeverityTooltips(labelType);
+
+            // Set the color of the border.
+            setBorderColor(labelColor);
+            lastShownLabelColor = labelColor;
+
+            // Set the menu value if label has it's value set.
+            var severity = targetLabel.getProperty('severity'),
+                temporaryLabel = targetLabel.getProperty('temporaryLabel'),
+                description = targetLabel.getProperty('description');
+            if (severity) {
+                $radioButtons.each(function (i, v) {
+                   if (severity === i + 1) { $(this).prop("checked", true); }
+                });
             }
+
+            $temporaryLabelCheckbox.prop("checked", temporaryLabel);
+
+            $menuWindow.css({
+                visibility: 'visible',
+                left: labelCoord.x - windowWidth / 2,
+                top: topCoordinate
+            });
+
+            $connector.css({
+                visibility: 'visible',
+                top: topCoordinate + connectorCoordinate,
+                left: labelCoord.x - 3
+            });
+
+            // Hide the severity menu for the Pedestrian Signal label type.
+            if (labelType === 'Signal') {
+                $severityMenu.css({visibility: 'hidden', height: '0px'});
+            } else {
+                $severityMenu.css({visibility: 'inherit', height: '50px'});
+            }
+
+            setStatus('visibility', 'visible');
+
+            if (description) {
+                $descriptionTextBox.val(description);
+            } else {
+                var defaultText = i18next.t('center-ui.context-menu.description');
+                $descriptionTextBox.prop("placeholder", defaultText);
+            }
+            var labelProperties = self.getTargetLabel().getProperties();
+
+            // Don't push event on Occlusion labels; they don't open ContextMenus.
+            svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProperties.auditTaskId}, {'temporaryLabelId': labelProperties.temporaryLabelId});
+        }
+        if (labelType !== 'Occlusion' && labelType !== 'Signal') {
+            self.updateRadioButtonImages();
+            _setSeverityTooltips(labelType);
         }
     }
 

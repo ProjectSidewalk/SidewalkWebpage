@@ -874,21 +874,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         setViewControlLayerCursor('OpenHand');
         var currTime = new Date().getTime();
 
-        var labelPoint = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-        if (labelPoint && labelPoint.className === "Label") {
-            var selectedLabel = labelPoint;
-            var canvasCoordinate = labelPoint.getCoordinate();
-
+        var selectedLabel = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+        if (selectedLabel && selectedLabel.className === "Label") {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
                 if (contextMenuWasOpen) {
                     svl.contextMenu.hide();
                 } else {
-                    svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
-                        targetLabel: selectedLabel,
-                        targetLabelColor: selectedLabel.getProperty("fillStyle")
-                    });
+                    svl.contextMenu.show(selectedLabel);
                 }
                 contextMenuWasOpen = false;
             }
