@@ -62,6 +62,7 @@ function UtilitiesMisc (JSON) {
         return category ? imagePaths[category] : imagePaths;
     }
 
+    // TODO either explain why the translations aren't found programmatically, or make it programmatic.
     function getLabelDescriptions(category) {
         var descriptions = {
             'Walk': {
