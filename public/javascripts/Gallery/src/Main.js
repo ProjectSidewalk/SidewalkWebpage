@@ -65,9 +65,6 @@ function Main (params) {
     }
 
     function _init() {
-
-        sg.auditCanvasWidth = 720;
-        sg.auditCanvasHeight = 480;
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.

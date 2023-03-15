@@ -212,7 +212,8 @@ function AdminTask(params) {
                                     });
 
                                 var adminPanoramaLabel = AdminPanoramaLabel(
-                                    label.label_id, label.label_type, label.canvasX, label.canvasY, 720, 480,
+                                    label.label_id, label.label_type, label.canvasX, label.canvasY,
+                                    util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
                                     d.properties.heading, d.properties.pitch, d.properties.zoom
                                 );
                                 self.panorama.renderLabel(adminPanoramaLabel);

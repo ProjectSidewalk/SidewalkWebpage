@@ -241,7 +241,7 @@ function Label(params) {
             // Update the coordinates of the label on the canvas.
             if (svl.map.getPovChangeStatus()) {
                 properties.currCanvasCoordinate = util.panomarker.getCanvasCoordinate(
-                    properties.povOfLabelIfCentered, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                    properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
             }
 

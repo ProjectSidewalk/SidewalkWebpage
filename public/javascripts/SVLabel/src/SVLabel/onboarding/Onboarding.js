@@ -96,7 +96,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @returns {clear}
      */
     function clear() {
-        if (ctx) ctx.clearRect(0, 0, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT);
+        if (ctx) ctx.clearRect(0, 0, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
         return this;
     }
 
@@ -237,7 +237,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT
             );
             var canvasCoordinate = util.panomarker.getCanvasCoordinate(
-                povOfLabelIfCentered, currentPov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                povOfLabelIfCentered, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
 
             if (state.annotations[i].type === "arrow") {
@@ -786,7 +786,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
                 var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(
-                    pov, canvasX, canvasY, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svImgWidth, svImgHeight
+                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svImgWidth, svImgHeight
                 );
                 imageCoordinate.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
                 imageCoordinate.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;

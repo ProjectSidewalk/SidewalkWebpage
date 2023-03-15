@@ -83,8 +83,8 @@ function Card (params, imageUrl, modal) {
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.classList.add("label-icon", "label-icon-gallery");
-        labelIcon.style.left = `calc(${100 * properties.original_canvas_x / (sg.auditCanvasWidth)}% - var(--iconWidth) / 2)`;
-        labelIcon.style.top = `calc(${100 * properties.original_canvas_y / (sg.auditCanvasHeight)}% - var(--iconWidth) / 2)`;
+        labelIcon.style.left = `calc(${100 * properties.original_canvas_x / (util.EXPLORE_CANVAS_WIDTH)}% - var(--iconWidth) / 2)`;
+        labelIcon.style.top = `calc(${100 * properties.original_canvas_y / (util.EXPLORE_CANVAS_HEIGHT)}% - var(--iconWidth) / 2)`;
 
         // Create an element for the image in the card.
         imageId = "label_id_" + properties.label_id;

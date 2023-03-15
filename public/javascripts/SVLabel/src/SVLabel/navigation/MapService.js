@@ -232,7 +232,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // For Internet Explore, append an extra canvas in view-control-layer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>');
+            uiMap.viewControlLayer.append(`<canvas width="${util.EXPLORE_CANVAS_WIDTH}px" height="${util.EXPLORE_CANVAS_HEIGHT}px"  class="window-streetview" style=""></canvas>`);
         }
 
     }

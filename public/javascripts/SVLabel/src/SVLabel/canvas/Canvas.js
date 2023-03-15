@@ -68,13 +68,14 @@ function Canvas(ribbon) {
      */
     function createLabel(canvasX, canvasY) {
         var labelType = ribbon.getStatus('selectedLabelType');
-        var labelColor = util.misc.getLabelColors()[labelType];
         var labelDescription = util.misc.getLabelDescriptions(labelType);
 
         var pov = svl.map.getPov();
-        var povOfLabel = util.panomarker.calculatePointPov(pov, canvasX, canvasY, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT);
+        var povOfLabel = util.panomarker.calculatePointPov(
+            pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
+        );
         let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
-            povOfLabel, pov, svl.CANVAS_WIDTH, svl.CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
         );
 
         var latlng = svl.map.getPosition();

@@ -240,9 +240,10 @@ function Modal(uiModal) {
                 properties[attrName] = newProps[attrName];
             }
         }
-        self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type, properties.original_canvas_x,
-                                              properties.original_canvas_y, sg.auditCanvasWidth, sg.auditCanvasHeight,
-                                              properties.heading, properties.pitch, properties.zoom);
+        self.label = new GalleryPanoramaLabel(
+            properties.label_id, properties.label_type, properties.original_canvas_x, properties.original_canvas_y,
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom
+        );
 
         self.validationMenu.updateCardProperties(properties);
         self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));

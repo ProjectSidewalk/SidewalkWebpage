@@ -564,7 +564,7 @@ function ContextMenu (uiContextMenu) {
             var connectorCoordinate = -5;
 
             // Determine coordinates for context menu when displayed above the label.
-            if (labelCoord.y + windowHeight + 22 > 480) {
+            if (labelCoord.y + windowHeight + 22 > util.EXPLORE_CANVAS_HEIGHT) {
                 topCoordinate = labelCoord.y - windowHeight - 22;
                 connectorCoordinate = windowHeight;
             }
