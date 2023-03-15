@@ -259,10 +259,8 @@ function Label(params) {
             } catch (e) {
                 console.debug(e);
             }
-            ctx.restore();
 
             // Draws label outline.
-            ctx.save();
             ctx.beginPath();
             ctx.fillStyle = getProperty('fillStyle');
             ctx.lineWidth = 0.7;
@@ -329,9 +327,7 @@ function Label(params) {
         }
 
         // Set rendering properties and draw the hover info.
-        ctx.save();
         ctx.font = '13px Open Sans';
-
         height = HOVER_INFO_HEIGHT * labelRows;
 
         for (i = 0; i < messages.length; i += 1) {
@@ -384,8 +380,6 @@ function Label(params) {
                     ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
             }
         }
-
-        ctx.restore();
     }
 
     /**
@@ -478,8 +472,7 @@ function Label(params) {
         var x = labelCoordinate.x;
         var y = labelCoordinate.y;
 
-        // Draws circle
-        ctx.save();
+        // Draws circle.
         ctx.beginPath();
         ctx.fillStyle = 'rgb(160, 45, 50, 0.9)';
         ctx.ellipse(x - 15, y - 10.5, 8, 8, 0, 0, 2 * Math.PI);
@@ -492,7 +485,6 @@ function Label(params) {
         ctx.fillStyle = 'rgb(255, 255, 255)';
         ctx.fillText('?', x - 17.5, y - 6);
         ctx.closePath();
-        ctx.restore();
     }
 
     /**

@@ -126,7 +126,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             dy = y2 - y1;
             theta = Math.atan2(dy, dx);
 
-            ctx.save();
             ctx.fillStyle = fill;
             ctx.strokeStyle = strokeStyle;
             ctx.lineWidth = lineWidth;
@@ -148,8 +147,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             ctx.fill();
             ctx.stroke();
             ctx.closePath();
-
-            ctx.restore();
         }
         return this;
     }
