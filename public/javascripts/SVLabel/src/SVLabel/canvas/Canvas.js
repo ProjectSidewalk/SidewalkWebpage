@@ -91,8 +91,7 @@ function Canvas(ribbon) {
         }
 
         // Create the label and render the context menu.
-        status.currentLabel = svl.labelContainer.createLabel(param);
-        svl.labelContainer.push(status.currentLabel);
+        status.currentLabel = svl.labelContainer.createLabel(param, true);
         svl.contextMenu.show(status.currentLabel);
 
         // Log the labeling event.

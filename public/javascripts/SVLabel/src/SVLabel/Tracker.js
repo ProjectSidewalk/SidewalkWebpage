@@ -119,7 +119,7 @@ function Tracker() {
         if ('temporaryLabelId' in extraData) {
             if (currentLabel !== null) {
                 updatedLabels.push(currentLabel);
-                svl.labelContainer.addUpdatedLabel(currentLabel);
+                svl.labelContainer.addToLabelsToLog(currentLabel);
             }
             currentLabel = extraData['temporaryLabelId'];
         }
@@ -180,8 +180,9 @@ function Tracker() {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
+        var labelProperties;
         if (self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
-            var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
+            labelProperties = svl.contextMenu.getTargetLabel().getProperties();
             currentLabel = labelProperties.temporaryLabelId;
 
             if (notes === null || typeof (notes) === 'undefined') {
@@ -193,16 +194,16 @@ function Tracker() {
             // Reset currentLabel to null if this is a context menu event that fired after the menu already closed.
             if (svl.contextMenu.isOpen()) {
                 updatedLabels.push(currentLabel);
-                svl.labelContainer.addUpdatedLabel(currentLabel);
+                svl.labelContainer.addToLabelsToLog(currentLabel);
             } else {
                 currentLabel = null;
             }
 
         } else if (self._isClickLabelDeleteAction(action)) {
-            var labelProperties = svl.canvas.getCurrentLabel().getProperties();
+            labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporaryLabelId;
             updatedLabels.push(currentLabel);
-            svl.labelContainer.addUpdatedLabel(currentLabel);
+            svl.labelContainer.addToLabelsToLog(currentLabel);
 
             if (notes === null || typeof(notes) === 'undefined') {
                 notes = {'auditTaskId' : labelProperties.auditTaskId};
@@ -254,7 +255,7 @@ function Tracker() {
         updatedLabels = [];
         if (currentLabel !== null) {
             updatedLabels.push(currentLabel);
-            svl.labelContainer.addUpdatedLabel(currentLabel);
+            svl.labelContainer.addToLabelsToLog(currentLabel);
         }
 
         self.push("RefreshTracker");

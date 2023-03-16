@@ -77,7 +77,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         tracker.refresh();
 
         data.labels = [];
-        var labels = labelContainer.getCurrentLabels();
+        var labels = labelContainer.getLabelsToLog();
         for (var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
             var label = labels[i];
             var prop = label.getProperties();
@@ -237,8 +237,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var action = tracker.create("TaskSubmit");
             data[0].interactions.push(action);
         }
-
-        labelContainer.refresh();
+        labelContainer.clearLabelsToLog();
 
         $.ajax({
             async: async,

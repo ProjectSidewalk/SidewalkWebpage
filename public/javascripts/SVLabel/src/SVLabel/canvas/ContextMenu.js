@@ -142,11 +142,7 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleSeverityPopup() {
-        var labels = svl.labelContainer.getCurrentLabels();
-        var prev_labels = svl.labelContainer.getPreviousLabels();
-        if (labels.length === 0) {
-            labels = prev_labels;
-        }
+        var labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
             var lastLabelProps = labels[labels.length - 1].getProperties();
             // If the label is Pedestrian Signal, do not call ratingReminderAlert().

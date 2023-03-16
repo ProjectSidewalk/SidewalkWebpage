@@ -6,34 +6,60 @@
  * @constructor
  * @memberof svl
  */
-function LabelContainer($, nextTemporaryLabelId) {
+function LabelContainer ($, nextTemporaryLabelId) {
     var self = this;
-    var currentCanvasLabels = {};
-    var prevCanvasLabels = {};
+    var labelsToLog = {};
+    var allLabels = {};
     var nextTempLabelId = nextTemporaryLabelId;
 
-    this.countLabels = function() {
-        var allLabels = self.getCurrentLabels().concat(self.getPreviousLabels());
-        return allLabels.filter(l => { return !l.isDeleted(); }).length;
-    };
+    /**
+     * Adds a label to the given list. Our labels are sorted in objects with pano IDs as keys and lists as values.
+     * @param labelListObj
+     * @param label
+     */
+    function _addLabelToListObject(labelListObj, label) {
+        var panoId = label.getPanoId();
+        var tempId = label.getProperty('temporaryLabelId');
+
+        // Make sure that there is a list available for the given pano ID.
+        if (!(panoId in labelListObj)) labelListObj[panoId] = [];
+
+        // If it's not already in the last, add it.
+        var inList = labelListObj[panoId].filter(l => l.getProperty('temporaryLabelId') === tempId).length > 0;
+        if (!inList) labelListObj[panoId].push(label);
+    }
 
     /**
-     * Create a new Label object. If the label is new, it won't have a labelId yet, so we assign a temporary one.
+     * Create a Label object. If the label is new, it won't have a labelId yet, so we assign a temporary one.
      * @returns {Label}
      */
-    this.createLabel = function(params) {
-        if (!('labelId' in params)) {
+    this.createLabel = function(params, isNew) {
+        if (isNew) {
             params.temporaryLabelId = nextTempLabelId;
             nextTempLabelId++;
         }
-        return new Label(params);
+        var label = new Label(params);
+        var panoId = label.getPanoId();
+
+        // Add to list of labels. If new, also add to current canvas labels.
+        if (isNew) {
+            _addLabelToListObject(labelsToLog, label);
+            svl.labelCounter.increment(label.getLabelType());
+        }
+        _addLabelToListObject(allLabels, label);
+
+        return label
     }
 
+    /**
+     * Query server for previous labels placed by this user and create label objects for them.
+     * @param regionId
+     * @param callback
+     */
     this.fetchLabelsToResumeMission = function (regionId, callback) {
         $.getJSON('/label/resumeMission', { regionId: regionId }, function (result) {
             let labelArr = result.labels;
-            let len = labelArr.length;
-            for (let i = 0; i < len; i++) {
+            for (let i = 0; i < labelArr.length; i++) {
                 let originalCanvasCoord = {
                     x: labelArr[i].canvasX,
                     y: labelArr[i].canvasY
@@ -51,16 +77,10 @@ function LabelContainer($, nextTemporaryLabelId) {
                 labelArr[i].originalCanvasCoordinate = originalCanvasCoord;
                 labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
                 labelArr[i].svImageCoordinate = { x: labelArr[i].svImageX, y: labelArr[i].svImageY };
-                let label = self.createLabel(labelArr[i]);
+                let label = self.createLabel(labelArr[i], false);
 
                 // Prevent tag from being rendered initially.
                 label.setHoverInfoVisibility('hidden');
-
-                if (!(label.getPanoId() in prevCanvasLabels)) {
-                    prevCanvasLabels[label.getPanoId()] = [];
-                }
-
-                prevCanvasLabels[label.getPanoId()].push(label);
             }
 
             if (callback) callback(result);
@@ -68,118 +88,60 @@ function LabelContainer($, nextTemporaryLabelId) {
     }
 
     /**
-     * Returns canvas labels of the current pano ID.
+     * Returns labels for the current pano ID.
      */
     this.getCanvasLabels = function () {
         let panoId = svl.map.getPanoId();
-        let prev = prevCanvasLabels[panoId] ? prevCanvasLabels[panoId] : [];
-        let curr = currentCanvasLabels[panoId] ? currentCanvasLabels[panoId] : [];
-        return prev.concat(curr);
+        return allLabels[panoId] ? allLabels[panoId] : [];
     };
 
     /**
-     * Get current labels. Note that this grabs labels from all panoIds in current session.
+     * Get labels that need to be logged to the back-end because they are new or the user has interacted with them.
      */
-    this.getCurrentLabels = function () {
-        return Object.keys(currentCanvasLabels).reduce(function (r, k) {
-            return r.concat(currentCanvasLabels[k]);
-        }, []);
+    this.getLabelsToLog = function () {
+        return Object.keys(labelsToLog).reduce(function (r, k) { return r.concat(labelsToLog[k]); }, []);
+    };
+
+    this.getAllLabels = function () {
+        return Object.keys(allLabels).reduce(function (r, k) { return r.concat(allLabels[k]); }, []);
     };
 
     /**
-     * Get previous labels. Note that this grabs labels from all panoIds in current session.
+     * Find a label with matching temporary ID.
+     * @param tempId
      */
-    this.getPreviousLabels = function () {
-        return Object.keys(prevCanvasLabels).reduce(function (r, k) {
-            return r.concat(prevCanvasLabels[k]);
-        }, []);
-    };
-
-    // Find most recent instance of label with matching temporary ID.
     this.findLabelByTempId = function (tempId) {
         var matchingLabels =  _.filter(self.getCanvasLabels(),
-            function(label) {
-                return label.getProperty("temporaryLabelId") === tempId;
-            });
-
-        if (matchingLabels.length === 0) {
-            return null;
+            function(label) { return label.getProperty("temporaryLabelId") === tempId; }
+        );
+        // Returns most recent version of label (though there shouldn't be multiple).
+        if (matchingLabels.length > 1) {
+            console.warn('Multiple labels with same temp ID!');
+            console.log(self.getCanvasLabels());
         }
-
-        // Returns most recent version of label.
         return matchingLabels[matchingLabels.length - 1];
     };
 
-    // Remove old versions of this label, add updated label.
-    this.addUpdatedLabel = function (tempId) {
-        // All labels that don't have the specified tempId reduced to an array.
-        var otherLabels = _.filter(this.getCurrentLabels(),
-            function(label) {
-                return label.getProperty("temporaryLabelId") !== tempId;
-            });
-
-        // If there are no temporary labels with this ID in currentCanvasLabels then add it to that list.
-        // Otherwise get rid of all old instances in currentCanvasLabels and add the updated label.
-
-        var match = this.findLabelByTempId(tempId);
-
-        // Label with this id doesn't exist in currentCanvasLabels as the
-        // filtered vs unfiltered arrays are the same length.
-        if (otherLabels.length === this.getCurrentLabels().length) {
-            if (!(match.getPanoId() in currentCanvasLabels)) {
-                currentCanvasLabels[match.getPanoId()] = [];
-            }
-            // Add updated label.
-            currentCanvasLabels[match.getPanoId()].push(match);
-        } else {
-            for (let key in currentCanvasLabels) {
-                currentCanvasLabels[key] = currentCanvasLabels[key].filter(label => label.getProperty("temporaryLabelId") !== tempId);
-            }
-            if (match !== null) {
-                if (!(match.getPanoId() in currentCanvasLabels)) {
-                    currentCanvasLabels[match.getPanoId()] = [];
-                }
-                // Add updated label.
-                currentCanvasLabels[match.getPanoId()].push(match);
-            }
-        }
-    };
-
     /**
-     * Push a label into canvasLabels
-     * @param label
+     * Adds a label to the list of labels that should be logged; called when a user interacts with an existing label.
+     * @param tempId
      */
-    this.push = function (label) {
-        if (!(label.getPanoId() in currentCanvasLabels)) {
-            currentCanvasLabels[label.getPanoId()] = [];
-        }
-
-        currentCanvasLabels[label.getPanoId()].push(label);
-        svl.labelCounter.increment(label.getProperty("labelType"));
+    this.addToLabelsToLog = function (tempId) {
+        var match = this.findLabelByTempId(tempId);
+        if (match) _addLabelToListObject(labelsToLog, match);
     };
 
-    /** Refresh */
-    this.refresh = function () {
-        for (let key in currentCanvasLabels) {
-            if (!(key in prevCanvasLabels)) {
-                prevCanvasLabels[key] = currentCanvasLabels[key];
-            } else {
-                for (var i = 0; i < currentCanvasLabels[key].length; i++) {
-                    // Remove any old versions of the label and add the new one.
-                    var currLabel = currentCanvasLabels[key][i];
-                    prevCanvasLabels[key] = prevCanvasLabels[key].filter(function (l) {
-                        return l.getProperty("temporaryLabelId") !== currLabel.getProperty("temporaryLabelId");
-                    });
-                    prevCanvasLabels[key].push(currLabel);
-                }
-            }
-        }
-        currentCanvasLabels = {};
+    this.clearLabelsToLog = function () {
+        labelsToLog = {};
+    };
+
+    this.countLabels = function() {
+        var allLabels = self.getAllLabels();
+        return allLabels.filter(l => { return !l.isDeleted(); }).length;
     };
 
     /**
-     * This function removes a passed label, updates the canvas, and updates label counts.
-     * @method
+     * Removes a passed label, updates the canvas, and updates label counts.
      */
     this.removeLabel = function (label) {
         if (!label) { return false; }
