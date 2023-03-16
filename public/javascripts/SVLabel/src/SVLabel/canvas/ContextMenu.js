@@ -148,11 +148,10 @@ function ContextMenu (uiContextMenu) {
             labels = prev_labels;
         }
         if (labels.length > 0) {
-            var last_label = labels[labels.length - 1];
-            var prop = last_label.getProperties();
-            // If the label is Pedestrian Signal, do not call ratingReminderAlert()
-            if (prop.labelDescription !== 'Pedestrian Signal') {
-                svl.ratingReminderAlert.ratingClicked(prop.severity);
+            var lastLabelProps = labels[labels.length - 1].getProperties();
+            // If the label is Pedestrian Signal, do not call ratingReminderAlert().
+            if (lastLabelProps.labelType !== 'Signal') {
+                svl.ratingReminderAlert.ratingClicked(lastLabelProps.severity);
             }
         }
     }

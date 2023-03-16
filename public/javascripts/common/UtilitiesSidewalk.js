@@ -67,12 +67,10 @@ function UtilitiesMisc (JSON) {
         var descriptions = {
             'Walk': {
                 'id': 'Walk',
-                'text': 'Walk',
                 keyChar: 'E'
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                text: 'Curb Ramp',
                 keyChar: 'C',
                 tagInfo: {
                     'narrow': {
@@ -115,7 +113,6 @@ function UtilitiesMisc (JSON) {
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                text: 'Missing Curb Ramp',
                 keyChar: 'M',
                 tagInfo: {
                     'alternate route present': {
@@ -134,7 +131,6 @@ function UtilitiesMisc (JSON) {
             },
             Obstacle: {
                 id: 'Obstacle',
-                text: 'Obstacle in Path',
                 keyChar: 'O',
                 tagInfo: {
                     'trash/recycling can': {
@@ -205,7 +201,6 @@ function UtilitiesMisc (JSON) {
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                text: 'Surface Problem',
                 keyChar: 'S',
                 tagInfo: {
                     'bumpy': {
@@ -260,7 +255,6 @@ function UtilitiesMisc (JSON) {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                text: 'No Sidewalk',
                 keyChar: 'N',
                 tagInfo: {
                     'ends abruptly': {
@@ -287,7 +281,6 @@ function UtilitiesMisc (JSON) {
             },
             Crosswalk: {
                 id: 'Crosswalk',
-                text: 'Crosswalk',
                 keyChar: 'W',
                 tagInfo: {
                     'paint fading': {
@@ -330,7 +323,6 @@ function UtilitiesMisc (JSON) {
             },
             Signal: {
                 id: 'Signal',
-                text: 'Pedestrian Signal',
                 keyChar: 'P',
                 tagInfo: {
                     'has button': {
@@ -349,7 +341,6 @@ function UtilitiesMisc (JSON) {
             },
             Other: {
                 id: 'Other',
-                text: 'Other',
                 tagInfo: {
                     'missing crosswalk': {
                         keyChar: 'I',
@@ -363,7 +354,6 @@ function UtilitiesMisc (JSON) {
             },
             Occlusion: {
                 id: 'Occlusion',
-                text: "Can't see the sidewalk",
                 keyChar: 'B'
             }
         };

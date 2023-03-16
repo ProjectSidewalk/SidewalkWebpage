@@ -45,7 +45,6 @@ function Label(params) {
         missionId: undefined,
         labelType: undefined,
         fillStyle: undefined,
-        labelDescription: undefined,
         iconImagePath: undefined,
         originalCanvasCoordinate: undefined,
         currCanvasCoordinate: undefined,

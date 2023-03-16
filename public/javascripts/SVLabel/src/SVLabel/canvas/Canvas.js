@@ -63,12 +63,10 @@ function Canvas(ribbon) {
     }
 
     /**
-     * Finish up labeling.
-     * Clean this method when I get a chance.....
+     * Create a label at the given X/Y canvas coordinate.
      */
     function createLabel(canvasX, canvasY) {
         var labelType = ribbon.getStatus('selectedLabelType');
-        var labelDescription = util.misc.getLabelDescriptions(labelType);
 
         var pov = svl.map.getPov();
         var povOfLabel = util.panomarker.calculatePointPov(
@@ -82,8 +80,7 @@ function Canvas(ribbon) {
         var param = {
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
-            labelType: labelDescription.id,
-            labelDescription: labelDescription.text,
+            labelType: labelType,
             originalCanvasCoordinate: { x: canvasX, y: canvasY },
             currCanvasCoordinate: rerenderCanvasCoord,
             povOfLabelIfCentered: povOfLabel,
@@ -107,7 +104,7 @@ function Canvas(ribbon) {
         }
 
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
-            labelType: labelDescription.id,
+            labelType: labelType,
             canvasX: canvasX,
             canvasY: canvasY
         }, {
