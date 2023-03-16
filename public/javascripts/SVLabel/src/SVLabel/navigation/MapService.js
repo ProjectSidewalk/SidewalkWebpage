@@ -620,7 +620,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
                             povChange["status"] = true;
                             _canvas.clear();
-                            _canvas.setVisibilityBasedOnLocation('visible', panoId);
+                            _canvas.setOnlyLabelsOnPanoAsVisible(panoId);
                             _canvas.render();
                             povChange["status"] = false;
 
@@ -874,7 +874,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         setViewControlLayerCursor('OpenHand');
         var currTime = new Date().getTime();
 
-        var selectedLabel = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+        var selectedLabel = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
         if (selectedLabel && selectedLabel.className === "Label") {
             _canvas.setCurrentLabel(selectedLabel);
 
@@ -929,7 +929,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         // Show label delete menu.
-        var item = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
+        var item = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
         if (item && item.className === "Label") {
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
@@ -1107,7 +1107,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function updateCanvas() {
         _canvas.clear();
         if (status.currentPanoId !== getPanoId()) {
-            _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
+            _canvas.setOnlyLabelsOnPanoAsVisible(getPanoId());
         }
         status.currentPanoId = getPanoId();
         _canvas.render();

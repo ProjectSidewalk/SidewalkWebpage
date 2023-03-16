@@ -316,7 +316,7 @@ function Main (params) {
 
         svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
-            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
+            svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.map.getPanoId());
 
             // Count the labels of each label type to initialize the current mission label counts.
             var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};

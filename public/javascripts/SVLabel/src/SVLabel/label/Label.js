@@ -189,22 +189,19 @@ function Label(params) {
 
 
     /**
-     * Check if a label is under a cursor
+     * Check if a label is under the cursor.
      * @param x
      * @param y
      * @returns {boolean}
      */
-    function isOn (x, y) {
-        if (status.deleted || status.visibility === 'hidden') {  return false; }
+    function isOn(x, y) {
         var margin = svl.LABEL_ICON_RADIUS / 2 + 2;
-        if (x < properties.currCanvasCoordinate.x + margin &&
+        return !status.deleted &&
+            status.visibility === 'visible' &&
+            x < properties.currCanvasCoordinate.x + margin &&
             x > properties.currCanvasCoordinate.x - margin &&
             y < properties.currCanvasCoordinate.y + margin &&
-            y > properties.currCanvasCoordinate.y - margin) {
-            return this;
-        } else {
-            return false;
-        }
+            y > properties.currCanvasCoordinate.y - margin;
     }
 
     /**
@@ -428,26 +425,8 @@ function Label(params) {
      * @param visibility
      * @returns {setVisibility}
      */
-    function setVisibility (visibility) {
+    function setVisibility(visibility) {
         status.visibility = visibility;
-        return this;
-    }
-
-    /**
-     * Set visibility of labels
-     * @param visibility
-     * @param panoramaId
-     * @returns {setVisibilityBasedOnLocation}
-     */
-    function setVisibilityBasedOnLocation (visibility, panoramaId) {
-        if (!status.deleted) {
-            if (panoramaId === properties.panoId) {
-                setVisibility(visibility);
-            } else {
-                visibility = visibility === 'visible' ? 'hidden' : 'visible';
-                setVisibility(visibility);
-            }
-        }
         return this;
     }
 
@@ -553,7 +532,6 @@ function Label(params) {
     self.setStatus = setStatus;
     self.setHoverInfoVisibility = setHoverInfoVisibility;
     self.setVisibility = setVisibility;
-    self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
     self.toLatLng = toLatLng;
 
     _init(params);
