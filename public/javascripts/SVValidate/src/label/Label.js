@@ -123,12 +123,12 @@ function Label(params) {
      * Gets the position of this label from the POV from which it was originally placed.
      * @returns {heading: number, pitch: number}
      */
-    function getPosition () {
+    function getPosition() {
         // This calculates the heading and position for placing this Label onto the panorama from
         // the same POV as when the user placed the label.
         let pos = svv.util.properties.panorama.getPosition(getAuditProperty('canvasX'),
-            getAuditProperty('canvasY'), svv.canvasWidth, svv.canvasHeight, getAuditProperty('zoom'),
-            getAuditProperty('heading'), getAuditProperty('pitch'));
+            getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+            getAuditProperty('zoom'), getAuditProperty('heading'), getAuditProperty('pitch'));
         return pos;
     }
 

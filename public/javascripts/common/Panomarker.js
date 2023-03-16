@@ -231,12 +231,6 @@
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
 
-        // Adjusts the width and height for when placing PanoMarkers on mobile phones.
-        if (isMobile()) {
-            width = window.innerWidth;
-            height = window.innerHeight;
-        }
-
         var target = {
             left: width / 2,
             top: height / 2
@@ -419,8 +413,7 @@
         // If neither icon, class nor id is specified, assign the basic google maps
         // marker image to the marker (otherwise it will be invisible)
         if (!(this.id_ || this.className_ || this.icon_)) {
-            marker.style.backgroundImage = 'url(https://www.google.com/intl/en_us/' +
-                'mapfiles/ms/micons/red-dot.png)';
+            marker.style.backgroundImage = 'url(https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png)';
         }
 
         this.marker_ = marker;
@@ -499,9 +492,8 @@
             this.toggleDescription_ = false;
         }
 
-        // Calculate the position according to the viewport. Even though the marker
-        // doesn't sit directly underneath the panorama container, we pass it on as
-        // the viewport because it has the actual viewport dimensions.
+        // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath the
+        // panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
         var offset = this.povToPixel_(this.position_,
             this.pano_.getPov(),
             typeof this.pano_.getZoom() !== 'undefined' ? this.pano_.getZoom() : 1,
@@ -511,8 +503,7 @@
                 this.marker_.style.left = (offset.left - this.anchor_.x) + 'px';
                 this.marker_.style.top = (offset.top - this.anchor_.y) + 'px';
             } else {
-                // If offset is null, the marker is "behind" the camera,
-                // therefore we position the marker outside of the viewport
+                // If offset is null, marker is "behind" the camera, so we position the marker outside the viewport.
                 this.marker_.style.left = -(9999 + this.size_.width) + 'px';
                 this.marker_.style.top = '0';
             }
