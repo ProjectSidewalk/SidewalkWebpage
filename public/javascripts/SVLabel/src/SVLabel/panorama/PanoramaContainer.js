@@ -1,33 +1,31 @@
 function PanoramaContainer () {
-    var self = { className: "PanoramaContainer" },
+    var self = { className: 'PanoramaContainer' },
         container = {};
 
     /**
-     * This method adds panorama data into the container
+     * This method adds panorama data into the container.
      * @param panoramaId
      * @param panoramaMetadata
      */
     function addPanoMetadata(panoramaId, panoramaMetadata) {
         if (!(panoramaId in container)) {
-            if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
+            if (panoramaId === 'tutorial' || panoramaId === 'tutorialAfterWalk') {
                 panoramaMetadata.submitted = true;
-                // container[panoramaId] = new Panorama({ submitted: true, tiles: { worldSize: { width: 13312, height: 6656 } } });
             }
             container[panoramaId] = new Panorama(panoramaMetadata);
         }
     }
 
     /**
-     * This method returns the existing panorama data
+     * This method returns the existing panorama data.
      * @param panoramaId
-     * @returns {null}
      */
     function getPanorama(panoramaId) {
         return panoramaId in container ? container[panoramaId] : null;
     }
 
     /**
-     * Get all the panorama instances stored in the container
+     * Get all the panorama instances stored in the container.
      * @returns {Array}
      */
     function getPanoramas() {
@@ -35,12 +33,12 @@ function PanoramaContainer () {
     }
 
     /**
-     * Get panorama instances that have not been submitted to the server
+     * Get panorama instances that have not been submitted to the server.
      * @returns {Array}
      */
     function getStagedPanoramas() {
         var panoramas = getPanoramas();
-        panoramas = panoramas.filter(function (pano) { return !pano.getProperty("submitted"); });
+        panoramas = panoramas.filter(function (pano) { return !pano.getProperty('submitted'); });
         return panoramas;
     }
 
