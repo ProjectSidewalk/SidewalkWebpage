@@ -78,7 +78,6 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val gsvPanoramaId: String,
                                           val headingPitchZoom: (Float, Float, Int),
                                           val canvasXY: (Int, Int),
-                                          val canvasWidthHeight: (Int, Int),
                                           val agreeDisagreeNotsureCount: (Int, Int, Int),
                                           val labelSeverity: Option[Int],
                                           val labelTemporary: Boolean,
@@ -87,7 +86,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val labelDescription: Option[String],
                                           val userId: String) {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
-                  |size=${canvasWidthHeight._1}x${canvasWidthHeight._2}
+                  |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${gsvPanoramaId}
                   |&heading=${headingPitchZoom._1}
                   |&pitch=${headingPitchZoom._2}
@@ -114,8 +113,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
         "zoom" -> headingPitchZoom._3,
         "canvas_x" -> canvasXY._1,
         "canvas_y" -> canvasXY._2,
-        "canvas_width" -> canvasWidthHeight._1,
-        "canvas_height" -> canvasWidthHeight._2,
+        "canvas_width" -> LabelPointTable.canvasWidth,
+        "canvas_height" -> LabelPointTable.canvasHeight,
         "gsv_url" -> gsvUrl,
         "image_date" -> imageLabelDates._1,
         "label_date" -> imageLabelDates._2.toString(),
@@ -135,9 +134,10 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 neighborhoodName, labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
                                 headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
-                                canvasXY._1.toString, canvasXY._2.toString, canvasWidthHeight._1.toString,
-                                canvasWidthHeight._2.toString, "\"" + gsvUrl + "\"", imageLabelDates._1, imageLabelDates._2.toString,
-                                labelSeverity.getOrElse("NA").toString, labelTemporary.toString, agreeDisagreeNotsureCount._1.toString,
+                                canvasXY._1.toString, canvasXY._2.toString, LabelPointTable.canvasWidth.toString,
+                                LabelPointTable.canvasHeight.toString, "\"" + gsvUrl + "\"", imageLabelDates._1,
+                                imageLabelDates._2.toString, labelSeverity.getOrElse("NA").toString,
+                                labelTemporary.toString, agreeDisagreeNotsureCount._1.toString,
                                 agreeDisagreeNotsureCount._2.toString, agreeDisagreeNotsureCount._3.toString,
                                 "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"", userId)
 }
@@ -193,9 +193,10 @@ object GlobalAttributeTable {
   implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
     GlobalAttributeWithLabelForAPI(
       r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt, r.nextString,
-      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, (r.nextFloat, r.nextFloat, r.nextInt), (r.nextInt,
-      r.nextInt), (r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean, (r.nextString,
-      r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString
+      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
+      (r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
+      (r.nextString, r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
+      r.nextStringOption(), r.nextString
     )
   )
 
@@ -309,8 +310,6 @@ object GlobalAttributeTable {
           |        label_point.zoom,
           |        label_point.canvas_x,
           |        label_point.canvas_y,
-          |        label_point.canvas_width,
-          |        label_point.canvas_height,
           |        label.agree_count,
           |        label.disagree_count,
           |        label.notsure_count,

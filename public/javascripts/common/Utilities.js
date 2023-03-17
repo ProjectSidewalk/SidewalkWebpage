@@ -1,5 +1,9 @@
 var util = util || {};
 
+// Some constants that are used across the site.
+util.EXPLORE_CANVAS_WIDTH = 720;
+util.EXPLORE_CANVAS_HEIGHT = 480;
+
 // A cross-browser function to capture a mouse position.
 function mouseposition(e, dom) {
     var mx, my;
@@ -21,10 +25,8 @@ if (typeof Object.create !== 'function') {
 
 // Trim function
 // Based on a code on: http://stackoverflow.com/questions/498970/how-do-i-trim-a-string-in-javascript
-if(typeof(String.prototype.trim) === "undefined")
-{
-    String.prototype.trim = function()
-    {
+if (typeof(String.prototype.trim) === "undefined") {
+    String.prototype.trim = function() {
         return String(this).replace(/^\s+|\s+$/g, '');
     };
 }
@@ -76,15 +78,6 @@ function getImage(imageUrl) {
 }
 util.getImage = getImage;
 
-// Array Remove - By John Resig (MIT Licensed)
-// http://stackoverflow.com/questions/500606/javascript-array-delete-elements
-Array.prototype.remove = function(from, to) {
-    // var rest = this.slice((to || from) + 1 || this.length);
-    var rest = this.slice(parseInt(to || from) + 1 || this.length);
-    this.length = from < 0 ? this.length + from : from;
-    return this.push.apply(this, rest);
-};
-
 // Array min/max
 // http://stackoverflow.com/questions/1669190/javascript-min-max-array-values
 Array.prototype.max = function() {
@@ -95,30 +88,13 @@ Array.prototype.min = function() {
     return Math.min.apply(null, this)
 };
 
-Array.prototype.sum = function () {
+Array.prototype.sum = function() {
     return this.reduce(function(a, b) { return a + b;});
 };
 
-Array.prototype.mean = function () {
+Array.prototype.mean = function() {
     return this.sum() / this.length;
 };
-
-/*
- json2.js
- 2011-10-19
-
- Public Domain.
-
- NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
-
- See http://www.JSON.org/js.html
- ...
-
- Check Douglas Crockford's code for a more recent version of json2.js
- https://github.com/douglascrockford/JSON-js/blob/master/json2.js
- */
-if(typeof JSON!=="object"){JSON={}}(function(){"use strict";function f(e){return e<10?"0"+e:e}function quote(e){escapable.lastIndex=0;return escapable.test(e)?'"'+e.replace(escapable,function(e){var t=meta[e];return typeof t==="string"?t:"\\u"+("0000"+e.charCodeAt(0).toString(16)).slice(-4)})+'"':'"'+e+'"'}function str(e,t){var n,r,i,s,o=gap,u,a=t[e];if(a&&typeof a==="object"&&typeof a.toJSON==="function"){a=a.toJSON(e)}if(typeof rep==="function"){a=rep.call(t,e,a)}switch(typeof a){case"string":return quote(a);case"number":return isFinite(a)?String(a):"null";case"boolean":case"null":return String(a);case"object":if(!a){return"null"}gap+=indent;u=[];if(Object.prototype.toString.apply(a)==="[object Array]"){s=a.length;for(n=0;n<s;n+=1){u[n]=str(n,a)||"null"}i=u.length===0?"[]":gap?"[\n"+gap+u.join(",\n"+gap)+"\n"+o+"]":"["+u.join(",")+"]";gap=o;return i}if(rep&&typeof rep==="object"){s=rep.length;for(n=0;n<s;n+=1){if(typeof rep[n]==="string"){r=rep[n];i=str(r,a);if(i){u.push(quote(r)+(gap?": ":":")+i)}}}}else{for(r in a){if(Object.prototype.hasOwnProperty.call(a,r)){i=str(r,a);if(i){u.push(quote(r)+(gap?": ":":")+i)}}}}i=u.length===0?"{}":gap?"{\n"+gap+u.join(",\n"+gap)+"\n"+o+"}":"{"+u.join(",")+"}";gap=o;return i}}if(typeof Date.prototype.toJSON!=="function"){Date.prototype.toJSON=function(e){return isFinite(this.valueOf())?this.getUTCFullYear()+"-"+f(this.getUTCMonth()+1)+"-"+f(this.getUTCDate())+"T"+f(this.getUTCHours())+":"+f(this.getUTCMinutes())+":"+f(this.getUTCSeconds())+"Z":null};String.prototype.toJSON=Number.prototype.toJSON=Boolean.prototype.toJSON=function(e){return this.valueOf()}}var cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,escapable=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,gap,indent,meta={"\b":"\\b","	":"\\t","\n":"\\n","\f":"\\f","\r":"\\r",'"':'\\"',"\\":"\\\\"},rep;if(typeof JSON.stringify!=="function"){JSON.stringify=function(e,t,n){var r;gap="";indent="";if(typeof n==="number"){for(r=0;r<n;r+=1){indent+=" "}}else if(typeof n==="string"){indent=n}rep=t;if(t&&typeof t!=="function"&&(typeof t!=="object"||typeof t.length!=="number")){throw new Error("JSON.stringify")}return str("",{"":e})}}if(typeof JSON.parse!=="function"){JSON.parse=function(text,reviver){function walk(e,t){var n,r,i=e[t];if(i&&typeof i==="object"){for(n in i){if(Object.prototype.hasOwnProperty.call(i,n)){r=walk(i,n);if(r!==undefined){i[n]=r}else{delete i[n]}}}}return reviver.call(e,t,i)}var j;text=String(text);cx.lastIndex=0;if(cx.test(text)){text=text.replace(cx,function(e){return"\\u"+("0000"+e.charCodeAt(0).toString(16)).slice(-4)})}if(/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,"@").replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,"]").replace(/(?:^|:|,)(?:\s*\[)+/g,""))){j=eval("("+text+")");return typeof reviver==="function"?walk({"":j},""):j}throw new SyntaxError("JSON.parse")}}})()
-
 
 // Get what browser the user is using.
 // This code was taken from an answer in the following SO page:
@@ -154,28 +130,28 @@ function getBrowser() {
 }
 util.getBrowser = getBrowser;
 
-function getBrowserVersion () {
+function getBrowserVersion() {
     // Return a browser version
     return $.browser.version;
 }
 util.getBrowserVersion = getBrowserVersion;
 
-function getOperatingSystem () {
+function getOperatingSystem() {
     var OSName="Unknown OS";
-    if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
-    if (navigator.appVersion.indexOf("Mac")!=-1) OSName="MacOS";
-    if (navigator.appVersion.indexOf("X11")!=-1) OSName="UNIX";
-    if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
-    if (navigator.appVersion.indexOf("Android")!=-1) OSName="Android";
-    if (navigator.appVersion.indexOf("iPad")!=-1 ||
-        navigator.appVersion.indexOf("iPhone")!=-1 ||
-        navigator.appVersion.indexOf("iPod")!=-1) OSName="iOS";
+    if (navigator.appVersion.indexOf("Win") !==-1) OSName="Windows";
+    if (navigator.appVersion.indexOf("Mac") !==-1) OSName="MacOS";
+    if (navigator.appVersion.indexOf("X11") !==-1) OSName="UNIX";
+    if (navigator.appVersion.indexOf("Linux") !==-1) OSName="Linux";
+    if (navigator.appVersion.indexOf("Android") !==-1) OSName="Android";
+    if (navigator.appVersion.indexOf("iPad") !==-1 ||
+        navigator.appVersion.indexOf("iPhone") !==-1 ||
+        navigator.appVersion.indexOf("iPod") !==-1) OSName="iOS";
     return OSName;
 }
 util.getOperatingSystem = getOperatingSystem;
 
 // Changes a string in camelCase to kebab-case.
-function camelToKebab (theString) {
+function camelToKebab(theString) {
     return theString.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 util.camelToKebab = camelToKebab;

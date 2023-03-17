@@ -33,18 +33,16 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         val labels: List[LabelTable.ResumeLabelMetadata] = LabelTable.getLabelsFromUserInRegion(regionId, user.userId)
         val jsLabels: List[JsObject] = labels.map { label =>
           Json.obj(
-            "canvasWidth" -> label.pointData.canvasWidth,
-            "canvasHeight" -> label.pointData.canvasHeight,
-            "canvasDistortionAlphaX" -> label.pointData.alphaX,
-            "canvasDistortionAlphaY" -> label.pointData.alphaY,
             "labelId" -> label.labelData.labelId,
             "labelType" -> label.labelType,
             "panoId" -> label.labelData.gsvPanoramaId,
             "panoramaLat" -> label.labelData.panoramaLat,
             "panoramaLng" -> label.labelData.panoramaLng,
-            "panoramaHeading" -> label.pointData.heading,
-            "panoramaPitch" -> label.pointData.pitch,
-            "panoramaZoom" -> label.pointData.zoom,
+            "originalPov" -> Json.obj(
+              "heading" -> label.pointData.heading,
+              "pitch" -> label.pointData.pitch,
+              "zoom" -> label.pointData.zoom
+            ),
             "photographerHeading" -> label.labelData.photographerHeading,
             "photographerPitch" -> label.labelData.photographerPitch,
             "svImageWidth" -> label.svImageWidth,
@@ -52,12 +50,14 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
             "tagIds" -> label.tagIds,
             "severity" -> label.labelData.severity,
             "tutorial" -> label.labelData.tutorial,
-            "temporary_label_id" -> label.labelData.temporaryLabelId,
+            "temporaryLabelId" -> label.labelData.temporaryLabelId,
             "temporaryLabel" -> label.labelData.temporary,
             "description" -> label.labelData.description,
             "canvasX" -> label.pointData.canvasX,
             "canvasY" -> label.pointData.canvasY,
-            "audit_task_id" -> label.labelData.auditTaskId,
+            "svImageX" -> label.pointData.svImageX,
+            "svImageY" -> label.pointData.svImageY,
+            "auditTaskId" -> label.labelData.auditTaskId,
             "missionId" -> label.labelData.missionId,
             "labelLat" -> label.pointData.lat,
             "labelLng" -> label.pointData.lng

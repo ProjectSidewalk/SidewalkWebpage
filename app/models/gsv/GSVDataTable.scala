@@ -33,11 +33,11 @@ object GSVDataTable {
   val gsvDataRecords = TableQuery[GSVDataTable]
 
   /**
-   * List all panos with some metadata. For the metadata that we get from the label table (panorama_lat, panorama_lng,
-   * photographer_heading, and photographer_pitch), we are getting different values from Google's API over time. We are
-   * not totally sure why, but for now we are grabbing the most recent metadata we've gotten from Google.
+   * List all panos with labels with some metadata. For the metadata that we get from the label table (panorama_lat,
+   * panorama_lng, photographer_heading, and photographer_pitch), we are getting different values from Google's API over
+   * time. We are not totally sure why, but for now we are grabbing the most recent metadata we've gotten from Google.
    */
-  def getAllPanos: List[GSVDataExtended] = db.withSession { implicit session =>
+  def getAllPanosWithLabels: List[GSVDataExtended] = db.withSession { implicit session =>
     // Get most recent labels for each pano_id so that we have the most recent metadata from Google.
     val mostRecentLabels = LabelTable.labelsUnfiltered
       .filter(_.gsvPanoramaId =!= "tutorial")
@@ -48,8 +48,8 @@ object GSVDataTable {
     // Left join with the most recent labels that we found above, grabbing the metadata.
     gsvDataRecords
       .filter(_.gsvPanoramaId =!= "tutorial")
-      .leftJoin(mostRecentLabels).on(_.gsvPanoramaId === _.gsvPanoramaId)
-      .map{ case (g, l) => (
+      .innerJoin(mostRecentLabels).on(_.gsvPanoramaId === _.gsvPanoramaId)
+      .map { case (g, l) => (
         g.gsvPanoramaId, g.imageWidth, g.imageHeight, l.panoramaLat.?, l.panoramaLng.?, l.photographerPitch.?, l.photographerHeading.?
       )}.list.map(GSVDataExtended.tupled)
   }
@@ -60,19 +60,19 @@ object GSVDataTable {
     * @param gsvPanoramaId GSV Panorama ID.
     * @return              Boolean value of the expired column.
     */
-  def markExpired(gsvPanoramaId: String, expired: Boolean): Int = db.withTransaction { implicit session =>
+  def markExpired(gsvPanoramaId: String, expired: Boolean): Int = db.withSession { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.expired
     q.update(expired)
   }
 
   /**
-    * This function records the last time this panorama was viewed.
+    * This function records the last time this panorama was successfully viewed.
     *
     * @param gsvPanoramaId  GSV Panorama ID.
     * @param timestamp      Timestamp from the last time this panorama was accessed.
     * @return
     */
-  def markLastViewedForPanorama(gsvPanoramaId: String, timestamp: Timestamp): Int = db.withTransaction { implicit session =>
+  def markLastViewedForPanorama(gsvPanoramaId: String, timestamp: Timestamp): Int = db.withSession { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.lastViewed
     q.update(Some(timestamp))
   }
@@ -83,11 +83,11 @@ object GSVDataTable {
     * @param panoramaId Google Street View panorama Id
     * @return
     */
-  def panoramaExists(panoramaId: String): Boolean = db.withTransaction { implicit session =>
+  def panoramaExists(panoramaId: String): Boolean = db.withSession { implicit session =>
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).list.nonEmpty
   }
 
-  def save(data: GSVData): String = db.withTransaction { implicit session =>
+  def save(data: GSVData): String = db.withSession { implicit session =>
     gsvDataRecords += data
     data.gsvPanoramaId
   }

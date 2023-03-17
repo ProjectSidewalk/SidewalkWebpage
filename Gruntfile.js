@@ -28,10 +28,8 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/Utilities.js',
-                    'public/javascripts/common/UtilitiesColor.js',
                     'public/javascripts/common/UtilitiesMath.js',
                     'public/javascripts/common/UtilitiesPanomarker.js',
-                    'public/javascripts/common/UtilitiesShape.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/GSVInfoPopover.js'
                 ],
@@ -40,13 +38,18 @@ module.exports = function(grunt) {
             dist_progress: {
                 src: [
                     'public/javascripts/Progress/src/*.js',
-                    'public/javascripts/common/Utilities.js'
+                    'public/javascripts/common/Utilities.js',
+                    'public/javascripts/common/UtilitiesSidewalk.js',
                 ],
                 dest: 'public/javascripts/Progress/build/Progress.js'
             },
             dist_admin: {
                 src: [
-                    'public/javascripts/Admin/src/*.js'
+                    'public/javascripts/Admin/src/*.js',
+                    'public/javascripts/common/Utilities.js',
+                    'public/javascripts/common/UtilitiesSidewalk.js',
+                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/UtilitiesPanomarker.js'
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },

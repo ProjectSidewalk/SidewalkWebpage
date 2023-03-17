@@ -150,30 +150,29 @@ object LabelTable {
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String,
-                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), canvasWidthHeight: (Int, Int),
-                           auditTaskId: Int, streetEdgeId: Int, regionId: Int, userId: String, username: String,
+                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), auditTaskId: Int,
+                           streetEdgeId: Int, regionId: Int, userId: String, username: String,
                            timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
                            severity: Option[Int], temporary: Boolean, description: Option[String],
                            userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-                                   canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, labelType: String,
+                                   canvasX: Int, canvasY: Int, labelType: String,
                                    timeValidated: Option[java.sql.Timestamp], validatorComment: Option[String]) extends BasicLabelMetadata
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
                                      timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
-                                     canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
-                                     severity: Option[Int], temporary: Boolean, description: Option[String],
-                                     streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
-                                     userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
+                                     canvasX: Int, canvasY: Int, severity: Option[Int], temporary: Boolean,
+                                     description: Option[String], streetEdgeId: Int, regionId: Int,
+                                     correct: Option[Boolean], userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageDate: String, timestamp: java.sql.Timestamp, heading: Float,
-                                                pitch: Float, zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int,
-                                                canvasHeight: Int, severity: Option[Int], temporary: Boolean,
-                                                description: Option[String], streetEdgeId: Int, regionId: Int,
-                                                correct: Option[Boolean], userValidation: Option[Int]) extends BasicLabelMetadata
+                                                pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
+                                                severity: Option[Int], temporary: Boolean, description: Option[String],
+                                                streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
+                                                userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, tagIds: List[Int])
@@ -186,7 +185,7 @@ object LabelTable {
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
       r.nextInt, r.nextString, r.nextBoolean, r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
-      (r.nextInt, r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
+      (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
       r.nextTimestamp, r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
@@ -195,18 +194,17 @@ object LabelTable {
 
   implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
     LabelValidationMetadataWithoutTags(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat,
-      r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
-      r.nextStringOption, r.nextInt, r.nextInt, r.nextBooleanOption, r.nextIntOption
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
+      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
+      r.nextBooleanOption, r.nextIntOption
     )
   )
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
-      r.nextInt, r.nextBooleanOption, r.nextIntOption,
-      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
+      r.nextBooleanOption, r.nextIntOption, r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
 
@@ -223,7 +221,7 @@ object LabelTable {
         r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean, r.nextStringOption),
       r.nextString,
       LabelPoint(r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextInt,
-        r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
+        r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
       r.nextInt, r.nextInt,
       r.nextStringOption.map(tags => tags.split(",").map(_.toInt).toList).getOrElse(List())
     )
@@ -430,8 +428,6 @@ object LabelTable {
         |       lp.zoom,
         |       lp.canvas_x,
         |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height,
         |       lb1.audit_task_id,
         |       lb1.street_edge_id,
         |       ser.region_id,
@@ -553,9 +549,8 @@ object LabelTable {
       val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.image_date,
           |        label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
-          |        label_point.canvas_y, label_point.canvas_width, label_point.canvas_height, label.severity,
-          |        label.temporary, label.description, label.street_edge_id, street_edge_region.region_id,
-          |        label.correct, user_validation.validation_result, the_tags.tag_list
+          |        label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
+          |        street_edge_region.region_id, label.correct, user_validation.validation_result, the_tags.tag_list
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -690,8 +685,8 @@ object LabelTable {
     val _labelInfoWithUserVals = for {
       (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
-      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId, l._1.correct, v._2.?)
+      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._1.severity, l._1.temporary, l._1.description,
+      l._1.streetEdgeId, l._5.regionId, l._1.correct, v._2.?)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
@@ -750,8 +745,7 @@ object LabelTable {
         _gd.expired === false && // Only include those with non-expired GSV imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
         (_lt.labelType inSet labTypes) // Only include given label types.
-    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
-      _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
+    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY, _lt.labelType, _vc._5, _vc._6)
 
     // Run query, group by label type, get most recent validation for each label, and order by recency.
     val potentialLabels: Map[String, List[LabelMetadataUserDash]] =
@@ -875,8 +869,8 @@ object LabelTable {
   def labelAndTagsToLabelValidationMetadata(label: LabelValidationMetadataWithoutTags, tags: List[String]): LabelValidationMetadata = {
       LabelValidationMetadata(
         label.labelId, label.labelType, label.gsvPanoramaId, label.imageDate, label.timestamp, label.heading,
-        label.pitch, label.zoom, label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.severity,
-        label.temporary, label.description, label.streetEdgeId, label.regionId, label.correct, label.userValidation, tags
+        label.pitch, label.zoom, label.canvasX, label.canvasY, label.severity, label.temporary, label.description,
+        label.streetEdgeId, label.regionId, label.correct, label.userValidation, tags
       )
   }
 
@@ -1073,7 +1067,7 @@ object LabelTable {
         |       label_type.label_type,
         |       -- Entire label_point table.
         |       label_point_id, label_point.label_id, sv_image_x, sv_image_y, canvas_x, canvas_y, heading, pitch, zoom,
-        |       canvas_height, canvas_width, alpha_x, alpha_y, lat, lng, geom, computation_method,
+        |       lat, lng, geom, computation_method,
         |       -- All the extra stuff.
         |       gsv_data.image_width, gsv_data.image_height,
         |       the_tags.tag_list
@@ -1343,8 +1337,9 @@ object LabelTable {
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
     } yield (
       _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount,
-      _gsv.imageWidth, _gsv.imageHeight, _lp.svImageX, _lp.svImageY, _lp.canvasWidth, _lp.canvasHeight, _lp.canvasX,
-      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _l.photographerHeading, _l.photographerPitch
+      _gsv.imageWidth, _gsv.imageHeight, _lp.svImageX, _lp.svImageY, LabelPointTable.canvasWidth,
+      LabelPointTable.canvasHeight, _lp.canvasX, _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _l.photographerHeading,
+      _l.photographerPitch
     )).list.map(LabelCVMetadata.tupled)
   }
 }

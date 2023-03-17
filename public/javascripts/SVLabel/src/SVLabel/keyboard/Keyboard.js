@@ -40,7 +40,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     // Move in the direction of a link closest to a given angle.
     // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
     // Todo. Make the method name more descriptive.
-    this._movePano = function (angle) {
+    this._movePano = function(angle) {
         if (googleMap.getStatus("disableWalking")) return;
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
         var cosines = svl.panorama.links.map(function(link) {
@@ -49,7 +49,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         });
         var maxVal = Math.max.apply(null, cosines);
         var maxIndex = cosines.indexOf(maxVal);
-        if(cosines[maxIndex] > 0.5){
+        if (cosines[maxIndex] > 0.5) {
             var panoramaId = svl.panorama.links[maxIndex].pano;
             googleMap.setPano(panoramaId);
             return true;
@@ -93,19 +93,18 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
 
 
     /**
-     * Change the heading of the current panorama point of view by a particular degree value
-     * Todo. Change the method name so it is more descriptive.
+     * Change the heading of the current panorama point of view by a particular degree value.
+     * TODO Change the method name so it is more descriptive.
      * @param degree
      */
     this._rotatePov = function (degree){
         if (!svl.map.getStatus("disablePanning")){
             svl.contextMenu.hide();
-            //panning hide label tag and delete icon
+            // Panning hide label tag and delete icon.
             var labels = svl.labelContainer.getCanvasLabels(),
                 labelLen = labels.length;
             for (var i=0; i<labelLen; i++){
-                labels[i].setTagVisibility('hidden');
-                labels[i].resetTagCoordinate();
+                labels[i].setHoverInfoVisibility('hidden');
             }
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
             var heading =  svl.panorama.pov.heading;
@@ -152,7 +151,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         svl.tracker.push("KeyboardShortcut_Severity_" + severity, {
                             keyCode: e.keyCode
                         });
-                        svl.canvas.clear().render2();
+                        svl.canvas.clear().render();
                     }
                 }
             } else {
@@ -228,7 +227,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 }
 
                 // Hotkeys for tag selection.
-                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTagDisabled()) {
+                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTaggingDisabled()) {
                     var labelType = contextMenu.getTargetLabel().getProperty('labelType');
                     var tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
                     for (const tag of tags) {
@@ -251,18 +250,13 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 27:
                     // "Escape"
-                    if(contextMenu.isOpen()) {
+                    if (contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         svl.tracker.push("ContextMenu_CloseKeyboardShortcut");
                         contextMenu.hide();
                     }
 
-                    if (canvas.getStatus('drawing')) {
-                        canvas.cancelDrawing();
-                        svl.tracker.push("KeyboardShortcut_CancelDrawing");
-                    } else {
-                        ribbon.backToWalk();
-                    }
+                    ribbon.backToWalk();
                     svl.modalExample.hide();
                     break;
             }

@@ -213,8 +213,8 @@ function AdminTask(params) {
 
                                 var adminPanoramaLabel = AdminPanoramaLabel(
                                     label.label_id, label.label_type, label.canvasX, label.canvasY,
-                                    d.properties.canvasWidth, d.properties.canvasHeight, d.properties.heading,
-                                    d.properties.pitch, d.properties.zoom
+                                    util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+                                    d.properties.heading, d.properties.pitch, d.properties.zoom
                                 );
                                 self.panorama.renderLabel(adminPanoramaLabel);
                                 renderedLabels.push(label.label_id);

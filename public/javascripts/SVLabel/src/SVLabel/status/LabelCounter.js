@@ -38,7 +38,6 @@ function LabelCounter (d3) {
             descriptionPlural: i18next.t('missing-curb-ramps'),
             left: margin.left,
             top: (2 * margin.top) + margin.bottom + height,
-            // top: 2 * margin.top + margin.bottom + height,
             fillColor: colorScheme["NoCurbRamp"].fillStyle,
             imagePath: svl.rootDirectory + "/img/icons/NoCurbRamp_small.png",
             count: 0,
@@ -49,7 +48,6 @@ function LabelCounter (d3) {
             description: i18next.t('obstacle'),
             descriptionPlural: i18next.t('obstacles'),
             left: margin.left,
-            // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Obstacle"].fillStyle,
             imagePath: svl.rootDirectory + "/img/icons/Obstacle_small.png",
@@ -61,7 +59,6 @@ function LabelCounter (d3) {
             description: i18next.t('surface-problem'),
             descriptionPlural: i18next.t('surface-problems'),
             left: margin.left + (width/rightColumn),
-            //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
             top: margin.top,
             fillColor: colorScheme["SurfaceProblem"].fillStyle,
             imagePath: svl.rootDirectory + "/img/icons/SurfaceProblem_small.png",
@@ -333,9 +330,4 @@ function LabelCounter (d3) {
 
     // Initialize
     update();
-    // self.countLabel = countLabel;
-    // self.increment = increment;
-    // self.decrement = decrement;
-    // self.set = set;
-    // self.reset = reset;
 }
