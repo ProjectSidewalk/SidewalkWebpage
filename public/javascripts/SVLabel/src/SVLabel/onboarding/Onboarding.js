@@ -623,7 +623,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         $target.on("click", callback);
     }
     function _visitAddTag(state, listener) {
-        var $target = contextMenu.getContextMenuUI().tagHolder; // Grab tag holder so we can add an event listener.
+        var $target = svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
             if (listener) {
                 google.maps.event.removeListener(listener);
