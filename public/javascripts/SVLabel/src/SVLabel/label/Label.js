@@ -111,7 +111,7 @@ function Label(params) {
      * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
      * @returns {google.maps.Marker}
      */
-    function createMinimapMarker (labelType) {
+    function createMinimapMarker(labelType) {
         if (typeof google !== "undefined") {
             var latlng = toLatLng();
             var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
@@ -129,67 +129,67 @@ function Label(params) {
         }
     }
 
+    // Some functions for easy access to commonly accessed properties.
+    function getLabelId() { return properties.labelId; }
+    function getLabelType() { return properties.labelType; }
+    function getPanoId () { return properties.panoId; }
+
     /**
-     * This function returns the coordinate the label.
-     * @returns {*}
+     * Returns the coordinate of the label.
+     * @returns { x: Number, y: Number }
      */
     function getCoordinate() {
         return properties.currCanvasCoordinate;
     }
 
     /**
-     * This function returns labelId property
-     * @returns {string}
-     */
-    function getLabelId () {
-        return properties.labelId;
-    }
-
-    /**
-     * This function returns labelType property
-     * @returns {*}
-     */
-    function getLabelType () { return properties.labelType; }
-
-    /**
-     * This function returns panoId property
-     * @returns {*}
-     */
-    function getPanoId () { return properties.panoId; }
-
-    /**
      * Return deep copy of properties obj, so one can only modify props from setProperties() (not yet implemented).
-     * JavaScript Deepcopy
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
-    function getProperties () { return $.extend(true, {}, properties); }
+    function getProperties() { return $.extend(true, {}, properties); }
 
-    /**
-     * Get a property
-     * @param propName
-     */
     function getProperty(propName) { return (propName in properties) ? properties[propName] : false; }
 
+    function setProperty(key, value) { properties[key] = value; }
+
+    function getStatus(key) { return status[key]; }
+    function isDeleted() { return status.deleted; }
+    function isVisible() { return status.visibility === 'visible'; }
+    function setVisibility(visibility) { status.visibility = visibility; }
+
     /**
-     * Get a status
+     * Set status. Deals with special cases for the various status values that have a limited set of values.
      * @param key
-     * @returns {*}
+     * @param value
      */
-    function getStatus (key) {
-        return status[key];
+    function setStatus (key, value) {
+        if (key in status) {
+            if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
+                setVisibility(value);
+            } else if (key === 'hoverInfoVisibility' && (value === 'visible' || value === 'hidden')) {
+                setHoverInfoVisibility(value);
+            } else if (key === 'deleted' && typeof value === 'boolean') {
+                status[key] = value;
+            } else if (key === 'severity') {
+                status[key] = value;
+            }
+        }
     }
 
-    function getVisibility () { return status.visibility; }
-
     /**
-     * Check if the label is deleted
-     * @returns {boolean}
+     * Set the visibility of the hover info.
+     * @param visibility {string} visible or hidden
+     * @returns {setHoverInfoVisibility}
      */
-    function isDeleted () { return status.deleted; }
-
+    function setHoverInfoVisibility (visibility) {
+        if (visibility === 'visible' || visibility === 'hidden') {
+            status['hoverInfoVisibility'] = visibility;
+        }
+        return this;
+    }
 
     /**
-     * Check if a label is under the cursor.
+     * Check if this label is under the cursor.
      * @param x
      * @param y
      * @returns {boolean}
@@ -205,23 +205,15 @@ function Label(params) {
     }
 
     /**
-     * This method returns the visibility of this label.
-     * @returns {boolean}
-     */
-    function isVisible () {
-        return status.visibility === 'visible';
-    }
-
-    /**
      * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
      */
-    function remove () {
+    function remove() {
         setStatus('deleted', true);
         setStatus('visibility', 'hidden');
     }
 
     /**
-     * This method renders this label on a canvas.
+     * Renders this label on a canvas.
      * @param ctx
      * @param pov
      * @returns {self}
@@ -247,9 +239,7 @@ function Label(params) {
             imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
             imageX =  properties.currCanvasCoordinate.x - svl.LABEL_ICON_RADIUS + 2;
             imageY = properties.currCanvasCoordinate.y - svl.LABEL_ICON_RADIUS + 2;
-
             imageObj.src = getProperty('iconImagePath');
-
             try {
                 ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
             } catch (e) {
@@ -275,7 +265,7 @@ function Label(params) {
             }
         }
 
-        // Show a label on the google maps pane.
+        // Show the label on the Google Maps pane.
         if (!isDeleted()) {
             if (googleMarker && !googleMarker.map) {
                 googleMarker.setMap(svl.map.getMap());
@@ -289,8 +279,7 @@ function Label(params) {
     }
 
     /**
-     * This function renders hover info on a canvas to show an overview of the label info.
-     *
+     * Renders hover info on a canvas to show an overview of the label info.
      * @param ctx
      * @returns {boolean}
      */
@@ -303,7 +292,6 @@ function Label(params) {
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
             hasSeverity = (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal'),
-            i, height,
             width = 0,
             labelRows = 1,
             severityImage = new Image(),
@@ -324,9 +312,9 @@ function Label(params) {
 
         // Set rendering properties and draw the hover info.
         ctx.font = '13px Open Sans';
-        height = HOVER_INFO_HEIGHT * labelRows;
+        var height = HOVER_INFO_HEIGHT * labelRows;
 
-        for (i = 0; i < messages.length; i += 1) {
+        for (var i = 0; i < messages.length; i += 1) {
             // Width of the hover info is determined by the width of the longest row.
             var firstRow = ctx.measureText(messages[i]).width;
             var secondRow = -1;
@@ -334,7 +322,7 @@ function Label(params) {
             // Do additional adjustments on the width to make room for smiley icon.
             if (hasSeverity) {
                 secondRow = ctx.measureText(severityMessage).width;
-                if (severitySVGElement != undefined) {
+                if (severitySVGElement !== undefined) {
                     if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
                         width += 15 - firstRow + secondRow;
                     } else if (firstRow - secondRow < 0) {
@@ -378,77 +366,20 @@ function Label(params) {
         }
     }
 
-    /**
-     * Sets a property
-     * @param key
-     * @param value
-     * @returns {setProperty}
-     */
-    function setProperty (key, value) {
-        properties[key] = value;
-        return this;
-    }
-
-    /**
-     * Set status
-     * @param key
-     * @param value
-     */
-    function setStatus (key, value) {
-        if (key in status) {
-            if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
-                setVisibility(value);
-            } else if (key === 'hoverInfoVisibility' && (value === 'visible' || value === 'hidden')) {
-                setHoverInfoVisibility(value);
-            } else if (key === 'deleted' && typeof value === 'boolean') {
-                status[key] = value;
-            } else if (key === 'severity') {
-                status[key] = value;
-            }
-        }
-    }
-
-    /**
-     * Set the visibility of the hover info.
-     * @param visibility {string} visible or hidden
-     * @returns {setHoverInfoVisibility}
-     */
-    function setHoverInfoVisibility (visibility) {
-        if (visibility === 'visible' || visibility === 'hidden') {
-            status['hoverInfoVisibility'] = visibility;
-        }
-        return this;
-    }
-
-    /**
-     * Set the visibility of the label
-     * @param visibility
-     * @returns {setVisibility}
-     */
-    function setVisibility(visibility) {
-        status.visibility = visibility;
-        return this;
-    }
-
     function showDeleteButton() {
         if (status.hoverInfoVisibility !== 'hidden') {
             var coord = getCoordinate();
-            svl.ui.canvas.deleteIconHolder.css({
-                visibility: 'visible',
-                left : coord.x + 5,
-                top : coord.y - 20
-            });
+            svl.ui.canvas.deleteIconHolder.css({ visibility: 'visible', left : coord.x + 5, top : coord.y - 20 });
         }
     }
 
     /**
-     * Renders a question mark if a label has an unmarked severity
-     * @param ctx   Rendering tool for severity (2D context)
+     * Renders a question mark if a label has an unmarked severity.
+     * @param ctx Rendering tool for severity (2D context).
      */
     function showSeverityAlert(ctx) {
-        var labelCoordinate = getCoordinate();
-        var x = labelCoordinate.x;
-        var y = labelCoordinate.y;
+        var x = properties.currCanvasCoordinate.x;
+        var y = properties.currCanvasCoordinate.y;
 
         // Draws circle.
         ctx.beginPath();
@@ -457,7 +388,7 @@ function Label(params) {
         ctx.fill();
         ctx.closePath();
 
-        // Draws text
+        // Draws text.
         ctx.beginPath();
         ctx.font = "12px Open Sans";
         ctx.fillStyle = 'rgb(255, 255, 255)';
@@ -466,12 +397,12 @@ function Label(params) {
     }
 
     /**
-     * Get the label latlng position
-     * @returns {labelLatLng}
+     * Get the label's estimated latlng position.
+     * @returns {lat: Number, lng: Number, computationMethod: String}
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            // Estimate the latlng point from the camera position and the heading angle when the point cloud data is not available.
+            // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
             var panoLat = getProperty("panoramaLat");
             var panoLng = getProperty("panoramaLng");
             var panoHeading = getProperty("originalPov").heading;
@@ -522,7 +453,6 @@ function Label(params) {
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.getstatus = getStatus;
-    self.getVisibility = getVisibility;
     self.isDeleted = isDeleted;
     self.isOn = isOn;
     self.isVisible = isVisible;

@@ -13,7 +13,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
     var nextTempLabelId = nextTemporaryLabelId;
 
     /**
-     * Adds a label to the given list. Our labels are sorted in objects with pano IDs as keys and lists as values.
+     * Helper func to add a label to given list. Our labels are sorted in objects with panoId keys and lists as values.
      * @param labelListObj
      * @param label
      */
