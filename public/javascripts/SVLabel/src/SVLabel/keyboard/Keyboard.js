@@ -227,7 +227,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 }
 
                 // Hotkeys for tag selection.
-                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTagDisabled()) {
+                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTaggingDisabled()) {
                     var labelType = contextMenu.getTargetLabel().getProperty('labelType');
                     var tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
                     for (const tag of tags) {

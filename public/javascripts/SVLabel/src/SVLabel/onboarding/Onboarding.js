@@ -613,7 +613,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _visitRateSeverity(state, listener) {
         contextMenu.disableTagging();
-        var $target = contextMenu.getContextMenuUI().radioButtons;
+        var $target = svl.ui.contextMenu.radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
