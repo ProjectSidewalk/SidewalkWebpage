@@ -13,9 +13,8 @@ util.panomarker = {};
 
 function get3dFov(zoom) {
     return zoom <= 2 ?
-    126.5 - zoom * 36.75 :  // linear descent
-    195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
-    // return 180 / Math.pow(2, zoom);
+    126.5 - zoom * 36.75 :  // Linear descent.
+    195.93 / Math.pow(1.92, zoom); // Parameters determined experimentally.
 }
 
 /**
@@ -142,12 +141,10 @@ function canvasCoordinateToImageCoordinate(pov, canvasX, canvasY, canvasWidth, c
 util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;
 
 /***
- * Get canvas coordinates of points from the POV
- * @return {Object} Top and Left offsets for the given viewport that point to
- *     the desired point-of-view.
+ * Get canvas coordinates of points from the POV.
+ * @return {Object} Top and Left offsets for the given viewport that point to the desired point-of-view.
  */
 function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
-
     // Gather required variables and convert to radians where necessary.
     var target = {
         left: canvasWidth / 2,
@@ -164,8 +161,8 @@ function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
     // f = focal length = distance of current POV to image plane
     var f = (canvasWidth / 2) / Math.tan(fov / 2);
 
-    // our coordinate system: camera at (0,0,0), heading = pitch = 0 at (0,f,0)
-    // calculate 3d coordinates of viewport center and target
+    // Our coordinate system: camera at (0,0,0), heading = pitch = 0 at (0,f,0).
+    // Calculate 3d coordinates of viewport center and target.
     var cos_p = Math.cos(p);
     var sin_p = Math.sin(p);
 
@@ -194,7 +191,7 @@ function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
     // Note: |currentVec| == |targetVec| == f
 
     // Sanity check: the vectors shouldn't be perpendicular because the line
-    // from camera through target would never intersect with the image plane
+    // from camera through target would never intersect with the image plane.
     if (Math.abs(nDotD) < 1e-6) {
         return null;
     }
@@ -205,20 +202,19 @@ function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
     //     (distance from camera to target == f)
     var t = nDotC / nDotD;
 
-    // Sanity check: it doesn't make sense to scale the vector in a negative
-    // direction. In fact, it should even be t >= 1.0 since the image plane
-    // is always outside the pano sphere (except at the viewport center)
+    // Sanity check: it doesn't make sense to scale the vector in a negative direction. In fact, it should even be
+    // t >= 1.0 since the image plane is always outside the pano sphere (except at the viewport center).
     if (t < 0.0) {
         return null;
     }
 
     // (tx, ty, tz) are the coordinates of the intersection point between a
-    // line through camera and target with the image plane
+    // line through camera and target with the image plane.
     var tx = t * x;
     var ty = t * y;
     var tz = t * z;
 
-    // u and v are the basis vectors for the image plane
+    // u and v are the basis vectors for the image plane.
     var vx = -sin_p0 * sin_h0;
     var vy = -sin_p0 * cos_h0;
     var vz = cos_p0;
@@ -227,18 +223,17 @@ function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
     var uy = -sin_h0;
     var uz = 0;
 
-    // normalize horiz. basis vector to obtain orthonormal basis
+    // Normalize horiz. basis vector to obtain orthonormal basis.
     var ul = Math.sqrt(ux * ux + uy * uy + uz * uz);
     ux /= ul;
     uy /= ul;
     uz /= ul;
 
-    // project the intersection point t onto the basis to obtain offsets in
-    // terms of actual pixels in the viewport
+    // Project the intersection point t onto the basis to obtain offsets in terms of actual pixels in the viewport.
     var du = tx * ux + ty * uy + tz * uz;
     var dv = tx * vx + ty * vy + tz * vz;
 
-    // use the calculated pixel offsets
+    // Use the calculated pixel offsets.
     target.left += du;
     target.top -= dv;
     return target;
