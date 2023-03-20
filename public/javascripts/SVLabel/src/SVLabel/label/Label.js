@@ -406,11 +406,10 @@ function Label(params) {
             var panoLat = getProperty("panoramaLat");
             var panoLng = getProperty("panoramaLng");
             var panoHeading = getProperty("originalPov").heading;
-            var zoom = getProperty("originalPov").zoom;
+            var zoom = Math.round(getProperty("originalPov").zoom); // Need to round specifically for Safari.
             var canvasX = getProperty('originalCanvasCoordinate').x;
             var canvasY = getProperty('originalCanvasCoordinate').y;
             var svImageY = getProperty('svImageCoordinate').y;
-
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
             var estHeadingDiff =
