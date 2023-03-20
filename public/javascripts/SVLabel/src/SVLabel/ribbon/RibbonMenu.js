@@ -37,7 +37,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         blinkInterval;
 
     function _init() {
-        // Initialize the jQuery DOM elements
+        // Initialize the jQuery DOM elements.
         if (uiRibbonMenu) {
             setLabelTypeButtonBorderColors(status.mode);
 
@@ -61,6 +61,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             $signInModalPassword.on('focus', disableModeSwitch);
             $signInModalPassword.on('blur', enableModeSwitch);
         }
+
+        // TODO For some reason the Other label type button doesn't show in Safari if we don't reset the display attr??
+        // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3180
+        var otherButton = document.getElementById('mode-switch-button-other');
+        otherButton.style.display = 'block';
+        setTimeout(function() {
+            otherButton.style.display = 'inline-block';
+        }, 500);
     }
 
     /**
@@ -496,7 +504,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     self.stopBlinking = stopBlinking;
     self.unlockDisableMode = unlockDisableMode;
     self.unlockDisableModeSwitch = unlockDisableModeSwitch;
-
 
     _init();
 
