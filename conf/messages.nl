@@ -210,6 +210,7 @@ validate.mission.complete.agree = Eens
 validate.mission.complete.disagree = Oneens
 validate.mission.complete.not.sure = Niet Zeker
 validate.mission.complete.your.overall.total = Je Totaal
+validate.dashboard.redirect = Opmerkingen van validaties kunnen worden bekeken op <a href = "/dashboard">het dashboard worden bekeken</a>
 
 
 mobile.validate.leave.feedback = Geef feedback

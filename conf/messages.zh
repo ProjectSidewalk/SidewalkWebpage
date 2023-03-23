@@ -211,6 +211,7 @@ validate.mission.complete.agree = 同意
 validate.mission.complete.disagree = 不同意
 validate.mission.complete.not.sure = 不確定
 validate.mission.complete.your.overall.total = 您的總成績
+validate.dashboard.redirect = 來自驗證的評論可以在<a href = "/dashboard">儀表板</a>
 
 
 mobile.validate.leave.feedback = 請給予意見回饋
