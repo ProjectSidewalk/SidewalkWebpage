@@ -213,7 +213,8 @@ validate.mission.complete.not.sure = No Estoy de seguro
 validate.mission.complete.your.overall.total = Su total en general
 validate.dashboard.redirect = Los comentarios de las validaciones se pueden ver en el <a href = "/dashboard">tablero</a>
 
-        mobile.validate.leave.feedback = Retroalimentación
+
+mobile.validate.leave.feedback = Retroalimentación
 
 turk.expired.navbar = SE ACABÓ EL TIEMPO
 turk.expired.title = ¡Se acabó el tiempo!
