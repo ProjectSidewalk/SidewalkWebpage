@@ -332,4 +332,4 @@ gallery.tags = Tags
 gallery.all = Alles
 gallery.occlusion = Kan de stoep niet zien
 gallery.labels.not.found = Geen overeenkomsten. <a href="/audit">Begin met verkennen</a> om meer data bij te dragen!
-gallery.cards = Kaarten worden willekeurig gesorteerd op basis van geselecteerde filters
+gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
