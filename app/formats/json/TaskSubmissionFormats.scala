@@ -9,8 +9,8 @@ import play.api.libs.functional.syntax._
 object TaskSubmissionFormats {
   case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String)
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
-  case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
-  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
+  case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
+  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], point: LabelPointSubmission, temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
   case class TaskSubmission(streetEdgeId: Int, taskStart: Long, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, currentMissionStart: Option[Point], lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
@@ -64,10 +64,6 @@ object TaskSubmissionFormats {
       (JsPath \ "heading").read[Float] and
       (JsPath \ "pitch").read[Float] and
       (JsPath \ "zoom").read[Int] and
-      (JsPath \ "canvas_height").read[Int] and
-      (JsPath \ "canvas_width").read[Int] and
-      (JsPath \ "alpha_x").read[Float] and
-      (JsPath \ "alpha_y").read[Float] and
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float] and
       (JsPath \ "computation_method").readNullable[String]
@@ -86,7 +82,7 @@ object TaskSubmissionFormats {
       (JsPath \ "temporary").read[Boolean] and
       (JsPath \ "description").readNullable[String] and
       (JsPath \ "tag_ids").read[Seq[Int]] and
-      (JsPath \ "label_points").read[Seq[LabelPointSubmission]] and
+      (JsPath \ "label_point").read[LabelPointSubmission] and
       (JsPath \ "temporary_label_id").readNullable[Int] and
       (JsPath \ "time_created").readNullable[Long] and
       (JsPath \ "tutorial").read[Boolean]

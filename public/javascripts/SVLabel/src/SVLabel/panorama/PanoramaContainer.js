@@ -1,68 +1,51 @@
-function PanoramaContainer (streetViewService) {
-    var self = { className: "PanoramaContainer" },
+function PanoramaContainer () {
+    var self = { className: 'PanoramaContainer' },
         container = {};
 
     /**
-     * This method adds panorama data into the container
+     * This method adds panorama data into the container.
      * @param panoramaId
-     * @param panorama
+     * @param panoramaMetadata
      */
-    function add(panoramaId, panorama) {
+    function addPanoMetadata(panoramaId, panoramaMetadata) {
         if (!(panoramaId in container)) {
-            container[panoramaId] = panorama;
+            if (panoramaId === 'tutorial' || panoramaId === 'tutorialAfterWalk') {
+                panoramaMetadata.submitted = true;
+            }
+            container[panoramaId] = new Panorama(panoramaMetadata);
         }
     }
 
     /**
-     * This method returns the existing panorama data
+     * This method returns the existing panorama data.
      * @param panoramaId
-     * @returns {null}
      */
-    function getPanorama (panoramaId) {
+    function getPanorama(panoramaId) {
         return panoramaId in container ? container[panoramaId] : null;
     }
 
     /**
-     * Get all the panorama instances stored in the container
+     * Get all the panorama instances stored in the container.
      * @returns {Array}
      */
-    function getPanoramas () {
+    function getPanoramas() {
         return Object.keys(container).map(function (panoramaId) { return container[panoramaId]; });
     }
 
     /**
-     * Get panorama instances that have not been submitted to the server
+     * Get panorama instances that have not been submitted to the server.
      * @returns {Array}
      */
-    function getStagedPanoramas () {
+    function getStagedPanoramas() {
         var panoramas = getPanoramas();
-        panoramas = panoramas.filter(function (pano) { return !pano.getProperty("submitted"); });
+        panoramas = panoramas.filter(function (pano) { return !pano.getProperty('submitted'); });
         return panoramas;
     }
 
-    /**
-     * Request the panorama meta data.
-     */
-    function fetchPanoramaMetaData(panoramaId) {
-        // Shows tutorial panoramas as already submitted to server, no need to add to server.
-        if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
-            add(panoramaId, new Panorama({ submitted: true }));
-        } else {
-            streetViewService.getPanorama({ pano: panoramaId }, function (data, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    add(data.location.pano, new Panorama(data))
-                } else {
-                    console.error("Error retrieving Panorama: " + status);
-                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
-                }
-            });
-        }
-    }
-
+    self.addPanoMetadata = addPanoMetadata;
     self.getPanorama = getPanorama;
     self.getPanoramas = getPanoramas;
     self.getStagedPanoramas = getStagedPanoramas;
-    self.fetchPanoramaMetaData = fetchPanoramaMetaData;
     return self;
 }
 

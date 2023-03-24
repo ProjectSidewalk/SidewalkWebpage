@@ -119,13 +119,29 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 ### Programming environment
 We recommend the [IntelliJ IDEA](https://www.jetbrains.com/idea/) IDE for development. You should be able to get a [student license](https://www.jetbrains.com/student/) to get the "ultimate" edition of IntelliJ IDEA. 
 
-#### IntelliJ IDEA
-On the first run of IntelliJ IDEA, make sure to select the Scala plugin. In addition, we recommend installing the [Play Routes](https://plugins.jetbrains.com/plugin/10053-play-routes/), [i18n support](https://plugins.jetbrains.com/plugin/12981-i18n-support/), and [HOCON](https://plugins.jetbrains.com/plugin/10481-hocon) plugins. 
-
-To install the plugins, open IDEA and select `File -> Settings`. In the Settings window, select the `Plugins` option on the left sidebar and then `Marketplace` (on top menubar). In the "search area" (textfield next to magnifying glass):
-- Type in "play routes" and select "Play Routes" by Tomáš Milata (31.6K downloads with 3.72-star rating at the time of writing). Hit the `Install` button.
-- Type in "i18n support" and install the "i18n support" plugin by i18nPlugin (10.6K downloads with 4.56-star rating)
-- Type in "hocon" and install the "HOCON" plugin by Roman Janusz *et al.* (739.8K downloads with 3.54-star rating)
+#### IntelliJ IDEA Setup
+1. Download and install from [here]([url](https://www.jetbrains.com/idea/)), and make sure to get a [student license](https://www.jetbrains.com/student/), which you should use during the install proces!
+1. On the first run of IntelliJ IDEA, you'll want to choose the 'Open' option (not the 'New Project') option, and choose the folder that holds the Project Sidewalk code (it is probably called `SidewalkWebpage`, it should be one level above the `app/` directory).
+1. Now let's hide some build files so that searching through your code is easier/faster. Go to `File -> Project Structure` and click on `Modules` in the left sidebar. You should have a module there with the Project Sidewalk code; if you don't, try to make one and let me know how it goes!
+    1. For each of the directories below, right click on it and click 'Sources' to mark it as source code:
+        - app
+        - conf
+        - db
+        - project
+        - public
+    1. Then for each of these directories, right click on it and click 'Excluded' so that it doesn't show up in search, so that you hopefully don't accidentally edit these files!
+        - Any other top-level directory that you didn't mark as 'Sources'
+        - project/project
+        - project/target
+        - public/fonts
+        - public/javascripts/Admin/build
+        - public/javascripts/Gallery/build
+        - public/javascripts/Help/build
+        - public/javascripts/Progress/build
+        - public/javascripts/SVLabel/build
+        - public/javascripts/SVValidate/build
+1. We then recommend installing a few plugins. To do so, go to `File -> Settings`. Select the `Plugins` option on the left sidebar and then `Marketplace` (on top menubar). For each of the following plugins, enter their name in the "search area" (textfield next to magnifying glass), find the plugin, and click `Install`: [Play 2 Routes](https://plugins.jetbrains.com/plugin/10053-play-2-routes/), [i18n support](https://plugins.jetbrains.com/plugin/12981-i18n-support/), [HOCON](https://plugins.jetbrains.com/plugin/10481-hocon), and [Scala](https://plugins.jetbrains.com/plugin/1347-scala) (if you haven't already). You will then need to restart IntelliJ to install the plugins.
+1. Finally, let's install a Java SDK to help with syntax highlighting in Scala/Java. Open `File -> Project Structure` and click on `Project` in the left sidebar. Under `SDK`, choose `Add SDK -> Download JDK`. Choosing version 1.8 is necessary. The default "Amazon Corretto" version works, but presumably others should as well. Click `Download`. Then set the `Language Level` to 8. It may take a bit of time to install Java.
 
 #### Database tools
 To look at and run queries on your database, you will want to install a database client. [Valentina Studio](https://www.valentina-db.com/en/valentina-studio-overview) is a good cross-platform database client. People also like using [Postico](https://eggerapps.at/postico/) for Mac or [PGAdmin](https://www.pgadmin.org/download/) on Windows/Mac.

@@ -249,6 +249,7 @@ authenticate.error.generic = 處理您的要求時出現錯誤。請確認您的
 
 reset.pw.forgot.title = 忘記密碼？
 reset.pw.forgot.submit.email = 別擔心，輸入您的電子郵件，我們將寄送重設密碼的連結給您。
+reset.pw.forgot.suggest = 如果您在登录或重置密码时遇到问题，请通过查看页面右上角的导航栏来检查您是否正在查看您创建帐户的城市。不同城市之间的帐户不可互换，因此您需要为每个城市创建一个新帐户（您可以使用相同的用户名/密码）。
 
 reset.pw.email.hello = 嗨 {0},
 reset.pw.email.reset.title = 重設您的Project Sidewalk密碼

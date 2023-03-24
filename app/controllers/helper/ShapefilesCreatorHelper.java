@@ -4,6 +4,8 @@ import java.io.*;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.zip.*;
+
+import models.label.LabelPointTable;
 import org.geotools.data.*;
 import org.geotools.data.shapefile.*;
 import org.geotools.data.simple.*;
@@ -223,8 +225,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.headingPitchZoom()._3());
             featureBuilder.add(l.canvasXY()._1());
             featureBuilder.add(l.canvasXY()._2());
-            featureBuilder.add(l.canvasWidthHeight()._1());
-            featureBuilder.add(l.canvasWidthHeight()._2());
+            featureBuilder.add(LabelPointTable.canvasWidth());
+            featureBuilder.add(LabelPointTable.canvasHeight());
             featureBuilder.add(l.gsvUrl());
             featureBuilder.add(l.imageLabelDates()._1);
             featureBuilder.add(l.imageLabelDates()._2);

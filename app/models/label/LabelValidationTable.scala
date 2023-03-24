@@ -149,11 +149,11 @@ object LabelValidationTable {
           v <- validationLabels if v.labelId === label.labelId &&v.userId === label.userId
         } yield (
           v.validationResult, v.missionId, v.canvasX, v.canvasY, v.heading, v.pitch, v.zoom,
-          v.startTimestamp, v.endTimestamp, v.isMobile
+          v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.isMobile
         )
         updateQuery.update((
           label.validationResult, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
-          label.startTimestamp, label.endTimestamp, label.isMobile
+          label.canvasHeight, label.canvasWidth, label.startTimestamp, label.endTimestamp, label.isMobile
         ))
       case None =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.

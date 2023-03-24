@@ -83,7 +83,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     };
 
     // Maps variables
-    var fenway, map, mapOptions, mapStyleOptions;
+    var startingLatLng, map, mapOptions, mapStyleOptions;
 
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
@@ -104,11 +104,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         throw self.className + ': latlng not defined.';
     }
 
-    // fenway = new google.maps.LatLng(params.targetLat, params.targetLng);
-    fenway = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
+    startingLatLng = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
 
     mapOptions = {
-        center: fenway,
+        center: startingLatLng,
         mapTypeControl:false,
         mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
         maxZoom : 20,
@@ -165,10 +164,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
         if (params.lat && params.lng) {
-            fenway = new google.maps.LatLng(params.lat, params.lng);
+            startingLatLng = new google.maps.LatLng(params.lat, params.lng);
             panoramaOptions = {
-                mode : 'html4',
-                position: fenway,
+                position: startingLatLng,
                 pov: properties.panoramaPov,
                 showRoadLabels: false,
                 motionTracking: false,
@@ -187,6 +185,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
             return null;
         });
+        svl.panoramaContainer.addPanoMetadata('tutorial', getCustomPanorama('tutorial'));
+        svl.panoramaContainer.addPanoMetadata('afterWalkTutorial', getCustomPanorama('afterWalkTutorial'));
 
         if (svl.panorama) {
             svl.panorama.set('addressControl', false);
@@ -232,7 +232,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // For Internet Explore, append an extra canvas in view-control-layer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>');
+            uiMap.viewControlLayer.append(`<canvas width="${util.EXPLORE_CANVAS_WIDTH}px" height="${util.EXPLORE_CANVAS_HEIGHT}px"  class="window-streetview" style=""></canvas>`);
         }
 
     }
@@ -251,6 +251,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     latLng: new google.maps.LatLng(38.94042608, -77.06766133)
                 },
                 links: [],
+                imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
@@ -268,6 +269,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     latLng: new google.maps.LatLng(38.94061618, -77.06768201)
                 },
                 links: [],
+                imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(1700, 850),
@@ -591,7 +593,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var panoId = getPanoId();
 
-            if (typeof panoId === "undefined" || panoId.length == 0) {
+            if (typeof panoId === "undefined" || panoId.length === 0) {
                 if ('compass' in svl) {
                     svl.compass.update();
                 }
@@ -602,28 +604,32 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // once moving between pano_ids and once for setting the new pano_id.
             if (svl.streetViewService && panoId.length > 0 && panoId !== prevPanoId) {
                 // Check if panorama exists.
-                svl.streetViewService.getPanorama({pano: panoId},
+                svl.streetViewService.getPanorama({ pano: panoId },
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            // Record the pano metadata.
+                            svl.panoramaContainer.addPanoMetadata(panoId, data);
+
                             // Mark that we visited this pano so that we can tell if they've gotten stuck.
                             svl.stuckAlert.panoVisited(panoId);
 
                             // Updates the date overlay to match when the current panorama was taken.
-                            document.getElementById("svl-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
+                            svl.ui.date.text(moment(data.imageDate).format('MMM YYYY'));
                             var panoramaPosition = svl.panorama.getPosition(); // Current position.
                             map.setCenter(panoramaPosition);
 
                             povChange["status"] = true;
                             _canvas.clear();
-                            _canvas.setVisibilityBasedOnLocation('visible', panoId);
-                            _canvas.render2();
+                            _canvas.setOnlyLabelsOnPanoAsVisible(panoId);
+                            _canvas.render();
                             povChange["status"] = false;
 
                             svl.tracker.push("PanoId_Changed");
                             prevPanoId = panoId;
 
                         } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
-                            document.getElementById("svl-panorama-date").innerText = "May 2014";
+                            var imageDate = svl.panoramaContainer.getPanorama(panoId).data().imageDate;
+                            svl.ui.date.text(moment(imageDate).format('MMM YYYY'));
                         } else {
                             handleImageryNotFound(panoId, panoStatus);
                         }
@@ -868,22 +874,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         setViewControlLayerCursor('OpenHand');
         var currTime = new Date().getTime();
 
-        var point = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-        if (point && point.className === "Point") {
-            var path = point.belongsTo(),
-                selectedLabel = path.belongsTo(),
-                canvasCoordinate = point.getCanvasCoordinate(getPov());
-
+        var selectedLabel = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
+        if (selectedLabel && selectedLabel.className === "Label") {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
                 if (contextMenuWasOpen) {
                     svl.contextMenu.hide();
                 } else {
-                    svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
-                        targetLabel: selectedLabel,
-                        targetLabelColor: selectedLabel.getProperty("labelFillStyle")
-                    });
+                    svl.contextMenu.show(selectedLabel);
                 }
                 contextMenuWasOpen = false;
             }
@@ -921,7 +920,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var dy = mouseStatus.currY - mouseStatus.prevY;
             var pov = getPov();
             var zoom = Math.round(pov.zoom);
-            var zoomLevel = svl.zoomFactor[zoom];
+            var zoomLevel = svl.ZOOM_FACTOR[zoom];
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 1.5;
@@ -930,27 +929,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         // Show label delete menu.
-        var item = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-        if (item && item.className === "Point") {
-            var path = item.belongsTo();
-            var selectedLabel = path.belongsTo();
-
-            _canvas.setCurrentLabel(selectedLabel);
-            _canvas.showLabelTag(selectedLabel);
-            _canvas.clear();
-            _canvas.render2();
-        } else if (item && item.className === "Label") {
+        var item = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
+        if (item && item.className === "Label") {
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
-            _canvas.showLabelTag(selectedLabel);
-        } else if (item && item.className === "Path") {
-            var label = item.belongsTo();
-            _canvas.clear();
-            _canvas.render2();
-            _canvas.showLabelTag(label);
-        }
-        else {
-            _canvas.showLabelTag(undefined);
+            _canvas.showLabelHoverInfo(selectedLabel);
+            _canvas.clear().render();
+        } else {
+            _canvas.showLabelHoverInfo(undefined);
             _canvas.setCurrentLabel(undefined);
         }
 
@@ -1057,9 +1043,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {setPano}
      */
     function setPano(panoramaId, force) {
-        if (force == undefined) force = false;
+        if (force === undefined) force = false;
 
-        if (!status.disableWalking || force == true) {
+        if (!status.disableWalking || force) {
             svl.panorama.setPano(panoramaId);
         }
         return this;
@@ -1073,7 +1059,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function setPosition(lat, lng, callback) {
         if (!status.disableWalking) {
-            // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
+            // Check the presence of the Google Street View. If it exists, then set the location, otherwise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
             svl.streetViewService.getPanorama({location: gLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {
@@ -1121,10 +1107,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function updateCanvas() {
         _canvas.clear();
         if (status.currentPanoId !== getPanoId()) {
-            _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
+            _canvas.setOnlyLabelsOnPanoAsVisible(getPanoId());
         }
         status.currentPanoId = getPanoId();
-        _canvas.render2();
+        _canvas.render();
     }
 
     function setViewControlLayerCursor(type) {
@@ -1254,7 +1240,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Changes the Street View pov. If a transition duration is given, smoothly updates the pov over that time.
      * @param pov Target pov
-     * @param durationMs Transition duration in milli-seconds
+     * @param durationMs Transition duration in milliseconds
      * @param callback Callback function executed after updating pov.
      * @returns {setPov}
      */

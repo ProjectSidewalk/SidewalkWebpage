@@ -77,7 +77,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         self.svHolder.append($(self.panoNotAvailableDetails));
         self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
 
-        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
+        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { }) : null;
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
             var currentPano = self.panorama.getPano();
