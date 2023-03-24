@@ -202,7 +202,7 @@ validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimen
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
-validate.bottom.ui.add.comment = Agrega un comentario aquí...
+validate.bottom.ui.add.comment = Si no está de acuerdo, ingrese su razonamiento aquí, que puede ser visto por el etiquetador en su tablero
 validate.right.ui.current.mission = Misión actual
 validate.right.ui.correct.examples = Ejemplo <strong>Correcto</strong>
 validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
@@ -211,7 +211,6 @@ validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
 validate.mission.complete.not.sure = No Estoy de seguro
 validate.mission.complete.your.overall.total = Su total en general
-validate.dashboard.redirect = Los comentarios de las validaciones se pueden ver en el <a href = "/dashboard">tablero</a>
 
 
 mobile.validate.leave.feedback = Retroalimentación

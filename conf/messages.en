@@ -202,7 +202,7 @@ validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = <u>A</u>gree
 validate.bottom.ui.disagree = <u>D</u>isagree
 validate.bottom.ui.not.sure = <u>N</u>ot sure
-validate.bottom.ui.add.comment = Add comment here...
+validate.bottom.ui.add.comment = If you disagree, please enter your reasoning here, which can be seen by the labeler in their dashboard
 validate.right.ui.current.mission = Current Mission
 validate.right.ui.correct.examples = <strong>Correct</strong> Examples
 validate.right.ui.incorrect.examples = <strong>Incorrect</strong> Examples
@@ -211,7 +211,6 @@ validate.mission.complete.agree = Agree
 validate.mission.complete.disagree = Disagree
 validate.mission.complete.not.sure = Not Sure
 validate.mission.complete.your.overall.total = Your Overall Total
-validate.dashboard.redirect = Comments from validations can be viewed on the <a href = "/dashboard">dashboard</a>
 
 
 mobile.validate.leave.feedback = Leave Feedback

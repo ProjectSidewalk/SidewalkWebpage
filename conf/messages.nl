@@ -201,7 +201,7 @@ validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = Eens (<u>a</u>)
 validate.bottom.ui.disagree = Oneens (<u>d</u>)
 validate.bottom.ui.not.sure = <u>N</u>iet zeker
-validate.bottom.ui.add.comment = Voeg opmerking hier toe...
+validate.bottom.ui.add.comment = Als u het er niet mee eens bent, voer dan hier uw redenering in, die kan worden gezien door de labeler in hun dashboard
 validate.right.ui.current.mission = Huidige Missie
 validate.right.ui.correct.examples = <strong>Correcte</strong> Voorbeelden
 validate.right.ui.incorrect.examples = <strong>Incorrecte</strong> Voorbeelden
@@ -210,7 +210,6 @@ validate.mission.complete.agree = Eens
 validate.mission.complete.disagree = Oneens
 validate.mission.complete.not.sure = Niet Zeker
 validate.mission.complete.your.overall.total = Je Totaal
-validate.dashboard.redirect = Opmerkingen van validaties kunnen worden bekeken op <a href = "/dashboard">het dashboard worden bekeken</a>
 
 
 mobile.validate.leave.feedback = Geef feedback

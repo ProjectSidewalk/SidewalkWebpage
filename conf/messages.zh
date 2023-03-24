@@ -202,7 +202,7 @@ validate.left.ui.feedback = 回饋
 validate.bottom.ui.agree = <u>A</u>同意
 validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定
-validate.bottom.ui.add.comment = 於此輸入說明...
+validate.bottom.ui.add.comment = 如果您不同意，請在此處輸入您的理由，貼標者可以在他們的儀表板中看到
 validate.right.ui.current.mission = 目前任務
 validate.right.ui.correct.examples = <strong>正確</strong> 例子
 validate.right.ui.incorrect.examples = <strong>錯誤</strong> 例子
@@ -211,7 +211,6 @@ validate.mission.complete.agree = 同意
 validate.mission.complete.disagree = 不同意
 validate.mission.complete.not.sure = 不確定
 validate.mission.complete.your.overall.total = 您的總成績
-validate.dashboard.redirect = 來自驗證的評論可以在<a href = "/dashboard">儀表板</a>
 
 
 mobile.validate.leave.feedback = 請給予意見回饋
