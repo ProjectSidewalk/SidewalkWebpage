@@ -935,9 +935,9 @@ object LabelTable {
   }
 
   /**
-    * Returns all the submitted labels with their severities included.
+    * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
     */
-  def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labels
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
@@ -945,6 +945,8 @@ object LabelTable {
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
       _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _us <- UserStatTable.userStats if _at.userId === _us.userId
+      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _l.streetEdgeId === _ser.streetEdgeId
+      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat.get, _lPoint.lng.get, _l.correct, _gsv.expired, _us.highQuality, _l.severity)
 

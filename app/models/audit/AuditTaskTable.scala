@@ -306,9 +306,9 @@ object AuditTaskTable {
   }
 
   /**
-    * Return all street edges and whether they have been audited or not.
+    * Return all street edges and whether they have been audited or not. If provided, filter for only given regions.
     */
-  def selectStreetsWithAuditStatus(filterLowQuality: Boolean): List[StreetEdgeWithAuditStatus] = db.withSession { implicit session =>
+  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: List[Int]): List[StreetEdgeWithAuditStatus] = db.withSession { implicit session =>
     // Optionally filter out data marked as low quality.
     val _filteredTasks = if (filterLowQuality) {
       for {
@@ -326,6 +326,7 @@ object AuditTaskTable {
     // Left join list of streets with list of audited streets to record whether each street has been audited.
     val streetsWithAuditedStatus = streetEdgesWithoutDeleted
       .innerJoin(StreetEdgeRegionTable.streetEdgeRegionTable).on(_.streetEdgeId === _.streetEdgeId)
+      .filter(x => (x._2.regionId inSet regionIds) || regionIds.isEmpty)
       .leftJoin(_distinctCompleted).on(_._1.streetEdgeId === _)
       .map(s => (s._1._1.streetEdgeId, s._1._1.geom, s._1._2.regionId, s._1._1.wayType, !s._2.?.isEmpty))
 

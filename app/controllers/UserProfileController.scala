@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils.parseIntegerList
 import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
 import models.user.UserOrgTable
@@ -17,7 +18,6 @@ import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
-
 import scala.concurrent.Future
 
 /**
@@ -78,8 +78,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Get the list of all streets and whether they have been audited or not, regardless of user.
    */
-  def getAllStreets(filterLowQuality: Boolean) = UserAwareAction.async { implicit request =>
-    val streets: List[StreetEdgeWithAuditStatus] = AuditTaskTable.selectStreetsWithAuditStatus(filterLowQuality)
+  def getAllStreets(filterLowQuality: Boolean, regions: Option[String]) = UserAwareAction.async { implicit request =>
+    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
+    val streets: List[StreetEdgeWithAuditStatus] = AuditTaskTable.selectStreetsWithAuditStatus(filterLowQuality, regionIds)
     val features: List[JsObject] = streets.map { edge =>
       val coordinates: Array[Coordinate] = edge.geom.getCoordinates
       val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
