@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils
+import controllers.helper.ControllerUtils.parseIntegerList
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskInteractionTable
@@ -21,7 +22,7 @@ import play.api.i18n.Messages
 import java.util.Calendar
 import play.api.mvc._
 import scala.concurrent.Future
-import scala.util.{Random, Try}
+import scala.util.Random
 
 /**
  * Holds the HTTP requests for some of the basic web pages.
@@ -346,16 +347,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the labelmap page that contains a cool visualization.
    */
-  def labelMap = UserAwareAction.async { implicit request =>
+  def labelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
+    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_LabelMap", timestamp))
-        Future.successful(Ok(views.html.labelMap("Project Sidewalk - Explore Accessibility", Some(user))))
+        val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
+        Future.successful(Ok(views.html.labelMap("Project Sidewalk - Explore Accessibility", Some(user), regionIds)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/labelmap"))
+        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
+        val queryParams: String = regions.map(r => s"%3Fregions=$r").getOrElse("")
+        Future.successful(Redirect("/anonSignUp?url=/labelmap" + queryParams))
     }
   }
 
@@ -389,7 +394,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           else ("Assorted", List())
 
         // Make sure that list of severities and validation options are formatted correctly.
-        val severityList: List[Int] = severities.split(",").flatMap(s => Try(s.toInt).toOption).filter(s => s > 0 && s < 6).toList
+        val severityList: List[Int] = parseIntegerList(severities).filter(s => s > 0 && s < 6)
         val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unvalidated").contains(_)).toList
 
