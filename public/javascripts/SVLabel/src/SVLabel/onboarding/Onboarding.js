@@ -77,6 +77,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         compass.hideMessage();
         compass.disableCompassClick();
 
+        // Make sure that the context menu covers instructions when hovering over the context menu.
+        svl.ui.contextMenu.holder.on('mouseover', function() {
+            uiOnboarding.messageHolder.css('z-index', 2);
+        });
+        svl.ui.contextMenu.holder.on('mouseout', function() {
+            uiOnboarding.messageHolder.css('z-index', 3);
+        });
+
         _visit(getState("initialize"));
         handAnimation.initializeHandAnimation();
 
@@ -303,6 +311,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function showMessage(parameters) {
         var message = parameters.message;
 
+        // Make the message flash yellow once to catch your attention.
         uiOnboarding.messageHolder.toggleClass("yellow-background");
         setTimeout(function () {
             uiOnboarding.messageHolder.toggleClass("yellow-background");
