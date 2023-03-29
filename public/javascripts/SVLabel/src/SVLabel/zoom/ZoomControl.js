@@ -182,8 +182,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
-            canvas.clear();
-            canvas.render2();
+            canvas.clear().render();
             $(document).trigger('ZoomIn');
         }
     }
@@ -205,7 +204,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
             canvas.clear();
-            canvas.render2();
+            canvas.render();
             $(document).trigger('ZoomOut');
         }
     }
@@ -223,8 +222,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
-            canvas.clear();
-            canvas.render2();
+            canvas.clear().render();
             $(document).trigger('ZoomIn');
             return this;
         } else {
@@ -242,8 +240,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
-            canvas.clear();
-            canvas.render2();
+            canvas.clear().render();
             $(document).trigger('ZoomOut');
             return this;
         } else {
@@ -254,11 +251,8 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     /**
      * This method sets the zoom level of the Street View.
      */
-    function setZoom (zoomLevelIn) {
+    function setZoom(zoomLevelIn) {
         if (typeof zoomLevelIn !== "number") { return false; }
-
-        // Cancel drawing when zooming in or out.
-        if ('canvas' in svl) { canvas.cancelDrawing(); }
 
         // Set the zoom level and change the panorama properties.
         var zoomLevel = undefined;
@@ -281,12 +275,10 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
         for (i = 0; i < labelLen; i += 1) {
-            labels[i].setTagVisibility('hidden');
-            labels[i].resetTagCoordinate();
+            labels[i].setHoverInfoVisibility('hidden');
         }
         svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-        svl.canvas.clear();
-        svl.canvas.render2();
+        svl.canvas.clear().render();
         return zoomLevel;
     }
 

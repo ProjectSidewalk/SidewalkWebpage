@@ -9,6 +9,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
+import controllers.helper.ControllerUtils.parseIntegerList
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
@@ -19,7 +20,7 @@ import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWit
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.{GSVDataExtended, GSVDataTable}
 import models.label.LabelTable.{LabelCVMetadata, LabelMetadata}
-import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
+import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
@@ -32,6 +33,7 @@ import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
 import play.api.i18n.Messages
+import play.extras.geojson.{LatLng, Point}
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
@@ -107,7 +109,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
+      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List())
       val features: List[JsObject] = labels.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
@@ -131,11 +133,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
+  def getAllLabelsForLabelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
+    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
+    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds)
     val features: List[JsObject] = labels.map { label =>
-      val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-      val properties = Json.obj(
+      val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+      val properties: JsObject = Json.obj(
         "label_id" -> label.labelId,
         "gsv_panorama_id" -> label.gsvPanoramaId,
         "label_type" -> label.labelType,
@@ -146,7 +149,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
     }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+    val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
   }
 
@@ -175,10 +178,11 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
     * Get audit coverage of each neighborhood.
     */
-  def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
-    RegionCompletionTable.initializeRegionCompletionTable
+  def getNeighborhoodCompletionRate(regions: Option[String]) = UserAwareAction.async { implicit request =>
+    RegionCompletionTable.initializeRegionCompletionTable()
 
-    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
+    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
+    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions(regionIds)
     val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
       val completionRate: Double =
         if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
@@ -403,7 +407,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    * TODO remove the /adminapi/labels/panoid endpoint once all have shifted to /adminapi/panos
    */
   def getAllPanoIds = UserAwareAction.async { implicit request =>
-    val panos: List[GSVDataExtended] = GSVDataTable.getAllPanos
+    val panos: List[GSVDataExtended] = GSVDataTable.getAllPanosWithLabels
     val json: JsValue = Json.toJson(panos.map(p => Json.toJson(p)))
     Future.successful(Ok(json))
   }

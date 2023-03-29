@@ -116,9 +116,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * @param userId     User ID for current user.
     * @param labelType  Label type id of labels to retrieve.
     * @param mission    Mission object for the current mission
-    * @return           JsValue containing a list of labels with the following attributes:
-    *                   {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x,
-    *                   canvas_y, canvas_width, canvas_height}
+    * @return           JsValue containing a list of labels.
     */
   def getLabelListForValidation(userId: UUID, labelType: Int, mission: Mission): JsValue = {
     val labelsProgress: Int = mission.labelsProgress.get

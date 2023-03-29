@@ -77,8 +77,6 @@ object LabelFormat {
       "zoom" -> labelMetadata.zoom,
       "canvas_x" -> labelMetadata.canvasX,
       "canvas_y" -> labelMetadata.canvasY,
-      "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight,
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
@@ -101,8 +99,6 @@ object LabelFormat {
       "zoom" -> labelMetadata.headingPitchZoom._3,
       "canvas_x" -> labelMetadata.canvasXY._1,
       "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidthHeight._1,
-      "canvas_height" -> labelMetadata.canvasWidthHeight._2,
       "audit_task_id" -> labelMetadata.auditTaskId,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
@@ -134,8 +130,6 @@ object LabelFormat {
       "zoom" -> labelMetadata.headingPitchZoom._3,
       "canvas_x" -> labelMetadata.canvasXY._1,
       "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidthHeight._1,
-      "canvas_height" -> labelMetadata.canvasWidthHeight._2,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
       "timestamp" -> labelMetadata.timestamp,
@@ -161,12 +155,10 @@ object LabelFormat {
       "zoom" -> label.zoom,
       "canvas_x" -> label.canvasX,
       "canvas_y" -> label.canvasY,
-      "canvas_width" -> label.canvasWidth,
-      "canvas_height" -> label.canvasHeight,
       "label_type" -> label.labelType,
       "time_validated" -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
-      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.canvasWidth, label.canvasHeight, label.heading, label.pitch, label.zoom)
+      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.heading, label.pitch, label.zoom)
     )
   }
 }

@@ -30,8 +30,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     contextMenu, uiOnboarding, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
-    var canvasWidth = 720;
-    var canvasHeight = 480;
     var blink_timer = 0;
     var blink_function_identifier = [];
     var states = onboardingStates.get();
@@ -79,6 +77,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         compass.hideMessage();
         compass.disableCompassClick();
 
+        // Make sure that the context menu covers instructions when hovering over the context menu.
+        svl.ui.contextMenu.holder.on('mouseover', function() {
+            uiOnboarding.messageHolder.css('z-index', 2);
+        });
+        svl.ui.contextMenu.holder.on('mouseout', function() {
+            uiOnboarding.messageHolder.css('z-index', 3);
+        });
+
         _visit(getState("initialize"));
         handAnimation.initializeHandAnimation();
 
@@ -98,7 +104,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @returns {clear}
      */
     function clear() {
-        if (ctx) ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        if (ctx) ctx.clearRect(0, 0, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
         return this;
     }
 
@@ -150,7 +156,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             ctx.fill();
             ctx.stroke();
             ctx.closePath();
-
             ctx.restore();
         }
         return this;
@@ -205,8 +210,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             x2,
             y1,
             y2,
-            origPointPov,
-            canvasCoordinate;
+            povOfLabelIfCentered,
+            i,
+            len;
 
         var currentPov = mapService.getPov();
         var povChange = svl.map.getPovChangeStatus();
@@ -216,29 +222,33 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         clear();
 
         var blink_frequency_modifier = 0;
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
+        for (i = 0, len = state.annotations.length; i < len; i++) {
             if (state.annotations[i].type === "arrow") {
                 blink_frequency_modifier = blink_frequency_modifier + 1;
             }
         }
 
-        for (var i = 0, len = state.annotations.length; i < len; i++) {
+        for (i = 0, len = state.annotations.length; i < len; i++) {
             imX = state.annotations[i].x;
             imY = state.annotations[i].y;
-            origPointPov = null;
+            povOfLabelIfCentered = null;
 
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
             if (currentPov.heading < 180) {
-                if (imX > svl.svImageWidth - 3328 && imX > 3328) {
-                    imX -= svl.svImageWidth;
+                if (imX > svl.TUTORIAL_PANO_WIDTH - 3328 && imX > 3328) {
+                    imX -= svl.TUTORIAL_PANO_WIDTH;
                 }
             } else {
-                if (imX < 3328 && imX < svl.svImageWidth - 3328) {
-                    imX += svl.svImageWidth;
+                if (imX < 3328 && imX < svl.TUTORIAL_PANO_WIDTH - 3328) {
+                    imX += svl.TUTORIAL_PANO_WIDTH;
                 }
             }
-            origPointPov = util.panomarker.calculatePointPovFromImageCoordinate(imX, imY, currentPov);
-            canvasCoordinate = util.panomarker.getCanvasCoordinate(canvasCoordinate, origPointPov, currentPov);
+            povOfLabelIfCentered = util.panomarker.calculatePointPovFromImageCoordinate(
+                imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT
+            );
+            var canvasCoordinate = util.panomarker.getCanvasCoordinate(
+                povOfLabelIfCentered, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            );
 
             if (state.annotations[i].type === "arrow") {
                 lineLength = state.annotations[i].length;
@@ -301,6 +311,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function showMessage(parameters) {
         var message = parameters.message;
 
+        // Make the message flash yellow once to catch your attention.
         uiOnboarding.messageHolder.toggleClass("yellow-background");
         setTimeout(function () {
             uiOnboarding.messageHolder.toggleClass("yellow-background");
@@ -611,7 +622,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _visitRateSeverity(state, listener) {
         contextMenu.disableTagging();
-        var $target = contextMenu.getContextMenuUI().radioButtons;
+        var $target = svl.ui.contextMenu.radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
@@ -621,7 +632,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         $target.on("click", callback);
     }
     function _visitAddTag(state, listener) {
-        var $target = contextMenu.getContextMenuUI().tagHolder; // Grab tag holder so we can add an event listener.
+        var $target = svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
             if (listener) {
                 google.maps.event.removeListener(listener);
@@ -767,10 +778,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var properties = state.properties;
         var transition = state.transition;
 
+        // TODO instead of having this callback on click, make an event when a label is created. Use .getProperty('svImageCoordinate') instead of all the math we do now.
         var callback = function (e) {
             var i = 0;
             var labelAppliedCorrectly = false;
             var distance = []; // Keeps track of how far away the label is from each possible label.
+            var panoData = svl.panoramaContainer.getPanorama(state.panoId).data();
+            var svImgWidth = panoData.tiles.worldSize.width;
+            var svImgHeight = panoData.tiles.worldSize.height;
 
             while (i < properties.length && !labelAppliedCorrectly) {
                 var imageX = properties[i].imageX;
@@ -781,7 +796,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var pov = mapService.getPov();
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
-                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(canvasX, canvasY, pov);
+                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(
+                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.panorama.getPhotographerPov().heading, svImgWidth, svImgHeight
+                );
+                imageCoordinate.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
+                imageCoordinate.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;
 
                 distance[i] = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
                     (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);

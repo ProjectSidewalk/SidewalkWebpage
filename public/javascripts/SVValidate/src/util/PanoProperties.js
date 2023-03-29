@@ -8,8 +8,7 @@ function PanoProperties () {
     let self = this;
 
     /**
-     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
-     * From PanoMarker spec
+     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates from PanoMarker spec.
      * @param canvas_x          X coordinate (pixel) of the label
      * @param canvas_y          Y coordinate (pixel) of the label
      * @param canvas_width      Original canvas width

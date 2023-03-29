@@ -50,7 +50,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
 
             val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
                 "label" -> LabelFormat.validationLabelMetadataToJson(l),
-                "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
+                "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
               )
             )
 

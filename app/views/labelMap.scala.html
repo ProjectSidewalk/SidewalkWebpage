@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, regionIds: List[Int])(implicit lang: Lang)
 
 @main(title) {
     @navbar(user, Some("/labelmap"))
@@ -116,7 +116,6 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesColor.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
@@ -227,11 +226,22 @@
 
             var self = {};
             var map;
-            var loadPolygons = $.getJSON('/neighborhoods');
-            var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
+
+            // If a region filter was passed in, pass that along when requesting street/label data.
+            var regionsParam = '@{regionIds.mkString(",")}';
+            var loadPolygons, loadPolygonRates, loadStreets, loadSubmittedLabels;
+            if (regionsParam) {
+                loadPolygons = $.getJSON(`/neighborhoods?regions=${regionsParam}`);
+                loadPolygonRates = $.getJSON(`/adminapi/neighborhoodCompletionRate?regions=${regionsParam}`);
+                loadStreets = $.getJSON(`/contribution/streets/all?filterLowQuality=true&regions=${regionsParam}`);
+                loadSubmittedLabels = $.getJSON(`/labels/all?regions=${regionsParam}`);
+            } else {
+                loadPolygons = $.getJSON('/neighborhoods');
+                loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
+                loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
+                loadSubmittedLabels = $.getJSON('/labels/all');
+            }
             var loadMapParams = $.getJSON('/cityMapParams');
-            var loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
-            var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
                 map = Choropleth(_, $, params, [], data1[0], data2[0], data3[0]);

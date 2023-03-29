@@ -1,7 +1,7 @@
 function OnboardingModel () {
 }
 
-OnboardingModel.prototype.triggerStartOnboarding = function (parameters) {
+OnboardingModel.prototype.triggerStartOnboarding = function() {
     this.trigger("Onboarding:startOnboarding");
 };
 

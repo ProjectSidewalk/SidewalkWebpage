@@ -68,7 +68,6 @@
         self.svHolder.append($(self.panoNotAvailableDetails));
 
         let panoOptions = {
-            mode: 'html4',
             showRoadLabels: false,
             motionTracking: false,
             motionTrackingControl: false,

@@ -140,9 +140,9 @@ object RegionTable {
   }
 
   /**
-   * Gets all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
+   * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
-  def getNeighborhoodsWithUserCompletionStatus(userId: UUID): List[(Region, Boolean)] = db.withSession { implicit session =>
+  def getNeighborhoodsWithUserCompletionStatus(userId: UUID, regionIds: List[Int]): List[(Region, Boolean)] = db.withSession { implicit session =>
     val userTasks = AuditTaskTable.auditTasks.filter(a => a.completed && a.userId === userId.toString)
     // Gets regions that the user has not fully audited.
     val incompleteRegionsForUser = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
@@ -152,7 +152,10 @@ object RegionTable {
       .map(_._1) // SELECT region_id
 
     // Left join regions and incomplete neighborhoods to record completion status.
-    regionsWithoutDeleted.leftJoin(incompleteRegionsForUser).on(_.regionId === _).map(x => (x._1, x._2.?.isEmpty)).list
+    regionsWithoutDeleted
+      .filter(_r => (_r.regionId inSet regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
+      .leftJoin(incompleteRegionsForUser).on(_.regionId === _)
+      .map(x => (x._1, x._2.?.isEmpty)).list
   }
 
   /**

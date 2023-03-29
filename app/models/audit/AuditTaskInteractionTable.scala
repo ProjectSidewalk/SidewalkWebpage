@@ -28,7 +28,7 @@ case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, m
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
                                 note: Option[String], timestamp: java.sql.Timestamp, labelId: Option[Int],
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
-                                canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
+                                canvasX: Int, canvasY: Int)
 
 
 class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
@@ -76,9 +76,7 @@ object AuditTaskInteractionTable {
       r.nextFloatOption, // label_lat
       r.nextFloatOption, // label_lng
       r.nextInt, // canvas_x
-      r.nextInt, // canvas_y
-      r.nextInt, // canvas_width
-      r.nextInt // canvas_height
+      r.nextInt // canvas_y
     )
   })
 
@@ -132,9 +130,7 @@ object AuditTaskInteractionTable {
         |       label_point.lat AS label_lat,
         |       label_point.lng AS label_lng,
         |       label_point.canvas_x AS canvas_x,
-        |       label_point.canvas_y AS canvas_y,
-        |       label_point.canvas_width AS canvas_width,
-        |       label_point.canvas_height AS canvas_height
+        |       label_point.canvas_y AS canvas_y
         |FROM audit_task_interaction AS interaction
         |LEFT JOIN label ON interaction.temporary_label_id = label.temporary_label_id
         |                         AND interaction.audit_task_id = label.audit_task_id
@@ -165,8 +161,6 @@ object AuditTaskInteractionTable {
           "pitch" -> interaction.pitch,
           "zoom" -> interaction.zoom,
           "timestamp" -> interaction.timestamp.getTime,
-          "canvasHeight" -> interaction.canvasHeight,
-          "canvasWidth" -> interaction.canvasWidth,
           "action" -> interaction.action,
           "note" -> interaction.note
         )
@@ -177,8 +171,6 @@ object AuditTaskInteractionTable {
           "pitch" -> interaction.pitch,
           "zoom" -> interaction.zoom,
           "timestamp" -> interaction.timestamp.getTime,
-          "canvasHeight" -> interaction.canvasHeight,
-          "canvasWidth" -> interaction.canvasWidth,
           "action" -> interaction.action,
           "note" -> interaction.note,
           "label" -> Json.obj(

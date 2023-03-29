@@ -162,7 +162,7 @@
 
         <div id="mistakes-row" class="row">
             <h2>@Messages("dashboard.mistakes.header")</h2>
-            <span id="mistakes-subheader"></span>
+            <span id="mistakes-subheader-display"></span>
             <img src="@routes.Assets.at("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
             <div id="mistake-carousels-holder"></div>
         </div>
@@ -175,11 +175,9 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <script>

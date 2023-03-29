@@ -23,13 +23,14 @@ function Main (params) {
         return params.mission.mission_type === 'auditOnboarding';
     };
     svl.missionsCompleted = params.missionSetProgress;
-    svl.canvasWidth = 720;
-    svl.canvasHeight = 480;
-    svl.svImageHeight = 6656;
-    svl.svImageWidth = 13312;
-    svl.alpha_x = 4.6;
-    svl.alpha_y = -4.65;
-    svl.zoomFactor = {
+
+    svl.LABEL_ICON_RADIUS = 17;
+    svl.TUTORIAL_PANO_HEIGHT = 6656;
+    svl.TUTORIAL_PANO_WIDTH = 13312;
+    svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
+    svl.ALPHA_X = 4.6;
+    svl.ALPHA_Y = -4.65;
+    svl.ZOOM_FACTOR = {
         1: 1,
         2: 2.1,
         3: 4,
@@ -58,7 +59,7 @@ function Main (params) {
         if (!("tracker" in svl)) svl.tracker = new Tracker();
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
-        svl.labelContainer = new LabelContainer($);
+        svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
         svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
 
@@ -87,7 +88,6 @@ function Main (params) {
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
         svl.labelCounter = new LabelCounter(d3);
-        svl.labelFactory = new LabelFactory(svl, params.nextTemporaryLabelId);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
@@ -242,7 +242,7 @@ function Main (params) {
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
         // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
-        if (params.mission.mission_type === 'auditOnboarding') {
+        if (svl.isOnboarding()) {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
         } else {
@@ -316,7 +316,7 @@ function Main (params) {
 
         svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
-            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
+            svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.map.getPanoId());
 
             // Count the labels of each label type to initialize the current mission label counts.
             var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};
@@ -404,6 +404,7 @@ function Main (params) {
         svl.ui.minimap.progressCircle = $("#minimap-progress-circle-canvas");
         svl.ui.minimap.percentObserved = $("#minimap-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
+        svl.ui.date = $("#svl-panorama-date");
 
         // Status holder.
         svl.ui.status = {};
