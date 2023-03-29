@@ -797,7 +797,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
                 var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(
-                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svImgWidth, svImgHeight
+                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.panorama.getPhotographerPov().heading, svImgWidth, svImgHeight
                 );
                 imageCoordinate.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
                 imageCoordinate.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;

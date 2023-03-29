@@ -108,19 +108,30 @@ util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImag
  * Returns the GSV image coordinate from the original pov of the label if it was centered.
  *
  * @param pov
+ * @param photographerHeading
  * @param svImageWidth
  * @param svImageHeight
  * @returns {{x: (number|*), y: (number|*)}}
  */
-function calculateImageCoordinateFromPointPov(pov, svImageWidth, svImageHeight) {
-    var imageX = svImageWidth * (pov.heading / 360) + ((svImageWidth / 360) / 2);
+function calculateImageCoordinateFromPov(pov, photographerHeading, svImageWidth, svImageHeight) {
+    // TODO redo the math for computing imageY like we did for imageX.
     var imageY = (svImageHeight / 2) * (pov.pitch / 90);
 
-    if (imageX < 0) imageX = imageX + svImageWidth;
+    // The photographerHeading represents the center of the image. Subtract 180 to find the heading where imageX = 0.
+    var headingPixelZero = photographerHeading - 180;
+
+    // Both headings are between -180 and 180, convert to 0 to 360 to make math easier.
+    var heading = (pov.heading + 360) % 360;
+    headingPixelZero = (headingPixelZero + 360) % 360;
+
+    // We then find the difference between the label's heading and the heading where imageX = 0.
+    // Divide by 360, multiply by the image width, and that's your image_x!
+    var imageX = svImageWidth * (heading - headingPixelZero) / 360;
+    if (imageX < 0) imageX += svImageWidth;
 
     return { x: imageX, y: imageY };
 }
-util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateFromPointPov;
+util.panomarker.calculateImageCoordinateFromPov = calculateImageCoordinateFromPov;
 
 /**
  * This function maps canvas coordinates to image coordinates.
@@ -129,13 +140,14 @@ util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateF
  * @param pov
  * @param canvasWidth
  * @param canvasHeight
+ * @param photographerHeading
  * @param svImageWidth
  * @param svImageHeight
  * @returns {{x: number, y: number}}
  */
-function canvasCoordinateToImageCoordinate(pov, canvasX, canvasY, canvasWidth, canvasHeight, svImageWidth, svImageHeight) {
+function canvasCoordinateToImageCoordinate(pov, canvasX, canvasY, canvasWidth, canvasHeight, photographerHeading, svImageWidth, svImageHeight) {
     var pointPOV = calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight);
-    var svImageCoord = calculateImageCoordinateFromPointPov(pointPOV, svImageWidth, svImageHeight);
+    var svImageCoord = calculateImageCoordinateFromPov(pointPOV, photographerHeading, svImageWidth, svImageHeight);
     return { x: svImageCoord.x, y: svImageCoord.y };
 }
 util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;

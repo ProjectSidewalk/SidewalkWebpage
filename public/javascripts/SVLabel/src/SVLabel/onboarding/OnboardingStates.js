@@ -92,7 +92,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 9730,
+                "imageX": 1170,
                 "imageY": -350,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-1"][0],
@@ -308,7 +308,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 8180,
+                "imageX": 12932,
                 "imageY": -340,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
@@ -539,7 +539,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoCurbRamp",
-                "imageX": 7800,
+                "imageX": 12552,
                 "imageY": -340,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
@@ -840,7 +840,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 4920,
+                "imageX": 9730,
                 "imageY": -720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
@@ -848,7 +848,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 3900,
+                "imageX": 8652,
                 "imageY": -840,
                 "tolerance": 300
             }],
@@ -1055,7 +1055,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 3900,
+                "imageX": 8652,
                 "imageY": -840,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
@@ -1232,7 +1232,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 4920,
+                "imageX": 9730,
                 "imageY": -720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
@@ -1465,7 +1465,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoSidewalk",
-                "imageX": 2776,
+                "imageX": 7528,
                 "imageY": -500,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
@@ -1735,7 +1735,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 750,
+                "imageX": 5502,
                 "imageY": -670,
                 "tolerance": 250,
                 "minHeading": headingRanges["stage-4"][0],
