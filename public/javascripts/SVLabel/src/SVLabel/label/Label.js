@@ -93,8 +93,8 @@ function Label(params) {
 
             properties.svImageWidth = panoData.tiles.worldSize.width;
             properties.svImageHeight = panoData.tiles.worldSize.height;
-            properties.svImageCoordinate = util.panomarker.calculateImageCoordinateFromPointPov(
-                properties.povOfLabelIfCentered, properties.svImageWidth, properties.svImageHeight
+            properties.svImageCoordinate = util.panomarker.calculateImageCoordinateFromPov(
+                properties.povOfLabelIfCentered, properties.photographerHeading, properties.svImageWidth, properties.svImageHeight
             );
         }
 
