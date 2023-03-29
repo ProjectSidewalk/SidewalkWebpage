@@ -212,7 +212,6 @@ validate.mission.complete.disagree = No Estoy de acuerdo
 validate.mission.complete.not.sure = No Estoy de seguro
 validate.mission.complete.your.overall.total = Su total en general
 
-
 mobile.validate.leave.feedback = Retroalimentación
 
 turk.expired.navbar = SE ACABÓ EL TIEMPO

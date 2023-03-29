@@ -189,12 +189,20 @@ function Panorama (label) {
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
-                        // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links  clickable.
+                        // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
+                        // Uses setTimeout because it usually hasn't quite loaded yet.
                         if (!bottomLinksClickable) {
-                            $('.gm-style-cc')[0].remove();
-                            $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
-                            bottomLinksClickable = true;
+                            setTimeout(function() {
+                                try {
+                                    $('.gm-style-cc')[0].remove();
+                                    $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
+                                    bottomLinksClickable = true;
+                                } catch (e) {
+                                    bottomLinksClickable = false;
+                                }
+                            }, 100);
+
                         } 
                     } else {
                         console.error("Error retrieving Panoramas: " + status);
