@@ -82,18 +82,18 @@ function PanoProperties () {
      *     requested.
      * @param {StreetViewPov} currentPov POV of the viewport center.
      * @param {number} zoom The current zoom level.
-     * @param {number} Width of the panorama canvas.
-     * @param {number} Height of the panorama canvas.
+     * @param {number} canvasWidth of the panorama canvas.
+     * @param {number} canvasHeight of the panorama canvas.
      * @return {Object} Top and Left offsets for the given viewport that point to
      *     the desired point-of-view.
      */
-    function povToPixel3d (targetPov, currentPov, zoom, canvasWidth, canvasHeight) {
+    function povToPixel3d(targetPov, currentPov, zoom, canvasWidth, canvasHeight) {
 
-        // Gather required variables and convert to radians where necessary
+        // Gather required variables and convert to radians where necessary.
         let width = canvasWidth;
         let height = canvasHeight;
 
-        // Corrects width and height for mobile phones
+        // Corrects width and height for mobile phones.
         if (isMobile()) {
             width = window.innerWidth;
             height = window.innerHeight;

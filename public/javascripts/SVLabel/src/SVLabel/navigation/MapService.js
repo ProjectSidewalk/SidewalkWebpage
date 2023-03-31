@@ -19,8 +19,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 lng : undefined
             },
             panoramaPov : {
-                heading : 359,
-                pitch : -10,
+                heading : 0,
+                pitch : 0,
                 zoom : 1
             },
             map: null,
@@ -89,12 +89,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
     if (params.panoramaPov) {
         properties.panoramaPov = params.panoramaPov;
-    } else {
-        properties.panoramaPov = {
-            heading: 0,
-            pitch: 0,
-            zoom: 1
-        };
     }
     if (params.latlng) {
         properties.latlng = params.latlng;
@@ -234,7 +228,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (properties.isInternetExplore) {
             uiMap.viewControlLayer.append(`<canvas width="${util.EXPLORE_CANVAS_WIDTH}px" height="${util.EXPLORE_CANVAS_HEIGHT}px"  class="window-streetview" style=""></canvas>`);
         }
-
     }
 
     /**
@@ -1248,10 +1241,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var interval;
-
-            pov.heading = parseInt(pov.heading, 10);
-            pov.pitch = parseInt(pov.pitch, 10);
-            pov.zoom = parseInt(pov.zoom, 10);
 
             // Pov restriction.
             restrictViewPort(pov);
