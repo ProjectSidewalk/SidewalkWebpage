@@ -37,10 +37,6 @@ function sgn(x) {
  * @returns {{heading: number, pitch: number, zoom: Number}}
  */
 function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
-    var heading = parseInt(pov.heading, 10),
-        pitch = parseInt(pov.pitch, 10),
-        zoom = parseInt(pov.zoom, 10);
-
     var PI = Math.PI;
     var cos = Math.cos;
     var sin = Math.sin;
@@ -49,10 +45,10 @@ function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
     var atan2 = Math.atan2;
     var asin = Math.asin;
 
-    var fov = get3dFov(zoom) * PI / 180.0;
+    var fov = get3dFov(pov.zoom) * PI / 180.0;
 
-    var h0 = heading * PI / 180.0;
-    var p0 = pitch * PI / 180.0;
+    var h0 = pov.heading * PI / 180.0;
+    var p0 = pov.pitch * PI / 180.0;
 
     var f = 0.5 * canvasWidth / tan(0.5 * fov);
 
@@ -82,7 +78,7 @@ function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
     return {
         heading: h * 180.0 / PI,
         pitch: p * 180.0 / PI,
-        zoom: zoom
+        zoom: pov.zoom
     };
 }
 util.panomarker.calculatePointPov = calculatePointPov;
@@ -98,8 +94,8 @@ util.panomarker.calculatePointPov = calculatePointPov;
  */
 function calculatePointPovFromImageCoordinate(imageX, imageY, svImageWidth, svImageHeight) {
     return {
-        heading: Math.round((imageX / svImageWidth) * 360) % 360,
-        pitch: Math.round((imageY / (svImageHeight / 2)) * 90)
+        heading: (imageX / svImageWidth) * 360 % 360,
+        pitch: (imageY / (svImageHeight / 2) * 90)
     };
 }
 util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImageCoordinate;

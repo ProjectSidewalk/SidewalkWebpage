@@ -62,7 +62,7 @@ function Canvas(ribbon) {
      * Create a label at the given X/Y canvas coordinate.
      */
     function createLabel(canvasX, canvasY) {
-        // Generate some metadata for the new lable.
+        // Generate some metadata for the new label.
         var labelType = ribbon.getStatus('selectedLabelType');
         var pov = svl.map.getPov();
         var povOfLabel = util.panomarker.calculatePointPov(
