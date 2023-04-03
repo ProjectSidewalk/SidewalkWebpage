@@ -59,8 +59,10 @@
     <link href='@routes.Assets.at("javascripts/lib/bootstrap-3.3.5/css/bootstrap-slider.min.css")' rel="stylesheet"/>
     <script>
             $(document).ready(function () {
-                var auditTaskId = @task.auditTaskId;
-                window.admin = AdminTask({auditTaskId: auditTaskId});
+                $.getJSON('/cityMapParams', function(data) {
+                    var auditTaskId = @task.auditTaskId;
+                    window.admin = AdminTask({auditTaskId: auditTaskId, mapboxApiKey: data.mapbox_api_key});
+                });
             });
     </script>
 
