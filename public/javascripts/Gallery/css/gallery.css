@@ -12,6 +12,10 @@
    padding-bottom: 30px;
 }
 
+#filters {
+   padding-bottom: 10px;
+}
+
 #labels-not-found {
     display: none;
 }

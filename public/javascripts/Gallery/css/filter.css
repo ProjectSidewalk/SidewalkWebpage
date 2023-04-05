@@ -41,10 +41,30 @@
     width: 30px;
 }
 
+#clear-select {
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 13px;
+    color: #585c63;
+}
+
 #severity-select {
     display: flex;
     flex-direction: row;
     margin-left: -3px;
+}
+
+#reset-select {
+    display: flex;
+    flex-direction: row;
+    padding-top: 5px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    color: #585c63;
 }
 
 .gallery-filter-button, .gallery-tag {

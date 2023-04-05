@@ -25,7 +25,9 @@ function Main (params) {
         sg.ui.cardFilter = {};
         sg.ui.cardFilter.wrapper = $(".sidebar");
         sg.ui.cardFilter.holder = $("#card-filter");
+        sg.ui.cardFilter.clear = $("#clear-select");
         sg.ui.cardFilter.severity = $("#severity-select");
+        sg.ui.cardFilter.reset = $("#reset-select");
         sg.ui.cardFilter.tags = $("#tags");
         sg.ui.cardFilter.validationOptions = $("#validation-options");
 
