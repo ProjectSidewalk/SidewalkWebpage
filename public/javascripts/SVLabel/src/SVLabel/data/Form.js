@@ -77,14 +77,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         tracker.refresh();
 
         data.labels = [];
-        var labels = labelContainer.getCurrentLabels();
-        for(var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
+        var labels = labelContainer.getLabelsToLog();
+        for (var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
             var label = labels[i];
             var prop = label.getProperties();
-            var points = label.getPath().getPoints();
             var labelLatLng = label.toLatLng();
-            var tempLabelId = label.getProperty('temporary_label_id');
-            var auditTaskId = label.getProperty('audit_task_id');
+            var tempLabelId = label.getProperty('temporaryLabelId');
+            var auditTaskId = label.getProperty('auditTaskId');
 
             // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
             var associatedInteraction = data.interactions.find(interaction =>
@@ -103,40 +102,29 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 temporary_label_id: tempLabelId,
                 audit_task_id: auditTaskId,
                 gsv_panorama_id : prop.panoId,
-                label_points : [],
                 severity: label.getProperty('severity'),
                 temporary: label.getProperty('temporaryLabel'),
                 tag_ids: label.getProperty('tagIds'),
                 description: label.getProperty('description') ? label.getProperty('description') : null,
                 time_created: timeCreated,
-                tutorial: prop.tutorial
+                tutorial: prop.tutorial,
+                label_point: {
+                    sv_image_x : prop.svImageCoordinate.x,
+                    sv_image_y : prop.svImageCoordinate.y,
+                    canvas_x: prop.originalCanvasCoordinate.x,
+                    canvas_y: prop.originalCanvasCoordinate.y,
+                    heading: prop.originalPov.heading,
+                    pitch: prop.originalPov.pitch,
+                    zoom : prop.originalPov.zoom,
+                    lat : null,
+                    lng : null
+                }
             };
 
-            for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
-                var point = points[j],
-                    gsvImageCoordinate = point.getGSVImageCoordinate(),
-                    pointParam = {
-                        sv_image_x : gsvImageCoordinate.x,
-                        sv_image_y : gsvImageCoordinate.y,
-                        canvas_x: point.originalCanvasCoordinate.x,
-                        canvas_y: point.originalCanvasCoordinate.y,
-                        heading: point.panoramaPov.heading,
-                        pitch: point.panoramaPov.pitch,
-                        zoom : point.panoramaPov.zoom,
-                        canvas_height : prop.canvasHeight,
-                        canvas_width : prop.canvasWidth,
-                        alpha_x : prop.canvasDistortionAlphaX,
-                        alpha_y : prop.canvasDistortionAlphaY,
-                        lat : null,
-                        lng : null
-                    };
-
-                if (labelLatLng) {
-                    pointParam.lat = labelLatLng.lat;
-                    pointParam.lng = labelLatLng.lng;
-                    pointParam.computation_method = labelLatLng.latLngComputationMethod;
-                }
-                temp.label_points.push(pointParam);
+            if (labelLatLng) {
+                temp.label_point.lat = labelLatLng.lat;
+                temp.label_point.lng = labelLatLng.lng;
+                temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
             }
 
             data.labels.push(temp)
@@ -249,8 +237,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var action = tracker.create("TaskSubmit");
             data[0].interactions.push(action);
         }
-
-        labelContainer.refresh();
+        labelContainer.clearLabelsToLog();
 
         $.ajax({
             async: async,

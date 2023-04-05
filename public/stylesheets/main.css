@@ -130,6 +130,13 @@ footer {
     margin-right: auto;
 }
 
+#status-neighborhood-link {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 #mturk-confirmation-code {
     padding-top: 18px;
     font: normal normal normal 13px/1.4em raleway, sans-serif;

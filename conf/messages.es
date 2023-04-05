@@ -202,7 +202,7 @@ validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimen
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
-validate.bottom.ui.add.comment = Agrega un comentario aquí...
+validate.bottom.ui.add.comment = Si no está de acuerdo, ingrese su razonamiento aquí, que puede ser visto por el etiquetador en su tablero
 validate.right.ui.current.mission = Misión actual
 validate.right.ui.correct.examples = Ejemplo <strong>Correcto</strong>
 validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
@@ -329,7 +329,8 @@ gallery = Galería
 gallery.show = Mostrar
 gallery.filter.by = Filtrar por
 gallery.severity = Calificación
-gallery.tags = Etiquitas
+gallery.tags = Etiquetas
 gallery.all = Todos
 gallery.occlusion = No puedo ver la banqueta
 gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
+gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados

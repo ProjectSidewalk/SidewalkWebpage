@@ -144,7 +144,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
                     // Skip the task that we were given to start with so that we don't add a duplicate.
-                    if (task.getStreetEdgeId() !== getCurrentTask().getStreetEdgeId()) {
+                    if (task.getStreetEdgeId() !== getCurrentTaskStreetEdgeId()) {
                         self._tasks.push(task);
                         // If the street was part of the curr mission, add it to the list!
                         if (task.getProperty('currentMissionId') === currMissionId) {

@@ -65,7 +65,6 @@ function Main (params) {
     }
 
     function _init() {
-
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Initialize functional components of UI elements.

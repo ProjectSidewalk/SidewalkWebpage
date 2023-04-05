@@ -922,27 +922,32 @@
 
                     // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin).
                     // Since it's only for admins, we added a hacky workaround of a 2 seconds sleep delay.
+                    var panoIdJS = `@panoId`;
                     function sleep (time) {
                         return new Promise((resolve) => setTimeout(resolve, time));
                     }
-                    @if(panoId.isDefined) {
-                        sleep(2000).then(() =>{
-                        try {
-                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
-                                var lat = panoData.location.latLng.lat();
-                                var lng = panoData.location.latLng.lng();
-                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
-                            });
-                        } catch (e) {
-                            console.error("Invalid panorama ID");
-                        }});
-                    } else { @if(lat && lng) {
+                    if (tutorialTask) {
                         sleep(2000).then(() => {
-                            svl.map.setPosition(@lat.get, @lng.get);
+                            svl.map.setPano('tutorial');
                         });
-                    }}
-                }
-                else {
+                    } else if (panoIdJS) {
+                        sleep(2000).then(() => {
+                            try {
+                                svl.streetViewService.getPanorama({pano: panoIdJS}, function(panoData) {
+                                    var lat = panoData.location.latLng.lat();
+                                    var lng = panoData.location.latLng.lng();
+                                    svl.map.setPositionByIdAndLatLng(panoIdJS, lat, lng);
+                                });
+                            } catch (e) {
+                                console.error("Invalid panorama ID");
+                            }
+                        });
+                    } else if (`@lat` && `@lng`) {
+                        sleep(2000).then(() => {
+                            svl.map.setPosition(`@lat`, `@lng`);
+                        });
+                    }
+                } else {
                     // No street view available in this range.
                     console.error("Error loading Street View imagery: " + status);
                     console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));

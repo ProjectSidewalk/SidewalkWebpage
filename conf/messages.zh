@@ -202,7 +202,7 @@ validate.left.ui.feedback = 回饋
 validate.bottom.ui.agree = <u>A</u>同意
 validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定
-validate.bottom.ui.add.comment = 於此輸入說明...
+validate.bottom.ui.add.comment = 如果您不同意，請在此處輸入您的理由，貼標者可以在他們的儀表板中看到
 validate.right.ui.current.mission = 目前任務
 validate.right.ui.correct.examples = <strong>正確</strong> 例子
 validate.right.ui.incorrect.examples = <strong>錯誤</strong> 例子
@@ -335,3 +335,4 @@ gallery.tags = 標籤
 gallery.all = 全部
 gallery.occlusion = 看不到人行道
 gallery.labels.not.found = 無相符資料。 <a href="/audit">開始探索</a>以建立更多的資料！
+gallery.cards = 标签根据选定的过滤器随机排序

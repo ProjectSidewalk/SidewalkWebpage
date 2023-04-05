@@ -40,7 +40,6 @@ function CardContainer(uiCardContainer, initialFilters) {
     let currentPage = 1;
     let lastPage = false;
     let pageNumberDisplay = null;
-    let pageWidth;
     let modal;
     // Map Cards to a CardBucket containing Cards of their label type.
     let cardsByType = {
@@ -63,8 +62,6 @@ function CardContainer(uiCardContainer, initialFilters) {
     let currentCards = new CardBucket();
 
     function _init() {
-        pageWidth = uiCardContainer.holder.width();
-
         // Bind click actions to the forward/backward paging buttons.
         if (uiCardContainer) {
             uiCardContainer.nextPage.bind({
@@ -302,8 +299,6 @@ function CardContainer(uiCardContainer, initialFilters) {
     function render() {        
         // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
         clearCardContainer(uiCardContainer.holder);
-        pageWidth = uiCardContainer.holder.width();
-        const cardWidth = pageWidth/cardsPerLine - cardPadding;
 
         let imagesToLoad = getCurrentPageCards();
         let imagePromises = imagesToLoad.map(img => img.loadImage());
@@ -317,7 +312,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
-                imagesToLoad.forEach((card) => {card.renderSize(uiCardContainer.holder, cardWidth)});
+                imagesToLoad.forEach((card) => { card.render(uiCardContainer.holder) });
                 sg.ui.pageControl.show();
                 sg.pageLoading.hide();
                 sg.ui.cardFilter.wrapper.css('position', 'fixed');
