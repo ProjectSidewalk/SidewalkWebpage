@@ -14,6 +14,7 @@ GET     /results                                             @controllers.Applic
 GET     /labelMap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
 GET     /labelmap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
 GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
+GET     /accessLabeler                                       @controllers.ApplicationController.accessLabeler
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide

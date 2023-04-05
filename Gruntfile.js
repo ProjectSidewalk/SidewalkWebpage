@@ -93,6 +93,12 @@ module.exports = function(grunt) {
                     'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
+            },
+            dist_access_labeler: {
+                src: [
+                    'public/javascripts/AccessLabeler/src/*.js',
+                    ],
+                dest: 'public/javascripts/AccessLabeler/build/AccessLabeler.js'
             }
         },
         concat_css: {
@@ -114,6 +120,12 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/css/*.css'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.css'
+            },
+            dist_access_labeler: {
+                src: [
+                    'public/javascripts/AccessLabeler/css/*.css'
+                    ],
+                dest: 'public/javascripts/AccessLabeler/build/AccessLabeler.css'
             }
         },
         watch : {
@@ -130,7 +142,10 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/css/*.css',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/Gallery/src/**/*.js',
-                    'public/javascripts/Gallery/css/*.css'
+                    'public/javascripts/Gallery/css/*.css',
+                    'public/javascripts/AccessLabeler/src/*.js',
+                    'public/javascripts/AccessLabeler/src/**/*.js',
+                    'public/javascripts/AccessLabeler/css/*.css'
                 ],
                 tasks: [
                     'concat',
@@ -150,5 +165,5 @@ module.exports = function(grunt) {
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
     grunt.registerTask('default', ['concat', 'concat_css']);
-    grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_progress', 'concat:dist_admin', 'concat:dist_validate', 'concat:dist_gallery']);
+    grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_progress', 'concat:dist_admin', 'concat:dist_validate', 'concat:dist_gallery', 'concat:dist_access_labeler']);
 };

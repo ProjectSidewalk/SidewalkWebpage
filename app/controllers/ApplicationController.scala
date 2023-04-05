@@ -344,6 +344,19 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  def accessLabeler = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_AccessLabeler", timestamp))
+        Future.successful(Ok(views.html.accessLabeler("Project Sidewalk", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/accessLabeler"))
+    }
+  }
+
   /**
    * Returns the labelmap page that contains a cool visualization.
    */
