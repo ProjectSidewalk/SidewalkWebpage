@@ -38,6 +38,7 @@ FROM (
                 panorama_lng,
                 row_number() OVER (PARTITION BY gsv_panorama_id ORDER BY time_created DESC)
          FROM label
+         WHERE photographer_heading <> 'NaN' AND photographer_pitch <> 'NaN'
      ) recent
 WHERE gsv_data.gsv_panorama_id = recent.gsv_panorama_id
   AND row_number = 1;
@@ -58,9 +59,20 @@ FROM label
 INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
 WHERE label_point.label_id = label.label_id
     AND gsv_data.image_width IS NOT NULL
-    AND gsv_data.image_height IS NOT NULL;
+    AND gsv_data.image_height IS NOT NULL
+    AND gsv_data.photographer_heading <> 'NaN'
+    AND gsv_data.photographer_pitch <> 'NaN';
+
+ALTER TABLE gsv_data
+    ALTER COLUMN last_viewed SET DEFAULT now(),
+    ALTER COLUMN last_viewed SET NOT NULL;
+
 
 # --- !Downs
+ALTER TABLE gsv_data
+    ALTER COLUMN last_viewed DROP NOT NULL,
+    ALTER COLUMN last_viewed SET DEFAULT NULL;
+
 -- Put the old data back in the label_point table.
 UPDATE label_point
 SET sv_image_x = old_sv_image_x,
@@ -81,13 +93,13 @@ SET photographer_heading = old_label_metadata.old_photographer_heading,
     panorama_lat = old_label_metadata.old_pano_lat,
     panorama_lng = old_label_metadata.old_pano_lng
 FROM old_label_metadata
-WHERE label_point.label_id = old_label_metadata.label_id;
+WHERE label.label_id = old_label_metadata.label_id;
 
 -- Remove the columns from gsv_data and the entire old_label_metadata table.
 ALTER TABLE gsv_data
     DROP COLUMN photographer_heading,
     DROP COLUMN photographer_pitch,
-    DROP COLUMN panorama_lat,
-    DROP COLUMN panorama_lng;
+    DROP COLUMN lat,
+    DROP COLUMN lng;
 
 DROP TABLE old_label_metadata;
