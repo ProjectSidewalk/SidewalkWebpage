@@ -58,7 +58,6 @@ function Label(params) {
         panoramaLat: undefined,
         panoramaLng: undefined,
         photographerHeading: undefined,
-        photographerPitch: undefined,
         svImageWidth: undefined,
         svImageHeight: undefined,
         tagIds: [],
@@ -87,12 +86,15 @@ function Label(params) {
         properties.iconImagePath = util.misc.getIconImagePaths(properties.labelType).iconImagePath;
         properties.fillStyle = util.misc.getLabelColors()[properties.labelType].fillStyle;
 
-        // Calculate sv_image_x/y if the label is new.
+        // Save pano data and calculate sv_image_x/y if the label is new.
         if (properties.svImageCoordinate === undefined) {
             var panoData = svl.panoramaContainer.getPanorama(properties.panoId).data();
 
             properties.svImageWidth = panoData.tiles.worldSize.width;
             properties.svImageHeight = panoData.tiles.worldSize.height;
+            properties.photographerHeading = panoData.tiles.originHeading;
+            properties.panoramaLat = panoData.location.latLng.lat();
+            properties.panoramaLng = panoData.location.latLng.lng();
             properties.svImageCoordinate = util.panomarker.calculateImageCoordinateFromPov(
                 properties.povOfLabelIfCentered, properties.photographerHeading, properties.svImageWidth, properties.svImageHeight
             );
