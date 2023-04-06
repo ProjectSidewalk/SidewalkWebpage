@@ -1,7 +1,7 @@
 package formats.json
 
 import controllers.helper.GoogleMapsHelper
-import models.gsv.GSVDataExtended
+import models.gsv.GSVDataSlim
 import models.label.LabelTable.{LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata}
 import java.sql.Timestamp
 import models.label._
@@ -15,10 +15,6 @@ object LabelFormat {
       (__ \ "mission_id").write[Int] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
-      (__ \ "photographer_heading").write[Float] and
-      (__ \ "photographer_pitch").write[Float] and
-      (__ \ "panorama_lat").write[Float] and
-      (__ \ "panorama_lng").write[Float] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "time_created").write[Timestamp] and
@@ -55,15 +51,15 @@ object LabelFormat {
       (__ \ "photographer_pitch").write[Float]
   )(unlift(LabelTable.LabelCVMetadata.unapply))
 
-  implicit val gsvDataExtendedWrite: Writes[GSVDataExtended] = (
+  implicit val gsvDataSlimWrite: Writes[GSVDataSlim] = (
     (__ \ "gsv_panorama_id").write[String] and
       (__ \ "image_width").writeNullable[Int] and
       (__ \ "image_height").writeNullable[Int] and
-      (__ \ "panorama_lat").writeNullable[Float] and
-      (__ \ "panorama_lng").writeNullable[Float] and
+      (__ \ "lat").writeNullable[Float] and
+      (__ \ "lng").writeNullable[Float] and
       (__ \ "photographer_heading").writeNullable[Float] and
       (__ \ "photographer_pitch").writeNullable[Float]
-    )(unlift(GSVDataExtended.unapply))
+    )(unlift(GSVDataSlim.unapply))
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
     Json.obj(

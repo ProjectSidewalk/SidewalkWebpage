@@ -315,8 +315,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
             // Add the new entry to the label table.
             val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
-              label.photographerHeading, label.photographerPitch, label.panoramaLat, label.panoramaLng, label.deleted,
-              label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
+              label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
               label.severity, label.temporary, label.description))
 
             // Add an entry to the label_point table.
@@ -355,7 +354,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           GSVDataTable.markLastViewedForPanorama(pano.gsvPanoramaId, timestamp)
         } else {
           val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.imageWidth, pano.imageHeight, pano.tileWidth,
-            pano.tileHeight, pano.imageDate, pano.copyright, expired = false, Some(timestamp))
+            pano.tileHeight, pano.imageDate, pano.copyright, pano.lat, pano.lng, pano.photographerHeading,
+            pano.photographerPitch, expired = false, Some(timestamp))
           GSVDataTable.save(gsvData)
 
           for (link <- pano.links) {

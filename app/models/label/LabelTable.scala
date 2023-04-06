@@ -26,7 +26,6 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
-                 photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float,
                  deleted: Boolean, temporaryLabelId: Option[Int], timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String])
@@ -50,10 +49,6 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def missionId = column[Int]("mission_id", O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
-  def photographerHeading = column[Float]("photographer_heading", O.NotNull)
-  def photographerPitch = column[Float]("photographer_pitch", O.NotNull)
-  def panoramaLat = column[Float]("panorama_lat", O.NotNull)
-  def panoramaLng = column[Float]("panorama_lng", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timeCreated = column[Timestamp]("time_created", O.NotNull)
@@ -67,9 +62,9 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def temporary = column[Boolean]("temporary", O.NotNull)
   def description = column[Option[String]]("description", O.Nullable)
 
-  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
-    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount,
-    notsureCount, correct, severity, temporary, description) <> ((Label.apply _).tupled, Label.unapply)
+  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId,
+    timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, notsureCount, correct, severity, temporary,
+    description) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
@@ -174,8 +169,10 @@ object LabelTable {
                                                 streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
                                                 userValidation: Option[Int]) extends BasicLabelMetadata
 
-  case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
-                                 svImageHeight: Int, tagIds: List[Int])
+  case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoramaLat: Option[Float],
+                                 panoramaLng: Option[Float], photographerHeading: Option[Float],
+                                 photographerPitch: Option[Float], svImageWidth: Int, svImageHeight: Int,
+                                 tagIds: List[Int])
 
   case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agreeCount: Int, disagreeCount: Int,
                              notsureCount: Int, imageWidth: Option[Int], imageHeight: Option[Int], svImageX: Int,
@@ -216,13 +213,13 @@ object LabelTable {
 
   implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
     ResumeLabelMetadata(
-      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat,
-        r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextTimestamp, r.nextBoolean, r.nextInt, r.nextInt, r.nextInt,
-        r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean, r.nextStringOption),
+      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextBoolean, r.nextIntOption, r.nextTimestamp,
+        r.nextBoolean, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean,
+        r.nextStringOption),
       r.nextString,
       LabelPoint(r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextInt,
         r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
-      r.nextInt, r.nextInt,
+      r.nextFloatOption, r.nextFloatOption, r.nextFloatOption, r.nextFloatOption, r.nextInt, r.nextInt,
       r.nextStringOption.map(tags => tags.split(",").map(_.toInt).toList).getOrElse(List())
     )
   )
@@ -1062,15 +1059,15 @@ object LabelTable {
     val labelsInRegionQuery = Q.queryNA[ResumeLabelMetadata](
       s"""SELECT -- Entire label table.
         |       label.label_id, label.audit_task_id, label.mission_id, label.gsv_panorama_id, label.label_type_id,
-        |       label.photographer_heading, label.photographer_pitch, label.panorama_lat, label.panorama_lng,
         |       label.deleted, label.temporary_label_id, label.time_created, label.tutorial, label.street_edge_id,
         |       label.agree_count, label.disagree_count, label.notsure_count, label.correct, label.severity,
         |       label.temporary, label.description,
         |       label_type.label_type,
         |       -- Entire label_point table.
         |       label_point_id, label_point.label_id, sv_image_x, sv_image_y, canvas_x, canvas_y, heading, pitch, zoom,
-        |       lat, lng, geom, computation_method,
+        |       label_point.lat, label_point.lng, geom, computation_method,
         |       -- All the extra stuff.
+        |       gsv_data.lat, gsv_data.lng, gsv_data.photographer_heading, gsv_data.photographer_pitch,
         |       gsv_data.image_width, gsv_data.image_height,
         |       the_tags.tag_list
         |FROM mission
@@ -1337,11 +1334,12 @@ object LabelTable {
       _l <- labels
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      if _gsv.photographerHeading.isDefined && _gsv.photographerPitch.isDefined
     } yield (
       _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount,
       _gsv.imageWidth, _gsv.imageHeight, _lp.svImageX, _lp.svImageY, LabelPointTable.canvasWidth,
-      LabelPointTable.canvasHeight, _lp.canvasX, _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _l.photographerHeading,
-      _l.photographerPitch
+      LabelPointTable.canvasHeight, _lp.canvasX, _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch,
+      _gsv.photographerHeading.get, _gsv.photographerPitch.get
     )).list.map(LabelCVMetadata.tupled)
   }
 }

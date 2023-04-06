@@ -95,10 +95,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
                 label_type : label.getLabelType(),
-                photographer_heading : prop.photographerHeading,
-                photographer_pitch : prop.photographerPitch,
-                panorama_lat: prop.panoramaLat,
-                panorama_lng: prop.panoramaLng,
                 temporary_label_id: tempLabelId,
                 audit_task_id: auditTaskId,
                 gsv_panorama_id : prop.panoId,
@@ -130,7 +126,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             data.labels.push(temp)
         }
 
-        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibility attributes).
+        // Keep Street View metadata. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibility attributes).
         data.gsv_panoramas = [];
 
         var temp;
@@ -158,6 +154,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 image_height: panoramaData.tiles.worldSize.height,
                 tile_width: panoramaData.tiles.tileSize.width,
                 tile_height: panoramaData.tiles.tileSize.height,
+                lat: panoramaData.location.latLng.lat(),
+                lng: panoramaData.location.latLng.lng(),
+                photographer_heading: panoramaData.tiles.originHeading,
+                photographer_pitch: -panoramaData.tiles.originPitch, // photographer_pitch is negative origin_pitch.
                 links: links,
                 copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
             };

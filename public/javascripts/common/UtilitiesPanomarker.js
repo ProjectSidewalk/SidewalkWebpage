@@ -111,7 +111,7 @@ util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImag
  */
 function calculateImageCoordinateFromPov(pov, photographerHeading, svImageWidth, svImageHeight) {
     // TODO redo the math for computing imageY like we did for imageX.
-    var imageY = (svImageHeight / 2) * (pov.pitch / 90);
+    var imageY = svImageHeight / 2 - (svImageHeight / 2) * (pov.pitch / 90);
 
     // The photographerHeading represents the center of the image. Subtract 180 to find the heading where imageX = 0.
     var headingPixelZero = photographerHeading - 180;

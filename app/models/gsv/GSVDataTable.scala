@@ -6,12 +6,12 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 case class GSVData(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int],
-                   tileHeight: Option[Int], imageDate: String, copyright: String, expired: Boolean,
-                   lastViewed: Option[java.sql.Timestamp])
+                   tileHeight: Option[Int], imageDate: String, copyright: String, lat: Option[Float],
+                   lng: Option[Float], photographerHeading: Option[Float], photographerPitch: Option[Float],
+                   expired: Boolean, lastViewed: Option[java.sql.Timestamp])
 
-case class GSVDataExtended(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int],
-                           panoramaLat: Option[Float], panoramaLng: Option[Float], photographerHeading: Option[Float],
-                           photographerPitch: Option[Float])
+case class GSVDataSlim(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], lat: Option[Float],
+                       lng: Option[Float], photographerHeading: Option[Float], photographerPitch: Option[Float])
 
 class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_data") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
@@ -21,10 +21,15 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_
   def tileHeight = column[Option[Int]]("tile_height")
   def imageDate = column[String]("image_date", O.NotNull)
   def copyright = column[String]("copyright", O.NotNull)
+  def lat = column[Option[Float]]("lat", O.Nullable)
+  def lng = column[Option[Float]]("lng", O.Nullable)
+  def photographerHeading = column[Option[Float]]("photographer_heading", O.Nullable)
+  def photographerPitch = column[Option[Float]]("photographer_pitch", O.Nullable)
   def expired = column[Boolean]("expired", O.NotNull)
   def lastViewed = column[Option[java.sql.Timestamp]]("last_viewed", O.Nullable)
 
-  def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, imageDate, copyright, expired, lastViewed) <>
+  def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, imageDate, copyright,
+    lat, lng, photographerHeading, photographerPitch, expired, lastViewed) <>
     ((GSVData.apply _).tupled, GSVData.unapply)
 }
 
@@ -33,25 +38,16 @@ object GSVDataTable {
   val gsvDataRecords = TableQuery[GSVDataTable]
 
   /**
-   * List all panos with labels with some metadata. For the metadata that we get from the label table (panorama_lat,
-   * panorama_lng, photographer_heading, and photographer_pitch), we are getting different values from Google's API over
-   * time. We are not totally sure why, but for now we are grabbing the most recent metadata we've gotten from Google.
+   * Get a subset of the pano metadata for all panos that have associated labels.
    */
-  def getAllPanosWithLabels: List[GSVDataExtended] = db.withSession { implicit session =>
-    // Get most recent labels for each pano_id so that we have the most recent metadata from Google.
-    val mostRecentLabels = LabelTable.labelsUnfiltered
+  def getAllPanosWithLabels: List[GSVDataSlim] = db.withSession { implicit session =>
+    LabelTable.labelsUnfiltered
       .filter(_.gsvPanoramaId =!= "tutorial")
-      .groupBy(_.gsvPanoramaId).map(_._2.map(_.labelId).max)
-      .leftJoin(LabelTable.labelsUnfiltered).on(_ === _.labelId)
-      .map(_._2)
-
-    // Left join with the most recent labels that we found above, grabbing the metadata.
-    gsvDataRecords
-      .filter(_.gsvPanoramaId =!= "tutorial")
-      .innerJoin(mostRecentLabels).on(_.gsvPanoramaId === _.gsvPanoramaId)
-      .map { case (g, l) => (
-        g.gsvPanoramaId, g.imageWidth, g.imageHeight, l.panoramaLat.?, l.panoramaLng.?, l.photographerPitch.?, l.photographerHeading.?
-      )}.list.map(GSVDataExtended.tupled)
+      .groupBy(_.gsvPanoramaId).map(_._1)
+      .innerJoin(gsvDataRecords).on(_ === _.gsvPanoramaId)
+      .map { case (panoId, gsv) => (
+        gsv.gsvPanoramaId, gsv.imageWidth, gsv.imageHeight, gsv.lat, gsv.lng, gsv.photographerHeading, gsv.photographerPitch
+      )}.list.map(GSVDataSlim.tupled)
   }
 
   /**
