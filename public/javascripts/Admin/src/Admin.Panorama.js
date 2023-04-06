@@ -181,7 +181,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 } else {
                     setTimeout(callback, 200, n - 1);
                 }
-                callbackParam();
+                if (callbackParam) callbackParam();
             }
             setTimeout(callback, 200, 10);
         }
