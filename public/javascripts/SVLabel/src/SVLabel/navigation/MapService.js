@@ -619,7 +619,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             _canvas.render();
                             povChange["status"] = false;
 
-                            svl.tracker.push("PanoId_Changed");
+                            svl.tracker.push("PanoId_Changed", {
+                                panoId: panoId,
+                                lat: data.location.latLng.lat(),
+                                lng: data.location.latLng.lng(),
+                                photographerHeading: data.tiles.originHeading,
+                                photographerPitch: -data.tiles.originPitch, // photographerPitch is negative originPitch.
+                            });
                             prevPanoId = panoId;
 
                         } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
