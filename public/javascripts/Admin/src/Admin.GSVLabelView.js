@@ -247,6 +247,40 @@ function AdminGSVLabelView(admin) {
                 console.error(result);
             }
         });
+
+        // Update the validation row text to show update
+        updateValidationString(action)
+
+    }
+
+    /**
+     * Update just the validation row on the table
+     * @param action, can only be "Agree", "Disagree", and "Unsure"
+     */
+    function updateValidationString(action) {
+        var currentText = self.modalValidations.html();
+
+        var splitText = currentText.split(' ')
+
+        agreeCount = parseInt(splitText[0], 10);
+        disagreeCount = parseInt(splitText[2], 10);
+        unsureCount = parseInt(splitText[4], 10);
+
+        if (action === 'Agree') {
+            agreeCount += 1
+        } else if (action === 'Disagree') {
+            disagreeCount += 1
+        } else if (action === 'Unsure') {
+            unsureCount += 1
+        }
+
+        var validationsText = '' + agreeCount + ' Agree, ' +
+            disagreeCount + ' Disagree, ' +
+            unsureCount + ' Not Sure';
+
+        // This is fairly finicky.
+        // assuming the user does not constantly swap votes.
+        self.modalValidations.html(validationsText)
     }
 
     /**
