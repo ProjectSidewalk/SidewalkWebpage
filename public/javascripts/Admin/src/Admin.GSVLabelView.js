@@ -258,14 +258,18 @@ function AdminGSVLabelView(admin) {
      * @param action, can only be "Agree", "Disagree", and "Unsure"
      */
     function updateValidationString(action) {
+        // get current string for validations
         var currentText = self.modalValidations.html();
 
+        // Split it by space to only focus on counts
         var splitText = currentText.split(' ')
 
+        // Get the vote counts for each label
         agreeCount = parseInt(splitText[0], 10);
         disagreeCount = parseInt(splitText[2], 10);
         unsureCount = parseInt(splitText[4], 10);
 
+        // Increment one of the options by one based on action
         if (action === 'Agree') {
             agreeCount += 1
         } else if (action === 'Disagree') {
@@ -274,6 +278,7 @@ function AdminGSVLabelView(admin) {
             unsureCount += 1
         }
 
+        // Form new string for validations row
         var validationsText = '' + agreeCount + ' Agree, ' +
             disagreeCount + ' Disagree, ' +
             unsureCount + ' Not Sure';
