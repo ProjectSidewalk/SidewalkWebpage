@@ -65,30 +65,22 @@ function Canvas(ribbon) {
         // Generate some metadata for the new label.
         var labelType = ribbon.getStatus('selectedLabelType');
         var pov = svl.map.getPov();
-        var povOfLabel = util.panomarker.calculatePointPov(
+        var povOfLabel = util.panomarker.calculatePovIfCentered(
             pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
         );
         let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
             povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
         );
-        var latlng = svl.map.getPosition();
         var param = {
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
             labelType: labelType,
-            originalCanvasCoordinate: { x: canvasX, y: canvasY },
-            currCanvasCoordinate: rerenderCanvasCoord,
+            originalCanvasXY: { x: canvasX, y: canvasY },
+            currCanvasXY: rerenderCanvasCoord,
             povOfLabelIfCentered: povOfLabel,
             panoId: svl.map.getPanoId(),
-            panoramaLat: latlng.lat,
-            panoramaLng: latlng.lng,
             originalPov: pov
         };
-        if (("panorama" in svl) && ("getPhotographerPov" in svl.panorama)) {
-            var photographerPov = svl.panorama.getPhotographerPov();
-            param.photographerHeading = photographerPov.heading;
-            param.photographerPitch = photographerPov.pitch;
-        }
 
         // Create the label and render the context menu.
         status.currentLabel = svl.labelContainer.createLabel(param, true);
