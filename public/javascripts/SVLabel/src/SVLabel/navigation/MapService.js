@@ -210,7 +210,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             updatePov(.01,.01);
         });
 
-        // Add listeners to the SV panorama
+        // Add listeners to the SV panorama.
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
         if (typeof google != "undefined") {
             google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
@@ -623,8 +623,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                 panoId: panoId,
                                 lat: data.location.latLng.lat(),
                                 lng: data.location.latLng.lng(),
-                                photographerHeading: data.tiles.originHeading,
-                                photographerPitch: -data.tiles.originPitch, // photographerPitch is negative originPitch.
+                                cameraHeading: data.tiles.originHeading,
+                                cameraPitch: -data.tiles.originPitch, // cameraPitch is negative originPitch.
                             });
                             prevPanoId = panoId;
 
@@ -916,7 +916,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
-            // If a mouse is being dragged on the control layer, move the sv image.
+            // If a mouse is being dragged on the control layer, move the pano.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
             var pov = getPov();

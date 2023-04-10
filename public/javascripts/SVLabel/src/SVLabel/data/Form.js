@@ -105,10 +105,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 time_created: timeCreated,
                 tutorial: prop.tutorial,
                 label_point: {
-                    sv_image_x : prop.svImageCoordinate.x,
-                    sv_image_y : prop.svImageCoordinate.y,
-                    canvas_x: prop.originalCanvasCoordinate.x,
-                    canvas_y: prop.originalCanvasCoordinate.y,
+                    pano_x : Math.round(prop.panoXY.x),
+                    pano_y : Math.round(prop.panoXY.y),
+                    canvas_x: prop.originalCanvasXY.x,
+                    canvas_y: prop.originalCanvasXY.y,
                     heading: prop.originalPov.heading,
                     pitch: prop.originalPov.pitch,
                     zoom : prop.originalPov.zoom,
@@ -130,16 +130,16 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         data.gsv_panoramas = [];
 
         var temp;
-        var panoramaData;
+        var panoData;
         var link;
         var links;
         var panoramas = panoramaContainer.getStagedPanoramas();
         for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
-            panoramaData = panoramas[i].data();
+            panoData = panoramas[i].data();
             links = [];
-            if ("links" in panoramaData) {
-                for (j = 0; j < panoramaData.links.length; j++) {
-                    link = panoramaData.links[j];
+            if ("links" in panoData) {
+                for (j = 0; j < panoData.links.length; j++) {
+                    link = panoData.links[j];
                     links.push({
                         target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
                         yaw_deg: ("heading" in link) ? link.heading : 0.0,
@@ -148,18 +148,18 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 }
             }
             temp = {
-                panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
-                image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
-                image_width: panoramaData.tiles.worldSize.width,
-                image_height: panoramaData.tiles.worldSize.height,
-                tile_width: panoramaData.tiles.tileSize.width,
-                tile_height: panoramaData.tiles.tileSize.height,
-                lat: panoramaData.location.latLng.lat(),
-                lng: panoramaData.location.latLng.lng(),
-                photographer_heading: panoramaData.tiles.originHeading,
-                photographer_pitch: -panoramaData.tiles.originPitch, // photographer_pitch is negative origin_pitch.
+                panorama_id: ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "",
+                capture_date: "imageDate" in panoData ? panoData.imageDate : "",
+                width: panoData.tiles.worldSize.width,
+                height: panoData.tiles.worldSize.height,
+                tile_width: panoData.tiles.tileSize.width,
+                tile_height: panoData.tiles.tileSize.height,
+                lat: panoData.location.latLng.lat(),
+                lng: panoData.location.latLng.lng(),
+                camera_heading: panoData.tiles.originHeading,
+                camera_pitch: -panoData.tiles.originPitch, // camera_pitch is negative origin_pitch.
                 links: links,
-                copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
+                copyright: "copyright" in panoData ? panoData.copyright : ""
             };
             data.gsv_panoramas.push(temp);
             panoramas[i].setProperty("submitted", true);

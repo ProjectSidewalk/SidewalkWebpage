@@ -325,7 +325,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               _lng <- point.lng
             } yield gf.createPoint(new Coordinate(_lng.toDouble, _lat.toDouble))
 
-            LabelPointTable.save(LabelPoint(0, newLabelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
+            LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
               point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
 
             newLabels += ((newLabelId, timeCreated))
@@ -351,12 +351,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       for (pano <- data.gsvPanoramas) {
         // Insert new entry to gsv_data table, or update the last_viewed column if we've already recorded it.
         if (GSVDataTable.panoramaExists(pano.gsvPanoramaId)) {
-          GSVDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.photographerHeading,
-            pano.photographerPitch, false, currTime)
+          GSVDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading,
+            pano.cameraPitch, false, currTime)
         } else {
-          val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.imageWidth, pano.imageHeight, pano.tileWidth,
-            pano.tileHeight, pano.imageDate, pano.copyright, pano.lat, pano.lng, pano.photographerHeading,
-            pano.photographerPitch, expired = false, currTime)
+          val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
+            pano.captureDate, pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false,
+            currTime)
           GSVDataTable.save(gsvData)
         }
         for (link <- pano.links) {

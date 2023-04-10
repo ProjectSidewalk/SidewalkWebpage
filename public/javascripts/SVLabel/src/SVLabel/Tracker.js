@@ -124,8 +124,7 @@ function Tracker() {
             currentLabel = extraData['temporaryLabelId'];
         }
 
-        // Initialize variables. Note you cannot get pov, panoid, or position
-        // before the map and SV load.
+        // Initialize variables. Note you cannot get pov, panoid, or position before the map and pano load.
         try {
             pov = svl.map.getPov();
         } catch (err) {

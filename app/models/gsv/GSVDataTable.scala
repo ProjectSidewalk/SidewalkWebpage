@@ -5,31 +5,31 @@ import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-case class GSVData(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], tileWidth: Option[Int],
-                   tileHeight: Option[Int], imageDate: String, copyright: String, lat: Option[Float],
-                   lng: Option[Float], photographerHeading: Option[Float], photographerPitch: Option[Float],
-                   expired: Boolean, lastViewed: java.sql.Timestamp)
+case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
+                   tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
+                   lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], expired: Boolean,
+                   lastViewed: java.sql.Timestamp)
 
-case class GSVDataSlim(gsvPanoramaId: String, imageWidth: Option[Int], imageHeight: Option[Int], lat: Option[Float],
-                       lng: Option[Float], photographerHeading: Option[Float], photographerPitch: Option[Float])
+case class GSVDataSlim(gsvPanoramaId: String, width: Option[Int], height: Option[Int], lat: Option[Float],
+                       lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float])
 
 class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_data") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
-  def imageWidth = column[Option[Int]]("image_width")
-  def imageHeight = column[Option[Int]]("image_height")
+  def width = column[Option[Int]]("width")
+  def height = column[Option[Int]]("height")
   def tileWidth = column[Option[Int]]("tile_width")
   def tileHeight = column[Option[Int]]("tile_height")
-  def imageDate = column[String]("image_date", O.NotNull)
+  def captureDate = column[String]("capture_date", O.NotNull)
   def copyright = column[String]("copyright", O.NotNull)
   def lat = column[Option[Float]]("lat", O.Nullable)
   def lng = column[Option[Float]]("lng", O.Nullable)
-  def photographerHeading = column[Option[Float]]("photographer_heading", O.Nullable)
-  def photographerPitch = column[Option[Float]]("photographer_pitch", O.Nullable)
+  def cameraHeading = column[Option[Float]]("camera_heading", O.Nullable)
+  def cameraPitch = column[Option[Float]]("camera_pitch", O.Nullable)
   def expired = column[Boolean]("expired", O.NotNull)
   def lastViewed = column[java.sql.Timestamp]("last_viewed", O.Nullable)
 
-  def * = (gsvPanoramaId, imageWidth, imageHeight, tileWidth, tileHeight, imageDate, copyright,
-    lat, lng, photographerHeading, photographerPitch, expired, lastViewed) <>
+  def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng,
+    cameraHeading, cameraPitch, expired, lastViewed) <>
     ((GSVData.apply _).tupled, GSVData.unapply)
 }
 
@@ -46,7 +46,7 @@ object GSVDataTable {
       .groupBy(_.gsvPanoramaId).map(_._1)
       .innerJoin(gsvDataRecords).on(_ === _.gsvPanoramaId)
       .map { case (panoId, gsv) => (
-        gsv.gsvPanoramaId, gsv.imageWidth, gsv.imageHeight, gsv.lat, gsv.lng, gsv.photographerHeading, gsv.photographerPitch
+        gsv.gsvPanoramaId, gsv.width, gsv.height, gsv.lat, gsv.lng, gsv.cameraHeading, gsv.cameraPitch
       )}.list.map(GSVDataSlim.tupled)
   }
 
@@ -78,7 +78,7 @@ object GSVDataTable {
    */
   def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: java.sql.Timestamp): Int = db.withSession { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId }
-      yield (pano.lat, pano.lng, pano.photographerHeading, pano.photographerPitch, pano.expired, pano.lastViewed)
+      yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed)
     q.update((lat, lng, heading, pitch, expired, lastViewed))
   }
 

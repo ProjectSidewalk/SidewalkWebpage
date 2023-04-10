@@ -19,21 +19,21 @@ function Label(params) {
             headingIntercept: -51.2401711,
             headingCanvasXSlope: 0.1443374,
             distanceIntercept: 18.6051843,
-            distanceSvImageYSlope: 0.0138947,
+            distancePanoYSlope: 0.0138947,
             distanceCanvasYSlope: 0.0011023
         },
         2: {
             headingIntercept: -27.5267447,
             headingCanvasXSlope: 0.0784357,
             distanceIntercept: 20.8794248,
-            distanceSvImageYSlope: 0.0184087,
+            distancePanoYSlope: 0.0184087,
             distanceCanvasYSlope: 0.0022135
         },
         3: {
             headingIntercept: -13.5675945,
             headingCanvasXSlope: 0.0396061,
             distanceIntercept: 25.2472682,
-            distanceSvImageYSlope: 0.0264216,
+            distancePanoYSlope: 0.0264216,
             distanceCanvasYSlope: 0.0011071
         }
     };
@@ -46,20 +46,20 @@ function Label(params) {
         labelType: undefined,
         fillStyle: undefined,
         iconImagePath: undefined,
-        originalCanvasCoordinate: undefined,
-        currCanvasCoordinate: undefined,
-        svImageCoordinate: undefined,
+        originalCanvasXY: undefined,
+        currCanvasXY: undefined,
+        panoXY: undefined,
         originalPov: undefined,
         povOfLabelIfCentered: undefined,
         labelLat: undefined,
         labelLng: undefined,
         latLngComputationMethod: undefined,
         panoId: undefined,
-        panoramaLat: undefined,
-        panoramaLng: undefined,
-        photographerHeading: undefined,
-        svImageWidth: undefined,
-        svImageHeight: undefined,
+        panoLat: undefined,
+        panoLng: undefined,
+        cameraHeading: undefined,
+        panoWidth: undefined,
+        panoHeight: undefined,
         tagIds: [],
         severity: null,
         tutorial: null,
@@ -86,17 +86,17 @@ function Label(params) {
         properties.iconImagePath = util.misc.getIconImagePaths(properties.labelType).iconImagePath;
         properties.fillStyle = util.misc.getLabelColors()[properties.labelType].fillStyle;
 
-        // Save pano data and calculate sv_image_x/y if the label is new.
-        if (properties.svImageCoordinate === undefined) {
+        // Save pano data and calculate pano_x/y if the label is new.
+        if (properties.panoXY === undefined) {
             var panoData = svl.panoramaContainer.getPanorama(properties.panoId).data();
 
-            properties.svImageWidth = panoData.tiles.worldSize.width;
-            properties.svImageHeight = panoData.tiles.worldSize.height;
-            properties.photographerHeading = panoData.tiles.originHeading;
-            properties.panoramaLat = panoData.location.latLng.lat();
-            properties.panoramaLng = panoData.location.latLng.lng();
-            properties.svImageCoordinate = util.panomarker.calculateImageCoordinateFromPov(
-                properties.povOfLabelIfCentered, properties.photographerHeading, properties.svImageWidth, properties.svImageHeight
+            properties.panoWidth = panoData.tiles.worldSize.width;
+            properties.panoHeight = panoData.tiles.worldSize.height;
+            properties.cameraHeading = panoData.tiles.originHeading;
+            properties.panoLat = panoData.location.latLng.lat();
+            properties.panoLng = panoData.location.latLng.lng();
+            properties.panoXY = util.panomarker.calculatePanoXYFromPov(
+                properties.povOfLabelIfCentered, properties.cameraHeading, properties.panoWidth, properties.panoHeight
             );
         }
 
@@ -140,8 +140,8 @@ function Label(params) {
      * Returns the coordinate of the label.
      * @returns { x: Number, y: Number }
      */
-    function getCoordinate() {
-        return properties.currCanvasCoordinate;
+    function getCanvasXY() {
+        return properties.currCanvasXY;
     }
 
     /**
@@ -200,10 +200,10 @@ function Label(params) {
         var margin = svl.LABEL_ICON_RADIUS / 2 + 2;
         return !status.deleted &&
             status.visibility === 'visible' &&
-            x < properties.currCanvasCoordinate.x + margin &&
-            x > properties.currCanvasCoordinate.x - margin &&
-            y < properties.currCanvasCoordinate.y + margin &&
-            y > properties.currCanvasCoordinate.y - margin;
+            x < properties.currCanvasXY.x + margin &&
+            x > properties.currCanvasXY.x - margin &&
+            y < properties.currCanvasXY.y + margin &&
+            y > properties.currCanvasXY.y - margin;
     }
 
     /**
@@ -230,7 +230,7 @@ function Label(params) {
 
             // Update the coordinates of the label on the canvas.
             if (svl.map.getPovChangeStatus()) {
-                properties.currCanvasCoordinate = util.panomarker.getCanvasCoordinate(
+                properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
                     properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
             }
@@ -239,8 +239,8 @@ function Label(params) {
             var imageObj, imageHeight, imageWidth, imageX, imageY;
             imageObj = new Image();
             imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
-            imageX =  properties.currCanvasCoordinate.x - svl.LABEL_ICON_RADIUS + 2;
-            imageY = properties.currCanvasCoordinate.y - svl.LABEL_ICON_RADIUS + 2;
+            imageX =  properties.currCanvasXY.x - svl.LABEL_ICON_RADIUS + 2;
+            imageY = properties.currCanvasXY.y - svl.LABEL_ICON_RADIUS + 2;
             imageObj.src = getProperty('iconImagePath');
             try {
                 ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
@@ -253,11 +253,11 @@ function Label(params) {
             ctx.fillStyle = getProperty('fillStyle');
             ctx.lineWidth = 0.7;
             ctx.beginPath();
-            ctx.arc(properties.currCanvasCoordinate.x, properties.currCanvasCoordinate.y, 15.3, 0, 2 * Math.PI);
+            ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 15.3, 0, 2 * Math.PI);
             ctx.strokeStyle = 'black';
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(properties.currCanvasCoordinate.x, properties.currCanvasCoordinate.y, 16.2, 0, 2 * Math.PI);
+            ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 16.2, 0, 2 * Math.PI);
             ctx.strokeStyle = 'white';
             ctx.stroke();
 
@@ -291,7 +291,7 @@ function Label(params) {
         }
 
         // labelCoordinate represents the upper left corner of the hover info.
-        var labelCoordinate = getCoordinate(),
+        var labelCoordinate = getCanvasXY(),
             cornerRadius = 3,
             hasSeverity = (properties.labelType !== 'Occlusion' && properties.labelType !== 'Signal'),
             width = 0,
@@ -370,7 +370,7 @@ function Label(params) {
 
     function showDeleteButton() {
         if (status.hoverInfoVisibility !== 'hidden') {
-            var coord = getCoordinate();
+            var coord = getCanvasXY();
             svl.ui.canvas.deleteIconHolder.css({ visibility: 'visible', left : coord.x + 5, top : coord.y - 20 });
         }
     }
@@ -380,8 +380,8 @@ function Label(params) {
      * @param ctx Rendering tool for severity (2D context).
      */
     function showSeverityAlert(ctx) {
-        var x = properties.currCanvasCoordinate.x;
-        var y = properties.currCanvasCoordinate.y;
+        var x = properties.currCanvasXY.x;
+        var y = properties.currCanvasXY.y;
 
         // Draws circle.
         ctx.beginPath();
@@ -405,13 +405,13 @@ function Label(params) {
     function toLatLng() {
         if (!properties.labelLat) {
             // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
-            var panoLat = getProperty("panoramaLat");
-            var panoLng = getProperty("panoramaLng");
+            var panoLat = getProperty("panoLat");
+            var panoLng = getProperty("panoLng");
             var panoHeading = getProperty("originalPov").heading;
             var zoom = Math.round(getProperty("originalPov").zoom); // Need to round specifically for Safari.
-            var canvasX = getProperty('originalCanvasCoordinate').x;
-            var canvasY = getProperty('originalCanvasCoordinate').y;
-            var svImageY = getProperty('svImageCoordinate').y;
+            var canvasX = getProperty('originalCanvasXY').x;
+            var canvasY = getProperty('originalCanvasXY').y;
+            var panoY = getProperty('panoXY').y;
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
             var estHeadingDiff =
@@ -419,7 +419,7 @@ function Label(params) {
                 LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
             var estDistanceFromPanoKm = Math.max(0,
                 LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
-                LATLNG_ESTIMATION_PARAMS[zoom].distanceSvImageYSlope * svImageY +
+                LATLNG_ESTIMATION_PARAMS[zoom].distancePanoYSlope * panoY +
                 LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
             ) / 1000.0;
             var estHeading = panoHeading + estHeadingDiff;
@@ -447,7 +447,7 @@ function Label(params) {
 
     }
 
-    self.getCoordinate = getCoordinate;
+    self.getCanvasXY = getCanvasXY;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getPanoId = getPanoId;

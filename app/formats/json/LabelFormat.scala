@@ -36,10 +36,10 @@ object LabelFormat {
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
       (__ \ "notsure_count").write[Int] and
-      (__ \ "image_width").writeNullable[Int] and
-      (__ \ "image_height").writeNullable[Int] and
-      (__ \ "sv_image_x").write[Int] and
-      (__ \ "sv_image_y").write[Int] and
+      (__ \ "pano_width").writeNullable[Int] and
+      (__ \ "pano_height").writeNullable[Int] and
+      (__ \ "pano_x").write[Int] and
+      (__ \ "pano_y").write[Int] and
       (__ \ "canvas_width").write[Int] and
       (__ \ "canvas_height").write[Int] and
       (__ \ "canvas_x").write[Int] and
@@ -47,18 +47,18 @@ object LabelFormat {
       (__ \ "zoom").write[Int] and
       (__ \ "heading").write[Float] and
       (__ \ "pitch").write[Float] and
-      (__ \ "photographer_heading").write[Float] and
-      (__ \ "photographer_pitch").write[Float]
+      (__ \ "camera_heading").write[Float] and
+      (__ \ "camera_pitch").write[Float]
   )(unlift(LabelTable.LabelCVMetadata.unapply))
 
   implicit val gsvDataSlimWrite: Writes[GSVDataSlim] = (
     (__ \ "gsv_panorama_id").write[String] and
-      (__ \ "image_width").writeNullable[Int] and
-      (__ \ "image_height").writeNullable[Int] and
+      (__ \ "width").writeNullable[Int] and
+      (__ \ "height").writeNullable[Int] and
       (__ \ "lat").writeNullable[Float] and
       (__ \ "lng").writeNullable[Float] and
-      (__ \ "photographer_heading").writeNullable[Float] and
-      (__ \ "photographer_pitch").writeNullable[Float]
+      (__ \ "camera_heading").writeNullable[Float] and
+      (__ \ "camera_pitch").writeNullable[Float]
     )(unlift(GSVDataSlim.unapply))
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
@@ -66,7 +66,7 @@ object LabelFormat {
       "label_id" -> labelMetadata.labelId,
       "label_type" -> labelMetadata.labelType,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
-      "image_date" -> labelMetadata.imageDate,
+      "image_capture_date" -> labelMetadata.imageCaptureDate,
       "label_timestamp" -> labelMetadata.timestamp,
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
@@ -89,7 +89,7 @@ object LabelFormat {
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
-      "image_date" -> labelMetadata.imageDate,
+      "image_capture_date" -> labelMetadata.imageCaptureDate,
       "heading" -> labelMetadata.headingPitchZoom._1,
       "pitch" -> labelMetadata.headingPitchZoom._2,
       "zoom" -> labelMetadata.headingPitchZoom._3,
@@ -120,7 +120,7 @@ object LabelFormat {
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
-      "image_date" -> labelMetadata.imageDate,
+      "image_capture_date" -> labelMetadata.imageCaptureDate,
       "heading" -> labelMetadata.headingPitchZoom._1,
       "pitch" -> labelMetadata.headingPitchZoom._2,
       "zoom" -> labelMetadata.headingPitchZoom._3,
