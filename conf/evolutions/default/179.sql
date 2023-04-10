@@ -76,8 +76,8 @@ ALTER TABLE label_point RENAME COLUMN sv_image_y to pano_y;
 
 # --- !Downs
 -- Undoing those small updates.
-ALTER TABLE label_point RENAME COLUMN sv_image_y to pano_y;
-ALTER TABLE label_point RENAME COLUMN sv_image_x to pano_x;
+ALTER TABLE label_point RENAME COLUMN pano_y to sv_image_y;
+ALTER TABLE label_point RENAME COLUMN pano_x to sv_image_x;
 ALTER TABLE gsv_data
     ALTER COLUMN last_viewed DROP NOT NULL,
     ALTER COLUMN last_viewed SET DEFAULT NULL;
