@@ -1,17 +1,15 @@
 var neighborhoodPolygonLayer;
 
 $(document).ready(function () {
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-
-    tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-    map = L.mapbox.map('map', null, {
-        maxZoom: 19,
-        minZoom: 9,
-        zoomSnap: 0.25
-    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
-
-    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
+        L.mapbox.accessToken = data.mapbox_api_key;
+        map = L.mapbox.map('map', null, {
+            maxZoom: 19,
+            minZoom: 9,
+            zoomSnap: 0.25
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+
+        // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
         map.setZoom(data.default_zoom);
         map.setView([data.city_center.lat, data.city_center.lng]);
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
@@ -19,8 +17,32 @@ $(document).ready(function () {
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         initializeNeighborhoodPolygons(map, data.southwest_boundary, data.northeast_boundary);
         initializeSubmittedLabels(map, data.southwest_boundary, data.northeast_boundary);
-    });
 
+        // Add an overlay polygon
+        L.geoJson({ "type": "FeatureCollection",
+            "features": [ {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [ [ [-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36] ] ]
+                }
+            } ]
+        }).addTo(map);
+
+        // Attach events to range sliders.
+        $(".access-score-range-slider").on("change", function (e) {
+            var significance = {};
+            $(".access-score-range-slider").each(function (i, d) {
+                var name = $(d).attr("name");
+                var value = $(d).val();
+                significance[name] = parseFloat(value) / 100;
+
+                var valueId = $(this).attr("id") + "-value";
+                $("#" + valueId).html(value);
+            });
+            updateAccessScore(significance);
+        });
+    });
 
     // Add legends
     var colorMapping = util.misc.getLabelColors();
@@ -33,32 +55,6 @@ $(document).ready(function () {
         "<rect width='10' height='10' x='12' y='10' style='fill:#f1b6da;' />" +
         "<rect width='10' height='10' x='24' y='10' style='fill:#b8e186;' />" +
         "<rect width='10' height='10' x='36' y='10' style='fill:#4dac26;' /></svg>";
-
-    // Add an overlay polygon
-    L.geoJson({ "type": "FeatureCollection",
-        "features": [ {
-            "type": "Feature",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [ [ [-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36] ] ]
-            }
-        } ]
-    }).addTo(map);
-
-
-    // Attach events to range sliders
-    $(".access-score-range-slider").on("change", function (e) {
-        var significance = {};
-        $(".access-score-range-slider").each(function (i, d) {
-            var name = $(d).attr("name");
-            var value = $(d).val();
-            significance[name] = parseFloat(value) / 100;
-
-            var valueId = $(this).attr("id") + "-value";
-            $("#" + valueId).html(value);
-        });
-        updateAccessScore(significance);
-    });
 });
 
 // Access score color
@@ -90,7 +86,7 @@ function updateAccessScore (significance) {
             var properties = neighborhoodLayers[i].feature.properties,
                 featureVector = properties.feature;
             if (featureVector && properties.coverage > 0.5) {
-                // Compute the Access Score by computing the sigmoid of the inner product of the feature vector and significance vector.
+                // Compute Access Score by computing sigmoid of the inner product of the feature & significance vectors.
                 var keys = Object.keys(featureVector),
                     innerProduct = 0;
                 for (var keyIdx in keys) {
@@ -143,7 +139,7 @@ function initializeNeighborhoodPolygons(map, southwest, northeast) {
         // popupContent += properties.region_name ? "<span class='bold'>" + properties.region_name + "</span><br/>" : "";
         // popupContent += properties.score ? ("Access Score: " + properties.score.toFixed(1)) : "Access Score not available";
 
-        // Add event listeners to each neighborhood polygon layer
+        // Add event listeners to each neighborhood polygon layer.
         // layer.bindPopup(popupContent);
         layer.on('mouseover', function (e) {
             this.setStyle({ weight: 5 });
@@ -201,7 +197,7 @@ function initializeNeighborhoodPolygons(map, southwest, northeast) {
             onEachFeature: onEachNeighborhoodFeature
         }).addTo(map);
 
-        // Attache zoom events. Show the neighborhood polygon layer only when the view is zoomed out ( zoom <= 14)
+        // Attach zoom events. Show the neighborhood polygon layer only when the view is zoomed out ( zoom <= 14).
         map.on('zoomend ', function(e) {
             if ( map.getZoom() > 15 ) {
                 map.removeLayer( neighborhoodPolygonLayer );
@@ -237,7 +233,7 @@ function initializeSubmittedLabels(map, southwest, northeast) {
             }
         });
 
-        // Attache zoom events. Show the neighborhood polygon layer only when the view is zoomed out ( zoom <= 14)
+        // Attach zoom events. Show the neighborhood polygon layer only when the view is zoomed out ( zoom <= 14).
         map.on('zoomend', function(e) {
             if ( map.getZoom() < 15 ) {
                 map.removeLayer( featureLayer );
