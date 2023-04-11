@@ -1,6 +1,4 @@
 function ModalMissionCompleteMap(uiModalMissionComplete) {
-    // Map visualization
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var self = this;
 
     // These two are defined globally so that they can be added in show and removed in hide.
@@ -10,15 +8,16 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this._completedTasksLayer = [];
     this.neighborhoodBounds = null;
 
-    this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
-        maxZoom: 19,
-        minZoom: 10,
-        style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj',
-        zoomSnap: 0.25
-    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
-
-    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
+        L.mapbox.accessToken = data.mapbox_api_key;
+        self._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
+            maxZoom: 19,
+            minZoom: 10,
+            style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj',
+            zoomSnap: 0.25
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
+
+        // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         self._map.setMaxBounds(L.latLngBounds(southWest, northEast));

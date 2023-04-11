@@ -243,7 +243,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     imX += svl.TUTORIAL_PANO_WIDTH;
                 }
             }
-            povOfLabelIfCentered = util.panomarker.calculatePointPovFromImageCoordinate(
+            povOfLabelIfCentered = util.panomarker.calculatePovFromPanoXY(
                 imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT
             );
             var canvasCoordinate = util.panomarker.getCanvasCoordinate(
@@ -778,7 +778,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var properties = state.properties;
         var transition = state.transition;
 
-        // TODO instead of having this callback on click, make an event when a label is created. Use .getProperty('svImageCoordinate') instead of all the math we do now.
+        // TODO instead of having this callback on click, make an event when a label is created. Use .getProperty('panoXY') instead of all the math we do now.
         var callback = function (e) {
             var i = 0;
             var labelAppliedCorrectly = false;
@@ -796,14 +796,13 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var pov = mapService.getPov();
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
-                var imageCoordinate = util.panomarker.canvasCoordinateToImageCoordinate(
+                var panoXY = util.panomarker.canvasXYToPanoXY(
                     pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.panorama.getPhotographerPov().heading, svImgWidth, svImgHeight
                 );
-                imageCoordinate.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
-                imageCoordinate.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;
+                panoXY.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
+                panoXY.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;
 
-                distance[i] = (imageX - imageCoordinate.x) * (imageX - imageCoordinate.x) +
-                    (imageY - imageCoordinate.y) * (imageY - imageCoordinate.y);
+                distance[i] = (imageX - panoXY.x) * (imageX - panoXY.x) + (imageY - panoXY.y) * (imageY - panoXY.y);
                 currentLabelState = state;
                 i = i + 1;
             }

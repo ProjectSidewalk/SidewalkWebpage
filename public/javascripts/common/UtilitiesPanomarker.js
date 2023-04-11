@@ -36,11 +36,7 @@ function sgn(x) {
  * @param canvasHeight
  * @returns {{heading: number, pitch: number, zoom: Number}}
  */
-function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
-    var heading = parseInt(pov.heading, 10),
-        pitch = parseInt(pov.pitch, 10),
-        zoom = parseInt(pov.zoom, 10);
-
+function calculatePovIfCentered(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
     var PI = Math.PI;
     var cos = Math.cos;
     var sin = Math.sin;
@@ -49,10 +45,10 @@ function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
     var atan2 = Math.atan2;
     var asin = Math.asin;
 
-    var fov = get3dFov(zoom) * PI / 180.0;
+    var fov = get3dFov(pov.zoom) * PI / 180.0;
 
-    var h0 = heading * PI / 180.0;
-    var p0 = pitch * PI / 180.0;
+    var h0 = pov.heading * PI / 180.0;
+    var p0 = pov.pitch * PI / 180.0;
 
     var f = 0.5 * canvasWidth / tan(0.5 * fov);
 
@@ -82,81 +78,80 @@ function calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight) {
     return {
         heading: h * 180.0 / PI,
         pitch: p * 180.0 / PI,
-        zoom: zoom
+        zoom: pov.zoom
     };
 }
-util.panomarker.calculatePointPov = calculatePointPov;
+util.panomarker.calculatePovIfCentered = calculatePovIfCentered;
 
 /**
- * Returns the pov of this label if it were centered based on panorama's POV using panorama image coordinates.
+ * Returns the pov of this label if it were centered based on panorama's POV using panorama XY coordinates.
  *
- * @param imageX
- * @param imageY
- * @param svImageWidth
- * @param svImageHeight
+ * @param panoX
+ * @param panoY
+ * @param panoWidth
+ * @param panoHeight
  * @returns {{heading: Number, pitch: Number}}
  */
-function calculatePointPovFromImageCoordinate(imageX, imageY, svImageWidth, svImageHeight) {
+function calculatePovFromPanoXY(panoX, panoY, panoWidth, panoHeight) {
     return {
-        heading: Math.round((imageX / svImageWidth) * 360) % 360,
-        pitch: Math.round((imageY / (svImageHeight / 2)) * 90)
+        heading: (panoX / panoWidth) * 360 % 360,
+        pitch: (panoY / (panoHeight / 2) * 90)
     };
 }
-util.panomarker.calculatePointPovFromImageCoordinate = calculatePointPovFromImageCoordinate;
+util.panomarker.calculatePovFromPanoXY = calculatePovFromPanoXY;
 
 /**
- * Returns the GSV image coordinate from the original pov of the label if it was centered.
+ * Returns the GSV XY coordinate from the original pov of the label if it was centered.
  *
  * @param pov
- * @param photographerHeading
- * @param svImageWidth
- * @param svImageHeight
+ * @param cameraHeading
+ * @param panoWidth
+ * @param panoHeight
  * @returns {{x: (number|*), y: (number|*)}}
  */
-function calculateImageCoordinateFromPov(pov, photographerHeading, svImageWidth, svImageHeight) {
-    // TODO redo the math for computing imageY like we did for imageX.
-    var imageY = (svImageHeight / 2) * (pov.pitch / 90);
+function calculatePanoXYFromPov(pov, cameraHeading, panoWidth, panoHeight) {
+    var panoY = panoHeight / 2 - (panoHeight / 2) * (pov.pitch / 90);
 
-    // The photographerHeading represents the center of the image. Subtract 180 to find the heading where imageX = 0.
-    var headingPixelZero = photographerHeading - 180;
+    // The cameraHeading represents the center of the image. Subtract 180 to find the heading where panoX = 0.
+    var headingPixelZero = cameraHeading - 180;
 
     // Both headings are between -180 and 180, convert to 0 to 360 to make math easier.
     var heading = (pov.heading + 360) % 360;
     headingPixelZero = (headingPixelZero + 360) % 360;
 
-    // We then find the difference between the label's heading and the heading where imageX = 0.
-    // Divide by 360, multiply by the image width, and that's your image_x!
-    var imageX = svImageWidth * (heading - headingPixelZero) / 360;
-    if (imageX < 0) imageX += svImageWidth;
+    // We then find the difference between the label's heading and the heading where panoX = 0.
+    // Divide by 360, multiply by the pano width, and that's your panoX!
+    var panoX = panoWidth * (heading - headingPixelZero) / 360;
+    if (panoX < 0) panoX += panoWidth;
 
-    return { x: imageX, y: imageY };
+    return { x: panoX, y: panoY };
 }
-util.panomarker.calculateImageCoordinateFromPov = calculateImageCoordinateFromPov;
+util.panomarker.calculatePanoXYFromPov = calculatePanoXYFromPov;
 
 /**
- * This function maps canvas coordinates to image coordinates.
+ * This function maps canvas coordinates to XY coordinates on the pano.
  * @param canvasX
  * @param canvasY
  * @param pov
  * @param canvasWidth
  * @param canvasHeight
- * @param photographerHeading
- * @param svImageWidth
- * @param svImageHeight
+ * @param cameraHeading
+ * @param panoWidth
+ * @param panoHeight
  * @returns {{x: number, y: number}}
  */
-function canvasCoordinateToImageCoordinate(pov, canvasX, canvasY, canvasWidth, canvasHeight, photographerHeading, svImageWidth, svImageHeight) {
-    var pointPOV = calculatePointPov(pov, canvasX, canvasY, canvasWidth, canvasHeight);
-    var svImageCoord = calculateImageCoordinateFromPov(pointPOV, photographerHeading, svImageWidth, svImageHeight);
-    return { x: svImageCoord.x, y: svImageCoord.y };
+function canvasXYToPanoXY(pov, canvasX, canvasY, canvasWidth, canvasHeight, cameraHeading, panoWidth, panoHeight) {
+    var centeredPOV = calculatePovIfCentered(pov, canvasX, canvasY, canvasWidth, canvasHeight);
+    var panoXY = calculatePanoXYFromPov(centeredPOV, cameraHeading, panoWidth, panoHeight);
+    return { x: panoXY.x, y: panoXY.y };
 }
-util.panomarker.canvasCoordinateToImageCoordinate = canvasCoordinateToImageCoordinate;
+util.panomarker.canvasXYToPanoXY = canvasXYToPanoXY;
 
 /***
- * Get canvas coordinates of points from the POV.
+ * For a point centered at `povIfCentered`, compute canvas XY coordinates at `currentPov`.
  * @return {Object} Top and Left offsets for the given viewport that point to the desired point-of-view.
  */
-function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
+function povToPixel3DOffset(povIfCentered, currentPov, canvasWidth, canvasHeight) {
     // Gather required variables and convert to radians where necessary.
     var target = {
         left: canvasWidth / 2,
@@ -167,10 +162,10 @@ function povToPixel3DOffset(targetPov, currentPov, canvasWidth, canvasHeight) {
     var fov = get3dFov(currentPov.zoom) * DEG_TO_RAD;
     var h0 = currentPov.heading * DEG_TO_RAD;
     var p0 = currentPov.pitch * DEG_TO_RAD;
-    var h = targetPov.heading * DEG_TO_RAD;
-    var p = targetPov.pitch * DEG_TO_RAD;
+    var h = povIfCentered.heading * DEG_TO_RAD;
+    var p = povIfCentered.pitch * DEG_TO_RAD;
 
-    // f = focal length = distance of current POV to image plane
+    // f = focal length = distance of current POV to image plane.
     var f = (canvasWidth / 2) / Math.tan(fov / 2);
 
     // Our coordinate system: camera at (0,0,0), heading = pitch = 0 at (0,f,0).

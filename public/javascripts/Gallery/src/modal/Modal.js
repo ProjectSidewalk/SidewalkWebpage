@@ -39,7 +39,7 @@ function Modal(uiModal) {
         label_id: undefined,
         label_type: undefined,
         gsv_panorama_id: undefined,
-        image_date: undefined,
+        image_capture_date: undefined,
         label_timestamp: undefined,
         heading: undefined,
         pitch: undefined,
@@ -136,7 +136,7 @@ function Modal(uiModal) {
         self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div>${i18next.t('image-date')}: ${moment(properties.image_date).format('MMM YYYY')}</div>`;
+        panoTimestampData.innerHTML = `<div>${i18next.t('image-capture-date')}: ${moment(properties.image_capture_date).format('MMM YYYY')}</div>`;
         self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
