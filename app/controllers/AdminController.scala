@@ -18,7 +18,7 @@ import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.gsv.{GSVDataExtended, GSVDataTable}
+import models.gsv.{GSVDataSlim, GSVDataTable}
 import models.label.LabelTable.{LabelCVMetadata, LabelMetadata}
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
@@ -407,7 +407,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    * TODO remove the /adminapi/labels/panoid endpoint once all have shifted to /adminapi/panos
    */
   def getAllPanoIds = UserAwareAction.async { implicit request =>
-    val panos: List[GSVDataExtended] = GSVDataTable.getAllPanosWithLabels
+    val panos: List[GSVDataSlim] = GSVDataTable.getAllPanosWithLabels
     val json: JsValue = Json.toJson(panos.map(p => Json.toJson(p)))
     Future.successful(Ok(json))
   }

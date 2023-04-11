@@ -11,7 +11,7 @@ function Label(params) {
         canvasX: undefined,
         canvasY: undefined,
         gsvPanoramaId: undefined,
-        imageDate: undefined,
+        imageCaptureDate: undefined,
         labelTimestamp: undefined,
         heading: undefined,
         labelId: undefined,
@@ -85,7 +85,7 @@ function Label(params) {
             if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
             if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
             if ("gsv_panorama_id" in params) setAuditProperty("gsvPanoramaId", params.gsv_panorama_id);
-            if ("image_date" in params) setAuditProperty("imageDate", params.image_date);
+            if ("image_capture_date" in params) setAuditProperty("imageCaptureDate", params.image_capture_date);
             if ("label_timestamp" in params) setAuditProperty("labelTimestamp", params.label_timestamp);
             if ("heading" in params) setAuditProperty("heading", params.heading);
             if ("label_id" in params) setAuditProperty("labelId", params.label_id);

@@ -7,6 +7,7 @@ services:
     container_name: projectsidewalk-web
     build:
       context: ./
+    shm_size: '256mb'
     depends_on:
       - db
     volumes:
@@ -33,6 +34,7 @@ services:
     container_name: projectsidewalk-db
     build:
       context: ./db/
+    shm_size: '256mb'
     volumes:
       - "./db/init.sh:/docker-entrypoint-initdb.d/init.sh"
       - "./db:/opt"

@@ -60,23 +60,23 @@ function LabelContainer ($, nextTemporaryLabelId) {
         $.getJSON('/label/resumeMission', { regionId: regionId }, function (result) {
             let labelArr = result.labels;
             for (let i = 0; i < labelArr.length; i++) {
-                let originalCanvasCoord = {
+                let originalCanvasXY = {
                     x: labelArr[i].canvasX,
                     y: labelArr[i].canvasY
                 };
 
                 // Get the canvas coordinates for the label given the current POV.
-                let povOfLabelIfCentered = util.panomarker.calculatePointPov(
-                    labelArr[i].originalPov, originalCanvasCoord.x, originalCanvasCoord.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
+                let povOfLabelIfCentered = util.panomarker.calculatePovIfCentered(
+                    labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
                 );
-                let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
+                let rerenderCanvasXY = util.panomarker.getCanvasCoordinate(
                     povOfLabelIfCentered, svl.map.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
 
-                labelArr[i].currCanvasCoordinate = { x: rerenderCanvasCoord.x, y: rerenderCanvasCoord.y };
-                labelArr[i].originalCanvasCoordinate = originalCanvasCoord;
+                labelArr[i].currCanvasXY = { x: rerenderCanvasXY.x, y: rerenderCanvasXY.y };
+                labelArr[i].originalCanvasXY = originalCanvasXY;
                 labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
-                labelArr[i].svImageCoordinate = { x: labelArr[i].svImageX, y: labelArr[i].svImageY };
+                labelArr[i].panoXY = { x: labelArr[i].panoX, y: labelArr[i].panoY };
                 let label = self.createLabel(labelArr[i], false);
 
                 // Prevent tag from being rendered initially.

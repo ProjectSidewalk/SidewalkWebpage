@@ -188,7 +188,7 @@ function Panorama (label) {
             streetViewService.getPanorama({pano: panorama.getPano()},
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
-                        document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
+                        document.getElementById("svv-panorama-date").innerText = moment(data.imageCaptureDate).format('MMM YYYY');
                         // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
                         // Uses setTimeout because it usually hasn't quite loaded yet.

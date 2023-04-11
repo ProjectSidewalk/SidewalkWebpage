@@ -77,8 +77,8 @@ function AdminGSVLabelView(admin) {
                                         `<th>${i18next.t('common:labeled')}</th>` +
                                         '<td id="timestamp" colspan="3"></td>' +
                                     '</tr>' +
-                                        '<th>' + i18next.t('common:image-date') + '</th>' +
-                                        '<td id="image-date" colspan="3"></td>' +
+                                        '<th>' + i18next.t('common:image-capture-date') + '</th>' +
+                                        '<td id="image-capture-date" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:gsv-info.panorama-id')}</th>` +
@@ -166,7 +166,7 @@ function AdminGSVLabelView(admin) {
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
         self.modalValidations = self.modal.find("#label-validations");
-        self.modalImageDate = self.modal.find("#image-date");
+        self.modalImageDate = self.modal.find("#image-capture-date");
         self.modalTask = self.modal.find("#task");
         self.modalPanoId = self.modal.find('#pano-id');
         self.modalGsvLink = self.modal.find('#view-in-gsv');
@@ -386,7 +386,7 @@ function AdminGSVLabelView(admin) {
             labelMetadata['num_notsure'] + ' Not Sure';
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
-        var imageDate = moment(new Date(labelMetadata['image_date']));
+        var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
@@ -395,7 +395,7 @@ function AdminGSVLabelView(admin) {
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalValidations.html(validationsText);
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
-        self.modalImageDate.html(imageDate.format('MMMM YYYY'));
+        self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);

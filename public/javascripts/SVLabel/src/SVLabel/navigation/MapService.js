@@ -210,7 +210,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             updatePov(.01,.01);
         });
 
-        // Add listeners to the SV panorama
+        // Add listeners to the SV panorama.
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
         if (typeof google != "undefined") {
             google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
@@ -249,7 +249,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
                     worldSize: new google.maps.Size(4096, 2048),
-                    centerHeading: 51,
+                    originHeading: 50.3866,
+                    originPitch: -1.13769,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return svl.rootDirectory + "img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }
@@ -267,7 +268,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 tiles: {
                     tileSize: new google.maps.Size(1700, 850),
                     worldSize: new google.maps.Size(3400, 1700),
-                    centerHeading: 344,
+                    originHeading: 344,
+                    originPitch: 0,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }
@@ -617,7 +619,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                             _canvas.render();
                             povChange["status"] = false;
 
-                            svl.tracker.push("PanoId_Changed");
+                            svl.tracker.push("PanoId_Changed", {
+                                panoId: panoId,
+                                lat: data.location.latLng.lat(),
+                                lng: data.location.latLng.lng(),
+                                cameraHeading: data.tiles.originHeading,
+                                cameraPitch: -data.tiles.originPitch, // cameraPitch is negative originPitch.
+                            });
                             prevPanoId = panoId;
 
                         } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
@@ -908,7 +916,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
-            // If a mouse is being dragged on the control layer, move the sv image.
+            // If a mouse is being dragged on the control layer, move the pano.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
             var pov = getPov();

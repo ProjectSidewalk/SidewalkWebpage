@@ -45,7 +45,7 @@
   "temporary": "Temporal",
   "description": "Descripción",
   "no-description": "Sin descripción",
-  "image-date": "Fecha de la imagen",
+  "image-capture-date": "Fecha de captura de imagen",
   "labeled": "Etiquetada",
   "yes": "Sí",
   "no": "No",
