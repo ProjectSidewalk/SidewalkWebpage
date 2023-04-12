@@ -166,7 +166,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     /**
-     * This is a callback function for zoom-in button. This function increments a sv zoom level.
+     * This is a callback function for zoom-in button. This function increments a pano zoom level.
      */
     function _handleZoomInButtonClick () {
         if (tracker)  tracker.push('Click_ZoomIn');
@@ -188,7 +188,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     /**
-     * This is a callback function for zoom-out button. This function decrements a sv zoom level.
+     * This is a callback function for zoom-out button. This function decrements a pano zoom level.
      */
     function _handleZoomOutButtonClick () {
         if (tracker) tracker.push('Click_ZoomOut');

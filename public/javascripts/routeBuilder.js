@@ -17,7 +17,7 @@ function RouteBuilder ($, mapParamData) {
     let shareButton = $('#route-builder-share-button');
 
     // Initialize the map.
-    mapboxgl.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
+    mapboxgl.accessToken = mapParamData.mapbox_api_key;
     var map = new mapboxgl.Map({
         container: 'route-builder-map',
         style: 'mapbox://styles/mapbox/streets-v11',

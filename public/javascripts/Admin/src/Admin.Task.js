@@ -2,7 +2,7 @@ function AdminTask(params) {
     var self = { auditTaskId: params.auditTaskId };
     var _data = {};
 
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
+    L.mapbox.accessToken = params.mapboxApiKey;
     var map = L.mapbox.map('map', null, {
         zoomControl: false,
         scrollWheelZoom: false,

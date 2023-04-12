@@ -1,28 +1,4 @@
 $(document).ready(function () {
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-
-    // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-    var mapboxTiles = L.tileLayer(tileUrl, {
-        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-    });
-
-    // Maps
-    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', null, {
-        maxZoom: 19,
-        minZoom: 9,
-        zoomSnap: 0.25
-    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
-    var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
-        maxZoom: 19,
-        minZoom: 9,
-        zoomSnap: 0.25
-    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
-    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
-        maxZoom: 19,
-        minZoom: 9
-    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
-
     var colorMapping = util.misc.getLabelColors();
 
     function getColor(d) {
@@ -34,6 +10,23 @@ $(document).ready(function () {
 
     // Get city-specific parameters for the maps.
     $.getJSON('/cityAPIDemoParams', function(data) {
+        L.mapbox.accessToken = data.mapbox_api_key;
+
+        // Create the maps.
+        var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', null, {
+            maxZoom: 19,
+            minZoom: 9,
+            zoomSnap: 0.25
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+        var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
+            maxZoom: 19,
+            minZoom: 9,
+            zoomSnap: 0.25
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+        var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
+            maxZoom: 19,
+            minZoom: 9
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
         // Use parameters to fill in example URLs.
         var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;

@@ -466,7 +466,7 @@ function ContextMenu (uiContextMenu) {
 
         var labelType = targetLabel.getLabelType();
         var labelColor = util.misc.getLabelColors()[labelType].fillStyle;
-        var labelCoord = targetLabel.getCoordinate();
+        var labelCoord = targetLabel.getCanvasXY();
         if (labelType !== 'Occlusion') {
             setStatus('targetLabel', targetLabel);
             _setTags(targetLabel);
