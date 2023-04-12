@@ -144,13 +144,22 @@ function AdminGSVLabelView(admin) {
         self.prevAction = null;
 
         self.agreeButton.click(function() {
-            if (self.prevAction !== "Agree") _validateLabel("Agree");
+            if (self.prevAction !== "Agree") {
+                _disableValidationButtons();
+                _validateLabel("Agree");
+            }
         });
         self.disagreeButton.click(function() {
-            if (self.prevAction !== "Disagree") _validateLabel("Disagree");
+            if (self.prevAction !== "Disagree") {
+                _disableValidationButtons();
+                _validateLabel("Disagree");
+            }
         });
         self.notSureButton.click(function() {
-            if (self.prevAction !== "NotSure") _validateLabel("NotSure");
+            if (self.prevAction !== "NotSure") {
+                _disableValidationButtons();
+                _validateLabel("NotSure");
+            }
         });
 
         self.commentButton = self.modal.find("#comment-button");
@@ -241,7 +250,7 @@ function AdminGSVLabelView(admin) {
 
         // Submit the validation via POST request.
         $.ajax({
-            async: false,
+            async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/validate",
             type: 'post',
@@ -249,19 +258,36 @@ function AdminGSVLabelView(admin) {
             dataType: 'json',
             success: function (result) {
                 _resetButtonColors(action);
-                updateValidationChoice(action)
+                _updateValidationChoice(action);
+                _enableValidationButtons();
             },
             error: function (result) {
                 console.error(result);
             }
         });
+    }
 
+    function _disableValidationButtons() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].prop('disabled', true);
+                self.resultButtons[button].css('cursor', 'wait');
+            }
+        }
+    }
+    function _enableValidationButtons() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].prop('disabled', false);
+                self.resultButtons[button].css('cursor', 'pointer');
+            }
+        }
     }
 
     /**
      * Creates the validation row text and displays it in the label.
      */
-    function setValidationCountText() {
+    function _setValidationCountText() {
         // Form new string for validations row.
         var validationsTextAfter = '' + self.validationCounts['Agree'] + ' Agree, ' +
             self.validationCounts['Disagree'] + ' Disagree, ' +
@@ -274,7 +300,7 @@ function AdminGSVLabelView(admin) {
      * Update just the validation row on the table.
      * @param action, can only be "Agree", "Disagree", and "NotSure"
      */
-    function updateValidationChoice(action) {
+    function _updateValidationChoice(action) {
         // If they had validated before this, decrement the count for their previous validation choice, min 0.
         if (self.prevAction)
             self.validationCounts[self.prevAction] = Math.max(0, self.validationCounts[self.prevAction] - 1);
@@ -286,7 +312,7 @@ function AdminGSVLabelView(admin) {
         self.validationCounts[action] += 1;
 
         // Call on helper to update the text.
-        setValidationCountText()
+        _setValidationCountText()
     }
 
     /**
@@ -386,7 +412,7 @@ function AdminGSVLabelView(admin) {
         self.validationCounts['Disagree'] = labelMetadata['num_disagree']
         self.validationCounts['NotSure'] = labelMetadata['num_notsure']
         self.prevAction = labelMetadata['user_validation']
-        setValidationCountText()
+        _setValidationCountText()
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
