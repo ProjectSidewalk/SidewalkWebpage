@@ -258,35 +258,25 @@ function AdminGSVLabelView(admin) {
 
     }
 
+
+    /**
+     * Creates the validation row text and displays it in the label.
+     */
     function createValidationString() {
-        // Form new string for validations row
-
-        console.log("prev action before after text " + self.prevAction);
-
+        // Form new string for validations row.
         var validationsTextAfter = '' + self.agreeCount + ' Agree, ' +
             self.disagreeCount + ' Disagree, ' +
             self.unsureCount + ' Not Sure';
-
-        console.log("after " + validationsTextAfter);
 
         self.modalValidations.html(validationsTextAfter)
     }
 
     /**
-     * Update just the validation row on the table
+     * Update just the validation row on the table.
      * @param action, can only be "Agree", "Disagree", and "NotSure"
      */
     function updateValidationString(action) {
-        // labelMetadata['user_validation'] = null, Agree, Disagree, NotSure
-
-        console.log("current action " + action)
-
-        var validationsTextBefore = '' + self.agreeCount + ' Agree, ' +
-            self.disagreeCount + ' Disagree, ' +
-            self.unsureCount + ' Not Sure';
-
-        console.log("before " + validationsTextBefore);
-
+        // Need to remove user's previous vote if they did pick one before.
         if (self.prevAction === 'Agree') {
             self.agreeCount -= 1;
         } else if (self.prevAction === 'Disagree') {
@@ -295,26 +285,10 @@ function AdminGSVLabelView(admin) {
             self.unsureCount -= 1;
         }
 
-        console.log("prevAction = " + self.prevAction);
-
+        // Update prevAction to be current action.
         self.prevAction = action;
 
-        // get current string for validations
-        // var currentText = self.modalValidations.html();
-        //
-        // // Split it by space to only focus on counts
-        // var splitText = currentText.split(' ')
-        //
-        // // Get the vote counts for each label
-        // agreeCount = parseInt(splitText[0], 10);
-        // disagreeCount = parseInt(splitText[2], 10);
-        // unsureCount = parseInt(splitText[4], 10);
-
-        // Need to decerement based on user's previous selection (if they have one).
-
-
-
-        // Increment one of the options by one based on action
+        // Increment one of the votes based on action.
         if (action === 'Agree') {
             self.agreeCount += 1
         } else if (action === 'Disagree') {
@@ -323,10 +297,8 @@ function AdminGSVLabelView(admin) {
             self.unsureCount += 1
         }
 
+        // Call on helper to create the text.
         createValidationString()
-
-        // need to update this via POST request
-        // but the POST request keeps updating it automatically
     }
 
     /**
