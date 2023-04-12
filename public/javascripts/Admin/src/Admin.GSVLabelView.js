@@ -136,19 +136,21 @@ function AdminGSVLabelView(admin) {
             "NotSure": self.notSureButton
         };
 
-        self.agreeCount = 0;
-        self.disagreeCount = 0;
-        self.unsureCount = 0;
+        self.validationCounts = {
+            "Agree": null,
+            "Disagree": null,
+            "NotSure": null
+        }
         self.prevAction = null;
 
         self.agreeButton.click(function() {
-            _validateLabel("Agree");
+            if (self.prevAction !== "Agree") _validateLabel("Agree");
         });
         self.disagreeButton.click(function() {
-            _validateLabel("Disagree");
+            if (self.prevAction !== "Disagree") _validateLabel("Disagree");
         });
         self.notSureButton.click(function() {
-            _validateLabel("NotSure");
+            if (self.prevAction !== "NotSure") _validateLabel("NotSure");
         });
 
         self.commentButton = self.modal.find("#comment-button");
@@ -234,11 +236,8 @@ function AdminGSVLabelView(admin) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false,
-            user_validation: action
+            is_mobile: false
         };
-
-        updateValidationString(action)
 
         // Submit the validation via POST request.
         $.ajax({
@@ -250,6 +249,7 @@ function AdminGSVLabelView(admin) {
             dataType: 'json',
             success: function (result) {
                 _resetButtonColors(action);
+                updateValidationChoice(action)
             },
             error: function (result) {
                 console.error(result);
@@ -258,15 +258,14 @@ function AdminGSVLabelView(admin) {
 
     }
 
-
     /**
      * Creates the validation row text and displays it in the label.
      */
-    function createValidationString() {
+    function setValidationCountText() {
         // Form new string for validations row.
-        var validationsTextAfter = '' + self.agreeCount + ' Agree, ' +
-            self.disagreeCount + ' Disagree, ' +
-            self.unsureCount + ' Not Sure';
+        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' Agree, ' +
+            self.validationCounts['Disagree'] + ' Disagree, ' +
+            self.validationCounts['NotSure'] + ' Not Sure';
 
         self.modalValidations.html(validationsTextAfter)
     }
@@ -275,30 +274,19 @@ function AdminGSVLabelView(admin) {
      * Update just the validation row on the table.
      * @param action, can only be "Agree", "Disagree", and "NotSure"
      */
-    function updateValidationString(action) {
-        // Need to remove user's previous vote if they did pick one before.
-        if (self.prevAction === 'Agree') {
-            self.agreeCount -= 1;
-        } else if (self.prevAction === 'Disagree') {
-            self.disagreeCount -= 1;
-        } else if (self.prevAction === 'NotSure') {
-            self.unsureCount -= 1;
-        }
+    function updateValidationChoice(action) {
+        // If they had validated before this, decrement the count for their previous validation choice, min 0.
+        if (self.prevAction)
+            self.validationCounts[self.prevAction] = Math.max(0, self.validationCounts[self.prevAction] - 1);
 
         // Update prevAction to be current action.
         self.prevAction = action;
 
         // Increment one of the votes based on action.
-        if (action === 'Agree') {
-            self.agreeCount += 1
-        } else if (action === 'Disagree') {
-            self.disagreeCount += 1
-        } else if (action === 'NotSure') {
-            self.unsureCount += 1
-        }
+        self.validationCounts[action] += 1;
 
-        // Call on helper to create the text.
-        createValidationString()
+        // Call on helper to update the text.
+        setValidationCountText()
     }
 
     /**
@@ -394,16 +382,11 @@ function AdminGSVLabelView(admin) {
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id']);
         self.panorama.setLabel(adminPanoramaLabel);
 
-        self.agreeCount = labelMetadata['num_agree']
-        self.disagreeCount = labelMetadata['num_disagree']
-        self.unsureCount = labelMetadata['num_notsure']
+        self.validationCounts['Agree'] = labelMetadata['num_agree']
+        self.validationCounts['Disagree'] = labelMetadata['num_disagree']
+        self.validationCounts['NotSure'] = labelMetadata['num_notsure']
         self.prevAction = labelMetadata['user_validation']
-
-        createValidationString()
-
-        // var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
-        //     labelMetadata['num_disagree'] + ' Disagree, ' +
-        //     labelMetadata['num_notsure'] + ' Not Sure';
+        setValidationCountText()
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
