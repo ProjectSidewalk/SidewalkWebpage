@@ -136,6 +136,11 @@ function AdminGSVLabelView(admin) {
             "NotSure": self.notSureButton
         };
 
+        self.agreeCount = 0;
+        self.disagreeCount = 0;
+        self.unsureCount = 0;
+        self.prevAction = null;
+
         self.agreeButton.click(function() {
             _validateLabel("Agree");
         });
@@ -229,12 +234,15 @@ function AdminGSVLabelView(admin) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false
+            is_mobile: false,
+            user_validation: action
         };
+
+        updateValidationString(action)
 
         // Submit the validation via POST request.
         $.ajax({
-            async: true,
+            async: false,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/validate",
             type: 'post',
@@ -248,44 +256,77 @@ function AdminGSVLabelView(admin) {
             }
         });
 
-        // Update the validation row text to show update
-        updateValidationString(action)
+    }
 
+    function createValidationString() {
+        // Form new string for validations row
+
+        console.log("prev action before after text " + self.prevAction);
+
+        var validationsTextAfter = '' + self.agreeCount + ' Agree, ' +
+            self.disagreeCount + ' Disagree, ' +
+            self.unsureCount + ' Not Sure';
+
+        console.log("after " + validationsTextAfter);
+
+        self.modalValidations.html(validationsTextAfter)
     }
 
     /**
      * Update just the validation row on the table
-     * @param action, can only be "Agree", "Disagree", and "Unsure"
+     * @param action, can only be "Agree", "Disagree", and "NotSure"
      */
     function updateValidationString(action) {
+        // labelMetadata['user_validation'] = null, Agree, Disagree, NotSure
+
+        console.log("current action " + action)
+
+        var validationsTextBefore = '' + self.agreeCount + ' Agree, ' +
+            self.disagreeCount + ' Disagree, ' +
+            self.unsureCount + ' Not Sure';
+
+        console.log("before " + validationsTextBefore);
+
+        if (self.prevAction === 'Agree') {
+            self.agreeCount -= 1;
+        } else if (self.prevAction === 'Disagree') {
+            self.disagreeCount -= 1;
+        } else if (self.prevAction === 'NotSure') {
+            self.unsureCount -= 1;
+        }
+
+        console.log("prevAction = " + self.prevAction);
+
+        self.prevAction = action;
+
         // get current string for validations
-        var currentText = self.modalValidations.html();
+        // var currentText = self.modalValidations.html();
+        //
+        // // Split it by space to only focus on counts
+        // var splitText = currentText.split(' ')
+        //
+        // // Get the vote counts for each label
+        // agreeCount = parseInt(splitText[0], 10);
+        // disagreeCount = parseInt(splitText[2], 10);
+        // unsureCount = parseInt(splitText[4], 10);
 
-        // Split it by space to only focus on counts
-        var splitText = currentText.split(' ')
+        // Need to decerement based on user's previous selection (if they have one).
 
-        // Get the vote counts for each label
-        agreeCount = parseInt(splitText[0], 10);
-        disagreeCount = parseInt(splitText[2], 10);
-        unsureCount = parseInt(splitText[4], 10);
+
 
         // Increment one of the options by one based on action
         if (action === 'Agree') {
-            agreeCount += 1
+            self.agreeCount += 1
         } else if (action === 'Disagree') {
-            disagreeCount += 1
-        } else if (action === 'Unsure') {
-            unsureCount += 1
+            self.disagreeCount += 1
+        } else if (action === 'NotSure') {
+            self.unsureCount += 1
         }
 
-        // Form new string for validations row
-        var validationsText = '' + agreeCount + ' Agree, ' +
-            disagreeCount + ' Disagree, ' +
-            unsureCount + ' Not Sure';
+        createValidationString()
 
-        // This is fairly finicky.
-        // assuming the user does not constantly swap votes.
-        self.modalValidations.html(validationsText)
+        // need to update this via POST request
+        // but the POST request keeps updating it automatically
     }
 
     /**
@@ -381,9 +422,16 @@ function AdminGSVLabelView(admin) {
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id']);
         self.panorama.setLabel(adminPanoramaLabel);
 
-        var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
-            labelMetadata['num_disagree'] + ' Disagree, ' +
-            labelMetadata['num_notsure'] + ' Not Sure';
+        self.agreeCount = labelMetadata['num_agree']
+        self.disagreeCount = labelMetadata['num_disagree']
+        self.unsureCount = labelMetadata['num_notsure']
+        self.prevAction = labelMetadata['user_validation']
+
+        createValidationString()
+
+        // var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
+        //     labelMetadata['num_disagree'] + ' Disagree, ' +
+        //     labelMetadata['num_notsure'] + ' Not Sure';
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
@@ -393,7 +441,6 @@ function AdminGSVLabelView(admin) {
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
-        self.modalValidations.html(validationsText);
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
