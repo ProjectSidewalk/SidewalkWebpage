@@ -412,6 +412,7 @@ function Label(params) {
             var canvasX = getProperty('originalCanvasXY').x;
             var canvasY = getProperty('originalCanvasXY').y;
             var panoY = getProperty('panoXY').y;
+            var panoHeight = getProperty('panoHeight');
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
             var estHeadingDiff =
@@ -419,7 +420,7 @@ function Label(params) {
                 LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
             var estDistanceFromPanoKm = Math.max(0,
                 LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
-                LATLNG_ESTIMATION_PARAMS[zoom].distancePanoYSlope * panoY +
+                LATLNG_ESTIMATION_PARAMS[zoom].distancePanoYSlope * (panoHeight / 2 - panoY) +
                 LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
             ) / 1000.0;
             var estHeading = panoHeading + estHeadingDiff;
