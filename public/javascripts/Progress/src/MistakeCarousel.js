@@ -13,10 +13,21 @@ function MistakeCarousel() {
         let labelTypesWithoutData = [];
         labelTypes.forEach((l) => (data[l].length > 0 ? labelTypesWithData : labelTypesWithoutData).push(l));
 
-        // Add subheader for labeling mistakes section, listing label types without validations.
-        let mistakesSubheader = document.getElementById('mistakes-subheader');
+        // This is the list of label types without validations.
         const translatedTypes = labelTypesWithoutData.map((l) => i18next.t(`common:${util.camelToKebab(l)}`));
-        mistakesSubheader.textContent = i18next.t('mistakes-subheader', { labelTypes: translatedTypes });
+        let mistakesSubheader = document.getElementById('mistakes-subheader-display');
+
+        // User has no mistakes with their labels.
+        if (labelTypesWithoutData.length === labelTypes.length) {
+            mistakesSubheader.innerHTML = i18next.t('no-mistakes-subheader')
+        // User has not made one mistake with at least one of their labels.
+        } else if (labelTypesWithData.length !== labelTypes.length) {
+            mistakesSubheader.innerHTML =
+                i18next.t('mistakes-subheader') + " " + i18next.t('mistakes-info', { labelTypes: translatedTypes });
+        // User has made a mistake for all types of labels.
+        } else {
+            mistakesSubheader.innerHTML = i18next.t('mistakes-subheader')
+        }
 
         let mistakesHolder = document.getElementById('mistake-carousels-holder');
         for (const [typeIndex, labelType] of labelTypesWithData.entries()) {
@@ -78,8 +89,8 @@ function MistakeCarousel() {
                 labelIcon.src = `/assets/images/icons/AdminTool_${labelType}.png`;
                 labelIcon.classList.add('label-icon');
                 Object.assign(labelIcon.style, {
-                    left: `${100 * label.canvas_x / label.canvas_width}%`,
-                    top: `${100 * label.canvas_y / label.canvas_height}%`
+                    left: `${100 * label.canvas_x / util.EXPLORE_CANVAS_WIDTH}%`,
+                    top: `${100 * label.canvas_y / util.EXPLORE_CANVAS_HEIGHT}%`
                 });
                 imageWrapper.appendChild(labelIcon);
                 slide.appendChild(imageWrapper);

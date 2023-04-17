@@ -1,5 +1,6 @@
 package controllers.helper
 
+import models.label.LabelPointTable
 import models.user._
 import play.api.Play
 import play.api.Play.current
@@ -11,17 +12,15 @@ object GoogleMapsHelper {
      * More information here: https://developers.google.com/maps/documentation/streetview/intro
      *
      * @param gsvPanoramaId Id of gsv pano.
-     * @param canvasWidth Width of canvas.
-     * @param canvasHeight Height of canvas.
      * @param heading Compass heading of the camera.
      * @param pitch Up or down angle of the camera relative to the Street View vehicle.
      * @param zoom Zoom level of the canvas (for fov calculation).
      * @return Image URL that represents the background of the label.
      */
-    def getImageUrl(gsvPanoramaId: String, canvasWidth: Int, canvasHeight: Int, heading: Float, pitch: Float, zoom: Int): String = {
+    def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String = {
         val url = "https://maps.googleapis.com/maps/api/streetview?" +
             "pano=" + gsvPanoramaId +
-            "&size=" + canvasWidth + "x" + canvasHeight +
+            "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
             "&heading=" + heading +
             "&pitch=" + pitch +
             "&fov=" + getFov(zoom) +

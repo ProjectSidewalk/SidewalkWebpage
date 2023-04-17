@@ -77,8 +77,8 @@ function AdminGSVLabelView(admin) {
                                         `<th>${i18next.t('common:labeled')}</th>` +
                                         '<td id="timestamp" colspan="3"></td>' +
                                     '</tr>' +
-                                        '<th>' + i18next.t('common:image-date') + '</th>' +
-                                        '<td id="image-date" colspan="3"></td>' +
+                                        '<th>' + i18next.t('common:image-capture-date') + '</th>' +
+                                        '<td id="image-capture-date" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:gsv-info.panorama-id')}</th>` +
@@ -136,14 +136,30 @@ function AdminGSVLabelView(admin) {
             "NotSure": self.notSureButton
         };
 
+        self.validationCounts = {
+            "Agree": null,
+            "Disagree": null,
+            "NotSure": null
+        }
+        self.prevAction = null;
+
         self.agreeButton.click(function() {
-            _validateLabel("Agree");
+            if (self.prevAction !== "Agree") {
+                _disableValidationButtons();
+                _validateLabel("Agree");
+            }
         });
         self.disagreeButton.click(function() {
-            _validateLabel("Disagree");
+            if (self.prevAction !== "Disagree") {
+                _disableValidationButtons();
+                _validateLabel("Disagree");
+            }
         });
         self.notSureButton.click(function() {
-            _validateLabel("NotSure");
+            if (self.prevAction !== "NotSure") {
+                _disableValidationButtons();
+                _validateLabel("NotSure");
+            }
         });
 
         self.commentButton = self.modal.find("#comment-button");
@@ -166,7 +182,7 @@ function AdminGSVLabelView(admin) {
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
         self.modalValidations = self.modal.find("#label-validations");
-        self.modalImageDate = self.modal.find("#image-date");
+        self.modalImageDate = self.modal.find("#image-capture-date");
         self.modalTask = self.modal.find("#task");
         self.modalPanoId = self.modal.find('#pano-id');
         self.modalGsvLink = self.modal.find('#view-in-gsv');
@@ -242,11 +258,61 @@ function AdminGSVLabelView(admin) {
             dataType: 'json',
             success: function (result) {
                 _resetButtonColors(action);
+                _updateValidationChoice(action);
+                _enableValidationButtons();
             },
             error: function (result) {
                 console.error(result);
             }
         });
+    }
+
+    function _disableValidationButtons() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].prop('disabled', true);
+                self.resultButtons[button].css('cursor', 'wait');
+            }
+        }
+    }
+    function _enableValidationButtons() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].prop('disabled', false);
+                self.resultButtons[button].css('cursor', 'pointer');
+            }
+        }
+    }
+
+    /**
+     * Creates the validation row text and displays it in the label.
+     */
+    function _setValidationCountText() {
+        // Form new string for validations row.
+        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' Agree, ' +
+            self.validationCounts['Disagree'] + ' Disagree, ' +
+            self.validationCounts['NotSure'] + ' Not Sure';
+
+        self.modalValidations.html(validationsTextAfter)
+    }
+
+    /**
+     * Update just the validation row on the table.
+     * @param action, can only be "Agree", "Disagree", and "NotSure"
+     */
+    function _updateValidationChoice(action) {
+        // If they had validated before this, decrement the count for their previous validation choice, min 0.
+        if (self.prevAction)
+            self.validationCounts[self.prevAction] = Math.max(0, self.validationCounts[self.prevAction] - 1);
+
+        // Update prevAction to be current action.
+        self.prevAction = action;
+
+        // Increment one of the votes based on action.
+        self.validationCounts[action] += 1;
+
+        // Call on helper to update the text.
+        _setValidationCountText()
     }
 
     /**
@@ -338,26 +404,26 @@ function AdminGSVLabelView(admin) {
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
-            labelMetadata['canvas_x'], labelMetadata['canvas_y'], labelMetadata['canvas_width'],
-            labelMetadata['canvas_height'], labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'],
-            labelMetadata['street_edge_id']);
+            labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id']);
         self.panorama.setLabel(adminPanoramaLabel);
 
-        var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
-            labelMetadata['num_disagree'] + ' Disagree, ' +
-            labelMetadata['num_notsure'] + ' Not Sure';
+        self.validationCounts['Agree'] = labelMetadata['num_agree']
+        self.validationCounts['Disagree'] = labelMetadata['num_disagree']
+        self.validationCounts['NotSure'] = labelMetadata['num_notsure']
+        self.prevAction = labelMetadata['user_validation']
+        _setValidationCountText()
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
-        var imageDate = moment(new Date(labelMetadata['image_date']));
+        var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
-        self.modalValidations.html(validationsText);
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
-        self.modalImageDate.html(imageDate.format('MMMM YYYY'));
+        self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);

@@ -23,6 +23,7 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
   def getCityMapParams() = Action.async { implicit request =>
+    val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
     val cityStr: String = Play.configuration.getString("city-id").get
     val cityLat: Double = Play.configuration.getDouble("city-params.city-center-lat." + cityStr).get
     val cityLng: Double = Play.configuration.getDouble("city-params.city-center-lng." + cityStr).get
@@ -32,6 +33,7 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
     val northeastLng: Double = Play.configuration.getDouble("city-params.northeast-boundary-lng." + cityStr).get
     val defaultZoom: Double = Play.configuration.getDouble("city-params.default-map-zoom." + cityStr).get
     Future.successful(Ok(Json.obj(
+      "mapbox_api_key" -> mapboxApiKey,
       "city_center" -> Json.obj("lat" -> cityLat, "lng" -> cityLng),
       "southwest_boundary" -> Json.obj("lat" -> southwestLat, "lng" -> southwestLng),
       "northeast_boundary" -> Json.obj("lat" -> northeastLat, "lng" -> northeastLng),
@@ -52,6 +54,7 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    * Get all city-specific parameters needed for the API page demos.
    */
   def getCityAPIDemoParams() = Action.async { implicit request =>
+    val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
     val cityStr: String = Play.configuration.getString("city-id").get
     val southwestLat: Double = Play.configuration.getDouble("city-params.southwest-boundary-lat." + cityStr).get
     val southwestLng: Double = Play.configuration.getDouble("city-params.southwest-boundary-lng." + cityStr).get
@@ -83,6 +86,7 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
     val regionLng2: Double = Play.configuration.getDouble("city-params.api-demos.region-lng2." + cityStr).get
 
     Future.successful(Ok(Json.obj(
+      "mapbox_api_key" -> mapboxApiKey,
       "southwest_boundary" -> Json.obj("lat" -> southwestLat, "lng" -> southwestLng),
       "northeast_boundary" -> Json.obj("lat" -> northeastLat, "lng" -> northeastLng),
       "attribute" -> Json.obj(

@@ -39,20 +39,19 @@ function Modal(uiModal) {
         label_id: undefined,
         label_type: undefined,
         gsv_panorama_id: undefined,
-        image_date: undefined,
+        image_capture_date: undefined,
         label_timestamp: undefined,
         heading: undefined,
         pitch: undefined,
         zoom: undefined,
-        canvas_x: undefined,
-        canvas_y: undefined,
-        canvas_width: undefined,
-        canvas_height: undefined,
+        original_canvas_x: undefined,
+        original_canvas_y: undefined,
         severity: undefined,
         temporary: undefined,
         description: undefined,
-        streetEdgeId: undefined,
-        regionId: undefined,
+        street_edge_id: undefined,
+        region_id: undefined,
+        correctness: undefined,
         user_validation: undefined,
         tags: []
     };
@@ -137,7 +136,7 @@ function Modal(uiModal) {
         self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div>${i18next.t('image-date')}: ${moment(properties.image_date).format('MMM YYYY')}</div>`;
+        panoTimestampData.innerHTML = `<div>${i18next.t('image-capture-date')}: ${moment(properties.image_capture_date).format('MMM YYYY')}</div>`;
         self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
@@ -237,14 +236,14 @@ function Modal(uiModal) {
      */
     function updateProperties(newProps) {
         for (const attrName in newProps) {
-            if (newProps.hasOwnProperty(attrName)) {
+            if (newProps.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
                 properties[attrName] = newProps[attrName];
             }
         }
-        self.label = new GalleryPanoramaLabel(properties.label_id, properties.label_type,
-                                              properties.canvas_x, properties.canvas_y,
-                                              properties.canvas_width, properties.canvas_height,
-                                              properties.heading, properties.pitch, properties.zoom);
+        self.label = new GalleryPanoramaLabel(
+            properties.label_id, properties.label_type, properties.original_canvas_x, properties.original_canvas_y,
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom
+        );
 
         self.validationMenu.updateCardProperties(properties);
         self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));

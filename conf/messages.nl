@@ -201,7 +201,7 @@ validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = Eens (<u>a</u>)
 validate.bottom.ui.disagree = Oneens (<u>d</u>)
 validate.bottom.ui.not.sure = <u>N</u>iet zeker
-validate.bottom.ui.add.comment = Voeg opmerking hier toe...
+validate.bottom.ui.add.comment = Als u het er niet mee eens bent, voer dan hier uw redenering in, die kan worden gezien door de labeler in hun dashboard
 validate.right.ui.current.mission = Huidige Missie
 validate.right.ui.correct.examples = <strong>Correcte</strong> Voorbeelden
 validate.right.ui.incorrect.examples = <strong>Incorrecte</strong> Voorbeelden
@@ -332,3 +332,4 @@ gallery.tags = Tags
 gallery.all = Alles
 gallery.occlusion = Kan de stoep niet zien
 gallery.labels.not.found = Geen overeenkomsten. <a href="/audit">Begin met verkennen</a> om meer data bij te dragen!
+gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters

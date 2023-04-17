@@ -43,12 +43,13 @@ object RegionCompletionTable {
   } yield se
 
   /**
-    * Returns a list of all neighborhoods with names.
+    * Returns a list of all neighborhoods with names. If provided, filter for only given regions.
     */
-  def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = db.withSession { implicit session =>
+  def selectAllNamedNeighborhoodCompletions(regionIds: List[Int]): List[NamedRegionCompletion] = db.withSession { implicit session =>
     val namedRegionCompletions = for {
       _rc <- regionCompletions
       _r <- regionsWithoutDeleted if _rc.regionId === _r.regionId
+      if (_r.regionId inSet regionIds) || regionIds.isEmpty
     } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance)
 
     namedRegionCompletions.list.map(x => NamedRegionCompletion.tupled(x))

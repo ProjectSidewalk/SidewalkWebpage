@@ -77,7 +77,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         self.svHolder.append($(self.panoNotAvailableDetails));
         self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
 
-        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
+        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { }) : null;
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
             var currentPano = self.panorama.getPano();
@@ -181,7 +181,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 } else {
                     setTimeout(callback, 200, n - 1);
                 }
-                callbackParam();
+                if (callbackParam) callbackParam();
             }
             setTimeout(callback, 200, 10);
         }
@@ -312,7 +312,8 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
                     worldSize: new google.maps.Size(4096, 2048),
-                    centerHeading: 51,
+                    originHeading: 50.3866,
+                    originPitch: -1.13769,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return "/assets/javascripts/SVLabel/img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }
@@ -329,7 +330,8 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 tiles: {
                     tileSize: new google.maps.Size(1700, 850),
                     worldSize: new google.maps.Size(3400, 1700),
-                    centerHeading: 344,
+                    originHeading: 344,
+                    originPitch: 0,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return "/assets/javascripts/SVLabel/img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }

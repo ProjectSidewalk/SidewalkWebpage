@@ -264,9 +264,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param userId       User ID of the current user.
     * @param n            Number of labels to retrieve for this list.
     * @param labelTypeId  Label Type to retrieve
-    * @return             JsValue containing a list of labels with the following attributes:
-    *                     {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x,
-    *                     canvas_y, canvas_width, canvas_height}
+    * @return             JsValue containing a list of labels.
     */
   def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int): JsValue = {
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, skippedLabelId = None)

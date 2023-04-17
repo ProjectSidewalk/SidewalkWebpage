@@ -35,7 +35,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
     mapParamData.default_zoom = mapParamData.default_zoom + params.defaultZoomIncrease;
 
     // Create base map.
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
+    L.mapbox.accessToken = mapParamData.mapbox_api_key;
     let choropleth = L.mapbox.map(params.mapName, null, {
         maxZoom: 19,
         minZoom: 9,

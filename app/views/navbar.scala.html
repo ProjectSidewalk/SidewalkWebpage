@@ -126,7 +126,7 @@
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
                         @if(!List("seattle-wa").contains(currentCity)) {
                             <li>
-                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
                             </li>
                         }
                         <li>

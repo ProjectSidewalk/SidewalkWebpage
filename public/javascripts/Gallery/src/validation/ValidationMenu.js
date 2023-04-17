@@ -8,7 +8,7 @@
  * whenever we switch to the expanded view for a new label.
  *
  * @param refCard Reference card. Stays the same for validation menus on small cards, changes for menu on expanded view.
- * @param uiCardImage The html element to append the validation menu to.
+ * @param gsvImage The html element to append the validation menu to.
  * @param cardProperties Properties of the label the validation menu is being appended to
  * @param modal The Modal object; used to update the expanded view when modifying a card.
  * @param onExpandedView A boolean flag. If true, the ValidationMenu is a child of the expanded view.
@@ -16,7 +16,7 @@
  * @returns {ValidationMenu}
  * @constructor
  */
-function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedView) {
+function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView) {
     let self = this;
     let currCardProperties = cardProperties;
     let referenceCard = refCard;
@@ -59,8 +59,7 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
     let overlay = $(cardOverlayHTML);
 
     let validationButtons = undefined;
-    // This is a regular DOM element, not jquery.
-    let galleryCard = uiCardImage.parentElement;
+    let galleryCard = gsvImage.parent();
 
     // Adds onClick functions for the validation buttons.
     function _init() {
@@ -98,7 +97,7 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
                 validateLabel(validationOption);
             });
         }
-        uiCardImage.append(overlay[0]);
+        gsvImage.append(overlay);
     }
 
     /**
@@ -112,14 +111,14 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
         // If the label had already been validated differently, remove the visual effects from the older validation.
         if (currSelected && currSelected !== validationClass) {
             validationButtons[currSelected].attr('class', 'validation-button');
-            if (galleryCard.classList.contains(currSelected)) {
-                galleryCard.classList.remove(currSelected);
+            if (galleryCard.hasClass(currSelected)) {
+                galleryCard.removeClass(currSelected);
             }
         }
         currSelected = validationClass;
 
         // Add the visual effects from the new validation.
-        galleryCard.classList.add(validationClass);
+        galleryCard.addClass(validationClass);
         validationButtons[validationClass].attr('class', 'validation-button-selected');
     }
 
@@ -140,17 +139,17 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
 
         // Add the visual effects from the new validation.
         validationButtons[validationClass].attr('class', 'modal-validation-button-selected');
-        uiCardImage.css('border-color', validationOptionToColor[validationOption]);
-        uiCardImage.css('background-color', validationOptionToColor[validationOption]);
+        gsvImage.css('border-color', validationOptionToColor[validationOption]);
+        gsvImage.css('background-color', validationOptionToColor[validationOption]);
     }
 
     /**
      * Resets the border to be transparent and the buttons to be less opaque, indicating a lack of validation.
      * @private
      */
-    function _removeExpandedValidationVisuals() {
-        uiCardImage.css('border-color', 'transparent');
-        uiCardImage.css('background-color', 'transparent');
+    function _removeValidationVisualsOnExpandedView() {
+        gsvImage.css('border-color', 'transparent');
+        gsvImage.css('background-color', 'transparent');
         Object.values(validationButtons).forEach(valButton => valButton.attr('class', 'modal-validation-button'));
     }
 
@@ -171,17 +170,49 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
             label_id: currCardProperties.label_id,
             label_type: currCardProperties.label_type,
             validation_result: resultOptions[action],
-            canvas_x: currCardProperties.canvas_x,
-            canvas_y: currCardProperties.canvas_y,
-            heading: currCardProperties.heading,
-            pitch: currCardProperties.pitch,
-            zoom: currCardProperties.zoom,
-            canvas_height: currCardProperties.canvas_height,
-            canvas_width: currCardProperties.canvas_width,
+            canvas_height: gsvImage.height(),
+            canvas_width: gsvImage.width(),
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
             is_mobile: false
         };
+
+        // Record current POV and canvas X/Y position of the label at the current view. This does not change for the
+        // static cards, but we need to calculate the current position if it's in the dynamic street view.
+        if (!onExpandedView) {
+            let labelIcon = refCard.labelIcon;
+            data.heading = currCardProperties.heading;
+            data.pitch = currCardProperties.pitch;
+            data.zoom = currCardProperties.zoom;
+            data.canvas_x = Math.round(labelIcon.offsetLeft + labelIcon.getBoundingClientRect().width / 2);
+            data.canvas_y = Math.round(labelIcon.offsetTop + labelIcon.getBoundingClientRect().height / 2);
+        } else {
+            let currPov = modal.pano.panorama.getPov();
+            data.heading = currPov.heading;
+            data.pitch = currPov.pitch;
+            data.zoom = currPov.zoom;
+
+            // For some reason, the usual povToPixel_ route for finding the canvas_x/y isn't working in Gallery, so we
+            // are using the actual left/top values for the HTML element instead.
+            let labelIcon = $(modal.pano.labelMarker.marker.marker_);
+            let labelIconRadius = labelIcon.outerWidth() / 2;
+            let labelCanvasX = labelIcon.position().left + labelIconRadius;
+            let labelCanvasY = labelIcon.position().top + labelIconRadius;
+
+            // If the user has panned away from the label and it's no longer visible on the canvas, set canvasX/Y to
+            // null. We add/subtract the radius of the label so that we still record these values when only a fraction of the
+            // label is still visible.
+            if (labelCanvasX + labelIconRadius > 0
+                && labelCanvasX - labelIconRadius < gsvImage.width()
+                && labelCanvasY + labelIconRadius > 0
+                && labelCanvasY - labelIconRadius < gsvImage.height()) {
+                data.canvas_x = labelCanvasX - labelIconRadius;
+                data.canvas_y = labelCanvasY - labelIconRadius;
+            } else {
+                data.canvas_x = null;
+                data.canvas_y = null;
+            }
+        }
 
         // Submit the validation via POST request.
         $.ajax({
@@ -218,7 +249,7 @@ function ValidationMenu(refCard, uiCardImage, cardProperties, modal, onExpandedV
             if (currCardProperties !== null && currCardProperties.user_validation) {
                 showValidationOnExpandedView(currCardProperties.user_validation);
             } else {
-                _removeExpandedValidationVisuals();
+                _removeValidationVisualsOnExpandedView();
             }
         }
     }

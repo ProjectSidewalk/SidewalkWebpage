@@ -4,6 +4,8 @@ import java.io.*;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.zip.*;
+
+import models.label.LabelPointTable;
 import org.geotools.data.*;
 import org.geotools.data.shapefile.*;
 import org.geotools.data.simple.*;
@@ -130,7 +132,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.streetEdgeId());
             featureBuilder.add(a.osmStreetId());
             featureBuilder.add(a.neighborhoodName());
-            featureBuilder.add(a.avgImageDate());
+            featureBuilder.add(a.avgImageCaptureDate());
             featureBuilder.add(a.avgLabelDate());
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -223,8 +225,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.headingPitchZoom()._3());
             featureBuilder.add(l.canvasXY()._1());
             featureBuilder.add(l.canvasXY()._2());
-            featureBuilder.add(l.canvasWidthHeight()._1());
-            featureBuilder.add(l.canvasWidthHeight()._2());
+            featureBuilder.add(LabelPointTable.canvasWidth());
+            featureBuilder.add(LabelPointTable.canvasHeight());
             featureBuilder.add(l.gsvUrl());
             featureBuilder.add(l.imageLabelDates()._1);
             featureBuilder.add(l.imageLabelDates()._2);
@@ -299,7 +301,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.attributeScores()[1]);
             featureBuilder.add(s.attributeScores()[2]);
             featureBuilder.add(s.attributeScores()[3]);
-            featureBuilder.add(s.avgImageDate().getOrElse(new AbstractFunction0<Timestamp>() {
+            featureBuilder.add(s.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
                 @Override
                 public Timestamp apply() {
                     return null;
@@ -372,7 +374,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(n.attributeScores()[1]);
             featureBuilder.add(n.attributeScores()[2]);
             featureBuilder.add(n.attributeScores()[3]);
-            featureBuilder.add(n.avgImageDate().getOrElse(new AbstractFunction0<Timestamp>() {
+            featureBuilder.add(n.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
                 @Override
                 public Timestamp apply() {
                     return null;

@@ -8,12 +8,10 @@ function Label(params) {
     // metadata from the backend. These properties are used to help place the label on the validation interface and
     // should not be changed.
     let auditProperties = {
-        canvasHeight: undefined,
-        canvasWidth: undefined,
         canvasX: undefined,
         canvasY: undefined,
         gsvPanoramaId: undefined,
-        imageDate: undefined,
+        imageCaptureDate: undefined,
         labelTimestamp: undefined,
         heading: undefined,
         labelId: undefined,
@@ -84,12 +82,10 @@ function Label(params) {
      */
     function _init() {
         if (params) {
-            if ("canvas_height" in params) setAuditProperty("canvasHeight", params.canvas_height);
-            if ("canvas_width" in params) setAuditProperty("canvasWidth", params.canvas_width);
             if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
             if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
             if ("gsv_panorama_id" in params) setAuditProperty("gsvPanoramaId", params.gsv_panorama_id);
-            if ("image_date" in params) setAuditProperty("imageDate", params.image_date);
+            if ("image_capture_date" in params) setAuditProperty("imageCaptureDate", params.image_capture_date);
             if ("label_timestamp" in params) setAuditProperty("labelTimestamp", params.label_timestamp);
             if ("heading" in params) setAuditProperty("heading", params.heading);
             if ("label_id" in params) setAuditProperty("labelId", params.label_id);
@@ -127,13 +123,12 @@ function Label(params) {
      * Gets the position of this label from the POV from which it was originally placed.
      * @returns {heading: number, pitch: number}
      */
-    function getPosition () {
+    function getPosition() {
         // This calculates the heading and position for placing this Label onto the panorama from
         // the same POV as when the user placed the label.
         let pos = svv.util.properties.panorama.getPosition(getAuditProperty('canvasX'),
-            getAuditProperty('canvasY'), getAuditProperty('canvasWidth'),
-            getAuditProperty('canvasHeight'), getAuditProperty('zoom'),
-            getAuditProperty('heading'), getAuditProperty('pitch'));
+            getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+            getAuditProperty('zoom'), getAuditProperty('heading'), getAuditProperty('pitch'));
         return pos;
     }
 

@@ -1,0 +1,17 @@
+# --- !Ups
+ALTER TABLE label_point
+    DROP COLUMN canvas_height,
+    DROP COLUMN canvas_width,
+    DROP COLUMN alpha_x,
+    DROP COLUMN alpha_y;
+
+ALTER TABLE gsv_link DROP COLUMN road_argb;
+
+# --- !Downs
+ALTER TABLE gsv_link ADD COLUMN road_argb CHARACTER VARYING(2044) COLLATE pg_catalog."POSIX" NOT NULL DEFAULT '';
+
+ALTER TABLE label_point
+    ADD COLUMN canvas_height INTEGER NOT NULL DEFAULT 480,
+    ADD COLUMN canvas_width INTEGER NOT NULL DEFAULT 720,
+    ADD COLUMN alpha_x DOUBLE PRECISION NOT NULL DEFAULT 4.6,
+    ADD COLUMN alpha_y DOUBLE PRECISION NOT NULL DEFAULT -4.65;

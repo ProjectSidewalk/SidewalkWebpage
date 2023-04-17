@@ -30,6 +30,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .image-holder {
     cursor: pointer;
     position: relative;
+    overflow: hidden;
 }
 
 .gallery-card:hover:after {
@@ -157,7 +158,8 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .label-icon-gallery {
-    width: 1.1vw;
+    --iconWidth: 1.1vw;
+    width: var(--iconWidth);
     z-index: 1;
 }
 

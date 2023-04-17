@@ -20,19 +20,11 @@ function Panorama (label) {
     let streetViewService = new google.maps.StreetViewService();
     let bottomLinksClickable = false;
 
-    // Determined manually by matching appearance of labels on the audit page and appearance of
-    // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
-    let zoomLevel = {
-        1: 1.1,
-        2: 2.1,
-        3: 3.1
-    };
-
     /**
      * Initializes a Google StreetView Panorama and renders a label onto the screen.
      * @private
      */
-    function _init () {
+    function _init() {
         _createNewPanorama();
         if (isMobile()) {
             sizePano();
@@ -55,7 +47,7 @@ function Panorama (label) {
      * Initializes a Google StreetView Panorama and disables most UI/Control settings.
      * @private
      */
-    function _createNewPanorama () {
+    function _createNewPanorama() {
         if (typeof google != "undefined") {
             // Set control options
             panorama = new google.maps.StreetViewPanorama(panoCanvas);
@@ -82,7 +74,7 @@ function Panorama (label) {
      * Adds listeners to the panorama to log user interactions.
      * @private
      */
-    function _addListeners () {
+    function _addListeners() {
         panorama.addListener('pov_changed', _handlerPovChange);
         panorama.addListener('pano_changed', _handlerPanoChange);
         return this;
@@ -92,14 +84,14 @@ function Panorama (label) {
      * Returns the label object for the label that is loaded on this panorama
      * @returns {Label}
      */
-    function getCurrentLabel () {
+    function getCurrentLabel() {
         return currentLabel;
     }
 
     /**
      * Returns the actual StreetView object.
      */
-    function getPanorama () {
+    function getPanorama() {
         return panorama;
     }
 
@@ -107,7 +99,7 @@ function Panorama (label) {
      * Returns the list of labels to validate / to be validated in this mission.
      * @returns {*}
      */
-    function getCurrentMissionLabels () {
+    function getCurrentMissionLabels() {
         return labels;
     }
 
@@ -115,7 +107,7 @@ function Panorama (label) {
      * Returns the underlying panomarker object.
      * @returns {PanoMarker}
      */
-    function getPanomarker () {
+    function getPanomarker() {
     return self.labelMarker;
     }
 
@@ -123,7 +115,7 @@ function Panorama (label) {
      * Returns the panorama ID for the current panorama.
      * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
      */
-    function getPanoId () {
+    function getPanoId() {
         return panorama.getPano();
     }
 
@@ -132,7 +124,7 @@ function Panorama (label) {
      * (probably a bug in GSV), so sometimes this function returns null.
      * @returns {{lat, lng}}
      */
-    function getPosition () {
+    function getPosition() {
         let position = panorama.getPosition();
         return (position) ? {'lat': position.lat(), 'lng': position.lng()} : null;
     }
@@ -141,7 +133,7 @@ function Panorama (label) {
      * Returns the pov of the viewer.
      * @returns {{heading: float, pitch: float, zoom: float}}
      */
-    function getPov () {
+    function getPov() {
         let pov = panorama.getPov();
 
         // Pov can be less than 0. So adjust it.
@@ -160,7 +152,7 @@ function Panorama (label) {
      * Returns the zoom level of this panorama.
      * @returns Zoom level from {1.1, 2.1, 3.1}
      */
-    function getZoom () {
+    function getZoom() {
         return panorama.getZoom();
     }
 
@@ -169,7 +161,7 @@ function Panorama (label) {
      * @param key   Property name.
      * @returns     Value associated with this property or null.
      */
-    function getProperty (key) {
+    function getProperty(key) {
         return key in properties ? properties[key] : null;
     }
 
@@ -180,7 +172,7 @@ function Panorama (label) {
      * Updates the date text field to match the current panorama's date.
      * @private
      */
-    function _handlerPanoChange () {
+    function _handlerPanoChange() {
         if (svv.panorama) {
             let panoId = getPanoId();
 
@@ -196,13 +188,21 @@ function Panorama (label) {
             streetViewService.getPanorama({pano: panorama.getPano()},
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
-                        document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
-                        // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links  clickable.
+                        document.getElementById("svv-panorama-date").innerText = moment(data.imageCaptureDate).format('MMM YYYY');
+                        // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
+                        // Uses setTimeout because it usually hasn't quite loaded yet.
                         if (!bottomLinksClickable) {
-                            $('.gm-style-cc')[0].remove();
-                            $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
-                            bottomLinksClickable = true;
+                            setTimeout(function() {
+                                try {
+                                    $('.gm-style-cc')[0].remove();
+                                    $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
+                                    bottomLinksClickable = true;
+                                } catch (e) {
+                                    bottomLinksClickable = false;
+                                }
+                            }, 100);
+
                         } 
                     } else {
                         console.error("Error retrieving Panoramas: " + status);
@@ -216,7 +216,7 @@ function Panorama (label) {
      * Logs panning interactions.
      * @private
      */
-    function _handlerPovChange () {
+    function _handlerPovChange() {
         if (svv.tracker && svv.panorama) {
             svv.tracker.push('POV_Changed');
         }
@@ -230,6 +230,17 @@ function Panorama (label) {
         let url = currentLabel.getIconUrl();
         let pos = currentLabel.getPosition();
 
+        // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
+        if (isMobile()) {
+            panorama.set('pov', pos);
+        } else {
+            panorama.set('pov', {
+                heading: currentLabel.getAuditProperty('heading'),
+                pitch: currentLabel.getAuditProperty('pitch'),
+                zoom: currentLabel.getAuditProperty('zoom')
+            });
+        }
+
         if (!self.labelMarker) {
             let controlLayer = isMobile() ? document.getElementById("view-control-layer-mobile") : document.getElementById("view-control-layer");
             self.labelMarker = new PanoMarker({
@@ -237,7 +248,7 @@ function Panorama (label) {
                 markerContainer: controlLayer,
                 container: panoCanvas,
                 pano: panorama,
-                position: {heading: pos.heading, pitch: pos.pitch},
+                position: { heading: pos.heading, pitch: pos.pitch },
                 icon: url,
                 size: new google.maps.Size(currentLabel.getRadius() * 2 + 2, currentLabel.getRadius() * 2 + 2),
                 anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
@@ -255,20 +266,17 @@ function Panorama (label) {
     }
 
     /**
-     * Sets the panorama ID, and heading/pitch/zoom
+     * Sets the panorama ID.
      * @param panoId    String representation of the Panorama ID
      * @param heading   Photographer heading
      * @param pitch     Photographer pitch
      * @param zoom      Photographer zoom
      */
-    function setPanorama (panoId, heading, pitch, zoom) {
+    function setPanorama(panoId) {
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
         panorama.setPano(panoId);
         setProperty("prevSetPanoTimestamp", new Date().getTime());
-        panorama.set('pov', {heading: heading, pitch: pitch});
-        panorama.set('zoom', zoomLevel[zoom]);
-        renderLabel();
         return this;
     }
 
@@ -281,8 +289,7 @@ function Panorama (label) {
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
-        setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
-            label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
+        setPanorama(label.getAuditProperty('gsvPanoramaId'));
         svv.labelDescriptionBox.setDescription(label);
         renderLabel();
     }
@@ -317,7 +324,8 @@ function Panorama (label) {
      * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
      */
     function sizePano() {
-        let h = window.innerHeight - 10;
+        let heightOffset = document.getElementById("svv-panorama-holder").getBoundingClientRect().top;
+        let h = window.innerHeight - heightOffset - 10;
         let w = window.innerWidth - 10;
         let outline_h = h + 10;
         let outline_w = w + 10;
@@ -336,14 +344,14 @@ function Panorama (label) {
     /**
      * Hides the current label on this panorama.
      */
-    function hideLabel () {
+    function hideLabel() {
         self.labelMarker.setVisible(false);
     }
 
     /**
      * Shows the current label on this panorama.
      */
-    function showLabel () {
+    function showLabel() {
         self.labelMarker.setVisible(true);
     }
 

@@ -77,14 +77,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         tracker.refresh();
 
         data.labels = [];
-        var labels = labelContainer.getCurrentLabels();
-        for(var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
+        var labels = labelContainer.getLabelsToLog();
+        for (var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
             var label = labels[i];
             var prop = label.getProperties();
-            var points = label.getPath().getPoints();
             var labelLatLng = label.toLatLng();
-            var tempLabelId = label.getProperty('temporary_label_id');
-            var auditTaskId = label.getProperty('audit_task_id');
+            var tempLabelId = label.getProperty('temporaryLabelId');
+            var auditTaskId = label.getProperty('auditTaskId');
 
             // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
             var associatedInteraction = data.interactions.find(interaction =>
@@ -96,66 +95,51 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),
                 label_type : label.getLabelType(),
-                photographer_heading : prop.photographerHeading,
-                photographer_pitch : prop.photographerPitch,
-                panorama_lat: prop.panoramaLat,
-                panorama_lng: prop.panoramaLng,
                 temporary_label_id: tempLabelId,
                 audit_task_id: auditTaskId,
                 gsv_panorama_id : prop.panoId,
-                label_points : [],
                 severity: label.getProperty('severity'),
                 temporary: label.getProperty('temporaryLabel'),
                 tag_ids: label.getProperty('tagIds'),
                 description: label.getProperty('description') ? label.getProperty('description') : null,
                 time_created: timeCreated,
-                tutorial: prop.tutorial
+                tutorial: prop.tutorial,
+                label_point: {
+                    pano_x : Math.round(prop.panoXY.x),
+                    pano_y : Math.round(prop.panoXY.y),
+                    canvas_x: prop.originalCanvasXY.x,
+                    canvas_y: prop.originalCanvasXY.y,
+                    heading: prop.originalPov.heading,
+                    pitch: prop.originalPov.pitch,
+                    zoom : prop.originalPov.zoom,
+                    lat : null,
+                    lng : null
+                }
             };
 
-            for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
-                var point = points[j],
-                    gsvImageCoordinate = point.getGSVImageCoordinate(),
-                    pointParam = {
-                        sv_image_x : gsvImageCoordinate.x,
-                        sv_image_y : gsvImageCoordinate.y,
-                        canvas_x: point.originalCanvasCoordinate.x,
-                        canvas_y: point.originalCanvasCoordinate.y,
-                        heading: point.panoramaPov.heading,
-                        pitch: point.panoramaPov.pitch,
-                        zoom : point.panoramaPov.zoom,
-                        canvas_height : prop.canvasHeight,
-                        canvas_width : prop.canvasWidth,
-                        alpha_x : prop.canvasDistortionAlphaX,
-                        alpha_y : prop.canvasDistortionAlphaY,
-                        lat : null,
-                        lng : null
-                    };
-
-                if (labelLatLng) {
-                    pointParam.lat = labelLatLng.lat;
-                    pointParam.lng = labelLatLng.lng;
-                    pointParam.computation_method = labelLatLng.latLngComputationMethod;
-                }
-                temp.label_points.push(pointParam);
+            if (labelLatLng) {
+                temp.label_point.lat = labelLatLng.lat;
+                temp.label_point.lng = labelLatLng.lng;
+                temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
             }
 
             data.labels.push(temp)
         }
 
-        // Keep Street View meta data. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibility attributes).
+        // Keep Street View metadata. This is particularly important to keep track of the date when the images were taken (i.e., the date of the accessibility attributes).
         data.gsv_panoramas = [];
 
         var temp;
-        var panoramaData;
+        var panoData;
         var link;
         var links;
         var panoramas = panoramaContainer.getStagedPanoramas();
         for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
-            panoramaData = panoramas[i].data();
+            panoData = panoramas[i].data();
             links = [];
-            if ("links" in panoramaData) {
-                for (j = 0; j < panoramaData.links.length; j++) {
-                    link = panoramaData.links[j];
+            if ("links" in panoData) {
+                for (j = 0; j < panoData.links.length; j++) {
+                    link = panoData.links[j];
                     links.push({
                         target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
                         yaw_deg: ("heading" in link) ? link.heading : 0.0,
@@ -164,14 +148,18 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 }
             }
             temp = {
-                panorama_id: ("location" in panoramaData && "pano" in panoramaData.location) ? panoramaData.location.pano : "",
-                image_date: "imageDate" in panoramaData ? panoramaData.imageDate : "",
-                image_width: panoramaData.tiles.worldSize.width,
-                image_height: panoramaData.tiles.worldSize.height,
-                tile_width: panoramaData.tiles.tileSize.width,
-                tile_height: panoramaData.tiles.tileSize.height,
+                panorama_id: ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "",
+                capture_date: "imageDate" in panoData ? panoData.imageDate : "",
+                width: panoData.tiles.worldSize.width,
+                height: panoData.tiles.worldSize.height,
+                tile_width: panoData.tiles.tileSize.width,
+                tile_height: panoData.tiles.tileSize.height,
+                lat: panoData.location.latLng.lat(),
+                lng: panoData.location.latLng.lng(),
+                camera_heading: panoData.tiles.originHeading,
+                camera_pitch: -panoData.tiles.originPitch, // camera_pitch is negative origin_pitch.
                 links: links,
-                copyright: "copyright" in panoramaData ? panoramaData.copyright : ""
+                copyright: "copyright" in panoData ? panoData.copyright : ""
             };
             data.gsv_panoramas.push(temp);
             panoramas[i].setProperty("submitted", true);
@@ -249,8 +237,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var action = tracker.create("TaskSubmit");
             data[0].interactions.push(action);
         }
-
-        labelContainer.refresh();
+        labelContainer.clearLabelsToLog();
 
         $.ajax({
             async: async,

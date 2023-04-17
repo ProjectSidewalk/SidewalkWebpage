@@ -12,6 +12,7 @@ import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.message.BasicNameValuePair
 import java.io.InputStream
 import java.util
+import scala.util.Try
 
 object ControllerUtils {
     implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -68,5 +69,9 @@ object ControllerUtils {
                 Logger.warn(e.getMessage)
                 throw e
         }
+    }
+
+    def parseIntegerList(listOfInts: String): List[Int] = {
+        listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toList.distinct
     }
 }

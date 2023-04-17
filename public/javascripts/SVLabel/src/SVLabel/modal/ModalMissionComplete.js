@@ -47,7 +47,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         // If this is a designated route, remove element(s) related to the entire neighborhood.
         this._uiModalMissionComplete.progressOthers.parent().remove();
     } else {
-        this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('map-legend-label-other-users'));
+        this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('mission-complete.map-legend-label-other-users'));
         this._uiModalMissionComplete.progressTitle.html(i18next.t('mission-complete.progress-neighborhood-title'));
         this._uiModalMissionComplete.progressYou.html(i18next.t('mission-complete.progress-neighborhood-you'));
         this._uiModalMissionComplete.progressRemaining.html(i18next.t('mission-complete.progress-neighborhood-remaining'));

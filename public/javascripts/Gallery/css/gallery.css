@@ -67,6 +67,20 @@
     width: 25%;
 }
 
+.gallery-footer {
+    padding-top: 5px;
+    padding-bottom: 10px;
+    position: relative;
+    width: 100%;
+    min-height: 40px;
+    text-align: center;
+    color: #585c63;
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.6em;
+    font-family: raleway, sans-serif;
+}
+
 #footer-spacing {
     padding-top: 100px;
 }
