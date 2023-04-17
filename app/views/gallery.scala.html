@@ -65,7 +65,7 @@
                 <div id="horizontal-line"></div>
                 <div id="filters">
                     <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
-                    <button id="clear-select" onClick=clearCurrentTags()>@Messages("gallery.clear")</button>
+                    <button id="clear-select" >@Messages("gallery.clear")</button>
                     <h5 id="severity-header" class="filter-subheader">@Messages("gallery.severity")</h5>
                     <span id="severity-select"></span>
                     <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
@@ -131,6 +131,10 @@
             params.language = "@lang.code";
 
             sg.main = new Main(params);
+
+            $("#clear-select").click(function() {
+                clearSelect(); <!--defined in CardFilter.js-->
+            };
     </script>
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/Gallery/build/Gallery.css")'/>

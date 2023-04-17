@@ -247,6 +247,15 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     }
 
     /**
+     * Clear filters: tags, severity, validations
+     */
+    function clearSelect() {
+        clearCurrentTags(); // defined in CardFilter.js
+        unapplySeverities(); // defined in SeverityBucket.js
+        unapplyValidationOptions(); // defined in ValidationOptionBucket.js
+    }
+
+    /**
      * Disable interaction with filters.
      */
     function disable() {
