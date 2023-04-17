@@ -1,11 +1,13 @@
 #gallery {
     display: flex;
     overflow: hidden;
+    min-height: 100%;
 }
 
 #card-filter {
     padding: 0 5px 5px 5px;
     width: inherit;
+    min-height: 100%;
 }
 
 .filter-section-holder {
@@ -45,7 +47,7 @@
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
-    min-height: calc(100vh - 100px);
+    min-height: 100%;
     width: 239px;
     grid-row: 1/2;
 }
