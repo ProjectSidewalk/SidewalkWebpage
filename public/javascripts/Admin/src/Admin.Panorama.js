@@ -67,7 +67,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         })[0];
 
         self.panoNotAvailableAuditSuggestion = 
-            $('<div id="pano-not-avail-audit"><a>Explore the street</a> again to use Google\'s newer images!</div>').css({
+            $('<div id="pano-not-avail-audit"><a id="explore-street">Explore the street</a> again to use Google\'s newer images!</div>').css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
@@ -167,7 +167,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');
-                    $("a").attr("href", "/audit/street/" + self.label['streetEdgeId']);
+                    $("#explore-street").attr("href", "/audit/street/" + self.label['streetEdgeId']);
                     $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
                     $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
