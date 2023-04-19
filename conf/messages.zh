@@ -332,7 +332,7 @@ gallery.show = 展示
 gallery.filter.by = 篩選
 gallery.severity = 嚴重程度
 gallery.tags = 標籤
-gallery.all = 全部
+gallery.all = 所有标签类型
 gallery.occlusion = 看不到人行道
 gallery.labels.not.found = 無相符資料。 <a href="/audit">開始探索</a>以建立更多的資料！
 gallery.cards = 标签根据选定的过滤器随机排序
