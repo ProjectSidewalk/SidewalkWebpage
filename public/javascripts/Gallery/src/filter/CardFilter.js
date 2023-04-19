@@ -283,6 +283,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     self.getValidationOptions = getValidationOptions;
     self.getAppliedValidationOptions = getAppliedValidationOptions;
     self.unapplyTags = unapplyTags;
+    self.clearSelect = clearSelect;
     self.disable = disable;
     self.enable = enable;
 
