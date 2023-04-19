@@ -93,7 +93,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
                 "imageX": 1170,
-                "imageY": -350,
+                "imageY": 3800,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
@@ -308,8 +308,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 12932,
-                "imageY": -340,
+                "imageX": 12950,
+                "imageY": 3720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -539,8 +539,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoCurbRamp",
-                "imageX": 12552,
-                "imageY": -340,
+                "imageX": 12560,
+                "imageY": 3720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -841,15 +841,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
                 "imageX": 9730,
-                "imageY": -720,
+                "imageY": 4150,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
             },{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 8652,
-                "imageY": -840,
+                "imageX": 8660,
+                "imageY": 4250,
                 "tolerance": 300
             }],
             "message": {
@@ -1055,8 +1055,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 8652,
-                "imageY": -840,
+                "imageX": 8660,
+                "imageY": 4250,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1233,7 +1233,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
                 "imageX": 9730,
-                "imageY": -720,
+                "imageY": 4150,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1465,8 +1465,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoSidewalk",
-                "imageX": 7528,
-                "imageY": -500,
+                "imageX": 7550,
+                "imageY": 3900,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1735,8 +1735,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 5502,
-                "imageY": -670,
+                "imageX": 5550,
+                "imageY": 4080,
                 "tolerance": 250,
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
