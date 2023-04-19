@@ -9,7 +9,10 @@
 @main(title) {
     @navbar(user, Some("/"))
     <div id="vidbanner">
-        <video playsinline autoplay muted loop src='@routes.Assets.at("assets/mainvideo.mp4")' id="bgvid" class="visible-desktop"></video>
+        <video controls playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+            <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
+            <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
+        </video>
         <div id="overlay-top" style="width: 100%;
             height: 100%;
             position: absolute;
