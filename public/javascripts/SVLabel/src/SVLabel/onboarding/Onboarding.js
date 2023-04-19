@@ -786,6 +786,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             var panoData = svl.panoramaContainer.getPanorama(state.panoId).data();
             var svImgWidth = panoData.tiles.worldSize.width;
             var svImgHeight = panoData.tiles.worldSize.height;
+            var cameraHeading = panoData.tiles.originHeading;
 
             while (i < properties.length && !labelAppliedCorrectly) {
                 var imageX = properties[i].imageX;
@@ -797,7 +798,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
                 var panoXY = util.panomarker.canvasXYToPanoXY(
-                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.panorama.getPhotographerPov().heading, svImgWidth, svImgHeight
+                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, cameraHeading, svImgWidth, svImgHeight
                 );
                 panoXY.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
                 panoXY.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;

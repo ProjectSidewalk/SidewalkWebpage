@@ -249,10 +249,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
                     worldSize: new google.maps.Size(4096, 2048),
+                    centerHeading: 50.3866,
                     originHeading: 50.3866,
                     originPitch: -1.13769,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                        return `${svl.rootDirectory}img/onboarding/tiles/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     }
                 }
             };
@@ -268,10 +269,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 tiles: {
                     tileSize: new google.maps.Size(1700, 850),
                     worldSize: new google.maps.Size(3400, 1700),
+                    centerHeading: 344,
                     originHeading: 344,
                     originPitch: 0,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                        return `${svl.rootDirectory}img/onboarding/tiles/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     }
                 }
             };
