@@ -9,14 +9,14 @@
             <div id="label-map"></div>
             <div id="map-label-legend">
                 <div id="map-legend-title-holder">
-                    <label id="map-legend-title">Legend</label>
+                    <label id="map-legend-title">@Messages("legend")</label>
                     <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
                 </div>
                 <table class="table filter" id="legend-table">
                     <tr>
                         <td></td>
-                        <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
-                        <td colspan="2" align="left" style="font-weight:bold">Severity</td>
+                        <td colspan="2" align="left" style="font-weight:bold">@Messages("label-type")</td>
+                        <td colspan="2" align="left" style="font-weight:bold">@Messages("severity")</td>
                     </tr>
                     <tr>
                         <td id="map-legend-curb-ramp" width="12px"></td>
@@ -74,32 +74,32 @@
                     </tr>
                     <tr>
                         <td id="map-legend-occlusion"></td>
-                        <td>Can't see sidewalk</td>
+                        <td>@Messages("occlusion")</td>
                         <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="toggleLayers('Occlusion', 'occlusion', undefined, map.map, map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' style="width: 23px; padding: 3px;"></td>
-                        <td>Validated correct</td>
+                        <td>@Messages("correct")</td>
                         <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="filterLayers('correct', map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' style="width: 23px; padding: 3px;"></td>
-                        <td>Validated incorrect</td>
+                        <td>@Messages("incorrect")</td>
                         <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="filterLayers('incorrect', map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
-                        <td>Unvalidated</td>
+                        <td>@Messages("unvalidated")</td>
                         <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-audited-street"></td>
-                        <td>Audited Street</td>
+                        <td>@Messages("audit-street")</td>
                         <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="toggleAuditedStreetLayer(map.map, map.auditedStreetLayer)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-unaudited-street"></td>
-                        <td>Unaudited Street</td>
+                        <td>@Messages("unaudit-street")</td>
                         <td><input type="checkbox" value="displaylabel" id="unauditedstreet" checked="true" onclick="toggleUnauditedStreetLayer(map.map, map.unauditedStreetLayer)"></td>
                     </tr>
                 </table>
