@@ -416,7 +416,7 @@ function AdminGSVLabelView(admin) {
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
-        self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
+        self.modalTitle.html(`${i18next.t('common:label-map.label-type')}: ` + labelMetadata['label_type_value']);
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
