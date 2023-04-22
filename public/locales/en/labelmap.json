@@ -1,0 +1,11 @@
+{
+    "is-correct": "Is this label correct?",
+    "agree": "Agree",
+    "disagree": "Disagree",
+    "not-sure": "Not Sure",
+    "add-comment": "Add comment here...",
+    "submit": "Submit comment",
+    "label-type": "Label Type",
+    "validations": "Validations",
+    "comment-submitted" : "Comment Submitted"
+}

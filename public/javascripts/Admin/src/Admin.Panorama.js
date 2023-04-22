@@ -53,21 +53,20 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             height: self.svHolder.height()
         })[0];
 
-        self.panoNotAvailable = $("<div id='pano-not-avail'>Oops, our fault but there is no longer imagery available " +
-            "for this label.</div>").css({
+        self.panoNotAvailable = $(`<div id='pano-not-avail'>${'common:errors.error'}</div>`).css({
             'font-size': '200%',
             'padding-bottom': '15px'
         })[0];
 
         self.panoNotAvailableDetails =
-            $("<div id='pano-not-avail-2'>We use the Google Maps API to show the sidewalk images and sometimes Google" +
-                " removes these images so we can no longer access them. Sorry about that.</div>").css({
+            $(`<div id='pano-not-avail-2'>${i18next.t('common:errors.explanation')}</div>`).css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
 
-        self.panoNotAvailableAuditSuggestion = 
-            $('<div id="pano-not-avail-audit"><a id="explore-street">Explore the street</a> again to use Google\'s newer images!</div>').css({
+        self.panoNotAvailableAuditSuggestion =
+            $(`<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street1')}</a>
+             ${i18next.t('common:errors.explore-street2')}</div>`).css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
@@ -163,7 +162,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     if (self.label) renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
                     $(self.svHolder).css('height', '');
-                    $(self.panoNotAvailable).text('Oops, our fault but there is no longer imagery available for this label.');
+                    $(self.panoNotAvailable).text(i18next.t("common:errors.error"));
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');
@@ -172,7 +171,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
                     $(self.svHolder).css('height', '');
-                    $(self.panoNotAvailable).text('We had trouble connecting to Google Street View, please try again later!');
+                    $(self.panoNotAvailable).text(i18next.t('common:errors.google-connect-error'));
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'none');

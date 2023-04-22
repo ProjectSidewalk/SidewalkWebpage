@@ -34,9 +34,25 @@
     "percent-complete": "{{percent}}% Voltooid"
   },
   "label-map": {
+    "is-correct": "Klopt dit etiket?",
+    "click-here": "Klik hier",
+    "explore-street": "om de straat te verkennen!",
+    "error": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
+    "agree": "Mee eens zijn",
+    "disagree": "Het oneens zijn",
+    "not-sure": "Niet zeker",
+    "label-type": "Etikettype",
+    "validations": "Validations",
     "add-comment": "Voeg opmerking hier toe...",
-    "submit": "Voeg opmerking toe",
+    "submit": "Opmerking",
     "comment-submitted" : "Commentaar ingediend"
+  },
+  "errors": {
+    "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
+    "google-connect-error": "We hadden problemen met het verbinden met Google Street View, probeer het later opnieuw!",
+    "error": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
+    "explore-street1": "Verken de straat",
+    "explore-street2": "opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
   },
   "severity": "Ernst",
   "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
@@ -109,9 +125,10 @@
     "latitude": "Breedtegraad",
     "longitude": "Lengtegraad",
     "panorama-id": "Panorama-ID",
+    "google-view": "Google Street View",
     "street-id": "Straat-ID",
     "region-id": "Regio-ID",
-    "label-id": "Label-ID",
+    "label-id": "Etiket-ID",
     "view-in-gsv": "Bekijken in Google Streetview",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
   }

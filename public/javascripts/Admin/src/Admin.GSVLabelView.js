@@ -25,19 +25,19 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px"></div>' +
                             '<div id="validation-input-holder">' +
-                                '<h3 style="margin: 0px; padding-top: 10px;">Is this label correct?</h3>' +
+                                '<h3 style="margin: 0px; padding-top: 10px;">' + i18next.t('common:label-map.is-correct') + '</h3>' +
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
                                     '<button id="validation-agree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        'Agree' +
+                                        i18next.t('common:label-map.agree') +
                                     '</button>' +
                                     '<button id="validation-disagree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        'Disagree' +
+                                        i18next.t('common:label-map.disagree') +
                                     '</button>' +
                                     '<button id="validation-not-sure-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        'Not sure' +
+                                        i18next.t('common:label-map.not-sure') +
                                     '</button>' +
                                 '</div>' +
                                 '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
@@ -50,7 +50,7 @@ function AdminGSVLabelView(admin) {
                             '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
                                 '<table class="table table-striped" style="font-size:small;>' +
                                     '<tr>' +
-                                        '<th>Label Type</th>' +
+                                        '<th>'+ i18next.t('common:label-type') +'</th>' +
                                         '<td id="label-type-value"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -70,7 +70,7 @@ function AdminGSVLabelView(admin) {
                                         '<td colspan="3" id="label-description"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Validations</th>' +
+                                        '<th>' + i18next.t('common:label-map.validations') + '</th>' +
                                         '<td colspan="3" id="label-validations"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -85,7 +85,7 @@ function AdminGSVLabelView(admin) {
                                         '<td id="pano-id" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>Google Street View</th>' +
+                                        `<th>${i18next.t('common:gsv-info.google-view')}</th>` +
                                         '<td id="view-in-gsv" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -289,9 +289,9 @@ function AdminGSVLabelView(admin) {
      */
     function _setValidationCountText() {
         // Form new string for validations row.
-        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' Agree, ' +
-            self.validationCounts['Disagree'] + ' Disagree, ' +
-            self.validationCounts['NotSure'] + ' Not Sure';
+        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t("common:label-map.agree") +', ' +
+            self.validationCounts['Disagree'] + ' ' + i18next.t("common:label-map.disagree") + ', ' +
+            self.validationCounts['NotSure'] + ' ' + i18next.t("common:label-map.not-sure");
 
         self.modalValidations.html(validationsTextAfter)
     }
