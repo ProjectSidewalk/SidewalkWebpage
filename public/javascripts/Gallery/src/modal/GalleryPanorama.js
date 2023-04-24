@@ -135,7 +135,7 @@
                     $(self.panoNotAvailableDetails).css('display', 'none');
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
                     $(self.svHolder).css('height', '');
-                    $(self.panoNotAvailable).text(i18next.t("common:label-map.error"));
+                    $(self.panoNotAvailable).text(i18next.t("common:errors.error"));
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');

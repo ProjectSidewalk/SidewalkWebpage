@@ -12,7 +12,7 @@ function InitializeStreets(map, params, streetData) {
     let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
-        let popupContent = `<a href="/audit/street/${feature.properties.street_edge_id}">${i18next.t('common:label-map.click-here')}</a> ${i18next.t('common:label-map.explore-street')}`;
+        let popupContent = `<a href="/audit/street/${feature.properties.street_edge_id}">${i18next.t('labelmap:click-here')}</a> ${i18next.t('labelmap:explore-street')}`;
         layer.bindPopup(popupContent);
         layer.on({
             'mouseover': function () { this.setStyle({ weight: 6 }); },

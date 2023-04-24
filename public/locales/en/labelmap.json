@@ -1,11 +1,13 @@
 {
     "is-correct": "Is this label correct?",
+    "click-here": "Click here",
+    "explore-street": "to explore the street!",
     "agree": "Agree",
     "disagree": "Disagree",
     "not-sure": "Not Sure",
-    "add-comment": "Add comment here...",
-    "submit": "Submit comment",
     "label-type": "Label Type",
     "validations": "Validations",
+    "add-comment": "Add comment here...",
+    "submit": "Submit comment",
     "comment-submitted" : "Comment Submitted"
 }

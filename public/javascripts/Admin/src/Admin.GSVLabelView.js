@@ -25,25 +25,25 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px"></div>' +
                             '<div id="validation-input-holder">' +
-                                '<h3 style="margin: 0px; padding-top: 10px;">' + i18next.t('common:label-map.is-correct') + '</h3>' +
+                                '<h3 style="margin: 0px; padding-top: 10px;">' + i18next.t('labelmap:is-correct') + '</h3>' +
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
                                     '<button id="validation-agree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:label-map.agree') +
+                                        i18next.t('labelmap:agree') +
                                     '</button>' +
                                     '<button id="validation-disagree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:label-map.disagree') +
+                                        i18next.t('labelmap:disagree') +
                                     '</button>' +
                                     '<button id="validation-not-sure-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:label-map.not-sure') +
+                                        i18next.t('labelmap:not-sure') +
                                     '</button>' +
                                 '</div>' +
                                 '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
-                                    '<textarea id="comment-textarea" placeholder="' + i18next.t('common:label-map.add-comment') + '" class="validation-comment-box"></textarea>' +
-                                    '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="' + i18next.t('common:label-map.comment-submitted') + '" data-trigger="manual">' +
-                                        i18next.t('common:label-map.submit') +
+                                    '<textarea id="comment-textarea" placeholder="' + i18next.t('labelmap:add-comment') + '" class="validation-comment-box"></textarea>' +
+                                    '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="' + i18next.t('labelmap:comment-submitted') + '" data-trigger="manual">' +
+                                        i18next.t('labelmap:submit') +
                                     '</button>' +
                                 '</div>' +
                             '</div>' +
@@ -70,7 +70,7 @@ function AdminGSVLabelView(admin) {
                                         '<td colspan="3" id="label-description"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th>' + i18next.t('common:label-map.validations') + '</th>' +
+                                        '<th>' + i18next.t('labelmap:validations') + '</th>' +
                                         '<td colspan="3" id="label-validations"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -289,9 +289,9 @@ function AdminGSVLabelView(admin) {
      */
     function _setValidationCountText() {
         // Form new string for validations row.
-        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t("common:label-map.agree") +', ' +
-            self.validationCounts['Disagree'] + ' ' + i18next.t("common:label-map.disagree") + ', ' +
-            self.validationCounts['NotSure'] + ' ' + i18next.t("common:label-map.not-sure");
+        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t("labelmap:agree") +', ' +
+            self.validationCounts['Disagree'] + ' ' + i18next.t("labelmap:disagree") + ', ' +
+            self.validationCounts['NotSure'] + ' ' + i18next.t("labelmap:not-sure");
 
         self.modalValidations.html(validationsTextAfter)
     }
@@ -416,11 +416,14 @@ function AdminGSVLabelView(admin) {
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
-        self.modalTitle.html(`${i18next.t('common:label-map.label-type')}: ` + labelMetadata['label_type_value']);
-        self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
+        // Change modal title
+        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + labelMetadata['label_type_key'])}`);
+        self.modalLabelTypeValue.html(i18next.t('common:'+labelMetadata['label_type_value']));
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
-        self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
+        // Create a list of translated tags that's parsable by i18next.
+        const translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag}`));
+        self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
