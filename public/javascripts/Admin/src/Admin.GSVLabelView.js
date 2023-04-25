@@ -417,8 +417,8 @@ function AdminGSVLabelView(admin) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
-        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + labelMetadata['label_type_key'])}`);
-        self.modalLabelTypeValue.html(i18next.t('common:'+labelMetadata['label_type_value']));
+        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type_key']))}`);
+        self.modalLabelTypeValue.html(i18next.t('common:'+camelToKebab(labelMetadata['label_type_value'])));
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.
