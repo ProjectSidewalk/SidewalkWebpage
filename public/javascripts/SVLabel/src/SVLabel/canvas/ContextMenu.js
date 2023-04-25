@@ -472,16 +472,30 @@ function ContextMenu (uiContextMenu) {
             _setTags(targetLabel);
             _setTagColor(targetLabel);
             if (getStatus('disableTagging')) { disableTagging(); }
+
+            // Hide the severity menu for the Pedestrian Signal label type.
+            if (labelType === 'Signal') {
+                $severityMenu.css({visibility: 'hidden', height: '0px'});
+            } else {
+                $severityMenu.css({visibility: 'inherit', height: '50px'});
+            }
             var windowHeight = $menuWindow.outerHeight();
 
             // Determine coordinates for context menu when displayed below the label.
             var topCoordinate = labelCoord.y + 20;
             var connectorCoordinate = -5;
 
+            var connectorStyle = window.getComputedStyle(document.getElementById("context-menu-vertical-connector"));
+            var connectorHeight = connectorStyle.getPropertyValue("height");
+
             // Determine coordinates for context menu when displayed above the label.
-            if (labelCoord.y + windowHeight + 22 > util.EXPLORE_CANVAS_HEIGHT) {
-                topCoordinate = labelCoord.y - windowHeight - 22;
-                connectorCoordinate = windowHeight;
+            // labelCoord is top-left of label but should be center of rendered label, so must account for icon radius
+            if (labelCoord.y +
+                    svl.LABEL_ICON_RADIUS +
+                    parseInt(connectorHeight) +
+                    windowHeight > util.EXPLORE_CANVAS_HEIGHT) {
+                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - parseInt(connectorHeight) - windowHeight;
+                connectorCoordinate = windowHeight; // labelCoord.y - svl.LABEL_ICON_RADIUS - parseInt(connectorHeight)
             }
 
             // Set the color of the border.
@@ -508,16 +522,9 @@ function ContextMenu (uiContextMenu) {
 
             $connector.css({
                 visibility: 'visible',
-                top: topCoordinate + connectorCoordinate,
+                top: topCoordinate + connectorCoordinate, // topCoordinate + windowHeight = coordinate for connector
                 left: labelCoord.x - 3
             });
-
-            // Hide the severity menu for the Pedestrian Signal label type.
-            if (labelType === 'Signal') {
-                $severityMenu.css({visibility: 'hidden', height: '0px'});
-            } else {
-                $severityMenu.css({visibility: 'inherit', height: '50px'});
-            }
 
             setStatus('visibility', 'visible');
 
