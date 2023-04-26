@@ -187,7 +187,8 @@
                 "height-difference": "高度差(<tag-underline>d</tag-underline>)",
                 "painted-sidewalk": "彩绘人行道(<tag-underline>r</tag-underline>)",
                 "pedestrian-arcade": "步行街(<tag-underline>B</tag-underline>)",
-                "too-close-to-traffic": "离交通太近(<tag-underline>j</tag-underline>)"
+                "too-close-to-traffic": "离交通太近(<tag-underline>j</tag-underline>)",
+                "utility-panel": "实用面板(<tag-underline>m</tag-underline>)"
             },
             "tooltip": {
                 "passable": "可通行的",

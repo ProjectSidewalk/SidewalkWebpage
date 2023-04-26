@@ -185,7 +185,8 @@
                 "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)",
                 "painted-sidewalk": "geschilderd <tag-underline>t</tag-underline>rottoir",
                 "pedestrian-arcade": "voetgangers <tag-underline>g</tag-underline>alerij",
-                "too-close-to-traffic": "te dicht bij het <tag-underline>v</tag-underline>erkeer"
+                "too-close-to-traffic": "te dicht bij het <tag-underline>v</tag-underline>erkeer",
+                "utility-panel": "hulpprogramma <tag-underline>p</tag-underline>aneel"
             },
             "tooltip": {
                 "passable": "Begaanbaar",

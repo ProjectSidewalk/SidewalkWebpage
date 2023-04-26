@@ -185,7 +185,8 @@
                 "height-difference": "<tag-underline>d</tag-underline>esnivel",
                 "painted-sidewalk": "acera <tag-underline>p</tag-underline>intada",
                 "pedestrian-arcade": "arcada <tag-underline>p</tag-underline>eatonal",
-                "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico"
+                "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico",
+                "utility-panel": "panel de <tag-underline>u</tag-underline>tilidad"
             },
             "tooltip": {
                 "passable": "Transitable",

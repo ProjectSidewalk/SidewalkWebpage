@@ -105,7 +105,8 @@
     "no bus stop access": "No hay acceso a la parada de autobús",
     "painted sidewalk": "acera pintada",
     "pedestrian arcade": "arcada peatonal",
-    "too close to traffic": "demasiado cerca del tráfico"
+    "too close to traffic": "demasiado cerca del tráfico",
+    "utility panel": "panel de utilidad"
   },
   "gsv-info": {
     "details-title": "Detalles",

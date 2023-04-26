@@ -105,7 +105,8 @@
     "no bus stop access": "geen bushalte toegang",
     "painted sidewalk": "geschilderd trottoir",
     "pedestrian arcade": "voetgangers galerij",
-    "too close to traffic": "te dicht bij het verkeer"
+    "too close to traffic": "te dicht bij het verkeer",
+    "utility panel": "hulpprogramma paneel"
   },
   "gsv-info": {
     "details-title": "Details",

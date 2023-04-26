@@ -187,7 +187,8 @@
                 "height-difference": "height <tag-underline>d</tag-underline>ifference",
                 "painted-sidewalk": "painted <tag-underline>s</tag-underline>idewalk",
                 "pedestrian-arcade": "pedestrian <tag-underline>a</tag-underline>rcade",
-                "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic"
+                "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
+                "utility-panel": "utility <tag-underline>p</tag-underline>anel"
             },
             "tooltip": {
                 "passable": "Passable",

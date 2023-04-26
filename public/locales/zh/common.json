@@ -105,7 +105,8 @@
     "no bus stop access": "無公車站出入空間",
     "painted sidewalk": "彩绘人行道",
     "pedestrian arcade": "步行街",
-    "too close to traffic": "离交通太近"
+    "too close to traffic": "离交通太近",
+    "utility panel": "实用面板"
   },
   "gsv-info": {
     "details-title": "詳細資訊",

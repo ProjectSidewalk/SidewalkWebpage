@@ -105,7 +105,8 @@
     "no bus stop access": "no bus stop access",
     "painted sidewalk": "painted sidewalk",
     "pedestrian arcade": "pedestrian arcade",
-    "too close to traffic": "too close to traffic"
+    "too close to traffic": "too close to traffic",
+    "utility panel": "utility panel"
   },
   "gsv-info": {
     "details-title": "Details",
