@@ -15,7 +15,7 @@
     position: absolute;
     top: -110px;
     left: -65px;
-    z-index: 1;
+    z-index: 3;
     visibility: hidden;
 }
 
