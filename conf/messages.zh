@@ -1,6 +1,5 @@
 measurement.system = 公制
 legend = 传奇
-label-type = 标签类型
 severity = 严重程度
 curb.ramp = 路緣斜坡
 curb.ramps = 路緣斜坡
@@ -17,8 +16,8 @@ occlusion = 看不到人行道
 correct = 验证正确
 incorrect = 验证不正确
 unvalidated = 未验证
-audit-street = 审计街
-unaudit-street = 未经审计的街道
+audit.street = 审计街
+unaudit.street = 未经审计的街道
 other = 其他
 validations = 檢核
 labels = 標記

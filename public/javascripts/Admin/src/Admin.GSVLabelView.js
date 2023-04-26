@@ -25,7 +25,7 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px"></div>' +
                             '<div id="validation-input-holder">' +
-                                '<h3 style="margin: 0px; padding-top: 10px;">' + i18next.t('labelmap:is-correct') + '</h3>' +
+                                `<h3 style="margin: 0px; padding-top: 10px;">${i18next.t('labelmap:is-correct')}</h3>` +
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
                                     '<button id="validation-agree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
@@ -41,8 +41,8 @@ function AdminGSVLabelView(admin) {
                                     '</button>' +
                                 '</div>' +
                                 '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
-                                    '<textarea id="comment-textarea" placeholder="' + i18next.t('labelmap:add-comment') + '" class="validation-comment-box"></textarea>' +
-                                    '<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="' + i18next.t('labelmap:comment-submitted') + '" data-trigger="manual">' +
+                                    `<textarea id="comment-textarea" placeholder="${i18next.t('labelmap:add-comment')}" class="validation-comment-box"></textarea>` +
+                                    `<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="${i18next.t('labelmap:comment-submitted')}" data-trigger="manual">` +
                                         i18next.t('labelmap:submit') +
                                     '</button>' +
                                 '</div>' +
@@ -50,7 +50,7 @@ function AdminGSVLabelView(admin) {
                             '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
                                 '<table class="table table-striped" style="font-size:small;>' +
                                     '<tr>' +
-                                        '<th>'+ i18next.t('common:label-type') +'</th>' +
+                                        `<th>${i18next.t('labelmap:label-type')}</th>` +
                                         '<td id="label-type-value"></td>' +
                                     '</tr>' +
                                     '<tr>' +

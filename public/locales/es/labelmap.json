@@ -1,7 +1,6 @@
 {
     "is-correct": "Esta etiqueta es correcta?",
-    "click-here": "Haga clic aquí",
-    "explore-street": "para explorar la calle!",
+    "explore-street-link": "Haga clic aquí</a> para explorar la calle!",
     "agree": "Aceptar",
     "disagree": "Discrepar",
     "not-sure": "No estoy seguro",

@@ -1,7 +1,6 @@
 {
     "is-correct": "Klopt dit etiket?",
-    "click-here": "Klik hier",
-    "explore-street": "om de straat te verkennen!",
+    "explore-street-link": "Klik hier</a> om de straat te verkennen!",
     "agree": "Mee eens zijn",
     "disagree": "Het oneens zijn",
     "not-sure": "Niet zeker",

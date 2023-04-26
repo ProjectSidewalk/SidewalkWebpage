@@ -1,6 +1,5 @@
 measurement.system = metric
 legend = Leyenda
-label-type = Tipo de etiqueta
 severity = Gravedad
 curb.ramp = Rampa peatonal
 curb.ramps = Rampas peatonales
@@ -17,8 +16,8 @@ occlusion = No puedo ver la banqueta
 correct = Validado correcto
 incorrect = Validado incorrecto
 unvalidated = no validado
-audit-street = Calle auditada
-unaudit-street = Calle no auditada
+audit.street = Calle auditada
+unaudit.street = Calle no auditada
 other = Otro
 validations = Validaciones
 labels = etiquetas

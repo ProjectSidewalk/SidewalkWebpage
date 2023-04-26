@@ -53,7 +53,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             height: self.svHolder.height()
         })[0];
 
-        self.panoNotAvailable = $(`<div id='pano-not-avail'>${'common:errors.error'}</div>`).css({
+        self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.error')}</div>`).css({
             'font-size': '200%',
             'padding-bottom': '15px'
         })[0];
@@ -65,8 +65,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         })[0];
 
         self.panoNotAvailableAuditSuggestion =
-            $(`<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street1')}</a>
-             ${i18next.t('common:errors.explore-street2')}</div>`).css({
+            $(`<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street')}</div>`).css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
@@ -132,7 +131,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
                 return null;
             });
-            
+
             self.svHolder.css('visibility', 'hidden');
             self.panoId = panoId;
 

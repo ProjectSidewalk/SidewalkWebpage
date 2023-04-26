@@ -50,7 +50,7 @@
             height: '60vh'
         })[0];
 
-        self.panoNotAvailable = $(`<div id='pano-not-avail'>${'common:errors.error'}</div>`).css({
+        self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.error')}</div>`).css({
             'font-size': '200%',
             'padding-bottom': '15px'
         })[0];

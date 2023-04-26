@@ -9,7 +9,6 @@
   "no-curb-ramp": "Rampa peatonal ausente",
   "obstacle": "Obstáculo en la banqueta",
   "surface-problem": "Problema en superficie",
-  "SurfaceProblem": "Problema en superficie",
   "occlusion": "No puedo ver la banqueta",
   "no-sidewalk" : "No hay banqueta",
   "crosswalk": "Cruce peatonal",
@@ -17,7 +16,6 @@
   "cantsee": "No puedo ver la acera",
   "validate-correct": "Validado correcto",
   "other": "Otro",
-  "Other": "Otro",
   "missing-sidewalks": "Banqueta ausente",
   "missing-ramps": "Rampa peatonal ausente",
   "surface-problems": "Problemas en superficie",
@@ -41,8 +39,7 @@
     "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",
     "google-connect-error": "Tuvimos problemas para conectarnos a Google Street View, inténtalo de nuevo más tarde.",
     "error": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
-    "explore-street1": "Explora la calle",
-    "explore-street2": "de nuevo para usar las imágenes más nuevas de Google!"
+    "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
   },
   "severity": "Calificación ",
   "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",

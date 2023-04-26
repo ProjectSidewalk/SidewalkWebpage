@@ -1,7 +1,6 @@
 {
     "is-correct": "Is this label correct?",
-    "click-here": "Click here",
-    "explore-street": "to explore the street!",
+    "explore-street-link": "Click here</a> to explore this street!",
     "agree": "Agree",
     "disagree": "Disagree",
     "not-sure": "Not Sure",

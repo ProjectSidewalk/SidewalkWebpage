@@ -37,8 +37,7 @@
     "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
     "google-connect-error": "We hadden problemen met het verbinden met Google Street View, probeer het later opnieuw!",
     "error": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
-    "explore-street1": "Verken de straat",
-    "explore-street2": "opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
+    "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
   },
   "severity": "Ernst",
   "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",

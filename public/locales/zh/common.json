@@ -37,8 +37,7 @@
     "explanation": "我们使用 Google Maps API 来显示人行道图像，有时 Google 会删除这些图像，因此我们无法再访问它们。 对于那个很抱歉。",
     "google-connect-error": "我们无法连接到 Google 街景，请稍后重试！",
     "error": "糟糕，我们的错，但此标签不再有可用的图像。",
-    "explore-street1": "探索街道",
-    "explore-street2": "再次使用谷歌的新图片！"
+    "explore-street": "探索街道</a> 再次使用谷歌的新图片！"
   },
   "severity": "品質評分",
   "no-severity": "該標記無標示品質評分",
