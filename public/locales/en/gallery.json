@@ -6,5 +6,6 @@
     "not-sure": "Not Sure",
     "correct": "Validated correct",
     "incorrect": "Validated incorrect",
+    "notsure": "Not sure",
     "unvalidated": "Unvalidated"
 }

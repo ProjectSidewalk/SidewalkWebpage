@@ -6,5 +6,6 @@
     "not-sure": "不確定",
     "correct": "验证正确",
     "incorrect": "验证不正确",
+    "notsure": "$t(gallery:not-sure)",
     "unvalidated": "未验证"
 }

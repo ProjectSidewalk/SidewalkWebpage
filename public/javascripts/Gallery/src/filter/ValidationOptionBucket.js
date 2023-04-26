@@ -17,6 +17,7 @@ function ValidationOptionBucket(initialValidationOptions) {
     function _init() {
         push(new ValidationOption({ validationOption: 'correct'}, initialValidationOptions.includes('correct')));
         push(new ValidationOption({ validationOption: 'incorrect'}, initialValidationOptions.includes('incorrect')));
+        push(new ValidationOption({ validationOption: 'notsure'}, initialValidationOptions.includes('notsure')));
         push(new ValidationOption({ validationOption: 'unvalidated'}, initialValidationOptions.includes('unvalidated')));
     }
 
