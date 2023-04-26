@@ -102,7 +102,10 @@
     "button waist height": "knop op heuphoogte",
     "APS": "APS",
     "missing crosswalk": "missend zebrapad",
-    "no bus stop access": "geen bushalte toegang"
+    "no bus stop access": "geen bushalte toegang",
+    "painted sidewalk": "geschilderd trottoir",
+    "pedestrian arcade": "voetgangers galerij",
+    "too close to traffic": "te dicht bij het verkeer"
   },
   "gsv-info": {
     "details-title": "Details",

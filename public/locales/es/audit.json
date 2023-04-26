@@ -182,7 +182,10 @@
                 "APS": "<tag-underline>A</tag-underline>PS",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús",
-                "height-difference": "<tag-underline>d</tag-underline>esnivel"
+                "height-difference": "<tag-underline>d</tag-underline>esnivel",
+                "painted-sidewalk": "acera <tag-underline>p</tag-underline>intada",
+                "pedestrian-arcade": "arcada <tag-underline>p</tag-underline>eatonal",
+                "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico"
             },
             "tooltip": {
                 "passable": "Transitable",
