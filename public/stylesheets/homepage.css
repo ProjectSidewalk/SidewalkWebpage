@@ -21,3 +21,103 @@
     font-weight: bold;
     color: #fff;
 }
+
+/* Collab div */
+.collaborator-images-container {
+    display: grid;
+    grid-auto-flow: column;
+    grid-gap: 20px 50px;
+    align-items: center;
+}
+
+.collaborator-image {
+    padding: 15px 3% 15px 3%;
+}
+
+.collaborator-image img {
+    width: 100%;
+}
+
+#collaborators-row {
+    padding-bottom: 10px;
+    width: 100%;
+    text-align: center;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#collaborators-title {
+    font-size: 40px;
+    margin-bottom: 20px;
+}
+
+#collaborators-container {
+    position: relative;
+    max-width: 900px;
+    top: -20px;
+    min-height: 300px;
+}
+
+
+/* Formatting the test server warning banner. */
+.test-server-banner {
+    background-color: rgb(251,215,139);
+}
+
+.test-server-banner-content {
+    padding: 0.5%;
+    max-width: 70%;
+    margin: 0 auto;
+    display: flex;
+    font-size: medium;
+}
+
+.test-server-banner-text {
+    font-family: raleway-bold, sans-serif;
+    text-align: center;
+}
+.test-server-banner-text > strong {
+    color: red;
+}
+
+.test-server-banner-dont-show-again {
+    background: none;
+    border: none;
+    text-decoration: underline;
+    min-width: fit-content;
+    padding: 0 20px;
+}
+
+.test-server-banner-close {
+    background: none;
+    border: none;
+    margin-top: 2px;
+}
+
+/*
+ * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
+ * for some reason. So CSS for that page is in mobileValidate.css.
+ */
+@media only screen and (max-width: 500px) {
+    .test-server-banner {
+        border-radius: 5px;
+    }
+
+    .test-server-banner-content {
+        max-width: 300px;
+        flex-wrap: wrap;
+        font-size: small;
+    }
+}
+
+/*
+ * CSS for the footer header
+*/
+.footerheader {
+    font-family: raleway-extrabold, sans-serif;
+    font-weight: bold;
+    color: #2D2A3F;
+    font-size: 12px;
+    line-height: 2.1em;
+    letter-spacing: 0.05em;
+}
