@@ -1,0 +1,23 @@
+/* css for homepage.js */
+
+
+.tab-word.div {
+    background-color: #F1F1F1;
+}
+.activetab {
+    font-family:Raleway-bold,sans-serif;
+    background-color:#58CEAB;
+    overflow: hidden;
+
+}
+.activetab #word3 {
+    background-color:transparent;
+}
+.activetab.stepnumber {
+    font-family: Raleway-black,sans-serif;
+    font-size: 90px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: bold;
+    color: #fff;
+}
