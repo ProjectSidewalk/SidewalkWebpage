@@ -2,7 +2,6 @@
 -- SELECT setval('tag_tag_id_seq', (SELECT MAX(tag_id) from "tag"));
 
 -- Add 'painted sidewalk' and 'utility panel' tag for surface problems.
--- Note: do not remove 'utility panel' as in every city
 INSERT INTO tag (label_type_id, tag) SELECT label_type_id, 'painted sidewalk' FROM label_type WHERE label_type.label_type = 'SurfaceProblem';
 INSERT INTO tag (label_type_id, tag) SELECT label_type_id, 'utility panel' FROM label_type WHERE label_type.label_type = 'SurfaceProblem';
 
@@ -50,10 +49,10 @@ DELETE FROM label_tag
 WHERE label_tag.tag_id = tag.tag_id
   AND tag.label_type_id = label_type.label_type_id
   AND label_type.label_type = 'SurfaceProblem'
-  AND tag.tag IN ('painted sidewalk');
+  AND tag.tag IN ('painted sidewalk', 'utility panel');
 
 DELETE FROM tag
     USING label_type
 WHERE tag.label_type_id = label_type.label_type_id
   AND label_type.label_type = 'SurfaceProblem'
-  AND tag.tag IN ('painted sidewalk');
+  AND tag.tag IN ('painted sidewalk', 'utility panel');
