@@ -33,8 +33,8 @@ case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: 
 case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 
 case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
-                                     lat: Float, lng: Float, correct: Option[Boolean], expired: Boolean,
-                                     highQualityUser: Boolean, severity: Option[Int])
+                                     lat: Float, lng: Float, correct: Option[Boolean], hasValidations: Boolean,
+                                     expired: Boolean, highQualityUser: Boolean, severity: Option[Int])
 
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
@@ -210,7 +210,8 @@ object LabelTable {
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean, r.nextBoolean, r.nextIntOption))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat,
+      r.nextBooleanOption, r.nextBoolean, r.nextBoolean, r.nextBoolean, r.nextIntOption))
 
   implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
     ResumeLabelMetadata(
@@ -944,9 +945,13 @@ object LabelTable {
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat.get, _lPoint.lng.get, _l.correct, _gsv.expired, _us.highQuality, _l.severity)
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.notsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
 
-    _labels.list.map(LabelLocationWithSeverity.tupled)
+    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
+    // error, which is why we couldn't use `.tupled` here. This was the error message:
+    // SlickException: Expected an option type, found Float/REAL
+    _labels.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, l._9, l._10, l._11))
   }
 
   /**
