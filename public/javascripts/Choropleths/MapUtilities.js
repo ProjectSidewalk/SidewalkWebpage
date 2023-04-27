@@ -45,7 +45,8 @@ function filterLayers(checkboxId, mapData) {
                     (
                         (mapData.correct && feature.properties.correct) ||
                         (mapData.incorrect && feature.properties.correct === false) ||
-                        (mapData.unvalidated && feature.properties.correct === null)
+                        (mapData.notsure && feature.properties.correct === null && feature.properties.has_validations) ||
+                        (mapData.unvalidated && feature.properties.correct === null && !feature.properties.has_validations)
                     );
             });
         }
