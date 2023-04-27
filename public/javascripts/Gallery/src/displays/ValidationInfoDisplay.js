@@ -3,15 +3,15 @@
  * An object that creates a display for the severity.
  * 
  * @param {HTMLElement} container The DOM element that contains the display
- * @param {Number} agree The agree count to display
- * @param {Number} disagree The disagree count to display
+ * @param {Number} agreeCount The agree count to display
+ * @param {Number} disagreeCount The disagree count to display
  * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
  * @returns {ValidationInfoDisplay} the generated object
  */
-function ValidationInfoDisplay(container, agree, disagree, isModal=false) {
+function ValidationInfoDisplay(container, agreeCount, disagreeCount, isModal=false) {
     let self = this;
-    self.agree = agree;
-    self.disagree = disagree;
+    self.agreeCount = agreeCount;
+    self.disagreeCount = disagreeCount;
     self.validationContainer = container;
 
     function _init() {
@@ -23,10 +23,10 @@ function ValidationInfoDisplay(container, agree, disagree, isModal=false) {
         agreeContainer.className = 'validation-section-content';
         disagreeContainer.className = 'validation-section-content';
 
-        let agreeText = document.createElement('div');
-        let disagreeText = document.createElement('div');
-        agreeText.className = 'validation-info-count';
-        disagreeText.className = 'validation-info-count';
+        self.agreeText = document.createElement('div');
+        self.disagreeText = document.createElement('div');
+        self.agreeText.className = 'validation-info-count';
+        self.disagreeText.className = 'validation-info-count';
 
         let agreeCountContainer = document.createElement('div');
         let disagreeCountContainer = document.createElement('div');
@@ -42,14 +42,13 @@ function ValidationInfoDisplay(container, agree, disagree, isModal=false) {
         agreeIcon.src = 'assets/javascripts/SVLabel/img/misc/thumbs_up.png';
         disagreeIcon.src = 'assets/javascripts/SVLabel/img/misc/thumbs_down.png';
 
-        agreeText.innerText = `${agree}`;
-        disagreeText.innerText = `${disagree}`;
-
         agreeCountContainer.appendChild(agreeIcon);
         disagreeCountContainer.appendChild(disagreeIcon);
 
-        agreeCountContainer.append(agreeText);
-        disagreeCountContainer.append(disagreeText);
+        updateValCounts(self.agreeCount, self.disagreeCount);
+
+        agreeCountContainer.append(self.agreeText);
+        disagreeCountContainer.append(self.disagreeText);
 
         // Add tooltip labels
         agreeContainer.setAttribute('data-toggle', 'tooltip');
@@ -62,7 +61,7 @@ function ValidationInfoDisplay(container, agree, disagree, isModal=false) {
         disagreeContainer.setAttribute('title', `${i18next.t("gallery:disagree")}`);
         $(disagreeContainer).tooltip('hide');
 
-        // Add all of the severity circles to the DOM.
+        // Add all the severity circles to the DOM.
         agreeContainer.append(agreeCountContainer);
         disagreeContainer.append(disagreeCountContainer);
 
@@ -71,6 +70,15 @@ function ValidationInfoDisplay(container, agree, disagree, isModal=false) {
 
         container.append(holder);
     }
+
+    function updateValCounts(agreeCount, disagreeCount) {
+        self.agreeCount = agreeCount;
+        self.disagreeCount = disagreeCount;
+        self.agreeText.innerText = `${self.agreeCount}`;
+        self.disagreeText.innerText = `${self.disagreeCount}`;
+    }
+
+    self.updateValCounts = updateValCounts;
 
     _init()
     return self;

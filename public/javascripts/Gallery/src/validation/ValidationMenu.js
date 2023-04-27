@@ -83,18 +83,13 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         for (const [valKey, button] of Object.entries(validationButtons)) {
             let validationOption = classToValidationOption[valKey];
             button.click(function() {
-                // Change the look of the card/expanded view to match the new validation.
-                if (onExpandedView) {
-                    showValidationOnExpandedView(validationOption);
-                    referenceCard.validationMenu.showValidationOnCard(validationOption);
-                } else {
-                    showValidationOnCard(validationOption);
-                    if (currCardProperties.label_id === modal.getProperty('label_id')) {
-                        modal.validationMenu.showValidationOnExpandedView(validationOption);
-                    }
+                if (currSelected !== valKey) {
+                    // Change the look of the card/expanded view to match the new validation.
+                    referenceCard.updateUserValidation(validationOption);
+
+                    // Actually submit the new validation.
+                    validateLabel(validationOption);
                 }
-                // Actually submit the new validation.
-                validateLabel(validationOption);
             });
         }
         gsvImage.append(overlay);
@@ -108,7 +103,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     function showValidationOnCard(validationOption) {
         const validationClass = validationOptionToClass[validationOption];
 
-        // If the label had already been validated differently, remove the visual effects from the older validation.
+        // Remove the visual effects from the older validation.
         if (currSelected && currSelected !== validationClass) {
             validationButtons[currSelected].attr('class', 'validation-button');
             if (galleryCard.hasClass(currSelected)) {
@@ -160,8 +155,6 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @private
      */
     function validateLabel(action) {
-        referenceCard.setProperty('user_validation', action);
-
         let actionStr = onExpandedView ? 'Validate_ExpandedMenuClick' + action : 'Validate_MenuClick' + action;
         sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
         let validationTimestamp = new Date().getTime();

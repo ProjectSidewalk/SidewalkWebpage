@@ -33,9 +33,7 @@ function Card (params, imageUrl, modal) {
         street_edge_id: undefined,
         region_id: undefined,
         correct: undefined,
-        agree_count: undefined,
-        disagree_count: undefined,
-        notsure_count: undefined,
+        validation_counts: undefined,
         correctness: undefined,
         user_validation: undefined,
         tags: []
@@ -80,9 +78,14 @@ function Card (params, imageUrl, modal) {
         }
         properties.original_canvas_x = param.canvas_x;
         properties.original_canvas_y = param.canvas_y;
+        properties.validation_counts = {
+            'Agree': param.agree_count,
+            'Disagree': param.disagree_count,
+            'NotSure': param.notsure_count
+        }
         if (properties.correct) properties.correctness = "correct";
         else if (properties.correct === false) properties.correctness = "incorrect";
-        else if (properties.agree_count + properties.disagree_count + properties.notsure_count > 0) properties.correctness = "notsure";
+        else if (param.agree_count + param.disagree_count + param.notsure_count > 0) properties.correctness = "notsure";
         else properties.correctness = "unvalidated";
 
         // Place label icon.
@@ -128,7 +131,7 @@ function Card (params, imageUrl, modal) {
         // Create the div to store the validation info of the label.
         let cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
-        new ValidationInfoDisplay(cardValidationInfo, properties.agree_count, properties.disagree_count);
+        self.validationInfoDisplay = new ValidationInfoDisplay(cardValidationInfo, properties.validation_counts['Agree'], properties.validation_counts['Disagree']);
         cardData.appendChild(cardValidationInfo);
 
 
@@ -253,6 +256,30 @@ function Card (params, imageUrl, modal) {
     }
 
     /**
+     * Updates metadata and visuals based on a new validation from the user.
+     *
+     * @param newUserValidation
+     */
+    function updateUserValidation(newUserValidation) {
+        if (newUserValidation !== properties.user_validation) {
+            // Update the metadata.
+            properties.validation_counts[properties.user_validation] -= 1;
+            properties.validation_counts[newUserValidation] += 1;
+            properties.user_validation = newUserValidation;
+
+            // Update the validation displays.
+            self.validationInfoDisplay.updateValCounts(properties.validation_counts['Agree'], properties.validation_counts['Disagree']);
+            self.validationMenu.showValidationOnCard(newUserValidation);
+
+            // If this card matches the currently open modal, update the validation displays on the modal as well.
+            if (modal.getProperty('label_id') === properties.label_id) {
+                modal.validationInfoDisplay.updateValCounts(properties.validation_counts['Agree'], properties.validation_counts['Disagree']);
+                modal.validationMenu.showValidationOnExpandedView(newUserValidation);
+            }
+        }
+    }
+
+    /**
      * Returns the current ImageID being displayed in the image.
      * @returns the image ID of the card that is being displayed
      */
@@ -269,6 +296,7 @@ function Card (params, imageUrl, modal) {
     self.render = render;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
+    self.updateUserValidation = updateUserValidation;
     self.getImageId = getImageId;
 
     _init(params);

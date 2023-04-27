@@ -51,10 +51,9 @@ function Modal(uiModal) {
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
+        validation_counts: undefined,
         correctness: undefined,
         user_validation: undefined,
-        agree: undefined,
-        disagree: undefined,
         tags: []
     };
 
@@ -158,7 +157,7 @@ function Modal(uiModal) {
 
         // Add severity, validation info, and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
-        new ValidationInfoDisplay(self.validation_info, properties.agree, properties.disagree, true);
+        self.validationInfoDisplay = new ValidationInfoDisplay(self.validation_info, properties.validation_counts['Agree'], properties.validation_counts['Disagree'], true);
         new TagDisplay(self.tags, properties.tags, true);
 
         // Add the information about the temporary property to the Modal.
