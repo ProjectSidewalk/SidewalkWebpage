@@ -36,7 +36,7 @@ function Tag (params, applied) {
         tagElement.className = "gallery-tag gallery-filter-button gallery-filter";
         tagElement.id = properties.tag;
         tagElement.innerText = i18next.t('tag.' + properties.tag);
-        tagElement.disabled = true;
+        tagElement.disabled = true; // Will be enabled once images load.
 
         if (status.applied) {
             apply()
@@ -71,7 +71,7 @@ function Tag (params, applied) {
      */
     function apply() {
         setStatus("applied", true);
-        tagElement.setAttribute("style", "background-color: #78c8aa");
+        tagElement.classList.add("gallery-filter-button-selected");
     }
 
     /**
@@ -79,7 +79,7 @@ function Tag (params, applied) {
      */
     function unapply() {
         setStatus("applied", false);
-        tagElement.setAttribute("style", "background-color: none");
+        tagElement.classList.remove("gallery-filter-button-selected");
     }
 
     /**

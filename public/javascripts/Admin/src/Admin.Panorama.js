@@ -22,7 +22,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
         SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
         Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Other.png',
+        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
         NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
         Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
         Signal : '/assets/images/icons/AdminTool_Signal.png'
@@ -67,7 +67,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         })[0];
 
         self.panoNotAvailableAuditSuggestion = 
-            $('<div id="pano-not-avail-audit"><a>Explore the street</a> again to use Google\'s newer images!</div>').css({
+            $('<div id="pano-not-avail-audit"><a id="explore-street">Explore the street</a> again to use Google\'s newer images!</div>').css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
@@ -77,7 +77,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         self.svHolder.append($(self.panoNotAvailableDetails));
         self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
 
-        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
+        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { }) : null;
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
             var currentPano = self.panorama.getPano();
@@ -167,7 +167,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');
-                    $("a").attr("href", "/audit/street/" + self.label['streetEdgeId']);
+                    $("#explore-street").attr("href", "/audit/street/" + self.label['streetEdgeId']);
                     $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
                     $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
@@ -181,7 +181,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 } else {
                     setTimeout(callback, 200, n - 1);
                 }
-                callbackParam();
+                if (callbackParam) callbackParam();
             }
             setTimeout(callback, 200, 10);
         }
@@ -312,7 +312,8 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
                     worldSize: new google.maps.Size(4096, 2048),
-                    centerHeading: 51,
+                    originHeading: 50.3866,
+                    originPitch: -1.13769,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return "/assets/javascripts/SVLabel/img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }
@@ -329,7 +330,8 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                 tiles: {
                     tileSize: new google.maps.Size(1700, 850),
                     worldSize: new google.maps.Size(3400, 1700),
-                    centerHeading: 344,
+                    originHeading: 344,
+                    originPitch: 0,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return "/assets/javascripts/SVLabel/img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }

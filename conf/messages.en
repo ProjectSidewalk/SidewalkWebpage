@@ -11,6 +11,7 @@ no.sidewalk = No Sidewalk
 crosswalk = Crosswalk
 signal = Pedestrian Signal
 other = Other
+validations = Validations
 labels = labels
 label.icon.alt = Minimalist map icon with large destination marker
 accuracy = accuracy
@@ -151,14 +152,10 @@ audit.center.ui.add.tags = Add Tags:
 audit.center.ui.temporary = Temporary (e.g., construction)
 
 audit.mission.complete.labels.title = Mission Labels
-audit.mission.complete.progress.title = Neighborhood Progress
 audit.mission.complete.progress.mission.you = You explored in this mission
-audit.mission.complete.progress.neighborhood.you = You explored in this neighborhood
 audit.mission.complete.progress.neighborhood.others = Others explored in this neighborhood
-audit.mission.complete.progress.neighborhood.remaining = Remaining in this neighborhood
 audit.mission.complete.legend.this.mission = This Mission
 audit.mission.complete.legend.previous.missions = Previous Missions
-audit.mission.complete.legend.others.missions = Other Users'' Missions
 
 audit.survey.title = Please take this one-time survey about Project Sidewalk
 audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
@@ -205,7 +202,7 @@ validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = <u>A</u>gree
 validate.bottom.ui.disagree = <u>D</u>isagree
 validate.bottom.ui.not.sure = <u>N</u>ot sure
-validate.bottom.ui.add.comment = Add comment here...
+validate.bottom.ui.add.comment = If you disagree, please enter your reasoning here, which can be seen by the labeler in their dashboard
 validate.right.ui.current.mission = Current Mission
 validate.right.ui.correct.examples = <strong>Correct</strong> Examples
 validate.right.ui.incorrect.examples = <strong>Incorrect</strong> Examples
@@ -251,7 +248,8 @@ authenticate.error.invalid.credentials = Invalid credentials!
 authenticate.error.generic = Something went wrong processing your request. Please make sure all your information is correct and then try again
 
 reset.pw.forgot.title = Forgot your password?
-reset.pw.forgot.submit.email = No worries, type in your email and we’ll send you a link to reset your password.
+reset.pw.forgot.submit.email = Type in your email and we’ll send you a link to reset your password.
+reset.pw.forgot.suggest = If you are having trouble logging in or resetting your password, check that you are looking at the city where you made your account by checking the navbar on the top-right of the page. Accounts are not interchangeable between different cities, so you'll need to make a new account for each city (you can use the same username/password).
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password
@@ -287,7 +285,6 @@ dashboard.missions = Missions
 dashboard.your.missions = Your missions
 dashboard.distance = Distance
 dashboard.labels = Labels
-dashboard.validations = Validations
 dashboard.mission.icon.alt = Wheelchair user holding a flag
 dashboard.validation.icon.alt = Checklist next to a pencil
 dashboard.accuracy.icon.tooltip = Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users.
@@ -328,14 +325,14 @@ leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your lab
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/audit"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organization</u></a> to compete against your teammates!
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organization</u></a> and work together as a team to map and assess sidewalks!
 
 gallery = Gallery
 gallery.show = Show
 gallery.filter.by = Filter By
 gallery.severity = Severity
 gallery.tags = Tags
-gallery.validations = Validations
-gallery.all = All
+gallery.all = All Label Types
 gallery.occlusion = Can''t See Sidewalk
 gallery.labels.not.found = No matches. <a href="/audit">Start exploring</a> to contribute more data!
+gallery.cards = Labels are sorted randomly based on selected filters

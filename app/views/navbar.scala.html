@@ -126,7 +126,7 @@
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
                         @if(!List("seattle-wa").contains(currentCity)) {
                             <li>
-                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
                             </li>
                         }
                         <li>
@@ -435,7 +435,7 @@ $(document).ready(function () {
                 svl.ui.status.neighborhoodName.parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
                 svl.ui.status.neighborhoodLink = $('#status-neighborhood-link');
                 var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                var href = "/dashboard" + "?regionId=" + neighborhood.getProperty("regionId");
+                var href = "/dashboard" + "?regionId=" + neighborhood.getRegionId();
                 svl.statusFieldNeighborhood.setHref(href);
 
                 // init: noInit is a flag that prevents the init functions in main from running.

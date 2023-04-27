@@ -92,8 +92,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 9730,
-                "imageY": -350,
+                "imageX": 1170,
+                "imageY": 3800,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
@@ -158,7 +158,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp-description')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -308,8 +308,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 8180,
-                "imageY": -340,
+                "imageX": 12950,
+                "imageY": 3720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -375,7 +375,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp-description')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -539,8 +539,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoCurbRamp",
-                "imageX": 7800,
-                "imageY": -340,
+                "imageX": 12560,
+                "imageY": 3720,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -606,7 +606,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('NoCurbRamp-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('no-curb-ramp-description')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -840,16 +840,16 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 4920,
-                "imageY": -720,
+                "imageX": 9730,
+                "imageY": 4150,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
             },{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 3900,
-                "imageY": -840,
+                "imageX": 8660,
+                "imageY": 4250,
                 "tolerance": 300
             }],
             "message": {
@@ -938,7 +938,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp-description')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -1055,8 +1055,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 3900,
-                "imageY": -840,
+                "imageX": 8660,
+                "imageY": 4250,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1122,7 +1122,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp-description')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -1232,8 +1232,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 4920,
-                "imageY": -720,
+                "imageX": 9730,
+                "imageY": 4150,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1299,7 +1299,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp-description')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -1465,8 +1465,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoSidewalk",
-                "imageX": 2776,
-                "imageY": -500,
+                "imageX": 7550,
+                "imageY": 3900,
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1532,7 +1532,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('NoSidewalk-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('no-sidewalk-description')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -1735,8 +1735,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "imageX": 750,
-                "imageY": -670,
+                "imageX": 5550,
+                "imageY": 4080,
                 "tolerance": 250,
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
@@ -1802,7 +1802,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('CurbRamp-description')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp-description')}),
                 "parameters": null
             },
             "panoId": panoId,

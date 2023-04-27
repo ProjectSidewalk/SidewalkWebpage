@@ -1,84 +1,86 @@
 /**
  * Label Container module. This is responsible for storing the label objects that were created in the current session.
  * @param $ jQuery object
+ * @param nextTemporaryLabelId
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function LabelContainer($) {
+function LabelContainer ($, nextTemporaryLabelId) {
     var self = this;
-    var currentCanvasLabels = {};
-    var prevCanvasLabels = {};
+    var labelsToLog = {};
+    var allLabels = {};
+    var nextTempLabelId = nextTemporaryLabelId;
 
-    this.countLabels = function() {
-        var allLabels = self.getCurrentLabels().concat(self.getPreviousLabels());
-        return allLabels.filter(l => { return !l.isDeleted(); }).length;
-    };
+    /**
+     * Helper func to add a label to given list. Our labels are sorted in objects with panoId keys and lists as values.
+     * @param labelListObj
+     * @param label
+     */
+    function _addLabelToListObject(labelListObj, label) {
+        var panoId = label.getPanoId();
+        var tempId = label.getProperty('temporaryLabelId');
 
+        // Make sure that there is a list available for the given pano ID.
+        if (!(panoId in labelListObj)) labelListObj[panoId] = [];
+
+        // If it's not already in the last, add it.
+        var inList = labelListObj[panoId].filter(l => l.getProperty('temporaryLabelId') === tempId).length > 0;
+        if (!inList) labelListObj[panoId].push(label);
+    }
+
+    /**
+     * Create a Label object. If the label is new, it won't have a labelId yet, so we assign a temporary one.
+     * @returns {Label}
+     */
+    this.createLabel = function(params, isNew) {
+        if (isNew) {
+            params.temporaryLabelId = nextTempLabelId;
+            nextTempLabelId++;
+        }
+        var label = new Label(params);
+        var panoId = label.getPanoId();
+
+        // Add to list of labels. If new, also add to current canvas labels.
+        if (isNew) {
+            _addLabelToListObject(labelsToLog, label);
+            svl.labelCounter.increment(label.getLabelType());
+        }
+        _addLabelToListObject(allLabels, label);
+
+        return label
+    }
+
+    /**
+     * Query server for previous labels placed by this user and create label objects for them.
+     * @param regionId
+     * @param callback
+     */
     this.fetchLabelsToResumeMission = function (regionId, callback) {
         $.getJSON('/label/resumeMission', { regionId: regionId }, function (result) {
             let labelArr = result.labels;
-            let len = labelArr.length;
-            for (let i = 0; i < len; i++) {
-                let povChange = svl.map.getPovChangeStatus();
-
-                // Temporarily change pov change status to true so that we can use util function to calculate the canvas
-                // coordinate to place label upon rerender. This is so the labels appear in the correct location
-                // relative to the initial POV.
-                povChange["status"] = true;
-
-                let originalCanvasCoord = {
+            for (let i = 0; i < labelArr.length; i++) {
+                let originalCanvasXY = {
                     x: labelArr[i].canvasX,
                     y: labelArr[i].canvasY
                 };
 
-                let originalPov = {
-                    heading: labelArr[i].panoramaHeading,
-                    pitch: labelArr[i].panoramaPitch,
-                    zoom: labelArr[i].panoramaZoom
-                };
-
-                let originalPointPov = {
-                    originalPov: util.panomarker.calculatePointPov(labelArr[i].canvasX, labelArr[i].canvasY, originalPov)
-                };
-
-                let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
-                    originalCanvasCoord, originalPointPov.originalPov, svl.map.getPov()
+                // Get the canvas coordinates for the label given the current POV.
+                let povOfLabelIfCentered = util.panomarker.calculatePovIfCentered(
+                    labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
+                );
+                let rerenderCanvasXY = util.panomarker.getCanvasCoordinate(
+                    povOfLabelIfCentered, svl.map.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
 
-                // Return the status to original.
-                povChange["status"] = false;
+                labelArr[i].currCanvasXY = { x: rerenderCanvasXY.x, y: rerenderCanvasXY.y };
+                labelArr[i].originalCanvasXY = originalCanvasXY;
+                labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
+                labelArr[i].panoXY = { x: labelArr[i].panoX, y: labelArr[i].panoY };
+                let label = self.createLabel(labelArr[i], false);
 
-                let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
-                let labelFillStyle = util.misc.getLabelColors()[labelArr[i].labelType].fillStyle;
-
-                var pointParameters = {
-                    'originalPov': originalPointPov.originalPov,
-                    'fillStyleInnerCircle': labelFillStyle,
-                    'iconImagePath': iconImagePath,
-                    'radiusInnerCircle': 17,
-                    'radiusOuterCircle': 14
-                };
-
-                let labelPoint = new Point(
-                    svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters
-                );
-
-                let path = new Path(svl, [labelPoint]);
-                let label = svl.labelFactory.create(path, labelArr[i]);
-                label.setProperty("audit_task_id", labelArr[i].audit_task_id);
-                label.setProperty("labelLat", labelArr[i].labelLat);
-                label.setProperty("labelLng", labelArr[i].labelLng);
-                label.setProperty("labelFillStyle", labelFillStyle);
-
-                // Prevent tag from being rendered initially
-                label.setTagVisibility('hidden');
-
-                if (!(label.getPanoId() in prevCanvasLabels)) {
-                    prevCanvasLabels[label.getPanoId()] = [];
-                }
-
-                prevCanvasLabels[label.getPanoId()].push(label);
+                // Prevent tag from being rendered initially.
+                label.setHoverInfoVisibility('hidden');
             }
 
             if (callback) callback(result);
@@ -86,134 +88,67 @@ function LabelContainer($) {
     }
 
     /**
-     * Returns canvas labels of the current pano ID.
+     * Returns labels for the current pano ID.
      */
     this.getCanvasLabels = function () {
         let panoId = svl.map.getPanoId();
-        let prev = prevCanvasLabels[panoId] ? prevCanvasLabels[panoId] : [];
-        let curr = currentCanvasLabels[panoId] ? currentCanvasLabels[panoId] : [];
-        return prev.concat(curr);
+        return allLabels[panoId] ? allLabels[panoId] : [];
     };
 
     /**
-     * Get current labels.
-     * Note that this grabs labels from all panoIds in current session.
+     * Get labels that need to be logged to the back-end because they are new or the user has interacted with them.
      */
-    this.getCurrentLabels = function () {
-        return Object.keys(currentCanvasLabels).reduce(function (r, k) {
-            return r.concat(currentCanvasLabels[k]);
-        }, []);
+    this.getLabelsToLog = function () {
+        return Object.keys(labelsToLog).reduce(function (r, k) { return r.concat(labelsToLog[k]); }, []);
+    };
+
+    this.getAllLabels = function () {
+        return Object.keys(allLabels).reduce(function (r, k) { return r.concat(allLabels[k]); }, []);
     };
 
     /**
-     * Get previous labels.
-     * Note that this grabs labels from all panoIds in current session.
+     * Find a label with matching temporary ID.
+     * @param tempId
      */
-    this.getPreviousLabels = function () {
-        return Object.keys(prevCanvasLabels).reduce(function (r, k) {
-            return r.concat(prevCanvasLabels[k]);
-        }, []);
-    };
-
-    // Find most recent instance of label with matching temporary ID.
     this.findLabelByTempId = function (tempId) {
-        var matchingLabels =  _.filter(svl.labelContainer.getCanvasLabels(),
-            function(label) {
-                return label.getProperty("temporary_label_id") === tempId;
-            });
-
-        if (matchingLabels.length === 0) {
-            return null;
+        var matchingLabels =  _.filter(self.getCanvasLabels(),
+            function(label) { return label.getProperty("temporaryLabelId") === tempId; }
+        );
+        // Returns most recent version of label (though there shouldn't be multiple).
+        if (matchingLabels.length > 1) {
+            console.warn('Multiple labels with same temp ID!');
+            console.log(self.getCanvasLabels());
         }
-
-        // Returns most recent version of label.
         return matchingLabels[matchingLabels.length - 1];
     };
 
-    // Remove old versions of this label, add updated label.
-    this.addUpdatedLabel = function (tempId) {
-        // All labels that don't have the specified tempId reduced to an array.
-        var otherLabels = _.filter(this.getCurrentLabels(),
-            function(label) {
-                return label.getProperty("temporary_label_id") !== tempId;
-            });
-
-        // If there are no temporary labels with this ID in currentCanvasLabels then add it to that list.
-        // Otherwise get rid of all old instances in currentCanvasLabels and add the updated label.
-
-        var match = this.findLabelByTempId(tempId);
-
-        // Label with this id doesn't exist in currentCanvasLabels as the
-        // filtered vs unfiltered arrays are the same length.
-        if (otherLabels.length === this.getCurrentLabels().length) {
-            if (!(match.getPanoId() in currentCanvasLabels)) {
-                currentCanvasLabels[match.getPanoId()] = [];
-            }
-            // Add updated label.
-            currentCanvasLabels[match.getPanoId()].push(match);
-        } else {
-            for (let key in currentCanvasLabels) {
-                currentCanvasLabels[key] = currentCanvasLabels[key].filter(label => label.getProperty("temporary_label_id") !== tempId);
-            }
-            if (match !== null) {
-                if (!(match.getPanoId() in currentCanvasLabels)) {
-                    currentCanvasLabels[match.getPanoId()] = [];
-                }
-                // Add updated label.
-                currentCanvasLabels[match.getPanoId()].push(match);
-            }
-        }
-    };
-
     /**
-     * Push a label into canvasLabels
-     * @param label
+     * Adds a label to the list of labels that should be logged; called when a user interacts with an existing label.
+     * @param tempId
      */
-    this.push = function (label) {
-        if (!(label.getPanoId() in currentCanvasLabels)) {
-            currentCanvasLabels[label.getPanoId()] = [];
-        }
-
-        currentCanvasLabels[label.getPanoId()].push(label);
-        svl.labelCounter.increment(label.getProperty("labelType"));
-
-        // Keep pano metadata, esp the date when the StreetView img was taken to keep track of when the problem existed.
-        var panoramaId = label.getProperty("panoId");
-        if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
-            svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
-        }
+    this.addToLabelsToLog = function (tempId) {
+        var match = this.findLabelByTempId(tempId);
+        if (match) _addLabelToListObject(labelsToLog, match);
     };
 
-    /** Refresh */
-    this.refresh = function () {
-        for (let key in currentCanvasLabels) {
-            if (!(key in prevCanvasLabels)) {
-                prevCanvasLabels[key] = currentCanvasLabels[key];
-            } else {
-                for (var i = 0; i < currentCanvasLabels[key].length; i++) {
-                    // Remove any old versions of the label and add the new one.
-                    var currLabel = currentCanvasLabels[key][i];
-                    prevCanvasLabels[key] = prevCanvasLabels[key].filter(function (l) {
-                        return l.getProperty("temporary_label_id") !== currLabel.getProperty("temporary_label_id");
-                    });
-                    prevCanvasLabels[key].push(currLabel);
-                }
-            }
-        }
-        currentCanvasLabels = {};
+    this.clearLabelsToLog = function () {
+        labelsToLog = {};
+    };
+
+    this.countLabels = function() {
+        var allLabels = self.getAllLabels();
+        return allLabels.filter(l => { return !l.isDeleted(); }).length;
     };
 
     /**
-     * This function removes a passed label, updates the canvas, and updates label counts.
-     * @method
+     * Removes a passed label, updates the canvas, and updates label counts.
      */
     this.removeLabel = function (label) {
         if (!label) { return false; }
         svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
-        svl.canvas.clear();
-        svl.canvas.render();
+        svl.canvas.clear().render();
         return this;
     };
 }

@@ -5,6 +5,7 @@ function InitializeMapLayerContainer() {
     var mapData = {};
     mapData.correct = true;
     mapData.incorrect = false;
+    mapData.notsure = true;
     mapData.unvalidated = true;
     mapData.lowQualityUsers = false;
 

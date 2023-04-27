@@ -17,6 +17,7 @@ function ValidationOptionBucket(initialValidationOptions) {
     function _init() {
         push(new ValidationOption({ validationOption: 'correct'}, initialValidationOptions.includes('correct')));
         push(new ValidationOption({ validationOption: 'incorrect'}, initialValidationOptions.includes('incorrect')));
+        push(new ValidationOption({ validationOption: 'notsure'}, initialValidationOptions.includes('notsure')));
         push(new ValidationOption({ validationOption: 'unvalidated'}, initialValidationOptions.includes('unvalidated')));
     }
 
@@ -65,28 +66,12 @@ function ValidationOptionBucket(initialValidationOptions) {
         return bucket.filter(valOption => valOption.getActive()).map(valOption => valOption.getValidationOption());
     }
 
-    /**
-     * Disable interaction with ValidationOptions.
-     */
-    function disable() {
-        bucket.forEach(validationOption => validationOption.disable());
-    }
-    
-    /**
-     * Enable interaction with ValidationOptions.
-     */
-    function enable() {
-        bucket.forEach(validationOption => validationOption.enable());
-    }
-
     self.push = push;
     self.render = render;
     self.unapplyValidationOptions = unapplyValidationOptions;
     self.getValidationOptions = getValidationOptions;
     self.getSize = getSize;
     self.getAppliedValidationOptions = getAppliedValidationOptions;
-    self.disable = disable;
-    self.enable = enable;
 
     _init();
 

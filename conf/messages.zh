@@ -1,0 +1,338 @@
+measurement.system = 公制
+curb.ramp = 路緣斜坡
+curb.ramps = 路緣斜坡
+missing.ramp = 無路緣斜坡
+missing.ramps = 無路緣斜坡
+obstacle = 路徑上障礙物
+obstacles = 路徑上障礙物
+surface.problem = 鋪面問題
+surface.problems = 鋪面問題
+no.sidewalk = 無人行道
+crosswalk = 行人穿越道
+signal = 行人號誌
+other = 其他
+validations = 檢核
+labels = 標記
+label.icon.alt = 有大目的地記號的極簡風格地圖圖標
+accuracy = 精準度
+accuracy.caps = 精準度
+accuracy.icon.alt = 射正目標紅心
+dist.metric.abbr = 哩
+distance.icon.alt = 圖標顯示到目的地的彎曲路徑
+ok = 確認
+cancel = 取消
+error = 錯誤！
+yes.caps = 是
+no.caps = 否
+thanks = 謝謝！
+username = 使用者名稱
+loading = 讀取中...
+loading.encouragement = 讓我們來吧!
+test.server.warning.message = <strong>警告！</strong> 您目前在測試伺服器！您的資料將不會被存取！若您希望資料被存取，請前往正式網頁。
+dont.show.again = 不再顯示
+
+press.key = 點擊 "{0}" 鍵
+press.keys = 點擊 "{0}" 鍵
+feedback.title = 有任何想法或問題嗎？或是找到bug了！<br>任何回饋都很歡迎！
+feedback.submitted = 回饋已提交
+
+navbar.explore = 開始探索
+navbar.validate = 開始檢核
+navbar.howto = 如何標記
+navbar.results = 成果地圖
+navbar.data = 資料
+navbar.labelmap = 標記地圖
+navbar.help = 協助
+navbar.leaderboard = 排行榜
+navbar.retake.tutorial = 重做教學
+navbar.signin = 登入
+navbar.signout = 登出
+navbar.dashboard = 您的儀錶板
+navbar.admin = 系統人員
+navbar.city = 城市
+navbar.lang.aria = 語言選項
+navbar.lang.icon.alt = 語言圖標
+
+landing.create.path = 讓我們為大家創造好走的路吧！
+landing.also.in = 我們也在：
+landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的地圖松活動吧！</a>
+landing.how.you.help = 您可以如何協助
+landing.how.you.help.content = 通過三個簡單的步驟就可以探索城市並找出街道的無障礙問題——在您舒適的家中就可進行！
+landing.how.you.help.explore = 探索
+landing.how.you.help.find = 找尋問題
+landing.how.you.help.assess = 評估品質
+landing.video.title = Project Sidewalk是什麼？
+landing.video.watch = 請觀賞
+landing.choropleth.title = 選擇一個鄰里
+landing.choropleth.content = 當您點擊“開始探索”時，系統會自動為您分配一個鄰里，但您也可以直接點擊下方的區域來選擇一個鄰里直接探索！
+landing.choropleth.legend = 鄰里完成度
+landing.stats.title = 您的協助可以帶來改變
+landing.stats.content.unfinished.partial = 像您這樣的使用者共同完成了{1}, {2} {0}公里的標記—相當於{3}%的目標區域！
+landing.stats.content.unfinished.full = 像您這樣的使用者共同完成了{1}, {2} {0}公里的標記—相當於{3}%的城市範圍!
+landing.stats.content.finished.partial = 我們完成了！像您這樣的使用者共同完成了{2}{1}目標區域中{0}公里的標記。 然而，任務還沒完成。越多使用者協助標記，資料的品質會越好！所以讓我們繼續努力並邀請更多人來參與吧！
+landing.stats.content.finished.full = 我們做到了！像您這樣的使用者已經完成了{2}{1}{0}公里的標記。然而，我們還沒完成。越多使用者協助標記，資料的品質會更好！所以讓我們繼續努力並邀請更多人來參與吧！
+landing.stats.percent.partial = 已標記
+landing.stats.percent.full = {0}已標記
+landing.stats.distance = 公里
+landing.stats.labels = 個標記
+landing.stats.validations = 個檢核
+landing.ml.title = 我們如何使用您的標記？
+landing.ml.content = 您的標記用於改進都市規劃、建構無障礙標示工具以及訓練機器學習演算法以自動尋找街道無障礙問題。
+landing.ml.gif.machine.labels = 機器標記
+landing.ml.gif.you = 使用者
+landing.ml.gif.user.labels = 標記
+landing.ml.gif.better.city.planning = 更佳的都市規劃
+landing.ml.gif.better.temporal.tracking = 更佳的時序追蹤
+landing.ml.gif.interactive.visualization.tools = 互動式視覺會工具
+landing.ml.gif.smarter.routing = 更聰明的路徑規劃
+landing.ml.gif.machine.learning = 機器學習
+landing.ml.gif.outcomes = 成果
+landing.collaborators.title = 執行及合作單位
+
+footer.about = 關於我們
+footer.terms = 使用條款
+footer.help = 協助
+footer.guide = 標記指南
+footer.developer = 開發者
+footer.api = 人行道API
+footer.connect = 相關連結
+footer.email = Email我們
+footer.funding = 我們由以下單位贊助
+footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> 以及 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
+footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
+footer.version = Version {0} | 最後更新時間： <span class = "timestamp date">{1}</span>
+
+audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將虛擬探索城市並透過標記環境中的無障礙設施及問題完成任務，項目包括：
+audit.tutorial.welcome.2 = 我們會以簡短、互動的教學開始。
+audit.tutorial.welcome.3 = 讓我們開始吧！
+audit.tutorial.welcome.4 = 已經完成教學了嗎？ 已有帳戶？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">跳過教學。</a>
+audit.tutorial.accessible = <span style="color:limegreen">可通行的</span>
+audit.tutorial.inaccessible = <span style="color:red">不可通行的</span>
+audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者上下人行道
+audit.tutorial.examples.missing.ramp = 如果<span style="color:#ff0066">沒有設置路緣斜坡</span>輪椅使用者無法使用人行道
+audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">障礙物</span>阻擋輪椅使用者通行之路徑
+audit.tutorial.examples.surface.problem = 人行道的<span style="color:orange">鋪面問題</span>可能造成無法通行
+audit.tutorial.end.1 =很棒！您已學會如何使用平台介面！請特別針對嚴重影響輪椅使用者之情形於<span class="bold">Google街景中注意並標記以下無障礙項目</span>：
+audit.tutorial.end.2 = 再次感謝您<span class="bold">為這個世界創造出讓所有使用者更容易通行的環境！</span>
+audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、障礙物及鋪面問題。
+
+audit.ribbon.find.and.label = 找尋並標記以下
+audit.ribbon.explore = 探索<u>E</u>
+audit.ribbon.curb.ramp = 路緣斜坡<u>C</u>
+audit.ribbon.missing.ramp = 無路緣斜坡<u>M</u>
+audit.ribbon.obstacle = 障礙物<u>O</u>
+audit.ribbon.surface.problem = 鋪面問題<u>S</u>
+audit.ribbon.no.sidewalk = 無人行道<u>N</u>
+audit.ribbon.crosswalk = 行人穿越道<u>W</u>
+audit.ribbon.signal = 行人號誌<u>P</u>
+audit.ribbon.other = 其他
+audit.ribbon.occlusion = 看不到人行道 (<u>B</u>)
+
+audit.left.ui.zoom.in = 放大<u>Z</u>
+audit.left.ui.zoom.out = 縮小
+audit.left.ui.sound = 音效
+audit.left.ui.feedback = 回饋
+audit.left.ui.stuck = 難以抉擇
+audit.left.ui.jump = 跳過
+audit.left.ui.jump.title = 跳到另一個地點，因為：
+audit.left.ui.jump.button.explore = 我想探索其他的鄰里！
+audit.left.ui.jump.button.unavailable = 我無法前往您要我前往的方向...
+audit.left.ui.jump.explore.title = 前往新的地點或鄰里嗎？
+audit.left.ui.jump.explore.button.same.neighborhood = 前往此鄰里的另一地點
+audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
+
+audit.right.ui.overall.stats = 整體統計數據
+audit.right.ui.current.neighborhood = 目前所在鄰里
+audit.right.ui.distance = 公里
+audit.right.ui.current.mission = 目前任務
+
+audit.center.ui.passable = 可通過的
+audit.center.ui.not.passable = 不可通過的
+audit.center.ui.add.tags = 新增標籤：
+audit.center.ui.temporary = 暫時的 (例如：施工、違停車輛)
+
+audit.mission.complete.labels.title = 任務標記
+audit.mission.complete.progress.mission.you = 您於此任務已探索
+audit.mission.complete.progress.neighborhood.others = 其他標記者於此鄰里已探索
+audit.mission.complete.legend.this.mission = 此次任務
+audit.mission.complete.legend.previous.missions = 過往執行任務
+
+audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷
+audit.survey.enjoyment.question = 您對使用Project Sidewalk平台的滿意度？
+audit.survey.enjoyment.option.1 = 非常無聊
+audit.survey.enjoyment.option.2 = 無聊
+audit.survey.enjoyment.option.3 = 普通
+audit.survey.enjoyment.option.4 = 有趣
+audit.survey.enjoyment.option.5 = 非常有趣
+audit.survey.difficulty.question = 使用Project Sidewalk平台的難易程度？
+audit.survey.difficulty.option.1 = 非常困難
+audit.survey.difficulty.option.2 = 困難
+audit.survey.difficulty.option.3 = 普通
+audit.survey.difficulty.option.4 = 簡單
+audit.survey.difficulty.option.5 = 非常簡單
+audit.survey.performance.question = 您覺得您在標記任務中的表現為何？
+audit.survey.performance.option.1 = 差勁
+audit.survey.performance.option.2 = 尚可
+audit.survey.performance.option.3 = 好
+audit.survey.performance.option.4 = 非常好
+audit.survey.performance.option.5 = 傑出
+audit.survey.rationale.question = 為什麼您願意在Project Sidewalk平台上貢獻呢？
+audit.survey.feedback.question = 您有任何意見回饋、設計想法或問題嗎？
+
+audit.help.rating.1 = Rating 1: 可通行
+audit.help.rating.3 = Rating 3: 尚可通行
+audit.help.rating.5 = Rating 5: 不可通行
+audit.help.curb.ramp.1 = 簡潔的路緣斜坡並與行人穿越道對齊
+audit.help.curb.ramp.3 = 此路緣斜坡中間有一根桿柱。使用大型電動輪椅的人可能無法使用此路緣斜坡。
+audit.help.curb.ramp.5 = 由於排水不暢該路緣斜坡積水。手動輪椅使用者難以使用此路緣斜坡。
+audit.help.missing.ramp.1 = 雖然沒有路緣斜坡，但由於落差不大，輪椅使用者可以上下人行道。同一轉彎處還有一個路緣斜坡，儘管沒有與路徑對齊，使用者仍可以利用。
+audit.help.missing.ramp.3 = 行人穿越道盡頭沒有路緣斜坡。 輪椅使用者被迫使用與行人穿越道沒有對齊的路緣斜坡。
+audit.help.missing.ramp.5 = 行人穿越道盡頭沒有路緣斜坡。 輪椅使用者不能在這裡上下人行道和過馬路。
+audit.help.obstacle.1 = 紅綠燈設置於人行道中間。周邊似乎有足夠的空間讓輪椅使用者通過，但使用較大輪椅的人可能難以通行。
+audit.help.obstacle.3 = 植栽阻礙了通行路徑，輪椅使用者難以使用此人行道。
+audit.help.obstacle.5 = 樹木完全擋住了路徑，輪椅使用者無法通行。
+audit.help.surface.problem.1 = 部分損壞的人行道。由於人行道受損部分旁邊有足夠的空間，輪椅使用者仍可通行。
+audit.help.surface.problem.3 = 輪椅使用者難以在磚石舖面人行道和行人穿越道上移動。
+audit.help.surface.problem.5 = 由於植物過度生長，輪椅使用者無法通過人行道。
+
+validate.top.ui.zoom.in = <u>Z</u>放大
+validate.top.ui.zoom.out = 縮小
+validate.left.ui.skip = 跳過
+validate.left.ui.feedback = 回饋
+validate.bottom.ui.agree = <u>A</u>同意
+validate.bottom.ui.disagree = <u>D</u>不同意
+validate.bottom.ui.not.sure = <u>N</u>不確定
+validate.bottom.ui.add.comment = 於此輸入說明...
+validate.right.ui.current.mission = 目前任務
+validate.right.ui.correct.examples = <strong>正確</strong> 例子
+validate.right.ui.incorrect.examples = <strong>錯誤</strong> 例子
+validate.mission.complete.category = 類別
+validate.mission.complete.agree = 同意
+validate.mission.complete.disagree = 不同意
+validate.mission.complete.not.sure = 不確定
+validate.mission.complete.your.overall.total = 總成績
+
+
+mobile.validate.leave.feedback = 請給予意見回饋
+
+turk.expired.navbar = 時間到
+turk.expired.title = 時間到！
+turk.expired.body = 您應該會在接下來的兩天內收到額外獎勵。 請在 mturk 網站上提交您的確認碼。 如果作業已經過期，請發送電子郵件至 <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> 並附上您的確認號碼
+turk.mturk.code = Mturk代碼:
+turk.reward.earned = 所有獲取獎勵
+
+authenticate.email = 電子郵件地址
+authenticate.password = 密碼
+authenticate.submit = 送出
+authenticate.new = 您是新使用者嗎？ <a href="#" id="form-open-sign-up">請註冊！</a>
+authenticate.non.member = 還不是會員嗎？ <a href="{0}">請註冊</a>
+authenticate.confirm.password = 確認密碼
+authenticate.service.hours.title = 您是否有計畫將您於Project Sidewalk所做的工作計入社區/志工服務時間？
+authenticate.terms = 您同意我們的<a target="_blank" href="/terms">使用條款和隱私政策</a>
+authenticate.signup = 註冊
+authenticate.signup.new.account = 註冊新帳號
+authenticate.has.account = 已有帳號了嗎？ <a href="#" id="form-open-sign-in">請登入</a>
+authenticate.is.member = 已經是會員了嗎？ <a href="{0}">請登入</a>
+authenticate.signin.with.credentials = 透過您的身分認證登入
+
+authenticate.error.uhoh = 噢喔！
+authenticate.error.missing.username = 請輸入使用者名稱
+authenticate.error.missing.email = 請輸入有效的電子郵件
+authenticate.error.missing.password = 請輸入密碼
+authenticate.error.email.exists = 電子郵件已存在
+authenticate.error.username.exists = 使用者名稱已存在
+authenticate.error.password.length = 密碼至少須有6個字元
+authenticate.error.password.mismatch = 密碼不相符
+authenticate.error.missing.service.hours = 請回覆所有問題
+authenticate.error.invalid.credentials = 無效的認證！
+authenticate.error.generic = 處理您的要求時出現錯誤。請確認您的所有訊息正確無誤並重試
+
+reset.pw.forgot.title = 忘記密碼？
+reset.pw.forgot.submit.email = 別擔心，輸入您的電子郵件，我們將寄送重設密碼的連結給您。
+reset.pw.forgot.suggest = 如果您在登录或重置密码时遇到问题，请通过查看页面右上角的导航栏来检查您是否正在查看您创建帐户的城市。不同城市之间的帐户不可互换，因此您需要为每个城市创建一个新帐户（您可以使用相同的用户名/密码）。
+
+reset.pw.email.hello = 嗨 {0},
+reset.pw.email.reset.title = 重設您的Project Sidewalk密碼
+reset.pw.email.send.link = 傳送電子郵件
+reset.pw.email.reset.pw.sent = 重設密碼的電子郵件已寄出。
+reset.pw.email.reset.request.message = 您最近要求重設Project Sidewalk密碼，點擊以下連結重設密碼：
+reset.pw.email.reset.not.requested = 如果您沒有要求重設密碼，請忽略此訊息或給發送電子郵件告知我們。
+reset.pw.email.reset.valid.duration = 此密碼重設將於60分鐘內有效
+reset.pw.email.signature = Project Sidewalk團隊
+
+reset.pw.submit.new.pw = 請輸入新密碼
+reset.pw.message = 重設密碼
+reset.pw.successful = 密碼以重設！
+reset.pw.invalid.reset.link = 無效的重設連結
+
+results.reset.view = 重設視角
+results.problems.per.mile = 每英里人行道問題
+results.legend.high = 高
+results.legend.low = 低
+results.legend.body = 鄰里顯示灰色表示缺乏足夠的數據協助評估人行道問題，請點擊任何鄰里協助標記！成果地圖為初步的呈現，顯示尚未完成檢核之使用者標記。我們正在加強相關數據呈現，請持續關注！
+
+dashboard.no.org = 無組織
+dashboard.edit.org = 編輯
+dashboard.edit.info = 若您找無您的組織，請email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> 並請提供您的組織名稱及簡介。
+dashboard.orgs.unavailable = 無適用之組織！
+dashboard.leave.org = 退出組織
+dashboard.audited.street = 檢視過的街道
+dashboard.total.distance.explored = 探索距離
+dashboard.number.completed.missions = 完成任務的數量
+dashboard.label.type = 標記類型
+dashboard.number.of.labels = 標記數量
+dashboard.missions = 任務
+dashboard.your.missions = 您的任務
+dashboard.distance = 距離
+dashboard.labels = 標記
+dashboard.mission.icon.alt = 拿著旗幟的輪椅使用者
+dashboard.validation.icon.alt = 在鉛筆旁邊的清單
+dashboard.accuracy.icon.tooltip = 您的標記精準度。 若顯示N/A表示您的標記尚未獲得其他用戶足夠的檢核。
+dashboard.achievements = 成就
+dashboard.first = 第一
+dashboard.second = 第二
+dashboard.third = 第三
+dashboard.fourth = 第四
+dashboard.fifth = 第五
+dashboard.mission.badge = {0} 任務勳章
+dashboard.distance.badge = {0} 距離勳章
+dashboard.label.badge = {0} 標記勳章
+dashboard.validation.badge = {0} 檢核勳章
+dashboard.mistakes.header = 您最近的標記失誤
+dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中判定的錯誤。有時其他用戶在檢核時會發生錯誤，這些評估通常存在細微主觀判斷區別。
+dashboard.mistakes.tooltip.alt = 問號圖示可顯示有用的工具提示框。
+
+labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動
+labeling.guide.obstacle.summary = 障礙物是位於行人路徑上的物體，擋住了通道。 美國身心障礙者法（ADA）要求在無障礙路線上有“乾淨的地板或地面空間”。這樣才可使行人可以安全地留在人行道或行人穿越道上，尤其是對於使用助行器或輪椅的行人。離開路徑以避開障礙物對於部分使用者可能是做不到的，或者可能導致不平衡、絆倒或其他危險。
+labeling.guide.surface.problem.summary = 鋪面問題會導致使用輪椅或其他輔助設備的使用者行經時顛簸或不舒服。如果鋪面上的某些東西會使使用者難以或無法通過，則應將其標記為鋪面問題。對於大面積或連續的鋪面問題，建議您在問題的開頭標記一個鋪面問題，並持續於每幾公尺進行標記直到問題結束。
+labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始標記無人行道，並持續於每幾公尺進行標記直到您到達另一處人行道。
+labeling.guide.occlusion.summary = 有時人行道的視線完全被擋住了，在這些情況下，您可以標記“看不到人行道”。這種情況應該不常見，因此請只在人行道、路緣斜坡或其他無障礙問題受障礙物（例如汽車）遮蔽而無法從任何角度觀察時才標記為“看不到人行道”。
+
+dist.metric.abbr = 公里
+admin.clear.play.cache = 清除快取
+
+leaderboard.overall.title = 總體排行榜
+leaderboard.weekly.title = 單周排行榜
+leaderboard.inter.org.title = 團隊排行榜
+leaderboard.org.title = {0} 排行榜
+leaderboard.overall.detail = 上榜者是依據標記、距離及精準度計算
+leaderboard.org.detail = 前10總體上榜者於 {0}
+leaderboard.header.team = 團隊
+leaderboard.header.labels = 標記
+leaderboard.header.missions = 任務
+leaderboard.header.distance = 距離
+leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才會顯示精準度
+leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
+leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/audit"><u>開始探索地圖吧！</u></a>
+leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
+
+gallery = 標記彙整
+gallery.show = 顯示項目
+gallery.filter.by = 篩選
+gallery.severity = 品質
+gallery.tags = 標籤
+gallery.all = 所有标签类型
+gallery.occlusion = 看不到人行道
+gallery.labels.not.found = 無相符資料。 <a href="/audit">開始探索</a>以建立更多的資料！
+gallery.cards = 标签根据选定的过滤器随机排序

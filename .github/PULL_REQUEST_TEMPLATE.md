@@ -1,6 +1,6 @@
 Resolves #123
 
-This is a brief description of the problem solved or feature implemented and how you implemented it.
+Replace this with a brief description of the problem solved or feature implemented and how you implemented it.
 
 ##### Before/After screenshots (if applicable)
 
@@ -8,7 +8,8 @@ This is a brief description of the problem solved or feature implemented and how
 1. 
 
 ##### Things to check before submitting the PR <!-- if something doesn't apply, just check the box or remove the line -->
-- [ ] I've written a descriptive PR title.
+<!-- You can check the box by replacing the space with an "x". So instead of "- [ ]" it would be "- [x]" -->
+- [ ] I've written a descriptive PR title. <!-- No need to include the issue number. Just a half sentence summary of the fix/feature! -->
 - [ ] I've added/updated comments for large or confusing blocks of code.
 - [ ] I've included before/after screenshots above.
 - [ ] I've asked for and included translations for any user facing text that was added or modified.

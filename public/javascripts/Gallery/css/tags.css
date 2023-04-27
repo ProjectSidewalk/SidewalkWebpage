@@ -21,6 +21,7 @@
     border-style: none;
     font-weight: bold;
     cursor: pointer;
+    background-color: inherit;
 }
 
 #tags-header {

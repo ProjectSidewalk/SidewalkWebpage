@@ -97,7 +97,7 @@ class SignUpController @Inject() (
                   } yield {
                     // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
                     UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
-                    UserCurrentRegionTable.assignEasyRegion(user.userId)
+                    UserCurrentRegionTable.assignRegion(user.userId)
                     UserStatTable.addUserStatIfNew(user.userId)
 
                     // Log the sign up/in.
@@ -228,7 +228,7 @@ class SignUpController @Inject() (
 
           // Add Timestamp
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "AnonAutoSignUp", timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, s"""AnonAutoSignUp_url="$url"""", timestamp))
 
           env.eventBus.publish(SignUpEvent(user, request, request2lang))
           env.eventBus.publish(LoginEvent(user, request, request2lang))
@@ -292,7 +292,7 @@ class SignUpController @Inject() (
         } yield {
           // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
           UserRoleTable.setRole(user.userId, "Turker", Some(false))
-          UserCurrentRegionTable.assignEasyRegion(user.userId)
+          UserCurrentRegionTable.assignRegion(user.userId)
           UserStatTable.addUserStatIfNew(user.userId)
 
           // Log the sign up/in.
@@ -323,7 +323,7 @@ class SignUpController @Inject() (
     val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-      UserCurrentRegionTable.assignEasyRegion(user.userId)
+      UserCurrentRegionTable.assignRegion(user.userId)
     }
 
     // Log the sign in.

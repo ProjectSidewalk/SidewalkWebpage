@@ -48,7 +48,8 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         self.setProperty("completedByAnyUser", _geojson.features[0].properties.completed_by_any_user);
         self.setProperty("priority", _geojson.features[0].properties.priority);
         self.setProperty("currentMissionId", currMissionId);
-        self.setProperty("taskStart", new Date(`${_geojson.features[0].properties.task_start} UTC`));
+        self.setProperty("auditTaskId", _geojson.features[0].properties.audit_task_id);
+        self.setProperty("taskStart", new Date(`${_geojson.features[0].properties.task_start}Z`));
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
         }

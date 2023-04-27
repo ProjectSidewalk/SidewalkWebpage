@@ -11,8 +11,8 @@ GET     /developer                                           @controllers.Applic
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
-GET     /labelMap                                            @controllers.ApplicationController.labelMap
-GET     /labelmap                                            @controllers.ApplicationController.labelMap
+GET     /labelMap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
+GET     /labelmap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
 GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
@@ -27,6 +27,7 @@ GET     /turkerIdExists                                      @controllers.Applic
 GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                            @controllers.ApplicationController.serviceHoursInstructions
 GET     /timeCheck                                           @controllers.ApplicationController.timeCheck
+GET     /routeBuilder                                        @controllers.ApplicationController.routeBuilder
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
@@ -56,7 +57,7 @@ GET     /admin                                               @controllers.AdminC
 GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                                  @controllers.AdminController.task(taskId: Int)
 
-GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate
+GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
 GET     /adminapi/allSignInCounts                            @controllers.AdminController.getAllUserSignInCounts
 GET     /adminapi/completionRateByDate                       @controllers.AdminController.getCompletionRateByDate
@@ -69,8 +70,8 @@ GET     /adminapi/labels/all                                 @controllers.AdminC
 GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
-GET     /adminapi/labels/cvMetadata                          @controllers.AdminController.getAllLabelMetadataForCV
 GET     /adminapi/panos                                      @controllers.AdminController.getAllPanoIds
+GET     /adminapi/labels/cvMetadata                          @controllers.AdminController.getAllLabelMetadataForCV
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
@@ -84,16 +85,16 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
-GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
+GET     /audit                                               @controllers.AuditController.audit(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
 POST    /audit/comment                                       @controllers.AuditController.postComment
-POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
+POST    /audit/nostreetview                                  @controllers.TaskController.postNoStreetView
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
@@ -101,6 +102,7 @@ POST    /validate/comment                                    @controllers.Valida
 
 # Task API.
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
+GET     /routeTasks                                          @controllers.TaskController.getTasksInARoute(userRouteId: Int)
 POST    /task                                                @controllers.TaskController.post
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
@@ -121,13 +123,12 @@ POST    /label/labels                                        @controllers.Galler
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods
-GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
-GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
+GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods(regions: Option[String] ?= None)
 
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
-GET     /contribution/streets/all                            @controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false)
+GET     /contribution/streets/all                            @controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None)
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
 GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
@@ -170,3 +171,6 @@ GET     /userLabelsToCluster                                 @controllers.Attrib
 GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
 POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)
 POST    /multiUserClusteringResults                          @controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)
+
+# RouteBuilder
+POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute

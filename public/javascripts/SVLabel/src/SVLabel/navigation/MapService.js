@@ -19,8 +19,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 lng : undefined
             },
             panoramaPov : {
-                heading : 359,
-                pitch : -10,
+                heading : 0,
+                pitch : 0,
                 zoom : 1
             },
             map: null,
@@ -83,18 +83,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     };
 
     // Maps variables
-    var fenway, map, mapOptions, mapStyleOptions;
+    var startingLatLng, map, mapOptions, mapStyleOptions;
 
     // Map UI setting
     // http://www.w3schools.com/googleAPI/google_maps_controls.asp
     if (params.panoramaPov) {
         properties.panoramaPov = params.panoramaPov;
-    } else {
-        properties.panoramaPov = {
-            heading: 0,
-            pitch: 0,
-            zoom: 1
-        };
     }
     if (params.latlng) {
         properties.latlng = params.latlng;
@@ -104,11 +98,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         throw self.className + ': latlng not defined.';
     }
 
-    // fenway = new google.maps.LatLng(params.targetLat, params.targetLng);
-    fenway = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
+    startingLatLng = typeof google != "undefined" ? new google.maps.LatLng(properties.latlng.lat, properties.latlng.lng) : null;
 
     mapOptions = {
-        center: fenway,
+        center: startingLatLng,
         mapTypeControl:false,
         mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
         maxZoom : 20,
@@ -165,10 +158,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
         if (params.lat && params.lng) {
-            fenway = new google.maps.LatLng(params.lat, params.lng);
+            startingLatLng = new google.maps.LatLng(params.lat, params.lng);
             panoramaOptions = {
-                mode : 'html4',
-                position: fenway,
+                position: startingLatLng,
                 pov: properties.panoramaPov,
                 showRoadLabels: false,
                 motionTracking: false,
@@ -187,6 +179,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             }
             return null;
         });
+        svl.panoramaContainer.addPanoMetadata('tutorial', getCustomPanorama('tutorial'));
+        svl.panoramaContainer.addPanoMetadata('afterWalkTutorial', getCustomPanorama('afterWalkTutorial'));
 
         if (svl.panorama) {
             svl.panorama.set('addressControl', false);
@@ -216,7 +210,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             updatePov(.01,.01);
         });
 
-        // Add listeners to the SV panorama
+        // Add listeners to the SV panorama.
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
         if (typeof google != "undefined") {
             google.maps.event.addListener(svl.panorama, "pov_changed", handlerPovChange);
@@ -232,9 +226,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // For Internet Explore, append an extra canvas in view-control-layer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>');
+            uiMap.viewControlLayer.append(`<canvas width="${util.EXPLORE_CANVAS_WIDTH}px" height="${util.EXPLORE_CANVAS_HEIGHT}px"  class="window-streetview" style=""></canvas>`);
         }
-
     }
 
     /**
@@ -251,13 +244,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     latLng: new google.maps.LatLng(38.94042608, -77.06766133)
                 },
                 links: [],
+                imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
                     worldSize: new google.maps.Size(4096, 2048),
-                    centerHeading: 51,
+                    centerHeading: 50.3866,
+                    originHeading: 50.3866,
+                    originPitch: -1.13769,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                        return `${svl.rootDirectory}img/onboarding/tiles/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     }
                 }
             };
@@ -268,13 +264,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     latLng: new google.maps.LatLng(38.94061618, -77.06768201)
                 },
                 links: [],
+                imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(1700, 850),
                     worldSize: new google.maps.Size(3400, 1700),
                     centerHeading: 344,
+                    originHeading: 344,
+                    originPitch: 0,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                        return `${svl.rootDirectory}img/onboarding/tiles/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     }
                 }
             };
@@ -316,7 +315,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * A helper function to move a user to the task location.
+     * A helper function to move a user to the task location if they are far from it.
      * @param task
      * @param caller
      * @private
@@ -376,14 +375,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.ui.minimap.overlay.toggleClass("highlight-50");
         }, 500);
     }
-
-    function hideMinimap() {
-        svl.ui.minimap.holder.hide();
-    }
-
-    svl.neighborhoodModel.on("Neighborhood:completed", function() {
-        hideMinimap();
-    });
 
     /**
      * Disable panning on Street View
@@ -508,12 +499,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
-        if (caller === undefined) {
-            moveToTheTaskLocation(task);
-        }
-        else {
-            moveToTheTaskLocation(task, caller);
-        }
+        moveToTheTaskLocation(task, caller);
     }
 
     function _jumpToNewLocation() {
@@ -529,7 +515,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 _jumpToNewTask(newTask, "jumpImageryNotFound");
             } else {
                 // Complete current neighborhood if no new task available.
-                finishNeighborhood();
+                svl.neighborhoodModel.setComplete();
                 status.jumpImageryNotFoundStatus = true;
             }
         } else {
@@ -604,7 +590,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (svl.panorama) {
             var panoId = getPanoId();
 
-            if (typeof panoId === "undefined" || panoId.length == 0) {
+            if (typeof panoId === "undefined" || panoId.length === 0) {
                 if ('compass' in svl) {
                     svl.compass.update();
                 }
@@ -615,28 +601,38 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // once moving between pano_ids and once for setting the new pano_id.
             if (svl.streetViewService && panoId.length > 0 && panoId !== prevPanoId) {
                 // Check if panorama exists.
-                svl.streetViewService.getPanorama({pano: panoId},
+                svl.streetViewService.getPanorama({ pano: panoId },
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            // Record the pano metadata.
+                            svl.panoramaContainer.addPanoMetadata(panoId, data);
+
                             // Mark that we visited this pano so that we can tell if they've gotten stuck.
                             svl.stuckAlert.panoVisited(panoId);
 
                             // Updates the date overlay to match when the current panorama was taken.
-                            document.getElementById("svl-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
+                            svl.ui.date.text(moment(data.imageDate).format('MMM YYYY'));
                             var panoramaPosition = svl.panorama.getPosition(); // Current position.
                             map.setCenter(panoramaPosition);
 
                             povChange["status"] = true;
                             _canvas.clear();
-                            _canvas.setVisibilityBasedOnLocation('visible', panoId);
-                            _canvas.render2();
+                            _canvas.setOnlyLabelsOnPanoAsVisible(panoId);
+                            _canvas.render();
                             povChange["status"] = false;
 
-                            svl.tracker.push("PanoId_Changed");
+                            svl.tracker.push("PanoId_Changed", {
+                                panoId: panoId,
+                                lat: data.location.latLng.lat(),
+                                lng: data.location.latLng.lng(),
+                                cameraHeading: data.tiles.originHeading,
+                                cameraPitch: -data.tiles.originPitch, // cameraPitch is negative originPitch.
+                            });
                             prevPanoId = panoId;
 
                         } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
-                            document.getElementById("svl-panorama-date").innerText = "May 2014";
+                            var imageDate = svl.panoramaContainer.getPanorama(panoId).data().imageDate;
+                            svl.ui.date.text(moment(imageDate).format('MMM YYYY'));
                         } else {
                             handleImageryNotFound(panoId, panoStatus);
                         }
@@ -651,13 +647,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
     }
 
-    function finishNeighborhood() {
-        var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-        svl.neighborhoodModel.neighborhoodCompleted();
-        svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': currentNeighborhoodId });
-    }
-
     function finishCurrentTaskBeforeJumping(mission, nextTask) {
         if (mission === undefined) {
             mission = missionJump;
@@ -668,44 +657,49 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mission.pushATaskToTheRoute(currentTask);
     }
 
+    /**
+     * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
+     * the user has finished labeling the current location.
+     * @param task
+     * @param mission
+     * @private
+     */
     function _endTheCurrentTask(task, mission) {
 
         if (!status.labelBeforeJumpListenerSet) {
-
-            // Get a new task and check if it's disconnected from the current task. If yes, then finish the current task
-            // after the user has labeling the current location.
-
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
 
-            if (nextTask && !task.isConnectedTo(nextTask)) {
-                // Check if the interface jumped the user to another discontinuous location. If the user has indeed
-                // jumped, [UPDATE] before jumping, let the user know to label the location before proceeding.
+            // If we are out of streets, set the route/neighborhood as complete.
+            if (!nextTask) {
+                svl.neighborhoodModel.setComplete();
+            }
 
-                // Set the newTask before jumping
-                svl.taskContainer.setBeforeJumpNewTask(nextTask);
+            // Check if the user will jump to another discontinuous location or if this is the last street in their
+            // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
+            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
+                // If jumping to a new place, set the newTask before jumping.
+                if (nextTask && !task.isConnectedTo(nextTask)) {
+                    svl.taskContainer.setBeforeJumpNewTask(nextTask);
+                }
                 status.labelBeforeJumpListenerSet = true;
 
                 // Store before jump location for tracking pre-jump actions when the user leaves their location.
                 setBeforeJumpLocation();
 
-                // Listener activated for tracking before-jump actions
+                // Listener activated for tracking before-jump actions.
                 try {
                     listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
                         "pano_changed", trackBeforeJumpActions);
                 } catch (err) {}
-            }
-            else {
+            } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
 
-                // Move to the new task if the neighborhood has not finished
+                // Move to the new task if the route/neighborhood has not finished.
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);
                     moveToTheTaskLocation(nextTask);
                 }
-            }
-            if (!nextTask) {
-                finishNeighborhood();
             }
         }
     }
@@ -720,16 +714,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 jumpPosition = turf.point([jumpLocation.lng, jumpLocation.lat]),
                 distance = turf.distance(jumpPosition, currentPosition, {units: 'kilometers'});
 
-            // Jump to the new location if it's really far away from his location.
             if (!status.jumpMsgShown && distance >= 0.01) {
-
                 // Show message to the user instructing them to label the current location.
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
                 status.jumpMsgShown = true
 
-            }
-            else if (distance > 0.07) {
+            } else if (distance > 0.07) {
+                // Jump to the new location if it's really far away from their location.
                 svl.tracker.push('LabelBeforeJump_AutoJump');
 
                 // Finish the current task
@@ -739,7 +731,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.resetBeforeJump();
 
                 // Jump to the new task
-                var newTask = svl.taskContainer.getBeforeJumpNewTask();
+                var newTask = svl.taskContainer.getAfterJumpNewTask();
                 _jumpToNewTask(newTask);
                 svl.jumpModel.triggerTooFarFromJumpLocation();
             }
@@ -885,22 +877,15 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         setViewControlLayerCursor('OpenHand');
         var currTime = new Date().getTime();
 
-        var point = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-        if (point && point.className === "Point") {
-            var path = point.belongsTo(),
-                selectedLabel = path.belongsTo(),
-                canvasCoordinate = point.getCanvasCoordinate(getPov());
-
+        var selectedLabel = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
+        if (selectedLabel && selectedLabel.className === "Label") {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
                 if (contextMenuWasOpen) {
                     svl.contextMenu.hide();
                 } else {
-                    svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
-                        targetLabel: selectedLabel,
-                        targetLabelColor: selectedLabel.getProperty("labelFillStyle")
-                    });
+                    svl.contextMenu.show(selectedLabel);
                 }
                 contextMenuWasOpen = false;
             }
@@ -933,12 +918,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         if (mouseStatus.isLeftDown && status.disablePanning === false) {
-            // If a mouse is being dragged on the control layer, move the sv image.
+            // If a mouse is being dragged on the control layer, move the pano.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
             var pov = getPov();
             var zoom = Math.round(pov.zoom);
-            var zoomLevel = svl.zoomFactor[zoom];
+            var zoomLevel = svl.ZOOM_FACTOR[zoom];
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 1.5;
@@ -947,27 +932,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         }
 
         // Show label delete menu.
-        var item = _canvas.isOn(mouseStatus.currX, mouseStatus.currY);
-        if (item && item.className === "Point") {
-            var path = item.belongsTo();
-            var selectedLabel = path.belongsTo();
-
-            _canvas.setCurrentLabel(selectedLabel);
-            _canvas.showLabelTag(selectedLabel);
-            _canvas.clear();
-            _canvas.render2();
-        } else if (item && item.className === "Label") {
+        var item = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
+        if (item && item.className === "Label") {
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
-            _canvas.showLabelTag(selectedLabel);
-        } else if (item && item.className === "Path") {
-            var label = item.belongsTo();
-            _canvas.clear();
-            _canvas.render2();
-            _canvas.showLabelTag(label);
-        }
-        else {
-            _canvas.showLabelTag(undefined);
+            _canvas.showLabelHoverInfo(selectedLabel);
+            _canvas.clear().render();
+        } else {
+            _canvas.showLabelHoverInfo(undefined);
             _canvas.setCurrentLabel(undefined);
         }
 
@@ -1074,9 +1046,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {setPano}
      */
     function setPano(panoramaId, force) {
-        if (force == undefined) force = false;
+        if (force === undefined) force = false;
 
-        if (!status.disableWalking || force == true) {
+        if (!status.disableWalking || force) {
             svl.panorama.setPano(panoramaId);
         }
         return this;
@@ -1090,7 +1062,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function setPosition(lat, lng, callback) {
         if (!status.disableWalking) {
-            // Check the presence of the Google Street View. If it exists, then set the location. Other wise error.
+            // Check the presence of the Google Street View. If it exists, then set the location, otherwise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
             svl.streetViewService.getPanorama({location: gLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {
@@ -1138,10 +1110,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function updateCanvas() {
         _canvas.clear();
         if (status.currentPanoId !== getPanoId()) {
-            _canvas.setVisibilityBasedOnLocation('visible', getPanoId());
+            _canvas.setOnlyLabelsOnPanoAsVisible(getPanoId());
         }
         status.currentPanoId = getPanoId();
-        _canvas.render2();
+        _canvas.render();
     }
 
     function setViewControlLayerCursor(type) {
@@ -1271,7 +1243,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Changes the Street View pov. If a transition duration is given, smoothly updates the pov over that time.
      * @param pov Target pov
-     * @param durationMs Transition duration in milli-seconds
+     * @param durationMs Transition duration in milliseconds
      * @param callback Callback function executed after updating pov.
      * @returns {setPov}
      */
@@ -1279,10 +1251,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
             var interval;
-
-            pov.heading = parseInt(pov.heading, 10);
-            pov.pitch = parseInt(pov.pitch, 10);
-            pov.zoom = parseInt(pov.zoom, 10);
 
             // Pov restriction.
             restrictViewPort(pov);

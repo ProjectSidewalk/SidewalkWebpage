@@ -26,7 +26,6 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
-                 photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float,
                  deleted: Boolean, temporaryLabelId: Option[Int], timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String])
@@ -34,8 +33,8 @@ case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: 
 case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 
 case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
-                                     lat: Float, lng: Float, correct: Option[Boolean], expired: Boolean,
-                                     highQualityUser: Boolean, severity: Option[Int])
+                                     lat: Float, lng: Float, correct: Option[Boolean], hasValidations: Boolean,
+                                     expired: Boolean, highQualityUser: Boolean, severity: Option[Int])
 
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
@@ -50,10 +49,6 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def missionId = column[Int]("mission_id", O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
-  def photographerHeading = column[Float]("photographer_heading", O.NotNull)
-  def photographerPitch = column[Float]("photographer_pitch", O.NotNull)
-  def panoramaLat = column[Float]("panorama_lat", O.NotNull)
-  def panoramaLng = column[Float]("panorama_lng", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timeCreated = column[Timestamp]("time_created", O.NotNull)
@@ -67,9 +62,9 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def temporary = column[Boolean]("temporary", O.NotNull)
   def description = column[Option[String]]("description", O.Nullable)
 
-  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
-    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount,
-    notsureCount, correct, severity, temporary, description) <> ((Label.apply _).tupled, Label.unapply)
+  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId,
+    timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, notsureCount, correct, severity, temporary,
+    description) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
@@ -149,46 +144,46 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
-  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String,
-                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), canvasWidthHeight: (Int, Int),
-                           auditTaskId: Int, streetEdgeId: Int, regionId: Int, userId: String, username: String,
+  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageCaptureDate: String,
+                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), auditTaskId: Int,
+                           streetEdgeId: Int, regionId: Int, userId: String, username: String,
                            timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
                            severity: Option[Int], temporary: Boolean, description: Option[String],
                            userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-                                   canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, labelType: String,
+                                   canvasX: Int, canvasY: Int, labelType: String,
                                    timeValidated: Option[java.sql.Timestamp], validatorComment: Option[String]) extends BasicLabelMetadata
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
-  case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageDate: String,
+  case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageCaptureDate: String,
                                      timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
-                                     canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
-                                     severity: Option[Int], temporary: Boolean, description: Option[String],
-                                     streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
-                                     userValidation: Option[Int], agree: Int, disagree: Int,
-                                     tags: List[String]) extends BasicLabelMetadata
+                                     canvasX: Int, canvasY: Int, severity: Option[Int], temporary: Boolean,
+                                     description: Option[String], streetEdgeId: Int, regionId: Int,
+                                     correct: Option[Boolean], agreeCount: Int, disagreeCount: Int, notsureCount: Int,
+                                     userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                                imageDate: String, timestamp: java.sql.Timestamp, heading: Float,
-                                                pitch: Float, zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int,
-                                                canvasHeight: Int, severity: Option[Int], temporary: Boolean,
-                                                description: Option[String], streetEdgeId: Int, regionId: Int,
-                                                correct: Option[Boolean], agree: Int, disagree: Int,
+                                                imageCaptureDate: String, timestamp: java.sql.Timestamp, heading: Float,
+                                                pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
+                                                severity: Option[Int], temporary: Boolean, description: Option[String],
+                                                streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
+                                                agreeCount: Int, disagreeCount: Int, notsureCount: Int,
                                                 userValidation: Option[Int]) extends BasicLabelMetadata
 
-  case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
-                                 svImageHeight: Int, tagIds: List[Int])
+  case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoLat: Option[Float],
+                                 panoLng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float],
+                                 panoWidth: Int, panoHeight: Int, tagIds: List[Int])
 
   case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agreeCount: Int, disagreeCount: Int,
-                             notsureCount: Int, imageWidth: Option[Int], imageHeight: Option[Int], svImageX: Int,
-                             svImageY: Int, canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int,
-                             heading: Float, pitch: Float, photographerHeading: Float, photographerPitch: Float)
+                             notsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
+                             canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
+                             pitch: Float, cameraHeading: Float, cameraPitch: Float)
 
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
       r.nextInt, r.nextString, r.nextBoolean, r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
-      (r.nextInt, r.nextInt), (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
+      (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
       r.nextTimestamp, r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
@@ -197,17 +192,17 @@ object LabelTable {
 
   implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
     LabelValidationMetadataWithoutTags(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat,
-      r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean,
-      r.nextStringOption, r.nextInt, r.nextInt, r.nextBooleanOption, r.nextInt, r.nextInt, r.nextIntOption
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
+      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
+      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption
     )
   )
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
-      r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextInt, r.nextInt,
+      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
+      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
@@ -216,17 +211,18 @@ object LabelTable {
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean, r.nextBoolean, r.nextIntOption))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat,
+      r.nextBooleanOption, r.nextBoolean, r.nextBoolean, r.nextBoolean, r.nextIntOption))
 
   implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
     ResumeLabelMetadata(
-      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloat,
-        r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextTimestamp, r.nextBoolean, r.nextInt, r.nextInt, r.nextInt,
-        r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean, r.nextStringOption),
+      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextBoolean, r.nextIntOption, r.nextTimestamp,
+        r.nextBoolean, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean,
+        r.nextStringOption),
       r.nextString,
       LabelPoint(r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextInt,
-        r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
-      r.nextInt, r.nextInt,
+        r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
+      r.nextFloatOption, r.nextFloatOption, r.nextFloatOption, r.nextFloatOption, r.nextInt, r.nextInt,
       r.nextStringOption.map(tags => tags.split(",").map(_.toInt).toList).getOrElse(List())
     )
   )
@@ -292,7 +288,7 @@ object LabelTable {
         |FROM audit_task
         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
-        |    AND label.deleted = false""".stripMargin
+        |    AND label.deleted = false;""".stripMargin
     )
     countQuery.first
   }
@@ -313,7 +309,7 @@ object LabelTable {
          |        SELECT label_type_id
          |        FROM label_type as lt
          |        WHERE lt.label_type='$labelType'
-         |    )""".stripMargin
+         |    );""".stripMargin
     )
     countQuery.first
   }
@@ -327,7 +323,7 @@ object LabelTable {
         |FROM audit_task
         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-        |    AND label.deleted = false""".stripMargin
+        |    AND label.deleted = false;""".stripMargin
     )
     countQuery.first
   }
@@ -346,7 +342,7 @@ object LabelTable {
          |        SELECT label_type_id
          |        FROM label_type as lt
          |        WHERE lt.label_type='$labelType'
-         |    )""".stripMargin
+         |    );""".stripMargin
     )
     countQuery.first
   }
@@ -424,75 +420,73 @@ object LabelTable {
 
     val selectQuery = Q.queryNA[LabelMetadata](
       s"""SELECT lb1.label_id,
-        |       lb1.gsv_panorama_id,
-        |       lb1.tutorial,
-        |       gsv_data.image_date,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height,
-        |       lb1.audit_task_id,
-        |       lb1.street_edge_id,
-        |       ser.region_id,
-        |       u.user_id,
-        |       u.username,
-        |       lb1.time_created,
-        |       lb_big.label_type,
-        |       lb_big.label_type_desc,
-        |       lb_big.severity,
-        |       lb_big.temporary,
-        |       lb_big.description,
-        |       lb_big.validation_result,
-        |       val.val_counts,
-        |       lb_big.tag_list
-        |FROM label AS lb1,
-        |     gsv_data,
-        |     audit_task AS at,
-        |     street_edge_region AS ser,
-        |     sidewalk_user AS u,
-        |     label_point AS lp,
-        |     (
-        |         SELECT lb.label_id,
-        |                lb.gsv_panorama_id,
-        |                lbt.label_type,
-        |                lbt.description AS label_type_desc,
-        |                lb.severity,
-        |                lb.temporary,
-        |                lb.description,
-        |                user_validation.validation_result,
-        |                the_tags.tag_list
-        |         FROM label AS lb
-        |         LEFT JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
-        |         $validatorJoin
-        |         LEFT JOIN (
-        |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-        |             FROM label_tag
-        |             INNER JOIN tag ON label_tag.tag_id = tag.tag_id
-        |             GROUP BY label_id
-        |         ) AS the_tags
-        |             ON lb.label_id = the_tags.label_id
-        |     ) AS lb_big,
-        |     (
-        |         SELECT label_id,
-        |                CONCAT('agree:', CAST(agree_count AS TEXT),
-        |                       ',disagree:', CAST(disagree_count AS TEXT),
-        |                       ',notsure:', CAST(notsure_count AS TEXT)) AS val_counts
-        |         FROM label
-        |     ) AS val
-        |WHERE lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |    AND lb1.audit_task_id = at.audit_task_id
-        |    AND lb1.label_id = lb_big.label_id
-        |    AND at.user_id = u.user_id
-        |    AND lb1.street_edge_id = ser.street_edge_id
-        |    AND lb1.label_id = lp.label_id
-        |    AND lb1.label_id = val.label_id
-        |    $labelFilter
-        |    $labelerFilter
-        |ORDER BY lb1.label_id DESC
-        |LIMIT $takeN""".stripMargin
+         |       lb1.gsv_panorama_id,
+         |       lb1.tutorial,
+         |       gsv_data.capture_date,
+         |       lp.heading,
+         |       lp.pitch,
+         |       lp.zoom,
+         |       lp.canvas_x,
+         |       lp.canvas_y,
+         |       lb1.audit_task_id,
+         |       lb1.street_edge_id,
+         |       ser.region_id,
+         |       u.user_id,
+         |       u.username,
+         |       lb1.time_created,
+         |       lb_big.label_type,
+         |       lb_big.label_type_desc,
+         |       lb_big.severity,
+         |       lb_big.temporary,
+         |       lb_big.description,
+         |       lb_big.validation_result,
+         |       val.val_counts,
+         |       lb_big.tag_list
+         |FROM label AS lb1,
+         |     gsv_data,
+         |     audit_task AS at,
+         |     street_edge_region AS ser,
+         |     sidewalk_user AS u,
+         |     label_point AS lp,
+         |     (
+         |         SELECT lb.label_id,
+         |                lb.gsv_panorama_id,
+         |                lbt.label_type,
+         |                lbt.description AS label_type_desc,
+         |                lb.severity,
+         |                lb.temporary,
+         |                lb.description,
+         |                user_validation.validation_result,
+         |                the_tags.tag_list
+         |         FROM label AS lb
+         |         LEFT JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
+         |         $validatorJoin
+         |         LEFT JOIN (
+         |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
+         |             FROM label_tag
+         |             INNER JOIN tag ON label_tag.tag_id = tag.tag_id
+         |             GROUP BY label_id
+         |         ) AS the_tags
+         |             ON lb.label_id = the_tags.label_id
+         |     ) AS lb_big,
+         |     (
+         |         SELECT label_id,
+         |                CONCAT('agree:', CAST(agree_count AS TEXT),
+         |                       ',disagree:', CAST(disagree_count AS TEXT),
+         |                       ',notsure:', CAST(notsure_count AS TEXT)) AS val_counts
+         |         FROM label
+         |     ) AS val
+         |WHERE lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |    AND lb1.audit_task_id = at.audit_task_id
+         |    AND lb1.label_id = lb_big.label_id
+         |    AND at.user_id = u.user_id
+         |    AND lb1.street_edge_id = ser.street_edge_id
+         |    AND lb1.label_id = lp.label_id
+         |    AND lb1.label_id = val.label_id
+         |    $labelFilter
+         |    $labelerFilter
+         |ORDER BY lb1.label_id DESC
+         |LIMIT $takeN""".stripMargin
     )
     selectQuery.list
   }
@@ -553,74 +547,73 @@ object LabelTable {
 
     while (selectedLabels.length < n) {
       val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
-        s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.image_date,
-          |        label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
-          |        label_point.canvas_y, label_point.canvas_width, label_point.canvas_height, label.severity,
-          |        label.temporary, label.description, label.street_edge_id, street_edge_region.region_id,
-          |        label.correct, user_validation.validation_result, label.agree_count, label.disagree_count,
-          |        the_tags.tag_list
-          |FROM label
-          |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-          |INNER JOIN label_point ON label.label_id = label_point.label_id
-          |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-          |INNER JOIN mission ON label.mission_id = mission.mission_id
-          |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
-          |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-          |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-          |LEFT JOIN (
-          |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
-          |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
-          |    SELECT mission.user_id,
-          |           CASE WHEN COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 THEN 100 ELSE 0 END AS needs_validations
-          |    FROM mission
-          |    INNER JOIN label ON label.mission_id = mission.mission_id
-          |    WHERE label.deleted = FALSE
-          |        AND label.tutorial = FALSE
-          |    GROUP BY mission.user_id
-          |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
-          |LEFT JOIN (
-          |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-          |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-          |    FROM label_tag
-          |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
-          |    GROUP BY label_id
-          |) the_tags ON label.label_id = the_tags.label_id
-          |LEFT JOIN (
-          |    -- Gets the validations from this user. Since we only want them to validate labels that
-          |    -- they've never validated, when we left join, we should only get nulls from this query.
-          |    SELECT label_id, validation_result
-          |    FROM label_validation
-          |    WHERE user_id = '$userIdStr'
-          |) user_validation ON label.label_id = user_validation.label_id
-          |WHERE label.label_type_id = $labelTypeId
-          |    AND label.deleted = FALSE
-          |    AND label.tutorial = FALSE
-          |    AND user_stat.excluded = FALSE
-          |    AND label.street_edge_id <> $tutorialStreetId
-          |    AND audit_task.street_edge_id <> $tutorialStreetId
-          |    AND gsv_data.expired = FALSE
-          |    AND mission.user_id <> '$userIdStr'
-          |    AND label.label_id NOT IN (
-          |        SELECT label_id
-          |        FROM label_validation
-          |        WHERE user_id = '$userIdStr'
-          |    )
-          |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
-          |-- the labeler has fewer than 50 of their labels validated. Another 50 points if the labeler was marked as
-          |-- high quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
-          |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
-          |-- number so that the max score for each label is 276.
-          |ORDER BY COALESCE(needs_validations,  100) +
-          |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-          |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
-          |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
-          |    RANDOM() * (276 - (
-          |        COALESCE(needs_validations,  100) +
-          |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-          |            100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
-          |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
-          |        )) DESC
-          |LIMIT ${n * 5}""".stripMargin
+        s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
+           |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
+           |       label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
+           |       street_edge_region.region_id, label.correct, label.agree_count, label.disagree_count,
+           |       label.notsure_count user_validation.validation_result, the_tags.tag_list
+           |FROM label
+           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+           |INNER JOIN label_point ON label.label_id = label_point.label_id
+           |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+           |INNER JOIN mission ON label.mission_id = mission.mission_id
+           |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+           |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+           |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+           |LEFT JOIN (
+           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
+           |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
+           |    SELECT mission.user_id,
+           |           CASE WHEN COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 THEN 100 ELSE 0 END AS needs_validations
+           |    FROM mission
+           |    INNER JOIN label ON label.mission_id = mission.mission_id
+           |    WHERE label.deleted = FALSE
+           |        AND label.tutorial = FALSE
+           |    GROUP BY mission.user_id
+           |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
+           |LEFT JOIN (
+           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
+           |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
+           |    FROM label_tag
+           |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
+           |    GROUP BY label_id
+           |) the_tags ON label.label_id = the_tags.label_id
+           |LEFT JOIN (
+           |    -- Gets the validations from this user. Since we only want them to validate labels that
+           |    -- they've never validated, when we left join, we should only get nulls from this query.
+           |    SELECT label_id, validation_result
+           |    FROM label_validation
+           |    WHERE user_id = '$userIdStr'
+           |) user_validation ON label.label_id = user_validation.label_id
+           |WHERE label.label_type_id = $labelTypeId
+           |    AND label.deleted = FALSE
+           |    AND label.tutorial = FALSE
+           |    AND user_stat.excluded = FALSE
+           |    AND label.street_edge_id <> $tutorialStreetId
+           |    AND audit_task.street_edge_id <> $tutorialStreetId
+           |    AND gsv_data.expired = FALSE
+           |    AND mission.user_id <> '$userIdStr'
+           |    AND label.label_id NOT IN (
+           |        SELECT label_id
+           |        FROM label_validation
+           |        WHERE user_id = '$userIdStr'
+           |    )
+           |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
+           |-- the labeler has fewer than 50 of their labels validated. Another 50 points if the labeler was marked as
+           |-- high quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
+           |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
+           |-- number so that the max score for each label is 276.
+           |ORDER BY COALESCE(needs_validations,  100) +
+           |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
+           |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
+           |    RANDOM() * (276 - (
+           |        COALESCE(needs_validations,  100) +
+           |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
+           |            100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
+           |        )) DESC
+           |LIMIT ${n * 5};""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery.list
 
@@ -644,22 +637,17 @@ object LabelTable {
    * @param n Number of labels to grab.
    * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
-   * @param valOptions Set of correctness values to filter for: correct, incorrect, and/or unvalidated.
+   * @param valOptions        Set of correctness values to filter for: correct, incorrect, notsure, and/or unvalidated.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
   def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Filter labels based on correctness.
-    val _labelsFilteredByCorrectness: Query[LabelTable, Label, Seq] =
-      if      (valOptions.isEmpty)                                 labels.filter(_.labelId === -1)
-      else if (valOptions.equals(Set("correct")))                  labels.filter(_.correct)
-      else if (valOptions.equals(Set("incorrect")))                labels.filter(!_.correct)
-      else if (valOptions.equals(Set("unvalidated")))              labels.filter(_.correct.isEmpty)
-      else if (valOptions.equals(Set("correct", "incorrect")))     labels.filter(_.correct.isDefined)
-      else if (valOptions.equals(Set("correct", "unvalidated")))   labels.filter(l => l.correct || l.correct.isEmpty)
-      else if (valOptions.equals(Set("incorrect", "unvalidated"))) labels.filter(l => !l.correct || l.correct.isEmpty)
-      else                                                         labels
+    val _l1 = if (!valOptions.contains("correct")) labels.filter(l => l.correct.isEmpty || !l.correct) else labels
+    val _l2 = if (!valOptions.contains("incorrect")) _l1.filter(l => l.correct.isEmpty || l.correct) else _l1
+    val _l3 = if (!valOptions.contains("notsure")) _l2.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.notsureCount === 0)) else _l2
+    val _labelsFilteredByCorrectness = if (!valOptions.contains("unvalidated")) _l3.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.notsureCount > 0) else _l3
 
     // Filter for labels with any of the given tags.
     val _labelsFilteredByTags = if (tags.nonEmpty) {
@@ -692,10 +680,9 @@ object LabelTable {
     val _userValidations = validationsFromUser(userId)
     val _labelInfoWithUserVals = for {
       (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.imageDate, l._1.timeCreated, l._2.heading,
-      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._1.severity,
-      l._1.temporary, l._1.description, l._1.streetEdgeId, l._5.regionId,  l._1.correct, l._1.agreeCount,
-      l._1.disagreeCount, v._2.?)
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.heading,
+      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._1.severity, l._1.temporary, l._1.description,
+      l._1.streetEdgeId, l._5.regionId, l._1.correct, l._1.agreeCount, l._1.disagreeCount, l._1.notsureCount, v._2.?)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
@@ -703,10 +690,10 @@ object LabelTable {
     // Randomize, check for GSV imagery, & add tag info. If no label type is specified, do it by label type.
     if (labelTypeId.isDefined) {
       val rand = SimpleFunction.nullary[Double]("random")
-      val _randomLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
 
       // Take the first `n` labels with non-expired GSV imagery.
-      checkForGsvImagery(_randomLabels, n)
+      checkForGsvImagery(_randomizedLabels, n)
         .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
     } else {
       val _potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
@@ -714,9 +701,10 @@ object LabelTable {
           .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
-      // Take the first `nPerType` labels with non-expired GSV imagery for each label type.
-      checkForImageryByLabelType(_potentialLabels, nPerType)
+      // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then randomize them.
+      val chosenLabels: Seq[LabelValidationMetadata] = checkForImageryByLabelType(_potentialLabels, nPerType)
         .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
+      scala.util.Random.shuffle(chosenLabels)
     }
   }
 
@@ -753,8 +741,7 @@ object LabelTable {
         _gd.expired === false && // Only include those with non-expired GSV imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
         (_lt.labelType inSet labTypes) // Only include given label types.
-    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY,
-      _lp.canvasWidth, _lp.canvasHeight, _lt.labelType, _vc._5, _vc._6)
+    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY, _lt.labelType, _vc._5, _vc._6)
 
     // Run query, group by label type, get most recent validation for each label, and order by recency.
     val potentialLabels: Map[String, List[LabelMetadataUserDash]] =
@@ -877,10 +864,10 @@ object LabelTable {
     */
   def labelAndTagsToLabelValidationMetadata(label: LabelValidationMetadataWithoutTags, tags: List[String]): LabelValidationMetadata = {
       LabelValidationMetadata(
-        label.labelId, label.labelType, label.gsvPanoramaId, label.imageDate, label.timestamp, label.heading,
-        label.pitch, label.zoom, label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.severity,
-        label.temporary, label.description, label.streetEdgeId, label.regionId, label.correct, label.userValidation,
-        label.agree, label.disagree, tags
+        label.labelId, label.labelType, label.gsvPanoramaId, label.imageCaptureDate, label.timestamp, label.heading,
+        label.pitch, label.zoom, label.canvasX, label.canvasY, label.severity, label.temporary, label.description,
+        label.streetEdgeId, label.regionId, label.correct, label.agreeCount, label.disagreeCount, label.notsureCount,
+        label.userValidation, tags
       )
   }
 
@@ -939,15 +926,15 @@ object LabelTable {
           |    SELECT tag_id
           |    FROM label_tag
           |    WHERE label_tag.label_id = ?
-          |)""".stripMargin
+          |);""".stripMargin
       )
       getTagsQuery(labelId).list
   }
 
   /**
-    * Returns all the submitted labels with their severities included.
+    * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
     */
-  def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labels
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
@@ -955,10 +942,16 @@ object LabelTable {
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
       _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _us <- UserStatTable.userStats if _at.userId === _us.userId
+      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _l.streetEdgeId === _ser.streetEdgeId
+      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat.get, _lPoint.lng.get, _l.correct, _gsv.expired, _us.highQuality, _l.severity)
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.notsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
 
-    _labels.list.map(LabelLocationWithSeverity.tupled)
+    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
+    // error, which is why we couldn't use `.tupled` here. This was the error message:
+    // SlickException: Expected an option type, found Float/REAL
+    _labels.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, l._9, l._10, l._11))
   }
 
   /**
@@ -981,7 +974,7 @@ object LabelTable {
         |    AND label.tutorial = FALSE
         |    AND label_point.lat IS NOT NULL
         |    AND user_stat.excluded = FALSE
-        |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+        |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326));""".stripMargin
     )
     selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
   }
@@ -1017,7 +1010,7 @@ object LabelTable {
         |    WHERE deleted = FALSE
         |) AS calendar
         |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
+        |ORDER BY calendar_date;""".stripMargin
     )
     selectLabelCountQuery.list.map(x => LabelCountPerDay.tupled(x))
   }
@@ -1050,10 +1043,10 @@ object LabelTable {
   def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): Option[Int] = db.withSession { implicit session =>
     val selectStreetEdgeIdQuery = Q.query[(Float, Float), Int](
       """SELECT street_edge_id
-         |FROM street_edge
-         |WHERE deleted = FALSE
-         |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
-         |LIMIT 1""".stripMargin
+        |FROM street_edge
+        |WHERE deleted = FALSE
+        |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
+        |LIMIT 1;""".stripMargin
     )
     //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
     selectStreetEdgeIdQuery((lng, lat)).firstOption
@@ -1069,34 +1062,34 @@ object LabelTable {
   def getLabelsFromUserInRegion(regionId: Int, userId: UUID): List[ResumeLabelMetadata] = db.withSession { implicit session =>
     val labelsInRegionQuery = Q.queryNA[ResumeLabelMetadata](
       s"""SELECT -- Entire label table.
-        |       label.label_id, label.audit_task_id, label.mission_id, label.gsv_panorama_id, label.label_type_id,
-        |       label.photographer_heading, label.photographer_pitch, label.panorama_lat, label.panorama_lng,
-        |       label.deleted, label.temporary_label_id, label.time_created, label.tutorial, label.street_edge_id,
-        |       label.agree_count, label.disagree_count, label.notsure_count, label.correct, label.severity,
-        |       label.temporary, label.description,
-        |       label_type.label_type,
-        |       -- Entire label_point table.
-        |       label_point_id, label_point.label_id, sv_image_x, sv_image_y, canvas_x, canvas_y, heading, pitch, zoom,
-        |       canvas_height, canvas_width, alpha_x, alpha_y, lat, lng, geom, computation_method,
-        |       -- All the extra stuff.
-        |       gsv_data.image_width, gsv_data.image_height,
-        |       the_tags.tag_list
-        |FROM mission
-        |INNER JOIN label ON mission.mission_id = label.mission_id
-        |INNER JOIN label_point ON label.label_id = label_point.label_id
-        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |LEFT JOIN (
-        |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-        |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
-        |    FROM label_tag
-        |    GROUP BY label_id
-        |) the_tags
-        |   ON label.label_id = the_tags.label_id
-        |WHERE label.deleted = FALSE
-        |   AND mission.region_id = $regionId
-        |   AND mission.user_id = '${userId.toString}'
-        |   AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL;""".stripMargin
+         |       label.label_id, label.audit_task_id, label.mission_id, label.gsv_panorama_id, label.label_type_id,
+         |       label.deleted, label.temporary_label_id, label.time_created, label.tutorial, label.street_edge_id,
+         |       label.agree_count, label.disagree_count, label.notsure_count, label.correct, label.severity,
+         |       label.temporary, label.description,
+         |       label_type.label_type,
+         |       -- Entire label_point table.
+         |       label_point_id, label_point.label_id, pano_x, pano_y, canvas_x, canvas_y, heading, pitch, zoom,
+         |       label_point.lat, label_point.lng, geom, computation_method,
+         |       -- All the extra stuff.
+         |       gsv_data.lat, gsv_data.lng, gsv_data.camera_heading, gsv_data.camera_pitch,
+         |       gsv_data.width, gsv_data.height,
+         |       the_tags.tag_list
+         |FROM mission
+         |INNER JOIN label ON mission.mission_id = label.mission_id
+         |INNER JOIN label_point ON label.label_id = label_point.label_id
+         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |LEFT JOIN (
+         |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
+         |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
+         |    FROM label_tag
+         |    GROUP BY label_id
+         |) the_tags
+         |    ON label.label_id = the_tags.label_id
+         |WHERE label.deleted = FALSE
+         |    AND mission.region_id = $regionId
+         |    AND mission.user_id = '${userId.toString}'
+         |    AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL;""".stripMargin
     )
     labelsInRegionQuery.list
   }
@@ -1345,10 +1338,11 @@ object LabelTable {
       _l <- labels
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      if _gsv.cameraHeading.isDefined && _gsv.cameraPitch.isDefined
     } yield (
-      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount,
-      _gsv.imageWidth, _gsv.imageHeight, _lp.svImageX, _lp.svImageY, _lp.canvasWidth, _lp.canvasHeight, _lp.canvasX,
-      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _l.photographerHeading, _l.photographerPitch
+      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount, _gsv.width,
+      _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
+      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.get, _gsv.cameraPitch.get
     )).list.map(LabelCVMetadata.tupled)
   }
 }

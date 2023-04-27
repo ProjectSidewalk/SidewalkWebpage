@@ -18,8 +18,9 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
+import models.route.{AuditTaskUserRouteTable, UserRouteTable}
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
-import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
 import play.api.Play.current
@@ -51,6 +52,35 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+   * This method handles a POST request in which user reports a missing Street View image.
+   */
+  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[Int]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      streetEdgeId => {
+        val userId: String = request.identity match {
+          case Some(user) => user.userId.toString
+          case None =>
+            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
+            val user: Option[DBUser] = UserTable.find("anonymous")
+            user.get.userId.toString
+        }
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        val issue: StreetEdgeIssue = StreetEdgeIssue(0, streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
+        StreetEdgeIssueTable.save(issue)
+
+        Future.successful(Ok)
+      }
+    )
+  }
+
+  /**
    * Get the audit tasks in the given region for the signed in user.
    */
   def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
@@ -61,6 +91,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/tasks?regionId=${regionId}"))
     }
+  }
+
+  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
+      val tasks: List[JsObject] = UserRouteTable.selectTasksInRoute(userRouteId).map(_.toJSON)
+      Future.successful(Ok(JsArray(tasks)))
   }
 
   /**
@@ -184,6 +219,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val userOption: Option[User] = identity
       val streetEdgeId: Int = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
+      val currTime: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
       if (data.auditTask.auditTaskId.isDefined) {
         val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
@@ -218,6 +254,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
+      // Add to the audit_task_user_route and user_route tables if we are on a route and not in the tutorial.
+      if (data.userRouteId.isDefined && MissionTable.getMissionType(missionId) == Some("audit")) {
+        AuditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId)
+        UserRouteTable.updateCompleteness(data.userRouteId.get)
+      }
+
       // Update MissionStart.
       if (data.auditTask.currentMissionStart.isDefined) updateMissionStart(auditTaskId, data.auditTask.currentMissionStart.get)
 
@@ -241,10 +283,19 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           None
         }
 
-        // If the label already exists, update deleted, severity, temporary, and description cols, o/w insert new label.
+        // If the label already exists, update deleted, severity, temporary, description, & tags, o/w insert new label.
         val labelId: Int = existingLabelId match {
           case Some(labId) =>
             LabelTable.update(labId, label.deleted, label.severity, label.temporary, label.description)
+
+            // Remove any tag entries from database that were removed on the front-end and add any new ones.
+            val labelTagIds: Set[Int] = label.tagIds.toSet
+            val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labId).toSet
+            val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
+            val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
+            tagsToRemove.map { tagId => LabelTagTable.delete(labId, tagId) }
+            tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labId, tagId)) }
+
             labId
           case None =>
             // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
@@ -252,52 +303,34 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               case Some(time) => new Timestamp(time)
               case None =>
                 Logger.error("No timestamp given for a new label, using current time instead.")
-                new Timestamp(Instant.now.toEpochMilli)
+                currTime
             }
 
-            var calculatedStreetEdgeId: Int = streetEdgeId;
-            for (point: LabelPointSubmission <- label.points) {
-              if(point.lat.isDefined && point.lng.isDefined){
-                val possibleStreetEdgeId: Option[Int] = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get)
-                if(possibleStreetEdgeId.isDefined){
-                  calculatedStreetEdgeId = possibleStreetEdgeId.get
-                }
-              }
-            }
+            // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
+            val point: LabelPointSubmission = label.point
+            val calculatedStreetEdgeId: Int = (for {
+              _lat <- point.lat
+              _lng <- point.lng
+              _streetId <- LabelTable.getStreetEdgeIdClosestToLatLng(_lat, _lng)
+            } yield _streetId).getOrElse(streetEdgeId)
 
+            // Add the new entry to the label table.
             val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
-              label.photographerHeading, label.photographerPitch, label.panoramaLat, label.panoramaLng, label.deleted,
-              label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
+              label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
               label.severity, label.temporary, label.description))
+
+            // Add an entry to the label_point table.
+            val pointGeom: Option[Point] = for {
+              _lat <- point.lat
+              _lng <- point.lng
+            } yield gf.createPoint(new Coordinate(_lng.toDouble, _lat.toDouble))
+
+            LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
+              point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
 
             newLabels += ((newLabelId, timeCreated))
             newLabelId
         }
-
-        // Insert label points.
-        for (point: LabelPointSubmission <- label.points) {
-          val pointGeom: Option[Point] = (point.lat, point.lng) match {
-            case (Some(lat), Some(lng)) =>
-              val coord: Coordinate = new Coordinate(lng.toDouble, lat.toDouble)
-              Some(gf.createPoint(coord))
-            case _ => None
-          }
-          // If this label id does not have an entry in the label point table, add it.
-          if (LabelPointTable.find(labelId).isEmpty) {
-            LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX,
-              point.canvasY, point.heading, point.pitch, point.zoom,
-              point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
-              point.lat, point.lng, pointGeom, point.computationMethod))
-          }
-        }
-
-        // Remove any tag entries from database that were removed on the front-end and add any new ones.
-        val labelTagIds: Set[Int] = label.tagIds.toSet
-        val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labelId).toSet
-        val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
-        val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
-        tagsToRemove.map { tagId => LabelTagTable.delete(labelId, tagId) }
-        tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }
       }
 
       // Insert interactions.
@@ -315,19 +348,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       AuditTaskEnvironmentTable.save(taskEnv)
 
       // Insert Street View metadata.
-      for (panorama <- data.gsvPanoramas) {
-        // Check the presence of the data.
-        if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
-          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-          val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, panorama.imageWidth, panorama.imageHeight,
-            panorama.tileWidth, panorama.tileHeight, panorama.imageDate, panorama.copyright, false, Some(timestamp))
+      for (pano <- data.gsvPanoramas) {
+        // Insert new entry to gsv_data table, or update the last_viewed column if we've already recorded it.
+        if (GSVDataTable.panoramaExists(pano.gsvPanoramaId)) {
+          GSVDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading,
+            pano.cameraPitch, false, currTime)
+        } else {
+          val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
+            pano.captureDate, pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false,
+            currTime)
           GSVDataTable.save(gsvData)
-
-          for (link <- panorama.links) {
-            if (!GSVLinkTable.linkExists(panorama.gsvPanoramaId, link.targetGsvPanoramaId)) {
-              val gsvLink: GSVLink = GSVLink(panorama.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, "", link.description)
-              GSVLinkTable.save(gsvLink)
-            }
+        }
+        for (link <- pano.links) {
+          if (!GSVLinkTable.linkExists(pano.gsvPanoramaId, link.targetGsvPanoramaId)) {
+            val gsvLink: GSVLink = GSVLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description)
+            GSVLinkTable.save(gsvLink)
           }
         }
       }

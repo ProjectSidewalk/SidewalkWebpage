@@ -14,7 +14,6 @@ function Main (params) {
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
-    var loadDifficultNeighborhoodsCompleted = false;
     var loadLabelTags = false;
 
 
@@ -24,13 +23,14 @@ function Main (params) {
         return params.mission.mission_type === 'auditOnboarding';
     };
     svl.missionsCompleted = params.missionSetProgress;
-    svl.canvasWidth = 720;
-    svl.canvasHeight = 480;
-    svl.svImageHeight = 6656;
-    svl.svImageWidth = 13312;
-    svl.alpha_x = 4.6;
-    svl.alpha_y = -4.65;
-    svl.zoomFactor = {
+
+    svl.LABEL_ICON_RADIUS = 17;
+    svl.TUTORIAL_PANO_HEIGHT = 6656;
+    svl.TUTORIAL_PANO_WIDTH = 13312;
+    svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
+    svl.ALPHA_X = 4.6;
+    svl.ALPHA_Y = -4.65;
+    svl.ZOOM_FACTOR = {
         1: 1,
         2: 2.1,
         3: 4,
@@ -42,10 +42,13 @@ function Main (params) {
         params = params || {};
 
         svl.userHasCompletedAMission = params.hasCompletedAMission;
+        svl.routeId = params.routeId;
+        svl.userRouteId = params.userRouteId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+        svl.neighborhoodModel.setAsRouteOrNeighborhood(svl.userRouteId ? 'route' : 'neighborhood');
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
@@ -56,14 +59,13 @@ function Main (params) {
         if (!("tracker" in svl)) svl.tracker = new Tracker();
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
-        svl.labelContainer = new LabelContainer($);
+        svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
         svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
 
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
-        svl.advancedOverlay = params.advancedOverlay;
 
 
         // Set map parameters and instantiate it.
@@ -86,7 +88,6 @@ function Main (params) {
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
         svl.labelCounter = new LabelCounter(d3);
-        svl.labelFactory = new LabelFactory(svl, params.nextTemporaryLabelId);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
@@ -112,8 +113,8 @@ function Main (params) {
 
         // Mission
         svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
-        svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
-            svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
+        svl.missionProgress = new MissionProgress(svl, svl.missionModel, svl.modalModel, svl.neighborhoodModel,
+            svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
@@ -121,7 +122,8 @@ function Main (params) {
             svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
-            currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
+            var currTaskId = currTask.getProperty('auditTaskId');
+            if (!currTaskId) currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
         } else {
             svl.tracker.initTaskId();
         }
@@ -157,7 +159,7 @@ function Main (params) {
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
-            svl.taskContainer.getCurrentTask().getStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
+            svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
             svl.map.getPov, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
@@ -240,7 +242,7 @@ function Main (params) {
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
         // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
-        if (params.mission.mission_type === 'auditOnboarding') {
+        if (svl.isOnboarding()) {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
         } else {
@@ -258,11 +260,6 @@ function Main (params) {
 
         neighborhoodModel.fetchNeighborhoods(function () {
             loadNeighborhoodsCompleted = true;
-            handleDataLoadComplete();
-        });
-
-        neighborhoodModel.fetchDifficultNeighborhoods(function () {
-            loadDifficultNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
 
@@ -317,9 +314,9 @@ function Main (params) {
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
 
-        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty('regionId'), function (result) {
+        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
-            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
+            svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.map.getPanoId());
 
             // Count the labels of each label type to initialize the current mission label counts.
             var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};
@@ -347,8 +344,7 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingTasksCompleted && loadingMissionsCompleted && loadNeighborhoodsCompleted &&
-            loadDifficultNeighborhoodsCompleted && loadLabelTags) {
+        if (loadingTasksCompleted && loadingMissionsCompleted && loadNeighborhoodsCompleted && loadLabelTags) {
 
             // Mark neighborhood as complete if there are no streets left with max priority (= 1).
             if(!svl.taskContainer.hasMaxPriorityTask()) {
@@ -368,11 +364,6 @@ function Main (params) {
                 var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
 
-                var regionId = currentNeighborhood.getProperty("regionId");
-                var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
-                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay) {
-                    $('#advanced-overlay').show();
-                }
                 startTheMission(mission, currentNeighborhood);
             }
         }
@@ -397,7 +388,7 @@ function Main (params) {
         svl.ui.counterHolder = $("#counter-holder");
         svl.ui.labelCounter = $("#label-counter");
 
-        // Map DOMs
+        // Map DOMs.
         svl.ui.map = {};
         svl.ui.map.canvas = $("canvas#labelCanvas");
         svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
@@ -413,8 +404,9 @@ function Main (params) {
         svl.ui.minimap.progressCircle = $("#minimap-progress-circle-canvas");
         svl.ui.minimap.percentObserved = $("#minimap-percent-observed");
         svl.ui.dateHolder = $("#svl-panorama-date-holder");
+        svl.ui.date = $("#svl-panorama-date");
 
-        // Status holder
+        // Status holder.
         svl.ui.status = {};
         svl.ui.status.holder = $("#status-holder");
         svl.ui.status.overallDistance = $("#status-overall-audited-distance");
@@ -429,13 +421,13 @@ function Main (params) {
         svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
 
-        // MissionDescription DOMs
+        // MissionDescription DOMs.
         svl.ui.statusMessage = {};
         svl.ui.statusMessage.holder = $("#current-status-holder");
         svl.ui.statusMessage.title = $("#current-status-title");
         svl.ui.statusMessage.description = $("#current-status-description");
 
-        // OverlayMessage
+        // OverlayMessage.
         svl.ui.overlayMessage = {};
         svl.ui.overlayMessage.holder = $("#overlay-message-holder");
         svl.ui.overlayMessage.holder.append("<span id='overlay-message-box'>" +
@@ -443,7 +435,7 @@ function Main (params) {
         svl.ui.overlayMessage.box = $("#overlay-message-box");
         svl.ui.overlayMessage.message = $("#overlay-message");
 
-        // Pop up message
+        // Pop up message.
         svl.ui.popUpMessage = {};
         svl.ui.popUpMessage.holder = $("#pop-up-message-holder");
         svl.ui.popUpMessage.foreground = $("#pop-up-message-foreground");
@@ -453,7 +445,7 @@ function Main (params) {
         svl.ui.popUpMessage.imageHolder = $("#pop-up-message-img-holder");
         svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder");
 
-        // Ribbon menu DOMs
+        // Ribbon menu DOMs.
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
@@ -462,7 +454,7 @@ function Main (params) {
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategory");
 
-        // Context menu
+        // Context menu.
         svl.ui.contextMenu = {};
         svl.ui.contextMenu.holder = $("#context-menu-holder");
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
@@ -474,7 +466,7 @@ function Main (params) {
         svl.ui.contextMenu.textBox = $("#context-menu-problem-description-text-box");
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");
 
-        // Modal
+        // Modal.
         svl.ui.modalSkip = {};
         svl.ui.modalSkip.holder = $("#modal-skip-holder");
         svl.ui.modalSkip.firstBox = $("#modal-skip-box");
@@ -508,8 +500,7 @@ function Main (params) {
         svl.ui.modalMission.instruction = $("#modal-mission-instruction");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
-
-        // Modal Mission Complete
+        // Modal Mission Complete.
         svl.ui.modalMissionComplete = {};
         svl.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
         svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
@@ -517,28 +508,35 @@ function Main (params) {
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
-        svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
-        svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
-        svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
-        svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
-        svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
-        svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
-        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
-        svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
+        svl.ui.modalMissionComplete.mapLegendLabel1 = $("#modal-mission-complete-map-legend-label-1");
+        svl.ui.modalMissionComplete.mapLegendLabel2 = $("#modal-mission-complete-map-legend-label-2");
+        svl.ui.modalMissionComplete.mapLegendLabel3 = $("#modal-mission-complete-map-legend-label-3");
         svl.ui.modalMissionComplete.curbRampCount = $("#modal-mission-complete-curb-ramp-count");
         svl.ui.modalMissionComplete.noCurbRampCount = $("#modal-mission-complete-no-curb-ramp-count");
         svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
         svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
         svl.ui.modalMissionComplete.noSidewalk = $("#modal-mission-complete-no-sidewalk-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
+        svl.ui.modalMissionComplete.progressTitle = $("#modal-mission-complete-progress-title");
+        svl.ui.modalMissionComplete.completeBar = $("#modal-mission-complete-complete-bar");
+        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
+        svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
+        svl.ui.modalMissionComplete.progressYou = $("#modal-mission-complete-progress-you");
+        svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
+        svl.ui.modalMissionComplete.progressOthers = $("#modal-mission-complete-progress-others");
+        svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
+        svl.ui.modalMissionComplete.progressRemaining = $("#modal-mission-complete-progress-remaining");
+        svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
         svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
+        svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
+        svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
 
-        // Zoom control
+        // Zoom control.
         svl.ui.zoomControl = {};
         svl.ui.zoomControl.zoomIn = $("#left-column-zoom-in-button");
         svl.ui.zoomControl.zoomOut = $("#left-column-zoom-out-button");
 
-        // Form
+        // Form/logging.
         svl.ui.form = {};
         svl.ui.form.skipButton = $("#skip-button");
         svl.ui.form.submitButton = $("#submit-button");
@@ -551,12 +549,12 @@ function Main (params) {
         svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
 
-        // Navigation compass
+        // Navigation compass.
         svl.ui.compass = {};
         svl.ui.compass.messageHolder = $("#compass-message-holder");
         svl.ui.compass.message = $("#compass-message");
 
-        // Canvas for the labeling area
+        // Canvas for the labeling area.
         svl.ui.canvas = {};
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
@@ -564,9 +562,10 @@ function Main (params) {
         svl.ui.canvas.deleteIcon = $("#label-delete-icon");
         svl.ui.canvas.severityIcon = $("#severity-icon");
 
-        // Interaction viewer
+        // Interaction viewer.
         svl.ui.task = {};
 
+        // Tutorial.
         svl.ui.onboarding = {};
         svl.ui.onboarding.holder = $("#onboarding-holder");
         svl.ui.onboarding.messageHolder = $("#onboarding-message-holder");
@@ -574,6 +573,12 @@ function Main (params) {
         svl.ui.onboarding.foreground = $("#onboarding-foreground");
         svl.ui.onboarding.canvas = $("#onboarding-canvas");
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
+
+        // Neighborhood / route complete overlays.
+        svl.ui.areaComplete = {};
+        svl.ui.areaComplete.overlay = $("#area-completion-overlay-wrapper");
+        svl.ui.areaComplete.title = $("#area-completion-title");
+        svl.ui.areaComplete.body = $("#area-completion-body");
     }
 
     // Gets all the text on the audit page for the correct language.

@@ -1,7 +1,5 @@
 @import models.user.User
-@import models.region.RegionTable
 @import models.label._
-@import play.api.libs.json.Json
 @import scala.util.Random
 @import play.api.Play
 @import play.api.Play.current
@@ -268,7 +266,6 @@
             lng: "@lang.code",
             debug: false
         }, function(err, t) {
-            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             var params = {
                 regionColors: [
                     '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
@@ -303,7 +300,7 @@
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
             var loadMapParams = $.getJSON('/cityMapParams');
             window.choropleth = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                return Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
+                return Choropleth(_, $, params, [], data1[0], data2[0], data3[0]);
             });
         });
     });

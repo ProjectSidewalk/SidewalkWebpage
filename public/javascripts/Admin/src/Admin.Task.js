@@ -2,7 +2,7 @@ function AdminTask(params) {
     var self = { auditTaskId: params.auditTaskId };
     var _data = {};
 
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
+    L.mapbox.accessToken = params.mapboxApiKey;
     var map = L.mapbox.map('map', null, {
         zoomControl: false,
         scrollWheelZoom: false,
@@ -213,8 +213,8 @@ function AdminTask(params) {
 
                                 var adminPanoramaLabel = AdminPanoramaLabel(
                                     label.label_id, label.label_type, label.canvasX, label.canvasY,
-                                    d.properties.canvasWidth, d.properties.canvasHeight, d.properties.heading,
-                                    d.properties.pitch, d.properties.zoom
+                                    util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+                                    d.properties.heading, d.properties.pitch, d.properties.zoom
                                 );
                                 self.panorama.renderLabel(adminPanoramaLabel);
                                 renderedLabels.push(label.label_id);

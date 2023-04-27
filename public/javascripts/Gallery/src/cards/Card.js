@@ -13,7 +13,6 @@ function Card (params, imageUrl, modal) {
     let card = null;
 
     let validationMenu = null;
-    let widthHeightRatio = (4/3);
     let imageId = null;
 
     // Properties of the label in the card.
@@ -21,24 +20,24 @@ function Card (params, imageUrl, modal) {
         label_id: undefined,
         label_type: undefined,
         gsv_panorama_id: undefined,
-        image_date: undefined,
+        image_capture_date: undefined,
         label_timestamp: undefined,
         heading: undefined,
         pitch: undefined,
         zoom: undefined,
-        canvas_x: undefined,
-        canvas_y: undefined,
-        canvas_width: undefined,
-        canvas_height: undefined,
+        original_canvas_x: undefined,
+        original_canvas_y: undefined,
         severity: undefined,
         temporary: undefined,
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
+        correct: undefined,
+        agree_count: undefined,
+        disagree_count: undefined,
+        notsure_count: undefined,
         correctness: undefined,
         user_validation: undefined,
-        agree: undefined,
-        disagree: undefined,
         tags: []
     };
 
@@ -50,7 +49,7 @@ function Card (params, imageUrl, modal) {
         Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
         SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
         Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Other.png',
+        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
         NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
         Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
         Signal : '/assets/images/icons/AdminTool_Signal.png'
@@ -61,16 +60,9 @@ function Card (params, imageUrl, modal) {
         imageFetched: false
     };
 
-    // Default image width.
-    let width = 360;
-
-    let imageDim = {
-        w: 0,
-        h: 0
-    };
-
     // The label icon to be placed on the static pano image.
     const labelIcon = new Image();
+    self.labelIcon = labelIcon;
 
     // The static pano image.
     const panoImage = new Image();
@@ -82,20 +74,22 @@ function Card (params, imageUrl, modal) {
      */
     function _init (param) {
         for (const attrName in param) {
-            if (param.hasOwnProperty(attrName)) {
+            if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
                 properties[attrName] = param[attrName];
             }
         }
-        if (properties.correctness) properties.correctness = "correct";
-        else if (properties.correctness === false) properties.correctness = "incorrect";
+        properties.original_canvas_x = param.canvas_x;
+        properties.original_canvas_y = param.canvas_y;
+        if (properties.correct) properties.correctness = "correct";
+        else if (properties.correct === false) properties.correctness = "incorrect";
+        else if (properties.agree_count + properties.disagree_count + properties.notsure_count > 0) properties.correctness = "notsure";
         else properties.correctness = "unvalidated";
 
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.classList.add("label-icon", "label-icon-gallery");
-        let iconCoords = getIconPercent();
-        labelIcon.style.left = iconCoords.x + "px";
-        labelIcon.style.top = iconCoords.y + "px";
+        labelIcon.style.left = `calc(${100 * properties.original_canvas_x / (util.EXPLORE_CANVAS_WIDTH)}% - var(--iconWidth) / 2)`;
+        labelIcon.style.top = `calc(${100 * properties.original_canvas_y / (util.EXPLORE_CANVAS_HEIGHT)}% - var(--iconWidth) / 2)`;
 
         // Create an element for the image in the card.
         imageId = "label_id_" + properties.label_id;
@@ -134,7 +128,7 @@ function Card (params, imageUrl, modal) {
         // Create the div to store the validation info of the label.
         let cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
-        new ValidationInfoDisplay(cardValidationInfo, properties.agree, properties.disagree);
+        new ValidationInfoDisplay(cardValidationInfo, properties.agree_count, properties.disagree_count);
         cardData.appendChild(cardValidationInfo);
 
 
@@ -149,32 +143,7 @@ function Card (params, imageUrl, modal) {
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(self, imageHolder, properties, modal, false);
-    }
-
-    /**
-     * Return object with label coords on static image.
-     */
-    function getIconPercent () {
-        return {
-            x: 100 * properties.canvas_x / (properties.canvas_width),
-            y: 100 * properties.canvas_y / (properties.canvas_height)
-        };
-    }
-
-    /**
-     * Update image width.
-     * 
-     * @param {*} w New width.
-     */
-    function updateWidth(w) {
-        width = w;
-        imageDim.w = w - 10;
-        imageDim.h = imageDim.w / widthHeightRatio;       
-
-        let iconCoords = getIconPercent();
-        labelIcon.style.left = iconCoords.x + "%";
-        labelIcon.style.top = iconCoords.y + "%";
+        validationMenu = new ValidationMenu(self, $(imageHolder), properties, modal, false);
     }
 
     /**
@@ -236,26 +205,16 @@ function Card (params, imageUrl, modal) {
     }
 
     /**
-     * Renders the card. 
+     * Renders the card.
+     * TODO: should there be a safety check here to make sure pano is loaded?
      * 
      * @param cardContainer UI element to render card in.
      * @returns {self}
      */
-    function render (cardContainer) {
-        // TODO: should there be a safety check here to make sure pano is loaded?
+    function render(cardContainer) {
         // If the card had transparent background from the modal being open earlier, remove transparency on rerender.
         if (card.classList.contains('modal-background-card')) card.classList.remove('modal-background-card');
-        panoImage.width = imageDim.w;
-        panoImage.height = imageDim.h;
         cardContainer.append(card);
-    }
-
-    /**
-     * Render with an overload that allows you to set the width and height of the card.
-     */
-    function renderSize(cardContainer, width) {
-        updateWidth(width);
-        render(cardContainer);
         renderTags();
     }
 
@@ -308,7 +267,6 @@ function Card (params, imageUrl, modal) {
     self.getStatus = getStatus;
     self.loadImage = loadImage;
     self.render = render;
-    self.renderSize = renderSize;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
     self.getImageId = getImageId;

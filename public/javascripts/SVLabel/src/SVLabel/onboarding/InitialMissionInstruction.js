@@ -44,15 +44,11 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
     this._instructForGSVLabelDisappearing = function () {
         if (!svl.isOnboarding()) {
             // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
-            var labels = labelContainer.getCurrentLabels();
-            var prev_labels = labelContainer.getPreviousLabels();
-            if (labels.length === 0) {
-                labels = prev_labels;
-            }
+            var labels = labelContainer.getAllLabels();
             var labelCount = labels.length;
             var nOnboardingLabels = 7;
             if (labelCount > 0) {
-                if (svl.missionContainer.isTheFirstMission() && labelCount != nOnboardingLabels) {
+                if (svl.missionContainer.isTheFirstMission() && labelCount !== nOnboardingLabels) {
                     var title = i18next.t('popup.labels-disappear-title');
                     var message = i18next.t('popup.labels-disappear-body');
                     tracker.push('PopUpShow_GSVLabelDisappear');

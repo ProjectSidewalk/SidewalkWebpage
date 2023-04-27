@@ -1,12 +1,10 @@
 @import models.user.User
-@import models.region.RegionTable
 @import models.daos.slick._
 @import models.audit._
 @import models.label._
 @import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
-@import play.api.libs.json.Json
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @convertDistance(distance: Float) = @{
@@ -452,7 +450,12 @@
                                             <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="admin.filterLayers('incorrect')"></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                                            <td id="map-legend-notsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                                            <td>Not sure</td>
+                                            <td><input type="checkbox" value="displaylabel" id="notsure" checked="true" onclick="admin.filterLayers('notsure')"></td>
+                                        </tr>
+                                        <tr>
+                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
                                             <td>Unvalidated</td>
                                             <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="admin.filterLayers('unvalidated')"></td>
                                         </tr>
@@ -551,7 +554,6 @@
                                     <span>Average (surface problem): </span><span id="surface-mean"></span><br>
                                     <span>Average (no sidewalk): </span><span id="no-sidewalk-mean"></span><br>
                                     <span>Average (crosswalk): </span><span id="crosswalk-mean"></span><br>
-                                    <span>Average (pedestrian signal): </span><span id="signal-mean"></span><br>
                                     <span>Average (all label types): </span><span id="labels-mean"></span><br>
                                 </p>
                                 <p>
@@ -561,7 +563,6 @@
                                     <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
                                     <span>Standard Deviation (no sidewalk): </span><span id="no-sidewalk-std"></span><br>
                                     <span>Standard Deviation (crosswalk): </span><span id="crosswalk-std"></span><br>
-                                    <span>Standard Deviation (pedestrian signal): </span><span id="signal-std"></span><br>
                                     <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
                                 </p>
                             </div>
@@ -887,8 +888,6 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
@@ -899,11 +898,6 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesColor.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesPanomarker.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
@@ -980,8 +974,7 @@
                 lng: '@lang.code',
                 debug: false
             }, function(err, t) {
-                var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-                window.admin = Admin(_, $, difficultRegionIds);
+                window.admin = Admin(_, $);
                 $('#comments-table').dataTable();
                 $('#label-table').dataTable();
                 $('#user-table').dataTable();

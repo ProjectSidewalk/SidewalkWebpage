@@ -1,6 +1,7 @@
 package formats.json
 
 import controllers.helper.GoogleMapsHelper
+import models.gsv.GSVDataSlim
 import models.label.LabelTable.{LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata}
 import java.sql.Timestamp
 import models.label._
@@ -14,10 +15,6 @@ object LabelFormat {
       (__ \ "mission_id").write[Int] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
-      (__ \ "photographer_heading").write[Float] and
-      (__ \ "photographer_pitch").write[Float] and
-      (__ \ "panorama_lat").write[Float] and
-      (__ \ "panorama_lng").write[Float] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "time_created").write[Timestamp] and
@@ -30,7 +27,7 @@ object LabelFormat {
       (__ \ "severity").writeNullable[Int] and
       (__ \ "temporary").write[Boolean] and
       (__ \ "description").writeNullable[String]
-    )(unlift(Label.unapply _))
+    )(unlift(Label.unapply))
 
   implicit val labelCVMetadataWrite: Writes[LabelTable.LabelCVMetadata] = (
     (__ \ "label_id").write[Int] and
@@ -39,10 +36,10 @@ object LabelFormat {
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
       (__ \ "notsure_count").write[Int] and
-      (__ \ "image_width").writeNullable[Int] and
-      (__ \ "image_height").writeNullable[Int] and
-      (__ \ "sv_image_x").write[Int] and
-      (__ \ "sv_image_y").write[Int] and
+      (__ \ "pano_width").writeNullable[Int] and
+      (__ \ "pano_height").writeNullable[Int] and
+      (__ \ "pano_x").write[Int] and
+      (__ \ "pano_y").write[Int] and
       (__ \ "canvas_width").write[Int] and
       (__ \ "canvas_height").write[Int] and
       (__ \ "canvas_x").write[Int] and
@@ -50,33 +47,42 @@ object LabelFormat {
       (__ \ "zoom").write[Int] and
       (__ \ "heading").write[Float] and
       (__ \ "pitch").write[Float] and
-      (__ \ "photographer_heading").write[Float] and
-      (__ \ "photographer_pitch").write[Float]
-  )(unlift(LabelTable.LabelCVMetadata.unapply _))
+      (__ \ "camera_heading").write[Float] and
+      (__ \ "camera_pitch").write[Float]
+  )(unlift(LabelTable.LabelCVMetadata.unapply))
+
+  implicit val gsvDataSlimWrite: Writes[GSVDataSlim] = (
+    (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "width").writeNullable[Int] and
+      (__ \ "height").writeNullable[Int] and
+      (__ \ "lat").writeNullable[Float] and
+      (__ \ "lng").writeNullable[Float] and
+      (__ \ "camera_heading").writeNullable[Float] and
+      (__ \ "camera_pitch").writeNullable[Float]
+    )(unlift(GSVDataSlim.unapply))
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "label_type" -> labelMetadata.labelType,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
-      "image_date" -> labelMetadata.imageDate,
+      "image_capture_date" -> labelMetadata.imageCaptureDate,
       "label_timestamp" -> labelMetadata.timestamp,
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
       "zoom" -> labelMetadata.zoom,
       "canvas_x" -> labelMetadata.canvasX,
       "canvas_y" -> labelMetadata.canvasY,
-      "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight,
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
-      "correctness" -> labelMetadata.correct,
+      "correct" -> labelMetadata.correct,
+      "agree_count" -> labelMetadata.agreeCount,
+      "disagree_count" -> labelMetadata.disagreeCount,
+      "notsure_count" -> labelMetadata.notsureCount,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "agree" -> labelMetadata.agree,
-      "disagree" -> labelMetadata.disagree,
       "tags" -> labelMetadata.tags
     )
   }
@@ -86,14 +92,12 @@ object LabelFormat {
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
-      "image_date" -> labelMetadata.imageDate,
+      "image_capture_date" -> labelMetadata.imageCaptureDate,
       "heading" -> labelMetadata.headingPitchZoom._1,
       "pitch" -> labelMetadata.headingPitchZoom._2,
       "zoom" -> labelMetadata.headingPitchZoom._3,
       "canvas_x" -> labelMetadata.canvasXY._1,
       "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidthHeight._1,
-      "canvas_height" -> labelMetadata.canvasWidthHeight._2,
       "audit_task_id" -> labelMetadata.auditTaskId,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
@@ -119,14 +123,12 @@ object LabelFormat {
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
-      "image_date" -> labelMetadata.imageDate,
+      "image_capture_date" -> labelMetadata.imageCaptureDate,
       "heading" -> labelMetadata.headingPitchZoom._1,
       "pitch" -> labelMetadata.headingPitchZoom._2,
       "zoom" -> labelMetadata.headingPitchZoom._3,
       "canvas_x" -> labelMetadata.canvasXY._1,
       "canvas_y" -> labelMetadata.canvasXY._2,
-      "canvas_width" -> labelMetadata.canvasWidthHeight._1,
-      "canvas_height" -> labelMetadata.canvasWidthHeight._2,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
       "timestamp" -> labelMetadata.timestamp,
@@ -152,12 +154,10 @@ object LabelFormat {
       "zoom" -> label.zoom,
       "canvas_x" -> label.canvasX,
       "canvas_y" -> label.canvasY,
-      "canvas_width" -> label.canvasWidth,
-      "canvas_height" -> label.canvasHeight,
       "label_type" -> label.labelType,
       "time_validated" -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
-      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.canvasWidth, label.canvasHeight, label.heading, label.pitch, label.zoom)
+      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.heading, label.pitch, label.zoom)
     )
   }
 }
