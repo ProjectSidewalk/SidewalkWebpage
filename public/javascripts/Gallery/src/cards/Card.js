@@ -32,6 +32,8 @@ function Card (params, imageUrl, modal) {
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
+        correct: undefined,
+        has_validations: undefined,
         correctness: undefined,
         user_validation: undefined,
         tags: []
@@ -76,8 +78,9 @@ function Card (params, imageUrl, modal) {
         }
         properties.original_canvas_x = param.canvas_x;
         properties.original_canvas_y = param.canvas_y;
-        if (properties.correctness) properties.correctness = "correct";
-        else if (properties.correctness === false) properties.correctness = "incorrect";
+        if (properties.correct) properties.correctness = "correct";
+        else if (properties.correct === false) properties.correctness = "incorrect";
+        else if (properties.has_validations === true) properties.correctness = "not-sure";
         else properties.correctness = "unvalidated";
 
         // Place label icon.
