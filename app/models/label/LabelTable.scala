@@ -33,8 +33,8 @@ case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: 
 case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 
 case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String,
-                                     lat: Float, lng: Float, correct: Option[Boolean], expired: Boolean,
-                                     highQualityUser: Boolean, severity: Option[Int])
+                                     lat: Float, lng: Float, correct: Option[Boolean], hasValidations: Boolean,
+                                     expired: Boolean, highQualityUser: Boolean, severity: Option[Int])
 
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
@@ -160,14 +160,15 @@ object LabelTable {
                                      timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, severity: Option[Int], temporary: Boolean,
                                      description: Option[String], streetEdgeId: Int, regionId: Int,
-                                     correct: Option[Boolean], userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
+                                     correct: Option[Boolean], hasValidations: Boolean, userValidation: Option[Int],
+                                     tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageCaptureDate: String, timestamp: java.sql.Timestamp, heading: Float,
                                                 pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
                                                 severity: Option[Int], temporary: Boolean, description: Option[String],
                                                 streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
-                                                userValidation: Option[Int]) extends BasicLabelMetadata
+                                                hasValidations: Boolean, userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoLat: Option[Float],
                                  panoLng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float],
@@ -192,7 +193,7 @@ object LabelTable {
     LabelValidationMetadataWithoutTags(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
       r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextIntOption
+      r.nextBooleanOption, r.nextBoolean, r.nextIntOption
     )
   )
 
@@ -200,7 +201,8 @@ object LabelTable {
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
       r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextIntOption, r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+      r.nextBooleanOption, r.nextBoolean, r.nextIntOption,
+      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
 
@@ -208,7 +210,8 @@ object LabelTable {
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean, r.nextBoolean, r.nextIntOption))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat,
+      r.nextBooleanOption, r.nextBoolean, r.nextBoolean, r.nextBoolean, r.nextIntOption))
 
   implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
     ResumeLabelMetadata(
@@ -546,7 +549,9 @@ object LabelTable {
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
            |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
            |       label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
-           |       street_edge_region.region_id, label.correct, user_validation.validation_result, the_tags.tag_list
+           |       street_edge_region.region_id, label.correct,
+           |       label.agree_count > 0 OR label.disagree_count > 0 OR label.notsure_count > 0 AS has_validations,
+           |       user_validation.validation_result, the_tags.tag_list
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -632,22 +637,17 @@ object LabelTable {
    * @param n Number of labels to grab.
    * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
-   * @param valOptions Set of correctness values to filter for: correct, incorrect, and/or unvalidated.
+   * @param valOptions        Set of correctness values to filter for: correct, incorrect, notsure, and/or unvalidated.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
   def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Filter labels based on correctness.
-    val _labelsFilteredByCorrectness: Query[LabelTable, Label, Seq] =
-      if      (valOptions.isEmpty)                                 labels.filter(_.labelId === -1)
-      else if (valOptions.equals(Set("correct")))                  labels.filter(_.correct)
-      else if (valOptions.equals(Set("incorrect")))                labels.filter(!_.correct)
-      else if (valOptions.equals(Set("unvalidated")))              labels.filter(_.correct.isEmpty)
-      else if (valOptions.equals(Set("correct", "incorrect")))     labels.filter(_.correct.isDefined)
-      else if (valOptions.equals(Set("correct", "unvalidated")))   labels.filter(l => l.correct || l.correct.isEmpty)
-      else if (valOptions.equals(Set("incorrect", "unvalidated"))) labels.filter(l => !l.correct || l.correct.isEmpty)
-      else                                                         labels
+    val _l1 = if (!valOptions.contains("correct")) labels.filter(l => l.correct.isEmpty || !l.correct) else labels
+    val _l2 = if (!valOptions.contains("incorrect")) _l1.filter(l => l.correct.isEmpty || l.correct) else _l1
+    val _l3 = if (!valOptions.contains("notsure")) _l2.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.notsureCount === 0)) else _l2
+    val _labelsFilteredByCorrectness = if (!valOptions.contains("unvalidated")) _l3.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.notsureCount > 0) else _l3
 
     // Filter for labels with any of the given tags.
     val _labelsFilteredByTags = if (tags.nonEmpty) {
@@ -682,7 +682,8 @@ object LabelTable {
       (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.heading,
       l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._1.severity, l._1.temporary, l._1.description,
-      l._1.streetEdgeId, l._5.regionId, l._1.correct, v._2.?)
+      l._1.streetEdgeId, l._5.regionId, l._1.correct,
+      l._1.agreeCount > 0 || l._1.disagreeCount > 0 || l._1.notsureCount > 0, v._2.?)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
@@ -866,7 +867,7 @@ object LabelTable {
       LabelValidationMetadata(
         label.labelId, label.labelType, label.gsvPanoramaId, label.imageCaptureDate, label.timestamp, label.heading,
         label.pitch, label.zoom, label.canvasX, label.canvasY, label.severity, label.temporary, label.description,
-        label.streetEdgeId, label.regionId, label.correct, label.userValidation, tags
+        label.streetEdgeId, label.regionId, label.correct, label.hasValidations, label.userValidation, tags
       )
   }
 
@@ -944,9 +945,13 @@ object LabelTable {
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat.get, _lPoint.lng.get, _l.correct, _gsv.expired, _us.highQuality, _l.severity)
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.notsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
 
-    _labels.list.map(LabelLocationWithSeverity.tupled)
+    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
+    // error, which is why we couldn't use `.tupled` here. This was the error message:
+    // SlickException: Expected an option type, found Float/REAL
+    _labels.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, l._9, l._10, l._11))
   }
 
   /**

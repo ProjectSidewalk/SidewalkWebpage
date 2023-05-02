@@ -144,6 +144,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "label_type" -> label.labelType,
         "severity" -> label.severity,
         "correct" -> label.correct,
+        "has_validations" -> label.hasValidations,
         "expired" -> label.expired,
         "high_quality_user" -> label.highQualityUser
       )

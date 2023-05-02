@@ -24,7 +24,6 @@
                         <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider', map.map, map.mapData)"></td>
                         <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
                         <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
-
                     </tr>
                     <tr>
                         <td id="map-legend-no-curb-ramp"></td>
@@ -40,7 +39,8 @@
                         <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
                         <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
                     </tr>
-                    <tr><td id="map-legend-surface-problem"></td>
+                    <tr>
+                        <td id="map-legend-surface-problem"></td>
                         <td>@Messages("surface.problem")</td>
                         <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider', map.map, map.mapData)"></td>
                         <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
@@ -88,7 +88,12 @@
                         <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="filterLayers('incorrect', map.mapData)"></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                        <td id="map-legend-nosture"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                        <td>Not sure</td>
+                        <td><input type="checkbox" value="displaylabel" id="notsure" checked="true" onclick="filterLayers('notsure', map.mapData)"></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
                         <td>Unvalidated</td>
                         <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.mapData)"></td>
                     </tr>

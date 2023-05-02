@@ -6,5 +6,6 @@
     "not-sure": "No estoy de seguro",
     "correct": "Validada correcta",
     "incorrect": "Validada incorrecta",
+    "notsure": "$t(gallery:not-sure)",
     "unvalidated": "No validada"
 }

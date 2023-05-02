@@ -647,6 +647,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function _visitInstruction(state, listener) {
         if (state === getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
+            // Remove listeners that alter instruction z-index, and make sure z-index is higher than mini-map.
+            svl.ui.contextMenu.holder.off('mouseover mouseout');
+            uiOnboarding.messageHolder.css('z-index', 3);
         }
         blinkInterface(state);
 
