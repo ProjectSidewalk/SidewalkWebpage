@@ -76,7 +76,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .card-header {
-    padding: 5px 5px 3px 10px;
+    padding: 5px 5px 3px 7px;
     font-family: 'raleway-bold', sans-serif;
     font-size: 1vw;
 }
@@ -111,10 +111,10 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-severity {
     display: flex;
     align-items: center;
-    width: 40%; /* figure out a better way to set this severity/tag ratio */
+    width: 38%;
     height: 100%;
     flex-direction: row;
-    padding-left: 10px;
+    padding-left: 7px;
 }
 
 .label-severity-header {
@@ -133,7 +133,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-tags {
     display: flex;
     align-items: center;
-    width: 40%;
+    width: 42%;
     height: 100%;
     flex-direction: row;
     right: 0px;
@@ -169,7 +169,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     width: 20%; /* figure out a better way to set this severity/tag ratio */
     height: 100%;
     flex-direction: row;
-    padding: 0px 5px;
+    padding: 0px 2px;
 }
 
 .validation-info-content {
@@ -234,7 +234,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .modal-severity-content {
-    width: 50%;
+    width: 100%;
 }
 
 .severity-circle {
