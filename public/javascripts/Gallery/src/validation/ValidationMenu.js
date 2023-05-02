@@ -81,18 +81,43 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
         // Add onClick functions for the validation buttons.
         for (const [valKey, button] of Object.entries(validationButtons)) {
-            let validationOption = classToValidationOption[valKey];
-            button.click(function() {
-                if (currSelected !== valKey) {
-                    // Change the look of the card/expanded view to match the new validation.
-                    referenceCard.updateUserValidation(validationOption);
+            button.click(validateOnClick(valKey));
+        }
 
-                    // Actually submit the new validation.
-                    validateLabel(validationOption);
-                }
-            });
+        // Add onClick for the validation thumbs up/down buttons.
+        if (!onExpandedView) {
+            addValidationInfoOnClicks(refCard.validationInfoDisplay);
         }
         gsvImage.append(overlay);
+    }
+
+    /**
+     * OnClick function for validation buttons and thumbs up/down buttons.
+     * @param newValKey
+     * @returns {(function(*): void)|*}
+     */
+    function validateOnClick(newValKey) {
+        return function(e) {
+            if (currSelected !== newValKey) {
+                let validationOption = classToValidationOption[newValKey];
+
+                // Change the look of the card/expanded view to match the new validation.
+                referenceCard.updateUserValidation(validationOption);
+
+                // Actually submit the new validation.
+                _validateLabel(validationOption);
+            }
+        }
+    }
+
+    /**
+     * Add onClick functions for the thumbs up/down buttons.
+     *
+     * @param valInfoDisplay
+     */
+    function addValidationInfoOnClicks(valInfoDisplay) {
+        valInfoDisplay.agreeContainer.onclick = validateOnClick('validate-agree');
+        valInfoDisplay.disagreeContainer.onclick = validateOnClick('validate-disagree');
     }
 
     /**
@@ -154,7 +179,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @param action Validation result.
      * @private
      */
-    function validateLabel(action) {
+    function _validateLabel(action) {
         let actionStr = onExpandedView ? 'Validate_ExpandedMenuClick' + action : 'Validate_MenuClick' + action;
         sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
         let validationTimestamp = new Date().getTime();
@@ -251,6 +276,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     self.updateReferenceCard = updateReferenceCard;
     self.showValidationOnCard = showValidationOnCard;
     self.showValidationOnExpandedView = showValidationOnExpandedView;
+    self.addModalValInfoOnClicks = addValidationInfoOnClicks;
 
     _init();
     return self;

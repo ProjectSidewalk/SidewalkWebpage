@@ -152,13 +152,14 @@ function Modal(uiModal) {
             function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
-            function () { return properties['label_id']; }
+            function() { return properties['label_id']; }
         );
 
         // Add severity, validation info, and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
         self.validationInfoDisplay = new ValidationInfoDisplay(self.validation_info, properties.validation_counts['Agree'], properties.validation_counts['Disagree'], true);
         new TagDisplay(self.tags, properties.tags, true);
+        self.validationMenu.addModalValInfoOnClicks(self.validationInfoDisplay);
 
         // Add the information about the temporary property to the Modal.
         let temporaryHeader = document.createElement('div');

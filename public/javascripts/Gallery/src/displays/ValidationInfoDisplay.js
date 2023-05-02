@@ -18,10 +18,10 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, isModal=fal
         let holder = document.createElement('div');
         holder.className = 'validation-info-content';
 
-        let agreeContainer = document.createElement('div');
-        let disagreeContainer = document.createElement('div');
-        agreeContainer.className = 'validation-section-content';
-        disagreeContainer.className = 'validation-section-content';
+        self.agreeContainer = document.createElement('div');
+        self.disagreeContainer = document.createElement('div');
+        self.agreeContainer.className = 'validation-section-content';
+        self.disagreeContainer.className = 'validation-section-content';
 
         self.agreeText = document.createElement('div');
         self.disagreeText = document.createElement('div');
@@ -51,22 +51,22 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, isModal=fal
         disagreeCountContainer.append(self.disagreeText);
 
         // Add tooltip labels
-        agreeContainer.setAttribute('data-toggle', 'tooltip');
-        agreeContainer.setAttribute('data-placement', 'top');
-        agreeContainer.setAttribute('title', `${i18next.t("gallery:agree")}`);
-        $(agreeContainer).tooltip('hide');
+        self.agreeContainer.setAttribute('data-toggle', 'tooltip');
+        self.agreeContainer.setAttribute('data-placement', 'top');
+        self.agreeContainer.setAttribute('title', `${i18next.t("gallery:agree")}`);
+        $(self.agreeContainer).tooltip('hide');
 
-        disagreeContainer.setAttribute('data-toggle', 'tooltip');
-        disagreeContainer.setAttribute('data-placement', 'top');
-        disagreeContainer.setAttribute('title', `${i18next.t("gallery:disagree")}`);
-        $(disagreeContainer).tooltip('hide');
+        self.disagreeContainer.setAttribute('data-toggle', 'tooltip');
+        self.disagreeContainer.setAttribute('data-placement', 'top');
+        self.disagreeContainer.setAttribute('title', `${i18next.t("gallery:disagree")}`);
+        $(self.disagreeContainer).tooltip('hide');
 
         // Add all the severity circles to the DOM.
-        agreeContainer.append(agreeCountContainer);
-        disagreeContainer.append(disagreeCountContainer);
+        self.agreeContainer.append(agreeCountContainer);
+        self.disagreeContainer.append(disagreeCountContainer);
 
-        holder.append(agreeContainer);
-        holder.append(disagreeContainer);
+        holder.append(self.agreeContainer);
+        holder.append(self.disagreeContainer);
 
         container.append(holder);
     }
