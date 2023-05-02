@@ -158,7 +158,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -375,7 +375,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -606,7 +606,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('no-curb-ramp')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:no-curb-ramp')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -938,7 +938,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -1122,7 +1122,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -1299,7 +1299,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
                 "parameters": null
             },
             "panoId": panoId,
@@ -1802,7 +1802,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('curb-ramp')}),
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
                 "parameters": null
             },
             "panoId": panoId,
