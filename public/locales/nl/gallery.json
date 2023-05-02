@@ -1,11 +1,7 @@
 {
     "not-applicable": "niet toepasbaar",
     "none": "geen",
-    "agree": "Eens",
-    "disagree": "Oneens",
-    "not-sure": "Niet zeker",
     "correct": "Gevalideerd juist",
     "incorrect": "Gevalideerd onjuist",
-    "notsure": "$t(gallery:not-sure)",
     "unvalidated": "Niet gevalideerd"
 }

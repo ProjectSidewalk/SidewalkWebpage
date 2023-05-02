@@ -1,4 +1,5 @@
 measurement.system = metric
+label.type = Tipo de etiqueta
 legend = Leyenda
 severity = Gravedad
 curb.ramp = Rampa peatonal
@@ -19,6 +20,7 @@ unvalidated = no validado
 audit.street = Calle auditada
 unaudit.street = Calle no auditada
 other = Otro
+not.sure = No Estoy de seguro
 validations = Validaciones
 labels = etiquetas
 label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
@@ -217,7 +219,6 @@ validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
 validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
-validate.mission.complete.not.sure = No Estoy de seguro
 validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
@@ -283,10 +284,8 @@ dashboard.edit.org = Editar
 dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> con el nombre y la descripción de su organización.
 dashboard.orgs.unavailable = ¡No hay organizaciones disponibles!
 dashboard.leave.org = Salir la Organización
-dashboard.audited.street = Calle auditada
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
-dashboard.label.type = Tipo de etiqueta
 dashboard.number.of.labels = Número de etiquetas
 dashboard.missions = Misiones
 dashboard.your.missions = Tus misiones
@@ -336,9 +335,7 @@ leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard
 gallery = Galería
 gallery.show = Mostrar
 gallery.filter.by = Filtrar por
-gallery.severity = Calificación
 gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
-gallery.occlusion = No puedo ver la banqueta
 gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados

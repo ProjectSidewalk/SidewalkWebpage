@@ -29,21 +29,21 @@ function AdminGSVLabelView(admin) {
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
                                     '<button id="validation-agree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('labelmap:agree') +
+                                        i18next.t('common:agree') +
                                     '</button>' +
                                     '<button id="validation-disagree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('labelmap:disagree') +
+                                        i18next.t('common:disagree') +
                                     '</button>' +
                                     '<button id="validation-not-sure-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('labelmap:not-sure') +
+                                        i18next.t('common:not-sure') +
                                     '</button>' +
                                 '</div>' +
                                 '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                     `<textarea id="comment-textarea" placeholder="${i18next.t('labelmap:add-comment')}" class="validation-comment-box"></textarea>` +
                                     `<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="${i18next.t('labelmap:comment-submitted')}" data-trigger="manual">` +
-                                        i18next.t('labelmap:submit') +
+                                        i18next.t('common:submit') +
                                     '</button>' +
                                 '</div>' +
                             '</div>' +
@@ -289,9 +289,9 @@ function AdminGSVLabelView(admin) {
      */
     function _setValidationCountText() {
         // Form new string for validations row.
-        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t("labelmap:agree") +', ' +
-            self.validationCounts['Disagree'] + ' ' + i18next.t("labelmap:disagree") + ', ' +
-            self.validationCounts['NotSure'] + ' ' + i18next.t("labelmap:not-sure");
+        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t("common:agree") +', ' +
+            self.validationCounts['Disagree'] + ' ' + i18next.t("common:disagree") + ', ' +
+            self.validationCounts['NotSure'] + ' ' + i18next.t("common:not-sure");
 
         self.modalValidations.html(validationsTextAfter)
     }

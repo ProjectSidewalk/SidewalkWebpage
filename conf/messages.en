@@ -1,4 +1,5 @@
 measurement.system = metric
+label.type = Label Type
 legend = Legend
 severity = Severity
 curb.ramp = Curb Ramp
@@ -19,6 +20,7 @@ unvalidated = Unvalidated
 audit.street = Audited Street
 unaudit.street = Unaudited Street
 other = Other
+not.sure = Not Sure
 validations = Validations
 labels = labels
 label.icon.alt = Minimalist map icon with large destination marker
@@ -217,7 +219,6 @@ validate.right.ui.incorrect.examples = <strong>Incorrect</strong> Examples
 validate.mission.complete.category = Category
 validate.mission.complete.agree = Agree
 validate.mission.complete.disagree = Disagree
-validate.mission.complete.not.sure = Not Sure
 validate.mission.complete.your.overall.total = Your Overall Total
 
 
@@ -284,10 +285,8 @@ dashboard.edit.org = Edit
 dashboard.edit.info = If you don''t see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
 dashboard.orgs.unavailable = There are no available organizations!
 dashboard.leave.org = Leave Organization
-dashboard.audited.street = Audited Street
 dashboard.total.distance.explored = Total Distance Explored
 dashboard.number.completed.missions = Number of Completed Missions
-dashboard.label.type = Label Type
 dashboard.number.of.labels = Number of Labels
 dashboard.missions = Missions
 dashboard.your.missions = Your missions
@@ -338,9 +337,7 @@ leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard">
 gallery = Gallery
 gallery.show = Show
 gallery.filter.by = Filter By
-gallery.severity = Severity
 gallery.tags = Tags
 gallery.all = All Label Types
-gallery.occlusion = Can''t See Sidewalk
 gallery.labels.not.found = No matches. <a href="/audit">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters

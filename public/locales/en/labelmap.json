@@ -1,9 +1,6 @@
 {
     "is-correct": "Is this label correct?",
     "explore-street-link": "Click here</a> to explore this street!",
-    "agree": "Agree",
-    "disagree": "Disagree",
-    "not-sure": "Not Sure",
     "label-type": "Label Type",
     "validations": "Validations",
     "add-comment": "Add comment here...",
