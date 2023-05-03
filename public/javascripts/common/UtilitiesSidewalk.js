@@ -198,7 +198,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
                     },
                     'pedestrian arcade': {
-                        keyChar: 'P',
+                        keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.pedestrian-arcade')
                     }
                 }
@@ -256,11 +256,11 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     },
                     'painted sidewalk': {
-                        keyChar: 'P',
+                        keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.painted-sidewalk')
                     },
                     'utility panel': {
-                        keyChar: 'N',
+                        keyChar: 'X',
                         text: i18next.t('center-ui.context-menu.tag.utility-panel')
                     }
                 }
@@ -332,7 +332,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk')
                     },
                     'too close to traffic': {
-                        keyChar: 'C',
+                        keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.too-close-to-traffic')
                     }
                 }
