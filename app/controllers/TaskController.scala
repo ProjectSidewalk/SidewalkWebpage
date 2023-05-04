@@ -328,6 +328,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
               point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
 
+            // Add any added tags to the label_tag table.
+            val labelTagIds: Set[Int] = label.tagIds.toSet
+            labelTagIds.map { tagId => LabelTagTable.save(LabelTag(0, newLabelId, tagId)) }
+
             newLabels += ((newLabelId, timeCreated))
             newLabelId
         }
