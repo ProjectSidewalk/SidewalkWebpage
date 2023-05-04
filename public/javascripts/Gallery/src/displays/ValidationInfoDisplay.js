@@ -50,7 +50,7 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, isModal=fal
         agreeCountContainer.append(self.agreeText);
         disagreeCountContainer.append(self.disagreeText);
 
-        // Add tooltip labels
+        // Add tooltip labels.
         self.agreeContainer.setAttribute('data-toggle', 'tooltip');
         self.agreeContainer.setAttribute('data-placement', 'top');
         self.agreeContainer.setAttribute('title', `${i18next.t("common:agree")}`);

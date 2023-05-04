@@ -170,7 +170,6 @@ with respect to the image holder. This allows the validation menu to be placed o
     height: 100%;
     flex-direction: row;
     padding-left: 5px;
-    /*padding: 0px 2px;*/
 }
 
 .validation-info-content {
