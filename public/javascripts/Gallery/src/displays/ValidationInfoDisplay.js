@@ -53,12 +53,12 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, isModal=fal
         // Add tooltip labels
         self.agreeContainer.setAttribute('data-toggle', 'tooltip');
         self.agreeContainer.setAttribute('data-placement', 'top');
-        self.agreeContainer.setAttribute('title', `${i18next.t("gallery:agree")}`);
+        self.agreeContainer.setAttribute('title', `${i18next.t("common:agree")}`);
         $(self.agreeContainer).tooltip('hide');
 
         self.disagreeContainer.setAttribute('data-toggle', 'tooltip');
         self.disagreeContainer.setAttribute('data-placement', 'top');
-        self.disagreeContainer.setAttribute('title', `${i18next.t("gallery:disagree")}`);
+        self.disagreeContainer.setAttribute('title', `${i18next.t("common:disagree")}`);
         $(self.disagreeContainer).tooltip('hide');
 
         // Add all the severity circles to the DOM.
