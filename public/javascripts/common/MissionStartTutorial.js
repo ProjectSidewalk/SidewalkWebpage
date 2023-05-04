@@ -44,12 +44,12 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
         'CurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': labelCount, 'labelType': i18next.t('validate:curb-ramp-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('common:curb-ramp')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
                     'slideTitle': i18next.t('validate:mission-start-tutorial.curb-ramp.slide-1.title',
-                        {'labelType': i18next.t('validate:curb-ramp-caps')}),
+                        {'labelType': i18next.t('common:curb-ramp')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('validate:mission-start-tutorial.curb-ramp.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/curbramp-correct-1.png',
@@ -91,12 +91,12 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
         'NoCurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': labelCount, 'labelType': i18next.t('validate:missing-curb-ramp-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('common:no-curb-ramp')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
                     'slideTitle': i18next.t('validate:mission-start-tutorial.no-curb-ramp.slide-1.title',
-                        {'labelType': i18next.t('validate:missing-curb-ramp-caps')}),
+                        {'labelType': i18next.t('common:no-curb-ramp')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('validate:mission-start-tutorial.no-curb-ramp.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/no-curbramp-correct-1.png',
@@ -151,12 +151,12 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
         'Obstacle': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': labelCount, 'labelType': i18next.t('validate:obstacle-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('common:obstacle')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
                     'slideTitle': i18next.t('validate:mission-start-tutorial.obstacle.slide-1.title',
-                        {'labelType': i18next.t('validate:obstacle-caps')}),
+                        {'labelType': i18next.t('common:obstacle')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('validate:mission-start-tutorial.obstacle.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/obstacle-correct-1.png',
@@ -211,12 +211,12 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
         'SurfaceProblem': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': labelCount, 'labelType': i18next.t('validate:surface-problem-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('common:surface-problem')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
                     'slideTitle': i18next.t('validate:mission-start-tutorial.surface-problem.slide-1.title',
-                        {'labelType': i18next.t('validate:surface-problem-caps')}),
+                        {'labelType': i18next.t('common:surface-problem')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('validate:mission-start-tutorial.surface-problem.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/surface-problem-correct-1.png',
@@ -258,12 +258,12 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
         'NoSideWalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': labelCount, 'labelType': i18next.t('validate:no-sidewalk-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('common:no-sidewalk')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
                     'slideTitle': i18next.t('validate:mission-start-tutorial.no-sidewalk.slide-1.title',
-                        {'labelType': i18next.t('validate:no-sidewalk-caps')}),
+                        {'labelType': i18next.t('common:no-sidewalk')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('validate:mission-start-tutorial.no-sidewalk.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/no-sidewalk-correct-1.png',
@@ -305,12 +305,12 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
         'Crosswalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': labelCount, 'labelType': i18next.t('validate:crosswalk-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('common:crosswalk')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
                     'slideTitle': i18next.t('validate:mission-start-tutorial.crosswalk.slide-1.title',
-                        {'labelType': i18next.t('validate:crosswalk-caps')}),
+                        {'labelType': i18next.t('common:crosswalk')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('validate:mission-start-tutorial.crosswalk.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/crosswalk-correct-1.png',
@@ -365,12 +365,12 @@ function MissionStartTutorial(missionType, labelType, labelCount, svv) {
         'Signal': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': labelCount, 'labelType': i18next.t('validate:signal-caps')}),
+                {'nLabels': labelCount, 'labelType': i18next.t('common:signal')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
                     'slideTitle': i18next.t('validate:mission-start-tutorial.signal.slide-1.title',
-                        {'labelType': i18next.t('validate:signal-caps')}),
+                        {'labelType': i18next.t('common:signal')}),
                     'slideSubtitle': '',
                     'slideDescription': i18next.t('validate:mission-start-tutorial.signal.slide-1.description'),
                     'imageURL': 'assets/images/tutorials/signal-correct-1.png',

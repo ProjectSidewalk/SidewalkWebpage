@@ -1,4 +1,7 @@
 measurement.system = metric
+label.type = Tipo de etiqueta
+legend = Leyenda
+severity = Gravedad
 curb.ramp = Rampa peatonal
 curb.ramps = Rampas peatonales
 missing.ramp = Rampa peatonal ausente
@@ -10,7 +13,15 @@ surface.problems = Problemas en superficie
 no.sidewalk = No hay banqueta
 crosswalk = Cruce peatonal
 signal = Semáforo peatonal
+occlusion = No puedo ver la banqueta
 other = Otro
+validated.correct = Validado correcto
+validated.incorrect = Validado incorrecto
+unvalidated = No Validado
+audited.street = Calle auditada
+unaudited.street = Calle no auditada
+not.sure = No Estoy de seguro
+not.applicable.abbr = N/A
 validations = Validaciones
 labels = etiquetas
 label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
@@ -34,7 +45,7 @@ dont.show.again = No mostrar de nuevo
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
-feedback.submitted = Comentarios Enviados
+feedback.submitted = Comentarios enviados
 
 navbar.explore = Comienza a explorar
 navbar.validate = Comienza a validar
@@ -209,7 +220,6 @@ validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
 validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
-validate.mission.complete.not.sure = No Estoy de seguro
 validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
@@ -275,10 +285,8 @@ dashboard.edit.org = Editar
 dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> con el nombre y la descripción de su organización.
 dashboard.orgs.unavailable = ¡No hay organizaciones disponibles!
 dashboard.leave.org = Salir la Organización
-dashboard.audited.street = Calle auditada
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
-dashboard.label.type = Tipo de etiqueta
 dashboard.number.of.labels = Número de etiquetas
 dashboard.missions = Misiones
 dashboard.your.missions = Tus misiones
@@ -328,9 +336,7 @@ leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard
 gallery = Galería
 gallery.show = Mostrar
 gallery.filter.by = Filtrar por
-gallery.severity = Calificación
 gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
-gallery.occlusion = No puedo ver la banqueta
 gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados

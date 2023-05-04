@@ -46,15 +46,15 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
     const cardOverlayHTML = `
         <div id="gallery-validation-button-holder">
-            <button id="gallery-card-agree-button" class="validation-button">${i18next.t('gallery:agree')}</button>
-            <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('gallery:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('gallery:not-sure')}</button>
+            <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
+            <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
+            <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('common:not-sure')}</button>
         </div>`;
     const modalOverlayHTML = `
         <div id="gallery-validation-button-holder">
-            <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('gallery:agree')}</button>
-            <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('gallery:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('gallery:not-sure')}</button>
+            <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('common:agree')}</button>
+            <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('common:disagree')}</button>
+            <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('common:not-sure')}</button>
         </div>`;
     let overlay = $(cardOverlayHTML);
 

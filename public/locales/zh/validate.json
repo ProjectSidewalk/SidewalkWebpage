@@ -1,11 +1,4 @@
 {
-  "curb-ramp-caps": "路緣斜坡",
-  "missing-curb-ramp-caps": "無路緣斜坡",
-  "obstacle-caps": "障礙物",
-  "surface-problem-caps": "鋪面問題",
-  "no-sidewalk-caps": "無人行道",
-  "crosswalk-caps": "行人穿越道",
-  "signal-caps": "行人號誌",
   "user-description": "使用者描述： ",
   "temporary": "暫時的",
   "top-ui": {
@@ -184,7 +177,7 @@
         "description": "路緣斜坡不需設置於<b>非</b>行人通行之路徑"
       },
       "slide-4": {
-        "title": "$t(no-sidewalk-caps)",
+        "title": "$t(common:no-sidewalk)",
         "description": "<b>無人行道</b>情況應標記為無人行道而非無路緣斜坡。"
       }
     },
