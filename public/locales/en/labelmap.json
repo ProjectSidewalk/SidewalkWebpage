@@ -1,9 +1,9 @@
 {
     "is-correct": "Is this label correct?",
-    "explore-street-link": "Click here</a> to explore this street!",
+    "explore-street-link": "<a href=\"/audit/street/{{streetId}}\">Click here</a> to explore this street!",
     "label-type": "Label Type",
     "validations": "Validations",
     "add-comment": "Add comment here...",
-    "submit": "Submit comment",
+    "submit-comment": "Submit comment",
     "comment-submitted" : "Comment Submitted"
 }

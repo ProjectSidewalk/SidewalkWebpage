@@ -3,5 +3,6 @@
     "none": "geen",
     "correct": "Gevalideerd juist",
     "incorrect": "Gevalideerd onjuist",
+    "notsure": "$t(common:not-sure)",
     "unvalidated": "Niet gevalideerd"
 }

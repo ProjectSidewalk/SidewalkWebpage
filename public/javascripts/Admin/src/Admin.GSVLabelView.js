@@ -43,7 +43,7 @@ function AdminGSVLabelView(admin) {
                                 '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
                                     `<textarea id="comment-textarea" placeholder="${i18next.t('labelmap:add-comment')}" class="validation-comment-box"></textarea>` +
                                     `<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="${i18next.t('labelmap:comment-submitted')}" data-trigger="manual">` +
-                                        i18next.t('common:submit') +
+                                        i18next.t('labelmap:submit-comment') +
                                     '</button>' +
                                 '</div>' +
                             '</div>' +
@@ -85,7 +85,7 @@ function AdminGSVLabelView(admin) {
                                         '<td id="pano-id" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        `<th>${i18next.t('common:gsv-info.google-view')}</th>` +
+                                        `<th>${i18next.t('common:gsv-info.google-street-view')}</th>` +
                                         '<td id="view-in-gsv" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -289,9 +289,9 @@ function AdminGSVLabelView(admin) {
      */
     function _setValidationCountText() {
         // Form new string for validations row.
-        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t("common:agree") +', ' +
-            self.validationCounts['Disagree'] + ' ' + i18next.t("common:disagree") + ', ' +
-            self.validationCounts['NotSure'] + ' ' + i18next.t("common:not-sure");
+        var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t('common:agree') + ', ' +
+            self.validationCounts['Disagree'] + ' ' + i18next.t('common:disagree') + ', ' +
+            self.validationCounts['NotSure'] + ' ' + i18next.t('common:not-sure');
 
         self.modalValidations.html(validationsTextAfter)
     }
@@ -422,7 +422,7 @@ function AdminGSVLabelView(admin) {
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.
-        const translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag}`));
+        var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");

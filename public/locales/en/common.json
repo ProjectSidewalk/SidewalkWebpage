@@ -8,12 +8,11 @@
   "agree": "Agree",
   "disagree": "Disagree",
   "not-sure": "Not Sure",
-  "submit": "Submit",
   "curb-ramp": "Curb Ramp",
   "no-curb-ramp": "Missing Curb Ramp",
   "obstacle": "Obstacle in Path",
   "surface-problem": "Surface Problem",
-  "occlusion": "Can't See Sidewalk",
+  "occlusion": "Can't See the Sidewalk",
   "no-sidewalk": "No Sidewalk",
   "crosswalk": "Crosswalk",
   "signal": "Pedestrian Signal",
@@ -38,9 +37,9 @@
     "percent-complete": "{{percent}}% Complete"
   },
   "errors": {
+    "title": "Oops, our fault but there is no longer imagery available for this label.",
     "explanation": "We use the Google Maps API to show the sidewalk images and sometimes Google removes these images so we can no longer access them. Sorry about that.",
     "google-connect-error": "We had trouble connecting to Google Street View, please try again later!",
-    "error": "Oops, our fault but there is no longer imagery available for this label.",
     "explore-street": "Explore the street</a> again to use Google's newer images!"
   },
   "severity": "Severity",
@@ -115,7 +114,7 @@
     "longitude": "Longitude",
     "panorama-id": "Panorama ID",
     "street-id": "Street ID",
-    "google-view": "Google Street View",
+    "google-street-view": "Google Street View",
     "region-id": "Region ID",
     "label-id": "Label ID",
     "view-in-gsv": "View in Google Street View",

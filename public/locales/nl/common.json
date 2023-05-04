@@ -17,7 +17,6 @@
   "agree": "Mee eens zijn",
   "disagree": "Het oneens zijn",
   "not-sure": "Niet zeker",
-  "submit": "Verzenden",
   "missing-sidewalks": "Ontbrekende trottoirs",
   "missing-ramps": "Ontbrekende Opritten",
   "surface-problems": "Oppervlakte problemen",
@@ -38,9 +37,9 @@
     "percent-complete": "{{percent}}% Voltooid"
   },
   "errors": {
+    "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
     "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
     "google-connect-error": "We hadden problemen met het verbinden met Google Street View, probeer het later opnieuw!",
-    "error": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
     "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
   },
   "severity": "Ernst",
@@ -114,7 +113,7 @@
     "latitude": "Breedtegraad",
     "longitude": "Lengtegraad",
     "panorama-id": "Panorama-ID",
-    "google-view": "Google Street View",
+    "google-street-view": "Google Street View",
     "street-id": "Straat-ID",
     "region-id": "Regio-ID",
     "label-id": "Etiket-ID",

@@ -50,14 +50,13 @@
             height: '60vh'
         })[0];
 
-        self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.error')}</div>`).css({
+        self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.title')}</div>`).css({
             'font-size': '200%',
             'padding-bottom': '15px'
         })[0];
 
         self.panoNotAvailableDetails =
-            $("<div id='pano-not-avail-2'>" + i18next.t('common:errors.explanation1') +
-                i18next.t('common:errors.explanation2') +"</div>").css({
+            $(`<div id='pano-not-avail-2'>${i18next.t('common:errors.explanation')}</div>`).css({
             'font-size': '85%',
             'padding-bottom': '15px'
         })[0];
@@ -135,7 +134,7 @@
                     $(self.panoNotAvailableDetails).css('display', 'none');
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
                     $(self.svHolder).css('height', '');
-                    $(self.panoNotAvailable).text(i18next.t("common:errors.error"));
+                    $(self.panoNotAvailable).text(i18next.t("common:errors.title"));
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');

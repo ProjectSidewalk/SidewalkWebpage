@@ -5,12 +5,12 @@
     "surface-problem": "surface problem",
     "no-sidewalk": "no sidewalk",
     "other": "other",
-    "others": "others",
     "curb-ramps": "curb ramps",
     "missing-curb-ramps": "missing curb ramps",
     "obstacles": "obstacles",
     "surface-problems": "surface problems",
     "no-sidewalks": "no sidewalks",
+    "others": "others",
     "tutorial": {
         "mission-message": "Complete the onboarding tutorial!",
         "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",

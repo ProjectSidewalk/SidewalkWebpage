@@ -10,6 +10,7 @@
     "obstacles": "obstakels",
     "surface-problems": "oppervlakte problemen",
     "no-sidewalks": "geen trottoirs",
+    "others": "anders",
     "tutorial": {
         "mission-message": "Voltooi de onboarding tutorial!",
         "select-label-type-1": "In deze Street View foto hebben we een pijl getekend naar een trottoir oprit. Laten we het labelen. Klik op de knipperende <span class=\"bold\">\"trottoir oprit\" knop</span> bovenaan.",

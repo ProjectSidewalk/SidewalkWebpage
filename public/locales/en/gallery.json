@@ -3,5 +3,6 @@
     "none": "none",
     "correct": "Validated correct",
     "incorrect": "Validated incorrect",
+    "notsure": "Not sure",
     "unvalidated": "Unvalidated"
 }

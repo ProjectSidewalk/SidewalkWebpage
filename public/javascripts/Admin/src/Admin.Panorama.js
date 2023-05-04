@@ -53,7 +53,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             height: self.svHolder.height()
         })[0];
 
-        self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.error')}</div>`).css({
+        self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.title')}</div>`).css({
             'font-size': '200%',
             'padding-bottom': '15px'
         })[0];
@@ -161,7 +161,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     if (self.label) renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
                     $(self.svHolder).css('height', '');
-                    $(self.panoNotAvailable).text(i18next.t("common:errors.error"));
+                    $(self.panoNotAvailable).text(i18next.t("common:errors.title"));
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');

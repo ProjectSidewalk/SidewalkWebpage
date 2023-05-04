@@ -17,7 +17,6 @@
   "agree": "同意",
   "disagree": "不同意",
   "not-sure": "没有把握",
-  "submit": "提交",
   "missing-sidewalks": "無人行道",
   "missing-ramps": "無路緣斜坡",
   "surface-problems": "鋪面問題",
@@ -38,9 +37,9 @@
     "percent-complete": "{{percent}}%完成"
   },
   "errors": {
+    "title": "糟糕，我们的错，但此标签不再有可用的图像。",
     "explanation": "我们使用 Google Maps API 来显示人行道图像，有时 Google 会删除这些图像，因此我们无法再访问它们。 对于那个很抱歉。",
     "google-connect-error": "我们无法连接到 Google 街景，请稍后重试！",
-    "error": "糟糕，我们的错，但此标签不再有可用的图像。",
     "explore-street": "探索街道</a> 再次使用谷歌的新图片！"
   },
   "severity": "品質評分",
@@ -114,7 +113,7 @@
     "latitude": "緯度",
     "longitude": "經度",
     "panorama-id": "全景圖編號",
-    "google-view": "谷歌街景",
+    "google-street-view": "谷歌街景",
     "street-id": "街道編號",
     "region-id": "區域編號",
     "label-id": "標籤編號",

@@ -10,6 +10,7 @@
     "obstacles": "obstáculos",
     "surface-problems": "problemas en superficie",
     "no-sidewalks": "no hay banquetas",
+    "others": "otros",
     "tutorial": {
         "mission-message": "¡Completar el tutorial introductorio!",
         "select-label-type-1": "En esta imagen de Google Street View, hemos dibujado una flecha hacia una rampa peatonal. Vamos a etiquetarla. Da clic en el <span class=\"bold\">botón parpadeante \"Rampa peatonal\"</span> ubicado en la parte superior.",
