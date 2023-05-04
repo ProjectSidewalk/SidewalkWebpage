@@ -551,7 +551,7 @@ object LabelTable {
            |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
            |       label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
            |       street_edge_region.region_id, label.correct, label.agree_count, label.disagree_count,
-           |       label.notsure_count user_validation.validation_result, the_tags.tag_list
+           |       label.notsure_count, user_validation.validation_result, the_tags.tag_list
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -599,8 +599,8 @@ object LabelTable {
            |        WHERE user_id = '$userIdStr'
            |    )
            |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
-           |-- the labeler has fewer than 50 of their labels validated. Another 50 points if the labeler was marked as
-           |-- high quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
+           |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
+           |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
            |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
            |-- number so that the max score for each label is 276.
            |ORDER BY COALESCE(needs_validations,  100) +
