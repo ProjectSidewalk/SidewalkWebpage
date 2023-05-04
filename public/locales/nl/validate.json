@@ -1,11 +1,4 @@
 {
-  "curb-ramp-caps": "Trottoir Oprit",
-  "missing-curb-ramp-caps": "Ontbrekende Trottoir Oprit",
-  "obstacle-caps": "Obstakel",
-  "surface-problem-caps": "Oppervlakte probleem",
-  "no-sidewalk-caps": "Geen Trottoir",
-  "crosswalk-caps": "Oversteekplaats",
-  "signal-caps": "Verkeerslicht",
   "user-description": "Beschrijving van gebruiker: ",
   "temporary": "Tijdelijk",
   "top-ui": {
@@ -184,7 +177,7 @@
         "description": "Opritten voor stoepranden zijn niet nodig op paden die <b>niet</b> bedoeld zijn voor voetgangers."
       },
       "slide-4": {
-        "title": "$t(no-sidewalk-caps)",
+        "title": "$t(common:no-sidewalk)",
         "description": "Voor hoeken zonder <b>geen trottoirs</b> gebruikt u het label Geen stoep in plaats van het label Ontbrekende oprit."
       }
     },

@@ -103,55 +103,55 @@
                                     <th>@LabelTable.countPastWeekLabels</th>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Curb Ramp</td>
+                                    <td style="padding-left: 30px">@Messages("curb.ramp")</td>
                                     <td>@LabelTable.countLabels("CurbRamp")</td>
                                     <td>@LabelTable.countTodayLabels("CurbRamp")</td>
                                     <td>@LabelTable.countPastWeekLabels("CurbRamp")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Missing Curb Ramp</td>
+                                    <td style="padding-left: 30px">@Messages("missing.ramp")</td>
                                     <td>@LabelTable.countLabels("NoCurbRamp")</td>
                                     <td>@LabelTable.countTodayLabels("NoCurbRamp")</td>
                                     <td>@LabelTable.countPastWeekLabels("NoCurbRamp")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Obstacle in Path</td>
+                                    <td style="padding-left: 30px">@Messages("obstacle")</td>
                                     <td>@LabelTable.countLabels("Obstacle")</td>
                                     <td>@LabelTable.countTodayLabels("Obstacle")</td>
                                     <td>@LabelTable.countPastWeekLabels("Obstacle")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Surface Problem</td>
+                                    <td style="padding-left: 30px">@Messages("surface.problem")</td>
                                     <td>@LabelTable.countLabels("SurfaceProblem")</td>
                                     <td>@LabelTable.countTodayLabels("SurfaceProblem")</td>
                                     <td>@LabelTable.countPastWeekLabels("SurfaceProblem")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">No Sidewalk</td>
+                                    <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
                                     <td>@LabelTable.countLabels("NoSidewalk")</td>
                                     <td>@LabelTable.countTodayLabels("NoSidewalk")</td>
                                     <td>@LabelTable.countPastWeekLabels("NoSidewalk")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Crosswalk</td>
+                                    <td style="padding-left: 30px">@Messages("crosswalk")</td>
                                     <td>@LabelTable.countLabels("Crosswalk")</td>
                                     <td>@LabelTable.countTodayLabels("Crosswalk")</td>
                                     <td>@LabelTable.countPastWeekLabels("Crosswalk")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Pedestrian Signal</td>
+                                    <td style="padding-left: 30px">@Messages("signal")</td>
                                     <td>@LabelTable.countLabels("Signal")</td>
                                     <td>@LabelTable.countTodayLabels("Signal")</td>
                                     <td>@LabelTable.countPastWeekLabels("Signal")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Other</td>
+                                    <td style="padding-left: 30px">@Messages("other")</td>
                                     <td>@LabelTable.countLabels("Other")</td>
                                     <td>@LabelTable.countTodayLabels("Other")</td>
                                     <td>@LabelTable.countPastWeekLabels("Other")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Occlusion</td>
+                                    <td style="padding-left: 30px">@Messages("occlusion")</td>
                                     <td>@LabelTable.countLabels("Occlusion")</td>
                                     <td>@LabelTable.countTodayLabels("Occlusion")</td>
                                     <td>@LabelTable.countPastWeekLabels("Occlusion")</td>
@@ -371,21 +371,21 @@
                                 <div id="label-map"></div>
                                 <div id="map-label-legend">
                                     <div id="map-legend-title-holder">
-                                        <label id="map-legend-title">Legend</label>
+                                        <label id="map-legend-title">@Messages("legend")</label>
                                         <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
                                     </div>
                                     <table class="table filter" id="legend-table">
                                         <tr>
                                             <td></td>
-                                            <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
-                                            <td colspan="2" align="left" style="font-weight:bold">Severity</td>
+                                            <td colspan="2" align="left" style="font-weight:bold">@Messages("label.type")</td>
+                                            <td colspan="2" align="left" style="font-weight:bold">@Messages("severity")</td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-curb-ramp" width="12px"></td>
                                             <td width="190px">@Messages("curb.ramp")</td>
                                             <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
-                                            <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
-                                            <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
+                                            <td width="113px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
+                                            <td width="93px" align= "center" ><span id="curb-ramp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
 
                                         </tr>
                                         <tr>
@@ -393,41 +393,41 @@
                                             <td>@Messages("missing.ramp")</td>
                                             <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
                                             <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="missing-curb-ramp-severity-label">N/A - 5</span></td>
+                                            <td align= "center"><span id="missing-curb-ramp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-obstacle"></td>
                                             <td>@Messages("obstacle")</td>
                                             <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
                                             <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
+                                            <td align= "center"><span id="obstacle-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr><td id="map-legend-surface-problem"></td>
                                             <td>@Messages("surface.problem")</td>
                                             <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
                                             <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
+                                            <td align="center"><span id="surface-problem-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-crosswalk"></td>
                                             <td>@Messages("crosswalk")</td>
                                             <td><input type="checkbox" value="displaylabel" id="crosswalk" checked="true" onclick="admin.toggleLayers('Crosswalk', 'crosswalk', '#crosswalk-slider')"></td>
                                             <td align="left"><div id = "crosswalk-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="crosswalk-severity-label">N/A - 5</span></td>
+                                            <td align="center"><span id="crosswalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-no-sidewalk"></td>
                                             <td>@Messages("no.sidewalk")</td>
                                             <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
                                             <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
+                                            <td align="center"><span id="no-sidewalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-other"></td>
                                             <td>@Messages("other")</td>
                                             <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
                                             <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
+                                            <td align= "center"><span id="other-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-signal"></td>
@@ -436,37 +436,37 @@
                                         </tr>
                                         <tr>
                                             <td id="map-legend-occlusion"></td>
-                                            <td>Can't see sidewalk</td>
+                                            <td>@Messages("occlusion")</td>
                                             <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', undefined)"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' style="width: 23px; padding: 3px;"></td>
-                                            <td>Validated correct</td>
+                                            <td>@Messages("validated.correct")</td>
                                             <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="admin.filterLayers('correct')"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' style="width: 23px; padding: 3px;"></td>
-                                            <td>Validated incorrect</td>
+                                            <td>@Messages("validated.incorrect")</td>
                                             <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="admin.filterLayers('incorrect')"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-notsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
-                                            <td>Not sure</td>
+                                            <td>@Messages("not.sure")</td>
                                             <td><input type="checkbox" value="displaylabel" id="notsure" checked="true" onclick="admin.filterLayers('notsure')"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
-                                            <td>Unvalidated</td>
+                                            <td>@Messages("unvalidated")</td>
                                             <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="admin.filterLayers('unvalidated')"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-audited-street"></td>
-                                            <td>Audited Street</td>
+                                            <td>@Messages("audited.street")</td>
                                             <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer()"></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-unaudited-street"></td>
-                                            <td>Unaudited Street</td>
+                                            <td>@Messages("unaudited.street")</td>
                                             <td><input type="checkbox" value="displaylabel" id="unauditedstreet" checked="true" onclick="admin.toggleUnauditedStreetLayer()"></td>
                                         </tr>
                                     </table>
@@ -699,49 +699,49 @@
                                         <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations)))%</th>
                                     </tr>
                                     <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">Curb Ramp</td>
+                                        <td style="padding-left: 30px">@Messages("curb.ramp")</td>
                                         <td>@LabelValidationTable.countValidations("CurbRamp")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">Missing Curb Ramp</td>
+                                        <td style="padding-left: 30px">@Messages("missing.ramp")</td>
                                         <td>@LabelValidationTable.countValidations("NoCurbRamp")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">Obstacle in Path</td>
+                                        <td style="padding-left: 30px">@Messages("obstacle")</td>
                                         <td>@LabelValidationTable.countValidations("Obstacle")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">Surface Problem</td>
+                                        <td style="padding-left: 30px">@Messages("surface.problem")</td>
                                         <td>@LabelValidationTable.countValidations("SurfaceProblem")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">No Sidewalk</td>
+                                        <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
                                         <td>@LabelValidationTable.countValidations("NoSidewalk")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">Crosswalk</td>
+                                        <td style="padding-left: 30px">@Messages("crosswalk")</td>
                                         <td>@LabelValidationTable.countValidations("Crosswalk")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">Pedestrian Signal</td>
+                                        <td style="padding-left: 30px">@Messages("signal")</td>
                                         <td>@LabelValidationTable.countValidations("Signal")</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
