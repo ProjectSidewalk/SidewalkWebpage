@@ -1,11 +1,4 @@
 {
-  "curb-ramp-caps": "Rampa peatonal",
-  "missing-curb-ramp-caps": "Rampa peatonal ausente",
-  "obstacle-caps": "Obstáculo",
-  "surface-problem-caps": "Problema en superficie",
-  "no-sidewalk-caps": "No hay banqueta",
-  "crosswalk-caps": "Cruce peatonal",
-  "signal-caps": "Semáforo peatonal",
   "user-description": "Descripción de usuario: ",
   "temporary": "Temporal",
   "top-ui": {
@@ -184,7 +177,7 @@
         "description": "No se necesitan rampas peatonales en caminos <b>no</b> destinados al cruce peatonal."
       },
       "slide-4": {
-        "title": "$t(no-sidewalk-caps)",
+        "title": "$t(common:no-sidewalk)",
         "description": "Para las esquinas sin <b>banquetas</b>, use la etiqueta No hay banqueta en lugar de la etiqueta Rampa peatonal ausente."
       }
     },

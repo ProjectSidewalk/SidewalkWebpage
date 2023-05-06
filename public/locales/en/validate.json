@@ -1,11 +1,4 @@
 {
-  "curb-ramp-caps": "Curb Ramp",
-  "missing-curb-ramp-caps": "Missing Curb Ramp",
-  "obstacle-caps": "Obstacle",
-  "surface-problem-caps": "Surface Problem",
-  "no-sidewalk-caps": "No Sidewalk",
-  "crosswalk-caps": "Crosswalk",
-  "signal-caps": "Pedestrian Signal",
   "user-description": "User Description: ",
   "temporary": "Temporary",
   "top-ui": {
@@ -184,7 +177,7 @@
         "description": "Curb ramps are not needed at paths <b>not</b> intended for pedestrians to pass."
       },
       "slide-4": {
-        "title": "$t(no-sidewalk-caps)",
+        "title": "$t(common:no-sidewalk)",
         "description": "For corners with <b>no sidewalks</b>, use the No Sidewalk label rather than a Missing Curb Ramp label."
       }
     },

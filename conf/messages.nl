@@ -1,4 +1,7 @@
 measurement.system = metric
+label.type = Etikettype
+legend = Legende
+severity = Ernst
 curb.ramp = Trottoir oprit
 curb.ramps = Trottoir opritten
 missing.ramp = Ontbrekende trottoir oprit
@@ -10,7 +13,15 @@ surface.problems = Oppervlakte Problemen
 no.sidewalk = Geen Trottoir
 crosswalk = Oversteekplaats
 signal = Verkeerslicht
+occlusion = Ik kan geen trottoir zien
 other = Anders
+validated.correct = Gevalideerd juist
+validated.incorrect = Gevalideerd onjuist
+unvalidated = Niet gevalideerd
+audited.street = Gecontroleerde straat
+unaudited.street = Ongecontroleerde straat
+not.sure = Niet Zeker
+not.applicable.abbr = NVT
 validations = Validaties
 labels = labels
 label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
@@ -208,7 +219,6 @@ validate.right.ui.incorrect.examples = <strong>Incorrecte</strong> Voorbeelden
 validate.mission.complete.category = Categorie
 validate.mission.complete.agree = Eens
 validate.mission.complete.disagree = Oneens
-validate.mission.complete.not.sure = Niet Zeker
 validate.mission.complete.your.overall.total = Je Totaal
 
 
@@ -275,10 +285,8 @@ dashboard.edit.org = Bewerken
 dashboard.edit.info = Als je je organisatie niet ziet, stuur dan een e-mail naar <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw .edu</a> en vermeld de naam en beschrijving van je organisatie.
 dashboard.orgs.unavailable = Er zijn geen beschikbare organisaties!
 dashboard.leave.org = Organisatie verlaten
-dashboard.audited.street = Gecontroleerde straat
 dashboard.total.distance.explored = Totale afgelegde afstand
 dashboard.number.completed.missions = Aantal voltooide missies
-dashboard.label.type = Labeltype
 dashboard.number.of.labels = Aantal labels
 dashboard.missions = Missies
 dashboard.your.missions = Jouw missies
@@ -327,9 +335,7 @@ leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard">
 gallery = Galerij
 gallery.show = Tonen
 gallery.filter.by = Filteren op
-gallery.severity = Ernst
 gallery.tags = Tags
 gallery.all = Alle labeltypen
-gallery.occlusion = Kan de stoep niet zien
 gallery.labels.not.found = Geen overeenkomsten. <a href="/audit">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters

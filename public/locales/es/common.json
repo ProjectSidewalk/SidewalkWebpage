@@ -14,6 +14,9 @@
   "crosswalk": "Cruce peatonal",
   "signal": "Semáforo peatonal",
   "other": "Otro",
+  "agree": "Aceptar",
+  "disagree": "Discrepar",
+  "not-sure": "No estoy seguro",
   "missing-sidewalks": "Banqueta ausente",
   "missing-ramps": "Rampa peatonal ausente",
   "surface-problems": "Problemas en superficie",
@@ -33,10 +36,11 @@
     "100-percent-complete": "¡100% Completa!",
     "percent-complete": "{{percent}}% Completa"
   },
-  "label-map": {
-    "add-comment": "Agrega un comentario aquí...",
-    "submit": "Enviar comentario",
-    "comment-submitted" : "Comentario Enviado"
+  "errors": {
+    "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
+    "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",
+    "google-connect-error": "Tuvimos problemas para conectarnos a Google Street View, inténtalo de nuevo más tarde.",
+    "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
   },
   "severity": "Calificación ",
   "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
@@ -110,6 +114,7 @@
     "longitude": "Longitud",
     "panorama-id": "ID de panorama",
     "street-id": "ID de calle",
+    "google-street-view": "Google Street View",
     "region-id": "ID de región",
     "label-id": "ID de etiqueta",
     "view-in-gsv": "Ver en Google Street View",

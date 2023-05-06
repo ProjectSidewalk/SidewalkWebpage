@@ -76,7 +76,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .card-header {
-    padding: 5px 5px 3px 10px;
+    padding: 5px 5px 3px 7px;
     font-family: 'raleway-bold', sans-serif;
     font-size: 1vw;
 }
@@ -111,18 +111,14 @@ with respect to the image holder. This allows the validation menu to be placed o
 .card-severity {
     display: flex;
     align-items: center;
-    width: 45%; /* figure out a better way to set this severity/tag ratio */
+    width: 35%;
     height: 100%;
     flex-direction: row;
-    padding-left: 10px;
+    padding-left: 7px;
 }
 
 .label-severity-header {
     padding-right: .25vw;
-}
-
-.no-severity-header {
-    opacity: 60%;
 }
 
 .label-severity-content {
@@ -130,10 +126,14 @@ with respect to the image holder. This allows the validation menu to be placed o
     flex-direction: row;
 }
 
+.no-severity-header {
+    opacity: 60%;
+}
+
 .card-tags {
     display: flex;
     align-items: center;
-    width: 55%;
+    width: 46%;
     height: 100%;
     flex-direction: row;
     right: 0px;
@@ -161,6 +161,54 @@ with respect to the image holder. This allows the validation menu to be placed o
     --iconWidth: 1.1vw;
     width: var(--iconWidth);
     z-index: 1;
+}
+
+.card-validation-info {
+    display: flex;
+    align-items: center;
+    width: 19%;
+    height: 100%;
+    flex-direction: row;
+    padding-left: 5px;
+}
+
+.validation-info-content {
+    display: flex;
+    flex-direction: row;
+}
+
+.validation-section-content {
+    display: flex;
+    width: 50%;
+    height: 100%;
+    flex-direction: column;
+    cursor: pointer;
+    /* Prevent text selection. */
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+}
+
+.validation-info-count-container {
+    display: flex;
+    flex-direction: row;
+}
+
+.validation-info-count {
+    display: flex;
+    width: 60%;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.validation-info-image {
+    width: 50%;
+    margin: 2%;
+}
+
+.validation-info-thumbs-down {
+    margin-top: 5%;
 }
 
 .validation-button, .validation-button-selected {
@@ -191,7 +239,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .modal-severity-content {
-    width: 50%;
+    width: 100%;
 }
 
 .severity-circle {
