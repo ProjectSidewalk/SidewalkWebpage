@@ -212,6 +212,7 @@ function Tracker() {
         }
 
         var item = self.create(action, notes, extraData);
+        var prevItem = actions.slice(-1)[0];
         actions.push(item);
         var contextMenuLabel = true;
 
@@ -219,7 +220,7 @@ function Tracker() {
             contextMenuLabel = false;
         }
 
-        //we are no longer interacting with a label, set currentLabel to null
+        // We are no longer interacting with a label, set currentLabel to null.
         if (self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel) {
             currentLabel = null;
         }
@@ -228,6 +229,9 @@ function Tracker() {
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
             self.submitForm();
         }
+
+        // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.
+        if (prevItem && item.timestamp - prevItem.timestamp > 3600000) window.location.reload();
 
         return this;
     };

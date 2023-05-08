@@ -102,11 +102,14 @@ function Tracker() {
      */
     function push(action, notes, extraData) {
         let item = _createAction(action, notes, extraData);
+        var prevItem = actions.slice(-1)[0];
         actions.push(item);
         if (actions.length > 200) {
             let data = svv.form.compileSubmissionData();
             svv.form.submit(data, true);
         }
+        // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.
+        if (prevItem && item.timestamp - prevItem.timestamp > 3600000) window.location.reload();
         return this;
     }
 
