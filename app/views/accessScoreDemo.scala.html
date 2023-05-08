@@ -6,10 +6,10 @@
     <div id="map-holder">
         <div id="map"></div>
         <div id="map-legend" class="map-text-box">
-            <span id="map-legend-curb-ramp" class="map-legend-svg-spans"></span>Curb Ramp&nbsp;
-            <span id="map-legend-no-curb-ramp" class="map-legend-svg-spans"></span>Missing Curb Ramp&nbsp;
+            <span id="map-legend-curb-ramp" class="map-legend-svg-spans"></span>@Messages("curb.ramp")&nbsp;
+            <span id="map-legend-no-curb-ramp" class="map-legend-svg-spans"></span>@Messages("missing.ramp")&nbsp;
             <span id="map-legend-obstacle" class="map-legend-svg-spans"></span>Sidewalk Obstacle&nbsp;
-            <span id="map-legend-surface-problem" class="map-legend-svg-spans"></span>Surface Problem&nbsp;
+            <span id="map-legend-surface-problem" class="map-legend-svg-spans"></span>@Messages("surface.problem")&nbsp;
             <span>&emsp;&emsp;</span>
             <span>Inaccessible&nbsp;<span id="map-legend-access-score-scale"></span>&nbsp;Accessible</span>
         </div>
@@ -34,7 +34,7 @@
                     <th class="col-md-1"></th>
                 </tr>
                 <tr>
-                    <th>Curb Ramp</th>
+                    <th>@Messages("curb.ramp")</th>
                     <td><input type="range" id="access-score-curb-ramp-slider" class="access-score-range-slider" value="100" name="CurbRamp"></td>
                     <td><span id="access-score-curb-ramp-slider-value">100</span></td>
                 </tr>
@@ -44,12 +44,12 @@
                     <td><span id="access-score-no-curb-ramp-slider-value">100</span></td>
                 </tr>
                 <tr>
-                    <th>Obstacle</th>
+                    <th>@Messages("obstacle")</th>
                     <td><input type="range" id="access-score-obstacle-slider" class="access-score-range-slider" value="100" name="Obstacle"></td>
                     <td><span id="access-score-obstacle-slider-value">100</span></td>
                 </tr>
                 <tr>
-                    <th>Surface Problem</th>
+                    <th>@Messages("surface.problem")</th>
                     <td><input type="range" id="access-score-surface-problem-slider" class="access-score-range-slider" value="100" name="SurfaceProblem"></td>
                     <td><span id="access-score-surface-problem-slider-value">100</span></td>
                 </tr>

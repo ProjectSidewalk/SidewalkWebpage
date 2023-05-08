@@ -51,6 +51,7 @@ function Modal(uiModal) {
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
+        val_counts: undefined,
         correctness: undefined,
         user_validation: undefined,
         tags: []
@@ -66,6 +67,7 @@ function Modal(uiModal) {
         self.timestamps = $('.gallery-modal-info-timestamps');
         self.severity = $('.gallery-modal-info-severity');
         self.temporary = $('.gallery-modal-info-temporary');
+        self.validation_info = $('.gallery-modal-info-validation');
         self.description = $('.gallery-modal-info-description');
         self.header = $('.gallery-modal-header');
         self.pano = new GalleryPanorama(self.panoHolder);
@@ -122,6 +124,7 @@ function Modal(uiModal) {
     function resetModal() {
         self.description.empty();
         self.temporary.empty();
+        self.validation_info.empty()
         self.severity.empty();
         self.timestamps.empty();
     }
@@ -149,12 +152,14 @@ function Modal(uiModal) {
             function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
-            function () { return properties['label_id']; }
+            function() { return properties['label_id']; }
         );
 
-        // Add severity and tag display to the modal.
+        // Add severity, validation info, and tag display to the modal.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
+        self.validationInfoDisplay = new ValidationInfoDisplay(self.validation_info, properties.val_counts['Agree'], properties.val_counts['Disagree'], true);
         new TagDisplay(self.tags, properties.tags, true);
+        self.validationMenu.addModalValInfoOnClicks(self.validationInfoDisplay);
 
         // Add the information about the temporary property to the Modal.
         let temporaryHeader = document.createElement('div');

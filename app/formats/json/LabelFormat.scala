@@ -79,7 +79,9 @@ object LabelFormat {
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
       "correct" -> labelMetadata.correct,
-      "has_validations" -> labelMetadata.hasValidations,
+      "agree_count" -> labelMetadata.agreeCount,
+      "disagree_count" -> labelMetadata.disagreeCount,
+      "notsure_count" -> labelMetadata.notsureCount,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "tags" -> labelMetadata.tags
     )
