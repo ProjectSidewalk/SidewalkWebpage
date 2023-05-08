@@ -248,7 +248,8 @@ function Tracker() {
      * Put the previous labeling actions into prevActions. Then refresh the current actions.
      */
     this.refresh = function() {
-        prevActions = prevActions.concat(actions);
+        // Commented out to save memory since we aren't using prevActions right now.
+        // prevActions = prevActions.concat(actions);
         actions = [];
 
         updatedLabels = [];

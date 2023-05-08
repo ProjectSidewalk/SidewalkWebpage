@@ -114,7 +114,8 @@ function Tracker() {
      * Empties actions stored in the Tracker.
      */
     function refresh() {
-        prevActions = prevActions.concat(actions);
+        // Commented out to save memory since we aren't using prevActions right now.
+        // prevActions = prevActions.concat(actions);
         actions = [];
         self.push("RefreshTracker");
     }
