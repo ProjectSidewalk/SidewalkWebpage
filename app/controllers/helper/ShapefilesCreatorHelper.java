@@ -322,7 +322,9 @@ public class ShapefilesCreatorHelper {
 
             featureBuilder.add(s.stdImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
                 @Override
-                public TimeStamp apply() {return null;}
+                public Timestamp apply() {
+                    return null;
+                }
             }));
 
             featureBuilder.add(s.stdLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
