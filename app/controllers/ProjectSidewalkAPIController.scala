@@ -39,7 +39,9 @@ case class NeighborhoodAttributeSignificance (val name: String,
                                               val attributeScores: Array[Double],
                                               val significanceScores: Array[Double],
                                               val avgImageCaptureDate: Option[Timestamp],
-                                              val avgLabelDate: Option[Timestamp])
+                                              val avgLabelDate: Option[Timestamp],
+                                              val stdImageCaptureDate: Option[Timestamp],
+                                              val stdLabelDate: Option[Timestamp])
 
 case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val streetID: Int,
@@ -49,7 +51,9 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val attributeScores: Array[Double],
                                         val significanceScores: Array[Double],
                                         val avgImageCaptureDate: Option[Timestamp],
-                                        val avgLabelDate: Option[Timestamp])
+                                        val avgLabelDate: Option[Timestamp],
+                                        val stdImageCaptureDate: Option[Timestamp],
+                                        val stdLabelDate: Option[Timestamp])
 
 
 /**
@@ -61,11 +65,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, avgImageCaptureDate: Timestamp,
-                                     avgLabelDate: Timestamp, imageCount: Int, labelCount: Int)
+                                     avgLabelDate: Timestamp, stdImageCaptureDate: Timestamp, stdLabelDate: Timestamp,
+                                     imageCount: Int, labelCount: Int)
   case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Int, score: Double, auditCount: Int,
                                attributes: Array[Double], significance: Array[Double],
-                               avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], imageCount: Int,
-                               labelCount: Int) {
+                               avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], stdImageCaptureDate:
+                               Option[Timestamp],  stdLabelDate: Option[Timestamp], imageCount: Int,  labelCount: Int) {
     def toJSON: JsObject  = {
       val latlngs: List[JsonLatLng] = streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
       val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
@@ -76,6 +81,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "audit_count" -> auditCount,
         "avg_image_capture_date" -> avgImageCaptureDate.map(_.toString),
         "avg_label_date" -> avgLabelDate.map(_.toString),
+        "std_image_capture_date" -> stdLabelDate.map(_.toString),
+        "std_label_date" -> stdLabelDate.map(_.toString),
         "significance" -> Json.obj(
           "CurbRamp" -> significance(0),
           "NoCurbRamp" -> significance(1),
@@ -336,7 +343,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           region.attributeScores(2) + "," + region.attributeScores(3) + "," + region.significanceScores(0) + "," +
           region.significanceScores(1) + "," + region.significanceScores(2) + "," + region.significanceScores(3) + "," +
           region.avgImageCaptureDate.map(_.toString).getOrElse("NA") + "," +
-          region.avgLabelDate.map(_.toString).getOrElse("NA"))
+          region.avgLabelDate.map(_.toString).getOrElse("NA") + "," +
+          region.stdImageCaptureDate.map(_toString).getOrElse("NA") + "," +
+          region.stdLabelDate.map(_.toString).getOrElse("NA"))
       } else {
         writer.println(region.name + "," + region.regionID + "," + "NA" + "," + coordStr + ","  + 0.0 + "," + "NA" +
           "," + "NA" + "," + "NA" + "," + "NA" + "," + region.significanceScores(0) + "," +
@@ -363,7 +372,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, new Timestamp(0), new Timestamp(0), 1, 1))
       case 2 =>
         val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(coordinates(0).toFloat, coordinates(2).toFloat, coordinates(1).toFloat, coordinates(3).toFloat, None)
-        globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, l.avgImageCaptureDate, l.avgLabelDate, l.imageCount, l.labelCount))
+        globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, l.avgImageCaptureDate, l.avgLabelDate, l.stdImageCaptureDate, l.stdLabelDate,l.imageCount, l.labelCount))
     }
     labelsForScore
   }
@@ -402,7 +411,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
               "SurfaceProblem" -> region.attributeScores(3)
             ),
             "avg_image_capture_date" -> region.avgImageCaptureDate.map(_.toString),
-            "avg_label_date" -> region.avgLabelDate.map(_.toString)
+            "avg_label_date" -> region.avgLabelDate.map(_.toString),
+            "std_image_capture_date" -> region.stdImageCaptureDate.map(_.toString),
+            "std_label_date" -> region.stdLabelDate.map(_.toString)
           )
           Json.obj("type" -> "Feature", "geometry" -> neighborhoodJson, "properties" -> properties)
         } else {
@@ -452,6 +463,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var averagedStreetFeatures: Array[Double] = Array(0.0, 0.0, 0.0, 0.0, 0.0)
       var avgImageCaptureDate: Option[Timestamp] = None
       var avgLabelDate: Option[Timestamp] = None
+      var stdImageCaptureDate: Option[Timestamp] = None
+      var stdLabelDate: Option[Timestamp]
 
       if (auditedStreetsIntersecting.nonEmpty) {
         val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersecting, labelsForScore)
@@ -475,11 +488,24 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         avgImageCaptureDate = avgImageAge.map(age => new Timestamp(age))
         avgLabelDate = avgLabelAge.map(age => new Timestamp(age))
 
+        // how to calculate the std here?
+        // note: maybe use mean?
+        val (stdImageAge, stdLabelAge): (Option[Long], Option[Long]) =
+          if (nImages > 0 && nLabels > 0) {
+            (
+              Some(streetAccessScores.flatMap(s => s.stdImageCaptureDate.map(_.getTime * s.imageCount)).sum / nImages),
+              Some(streetAccessScores.flatMap(s => s.stdLabelDate.map(_.getTime * s.labelCount)).sum / nLabels)
+            )
+          } else {
+            (None, None)
+          }
+        stdImageCaptureDate = stdImageAge.map(age => new Timestamp(age))
+        stdLabelDate = stdLabelAge.map(age => new Timestamp(age))
         assert(coverage <= 1.0)
       }
       (
         NeighborhoodAttributeSignificance(neighborhood.name, coordinates, neighborhood.regionId, coverage, accessScore,
-          averagedStreetFeatures, significance, avgImageCaptureDate, avgLabelDate),
+          averagedStreetFeatures, significance, avgImageCaptureDate, avgLabelDate, stdImageCaptureDate, stdLabelDate),
         neighborhood.geom
       )
     }
@@ -535,7 +561,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           streetAccessScore.significance(0) + "," + streetAccessScore.significance(1) + "," +
           streetAccessScore.significance(2) + "," + streetAccessScore.significance(3) + "," +
           streetAccessScore.avgImageCaptureDate.map(_.toString).getOrElse("NA") + "," +
-          streetAccessScore.avgLabelDate.map(_.toString).getOrElse("NA"))
+          streetAccessScore.avgLabelDate.map(_.toString).getOrElse("NA") + "," +
+          streetAccessScore.stdImageCaptureDate.map(_.toString).getOrElse("NA") + "," +
+          streetAccessScore.stdLabelDate.map(_.toString).getOrElse("NA"))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
@@ -552,7 +580,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
             streetAccessScore.attributes,
             streetAccessScore.significance,
             streetAccessScore.avgImageCaptureDate,
-            streetAccessScore.avgLabelDate))
+            streetAccessScore.avgLabelDate,
+            streetAccessScore.stdImageCaptureDate,
+            streetAccessScore.stdLabelDate),
+            )
       }
       ShapefilesCreatorHelper.createStreetShapefile("streetValues", streetBuffer)
 
@@ -659,6 +690,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var imageAgeSum: Float = 0
       var nLabels: Int = 0
       var nImages: Int = 0
+      var labelAgeMean: Long = 0
+      var imageAgeMean: Long = 0
       labelLocations.foreach { ll =>
         val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
         if (p.within(buffer) && labelCounter.contains(ll.labelType)) {
@@ -669,16 +702,36 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           nLabels += ll.labelCount
         }
       }
+      imageAgeMean = (imageAgeSum / nImages).toLong
+      labelAgeMean = (labelAgeSum / nLabels).toLong
       val (avgImageCaptureDate, avgLabelDate): (Option[Timestamp], Option[Timestamp]) = if (nLabels > 0 && nImages > 0) {
+        (Some(new Timestamp(imageAgeMean)), Some(new Timestamp(labelAgeMean)))
+      } else {
+        (None, None)
+      }
+
+      // note: again how to compute the std here?
+      labelLocations.foreach { ll =>
+        val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
+        if (p.within(buffer) && labelCounter.contains(ll.labelType)) {
+          labelCounter(ll.labelType) += 1
+          imageAgeSum += ll.avgImageCaptureDate.getTime * ll.imageCount
+          labelAgeSum += ll.avgLabelDate.getTime * ll.labelCount
+          nImages += ll.imageCount
+          nLabels += ll.labelCount
+        }
+      }
+      val (stdImageCaptureDate, stdLabelDate): (Option[Timestamp], Option[Timestamp]) = if (nLabels > 0 && nImages > 0) {
         (Some(new Timestamp((imageAgeSum / nImages).toLong)), Some(new Timestamp((labelAgeSum / nLabels).toLong)))
       } else {
         (None, None)
       }
+
       // Compute an access score.
       val attributes = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
       val significance = Array(0.75, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(attributes, significance)
-      AccessScoreStreet(edge.street, osmStreetId.osmWayId, accessScore, edge.auditCount, attributes, significance, avgImageCaptureDate, avgLabelDate, nImages, nLabels)
+      AccessScoreStreet(edge.street, osmStreetId.osmWayId, accessScore, edge.auditCount, attributes, significance, avgImageCaptureDate, avgLabelDate, stdImageCaptureDate, stdLabelDate, nImages, nLabels)
     }
     streetAccessScores
   }

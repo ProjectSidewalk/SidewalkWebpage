@@ -36,6 +36,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val neighborhoodName: String,
                                  val avgImageCaptureDate: Timestamp,
                                  val avgLabelDate: Timestamp,
+                                 val stdImageCaptureDate: Timestamp,
+                                 val stdLabelDate: Timestamp,
                                  val imageCount: Int,
                                  val labelCount: Int,
                                  val usersList: List[String]) {
@@ -51,6 +53,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "neighborhood" -> neighborhoodName,
         "avg_image_capture_date" -> avgImageCaptureDate.toString(),
         "avg_label_date" -> avgLabelDate.toString(),
+        "std_image_capture_date" -> stdImageCaptureDate.toString(),
+        "std_label_date" -> stdLabelDate.toString(),
         "severity" -> severity,
         "is_temporary" -> temporary,
         "agree_count" -> agreeCount,
@@ -61,7 +65,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
     )
   }
   val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
-                                lng.toString, avgImageCaptureDate, avgLabelDate.toString,
+                                lng.toString, avgImageCaptureDate, avgLabelDate.toString, stdImageCaptureDate, stdLabelDate.toString
                                 severity.getOrElse("NA").toString, temporary.toString, agreeCount.toString,
                                 disagreeCount.toString, notsureCount.toString, "\"[" + usersList.mkString(",") + "]\"")
 }
@@ -216,6 +220,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box for the public API.
     */
+    // Note: need to update these queries as well
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
     val validationCounts =

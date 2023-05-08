@@ -104,6 +104,8 @@ public class ShapefilesCreatorHelper {
                         + "neighborhd:String," // Neighborhood Name
                         + "avgImgDate:String," // Image date
                         + "avgLblDate:String," // Label date
+                        + "stdImageDate:String," // Image date
+                        + "stdLblDate:String," // Label date
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
                         + "nAgree:Integer," // Agree validations
@@ -134,6 +136,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.neighborhoodName());
             featureBuilder.add(a.avgImageCaptureDate());
             featureBuilder.add(a.avgLabelDate());
+            featureBuilder.add(a.stdImageCaptureDate());
+            featureBuilder.add(a.stdLabelDate());
             featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
                 public Integer apply() {
@@ -271,7 +275,9 @@ public class ShapefilesCreatorHelper {
                         + "nObs:Double," // obstacle feature score
                         + "nSurfce:Double," // Surface problem feature score
                         + "avgImgDate:String," // average image age in milliseconds
-                        + "avgLblDate:String" // average label age in milliseconds
+                        + "avgLblDate:String," // average label age in milliseconds
+                        + "stdImgDate:String," // standard deviation of image age in months
+                        + "stdLblDate:String" // standard deviation of label age in months
                 );
 
         /*
@@ -314,6 +320,19 @@ public class ShapefilesCreatorHelper {
                 }
             }));
 
+            featureBuilder.add(s.stdImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
+            featureBuilder.add(s.stdLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
+
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
@@ -344,7 +363,9 @@ public class ShapefilesCreatorHelper {
                         + "nObs:Double," // obstacle feature score
                         + "nSurfce:Double," // Surface problem feature score
                         + "avgImgDate:String," // average image age in milliseconds
-                        + "avgLblDate:String" // average label age in milliseconds
+                        + "avgLblDate:String," // average label age in milliseconds
+                        + "stdImageDate:String," // standard deviation of image age in months
+                        + "stdLblDate:String" // standard deviation of label age in months
                 );
 
         /*
@@ -381,6 +402,19 @@ public class ShapefilesCreatorHelper {
                 }
             }));
             featureBuilder.add(n.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
+
+            featureBuilder.add(n.stdImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
+                @Override
+                public Timestamp apply() {
+                    return null;
+                }
+            }));
+            featureBuilder.add(n.stdLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
                 @Override
                 public Timestamp apply() {
                     return null;
