@@ -261,12 +261,12 @@ object LabelTable {
   /**
     * Find a label based on temp_label_id and user_id.
     */
-  def find(tempLabelId: Int, userId: UUID): Option[Int] = db.withSession { implicit session =>
+  def find(tempLabelId: Int, userId: UUID): Option[Label] = db.withSession { implicit session =>
     (for {
       m <- missions
       l <- labelsUnfiltered if l.missionId === m.missionId
       if l.temporaryLabelId === tempLabelId && m.userId === userId.toString
-    } yield l.labelId).firstOption
+    } yield l).firstOption
   }
 
   def countLabels: Int = db.withSession(implicit session =>
