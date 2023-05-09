@@ -383,7 +383,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("NoCurbRamp", Messages("missing.ramp")),
           ("Obstacle", Messages("obstacle")),
           ("SurfaceProblem", Messages("surface.problem")),
-          ("Occlusion", Messages("gallery.occlusion")),
+          ("Occlusion", Messages("occlusion")),
           ("NoSidewalk", Messages("no.sidewalk")),
           ("Crosswalk", Messages("crosswalk")),
           ("Signal", Messages("signal")),

@@ -160,15 +160,16 @@ object LabelTable {
                                      timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
                                      canvasX: Int, canvasY: Int, severity: Option[Int], temporary: Boolean,
                                      description: Option[String], streetEdgeId: Int, regionId: Int,
-                                     correct: Option[Boolean], hasValidations: Boolean, userValidation: Option[Int],
-                                     tags: List[String]) extends BasicLabelMetadata
+                                     correct: Option[Boolean], agreeCount: Int, disagreeCount: Int, notsureCount: Int,
+                                     userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
 
   case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
                                                 imageCaptureDate: String, timestamp: java.sql.Timestamp, heading: Float,
                                                 pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
                                                 severity: Option[Int], temporary: Boolean, description: Option[String],
                                                 streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
-                                                hasValidations: Boolean, userValidation: Option[Int]) extends BasicLabelMetadata
+                                                agreeCount: Int, disagreeCount: Int, notsureCount: Int,
+                                                userValidation: Option[Int]) extends BasicLabelMetadata
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoLat: Option[Float],
                                  panoLng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float],
@@ -193,7 +194,7 @@ object LabelTable {
     LabelValidationMetadataWithoutTags(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
       r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextBoolean, r.nextIntOption
+      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption
     )
   )
 
@@ -201,7 +202,7 @@ object LabelTable {
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
       r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextBoolean, r.nextIntOption,
+      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption,
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
     )
   )
@@ -260,12 +261,12 @@ object LabelTable {
   /**
     * Find a label based on temp_label_id and user_id.
     */
-  def find(tempLabelId: Int, userId: UUID): Option[Int] = db.withSession { implicit session =>
+  def find(tempLabelId: Int, userId: UUID): Option[Label] = db.withSession { implicit session =>
     (for {
       m <- missions
       l <- labelsUnfiltered if l.missionId === m.missionId
       if l.temporaryLabelId === tempLabelId && m.userId === userId.toString
-    } yield l.labelId).firstOption
+    } yield l).firstOption
   }
 
   def countLabels: Int = db.withSession(implicit session =>
@@ -549,9 +550,8 @@ object LabelTable {
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
            |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
            |       label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
-           |       street_edge_region.region_id, label.correct,
-           |       label.agree_count > 0 OR label.disagree_count > 0 OR label.notsure_count > 0 AS has_validations,
-           |       user_validation.validation_result, the_tags.tag_list
+           |       street_edge_region.region_id, label.correct, label.agree_count, label.disagree_count,
+           |       label.notsure_count, user_validation.validation_result, the_tags.tag_list
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -599,8 +599,8 @@ object LabelTable {
            |        WHERE user_id = '$userIdStr'
            |    )
            |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
-           |-- the labeler has fewer than 50 of their labels validated. Another 50 points if the labeler was marked as
-           |-- high quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
+           |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
+           |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
            |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
            |-- number so that the max score for each label is 276.
            |ORDER BY COALESCE(needs_validations,  100) +
@@ -682,8 +682,7 @@ object LabelTable {
       (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.heading,
       l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._1.severity, l._1.temporary, l._1.description,
-      l._1.streetEdgeId, l._5.regionId, l._1.correct,
-      l._1.agreeCount > 0 || l._1.disagreeCount > 0 || l._1.notsureCount > 0, v._2.?)
+      l._1.streetEdgeId, l._5.regionId, l._1.correct, l._1.agreeCount, l._1.disagreeCount, l._1.notsureCount, v._2.?)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
@@ -867,7 +866,8 @@ object LabelTable {
       LabelValidationMetadata(
         label.labelId, label.labelType, label.gsvPanoramaId, label.imageCaptureDate, label.timestamp, label.heading,
         label.pitch, label.zoom, label.canvasX, label.canvasY, label.severity, label.temporary, label.description,
-        label.streetEdgeId, label.regionId, label.correct, label.hasValidations, label.userValidation, tags
+        label.streetEdgeId, label.regionId, label.correct, label.agreeCount, label.disagreeCount, label.notsureCount,
+        label.userValidation, tags
       )
   }
 

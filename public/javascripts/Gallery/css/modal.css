@@ -112,27 +112,37 @@
 }
 
 .gallery-modal-info-severity {
-    width: 40%;
+    width: 20%;
     height: 40%;
     display: flex;
     flex-direction: column;
 }
 
+.gallery-modal-info-validation {
+    width: 15%;
+    height: 40%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0.75vw 10px 0px 5px;
+}
+
 .gallery-modal-info-tags {
-    width: 60%;
+    width: 65%;
     height: 5.5vw;
     overflow-y: auto;
 }
 
 .gallery-modal-info-temporary {
-    width: 40%;
+    width: 35%;
     height: 60%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-description {
-    width: 60%;
+    width: 65%;
     height: 60%;
     display: flex;
     flex-direction: column;
