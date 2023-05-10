@@ -25,7 +25,7 @@ import play.api.mvc._
 import scala.concurrent.Future
 
 /**
- * Holds HTTP requests associated with the audit page.
+ * Holds HTTP requests associated with the explore page.
  *
  * @param env The Silhouette environment.
  */
@@ -40,7 +40,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Returns an audit page.
+    * Returns an explore page.
     */
   def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -127,8 +127,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           mission = MissionTable.getMission(mission.missionId).get
         }
 
-        // Check if they have already completed an audit mission. We send them to /validate after their first audit
-        // mission, but only after every third audit mission after that.
+        // Check if they have already completed an explore mission. We send them to /validate after their first explore
+        // mission, but only after every third explore mission after that.
         val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
         val cityStr: String = Play.configuration.getString("city-id").get
@@ -148,7 +148,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Audit a given region.
+    * Explore a given region.
     */
   def exploreRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -186,7 +186,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
             // Check if they have already completed an audit mission. We send them to /validate after their first audit.
-            // mission, but only after every third audit mission after that.
+            // mission, but only after every third explore mission after that.
             val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
             val cityStr: String = Play.configuration.getString("city-id").get
@@ -198,7 +198,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
             }
           case None =>
-            Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
+            Logger.error(s"Tried to explore region $regionId, but there is no neighborhood with that id.")
             Future.successful(Redirect("/explore"))
         }
 
@@ -208,7 +208,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Audit a given street. Optionally, a researcher can be placed at a specific lat/lng or panorama.
+    * Explore a given street. Optionally, a researcher can be placed at a specific lat/lng or panorama.
     */
   def exploreStreet(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = UserAwareAction.async { implicit request =>
     val startAtPano: Boolean = panoId.isDefined
@@ -244,8 +244,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
             else MissionTable.defaultAuditMissionSetProgress
 
-          // Check if they have already completed an audit mission. We send them to /validate after their first audit
-          // mission, but only after every third audit mission after that.
+          // Check if they have already completed an explore mission. We send them to /validate after their first audit
+          // mission, but only after every third explore mission after that.
           val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
           // Overwrite the current_audit_task_id column to null if it has a value right now. It will be automatically

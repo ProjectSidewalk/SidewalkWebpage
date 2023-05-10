@@ -448,7 +448,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Returns a page that allows a user to build a custom audit route.
+   * Returns a page that allows a user to build a custom explore route.
    */
   def routeBuilder = UserAwareAction.async { implicit request =>
     request.identity match {

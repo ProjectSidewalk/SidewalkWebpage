@@ -13,7 +13,7 @@
  * @param params.webpageActivity string showing how to represent the choropleth in logging.
  * @param params.defaultZoomIncrease {number} amount to increase default zoom, increments of 0.5.
  * @param params.zoomSlider {boolean} whether to include zoom slider.
- * @param params.clickData {boolean} whether clicks should be logged when it takes you to the audit page.
+ * @param params.clickData {boolean} whether clicks should be logged when it takes you to the explore page.
  * @param params.scrollWheelZoom {boolean} whether to allow zooming with the scroll wheel.
  * @param params.popupType {string} one of 'none', 'completionRate', or 'issueCounts'.
  * @param params.resetButton {boolean} whether to include a 'reset view' button.

@@ -388,7 +388,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         tracker.push('Onboarding_End');
         missionContainer.getCurrentMission().setProperty("isComplete", true);
 
-        // Redirects to the audit page and submits all data through Form.js.
+        // Redirects to the explore page and submits all data through Form.js.
         svl.form.submitData(false);
         window.location.replace('/explore');
     }

@@ -596,7 +596,7 @@ function Main (params) {
         svl.ui.areaComplete.body = $("#area-completion-body");
     }
 
-    // Gets all the text on the audit page for the correct language.
+    // Gets all the text on the explore page for the correct language.
     i18next.use(i18nextXHRBackend);
     i18next.init({
         backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
