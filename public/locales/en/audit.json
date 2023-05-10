@@ -185,10 +185,10 @@
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
                 "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess",
                 "height-difference": "height <tag-underline>d</tag-underline>ifference",
-                "painted-sidewalk": "painted <tag-underline>s</tag-underline>idewalk",
-                "pedestrian-arcade": "pedestrian <tag-underline>a</tag-underline>rcade",
+                "painted-sidewalk": "painted sidewalk (<tag-underline>h</tag-underline>)",
+                "pedestrian-arcade": "pedestrian arcade (<tag-underline>q</tag-underline>)",
                 "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
-                "utility-panel": "utility <tag-underline>p</tag-underline>anel"
+                "utility-panel": "utility pan<tag-underline>e</tag-underline>l"
             },
             "tooltip": {
                 "passable": "Passable",

@@ -256,11 +256,11 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     },
                     'painted sidewalk': {
-                        keyChar: 'Q',
+                        keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.painted-sidewalk')
                     },
                     'utility panel': {
-                        keyChar: 'X',
+                        keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.utility-panel')
                     }
                 }
@@ -332,7 +332,7 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk')
                     },
                     'too close to traffic': {
-                        keyChar: 'G',
+                        keyChar: 'T',
                         text: i18next.t('center-ui.context-menu.tag.too-close-to-traffic')
                     }
                 }

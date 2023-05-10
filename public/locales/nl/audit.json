@@ -183,10 +183,10 @@
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
                 "no-bus-stop-access": "geen bush<tag-underline>a</tag-underline>lte toegang",
                 "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)",
-                "painted-sidewalk": "geschilderd <tag-underline>t</tag-underline>rottoir",
-                "pedestrian-arcade": "voetgangers <tag-underline>g</tag-underline>alerij",
-                "too-close-to-traffic": "te dicht bij het <tag-underline>v</tag-underline>erkeer",
-                "utility-panel": "hulpprogramma <tag-underline>p</tag-underline>aneel"
+                "painted-sidewalk": "gesc<tag-underline>h</tag-underline>ilderd trottoir",
+                "pedestrian-arcade": "voetgangers galerij (<tag-underline>q</tag-underline>)",
+                "too-close-to-traffic": "<tag-underline>t</tag-underline>e dicht bij het verkeer",
+                "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el"
             },
             "tooltip": {
                 "passable": "Begaanbaar",
