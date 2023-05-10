@@ -26,6 +26,7 @@ INSERT INTO tag (label_type_id, tag) SELECT label_type_id, 'uneven surface' FROM
 INSERT INTO tag (label_type_id, tag) SELECT label_type_id, 'litter/garbage' FROM label_type WHERE label_type.label_type = 'Obstacle';
 INSERT INTO tag (label_type_id, tag) SELECT label_type_id, 'parked scooter/motorcycle' FROM label_type WHERE label_type.label_type = 'Obstacle';
 
+
 # --- !Downs
 SELECT setval('tag_tag_id_seq', (SELECT MAX(tag_id) from "tag"));
 
@@ -69,7 +70,7 @@ DELETE FROM tag
 USING label_type
 WHERE tag.label_type_id = label_type.label_type_id
     AND label_type.label_type = 'SurfaceProblem'
-    AND tag.tag IN ('rail/tram track');
+    AND tag.tag = 'rail/tram track';
 
 -- Add 'paint not fading' tag for crosswalks.
 INSERT INTO tag (label_type_id, tag) SELECT label_type_id, 'paint not fading' FROM label_type WHERE label_type.label_type = 'Crosswalk';
