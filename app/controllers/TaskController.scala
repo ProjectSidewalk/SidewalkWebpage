@@ -31,7 +31,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 
 /**
- * Holds the HTTP requests associated with tasks submitted through the audit page.
+ * Holds the HTTP requests associated with tasks submitted through the explore page.
  *
  * @param env The Silhouette environment.
  */
@@ -211,7 +211,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   * Helper function that updates database with all data submitted through the audit page.
+   * Helper function that updates database with all data submitted through the explore page.
    */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     var newLabels: ListBuffer[(Int, Timestamp)] = ListBuffer()

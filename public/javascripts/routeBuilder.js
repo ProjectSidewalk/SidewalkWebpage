@@ -75,7 +75,7 @@ function RouteBuilder ($, mapParamData) {
         })
             .then((response) => response.json())
             .then((data) => {
-                let exploreURL = `/audit?routeId=${data.route_id}`;
+                let exploreURL = `/explore?routeId=${data.route_id}`;
                 exploreButton.click(function () {
                     window.location.replace(exploreURL);
                 });

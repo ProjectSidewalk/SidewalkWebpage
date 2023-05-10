@@ -329,7 +329,7 @@ leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
-leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/audit"><u>¡Empieza a explorar!</u></a>
+leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/explore"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
 leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard"><u>Únase a una organización</u></a> y trabaje en equipo para mapear y evaluar las aceras!
 
@@ -338,5 +338,5 @@ gallery.show = Mostrar
 gallery.filter.by = Filtrar por
 gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
-gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
+gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados

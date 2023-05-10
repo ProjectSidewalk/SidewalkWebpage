@@ -379,7 +379,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get a new task specified by the street edge id. Used when calling the /audit/street route.
+    * Get a new task specified by the street edge id. Used when calling the /explore/street route.
     */
   def selectANewTask(streetEdgeId: Int, missionId: Int): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -406,7 +406,7 @@ object AuditTaskTable {
   }
 
   /**
-   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /audit/region.
+   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /explore/region.
    */
   def selectANewTaskInARegion(regionId: Int, user: UUID, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
