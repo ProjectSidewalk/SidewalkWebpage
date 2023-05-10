@@ -383,7 +383,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("NoCurbRamp", Messages("missing.ramp")),
           ("Obstacle", Messages("obstacle")),
           ("SurfaceProblem", Messages("surface.problem")),
-          ("Occlusion", Messages("gallery.occlusion")),
+          ("Occlusion", Messages("occlusion")),
           ("NoSidewalk", Messages("no.sidewalk")),
           ("Crosswalk", Messages("crosswalk")),
           ("Signal", Messages("signal")),
@@ -396,7 +396,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         // Make sure that list of severities and validation options are formatted correctly.
         val severityList: List[Int] = parseIntegerList(severities).filter(s => s > 0 && s < 6)
         val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
-        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unvalidated").contains(_)).toList
+        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "notsure", "unvalidated").contains(_)).toList
 
         // Log visit to Gallery.
         val activityStr: String = s"Visit_Gallery_LabelType=${labType}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"

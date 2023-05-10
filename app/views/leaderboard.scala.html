@@ -71,7 +71,7 @@
                             }
                         }
                         @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
-                            <td class="leaderboard-table-font accuracy-cell">N/A
+                            <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                 <span class="accuracy-tooltip">
                                     @Messages("leaderboard.tooltip.accuracy")
                                 </span>
@@ -140,7 +140,7 @@
                                 }
                             }
                             @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
-                                <td class="leaderboard-table-font accuracy-cell">N/A
+                                <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                     <span class="accuracy-tooltip">
                                     @Messages("leaderboard.tooltip.accuracy")
                                     </span>
@@ -219,7 +219,7 @@
                                 }
                             }
                             @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
-                                <td class="leaderboard-table-font accuracy-cell">N/A
+                                <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                     <span class="accuracy-tooltip">
                                     @Messages("leaderboard.tooltip.accuracy")
                                     </span>
@@ -299,7 +299,7 @@
                                 }
                             }
                             @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
-                                <td class="leaderboard-table-font accuracy-cell">N/A
+                                <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                     <span class="accuracy-tooltip">
                                     @Messages("leaderboard.tooltip.accuracy")
                                     </span>

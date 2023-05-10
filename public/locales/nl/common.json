@@ -14,6 +14,9 @@
   "crosswalk": "Oversteekplaats",
   "signal": "Verkeerslicht",
   "other": "Anders",
+  "agree": "Mee eens zijn",
+  "disagree": "Het oneens zijn",
+  "not-sure": "Niet zeker",
   "missing-sidewalks": "Ontbrekende trottoirs",
   "missing-ramps": "Ontbrekende Opritten",
   "surface-problems": "Oppervlakte problemen",
@@ -33,10 +36,11 @@
     "100-percent-complete": "100% Voltooid!",
     "percent-complete": "{{percent}}% Voltooid"
   },
-  "label-map": {
-    "add-comment": "Voeg opmerking hier toe...",
-    "submit": "Voeg opmerking toe",
-    "comment-submitted" : "Commentaar ingediend"
+  "errors": {
+    "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
+    "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
+    "google-connect-error": "We hadden problemen met het verbinden met Google Street View, probeer het later opnieuw!",
+    "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
   },
   "severity": "Ernst",
   "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
@@ -109,9 +113,10 @@
     "latitude": "Breedtegraad",
     "longitude": "Lengtegraad",
     "panorama-id": "Panorama-ID",
+    "google-street-view": "Google Street View",
     "street-id": "Straat-ID",
     "region-id": "Regio-ID",
-    "label-id": "Label-ID",
+    "label-id": "Etiket-ID",
     "view-in-gsv": "Bekijken in Google Streetview",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
   }
