@@ -331,7 +331,7 @@ leaderboard.header.missions = 任務
 leaderboard.header.distance = 距離
 leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才會顯示精準度
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
-leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/audit"><u>開始探索地圖吧！</u></a>
+leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
 
@@ -340,5 +340,5 @@ gallery.show = 顯示項目
 gallery.filter.by = 篩選
 gallery.tags = 標籤
 gallery.all = 所有标签类型
-gallery.labels.not.found = 無相符資料。 <a href="/audit">開始探索</a>以建立更多的資料！
+gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以建立更多的資料！
 gallery.cards = 标签根据选定的过滤器随机排序

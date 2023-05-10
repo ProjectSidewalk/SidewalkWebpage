@@ -8,8 +8,8 @@
 
 @(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
-@main(title, Some("/audit")) {
-    @navbar(user, Some("/audit"))
+@main(title, Some("/explore")) {
+    @navbar(user, Some("/explore"))
 
     @icons()
 
@@ -976,12 +976,12 @@
             });
 
             $('#redirect-new').on('click', function() {
-                $(location).attr('href', '/audit?newRegion=true');
+                $(location).attr('href', '/explore?newRegion=true');
             });
 
             // Already Completed Neighborhood Overlay
             $('#accept-redirect').on('click', function() {
-                $(location).attr('href', '/audit');
+                $(location).attr('href', '/explore');
             });
         });
 

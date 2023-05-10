@@ -177,7 +177,7 @@ function Main (params) {
         }
 
         $("#navbar-retake-tutorial-btn").on('click', function () {
-            window.location.replace('/audit?retakeTutorial=true');
+            window.location.replace('/explore?retakeTutorial=true');
         });
 
         $('#survey-modal-container').on('show.bs.modal', function () {

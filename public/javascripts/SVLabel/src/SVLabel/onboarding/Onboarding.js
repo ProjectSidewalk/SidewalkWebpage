@@ -390,7 +390,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Redirects to the audit page and submits all data through Form.js.
         svl.form.submitData(false);
-        window.location.replace('/audit');
+        window.location.replace('/explore');
     }
 
     function _onboardingStateAnnotationExists(state) {

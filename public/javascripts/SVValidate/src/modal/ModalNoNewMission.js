@@ -17,7 +17,7 @@ function ModalNoNewMission (uiModalMission) {
 
     function _handleButtonClick() {
         svv.tracker.push("Click_NoMoreMissionModal_Audit");
-        window.location.replace("/audit");
+        window.location.replace("/explore");
     }
 
     function show () {

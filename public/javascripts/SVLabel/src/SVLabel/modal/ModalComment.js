@@ -140,7 +140,7 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
      * Submit the comment.
      */
     this._submitComment = function (data) {
-        var url = "/audit/comment";
+        var url = "/explore/comment";
         var async = true;
         $.ajax({
             async: async,

@@ -140,7 +140,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         if (event.data.button === 'primary' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0)) {
             window.location.replace('/validate');
         } else if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-            window.location.replace('/audit');
+            window.location.replace('/explore');
         } else {
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );

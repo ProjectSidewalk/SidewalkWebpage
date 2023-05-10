@@ -114,7 +114,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
                     let regionId = feature.properties.region_id;
                     let regionName = feature.properties.region_name;
                     let userCompleted = feature.properties.user_completed;
-                    let url = '/audit/region/' + regionId;
+                    let url = '/explore/region/' + regionId;
                     let compRate = 100.0 * rates[ratesIndex].rate;
                     let compRateRounded = Math.floor(100.0 * rates[ratesIndex].rate);
                     let distanceLeft = rates[ratesIndex].total_distance_m - rates[ratesIndex].completed_distance_m;
