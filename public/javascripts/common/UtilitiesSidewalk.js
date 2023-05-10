@@ -196,6 +196,10 @@ function UtilitiesMisc (JSON) {
                     'parked scooter/motorcycle': {
                         keyChar: 'Y',
                         text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
+                    },
+                    'pedestrian arcade': {
+                        keyChar: 'Q',
+                        text: i18next.t('center-ui.context-menu.tag.pedestrian-arcade')
                     }
                 }
             },
@@ -250,6 +254,14 @@ function UtilitiesMisc (JSON) {
                     'uncovered manhole': {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
+                    },
+                    'painted sidewalk': {
+                        keyChar: 'H',
+                        text: i18next.t('center-ui.context-menu.tag.painted-sidewalk')
+                    },
+                    'utility panel': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.utility-panel')
                     }
                 }
             },
@@ -318,6 +330,10 @@ function UtilitiesMisc (JSON) {
                     'level with sidewalk': {
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk')
+                    },
+                    'too close to traffic': {
+                        keyChar: 'T',
+                        text: i18next.t('center-ui.context-menu.tag.too-close-to-traffic')
                     }
                 }
             },
