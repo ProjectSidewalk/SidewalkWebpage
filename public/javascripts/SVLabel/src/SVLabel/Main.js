@@ -238,6 +238,9 @@ function Main (params) {
             delay: { "show": 500, "hide": 100 },
             html: true
         });
+
+        // Clean up the URL in the address bar.
+        _updateURL();
     }
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
@@ -284,9 +287,7 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
-
             // TODO It should pass UserModel instead of User (i.e., svl.user)
-
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
                 svl.map, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel, onboardingStates,
                 svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
@@ -376,6 +377,20 @@ function Main (params) {
         var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
 
         svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance + missProgress);
+    }
+
+    /**
+     * Cleans up URL in address bar by removing query params that aren't necessary, changing /audit to /explore. etc.
+     * @private
+     */
+    function _updateURL() {
+        var newURL = `${window.location.protocol}//${window.location.host}/explore`;
+        if (window.location.search.includes('retakeTutorial=true')) {
+            newURL += '?retakeTutorial=true';
+        }
+        if (newURL !== window.location.href) {
+            window.history.pushState({ },'', newURL);
+        }
     }
 
     /**
