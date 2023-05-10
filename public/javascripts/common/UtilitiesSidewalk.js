@@ -418,7 +418,7 @@ function UtilitiesMisc (JSON) {
      * @param streetEdgeId
      */
     function reportNoStreetView(streetEdgeId) {
-        var x = new XMLHttpRequest(), async = true, url = "/audit/nostreetview";
+        var x = new XMLHttpRequest(), async = true, url = "/explore/nostreetview";
         x.open('POST', url, async);
         x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         x.send(streetEdgeId);

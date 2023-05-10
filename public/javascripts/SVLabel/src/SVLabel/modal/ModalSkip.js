@@ -74,7 +74,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
 
         // If the user was following a route, refresh the page so that they are no longer on the route.
         if (svl.neighborhoodModel.isRoute) {
-            window.location.replace('/audit?resumeRoute=false');
+            window.location.replace('/explore?resumeRoute=false');
         }
     };
 
@@ -84,7 +84,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      */
      this._handleClickRedirect = function(e) {
         tracker.push("ModalSkip_ClickRedirect");
-         window.location.replace('/audit?newRegion=true&resumeRoute=false');
+         window.location.replace('/explore?newRegion=true&resumeRoute=false');
      };
 
     /**

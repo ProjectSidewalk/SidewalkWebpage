@@ -1,4 +1,7 @@
 measurement.system = 公制
+label.type = 標記類型
+legend = 传奇
+severity = 严重程度
 curb.ramp = 路緣斜坡
 curb.ramps = 路緣斜坡
 missing.ramp = 無路緣斜坡
@@ -10,7 +13,15 @@ surface.problems = 鋪面問題
 no.sidewalk = 無人行道
 crosswalk = 行人穿越道
 signal = 行人號誌
+occlusion = 看不到人行道
 other = 其他
+validated.correct = 验证正确
+validated.incorrect = 验证不正确
+unvalidated = 未验证
+audited.street = 审计街
+unaudited.street = 未经审计的街道
+not.sure = 不確定
+not.applicable.abbr = 不適用
 validations = 檢核
 labels = 標記
 label.icon.alt = 有大目的地記號的極簡風格地圖圖標
@@ -209,7 +220,6 @@ validate.right.ui.incorrect.examples = <strong>錯誤</strong> 例子
 validate.mission.complete.category = 類別
 validate.mission.complete.agree = 同意
 validate.mission.complete.disagree = 不同意
-validate.mission.complete.not.sure = 不確定
 validate.mission.complete.your.overall.total = 總成績
 
 
@@ -276,10 +286,8 @@ dashboard.edit.org = 編輯
 dashboard.edit.info = 若您找無您的組織，請email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> 並請提供您的組織名稱及簡介。
 dashboard.orgs.unavailable = 無適用之組織！
 dashboard.leave.org = 退出組織
-dashboard.audited.street = 檢視過的街道
 dashboard.total.distance.explored = 探索距離
 dashboard.number.completed.missions = 完成任務的數量
-dashboard.label.type = 標記類型
 dashboard.number.of.labels = 標記數量
 dashboard.missions = 任務
 dashboard.your.missions = 您的任務
@@ -323,16 +331,14 @@ leaderboard.header.missions = 任務
 leaderboard.header.distance = 距離
 leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才會顯示精準度
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
-leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/audit"><u>開始探索地圖吧！</u></a>
+leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
 
 gallery = 標記彙整
 gallery.show = 顯示項目
 gallery.filter.by = 篩選
-gallery.severity = 品質
 gallery.tags = 標籤
 gallery.all = 所有标签类型
-gallery.occlusion = 看不到人行道
-gallery.labels.not.found = 無相符資料。 <a href="/audit">開始探索</a>以建立更多的資料！
+gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以建立更多的資料！
 gallery.cards = 标签根据选定的过滤器随机排序

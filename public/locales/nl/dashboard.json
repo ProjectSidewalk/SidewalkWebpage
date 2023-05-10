@@ -34,7 +34,7 @@
   "badge-validations-earned-all": "Gefeliciteerd, je hebt alle validatiebadges behaald!",
   "mistakes-info": "We tonen geen labels voor {{labelTypes, list}} omdat geen enkele als onjuist is gemarkeerd.",
   "mistakes-subheader": "Hieronder tonen we labels die door andere Project Sidewalk-gebruikers als onjuist zijn gemarkeerd.",
-  "no-mistakes-subheader": "Er zijn tot nu toe geen labels als onjuist gerapporteerd, goed gedaan! <a href=\"/audit\">Begin met verkennen</a> om het goede werk voort te zetten!",
+  "no-mistakes-subheader": "Er zijn tot nu toe geen labels als onjuist gerapporteerd, goed gedaan! <a href=\"/explore\">Begin met verkennen</a> om het goede werk voort te zetten!",
   "validator-comment": "Commentaar van validator: {{c}}",
   "validator-no-comment": "Geen commentaar geleverd door validator."
 }

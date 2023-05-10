@@ -9,7 +9,7 @@
 @main(title) {
     @navbar(user, Some("/"))
     <div id="vidbanner">
-        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+        <video controls playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
@@ -28,7 +28,7 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
                     @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {
