@@ -106,57 +106,6 @@
   text-align: center;
 }
 
-/* Formatting the test server warning banner. */
-.test-server-banner {
-  background-color: rgb(251, 215, 139);
-}
-
-.test-server-banner-content {
-  padding: 0.5%;
-  max-width: 70%;
-  margin: 0 auto;
-  display: flex;
-  font-size: medium;
-}
-
-.test-server-banner-text {
-  font-family: raleway-bold, sans-serif;
-  text-align: center;
-}
-.test-server-banner-text > strong {
-  color: red;
-}
-
-.test-server-banner-dont-show-again {
-  background: none;
-  border: none;
-  text-decoration: underline;
-  min-width: fit-content;
-  padding: 0 20px;
-}
-
-.test-server-banner-close {
-  background: none;
-  border: none;
-  margin-top: 2px;
-}
-
-/*
- * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
- * for some reason. So CSS for that page is in mobileValidate.css.
- */
-@media only screen and (max-width: 500px) {
-  .test-server-banner {
-    border-radius: 5px;
-  }
-
-  .test-server-banner-content {
-    max-width: 300px;
-    flex-wrap: wrap;
-    font-size: small;
-  }
-}
-
 /* Video banner */
 video#bgvid {
   min-width: 1100px;
