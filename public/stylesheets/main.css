@@ -591,6 +591,19 @@ kbd {
     margin-top: 5px;
 }
 
+/*
+ * CSS for the footer header
+*/
+.footerheader {
+  font-family: raleway-extrabold, sans-serif;
+  font-weight: bold;
+  color: #2d2a3f;
+  font-size: 12px;
+  line-height: 2.1em;
+  letter-spacing: 0.05em;
+}
+
+
 /* Formatting the test server warning banner. */
 .test-server-banner {
   background-color: rgb(251, 215, 139);

@@ -137,18 +137,6 @@ video#bgvid {
   transition: background-color 300ms ease;
 }
 
-/*
- * CSS for the footer header
-*/
-.footerheader {
-  font-family: raleway-extrabold, sans-serif;
-  font-weight: bold;
-  color: #2d2a3f;
-  font-size: 12px;
-  line-height: 2.1em;
-  letter-spacing: 0.05em;
-}
-
 /**
  * CSS for landing heading
 */
