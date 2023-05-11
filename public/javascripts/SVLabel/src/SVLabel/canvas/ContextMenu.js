@@ -480,22 +480,31 @@ function ContextMenu (uiContextMenu) {
                 $severityMenu.css({visibility: 'inherit', height: '50px'});
             }
             var windowHeight = $menuWindow.outerHeight();
+            var connectorBuffer = 3; // for connector to overlap border of label icon
+
+            var connectorHeight = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("height"));
+            var connectorWidth = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("width"));
 
             // Determine coordinates for context menu when displayed below the label.
-            var topCoordinate = labelCoord.y + 20;
-            var connectorCoordinate = -5;
-
-            var connectorStyle = window.getComputedStyle(document.getElementById("context-menu-vertical-connector"));
-            var connectorHeight = connectorStyle.getPropertyValue("height");
+            var topCoordinate = labelCoord.y
+                + svl.LABEL_ICON_RADIUS
+                + parseInt(connectorHeight)
+                - connectorBuffer;
+            var connectorCoordinate = -1 * parseInt(connectorHeight);
 
             // Determine coordinates for context menu when displayed above the label.
             // labelCoord is top-left of label but should be center of rendered label, so must account for icon radius
-            if (labelCoord.y +
-                    svl.LABEL_ICON_RADIUS +
-                    parseInt(connectorHeight) +
-                    windowHeight > util.EXPLORE_CANVAS_HEIGHT) {
-                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - parseInt(connectorHeight) - windowHeight;
-                connectorCoordinate = windowHeight; // labelCoord.y - svl.LABEL_ICON_RADIUS - parseInt(connectorHeight)
+            if (labelCoord.y
+                + svl.LABEL_ICON_RADIUS
+                + parseInt(connectorHeight)
+                + windowHeight
+                - connectorBuffer > util.EXPLORE_CANVAS_HEIGHT) {
+                topCoordinate = labelCoord.y
+                    - svl.LABEL_ICON_RADIUS
+                    - parseInt(connectorHeight)
+                    - windowHeight
+                    + connectorBuffer;
+                connectorCoordinate = windowHeight;
             }
 
             // Set the color of the border.
@@ -522,8 +531,8 @@ function ContextMenu (uiContextMenu) {
 
             $connector.css({
                 visibility: 'visible',
-                top: topCoordinate + connectorCoordinate, // topCoordinate + windowHeight = coordinate for connector
-                left: labelCoord.x - 3
+                top: topCoordinate + connectorCoordinate,
+                left: labelCoord.x - connectorWidth / 2,
             });
 
             setStatus('visibility', 'visible');
