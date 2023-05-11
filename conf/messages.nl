@@ -128,6 +128,9 @@ audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan ee
 audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
 
 audit.ribbon.find.and.label = Vind en label het volgende
+audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
+audit.ribbon.sidewalk.labels = TROTTOIR LABELS
+audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
 audit.ribbon.explore = Ontd<u>e</u>k
 audit.ribbon.curb.ramp = Trottoir Oprit (<u>C</u>)
 audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit

@@ -128,6 +128,9 @@ audit.tutorial.end.2 = Again, thank you for <span class="bold">making the world 
 audit.tutorial.examples = Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.
 
 audit.ribbon.find.and.label = Find and label the following
+audit.ribbon.curb.ramp.labels = CURB RAMP LABELS
+audit.ribbon.sidewalk.labels = SIDEWALK LABELS
+audit.ribbon.other.labels = OTHER ACCESSIBILITY LABELS
 audit.ribbon.explore = <u>E</u>xplore
 audit.ribbon.curb.ramp = <u>C</u>urb Ramp
 audit.ribbon.missing.ramp = <u>M</u>issing Curb Ramp
