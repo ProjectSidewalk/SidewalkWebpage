@@ -1,97 +1,144 @@
-/* css for homepage.js */
+/* CSS for homepage.js */
 
-
+/* General CSS */
 .tab-word.div {
-    background-color: #F1F1F1;
+  background-color: #f1f1f1;
 }
 .activetab {
-    font-family:Raleway-bold,sans-serif;
-    background-color:#58CEAB;
-    overflow: hidden;
-
+  font-family: Raleway-bold, sans-serif;
+  background-color: #58ceab;
+  overflow: hidden;
 }
+
 .activetab #word3 {
-    background-color:transparent;
+  background-color: transparent;
 }
 .activetab.stepnumber {
-    font-family: Raleway-black,sans-serif;
-    font-size: 90px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    color: #fff;
+  font-family: Raleway-black, sans-serif;
+  font-size: 90px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: bold;
+  color: #fff;
+}
+
+#content-text-1 {
+  font-family: adelle-regular, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  line-height: 1.8em;
+  letter-spacing: 0.1em;
+}
+
+#content-text-2 {
+  background-color: white;
+  opacity: 90%;
+  border-radius: 15px;
+  font-family: adelle-regular, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  line-height: 1.8em;
+  letter-spacing: 0.1em;
+  max-width: 500px;
+  position: relative;
+}
+
+#content-text-4 {
+  font-family: adelle-regular, sans-serif;
+  font-size: 15px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  line-height: 1.8em;
+  letter-spacing: 0.1em;
+  width: 450px;
+  margin: 0 auto;
+  position: relative;
+  top: 25px;
+}
+
+#banner2 {
+    min-height: 900px;
 }
 
 /* Collab div */
 .collaborator-images-container {
-    display: grid;
-    grid-auto-flow: column;
-    grid-gap: 20px 50px;
-    align-items: center;
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: 20px 50px;
+  align-items: center;
 }
 
 .collaborator-image {
-    padding: 15px 3% 15px 3%;
+  padding: 15px 3% 15px 3%;
 }
 
 .collaborator-image img {
-    width: 100%;
+  width: 100%;
 }
 
 #collaborators-row {
-    padding-bottom: 10px;
-    width: 100%;
-    text-align: center;
-    display: inline-block;
-    vertical-align: middle;
+  padding-bottom: 10px;
+  width: 100%;
+  text-align: center;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 #collaborators-title {
-    font-size: 40px;
-    margin-bottom: 20px;
+  font-size: 40px;
+  margin-bottom: 20px;
 }
 
 #collaborators-container {
-    position: relative;
-    max-width: 900px;
-    top: -20px;
-    min-height: 300px;
+  position: relative;
+  max-width: 900px;
+  top: -20px;
+  min-height: 300px;
 }
 
+#bannertext {
+  min-width: 700px;
+  text-align: center;
+}
 
 /* Formatting the test server warning banner. */
 .test-server-banner {
-    background-color: rgb(251,215,139);
+  background-color: rgb(251, 215, 139);
 }
 
 .test-server-banner-content {
-    padding: 0.5%;
-    max-width: 70%;
-    margin: 0 auto;
-    display: flex;
-    font-size: medium;
+  padding: 0.5%;
+  max-width: 70%;
+  margin: 0 auto;
+  display: flex;
+  font-size: medium;
 }
 
 .test-server-banner-text {
-    font-family: raleway-bold, sans-serif;
-    text-align: center;
+  font-family: raleway-bold, sans-serif;
+  text-align: center;
 }
 .test-server-banner-text > strong {
-    color: red;
+  color: red;
 }
 
 .test-server-banner-dont-show-again {
-    background: none;
-    border: none;
-    text-decoration: underline;
-    min-width: fit-content;
-    padding: 0 20px;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  min-width: fit-content;
+  padding: 0 20px;
 }
 
 .test-server-banner-close {
-    background: none;
-    border: none;
-    margin-top: 2px;
+  background: none;
+  border: none;
+  margin-top: 2px;
 }
 
 /*
@@ -99,25 +146,394 @@
  * for some reason. So CSS for that page is in mobileValidate.css.
  */
 @media only screen and (max-width: 500px) {
-    .test-server-banner {
-        border-radius: 5px;
-    }
+  .test-server-banner {
+    border-radius: 5px;
+  }
 
-    .test-server-banner-content {
-        max-width: 300px;
-        flex-wrap: wrap;
-        font-size: small;
-    }
+  .test-server-banner-content {
+    max-width: 300px;
+    flex-wrap: wrap;
+    font-size: small;
+  }
+}
+
+/* Video banner */
+video#bgvid {
+  min-width: 1100px;
+  width: 100%;
+  background-size: cover;
+  left: 0px;
+  backface-visibility: hidden;
+  background: url("../assets/psmockup.jpg") no-repeat scroll 0 0 #000;
+  background-size: cover;
+  bottom: 0;
+  top: 70px;
+  height: auto;
+  perspective: 1000;
+  position: fixed;
+  right: 0;
+  z-index: -1;
+}
+
+#vidbanner {
+  position: relative;
+  overflow: hidden;
+  top: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  max-height: 700px;
+  height: 700px;
+  left: 0;
+  transition: background-color 300ms ease;
 }
 
 /*
  * CSS for the footer header
 */
 .footerheader {
-    font-family: raleway-extrabold, sans-serif;
-    font-weight: bold;
-    color: #2D2A3F;
-    font-size: 12px;
-    line-height: 2.1em;
-    letter-spacing: 0.05em;
+  font-family: raleway-extrabold, sans-serif;
+  font-weight: bold;
+  color: #2d2a3f;
+  font-size: 12px;
+  line-height: 2.1em;
+  letter-spacing: 0.05em;
+}
+
+/**
+ * CSS for landing heading
+*/
+
+.tagline {
+  font-family: raleway-bold, sans-serif;
+  font-size: 50px;
+  letter-spacing: 0.05em;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: bold;
+  line-height: 1em;
+  color: #fff;
+}
+
+/* Start Button */
+.body-start-btn {
+  background-color: rgba(251, 215, 139, 1);
+  -moz-border-radius: 15px;
+  -webkit-border-radius: 15px;
+  border-radius: 10px;
+  border: 0px solid #fbd78b;
+  display: inline-block;
+  cursor: pointer;
+  color: #2d2a3f;
+  font: normal normal normal 14px/1.4em raleway, sans-serif;
+  font-family: "Raleway", sans-serif;
+  font-size: 14px;
+  padding: 10px 75px;
+  text-decoration: none;
+  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.body-start-btn:hover {
+  background-color: #fcecbe;
+  border: 0px solid #eb734d;
+  color: #2d2a3f;
+  text-shadow: none;
+}
+.body-start-btn:active {
+  position: relative;
+  top: 1px;
+}
+
+/* How can you help css styling */
+.im-centered {
+  position: relative;
+  top: 0px;
+  margin: auto;
+  max-width: 500px;
+  text-align: center;
+  padding-top: 50px;
+  font-family: raleway, sans-serif;
+  letter-spacing: 0em;
+  font-size: 45px;
+  font-style: normal;
+  font-variant: normal;
+  height: 500px;
+  min-height: 700px;
+  line-height: 40px;
+  color: #2d2a3f;
+}
+
+.im-centered3 {
+  position: relative;
+  top: 0px;
+  margin: auto;
+  max-width: 340px;
+  text-align: center;
+  padding-top: 50px;
+  font-family: raleway, sans-serif;
+  letter-spacing: 0em;
+  font-size: 45px;
+  font-style: normal;
+  font-variant: normal;
+  line-height: 1.1em;
+  color: #2d2a3f;
+}
+
+#exploredesc {
+  position: relative;
+  top: -10px;
+  max-width: 490px;
+  margin: 0 auto;
+}
+
+#instructionvideo {
+  position: relative;
+  left: -122px;
+  top: 3px;
+  max-width: 300px;
+}
+
+/* Header text and city links */
+.header-text {
+  color: #fff;
+  font-family: raleway;
+  font-size: 15px;
+  line-height: 2.8em;
+  text-align: center;
+  position: relative;
+  cursor: default;
+  /*left: -30px;*/
+}
+
+.other-city-link:link {
+  color: #fff;
+  text-decoration: underline;
+  font-family: raleway;
+  font-size: 15px;
+  font-weight: bolder;
+  line-height: 2.8em;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+}
+.other-city-link:visited {
+  color: #fff;
+}
+.other-city-link:hover {
+  color: rgba(251, 215, 139, 1);
+}
+
+/* Skyline styling */
+.ps-skyline {
+  position: relative;
+  padding: 15px;
+}
+
+.ps-skyline-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-skyline-overlay > * {
+  align-self: center;
+  margin-top: 20px;
+}
+
+#skyline-spacing {
+  margin: 0 auto;
+  width: fit-content;
+  margin-top: 135px;
+}
+
+.ps-skyline-overlay > .row {
+  background-color: white;
+  opacity: 90%;
+  padding: 5px;
+  border-radius: 15px;
+  max-width: 100%;
+  font-family: raleway, sans-serif;
+  letter-spacing: 0em;
+  font-size: 45px;
+  font-style: normal;
+  font-variant: normal;
+  line-height: 1.1em;
+  color: #2d2a3f;
+}
+
+.ps-skyline-overlay-btn {
+  background-color: #eb734d;
+  opacity: 90%;
+  -moz-border-radius: 15px;
+  -webkit-border-radius: 15px;
+  border-radius: 15px;
+  border: 1px solid #2d2a3f;
+  cursor: pointer;
+  color: #2d2a3f;
+  font: normal normal normal 14px/1.4em raleway, sans-serif;
+  font-family: "Raleway", sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  padding: 10px 45px;
+  text-decoration: none;
+  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+
+.ps-skyline-overlay-btn:hover {
+  border: 1px solid #eb734d;
+  color: #ffffff;
+  text-shadow: none;
+}
+
+.ps-skyline-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-skyline-container > img {
+  width: 1400px;
+  align-self: center;
+}
+
+.skyline-cloud-overlay {
+  margin-top: -68px; /* Height of Cloud .png */
+}
+
+.ps-skyline-stats-holder {
+  margin: -35px auto 0 auto;
+  min-width: 800px;
+  max-width: 1400px;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-gap: 8px;
+
+  text-align: center;
+}
+
+.ps-skyline-stats-holder-stat-number {
+  font-size: 60px;
+  font-family: raleway-extrabold, sans-serif;
+}
+
+.ps-skyline-stats-holder-stat-label {
+  font-size: 30px;
+}
+
+.ps-skyline-stats-holder > a {
+  color: #2d2a3f;
+}
+
+.ps-skyline-stats-holder > a:hover {
+  text-decoration: none;
+}
+
+@media (max-width: 835px) {
+  .ps-skyline-stats-holder {
+    display: none;
+  }
+}
+
+p#conditional-text {
+  margin: 5px;
+}
+
+/* What we do with your labels styles */
+
+#machinelearning-container {
+  background-color: rgba(249, 241, 227, 1);
+  width: 100%;
+  min-height: 800px;
+}
+
+.ml-gif-header-1 {
+  position: absolute;
+  text-align: center;
+  font-size: 35px;
+  transform: translate(-50%, 0);
+  bottom: -450px;
+}
+
+.ml-gif-header-2 {
+  position: absolute;
+  font-size: 21px;
+  transform: translate(-50%, 0);
+}
+
+.ml-gif-header-3 {
+  position: absolute;
+  font-size: 18px;
+  max-width: 100px;
+  transform: translate(-50%, 0);
+}
+
+.gif-container {
+  position: relative;
+  text-align: left;
+  max-width: 340px;
+  margin: auto;
+  font-weight: bold;
+  font-variant: small-caps;
+  line-height: 0.8;
+  top: 30px;
+}
+
+/* ML Gif assets and styling */
+#mlgif {
+  position: absolute;
+  left: 50%;
+  width: 980px;
+  margin-left: -490px;
+}
+
+#mlgif-bottom-text-1 {
+  left: -285px;
+  max-width: 50px;
+}
+
+#mlgif-bottom-text-2 {
+  left: -20px;
+  max-width: 500px;
+}
+
+#mlgif-bottom-text-3 {
+  left: 395px;
+  max-width: 200px;
+}
+
+#mlgif-label-text-1 {
+  text-align: center;
+  bottom: -170px;
+  left: -285px;
+  max-width: 160px;
+}
+
+#mlgif-label-text-2 {
+  bottom: -30px;
+  left: -20px;
+  max-width: 250px;
+}
+
+#mlgif-semicircle-text-1 {
+  bottom: -240px;
+  left: 258px;
+}
+
+#mlgif-semicircle-text-2 {
+  bottom: -210px;
+  left: 388px;
+}
+
+#mlgif-semicircle-text-3 {
+  bottom: -225px;
+  left: 527px;
+}
+
+#mlgif-semicircle-text-4 {
+  bottom: -320px;
+  left: 500px;
+  transform: translate(0, 0);
 }
