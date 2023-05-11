@@ -130,7 +130,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
      *
      * If the user clicks the 'Start validating' button send them to the validation page (only shows up if this was
      * their third audit mission in a row or they are not a turker and this is their first audit mission ever). If they
-     * just finished a neighborhood, reload the audit page. Otherwise start a new audit mission like normal.
+     * just finished a neighborhood, reload the explore page. Otherwise start a new explore mission like normal.
      * @param event
      * @private
      */
@@ -140,7 +140,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         if (event.data.button === 'primary' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0)) {
             window.location.replace('/validate');
         } else if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-            window.location.replace('/audit');
+            window.location.replace('/explore');
         } else {
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );

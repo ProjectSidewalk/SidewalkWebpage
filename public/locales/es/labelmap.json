@@ -1,6 +1,6 @@
 {
     "is-correct": "Esta etiqueta es correcta?",
-    "explore-street-link": "<a href=\"/audit/street/{{streetId}}\">Haga clic aquí</a> para explorar la calle!",
+    "explore-street-link": "<a href=\"/explore/street/{{streetId}}\">Haga clic aquí</a> para explorar la calle!",
     "label-type": "Tipo de etiqueta",
     "validations": "Validaciones",
     "add-comment": "Agrega un comentario aquí...",
