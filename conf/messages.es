@@ -128,6 +128,9 @@ audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más 
 audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
+audit.ribbon.curb.ramp.labels = ETIQUETAS DE RAMPA PEATONAL
+audit.ribbon.sidewalk.labels = ETIQUETAS DE BANQUETA
+audit.ribbon.other.labels = OTRAS ETIQUETAS DE ACCESIBILIDAD
 audit.ribbon.explore = <u>E</u>xplorar
 audit.ribbon.curb.ramp = Rampa peatonal (<u>C</u>)
 audit.ribbon.missing.ramp = Rampa peatonal ausente (<u>M</u>)

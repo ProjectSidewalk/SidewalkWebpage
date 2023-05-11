@@ -1,0 +1,56 @@
+measurement.system = metric
+curb.ramp = Drop Kerb
+curb.ramps = Drop Kerbs
+missing.ramp = Missing Drop Kerb
+missing.ramps = Missing Drop Kerbs
+no.sidewalk = No Footpath
+occlusion = Can''t See the Footpath
+crosswalk = Pedestrian crossing
+landing.choropleth.title = Pick a Neighbourhood
+landing.choropleth.content = You are automatically assigned a neighbourhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
+landing.choropleth.legend = Percent of Neighbourhood Complete
+
+landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometres of {1}, {2}—that''s {3}% of the target area in the city!
+landing.stats.content.unfinished.full = Users like you have already mapped {0} kilometres of {1}, {2}—that''s {3}% of the city!
+landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} kilometres of the target area in {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometres of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.distance = kilometres covered
+
+audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Drop kerbs</span> help wheelchair users get on and off the footpaths
+audit.tutorial.examples.missing.ramp = Wheelchair users cannot navigate footpaths when <span style="color:#ff0066">drop kerbs are missing</span>
+audit.tutorial.examples.surface.problem = Footpaths with <span style="color:orange">surface problems</span> may not be navigable
+audit.tutorial.examples = Examples of accessibility attributes: drop kerbs, missing drop kerbs, obstacles in path, and surface problems.
+
+audit.ribbon.curb.ramp.labels = DROP KERB LABELS
+audit.ribbon.sidewalk.labels = FOOTPATH LABELS
+audit.ribbon.curb.ramp = Drop Kerb (<u>C</u>)
+audit.ribbon.missing.ramp = <u>M</u>issing Drop Kerb
+audit.ribbon.no.sidewalk = <u>N</u>o Footpath
+audit.ribbon.crosswalk = Pedestrian<br>Crossing (<u>W</u>)
+audit.ribbon.occlusion = Can''t See the Footpath (<u>B</u>)
+audit.left.ui.jump.explore.title = Go to a new location or a new neighbourhood?
+audit.left.ui.jump.explore.button.same.neighborhood = Go to a new location in this neighbourhood
+audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighbourhood
+audit.right.ui.current.neighborhood = Current Neighbourhood
+audit.right.ui.distance = kilometres
+audit.mission.complete.progress.neighborhood.others = Others explored in this neighbourhood
+audit.help.curb.ramp.1 = Clean drop kerbs that are aligned with pedestrian crossings.
+audit.help.curb.ramp.3 = A drop kerb with a pole standing in the middle. People who use large electrical wheelchairs may have trouble using this drop kerb.
+audit.help.curb.ramp.5 = Water has accumulated in this drop kerb due to poor drainage. It is hard for manual wheelchair users to use this drop kerb.
+audit.help.missing.ramp.1 = Although there is no drop kerb, the level difference is small and wheelchair users would be able to get on or off the footpath. There is also a drop kerb at the same corner that people could use, although it is not aligned to the path.
+audit.help.missing.ramp.3 = There is no drop kerb at the end of the pedestrian crossing. Wheelchair users are forced to used the drop kerb that is not aligned with the pedestrian crossing.
+audit.help.missing.ramp.5 = No drop kerb at the end of the pedestrian crossing. Wheelchair users cannot get on or off the footpath and cross the street here.
+audit.help.obstacle.3 = The plant is obstructing the path, making it hard for wheelchair users to use this footpath
+audit.help.surface.problem.1 = Partially damaged footpath. Because there is enough space next to the damaged part of the footpath, wheelchair users would be able to pass.
+audit.help.surface.problem.3 = Wheelchair users would have difficulty navigating on the cobblestone footpaths and crossings.
+
+reset.pw.email.hello = Kia ora {0},
+results.problems.per.mile = Footpath Problems per Mile
+results.legend.body = Gray neighbourhoods lack sufficient data to assess footpath problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
+
+dashboard.no.org = No Organisation
+dashboard.edit.info = If you don''t see your organisation, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organisation name and description.
+dashboard.orgs.unavailable = There are no available organisations!
+dashboard.leave.org = Leave Organisation
+
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organisation</u></a> and work together as a team to map and assess footpaths!
