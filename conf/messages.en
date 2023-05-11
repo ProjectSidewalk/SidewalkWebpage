@@ -331,7 +331,7 @@ leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
-leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/audit"><u>Start exploring!</u></a>
+leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/explore"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organization</u></a> and work together as a team to map and assess sidewalks!
 
@@ -340,5 +340,5 @@ gallery.show = Show
 gallery.filter.by = Filter By
 gallery.tags = Tags
 gallery.all = All Label Types
-gallery.labels.not.found = No matches. <a href="/audit">Start exploring</a> to contribute more data!
+gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters

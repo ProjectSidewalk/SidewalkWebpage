@@ -34,7 +34,7 @@
   "badge-validations-earned-all": "¡Felicitaciones, ha ganado todas las insignias de validación!",
   "mistakes-info": "No mostramos etiquetas para {{labelTypes, list}} porque ninguna se marcó como incorrecta.",
   "mistakes-subheader": "A continuación, mostramos las etiquetas que otros usuarios de Project Sidewalk han marcado como incorrectas.",
-  "no-mistakes-subheader": "Hasta el momento no se han informado etiquetas incorrectas, ¡buen trabajo! <a href=\"/audit\">¡Empieza a explorar</a> para continuar con el buen trabajo!",
+  "no-mistakes-subheader": "Hasta el momento no se han informado etiquetas incorrectas, ¡buen trabajo! <a href=\"/explore\">¡Empieza a explorar</a> para continuar con el buen trabajo!",
   "validator-comment": "Comentario del validador: {{c}}",
   "validator-no-comment": "Ningún comentario proporcionado por el validador."
 }

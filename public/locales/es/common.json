@@ -106,7 +106,11 @@
     "button waist height": "botón a la altura de la cintura",
     "APS": "APS",
     "missing crosswalk": "paso peatonal ausente (i)",
-    "no bus stop access": "No hay acceso a la parada de autobús"
+    "no bus stop access": "No hay acceso a la parada de autobús",
+    "painted sidewalk": "acera pintada",
+    "pedestrian arcade": "arcada peatonal",
+    "too close to traffic": "demasiado cerca del tráfico",
+    "utility panel": "panel de utilidad"
   },
   "gsv-info": {
     "details-title": "Detalles",
