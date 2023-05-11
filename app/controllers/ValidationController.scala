@@ -42,7 +42,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_Validate")
         if (validationData._4.missionType != "validation") {
-          Future.successful(Redirect("/audit"))
+          Future.successful(Redirect("/explore"))
         } else {
           Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
@@ -61,7 +61,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_MobileValidate")
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !ControllerUtils.isMobile(request)) {
-          Future.successful(Redirect("/audit"))
+          Future.successful(Redirect("/explore"))
         } else {
           Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }

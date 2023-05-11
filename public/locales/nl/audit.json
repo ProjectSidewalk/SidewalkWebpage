@@ -175,7 +175,11 @@
                 "APS": "<tag-underline>A</tag-underline>PS",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
                 "no-bus-stop-access": "geen bush<tag-underline>a</tag-underline>lte toegang",
-                "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)"
+                "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)",
+                "painted-sidewalk": "gesc<tag-underline>h</tag-underline>ilderd trottoir",
+                "pedestrian-arcade": "voetgangers galerij (<tag-underline>q</tag-underline>)",
+                "too-close-to-traffic": "<tag-underline>t</tag-underline>e dicht bij het verkeer",
+                "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el"
             },
             "tooltip": {
                 "passable": "Begaanbaar",

@@ -53,8 +53,8 @@
     
                                     // If on the audit or validation page and the timer has just expired, refresh page
                                     // to show HIT expiration overlay so that they are unable to audit.
-                                    if("@url.get" === "/audit" && !expired) {
-                                        window.location.href = window.location.origin + "/audit";
+                                    if("@url.get" === "/explore" && !expired) {
+                                        window.location.href = window.location.origin + "/explore";
                                     } else if ("@url.get" === "/validate" && !expired) {
                                         window.location.href = window.location.origin + "/validate"
                                     }
@@ -85,14 +85,14 @@
         </div>
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
-                @if(url.isDefined && url.get == "/audit") {
+                @if(url.isDefined && url.get == "/explore") {
                     <li class="active navbar-lnk">
                         <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
-                @if(url.isDefined && url.get != "/audit") {
+                @if(url.isDefined && url.get != "/explore") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {
@@ -105,7 +105,7 @@
                 <li class="active navbar-lnk">
                     <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                 </li>
-                @if(url.isDefined && url.get == "/audit") {
+                @if(url.isDefined && url.get == "/explore") {
                     <li class = "active navbar-lnk">
                         <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
@@ -240,7 +240,7 @@ $(document).ready(function () {
     }
 
     // The rest of this script logs whichever button is hit in the navbar.
-    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>".
+    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/explore|/help|...>".
     $("#navbar-brand").on('click', function() {
         logWebpageActivity("Click_module=PSLogo");
     });
@@ -428,7 +428,7 @@ $(document).ready(function () {
             // Toggle the sign-in modal.
             $('#sign-in-modal-container').modal('toggle');
 
-            if (path.includes("/audit") && svl) {
+            if (path.includes("/explore") && svl) {
                 svl.user.setProperty('username', data.username);
 
                 // Turn neighborhood name into a link.
