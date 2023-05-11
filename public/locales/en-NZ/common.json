@@ -1,0 +1,25 @@
+{
+  "curb-ramp": "Drop Kerb",
+  "no-curb-ramp": "Missing Drop Kerb",
+  "occlusion": "Can't See the Footpath",
+  "no-sidewalk": "No Footpath",
+  "crosswalk": "Pedestrian Crossing",
+  "missing-sidewalks": "Missing Footpaths",
+  "missing-ramps": "Missing Drop Kerbs",
+  "sidewalk-obstacles": "Footpath Obstacles",
+  "map": {
+    "distance-left": "Only {{n}} kilometres left!",
+    "distance-left-one-unit": "Only 1 kilometres left!",
+    "less-than-one-unit-left": "Less than a kilometre left!",
+    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighbourhood"
+  },
+  "tag": {
+    "trash/recycling can": "trash/recycling bin",
+    "narrow sidewalk": "narrow footpath",
+    "street has a sidewalk": "street has a footpath",
+    "street has no sidewalks": "street has no footpaths",
+    "level with sidewalk": "level with footpath",
+    "missing crosswalk": "missing pedestrian crossing",
+    "painted sidewalk": "painted footpath"
+  }
+}
