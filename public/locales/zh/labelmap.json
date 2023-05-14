@@ -1,6 +1,6 @@
 {
     "is-correct": "这个标签是否正确?",
-    "explore-street-link": "<a href=\"/audit/street/{{streetId}}\">点击这里</a> 探索街道！",
+    "explore-street-link": "<a href=\"/explore/street/{{streetId}}\">点击这里</a> 探索街道！",
     "label-type": "标签类型",
     "validations": "验证",
     "add-comment": "在此新增評論...",

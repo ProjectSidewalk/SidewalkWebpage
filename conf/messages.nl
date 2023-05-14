@@ -128,6 +128,9 @@ audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan ee
 audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
 
 audit.ribbon.find.and.label = Vind en label het volgende
+audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
+audit.ribbon.sidewalk.labels = TROTTOIR LABELS
+audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
 audit.ribbon.explore = Ontd<u>e</u>k
 audit.ribbon.curb.ramp = Trottoir Oprit (<u>C</u>)
 audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit
@@ -328,7 +331,7 @@ leaderboard.header.missions = Missies
 leaderboard.header.distance = Afstand
 leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten minste 10 van je labels zijn gevalideerd
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
-leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/audit"><u>Begin met verkennen!</u></a>
+leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Sluit je aan bij een organisatie</u></a> en werk samen als een team om trottoirs in kaart te brengen en te beoordelen!
 
@@ -337,5 +340,5 @@ gallery.show = Tonen
 gallery.filter.by = Filteren op
 gallery.tags = Tags
 gallery.all = Alle labeltypen
-gallery.labels.not.found = Geen overeenkomsten. <a href="/audit">Begin met verkennen</a> om meer data bij te dragen!
+gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters

@@ -66,7 +66,7 @@
                                     <th>@UserDAOSlick.countAllUsersContributed("week", false, true) (@UserDAOSlick.countAllUsersContributed("week", true, true))</th>
                                 </tr>
                                 <tr>
-                                    <th>Total Audit Users</th>
+                                    <th>Total ExploreUsers</th>
                                     <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
                                     <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
                                     <th>@UserDAOSlick.countAllAuditUsersContributedPastWeek</th>
@@ -616,14 +616,14 @@
                         </div>
                         <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
 
-                        <h2>How users access Audit Page from Landing Page:</h2>
+                        <h2>How users access Explore Page from Landing Page:</h2>
                         <div class="col-lg-12 col-md-4" style="align:left">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
                                         <th style="text-align: right;">Activity</th>
                                         <th style="text-align: right;">Number</th>
-                                        <th style="text-align: right;">Percentage of Audit Visitors(%)</th>
+                                        <th style="text-align: right;">Percentage of ExploreVisitors(%)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -969,7 +969,7 @@
             i18next.init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
                 fallbackLng: 'en',
-                ns: ['common'],
+                ns: ['common', 'labelmap'],
                 defaultNS: 'common',
                 lng: '@lang.code',
                 debug: false
