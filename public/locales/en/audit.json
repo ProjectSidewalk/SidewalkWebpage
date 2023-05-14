@@ -142,7 +142,7 @@
                 "tree": "tr<tag-underline>e</tag-underline>e",
                 "vegetation": "<tag-underline>v</tag-underline>egetation",
                 "parked-car": "parked car (<tag-underline>u</tag-underline>)",
-                "parked-bike":"parked bi<tag-underline>k</tag-underline>e",
+                "parked-bike": "parked bi<tag-underline>k</tag-underline>e",
                 "construction": "cons<tag-underline>t</tag-underline>ruction",
                 "sign": "s<tag-underline>i</tag-underline>gn",
                 "garage-entrance": "<tag-underline>g</tag-underline>arage entrance",
@@ -175,7 +175,11 @@
                 "APS": "<tag-underline>A</tag-underline>PS",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
                 "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess",
-                "height-difference": "height <tag-underline>d</tag-underline>ifference"
+                "height-difference": "height <tag-underline>d</tag-underline>ifference",
+                "painted-sidewalk": "painted sidewalk (<tag-underline>h</tag-underline>)",
+                "pedestrian-arcade": "pedestrian arcade (<tag-underline>q</tag-underline>)",
+                "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
+                "utility-panel": "utility pan<tag-underline>e</tag-underline>l"
             },
             "tooltip": {
                 "passable": "Passable",

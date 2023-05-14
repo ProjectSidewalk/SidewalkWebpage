@@ -84,13 +84,13 @@
             <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
         </head>
     }
-    @if(url.get == "/audit") {
+    @if(url.get == "/explore") {
         <script type="text/javascript">
             document.getElementsByTagName("body")[0].style.overflow = "hidden";
             document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
     }
-    @if(url.get == "/audit" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
+    @if(url.get == "/explore" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
         <!-- footer code found in app/views/footer.scala.html -->
         @footer()
     } else {
@@ -226,7 +226,7 @@
         });
 
         // Log clicks on links in the information footer to WebpageActivityTable
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/help|...>"
+        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
         $('#info-footer').on('click','a', function(e){
             var currentRoute = window.location.pathname;
             var link = e.currentTarget.id.split("-")[0];
@@ -251,6 +251,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/nl.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/zh-tw.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/en-nz.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");

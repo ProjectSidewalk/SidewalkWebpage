@@ -106,7 +106,11 @@
     "button waist height": "行人觸動按鈕高度齊腰",
     "APS": "無障礙行人號誌APS",
     "missing crosswalk": "無行人穿越道",
-    "no bus stop access": "無公車站出入空間"
+    "no bus stop access": "無公車站出入空間",
+    "painted sidewalk": "彩绘人行道",
+    "pedestrian arcade": "步行街",
+    "too close to traffic": "离交通太近",
+    "utility panel": "实用面板"
   },
   "gsv-info": {
     "details-title": "詳細資訊",

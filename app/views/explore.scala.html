@@ -8,8 +8,8 @@
 
 @(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
-@main(title, Some("/audit")) {
-    @navbar(user, Some("/audit"))
+@main(title, Some("/explore")) {
+    @navbar(user, Some("/explore"))
 
     @icons()
 
@@ -222,13 +222,13 @@
             <div id="ribbon-menu-holder">
                 <div id="ribbon-menu-label-type-button-holder">
                     <div id="ribbon-menu-title-holder-ramp" class="ribbon-menu-title-holder">
-                        <span id="ribbon-menu-title">CURB RAMP LABELS</span>
+                        <span id="ribbon-menu-title">@Messages("audit.ribbon.curb.ramp.labels")</span>
                     </div>
                     <div id="ribbon-menu-title-holder-sidewalk" class="ribbon-menu-title-holder">
-                        <span id="ribbon-menu-title">SIDEWALK LABELS</span>
+                        <span id="ribbon-menu-title">@Messages("audit.ribbon.sidewalk.labels")</span>
                     </div>
                     <div id="ribbon-menu-title-holder-other" class="ribbon-menu-title-holder">
-                        <span id="ribbon-menu-title">OTHER ACCESSIBILITY LABELS</span>
+                        <span id="ribbon-menu-title">@Messages("audit.ribbon.other.labels")</span>
                     </div>
                     <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/explore.png")' class="label-type-icon">
@@ -452,6 +452,7 @@
                                 <button class="context-menu-tag" name='tag' id="13"></button>
                                 <button class="context-menu-tag" name='tag' id="14"></button>
                                 <button class="context-menu-tag" name='tag' id="15"></button>
+                                <button class="context-menu-tag" name='tag' id="16"></button>
                             </div>
                             <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
                                 <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">@Messages("audit.center.ui.temporary")</label>
@@ -976,12 +977,12 @@
             });
 
             $('#redirect-new').on('click', function() {
-                $(location).attr('href', '/audit?newRegion=true');
+                $(location).attr('href', '/explore?newRegion=true');
             });
 
             // Already Completed Neighborhood Overlay
             $('#accept-redirect').on('click', function() {
-                $(location).attr('href', '/audit');
+                $(location).attr('href', '/explore');
             });
         });
 
@@ -1085,7 +1086,7 @@
                     $('#survey-modal-container').modal('hide');
                 }
             });
-            // Prevents reloading the audit page with the posted data in the url
+            // Prevents reloading the explore page with the posted data in the url
             // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
             e.preventDefault();
         });

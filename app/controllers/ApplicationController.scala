@@ -78,7 +78,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                       val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                     }
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-                    Future.successful(Redirect("/audit"))
+                    Future.successful(Redirect("/explore"))
                   case _ =>
                     Future.successful(Redirect(routes.UserController.signOut(request.uri)))
                     // Need to be able to login as a different user here, but the signout redirect isn't working.
@@ -448,7 +448,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Returns a page that allows a user to build a custom audit route.
+   * Returns a page that allows a user to build a custom explore route.
    */
   def routeBuilder = UserAwareAction.async { implicit request =>
     request.identity match {
