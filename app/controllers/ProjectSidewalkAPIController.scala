@@ -490,12 +490,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
         // start attempting to calculate the std here
         // note to self: what is going on here
-
         val (stdImageAge, stdLabelAge): (Option[Long], Option[Long]) = {
           // this is temp
           if (nImages > 0 && nLabels > 0) {
             (
-              Some(streetAccessScores.flatMap(s => s.stdImageCaptureDate.map(_.getTime * s.imageCount)).sum / nImages),
+              Some(streetAccessScores.flatMap(s => math.sqrt(math.pow(s - stdImageCaptureDate, 2).sum / nImages))),
               Some(streetAccessScores.flatMap(s => s.stdLabelDate.map(_.getTime * s.labelCount)).sum / nLabels)
             )
           } else {
@@ -713,19 +712,22 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         (None, None)
       }
 
+      var imageAgeSumSD: Long = 0
+      var labelAgeSumSD: Long = 0
+
       // note: how do i find the std for this given we already computed the mean
       // std: (each value - mean)^2
       // also should we do ll.avgLabelDate or ll.stdLabelDate
       labelLocations.foreach { ll =>
         val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
-      // this is also temp
-      if (p.within(buffer) && labelCounter.contains(ll.labelType)) {
-          labelCounter(ll.labelType) += 1
-          imageAgeSum += ll.avgImageCaptureDate.getTime * ll.imageCount
-          labelAgeSum += ll.avgLabelDate.getTime * ll.labelCount
-          nImages += ll.imageCount
-          nLabels += ll.labelCount
-        }
+        // this is also temp
+        if (p.within(buffer) && labelCounter.contains(ll.labelType)) {
+            labelCounter(ll.labelType) += 1
+            imageAgeSumSD += ll.stdImageCaptureDate.getTime * ll.imageCount
+            labelAgeSumSD += ll.stdLabelDate.getTime * ll.labelCount
+            nImages += ll.imageCount
+            nLabels += ll.labelCount
+          }
       }
       val (stdImageCaptureDate, stdLabelDate): (Option[Timestamp], Option[Timestamp]) = if (nLabels > 0 && nImages > 0) {
         (Some(new Timestamp((imageAgeSum / nImages).toLong)), Some(new Timestamp((labelAgeSum / nLabels).toLong)))
