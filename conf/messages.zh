@@ -128,6 +128,9 @@ audit.tutorial.end.2 = 再次感謝您<span class="bold">為這個世界創造�
 audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、障礙物及鋪面問題。
 
 audit.ribbon.find.and.label = 找尋並標記以下
+audit.ribbon.curb.ramp.labels = 路緣坡道標籤
+audit.ribbon.sidewalk.labels = 人行道標籤
+audit.ribbon.other.labels = 其他無障礙標籤
 audit.ribbon.explore = 探索<u>E</u>
 audit.ribbon.curb.ramp = 路緣斜坡<u>C</u>
 audit.ribbon.missing.ramp = 無路緣斜坡<u>M</u>
