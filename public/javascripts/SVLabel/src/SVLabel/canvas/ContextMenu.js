@@ -331,7 +331,7 @@ function ContextMenu (uiContextMenu) {
      * @param label Current label being modified.
      */
     function _setTags(label) {
-        var maxTags = 16;
+        var maxTags = 17;
         if (label) {
             var labelTags = self.labelTags;
             if (labelTags) {
