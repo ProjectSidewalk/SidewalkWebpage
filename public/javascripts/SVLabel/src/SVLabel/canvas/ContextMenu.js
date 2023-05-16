@@ -25,6 +25,8 @@ function ContextMenu (uiContextMenu) {
     var $tags = uiContextMenu.tags;
     var lastShownLabelColor;
 
+    var CONNECTOR_BUFFER = 6; // Buffer for connector to overlap border of label icon.
+
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
     $severityButtons.on('change', _handleSeverityChange);
@@ -480,31 +482,22 @@ function ContextMenu (uiContextMenu) {
                 $severityMenu.css({visibility: 'inherit', height: '50px'});
             }
             var windowHeight = $menuWindow.outerHeight();
-            var connectorBuffer = 3; // for connector to overlap border of label icon
 
             var connectorHeight = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("height"));
             var connectorWidth = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("width"));
+            var menuBorder = parseInt(window.getComputedStyle($menuWindow[0]).getPropertyValue("border-radius"));
 
-            // Determine coordinates for context menu when displayed below the label.
-            var topCoordinate = labelCoord.y
-                + svl.LABEL_ICON_RADIUS
-                + parseInt(connectorHeight)
-                - connectorBuffer;
-            var connectorCoordinate = -1 * parseInt(connectorHeight);
+            // Determine coordinates for context menu to display below the label.
+            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight - CONNECTOR_BUFFER;
+            var connectorCoordinate = menuBorder - connectorHeight;
 
-            // Determine coordinates for context menu when displayed above the label.
-            // labelCoord is top-left of label but should be center of rendered label, so must account for icon radius
-            if (labelCoord.y
-                + svl.LABEL_ICON_RADIUS
-                + parseInt(connectorHeight)
-                + windowHeight
-                - connectorBuffer > util.EXPLORE_CANVAS_HEIGHT) {
-                topCoordinate = labelCoord.y
-                    - svl.LABEL_ICON_RADIUS
-                    - parseInt(connectorHeight)
-                    - windowHeight
-                    + connectorBuffer;
-                connectorCoordinate = windowHeight;
+            // If there isn't enough room to show the context menu below the label, determine coords to display above.
+            // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
+            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + windowHeight - CONNECTOR_BUFFER
+                > util.EXPLORE_CANVAS_HEIGHT) {
+                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - windowHeight
+                    + CONNECTOR_BUFFER;
+                connectorCoordinate = windowHeight - menuBorder;
             }
 
             // Set the color of the border.
