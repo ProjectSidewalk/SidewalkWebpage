@@ -83,14 +83,6 @@ footer {
     outline: .5px solid white;
 }
 
-.stats-grid{
-    display: flex;
-}
-
-.stats-grid > p {
-    flex: 1;
-}
-
 .navbar-container {
     padding: 20px 0 20px 0;
 }
@@ -250,72 +242,12 @@ footer {
     cursor: default;
 }
 
-#bigtext {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height:100%;
-}
-
-#text {
-    padding-top:70px;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
 #header-container {
     position: relative;
     top: -11px;
     background-color: #fff;
     max-width:91%;
     max-height:70px;
-}
-
-
-.stepnumber {
-    font-family: Raleway-black,sans-serif;
-    font-size: 90px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    line-height: 58px;
-    color: #C0BEBF;
-
-}
-#greenbar {
-    background-color: #58CEAB;
-    min-width: 600px;
-    min-height: 5px;
-    position: relative;
-    left: -20px;
-}
-
-#numbersrow {
-    position: relative;
-    left:-20px;
-    cursor: pointer;
-    width:630px;
-}
-
-.stepword {
-    position: relative;
-    top: -10px;
-    left: -10px;
-    padding-left: 25px;
-    font-family: Raleway;
-    font-size: 14px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    line-height: 10px;
-    color: #2D2A3F;
-}
-
-
-#choropleth-container {
-    background-color: #fff;
-    width: 100%;
-    min-height: 1100px;
 }
 
 #content {
@@ -493,16 +425,6 @@ footer {
 }
 #funding-title {
     font-weight: bold;
-}
-
-#banner {
-    width:100%;
-    height:100%;
-    max-width: 1000px;
-
-    position: relative;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 #header {
