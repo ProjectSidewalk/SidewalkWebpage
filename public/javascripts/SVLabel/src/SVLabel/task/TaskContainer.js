@@ -180,7 +180,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param taskIn {object} Task
      * @param acrossAllUsers
      * @param threshold {number} Distance threshold
-     * @param unit {string} Distance unit
+     * @param unit {object} Distance unit
      * @returns {Array}
      * @private
      */
@@ -194,7 +194,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (taskIn && tasks) {
             var connectedTasks = [];
             if (!threshold) threshold = 0.01;  // 0.01 km.
-            if (!unit) unit = {units: 'kilometers'};
+            if (!unit) unit = { units: 'kilometers' };
 
             tasks = tasks.filter(function (t) {
                 return !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId();
@@ -404,20 +404,23 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }).sort(function(t1, t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });
-        if (tasksNotCompletedByUser.length === 0) { // user has audited entire region
+        if (tasksNotCompletedByUser.length === 0) { // User has audited entire region or route.
             return null;
         }
         var highestPriorityTask = tasksNotCompletedByUser[0];
+        var highestPriorityDiscretized = highestPriorityTask.getStreetPriorityDiscretized();
 
-        // If any of the connected tasks has max discretized priority, pick the highest priority one, o/w take the
-        // highest priority task in the region.
+        // If the user is following a Route or if any of the connected tasks has max discretized priority, pick the
+        // highest priority connected street, o/w take the highest priority task in the region.
         userCandidateTasks = self._findConnectedTasks(finishedTask, false, null, null);
 
-        userCandidateTasks = userCandidateTasks.filter(function(t) {
-            return !t.isComplete() && t.getStreetPriorityDiscretized() === highestPriorityTask.getStreetPriorityDiscretized();
-        }).sort(function(t1,t2) {
-            return t2.getStreetPriority() - t1.getStreetPriority();
-        });
+        if (!svl.neighborhoodModel.isRoute) {
+            userCandidateTasks = userCandidateTasks.filter(function (t) {
+                return !t.isComplete() && t.getStreetPriorityDiscretized() === highestPriorityDiscretized;
+            }).sort(function (t1, t2) {
+                return t2.getStreetPriority() - t1.getStreetPriority();
+            });
+        }
 
         if (userCandidateTasks.length > 0) {
             newTask = userCandidateTasks[0];

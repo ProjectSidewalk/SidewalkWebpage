@@ -359,7 +359,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      */
     this.isConnectedTo = function (task, threshold, unit) {
         if (!threshold) threshold = 0.01;
-        if (!unit) unit = {units: 'kilometers'};
+        if (!unit) unit = { units: 'kilometers' };
 
         var lastCoordinate = self.getLastCoordinate(),
             targetCoordinate1 = task.getStartCoordinate(),
