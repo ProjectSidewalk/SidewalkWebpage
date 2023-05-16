@@ -3,6 +3,12 @@
     height: 800px;
 }
 
+#choropleth-container {
+    background-color: #fff;
+    width: 100%;
+    min-height: 1100px;
+}
+
 #reset-button {
     background-color:#ffffff;
     -moz-border-radius:15px;

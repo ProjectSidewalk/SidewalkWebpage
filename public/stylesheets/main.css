@@ -271,9 +271,7 @@ footer {
 #mapcolumn {
     height: 100%;
 }
-#choropleth {
-    height: 100%;
-}
+
 #map-chart {
     background-color: white;
     position: relative;
