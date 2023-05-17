@@ -481,7 +481,7 @@ function ContextMenu (uiContextMenu) {
             } else {
                 $severityMenu.css({visibility: 'inherit', height: '50px'});
             }
-            var windowHeight = $menuWindow.outerHeight();
+            var menuHeight = $menuWindow.outerHeight();
 
             var connectorHeight = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("height"));
             var connectorWidth = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("width"));
@@ -493,11 +493,9 @@ function ContextMenu (uiContextMenu) {
 
             // If there isn't enough room to show the context menu below the label, determine coords to display above.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + windowHeight - CONNECTOR_BUFFER
-                > util.EXPLORE_CANVAS_HEIGHT) {
-                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - windowHeight
-                    + CONNECTOR_BUFFER;
-                connectorCoordinate = windowHeight - menuBorder;
+            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + menuHeight - CONNECTOR_BUFFER > util.EXPLORE_CANVAS_HEIGHT) {
+                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - menuHeight + CONNECTOR_BUFFER;
+                connectorCoordinate = menuHeight - menuBorder;
             }
 
             // Set the color of the border.
