@@ -3,14 +3,6 @@ svg {
     position: relative;
 }
 
-#map-holder {
-    position: relative;
-}
-
-#choropleth {
-    height: 100%;
-}
-
 #map-label-legend {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
@@ -126,9 +118,15 @@ svg {
     width: 14.285714285714285714285714285714%;
 }
 
+#map-row {
+    height: 500px;
+    margin-top: 10px;
+}
+#map-column {
+    height: 100%;
+}
+
 .user-stats-holder {
-    /*min-width: 800px;*/
-    /*max-width: 1400px;*/
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
     grid-gap: 5px;
