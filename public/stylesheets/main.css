@@ -246,42 +246,20 @@ footer {
     position: relative;
     top: -11px;
     background-color: #fff;
-    max-width:91%;
-    max-height:70px;
+    max-width: 91%;
+    max-height: 70px;
 }
 
 #content {
-    position:relative;
-    top:0px;
-    background-color:#fff;
+    position: relative;
+    top: 0px;
+    background-color: #fff;
 }
 
 #wrap {
     min-height: 100%;
     height: auto;
 }
-
-#map-row {
-    height: 500px;
-    margin-top: 10px;
-}
-#mapcolumn {
-    height: 100%;
-}
-
-#map-chart {
-    background-color: white;
-    position: relative;
-    top: -50px;
-    left: 0;
-    width: 100%;
-}
-
-.legend {
-    height: inherit;
-    width: 250px;
-}
-
 
 #mini-footer-audit {
     position: relative;
@@ -322,7 +300,7 @@ footer {
     color:#2d2a3f;
     cursor: pointer;
 }
-.footerlink {
+.footer-link {
     color:#2D2A3F;
 }
 
@@ -392,20 +370,20 @@ footer {
 }
 
 @media only screen and (max-device-width: 500px) {
-    #awardnum {
+    #award-num {
         width: 100% !important;
         right: 0% !important;
     }
 }
 
 @media only screen and (max-device-width: 800px) and (min-device-width: 500px) {
-    #awardnum {
+    #award-num {
         width: 350% !important;
         right: 45% !important;
     }
 }
 
-#awardnum {
+#award-num {
     font-size:10px;
     color:#c0becf;
     width: 220%;
@@ -422,10 +400,6 @@ footer {
     box-shadow: 0 8px 6px -6px #999;
 }
 
-.verticalbar {
-    color: #FBD78B;
-}
-
 
 kbd {
     /*overriding bootstraps's ugly kbd tag*/
@@ -438,31 +412,6 @@ kbd {
     font-size: small;
     padding: 2px 6px;
 }
-
-.page-alert-holder {
-    z-index: 3;
-    width: 75%;
-    text-align: center;
-    position: fixed;
-    font-size: 10pt;
-    left: 50%;
-    margin-left: -37.5%;
-}
-
-.page-alert {
-    background-color: rgb(255, 246, 192);
-    border: 1px solid #ecdfb0;
-    border-radius: 2px;
-    color: black;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-    display: inline-block;
-    padding: 6px 10px;
-}
-
-.page-alert-holder a {
-    color: black;
-}
-
 
 #page-loading {
     position:absolute;
@@ -504,7 +453,7 @@ kbd {
 /*
  * CSS for the footer header
 */
-.footerheader {
+.footer-header {
   font-family: raleway-extrabold, sans-serif;
   font-weight: bold;
   color: #2d2a3f;
@@ -664,90 +613,13 @@ kbd {
 #accept-redirect {
     width: 75px;
 }
-
 /*Overlay box - end*/
-
-.results-images {
-    margin-top: 10px;
-}
-.results-images td {
-    padding-left: 15px;
-    text-align: center;
-    padding-top: 5px;
-}
-
-.leaflet-bottom > .map-legends.wax-legends {
-    right: 0px;
-    top: 0px;
-    width: 425px;
-    max-width: 500px;
-    height: 80px;
-}
-#survey-form {
-    padding-right:20px;
-}
-#survey-modal-container ol> li {
-    font-weight: bold;
-    font-size: 16px;
-    content: counter(item);
-}
-#survey-modal-container ol> li h4 {
-    font-size: 16px;
-    font-weight: bold;
-}
-.survey-question {
-    margin-bottom: 10px;
-}
-.survey-textarea {
-    width: 100%;
-    height: 64px;
-    font-weight: normal;
-    font-size: 14px;
-}
-.survey-option-holder {
-    list-style:none;
-    width:100%;
-    margin:0;
-    padding:0 0 10px;
-    display:block;
-}
-.survey-option {
-    display:inline-block;
-    width:19%;
-    text-align:center;
-    vertical-align:top;
-    font-weight:normal;
-    font-size: 14px;
-}
-.survey-option label {
-    width:100%;
-    font-weight:normal;
-}
 
 .anchor {
     display: block;
     position: relative;
     top: -85px;
     visibility: hidden;
-}
-
-.leaderboard-header {
-    font-weight: bold;
-    font-family: Raleway-regular, sans-serif;
-}
-
-.weekly-header {
-    margin-bottom: 35px;
-}
-
-.leaderboard-detail {
-    font-family: Raleway-regular, sans-serif;
-}
-
-.accuracy-cell {
-    position: relative;
-    text-decoration:underline;
-    text-decoration-style: dotted;
 }
 
 .accuracy-tooltip {
@@ -768,46 +640,8 @@ kbd {
     width: 175px;
 }
 
-.accuracy-cell:hover span.accuracy-tooltip {
-    display:block;
-}
-
-.leaderboard-table-font {
-    font-size: 20px;
-}
-
-.leaderboard-table-header {
-    background-color: rgba(251, 215, 139, 1);
-    font-weight: bold;
-}
-
 #your-overall-total {
   border-top: 3px solid #999999;
-}
-
-.leaderboard-table {
-    padding-right: 30px;
-    min-width: 650px;
-}
-
-.leaderboard-table-striped>tbody>tr:nth-child(even)>td,
-.leaderboard-table-striped>tbody>tr:nth-child(even)>th {
-    background-color: #fce6b5;
-    color: black;
-}
-
-.leaderboard-container {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    justify-content: center;
-    text-align: center;
-    align-items: top;
-    width: 100%;
-}
-
-#leaderboard-encouragement {
-    text-align: center;
 }
 
 #validation-button-holder {

@@ -44,6 +44,11 @@
 }
 
 /* Common legend components. */
+.legend {
+    height: inherit;
+    width: 250px;
+}
+
 .legend span, .legend label {
     display: block;
     float: right;
@@ -75,6 +80,10 @@
     top: 0px;
     width: 350px;
     max-width: 500px;
+}
+.leaflet-bottom > .map-legends.wax-legends {
+    width: 425px;
+    height: 80px;
 }
 
 /* Adjustments to account for mapbox.css box-sizing rules. */

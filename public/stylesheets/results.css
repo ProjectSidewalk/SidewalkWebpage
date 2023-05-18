@@ -32,3 +32,12 @@
     font-family: 'Raleway', sans-serif;
     padding: 10px 10px 0px 10px;
 }
+
+.results-images {
+    margin-top: 10px;
+}
+.results-images td {
+    padding-left: 15px;
+    text-align: center;
+    padding-top: 5px;
+}
