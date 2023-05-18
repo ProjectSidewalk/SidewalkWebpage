@@ -9,6 +9,23 @@ CREATE TABLE config (
     southwest_boundary_lng DOUBLE PRECISION NOT NULL,
     northeast_boundary_lat DOUBLE PRECISION NOT NULL,
     northeast_boundary_lng DOUBLE PRECISION NOT NULL,
+    attribute_center_lat DOUBLE PRECISION NOT NULL,
+    attribute-center-lng,
+    attribute-zoom,
+    attribute-lat1,
+    attribute-lng1,
+    attribute-lat2,
+    attribute-lng2,
+    street-center-lat,
+    street-center-lng,
+    street_zoom,
+    street_lat1,
+    street_lng1,
+    street_lat2,
+    street_lng2,
+    region_center_lat,
+    region_center_lng,
+    region_zoom DOUBLE PRECISION NOT NULL,
     region_lat1 DOUBLE PRECISION NOT NULL,
     region_lng1 DOUBLE PRECISION NOT NULL,
     region_lat2 DOUBLE PRECISION NOT NULL,
@@ -21,18 +38,7 @@ CREATE TABLE config (
 );
 
 # Insert one row into the database, choosing the correct city based on the db name.
-INSERT INTO config VALUES ('partially', 'G-Q51RR8N0DB', 47.615, -122.332, 47.400, -122.664, 47.850, -122.000, 47.600, -122.320, 47.636, -122.275, 11.75, 27645, 3, [
-      'tactile warning,
-      garage entrance,
-      street vendor,
-      no pedestrian priority,
-      uncovered manhole,
-      level with sidewalk,
-      APS,
-      missing crosswalk,
-      painted sidewalk,
-      pedestrian arcade,
-      too close to traffic') WHERE current_database() = 'sidewalk-seattle';
+INSERT INTO config VALUES ('partially', 'NOTE: There is nothing here', 47.615, -122.332, 47.400) WHERE current_database() = 'sidewalk-seattle';
 
 # ---!Downs
 DROP TABLE config;
