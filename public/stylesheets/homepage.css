@@ -291,6 +291,17 @@ video#bgvid {
   max-width: 300px;
 }
 
+#landing-legend {
+  display: block;
+  position: relative;
+  left: 15px;
+  bottom: 80px;
+  background: rgb(255, 255, 255);
+  width: 325px;
+  font-family: 'Raleway', sans-serif;
+  padding: 8px 8px 0px 8px;
+}
+
 /* Header text and city links */
 .header-text {
   color: #fff;

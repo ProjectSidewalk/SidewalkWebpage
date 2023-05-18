@@ -3,7 +3,7 @@ var neighborhoodPolygonLayer;
 $(document).ready(function () {
     $.getJSON('/cityMapParams', function(data) {
         L.mapbox.accessToken = data.mapbox_api_key;
-        map = L.mapbox.map('map', null, {
+        map = L.mapbox.map('access-score-choropleth', null, {
             maxZoom: 19,
             minZoom: 9,
             zoomSnap: 0.25

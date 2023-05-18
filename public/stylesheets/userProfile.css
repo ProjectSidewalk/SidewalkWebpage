@@ -3,14 +3,6 @@ svg {
     position: relative;
 }
 
-#map-holder {
-    position: relative;
-}
-
-#choropleth {
-    height: 100%;
-}
-
 #map-label-legend {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);

@@ -198,7 +198,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
             // Logs when a region is selected from the choropleth and 'Click here' is clicked
             // Logs are of the form 'Click_module=Choropleth_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
             // Log is stored in WebpageActivityTable
-            $('#choropleth').on('click', '.region-selection-trigger', function () {
+            $('.choropleth').on('click', '.region-selection-trigger', function () {
                 let regionId = parseInt($(this).attr('regionId'));
                 let ratesEl = rates.find(function(x) { return regionId === x.region_id; });
                 let compRate = Math.round(100.0 * ratesEl.rate);

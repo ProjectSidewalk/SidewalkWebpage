@@ -1,0 +1,34 @@
+#reset-button {
+    background-color:#ffffff;
+    -moz-border-radius:15px;
+    -webkit-border-radius:15px;
+    border-radius:10px;
+    border:2px solid #808080;
+    display:inline-block;
+    position: absolute;
+    top: 22%;
+    left: 20.5px;
+    cursor:pointer;
+    color:#2D2A3F;
+    font: normal normal normal 12px/1.4em raleway,sans-serif;
+    font-family: 'Raleway', sans-serif;
+    font-size:10px;
+    width: 46px;
+    padding:5px 6px;
+    text-align: center;
+    text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+    outline: none;
+    word-wrap: break-word;
+}
+
+#results-legend {
+    display: block;
+    position: absolute;
+    right: 26px;
+    top: 10px;
+    background: rgb(255, 255, 255);
+    width: 375px;
+    font-family: 'Raleway', sans-serif;
+    padding: 10px 10px 0px 10px;
+}

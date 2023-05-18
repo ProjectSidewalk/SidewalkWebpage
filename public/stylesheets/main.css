@@ -265,9 +265,6 @@ footer {
     height: 500px;
     margin-top: 10px;
 }
-#map-holder {
-    height: 100%;
-}
 #mapcolumn {
     height: 100%;
 }
@@ -278,13 +275,6 @@ footer {
     top: -50px;
     left: 0;
     width: 100%;
-}
-
-#map {
-    background-color: white;
-    width: 100%;
-    height: 100%;
-    position: relative;
 }
 
 .legend {
@@ -692,10 +682,6 @@ kbd {
     width: 425px;
     max-width: 500px;
     height: 80px;
-}
-#results-choropleth-container {
-    background-color: #fff;
-    width: 100%;
 }
 #survey-form {
     padding-right:20px;
