@@ -3,10 +3,9 @@
 
 @main(title) {
     @navbar(user, Some("/results"))
-    <div class="container" id="results-choropleth-container" style="width: 100%;
-        position: relative;">
-        <div id="map-holder">
-            <div id="choropleth"></div>
+    <div id="results-choropleth-container" class="container choropleth-container">
+        <div id="results-choropleth-holder" class="choropleth-holder">
+            <div id="results-choropleth" class="choropleth"></div>
             <div id="results-legend" style="display: none">
                 <strong style="font-size: 18px">@Messages("results.problems.per.mile")</strong>
                 <nav class='legend clearfix'>
@@ -40,16 +39,17 @@
         </div>
     </div>
 
-<script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
-<link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
-<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
-<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-<link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
+    <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
+    <link href='@routes.Assets.at("stylesheets/results.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -91,7 +91,7 @@
                 resetButton: true,
                 clickData: true,
                 scrollWheelZoom: false,
-                mapName: 'choropleth',
+                mapName: 'results-choropleth',
                 mapStyle: "mapbox://styles/mapbox/light-v10"
             };
             var loadPolygons = $.getJSON('/neighborhoods');
