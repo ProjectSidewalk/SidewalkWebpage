@@ -29,8 +29,9 @@
     z-index: 10;
     display: flex;
     flex-shrink: 0;
-    justify-content: center;
+    justify-content: flex-start;
     overflow: auto;
+    flex-direction: column;
 
     /* Default font should be defined only here and should be overridden wherever needed. */
     font-family: 'Open Sans', sans-serif;
@@ -38,6 +39,7 @@
 
 .mst-content {
     width: 1095px;
+    margin: 0 auto;
 }
 
 .mst-instruction-1 {
@@ -360,4 +362,115 @@
     .mts-text-area {
         width: 230px;
     }
+}
+
+/* Explore mission screen tab bar styling */
+
+.explore-mission-start-tab-bar {
+    width: 100%;
+    height: 50px;
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+    padding: 0 70px;
+}
+
+.explore-mission-start-tab-bar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    height: 3px;
+    width: 100%;
+    background: #DCDBDB;
+}
+
+.explore-mission-start-tab.label {
+    border-radius: 4px 4px 0px 0px;
+    height: 100%;
+    width: 100%;
+    color: #0f0f0f;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: 0;
+    text-align: left;
+    border-bottom: 3px solid #DCDBDB;
+    padding: 0 3px;
+    margin: 0 1px;
+}
+
+.explore-mission-start-tab.label[data-label-type="CurbRamp"]:hover {
+    background: rgba(144, 195, 31, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]:hover {
+    background: rgba(230, 121, 182, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="Obstacle"]:hover {
+    background: rgba(120, 176, 234, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]:hover {
+    background: rgba(246, 141, 62, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="NoSideWalk"]:hover {
+    background: rgba(190, 135, 216, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="Crosswalk"]:hover {
+    background: rgba(250, 191, 28, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="Signal"]:hover {
+    background: rgba(99, 192, 171, 0.15);
+}
+
+
+/* Selected tabs */
+.explore-mission-start-tab.label[data-label-type="CurbRamp"].active {
+    background: rgba(144, 195, 31, 0.15);
+    border-bottom-color: #90C31F;
+}
+
+.explore-mission-start-tab.label[data-label-type="NoCurbRamp"].active {
+    background: rgba(230, 121, 182, 0.15);
+    border-bottom-color: #E679B6;
+}
+
+.explore-mission-start-tab.label[data-label-type="Obstacle"].active {
+    background: rgba(120, 176, 234, 0.15);
+    border-bottom-color: #78B0EA;
+}
+
+.explore-mission-start-tab.label[data-label-type="SurfaceProblem"].active {
+    background: rgba(246, 141, 62, 0.15);
+    border-bottom-color: #F68D3E;
+}
+
+.explore-mission-start-tab.label[data-label-type="NoSideWalk"].active {
+    background: rgba(190, 135, 216, 0.15);
+    border-bottom-color: #BE87D8;
+}
+
+.explore-mission-start-tab.label[data-label-type="Crosswalk"].active {
+    background: rgba(250, 191, 28, 0.15);
+    border-bottom-color: #FABF1C;
+}
+
+.explore-mission-start-tab.label[data-label-type="Signal"].active {
+    background: rgba(99, 192, 171, 0.15);
+    border-bottom-color: #63C0AB;
+}
+
+
+.explore-mission-start-tab-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 5px;
 }

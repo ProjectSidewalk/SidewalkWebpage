@@ -241,6 +241,11 @@ function Main (params) {
 
         // Clean up the URL in the address bar.
         _updateURL();
+
+        // Initialize explore mission screens. We will start with 'CurbRamp'.
+        // Note: MST can be initialized even inside the MissionStartTutorial.js, when the user clicks on the labels
+        const labelType = 'CurbRamp';
+        const missionStartTutorial = new MissionStartTutorial('audit', labelType, {nLength: svl.missionContainer.getCurrentMission().getDistance("miles"), neighborhood: svl.neighborhoodContainer.getCurrentNeighborhood().getProperty('name')}, svl);
     }
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {

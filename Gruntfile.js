@@ -31,7 +31,8 @@ module.exports = function(grunt) {
                     'public/javascripts/common/UtilitiesMath.js',
                     'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopover.js'
+                    'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/MissionStartTutorial.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
@@ -108,6 +109,12 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/css/*.css'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.css'
+            },
+            dist_mission_screens: {
+                src: [
+                    'public/javascripts/common/css/validate-mission-start-tutorial.css'
+                ],
+                dest: 'public/javascripts/common/build/MissionStartTutorial.css'
             },
             gallery_all: {
                 src: [
