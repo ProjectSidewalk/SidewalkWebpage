@@ -83,14 +83,6 @@ footer {
     outline: .5px solid white;
 }
 
-.stats-grid{
-    display: flex;
-}
-
-.stats-grid > p {
-    flex: 1;
-}
-
 .navbar-container {
     padding: 20px 0 20px 0;
 }
@@ -250,412 +242,23 @@ footer {
     cursor: default;
 }
 
-video#bgvid {
-    min-width:1100px;
-    width:100%;
-    background-size: cover;
-    left: 0px;
-    backface-visibility:hidden;
-    background:url('../assets/psmockup.jpg') no-repeat scroll 0 0 #000;
-    background-size:cover;
-    bottom:0;
-    top: 70px;
-    height:auto;
-    perspective:1000;
-    position:fixed;
-    right:0;
-    z-index:-1;
-}
-
-#vidbanner {
-    position:relative;
-    overflow:hidden;
-    top: 0;
-    width: 100%;
-    display:flex;
-    justify-content: center;
-    max-height:700px;
-    height:700px;
-    left:0;
-    transition:background-color 300ms ease;
-}
-
-.tagline {
-    font-family: raleway-bold, sans-serif;
-    font-size: 50px;
-    letter-spacing: 0.05em;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    line-height: 1em;
-    color: #fff;
-}
-
-#bigtext {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height:100%;
-}
-
-#text {
-    padding-top:70px;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-p#conditional-text {
-    margin: 5px;
-}
-
-#bannertext {
-    min-width:700px;
-    text-align: center;
-}
-
 #header-container {
     position: relative;
     top: -11px;
     background-color: #fff;
-    max-width:91%;
-    max-height:70px;
-}
-
-.im-centered {
-    position: relative;
-    top: 0px;
-    margin: auto; max-width: 500px;
-    text-align: center;
-    padding-top: 50px;
-    font-family: raleway, sans-serif;
-    letter-spacing: 0em;
-    font-size: 45px;
-    font-style: normal;
-    font-variant: normal;
-    height: 500px;
-    min-height:700px;
-    line-height: 40px;
-    color: #2D2A3F;
-}
-
-.im-centered3 {
-    position: relative;
-    top: 0px;
-    margin: auto; max-width: 340px;
-    text-align: center;
-    padding-top: 50px;
-    font-family: raleway, sans-serif;
-    letter-spacing: 0em;
-    font-size: 45px;
-    font-style: normal;
-    font-variant: normal;
-    line-height: 1.1em;
-    color: #2D2A3F;
-
-}
-
-.ps-skyline {
-    position: relative;
-    padding: 15px;
-}
-
-.ps-skyline-overlay {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.ps-skyline-overlay > * {
-    align-self: center;
-    margin-top: 20px;
-}
-
-#skyline-spacing {
-    margin: 0 auto;
-    width: fit-content;
-    margin-top: 135px;
-}
-
-.ps-skyline-overlay > .row {
-    background-color: white;
-    opacity: 90%;
-    padding: 5px;
-    border-radius: 15px;
-    max-width: 100%;
-    font-family: raleway, sans-serif;
-    letter-spacing: 0em;
-    font-size: 45px;
-    font-style: normal;
-    font-variant: normal;
-    line-height: 1.1em;
-    color: #2D2A3F;
-}
-
-.ps-skyline-overlay-btn {
-    background-color: #eb734d;
-    opacity: 90%;
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:15px;
-    border:1px solid #2D2A3F;
-    cursor:pointer;
-    color:#2D2A3F;
-    font: normal normal normal 14px/1.4em raleway,sans-serif;
-    font-family: 'Raleway', sans-serif;
-    font-size:20px;
-    font-weight: bold;
-    padding:10px 45px;
-    text-decoration:none;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-}
-
-.ps-skyline-overlay-btn:hover {
-    border:1px solid #eb734d;
-    color: #ffffff;
-    text-shadow: none;
-}
-
-.ps-skyline-container {
-    display: flex;
-    flex-direction: column;
-}
-
-.ps-skyline-container > img {
-    width: 1400px;
-    align-self: center;
-}
-
-.skyline-cloud-overlay {
-    margin-top: -68px; /* Height of Cloud .png */
-}
-
-#content-text-2 {
-    background-color: white;
-    opacity: 90%;
-    border-radius: 15px;
-    font-family: adelle-regular, sans-serif;
-    font-size: 16px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-    max-width: 500px;
-    position: relative;
-}
-
-.ps-skyline-stats-holder {
-    margin: -35px auto 0 auto;
-    min-width: 800px;
-    max-width: 1400px;
-
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    grid-gap: 8px;
-
-    text-align: center;
-}
-
-.ps-skyline-stats-holder-stat-number {
-    font-size: 60px;
-    font-family: raleway-extrabold, sans-serif;
-}
-
-.ps-skyline-stats-holder-stat-label {
-    font-size: 30px;
-}
-
-.ps-skyline-stats-holder > a {
-    color: #2D2A3F;
-}
-
-.ps-skyline-stats-holder > a:hover {
-    text-decoration: none;
-}
-
-@media (max-width: 835px) {
-    .ps-skyline-stats-holder {
-        display: none;
-    }
-}
-
-.stepnumber {
-    font-family: Raleway-black,sans-serif;
-    font-size: 90px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    line-height: 58px;
-    color: #C0BEBF;
-
-}
-#greenbar {
-    background-color: #58CEAB;
-    min-width: 600px;
-    min-height: 5px;
-    position: relative;
-    left: -20px;
-}
-
-#instructionvideo {
-    position:relative;
-    left: -122px;
-    top: 3px;
-    max-width: 300px;
-}
-#numbersrow {
-    position: relative;
-    left:-20px;
-    cursor: pointer;
-    width:630px;
-}
-
-.stepword {
-    position: relative;
-    top: -10px;
-    left: -10px;
-    padding-left: 25px;
-    font-family: Raleway;
-    font-size: 14px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    line-height: 10px;
-    color: #2D2A3F;
-}
-
-#content-text-1 {
-    font-family: adelle-regular, sans-serif;
-    font-size: 16px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-}
-
-#content-text-4 {
-    font-family: adelle-regular, sans-serif;
-    font-size: 15px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-    width: 450px;
-    margin: 0 auto;
-    position: relative;
-    top: 25px;
-}
-
-#mlgif {
-    position: absolute;
-    left: 50%;
-    width: 980px;
-    margin-left: -490px;
-}
-
-#machinelearning-container {
-    background-color: rgba(249, 241, 227, 1);
-    width: 100%;
-    min-height: 800px;
-}
-
-#choropleth-container {
-    background-color: #fff;
-    width: 100%;
-    min-height: 1100px;
+    max-width: 91%;
+    max-height: 70px;
 }
 
 #content {
-    position:relative;
-    top:0px;
-    background-color:#fff;
-}
-
-#exploredesc {
     position: relative;
-    top: -10px;
-    max-width: 490px;
-    margin: 0 auto;
+    top: 0px;
+    background-color: #fff;
 }
 
 #wrap {
     min-height: 100%;
     height: auto;
-}
-
-#map-row {
-    height: 500px;
-    margin-top: 10px;
-}
-#map-holder {
-    height: 100%;
-}
-#mapcolumn {
-    height: 100%;
-}
-#choropleth {
-    height: 100%;
-}
-#map-chart {
-    background-color: white;
-    position: relative;
-    top: -50px;
-    left: 0;
-    width: 100%;
-}
-
-#map {
-    background-color: white;
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-
-.legend {
-    height: inherit;
-    width: 250px;
-}
-
-
-.collaborator-images-container {
-    display: grid;
-    grid-auto-flow: column;
-    grid-gap: 20px 50px;
-    align-items: center;
-}
-
-.collaborator-image {
-    padding: 15px 3% 15px 3%;
-}
-
-.collaborator-image img {
-    width: 100%;
-}
-
-#collaborators-row {
-    padding-bottom: 10px;
-    width: 100%;
-    text-align: center;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-#collaborators-title {
-    font-size: 40px;
-    margin-bottom: 20px;
-}
-
-#collaborators-container {
-    position: relative;
-    max-width: 900px;
-    top: -20px;
-    min-height: 300px;
 }
 
 #mini-footer-audit {
@@ -697,17 +300,8 @@ p#conditional-text {
     color:#2d2a3f;
     cursor: pointer;
 }
-.footerlink {
+.footer-link {
     color:#2D2A3F;
-}
-
-.footerheader {
-    font-family: raleway-extrabold, sans-serif;
-    font-weight: bold;
-    color: #2D2A3F;
-    font-size: 12px;
-    line-height: 2.1em;
-    letter-spacing: 0.05em;
 }
 
 #info-footer {
@@ -776,20 +370,20 @@ p#conditional-text {
 }
 
 @media only screen and (max-device-width: 500px) {
-    #awardnum {
+    #award-num {
         width: 100% !important;
         right: 0% !important;
     }
 }
 
 @media only screen and (max-device-width: 800px) and (min-device-width: 500px) {
-    #awardnum {
+    #award-num {
         width: 350% !important;
         right: 45% !important;
     }
 }
 
-#awardnum {
+#award-num {
     font-size:10px;
     color:#c0becf;
     width: 220%;
@@ -799,18 +393,6 @@ p#conditional-text {
     font-weight: bold;
 }
 
-#banner {
-    width:100%;
-    height:100%;
-    max-width: 1000px;
-
-    position: relative;
-    margin-left: auto;
-    margin-right: auto;
-}
-#banner2 {
-    min-height: 900px;
-}
 #header {
     background-color: #fff;
     -webkit-box-shadow: 0 8px 6px -6px #999;
@@ -818,65 +400,6 @@ p#conditional-text {
     box-shadow: 0 8px 6px -6px #999;
 }
 
-.verticalbar {
-    color: #FBD78B;
-}
-
-.body-start-btn {
-    background-color:rgba(251, 215, 139, 1);
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:10px;
-    border:0px solid #fbd78b;
-    display:inline-block;
-    cursor:pointer;
-    color:#2d2a3f;
-    font: normal normal normal 14px/1.4em raleway,sans-serif;
-    font-family: 'Raleway', sans-serif;
-    font-size:14px;
-    padding:10px 75px;
-    text-decoration:none;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-}
-.body-start-btn:hover {
-    background-color:#FCECBE;
-    border:0px solid #eb734d;
-    color:#2d2a3f;
-    text-shadow: none;
-}
-.body-start-btn:active {
-    position:relative;
-    top:1px;
-}
-
-.header-text {
-    color: #fff;
-    font-family: raleway;
-    font-size: 15px;
-    line-height:2.8em;
-    text-align:center;
-    position:relative;
-    cursor: default;
-    /*left: -30px;*/
-}
-
-.other-city-link:link {
-    color: #fff;
-    text-decoration:underline;
-    font-family: raleway;
-    font-size: 15px;
-    font-weight: bolder;
-    line-height:2.8em;
-    text-align:center;
-    position:relative;
-    cursor: pointer;
-}
-.other-city-link:visited {
-    color: #fff;
-}
-.other-city-link:hover {
-    color: rgba(251, 215, 139, 1);
-}
 
 kbd {
     /*overriding bootstraps's ugly kbd tag*/
@@ -888,51 +411,6 @@ kbd {
     font-weight:normal;
     font-size: small;
     padding: 2px 6px;
-}
-
-.page-alert-holder {
-    z-index: 3;
-    width: 75%;
-    text-align: center;
-    position: fixed;
-    font-size: 10pt;
-    left: 50%;
-    margin-left: -37.5%;
-}
-
-.page-alert {
-    background-color: rgb(255, 246, 192);
-    border: 1px solid #ecdfb0;
-    border-radius: 2px;
-    color: black;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-    display: inline-block;
-    padding: 6px 10px;
-}
-
-.page-alert-holder a {
-    color: black;
-}
-
-.tab-word.div {
-    background-color: #F1F1F1;
-}
-.activetab {
-    font-family:Raleway-bold,sans-serif;
-    background-color:#58CEAB;
-    overflow: hidden;
-
-}
-.activetab #word3 {
-    background-color:transparent;
-}
-.activetab.stepnumber {
-    font-family: Raleway-black,sans-serif;
-    font-size: 90px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    color: #fff;
 }
 
 #page-loading {
@@ -971,6 +449,71 @@ kbd {
     color: #2D2A3F;
     margin-top: 5px;
 }
+
+/*
+ * CSS for the footer header
+*/
+.footer-header {
+  font-family: raleway-extrabold, sans-serif;
+  font-weight: bold;
+  color: #2d2a3f;
+  font-size: 12px;
+  line-height: 2.1em;
+  letter-spacing: 0.05em;
+}
+
+
+/* Formatting the test server warning banner. */
+.test-server-banner {
+  background-color: rgb(251, 215, 139);
+}
+
+.test-server-banner-content {
+  padding: 0.5%;
+  max-width: 70%;
+  margin: 0 auto;
+  display: flex;
+  font-size: medium;
+}
+
+.test-server-banner-text {
+  font-family: raleway-bold, sans-serif;
+  text-align: center;
+}
+.test-server-banner-text > strong {
+  color: red;
+}
+
+.test-server-banner-dont-show-again {
+  background: none;
+  border: none;
+  text-decoration: underline;
+  min-width: fit-content;
+  padding: 0 20px;
+}
+
+.test-server-banner-close {
+  background: none;
+  border: none;
+  margin-top: 2px;
+}
+
+/*
+ * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
+ * for some reason. So CSS for that page is in mobileValidate.css.
+ */
+@media only screen and (max-width: 500px) {
+  .test-server-banner {
+    border-radius: 5px;
+  }
+
+  .test-server-banner-content {
+    max-width: 300px;
+    flex-wrap: wrap;
+    font-size: small;
+  }
+}
+
 
 .navbar-nav>li, .navbar-nav {
     float: left;
@@ -1070,94 +613,13 @@ kbd {
 #accept-redirect {
     width: 75px;
 }
-
 /*Overlay box - end*/
-
-.results-images {
-    margin-top: 10px;
-}
-.results-images td {
-    padding-left: 15px;
-    text-align: center;
-    padding-top: 5px;
-}
-
-.leaflet-bottom > .map-legends.wax-legends {
-    right: 0px;
-    top: 0px;
-    width: 425px;
-    max-width: 500px;
-    height: 80px;
-}
-#results-choropleth-container {
-    background-color: #fff;
-    width: 100%;
-}
-#survey-form {
-    padding-right:20px;
-}
-#survey-modal-container ol> li {
-    font-weight: bold;
-    font-size: 16px;
-    content: counter(item);
-}
-#survey-modal-container ol> li h4 {
-    font-size: 16px;
-    font-weight: bold;
-}
-.survey-question {
-    margin-bottom: 10px;
-}
-.survey-textarea {
-    width: 100%;
-    height: 64px;
-    font-weight: normal;
-    font-size: 14px;
-}
-.survey-option-holder {
-    list-style:none;
-    width:100%;
-    margin:0;
-    padding:0 0 10px;
-    display:block;
-}
-.survey-option {
-    display:inline-block;
-    width:19%;
-    text-align:center;
-    vertical-align:top;
-    font-weight:normal;
-    font-size: 14px;
-}
-.survey-option label {
-    width:100%;
-    font-weight:normal;
-}
 
 .anchor {
     display: block;
     position: relative;
     top: -85px;
     visibility: hidden;
-}
-
-.leaderboard-header {
-    font-weight: bold;
-    font-family: Raleway-regular, sans-serif;
-}
-
-.weekly-header {
-    margin-bottom: 35px;
-}
-
-.leaderboard-detail {
-    font-family: Raleway-regular, sans-serif;
-}
-
-.accuracy-cell {
-    position: relative;
-    text-decoration:underline;
-    text-decoration-style: dotted;
 }
 
 .accuracy-tooltip {
@@ -1178,46 +640,8 @@ kbd {
     width: 175px;
 }
 
-.accuracy-cell:hover span.accuracy-tooltip {
-    display:block;
-}
-
-.leaderboard-table-font {
-    font-size: 20px;
-}
-
-.leaderboard-table-header {
-    background-color: rgba(251, 215, 139, 1);
-    font-weight: bold;
-}
-
 #your-overall-total {
   border-top: 3px solid #999999;
-}
-
-.leaderboard-table {
-    padding-right: 30px;
-    min-width: 650px;
-}
-
-.leaderboard-table-striped>tbody>tr:nth-child(even)>td,
-.leaderboard-table-striped>tbody>tr:nth-child(even)>th {
-    background-color: #fce6b5;
-    color: black;
-}
-
-.leaderboard-container {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    justify-content: center;
-    text-align: center;
-    align-items: top;
-    width: 100%;
-}
-
-#leaderboard-encouragement {
-    text-align: center;
 }
 
 #validation-button-holder {
@@ -1351,137 +775,7 @@ kbd {
   border-bottom-width: 0;
 }
 
-.gif-container {
-    position: relative;
-    text-align: left;
-    max-width: 340px;
-    margin: auto;
-    font-weight: bold;
-    font-variant: small-caps;
-    line-height: 0.8;
-    top: 30px;
-}
 
-.ml-gif-header-1 {
-    position: absolute;
-    text-align: center;
-    font-size: 35px;
-    transform: translate(-50%, 0);
-    bottom:-450px;
-}
-
-.ml-gif-header-2 {
-    position: absolute;
-    font-size: 21px;
-    transform: translate(-50%, 0);
-}
-
-.ml-gif-header-3 {
-    position: absolute;
-    font-size: 18px;
-    max-width: 100px;
-    transform: translate(-50%, 0);
-}
-
-#mlgif-bottom-text-1 {
-    left: -285px;
-    max-width: 50px;
-}
-
-#mlgif-bottom-text-2 {
-    left: -20px;
-    max-width: 500px;
-}
-
-#mlgif-bottom-text-3 {
-    left: 395px;
-    max-width: 200px;
-}
-
-#mlgif-label-text-1 {
-    text-align: center;
-    bottom: -170px;
-    left: -285px;
-    max-width: 160px;
-}
-
-#mlgif-label-text-2 {
-    bottom: -30px;
-    left: -20px;
-    max-width: 250px;
-}
-
-#mlgif-semicircle-text-1 {
-    bottom: -240px;
-    left: 258px;
-}
-
-#mlgif-semicircle-text-2 {
-    bottom:-210px;
-    left:388px;
-}
-
-#mlgif-semicircle-text-3 {
-    bottom: -225px;
-    left: 527px;
-}
-
-#mlgif-semicircle-text-4  {
-    bottom: -320px;
-    left: 500px;
-    transform: translate(0, 0);
-}
-
-/* Formatting the test server warning banner. */
-.test-server-banner {
-    background-color: rgb(251,215,139);
-}
-
-.test-server-banner-content {
-    padding: 0.5%;
-    max-width: 70%;
-    margin: 0 auto;
-    display: flex;
-    font-size: medium;
-}
-
-.test-server-banner-text {
-    font-family: raleway-bold, sans-serif;
-    text-align: center;
-}
-.test-server-banner-text > strong {
-    color: red;
-}
-
-.test-server-banner-dont-show-again {
-    background: none;
-    border: none;
-    text-decoration: underline;
-    min-width: fit-content;
-    padding: 0 20px;
-}
-
-.test-server-banner-close {
-    background: none;
-    border: none;
-    margin-top: 2px;
-}
-
-/*
- * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
- * for some reason. So CSS for that page is in mobileValidate.css.
- */
-@media only screen and (max-width: 500px) {
-    .test-server-banner {
-        border-radius: 5px;
-    }
-
-    .test-server-banner-content {
-        max-width: 300px;
-        flex-wrap: wrap;
-        font-size: small;
-    }
-}
 
 
 /*

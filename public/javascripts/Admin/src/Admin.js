@@ -32,7 +32,7 @@ function Admin(_, $) {
         polygonFillMode: 'completionRate',
         zoomControl: true,
         scrollWheelZoom: false,
-        mapName: 'admin-choropleth',
+        mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v10'
     };
     var mapTabMapParams = {
@@ -57,7 +57,7 @@ function Admin(_, $) {
         polygonFillMode: 'singleColor',
         scrollWheelZoom: true,
         zoomControl: true,
-        mapName: 'label-map',
+        mapName: 'admin-labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
     var streetParams = {
