@@ -860,6 +860,15 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         // Show the tab bar to allow selection of different labels in explore mission screens.
         // And set up other UI.
         if (missionType === MISSION_TYPES.EXPLORE) {
+
+            $('.explore-mission-start-tab.label[data-label-type="CurbRamp"]').find('.explore-mission-start-tab-text').text(i18next.t('common:curb-ramp'));
+            $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]').find('.explore-mission-start-tab-text').text(i18next.t('common:no-curb-ramp'));
+            $('.explore-mission-start-tab.label[data-label-type="Obstacle"]').find('.explore-mission-start-tab-text').text(i18next.t('common:obstacle'));
+            $('.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]').find('.explore-mission-start-tab-text').text(i18next.t('common:surface-problem'));
+            $('.explore-mission-start-tab.label[data-label-type="NoSideWalk"]').find('.explore-mission-start-tab-text').text(i18next.t('common:no-sidewalk'));
+            $('.explore-mission-start-tab.label[data-label-type="Crosswalk"]').find('.explore-mission-start-tab-text').text(i18next.t('common:crosswalk'));
+            $('.explore-mission-start-tab.label[data-label-type="Signal"]').find('.explore-mission-start-tab-text').text(i18next.t('common:signal'));
+
             $('.explore-mission-start-tab-bar').show();
 
             $('.explore-mission-start-tab.label').removeClass('active');
@@ -868,6 +877,8 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
 
         renderLocationIndicators();
         renderSlide(currentSlideIdx);
+
+        $('.mission-start-tutorial-overlay').css('display', 'flex');
     }
 
     /**

@@ -27,7 +27,7 @@
     min-width: 1170px; /*  */
     background: white;
     z-index: 10;
-    display: flex;
+    display: none; /* will be later set to flex by JS after rendering */
     flex-shrink: 0;
     justify-content: flex-start;
     overflow: auto;
@@ -35,6 +35,7 @@
 
     /* Default font should be defined only here and should be overridden wherever needed. */
     font-family: 'Open Sans', sans-serif;
+
 }
 
 .mst-content {
@@ -375,17 +376,8 @@
     padding: 0 70px;
 }
 
-.explore-mission-start-tab-bar::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    height: 3px;
-    width: 100%;
-    background: #DCDBDB;
-}
-
 .explore-mission-start-tab-content {
-    margin: 0 16px;
+    margin: 0 12px;
     display: flex;
     align-items: center;
 }
@@ -406,7 +398,6 @@
     text-align: left;
     border-bottom: 3px solid #DCDBDB;
     padding: 0 3px;
-    margin: 0 1px;
     filter: saturate(0);
     transition: all 0.25s;
     font-weight: 600;
