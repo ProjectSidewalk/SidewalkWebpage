@@ -251,8 +251,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      */
     function clearSelect() {
         clearCurrentTags(); // defined in CardFilter.js
-        unapplySeverities(); // defined in SeverityBucket.js
-        unapplyValidationOptions(); // defined in ValidationOptionBucket.js
+        // unapplySeverities(); // defined in SeverityBucket.js
+        // unapplyValidationOptions(); // defined in ValidationOptionBucket.js
     }
 
     /**
@@ -270,6 +270,13 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         severities.enable();
         $('.gallery-filter').prop("disabled", false);
     }
+
+    /**
+     * TODO: check
+     */
+    $("#clear-select").click(function() {
+        clearSelect(); <!--defined in CardFilter.js-->
+    };
 
     self.update = update;
     self.render = render;
