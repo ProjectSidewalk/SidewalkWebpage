@@ -16,6 +16,9 @@ function Main (params) {
     var loadNeighborhoodsCompleted = false;
     var loadLabelTags = false;
 
+    // Ideally this should be declared in one place and all the callers should refer to that.
+    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal'];
+
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
@@ -244,7 +247,7 @@ function Main (params) {
 
         // Initialize explore mission screens. We will start with 'CurbRamp'.
         // Note: MST can be initialized even inside the MissionStartTutorial.js, when the user clicks on the labels
-        const labelType = 'CurbRamp';
+        const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
         const missionStartTutorial = new MissionStartTutorial('audit', labelType, {nLength: svl.missionContainer.getCurrentMission().getDistance("miles"), neighborhood: svl.neighborhoodContainer.getCurrentNeighborhood().getProperty('name')}, svl);
     }
 

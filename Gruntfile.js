@@ -100,21 +100,17 @@ module.exports = function(grunt) {
             dist_audit: {
                 src: [
                     'public/javascripts/SVLabel/css/svl.css',
-                    'public/javascripts/SVLabel/css/*.css'
+                    'public/javascripts/SVLabel/css/*.css',
+                    'public/javascripts/common/css/validate-mission-start-tutorial.css'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.css'
             },
             dist_validate: {
                 src: [
-                    'public/javascripts/SVValidate/css/*.css'
-                ],
-                dest: 'public/javascripts/SVValidate/build/SVValidate.css'
-            },
-            dist_mission_screens: {
-                src: [
+                    'public/javascripts/SVValidate/css/*.css',
                     'public/javascripts/common/css/validate-mission-start-tutorial.css'
                 ],
-                dest: 'public/javascripts/common/build/MissionStartTutorial.css'
+                dest: 'public/javascripts/SVValidate/build/SVValidate.css'
             },
             gallery_all: {
                 src: [
@@ -137,7 +133,8 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/css/*.css',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/Gallery/src/**/*.js',
-                    'public/javascripts/Gallery/css/*.css'
+                    'public/javascripts/Gallery/css/*.css',
+                    'public/javascripts/common/css/*.css'
                 ],
                 tasks: [
                     'concat',

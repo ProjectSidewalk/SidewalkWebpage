@@ -384,6 +384,12 @@
     background: #DCDBDB;
 }
 
+.explore-mission-start-tab-content {
+    margin: 0 16px;
+    display: flex;
+    align-items: center;
+}
+
 .explore-mission-start-tab.label {
     border-radius: 4px 4px 0px 0px;
     height: 100%;
@@ -395,12 +401,19 @@
     align-items: center;
     font-size: 12px;
     font-weight: 600;
-    line-height: 18px;
+    line-height: 16px;
     letter-spacing: 0;
     text-align: left;
     border-bottom: 3px solid #DCDBDB;
     padding: 0 3px;
     margin: 0 1px;
+    filter: saturate(0);
+    transition: all 0.25s;
+    font-weight: 600;
+}
+
+.explore-mission-start-tab.label:hover, .explore-mission-start-tab.label.active {
+    filter: saturate(1);
 }
 
 .explore-mission-start-tab.label[data-label-type="CurbRamp"]:hover {
@@ -472,5 +485,13 @@
 .explore-mission-start-tab-icon {
     width: 30px;
     height: 30px;
-    margin-right: 5px;
+    margin-right: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.explore-mission-start-tab-text {
+    width: 70%;
+    white-space: initial;
 }

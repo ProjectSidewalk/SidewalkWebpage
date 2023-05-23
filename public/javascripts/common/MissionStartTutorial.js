@@ -925,13 +925,13 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         let labelOnImageTitle = '';
         let labelOnImageDescription = '';
         if (slide.isExampleCorrect) {
-            iconID = SMILEYS.CORRECT;
+            iconID = SMILEYS[EXAMPLE_TYPES.CORRECT];
             exampleTypeLabel = i18next.t(messagesPrefix + ':mission-start-tutorial.example-type-label-correct');
 
             labelOnImageTitle = i18next.t(messagesPrefix +':mission-start-tutorial.label-on-image-title-correct');
             labelOnImageDescription = i18next.t(messagesPrefix + ':mission-start-tutorial.label-on-image-description-correct');
         } else {
-            iconID = SMILEYS.INCORRECT;
+            iconID = SMILEYS[EXAMPLE_TYPES.INCORRECT];
             exampleTypeLabel = i18next.t(messagesPrefix + ':mission-start-tutorial.example-type-label-incorrect');
 
             labelOnImageTitle = i18next.t(messagesPrefix + ':mission-start-tutorial.label-on-image-title-incorrect');
@@ -965,13 +965,20 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         if (idx === 0) {
             $('.previous-slide-button').addClass('disabled');
         } else if (idx === nSlides - 1) {
-            $mstDoneButton.addClass('focus');
+
+            // We want users to explore other label types after they finish one in 'Explore Mission Screens'.
+            // So we don't want to draw attention to the start button.
+            if (missionType === MISSION_TYPES.VALIDATE) {
+                $mstDoneButton.addClass('focus');
+            }
+
             $('.next-slide-button').addClass('disabled');
         }
     }
 
     /**
      * Attaches the event handlers required for the mission screen labelTypeModule.
+     * Note: we need to remove existing handlers first as this function may be called multiple times (explore mission screens).
      */
     function attachEventHandlers() {
 
@@ -986,27 +993,27 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
             svvOrsvl.tracker.push('MSTDoneButton_Click', { 'currentSlideIdx': currentSlideIdx }, null);
         }
 
-        $('.previous-slide-button').click(function() {
+        $('.previous-slide-button').off().click(function() {
             currentSlideIdx = Math.max(currentSlideIdx - 1, 0);
             renderSlide(currentSlideIdx);
             svvOrsvl.tracker.push('PreviousSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
         });
 
-        $('.next-slide-button').click(function() {
+        $('.next-slide-button').off().click(function() {
             currentSlideIdx = Math.min(currentSlideIdx + 1, nSlides - 1);
             renderSlide(currentSlideIdx);
             svvOrsvl.tracker.push('NextSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
         });
 
         // Event handler to allow selecting between different label types
-        $('.explore-mission-start-tab.label').click(function() {
+        $('.explore-mission-start-tab.label').off().click(function() {
             const labelType = $(this).attr('data-label-type');
             const missionStartTutorial = new MissionStartTutorial('audit', labelType,
                 {neighborhood: data.neighborhood},
                 svl);
         });
 
-        $('.mission-start-tutorial-done-btn').click(hideMST);
+        $('.mission-start-tutorial-done-btn').off().click(hideMST);
     }
 
     initModule(missionType);
