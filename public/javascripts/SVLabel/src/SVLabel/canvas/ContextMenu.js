@@ -25,6 +25,8 @@ function ContextMenu (uiContextMenu) {
     var $tags = uiContextMenu.tags;
     var lastShownLabelColor;
 
+    var CONNECTOR_BUFFER = 6; // Buffer for connector to overlap border of label icon.
+
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
     $severityButtons.on('change', _handleSeverityChange);
@@ -472,16 +474,28 @@ function ContextMenu (uiContextMenu) {
             _setTags(targetLabel);
             _setTagColor(targetLabel);
             if (getStatus('disableTagging')) { disableTagging(); }
-            var windowHeight = $menuWindow.outerHeight();
 
-            // Determine coordinates for context menu when displayed below the label.
-            var topCoordinate = labelCoord.y + 20;
-            var connectorCoordinate = -5;
+            // Hide the severity menu for the Pedestrian Signal label type.
+            if (labelType === 'Signal') {
+                $severityMenu.css({visibility: 'hidden', height: '0px'});
+            } else {
+                $severityMenu.css({visibility: 'inherit', height: '50px'});
+            }
+            var menuHeight = $menuWindow.outerHeight();
 
-            // Determine coordinates for context menu when displayed above the label.
-            if (labelCoord.y + windowHeight + 22 > util.EXPLORE_CANVAS_HEIGHT) {
-                topCoordinate = labelCoord.y - windowHeight - 22;
-                connectorCoordinate = windowHeight;
+            var connectorHeight = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("height"));
+            var connectorWidth = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("width"));
+            var menuBorder = parseInt(window.getComputedStyle($menuWindow[0]).getPropertyValue("border-radius"));
+
+            // Determine coordinates for context menu to display below the label.
+            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight - CONNECTOR_BUFFER;
+            var connectorCoordinate = menuBorder - connectorHeight;
+
+            // If there isn't enough room to show the context menu below the label, determine coords to display above.
+            // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
+            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + menuHeight - CONNECTOR_BUFFER > util.EXPLORE_CANVAS_HEIGHT) {
+                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - menuHeight + CONNECTOR_BUFFER;
+                connectorCoordinate = menuHeight - menuBorder;
             }
 
             // Set the color of the border.
@@ -509,15 +523,8 @@ function ContextMenu (uiContextMenu) {
             $connector.css({
                 visibility: 'visible',
                 top: topCoordinate + connectorCoordinate,
-                left: labelCoord.x - 3
+                left: labelCoord.x - connectorWidth / 2,
             });
-
-            // Hide the severity menu for the Pedestrian Signal label type.
-            if (labelType === 'Signal') {
-                $severityMenu.css({visibility: 'hidden', height: '0px'});
-            } else {
-                $severityMenu.css({visibility: 'inherit', height: '50px'});
-            }
 
             setStatus('visibility', 'visible');
 

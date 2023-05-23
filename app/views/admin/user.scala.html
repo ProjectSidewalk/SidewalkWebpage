@@ -17,8 +17,8 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
-                <div id="map-holder">
-                    <div id="admin-map"></div>
+                <div id="admin-user-choropleth-holder" class="choropleth-holder">
+                    <div id="admin-user-choropleth" class="choropleth"></div>
                     <div id="map-label-legend">
                         <table class="table legend">
                             <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td><td id="td-number-of-curb-ramps"></td></tr>
@@ -173,6 +173,7 @@
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
