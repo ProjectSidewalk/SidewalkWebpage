@@ -11,15 +11,6 @@ svg {
     position: relative;
 }
 
-#map-holder {
-    position: relative;
-}
-
-#map {
-    height: calc(100% - 116px); /* 100% - (header + footer height) */
-    min-height: 640px;
-}
-
 .map-text-box {
     background: rgba(255, 255, 255, 0.9);
     border: solid 1px #ccc;

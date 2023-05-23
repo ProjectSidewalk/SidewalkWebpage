@@ -23,7 +23,7 @@ function AdminUser(user) {
         polygonFillMode: 'singleColor',
         zoomControl: true,
         scrollWheelZoom: true,
-        mapName: 'admin-map',
+        mapName: 'admin-user-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
     var streetParams = {

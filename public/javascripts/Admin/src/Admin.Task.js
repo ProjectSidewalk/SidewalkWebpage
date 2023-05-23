@@ -3,7 +3,7 @@ function AdminTask(params) {
     var _data = {};
 
     L.mapbox.accessToken = params.mapboxApiKey;
-    var map = L.mapbox.map('map', null, {
+    var map = L.mapbox.map('admin-task-choropleth', null, {
         zoomControl: false,
         scrollWheelZoom: false,
         touchZoom: false,

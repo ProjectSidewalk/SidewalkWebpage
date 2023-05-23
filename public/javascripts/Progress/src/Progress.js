@@ -25,7 +25,7 @@ function Progress (_, $, userRole) {
         zoomControl: true,
         scrollWheelZoom: true,
         clickData: true,
-        mapName: 'map',
+        mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
     var streetParams = {

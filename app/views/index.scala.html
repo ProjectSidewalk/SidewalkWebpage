@@ -85,8 +85,7 @@
             </div>
         </div>
 
-    <div class="container" id="choropleth-container" style="width: 100%;
-        position: relative;">
+    <div id="landing-choropleth-container" class="container choropleth-container">
         <div class="im-centered3">
             <div class="row">@Messages("landing.choropleth.title")</div>
             <br>
@@ -97,8 +96,8 @@
             </div>
         </div>
         <br>
-        <div id="map-holder">
-            <div id="choropleth"></div>
+        <div id="landing-choropleth-holder" class="choropleth-holder">
+            <div id="landing-choropleth" class="choropleth"></div>
             <div id="landing-legend">
                 <strong style="font-size: 18px">@Messages("landing.choropleth.legend")</strong>
                 <nav class='legend clearfix'>
@@ -293,7 +292,7 @@
                 zoomSlider: true,
                 clickData: true,
                 scrollWheelZoom: false,
-                mapName: 'choropleth',
+                mapName: 'landing-choropleth',
                 mapStyle: 'mapbox://styles/mapbox/light-v10'
             };
             var loadPolygons = $.getJSON('/neighborhoods');
