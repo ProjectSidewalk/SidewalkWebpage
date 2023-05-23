@@ -1002,6 +1002,24 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
             $('.explore-mission-start-tab-bar').fadeOut(100);
 
             svvOrsvl.tracker.push('MSTDoneButton_Click', { 'currentSlideIdx': currentSlideIdx }, null);
+
+            // Log 'MissionStart' on Explore missions.
+            if (missionType === MISSION_TYPES.EXPLORE) {
+                let mission = svvOrsvl.missionContainer.getCurrentMission();
+                // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission
+                // later, another MissionStart will not be triggered.
+                if (mission.getProperty('distanceProgress') < 0.0001) {
+                    svvOrsvl.tracker.push(
+                        "MissionStart",
+                        {
+                            missionId: mission.getProperty("missionId"),
+                            missionType: mission.getProperty("missionType"),
+                            distanceMeters: Math.round(mission.getDistance("meters")),
+                            regionId: mission.getProperty('regionId')
+                        }
+                    );
+                }
+            }
         }
 
         $('.previous-slide-button').off().click(function() {

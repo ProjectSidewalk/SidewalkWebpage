@@ -1,0 +1,475 @@
+@import url('https://fonts.googleapis.com/css?family=Raleway:400,700&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap');
+.template {
+    display: none;
+}
+
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.noselect {
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old versions of Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+.mission-start-tutorial-overlay {
+    position: absolute;
+    height: 710px;
+    width: 100%;
+    min-width: 1170px; /*  */
+    background: white;
+    z-index: 10;
+    display: flex;
+    flex-shrink: 0;
+    justify-content: flex-start;
+    overflow: auto;
+    flex-direction: column;
+
+    /* Default font should be defined only here and should be overridden wherever needed. */
+    font-family: 'Open Sans', sans-serif;
+}
+
+.mst-content {
+    width: 1095px;
+    margin: 0 auto;
+}
+
+.mst-instruction-1 {
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    color: #525252;
+    margin: 5px 0;
+    padding: 0 70px;
+    width: 100%;
+    height: fit-content;
+}
+
+.mst-instruction-2 {
+    font-family: 'Raleway', 'Open Sans', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 24px;
+    margin: 5px 0;
+    padding: 0 70px;
+
+    color: #000000;
+    width: 100%;
+}
+
+.mst-carousel {
+    display: flex;
+    flex-shrink: 0;
+    width: 100%;
+    height: 436px;
+    margin-top: 10px;
+}
+
+.previous-slide-button, .next-slide-button {
+    height: 100%;
+    width: 30px;
+    display: flex;
+    fill: #C4C4C4;
+    cursor: pointer;
+}
+
+.previous-slide-button:not(.disabled):hover, .next-slide-button:not(.disabled):hover {
+    fill: #000000;
+}
+
+.previous-slide-button {
+    margin-right: 30px;
+}
+
+.next-slide-button {
+    margin-left: 30px;
+}
+
+.next-slide-button.disabled, .previous-slide-button.disabled {
+    visibility: hidden;
+}
+
+.mst-slide {
+    height: 100%;
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    width: calc(100% - 120px); /* subtract the next and previous slide button widths from the total */
+    justify-content: space-between;
+}
+
+.mts-text-area {
+    width: 290px;
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    flex-direction: column;
+    position: relative;
+}
+
+.label-type-title {
+    font-family: 'Raleway', 'Open Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-align: left;
+    margin-bottom: 15px;
+    padding: 0 10px;
+}
+
+.label-type-subtitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #949494;
+    padding: 0 10px;
+}
+
+.label-type-description {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-align: left;
+    padding: 0 10px;
+    margin-top: 10px;
+}
+
+.mission-start-tutorial-overlay-footer {
+    margin-top: 15px;
+    width: 100%;
+}
+
+.mission-start-tutorial-done-btn {
+    height: 36px;
+    width: calc(100% - 20px);
+    border-radius: 7.25px;
+    float: right;
+    background: #F6D795;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 2s;
+    font-weight: bold;
+    position: absolute;
+    bottom: 0;
+    margin: 0 10px;
+}
+
+.mission-start-tutorial-done-btn:hover {
+    background: #ffc342;
+}
+
+@keyframes pulsate {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(0.9); }
+    50%  { transform: scale(1); }
+    50%  { transform: scale(1.1); }
+}
+
+/*We can do something to get attention after the user goes through all the slides*/
+.mission-start-tutorial-done-btn.focus {
+    animation: pulsate;
+    animation-duration: 2s;
+    animation-iteration-count: 3;
+    animation-delay: 1s;
+}
+
+.msts-image-area {
+    width: 658px;
+    height: 436px;
+    float: right;
+    background: lightgrey;
+    display: flex;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.msts-image {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.label-on-image {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 3px solid;
+    border-radius: 10px;
+    box-sizing: content-box;
+    min-height: 80px;
+    max-height: 90px;
+    min-width: 157px;
+    max-width: 220px;
+}
+
+/* correct/incorrect classes are added to the slide element */
+.correct .label-on-image {
+    border-color: #30785D;
+}
+
+/* correct/incorrect classes are added to the slide element */
+.incorrect .label-on-image {
+    border-color: #EB734D;
+}
+
+.label-on-image-type {
+    margin: 12px 10px;
+    display: flex;
+    align-items: center;
+}
+
+.label-on-image-type-icon {
+    height: 24px;
+    width: 24px;
+    fill: none;
+    display: flex;
+    margin-right: 3px;
+}
+
+.correct .label-on-image-type-icon {
+    stroke: #30785D;
+}
+
+.incorrect .label-on-image-type-icon {
+    stroke: #EB734D;
+}
+
+.label-on-image-type-title {
+    display: flex;
+    font-family: 'Raleway', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-left: 3px;
+}
+
+.correct .label-on-image-type-title {
+    color: #30785D;
+}
+
+.incorrect .label-on-image-type-title {
+    color: #EB734D;
+}
+
+.label-on-image-description {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0;
+    margin: 0 12px;
+}
+
+.example-type-area {
+    display: flex;
+    padding: 10px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.example-type-area::after {
+    background: #30785D;
+    width: calc(100% - 20px);
+    height: 8px;
+    position: absolute;
+    bottom: -6px;
+    content: '';
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.correct .example-type-area::after {
+    background: #30785D;
+}
+
+.incorrect .example-type-area::after {
+    background: #EB734D;
+}
+
+.example-type-icon {
+    height: 24px;
+    width: 24px;
+    display: inline-block;
+    margin-right: 5px;
+    fill: none;
+}
+
+.correct .example-type-icon {
+    stroke: #30785D;
+}
+
+.incorrect .example-type-icon {
+    stroke: #EB734D;
+}
+
+.example-type-label {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.correct .example-type-label {
+    color: #30785D;
+}
+
+.incorrect .example-type-label {
+    color: #EB734D;
+}
+
+.mst-carousel-location-indicator-area {
+    height: 12px;
+    width: 100%;
+    padding: 5px;
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mst-carousel-location-indicator {
+    height: 7px;
+    width: 40px;
+    margin: 0 3.5px;
+    background: #C4C4C4;
+    transition: all 0.4s;
+    border-radius: 100px;
+}
+
+.mst-carousel-location-indicator.current-location {
+    background: #2C2A3D;
+}
+
+/* This block handles layout on browser zoom. */
+@media (max-width: 1170px) {
+    .mission-start-tutorial-overlay {
+        min-width: 1069px;
+    }
+    .mst-content {
+        width: 1020px;
+    }
+
+    /* We need to create space for the image at this zoom level. */
+    .mts-text-area {
+        width: 230px;
+    }
+}
+
+/* Explore mission screen tab bar styling */
+
+.explore-mission-start-tab-bar {
+    width: 100%;
+    height: 50px;
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+    padding: 0 70px;
+}
+
+.explore-mission-start-tab-bar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    height: 3px;
+    width: 100%;
+    background: #DCDBDB;
+}
+
+.explore-mission-start-tab.label {
+    border-radius: 4px 4px 0px 0px;
+    height: 100%;
+    width: 100%;
+    color: #0f0f0f;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: 0;
+    text-align: left;
+    border-bottom: 3px solid #DCDBDB;
+    padding: 0 3px;
+    margin: 0 1px;
+}
+
+.explore-mission-start-tab.label[data-label-type="CurbRamp"]:hover {
+    background: rgba(144, 195, 31, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]:hover {
+    background: rgba(230, 121, 182, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="Obstacle"]:hover {
+    background: rgba(120, 176, 234, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]:hover {
+    background: rgba(246, 141, 62, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="NoSideWalk"]:hover {
+    background: rgba(190, 135, 216, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="Crosswalk"]:hover {
+    background: rgba(250, 191, 28, 0.15);
+}
+
+.explore-mission-start-tab.label[data-label-type="Signal"]:hover {
+    background: rgba(99, 192, 171, 0.15);
+}
+
+
+/* Selected tabs */
+.explore-mission-start-tab.label[data-label-type="CurbRamp"].active {
+    background: rgba(144, 195, 31, 0.15);
+    border-bottom-color: #90C31F;
+}
+
+.explore-mission-start-tab.label[data-label-type="NoCurbRamp"].active {
+    background: rgba(230, 121, 182, 0.15);
+    border-bottom-color: #E679B6;
+}
+
+.explore-mission-start-tab.label[data-label-type="Obstacle"].active {
+    background: rgba(120, 176, 234, 0.15);
+    border-bottom-color: #78B0EA;
+}
+
+.explore-mission-start-tab.label[data-label-type="SurfaceProblem"].active {
+    background: rgba(246, 141, 62, 0.15);
+    border-bottom-color: #F68D3E;
+}
+
+.explore-mission-start-tab.label[data-label-type="NoSideWalk"].active {
+    background: rgba(190, 135, 216, 0.15);
+    border-bottom-color: #BE87D8;
+}
+
+.explore-mission-start-tab.label[data-label-type="Crosswalk"].active {
+    background: rgba(250, 191, 28, 0.15);
+    border-bottom-color: #FABF1C;
+}
+
+.explore-mission-start-tab.label[data-label-type="Signal"].active {
+    background: rgba(99, 192, 171, 0.15);
+    border-bottom-color: #63C0AB;
+}
+
+
+.explore-mission-start-tab-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 5px;
+}

@@ -539,19 +539,6 @@
                     </form>
                 </div>
             </div>
-@*            <div id="modal-mission-holder">*@
-@*                <div id="modal-mission-background" class="modal-background"></div>*@
-@*                <div id="modal-mission-foreground" class="modal-foreground">*@
-@*                    <h1 id="modal-mission-header" class="text-center">Mission</h1>*@
-@*                    @if(user.isDefined) {*@
-@*                        @if(user.get.role.getOrElse("") == "Turker") {*@
-@*                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>*@
-@*                        }*@
-@*                    }*@
-@*                    <div id="modal-mission-instruction"></div>*@
-@*                    <button class="button" id="modal-mission-close-button">OK</button>*@
-@*                </div>*@
-@*            </div>*@
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
@@ -1041,7 +1028,6 @@
                 svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                 $("#current-mission-reward").show();
                 $("#total-mission-reward").show();
-                $("#modal-mission-reward-text").show();
             }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";

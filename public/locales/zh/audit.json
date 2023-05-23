@@ -65,15 +65,6 @@
             "select-label-type-second-curb-ramp": "<span class=\"bold\">點選\"路緣斜坡\" 選項</span>標記另一個路緣斜坡。"
         }
     },
-    "mission-start": {
-        "title": "探索 __DISTANCE_PLACEHOLDER__於__NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "第一個任務：",
-        "title-return": "返回您的任務",
-        "title-continue": "繼續於__NEIGHBORHOOD_PLACEHOLDER__</span>探索__DISTANCE_PLACEHOLDER__以找到更多無障礙項目！",
-        "body-first": "您的<span class=\"bold\">第一個任務</span>是於__NEIGHBORHOOD_PLACEHOLDER__探索__DISTANCE_PLACEHOLDER__</span>並找尋所有影響行動不便者的無障礙項目！",
-        "body": "您的任務是於__NEIGHBORHOOD_PLACEHOLDER__探索 __DISTANCE_PLACEHOLDER__</span>，找尋所有影響行動不便者的無障礙項目！",
-        "button-resume": "繼續執行任務！"
-    },
     "mission-complete": {
         "distance-type-display-string": "公里",
         "title": "任務完成！",

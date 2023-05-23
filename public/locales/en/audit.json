@@ -65,15 +65,6 @@
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Click the \"Curb Ramp\" button</span> to label the other curb ramp now."
         }
     },
-    "mission-start": {
-        "title": "Explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "First Mission: ",
-        "title-return": "Return to your mission",
-        "title-continue": "Continue exploring __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!",
-        "body-first": "Your <span class=\"bold\">first mission</span> is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
-        "body": "Your mission is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
-        "button-resume": "Resume Mission!"
-    },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
         "title": "Mission Complete!",

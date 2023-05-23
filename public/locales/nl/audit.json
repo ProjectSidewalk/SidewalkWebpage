@@ -65,15 +65,6 @@
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Klik op de \"Trottoir Oprit\" button</span> om nu de andere trottoir oprit te labelen."
         }
     },
-    "mission-start": {
-        "title": "Verken __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Eerste Missie: ",
-        "title-return": "Keer terug naar je missie",
-        "title-continue": "Ga door met verkennen __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> voor toegankelijkheids kenmerken!",
-        "body-first": "Je <span class=\"bold\">eerste missie</span> is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
-        "body": "Jouw missie is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
-        "button-resume": "Missie hervatten!"
-    },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
         "title": "Missie geslaagd!",
