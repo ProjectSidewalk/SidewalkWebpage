@@ -17,7 +17,7 @@ function Main (params) {
     var loadLabelTags = false;
 
     // Ideally this should be declared in one place and all the callers should refer to that.
-    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal'];
+    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
 
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
