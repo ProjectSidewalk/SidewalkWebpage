@@ -243,11 +243,6 @@ function Main (params) {
 
         // Clean up the URL in the address bar.
         _updateURL();
-
-        // Initialize explore mission screens. We will start with 'CurbRamp'.
-        // Note: MST can be initialized even inside the MissionStartTutorial.js, when the user clicks on the labels
-        const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
-        const missionStartTutorial = new MissionStartTutorial('audit', labelType, {nLength: svl.missionContainer.getCurrentMission().getDistance("miles"), neighborhood: svl.neighborhoodContainer.getCurrentNeighborhood().getProperty('name')}, svl);
     }
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
@@ -364,8 +359,15 @@ function Main (params) {
                 startOnboarding();
             } else {
                 _calculateAndSetTasksMissionsOffset();
-                var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
+
+                // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
+                var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
+                const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
+                    nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
+                    neighborhood: currentNeighborhood.getProperty('name')
+                }, svl);
 
                 startTheMission(mission, currentNeighborhood);
             }
