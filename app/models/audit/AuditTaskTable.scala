@@ -381,7 +381,7 @@ object AuditTaskTable {
   /**
     * Get a new task specified by the street edge id. Used when calling the /explore/street route.
     */
-  def selectANewTask(streetEdgeId: Int, missionId: Int): NewTask = db.withSession { implicit session =>
+  def selectANewTask(streetEdgeId: Int, missionId: Int, reverseStartPoint: Boolean = false): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Join with other queries to get completion count and priority for each of the street edges.
@@ -389,7 +389,7 @@ object AuditTaskTable {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
+    } yield (se.streetEdgeId, se.geom, if (reverseStartPoint) se.x1 else se.x2, if (reverseStartPoint) se.y1 else se.y2, se.x1, se.y1, se.x2, se.y2, reverseStartPoint, timestamp, scau._2, sep.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
 
     NewTask.tupled(edges.first)
   }

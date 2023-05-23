@@ -70,6 +70,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             lat2 = geojson.features[0].geometry.coordinates[len][1],
             lng2 = geojson.features[0].geometry.coordinates[len][0];
         // Continuing from the previous task (i.e., currentLat and currentLng exist).
+        // TODO this should use the distance along the street edge, not the distance to the endpoints.
         var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng),
             d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
 

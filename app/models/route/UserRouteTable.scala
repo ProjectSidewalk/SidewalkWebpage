@@ -4,6 +4,7 @@ import models.audit.{AuditTaskTable, NewTask}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.street.{StreetEdgePriorityTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
+import com.vividsolutions.jts.geom.{Coordinate, Geometry, LineString, Point}
 import play.api.Play.current
 import java.sql.Timestamp
 import java.time.Instant
@@ -92,6 +93,7 @@ object UserRouteTable {
    * @return
    */
   def getRouteTask(currRoute: UserRoute, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
+    // Check if the user has started the route. If so, just return their in-progress task.
     val currTaskId: Option[Int] = AuditTaskUserRouteTable.auditTaskUserRoutes
       .innerJoin(AuditTaskTable.auditTasks).on(_.auditTaskId === _.auditTaskId)
       .filter(x => x._1.userRouteId === currRoute.userRouteId && x._2.completed === false)
@@ -101,13 +103,28 @@ object UserRouteTable {
     if (possibleTask.isDefined) {
       possibleTask
     } else {
+      // If the route hasn't been started, get the next incomplete street in the route and create a new task for it.
+      val streetsInRoute = RouteStreetTable.routeStreets
+        .filter(_.routeId === currRoute.routeId)
+        .innerJoin(StreetEdgeTable.streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
+        .map(_._2)
+
+      // Get the next street in the route. This is the street with the lowest route_street_id that hasn't been audited.
       val userTasks = AuditTaskUserRouteTable.auditTaskUserRoutes.filter(_.userRouteId === currRoute.userRouteId)
       val nextStreetId: Option[Int] = RouteStreetTable.routeStreets
         .leftJoin(userTasks).on(_.routeStreetId === _.routeStreetId)
         .filter(x => x._1.routeId === currRoute.routeId && x._2.auditTaskUserRouteId.?.isEmpty)
         .sortBy(_._1.routeStreetId)
         .map(_._1.streetEdgeId).firstOption
-      nextStreetId.map(AuditTaskTable.selectANewTask(_, missionId))
+
+      // If the default direction of the street would cause the user to jump at the end of the street (i.e. the endpoint
+      // of the street doesn't intersect with any street in the route besides itself), then reverse the street.
+      val endPoint: Point = streetsInRoute.filter(_.streetEdgeId === nextStreetId.get).map(_.geom).first.getEndPoint
+      endPoint.setSRID(4326)
+      val endPointIntersects: Boolean = streetsInRoute
+        .map(_.geom.intersects(endPoint.asColumnOf[Geometry])).filter(x => x).size.run > 1
+
+      nextStreetId.map(AuditTaskTable.selectANewTask(_, missionId, !endPointIntersects))
     }
   }
 
