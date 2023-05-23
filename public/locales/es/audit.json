@@ -223,5 +223,13 @@
         "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
         "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
         "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "EXPLORAR MISIÓN",
+        "mst-instruction-2": "Etiquete estas funciones de accesibilidad en {{neighborhood}}",
+        "example-type-label-incorrect": "ERROR COMÚN",
+        "label-on-image-title-incorrect": "Error común",
+        "label-on-image-description-correct": "Coloque una etiqueta",
+        "label-on-image-description-incorrect": "<b>No</b> coloque la etiqueta"
     }
 }

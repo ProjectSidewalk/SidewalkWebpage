@@ -223,5 +223,13 @@
         "still-stuck": "若您仍難以抉擇，請再次點選難以抉擇鍵。",
         "stuck-skipped-street": "在前一條街道以無可標記的點，因此我們將您帶往新的街道。",
         "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向。或嘗試點選左側的難以抉擇鍵。"
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "探索使命",
+        "mst-instruction-2": "在 {{neighborhood}} 中標記這些輔助功能",
+        "example-type-label-incorrect": "常見的錯誤",
+        "label-on-image-title-incorrect": "$t(audit:mission-start-tutorial.example-type-label-incorrect)",
+        "label-on-image-description-correct": "放置標籤",
+        "label-on-image-description-incorrect": "不要<b>不</b>放置標籤"
     }
 }

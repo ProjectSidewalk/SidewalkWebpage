@@ -223,5 +223,13 @@
         "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
         "stuck-skipped-street": "We konden geen geschikte plek vinden in deze straat, dus we hebben je naar een nieuwe straat verplaatst.",
         "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "ONTDEK MISSIE",
+        "mst-instruction-2": "Label deze toegankelijkheidsvoorzieningen in {{neighborhood}}",
+        "example-type-label-incorrect": "VEEL VOORKOMENDE FOUT",
+        "label-on-image-title-incorrect": "Veel voorkomende fout",
+        "label-on-image-description-correct": "Plaats een etiket",
+        "label-on-image-description-incorrect": "Plaats <b>geen</b> label"
     }
 }
