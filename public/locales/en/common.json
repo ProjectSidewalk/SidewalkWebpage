@@ -132,7 +132,7 @@
     "curb-ramp": {
       "slide-1": {
         "title": "{{labelType}}",
-        "description": "Curb ramps are often found on both ends of crosswalks, or when a sidewalk continue on the other side of the street, even without crosswalk."
+        "description": "Curb ramps allow people to transition from the sidewalk to the street. They should exist at all crossable intersections."
       },
       "slide-2": {
         "title": "Driveway",

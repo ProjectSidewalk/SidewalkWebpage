@@ -132,7 +132,7 @@
     "curb-ramp": {
       "slide-1": {
         "title": "{{labelType}}",
-        "description": "Las rampas en las banquetas a menudo se encuentran en ambos extremos de los cruces de peatones, o cuando una banqueta continúa en el otro lado de la calle, incluso sin cruce de peatones."
+        "description": "Las rampas en las banquetas permiten a las personas pasar de la banqueta a la calle. Deben existir en todas las intersecciones transitables."
       },
       "slide-2": {
         "title": "Entrada de coches",
