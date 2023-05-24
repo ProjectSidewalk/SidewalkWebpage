@@ -65,15 +65,6 @@
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Haz clic en el botón de \"Rampa peatonal\"</span> para etiquetar la otra rampa."
         }
     },
-    "mission-start": {
-        "title": "Explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Primera misión: ",
-        "title-return": "Vuelve a tu misión",
-        "title-continue": "¡Continúa explorando __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> para encontrar elementos de accesibilidad urbana!",
-        "body-first": "¡Tu <span class=\"bold\">primera misión</span> es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "body": "¡Tu misión es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "button-resume": "¡Reanuda tu misión!"
-    },
     "mission-complete": {
         "distance-type-display-string": "kilómetros",
         "title": "¡Misión cumplida!",
@@ -232,5 +223,13 @@
         "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
         "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
         "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "EXPLORAR MISIÓN",
+        "mst-instruction-2": "Etiquete estas funciones de accesibilidad en {{neighborhood}}",
+        "example-type-label-incorrect": "ERROR COMÚN",
+        "label-on-image-title-incorrect": "Error común",
+        "label-on-image-description-correct": "Coloque una etiqueta",
+        "label-on-image-description-incorrect": "<b>No</b> coloque la etiqueta"
     }
 }

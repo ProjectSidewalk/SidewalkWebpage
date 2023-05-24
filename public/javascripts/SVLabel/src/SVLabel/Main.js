@@ -16,7 +16,6 @@ function Main (params) {
     var loadNeighborhoodsCompleted = false;
     var loadLabelTags = false;
 
-
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = function () {
@@ -24,6 +23,8 @@ function Main (params) {
     };
     svl.missionsCompleted = params.missionSetProgress;
 
+    // Ideally this should be declared in one place and all the callers should refer to that.
+    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
     svl.LABEL_ICON_RADIUS = 17;
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
@@ -154,7 +155,6 @@ function Main (params) {
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
-        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel, svl.userModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
@@ -304,13 +304,8 @@ function Main (params) {
                 neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
                 svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
                     svl.taskContainer, svl.labelContainer, svl.tracker);
-                svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                    svl.initialMissionInstruction.start(neighborhood);
-                });
-            } else {
-                svl.modalMission.setMissionMessage(mission, neighborhood);
+                svl.initialMissionInstruction.start(neighborhood);
             }
-            svl.modalMission.show();
         }
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
@@ -362,8 +357,15 @@ function Main (params) {
                 startOnboarding();
             } else {
                 _calculateAndSetTasksMissionsOffset();
-                var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
+
+                // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
+                var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
+                const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
+                    nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
+                    neighborhood: currentNeighborhood.getProperty('name')
+                }, svl);
 
                 startTheMission(mission, currentNeighborhood);
             }
@@ -505,15 +507,6 @@ function Main (params) {
         svl.ui.modalExample.noCurbRamp = $("#modal-no-curb-ramp-example");
         svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
         svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
-
-        svl.ui.modalMission = {};
-        svl.ui.modalMission.holder = $("#modal-mission-holder");
-        svl.ui.modalMission.foreground = $("#modal-mission-foreground");
-        svl.ui.modalMission.background = $("#modal-mission-background");
-        svl.ui.modalMission.missionTitle = $("#modal-mission-header");
-        svl.ui.modalMission.rewardText = $("#modal-mission-reward-text");
-        svl.ui.modalMission.instruction = $("#modal-mission-instruction");
-        svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
         // Modal Mission Complete.
         svl.ui.modalMissionComplete = {};
