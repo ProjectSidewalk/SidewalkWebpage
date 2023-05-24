@@ -16,10 +16,6 @@ function Main (params) {
     var loadNeighborhoodsCompleted = false;
     var loadLabelTags = false;
 
-    // Ideally this should be declared in one place and all the callers should refer to that.
-    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
-
-
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = function () {
@@ -27,6 +23,8 @@ function Main (params) {
     };
     svl.missionsCompleted = params.missionSetProgress;
 
+    // Ideally this should be declared in one place and all the callers should refer to that.
+    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
     svl.LABEL_ICON_RADIUS = 17;
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
