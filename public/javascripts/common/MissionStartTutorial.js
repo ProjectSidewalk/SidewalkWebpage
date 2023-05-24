@@ -841,7 +841,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         function renderLocationIndicators() {
 
             // We should clear existing indicators before rendering.
-            // Use case: Explore mission screens allow re-rendering of the slides for different labels.
+            // Explore mission screens allow re-rendering of the slides for different labels.
             $('.mst-carousel-location-indicator:not(.template)').remove();
 
             const $missionCarouselIndicatorArea = $('.mst-carousel-location-indicator-area');
