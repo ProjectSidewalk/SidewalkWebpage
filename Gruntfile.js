@@ -99,16 +99,15 @@ module.exports = function(grunt) {
         concat_css: {
             dist_audit: {
                 src: [
-                    'public/javascripts/SVLabel/css/svl.css',
                     'public/javascripts/SVLabel/css/*.css',
-                    'public/javascripts/common/css/validate-mission-start-tutorial.css'
+                    'public/stylesheets/common/missionStartTutorial.css'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.css'
             },
             dist_validate: {
                 src: [
                     'public/javascripts/SVValidate/css/*.css',
-                    'public/javascripts/common/css/validate-mission-start-tutorial.css'
+                    'public/stylesheets/common/missionStartTutorial.css'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.css'
             },
@@ -134,7 +133,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/Gallery/src/**/*.js',
                     'public/javascripts/Gallery/css/*.css',
-                    'public/javascripts/common/css/*.css'
+                    'public/stylesheets/common/*.css'
                 ],
                 tasks: [
                     'concat',
