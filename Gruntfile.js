@@ -31,7 +31,8 @@ module.exports = function(grunt) {
                     'public/javascripts/common/UtilitiesMath.js',
                     'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopover.js'
+                    'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/MissionStartTutorial.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
@@ -98,14 +99,15 @@ module.exports = function(grunt) {
         concat_css: {
             dist_audit: {
                 src: [
-                    'public/javascripts/SVLabel/css/svl.css',
-                    'public/javascripts/SVLabel/css/*.css'
+                    'public/javascripts/SVLabel/css/*.css',
+                    'public/stylesheets/common/missionStartTutorial.css'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.css'
             },
             dist_validate: {
                 src: [
-                    'public/javascripts/SVValidate/css/*.css'
+                    'public/javascripts/SVValidate/css/*.css',
+                    'public/stylesheets/common/missionStartTutorial.css'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.css'
             },
@@ -130,7 +132,8 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/css/*.css',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/Gallery/src/**/*.js',
-                    'public/javascripts/Gallery/css/*.css'
+                    'public/javascripts/Gallery/css/*.css',
+                    'public/stylesheets/common/*.css'
                 ],
                 tasks: [
                     'concat',
