@@ -11,13 +11,6 @@
     "surface-problems": "oppervlakte problemen",
     "no-sidewalks": "geen trottoirs",
     "others": "anders",
-    "curb-ramp-description": "Trottoir oprit",
-    "no-curb-ramp-description": "Ontbrekende trottoir oprit",
-    "obstacle-description": "Obstakel op pad",
-    "surface-problem-description": "Grond oppervlak probleem",
-    "other-description": "Ander",
-    "occlusion-description": "Het trottoir is niet zichtbaar",
-    "no-sidewalk-description": "Geen Trottoir",
     "tutorial": {
         "mission-message": "Voltooi de onboarding tutorial!",
         "select-label-type-1": "In deze Street View foto hebben we een pijl getekend naar een trottoir oprit. Laten we het labelen. Klik op de knipperende <span class=\"bold\">\"trottoir oprit\" knop</span> bovenaan.",
@@ -71,15 +64,6 @@
             "rate-severity-4": "Vervolgens <span class=\"bold\">Beoordeel de kwaliteit van de trottoir oprit</span>. Probeer hem zo juist mogelijk te beoordelen. Je kunt ook altijd aantekeningen maken in de <span class=\"bold\">Beschrijving Box.</span>",
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Klik op de \"Trottoir Oprit\" button</span> om nu de andere trottoir oprit te labelen."
         }
-    },
-    "mission-start": {
-        "title": "Verken __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Eerste Missie: ",
-        "title-return": "Keer terug naar je missie",
-        "title-continue": "Ga door met verkennen __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> voor toegankelijkheids kenmerken!",
-        "body-first": "Je <span class=\"bold\">eerste missie</span> is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
-        "body": "Jouw missie is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
-        "button-resume": "Missie hervatten!"
     },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
@@ -182,7 +166,11 @@
                 "APS": "<tag-underline>A</tag-underline>PS",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
                 "no-bus-stop-access": "geen bush<tag-underline>a</tag-underline>lte toegang",
-                "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)"
+                "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)",
+                "painted-sidewalk": "gesc<tag-underline>h</tag-underline>ilderd trottoir",
+                "pedestrian-arcade": "voetgangers galerij (<tag-underline>q</tag-underline>)",
+                "too-close-to-traffic": "<tag-underline>t</tag-underline>e dicht bij het verkeer",
+                "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el"
             },
             "tooltip": {
                 "passable": "Begaanbaar",
@@ -235,5 +223,13 @@
         "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
         "stuck-skipped-street": "We konden geen geschikte plek vinden in deze straat, dus we hebben je naar een nieuwe straat verplaatst.",
         "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "ONTDEK MISSIE",
+        "mst-instruction-2": "Label deze toegankelijkheidsvoorzieningen in {{neighborhood}}",
+        "example-type-label-incorrect": "VEEL VOORKOMENDE FOUT",
+        "label-on-image-title-incorrect": "Veel voorkomende fout",
+        "label-on-image-description-correct": "Plaats een etiket",
+        "label-on-image-description-incorrect": "Plaats <b>geen</b> label"
     }
 }

@@ -16,7 +16,6 @@ function Main (params) {
     var loadNeighborhoodsCompleted = false;
     var loadLabelTags = false;
 
-
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = function () {
@@ -24,6 +23,8 @@ function Main (params) {
     };
     svl.missionsCompleted = params.missionSetProgress;
 
+    // Ideally this should be declared in one place and all the callers should refer to that.
+    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
     svl.LABEL_ICON_RADIUS = 17;
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
@@ -154,7 +155,6 @@ function Main (params) {
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
-        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel, svl.userModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
@@ -177,7 +177,7 @@ function Main (params) {
         }
 
         $("#navbar-retake-tutorial-btn").on('click', function () {
-            window.location.replace('/audit?retakeTutorial=true');
+            window.location.replace('/explore?retakeTutorial=true');
         });
 
         $('#survey-modal-container').on('show.bs.modal', function () {
@@ -238,6 +238,9 @@ function Main (params) {
             delay: { "show": 500, "hide": 100 },
             html: true
         });
+
+        // Clean up the URL in the address bar.
+        _updateURL();
     }
 
     function loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
@@ -284,9 +287,7 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
-
             // TODO It should pass UserModel instead of User (i.e., svl.user)
-
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
                 svl.map, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel, onboardingStates,
                 svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
@@ -303,13 +304,8 @@ function Main (params) {
                 neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
                 svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
                     svl.taskContainer, svl.labelContainer, svl.tracker);
-                svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                    svl.initialMissionInstruction.start(neighborhood);
-                });
-            } else {
-                svl.modalMission.setMissionMessage(mission, neighborhood);
+                svl.initialMissionInstruction.start(neighborhood);
             }
-            svl.modalMission.show();
         }
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
@@ -361,8 +357,15 @@ function Main (params) {
                 startOnboarding();
             } else {
                 _calculateAndSetTasksMissionsOffset();
-                var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
+
+                // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
+                var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
+                const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
+                    nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
+                    neighborhood: currentNeighborhood.getProperty('name')
+                }, svl);
 
                 startTheMission(mission, currentNeighborhood);
             }
@@ -376,6 +379,20 @@ function Main (params) {
         var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
 
         svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance + missProgress);
+    }
+
+    /**
+     * Cleans up URL in address bar by removing query params that aren't necessary, changing /audit to /explore. etc.
+     * @private
+     */
+    function _updateURL() {
+        var newURL = `${window.location.protocol}//${window.location.host}/explore`;
+        if (window.location.search.includes('retakeTutorial=true')) {
+            newURL += '?retakeTutorial=true';
+        }
+        if (newURL !== window.location.href) {
+            window.history.pushState({ },'', newURL);
+        }
     }
 
     /**
@@ -491,15 +508,6 @@ function Main (params) {
         svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
         svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
-        svl.ui.modalMission = {};
-        svl.ui.modalMission.holder = $("#modal-mission-holder");
-        svl.ui.modalMission.foreground = $("#modal-mission-foreground");
-        svl.ui.modalMission.background = $("#modal-mission-background");
-        svl.ui.modalMission.missionTitle = $("#modal-mission-header");
-        svl.ui.modalMission.rewardText = $("#modal-mission-reward-text");
-        svl.ui.modalMission.instruction = $("#modal-mission-instruction");
-        svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
-
         // Modal Mission Complete.
         svl.ui.modalMissionComplete = {};
         svl.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
@@ -581,7 +589,7 @@ function Main (params) {
         svl.ui.areaComplete.body = $("#area-completion-body");
     }
 
-    // Gets all the text on the audit page for the correct language.
+    // Gets all the text on the explore page for the correct language.
     i18next.use(i18nextXHRBackend);
     i18next.init({
         backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },

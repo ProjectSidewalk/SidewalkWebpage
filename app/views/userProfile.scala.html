@@ -42,9 +42,9 @@
         }
 
         <div class="row" id="map-row">
-            <div class="col-lg-12" id="mapcolumn">
-                <div id="map-holder">
-                    <div id="map"></div>
+            <div class="col-lg-12" id="map-column">
+                <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
+                    <div id="user-dashboard-choropleth" class="choropleth"></div>
                     <div id="map-label-legend">
                         <table class="table legend">
                             <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td><td id="td-number-of-curb-ramps"></td></tr>
@@ -54,7 +54,7 @@
                             <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
                             <tr><td id="map-legend-crosswalk"></td><td>@Messages("crosswalk")</td><td id="td-number-of-crosswalks"></td></tr>
                             <tr><td id="map-legend-signal"></td><td>@Messages("signal")</td><td id="td-number-of-signals"></td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>@Messages("dashboard.audited.street")</td></tr>
+                            <tr><td id="map-legend-audited-street"></td><td>@Messages("audited.street")</td></tr>
                         </table>
                     </div>
                 </div>
@@ -180,6 +180,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
             // Gets all translations before loading the choropleth.

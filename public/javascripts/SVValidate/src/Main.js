@@ -15,13 +15,13 @@ function Main (param) {
     function _initUI() {
         // Maps label types to label names.
         svv.labelTypeNames = {
-            1: i18next.t('curb-ramp-caps'),
-            2: i18next.t('missing-curb-ramp-caps'),
-            3: i18next.t('obstacle-caps'),
-            4: i18next.t('surface-problem-caps'),
-            7: i18next.t('no-sidewalk-caps'),
-            9: i18next.t('crosswalk-caps'),
-            10: i18next.t('signal-caps')
+            1: i18next.t('common:curb-ramp'),
+            2: i18next.t('common:no-curb-ramp'),
+            3: i18next.t('common:obstacle'),
+            4: i18next.t('common:surface-problem'),
+            7: i18next.t('common:no-sidewalk'),
+            9: i18next.t('common:crosswalk'),
+            10: i18next.t('common:signal')
         };
 
         svv.labelTypes = {
@@ -202,7 +202,7 @@ function Main (param) {
 
         const labelType = param.labelList[0].getAuditProperty('labelType');
 
-        const missionStartTutorial = new MissionStartTutorial('validate', labelType, param.mission.labels_validated, svv);
+        const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv);
     }
 
     // Gets all the text on the validation page for the correct language.

@@ -32,7 +32,7 @@ function Admin(_, $) {
         polygonFillMode: 'completionRate',
         zoomControl: true,
         scrollWheelZoom: false,
-        mapName: 'admin-choropleth',
+        mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v10'
     };
     var mapTabMapParams = {
@@ -57,7 +57,7 @@ function Admin(_, $) {
         polygonFillMode: 'singleColor',
         scrollWheelZoom: true,
         zoomControl: true,
-        mapName: 'label-map',
+        mapName: 'admin-labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
     var streetParams = {
@@ -1025,7 +1025,7 @@ function Admin(_, $) {
                 });
             });
 
-            // Creates chart showing how many audit page visits there are, how many people click via choropleth, how
+            // Creates chart showing how many explore page visits there are, how many people click via choropleth, how
             // many click "start exploring" on navbar, and how many click "start exploring" on the landing page itself.
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Index", function(clickStartExploringMainIndexEvents){
@@ -1053,7 +1053,7 @@ function Admin(_, $) {
                     return event.timestamp > 1500584520000;
                 }).length;
 
-                // Fill in values in "How users access Audit Page from Landing Page:" table
+                // Fill in values in "How users access Explore Page from Landing Page:" table
                 $("#audit-access-table-start-main").append(
                     '<td style="text-align: right;">'+
                         numClickStartMappingMainIndex+

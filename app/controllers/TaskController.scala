@@ -31,7 +31,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 
 /**
- * Holds the HTTP requests associated with tasks submitted through the audit page.
+ * Holds the HTTP requests associated with tasks submitted through the explore page.
  *
  * @param env The Silhouette environment.
  */
@@ -211,10 +211,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   * Helper function that updates database with all data submitted through the audit page.
+   * Helper function that updates database with all data submitted through the explore page.
    */
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     var newLabels: ListBuffer[(Int, Timestamp)] = ListBuffer()
+    var refreshPage: Boolean = false // If we notice something out of whack, tell the front-end to refresh the page.
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption: Option[User] = identity
       val streetEdgeId: Int = data.auditTask.streetEdgeId
@@ -276,7 +277,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       for (label: LabelSubmission <- data.labels) {
         val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
 
-        val existingLabelId: Option[Int] = if (label.temporaryLabelId.isDefined && userOption.isDefined) {
+        val existingLabel: Option[Label] = if (label.temporaryLabelId.isDefined && userOption.isDefined) {
           LabelTable.find(label.temporaryLabelId.get, userOption.get.userId)
         } else {
           Logger.error("Received label with Null temporary_label_id or user_id")
@@ -284,19 +285,26 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         // If the label already exists, update deleted, severity, temporary, description, & tags, o/w insert new label.
-        val labelId: Int = existingLabelId match {
-          case Some(labId) =>
-            LabelTable.update(labId, label.deleted, label.severity, label.temporary, label.description)
+        val labelId: Int = existingLabel match {
+          case Some(existingLab) =>
+            // If there is already a label with this temp id but a mismatched label type, the user probably has the
+            // Explore page open in multiple browsers. Don't add the label, and tell the front-end to refresh the page.
+            if (existingLab.labelTypeId != labelTypeId) {
+              refreshPage = true
+              -1
+            } else {
+              LabelTable.update(existingLab.labelId, label.deleted, label.severity, label.temporary, label.description)
 
-            // Remove any tag entries from database that were removed on the front-end and add any new ones.
-            val labelTagIds: Set[Int] = label.tagIds.toSet
-            val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labId).toSet
-            val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
-            val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
-            tagsToRemove.map { tagId => LabelTagTable.delete(labId, tagId) }
-            tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labId, tagId)) }
+              // Remove any tag entries from database that were removed on the front-end and add any new ones.
+              val labelTagIds: Set[Int] = label.tagIds.toSet
+              val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(existingLab.labelId).toSet
+              val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
+              val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
+              tagsToRemove.map { tagId => LabelTagTable.delete(existingLab.labelId, tagId) }
+              tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, existingLab.labelId, tagId)) }
 
-            labId
+              existingLab.labelId
+            }
           case None =>
             // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
             val timeCreated: Timestamp = label.timeCreated match {
@@ -327,6 +335,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
             LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
               point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
+
+            // Add any added tags to the label_tag table.
+            val labelTagIds: Set[Int] = label.tagIds.toSet
+            labelTagIds.map { tagId => LabelTagTable.save(LabelTag(0, newLabelId, tagId)) }
 
             newLabels += ((newLabelId, timeCreated))
             newLabelId
@@ -404,7 +416,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       "street_edge_id" -> returnValues.head.streetEdgeId,
       "mission" -> returnValues.head.mission.map(_.toJSON),
       "switch_to_validation" -> returnValues.head.switchToValidation,
-      "updated_streets" -> returnValues.head.updatedStreets.map(_.toJSON)
+      "updated_streets" -> returnValues.head.updatedStreets.map(_.toJSON),
+      "refresh_page" -> refreshPage
     )))
   }
 }

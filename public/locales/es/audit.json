@@ -11,13 +11,6 @@
     "surface-problems": "problemas en superficie",
     "no-sidewalks": "no hay banquetas",
     "others": "otros",
-    "curb-ramp-description": "Rampa peatonal",
-    "no-curb-ramp-description": "Rampa peatonal ausente",
-    "obstacle-description": "Obstáculo en la banqueta",
-    "surface-problem-description": "Problema en superficie",
-    "other-description": "Otro",
-    "occlusion-description": "No puedo ver la banqueta",
-    "no-sidewalk-description": "No hay banqueta",
     "tutorial": {
         "mission-message": "¡Completar el tutorial introductorio!",
         "select-label-type-1": "En esta imagen de Google Street View, hemos dibujado una flecha hacia una rampa peatonal. Vamos a etiquetarla. Da clic en el <span class=\"bold\">botón parpadeante \"Rampa peatonal\"</span> ubicado en la parte superior.",
@@ -71,15 +64,6 @@
             "rate-severity-4": "Ahora <span class=\"bold\">califica la calidad de las rampas peatonales</span>. Usa tu mejor criterio. También puedes escribir notas en el “Cuadro de descripciones”.",
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Haz clic en el botón de \"Rampa peatonal\"</span> para etiquetar la otra rampa."
         }
-    },
-    "mission-start": {
-        "title": "Explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Primera misión: ",
-        "title-return": "Vuelve a tu misión",
-        "title-continue": "¡Continúa explorando __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> para encontrar elementos de accesibilidad urbana!",
-        "body-first": "¡Tu <span class=\"bold\">primera misión</span> es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "body": "¡Tu misión es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "button-resume": "¡Reanuda tu misión!"
     },
     "mission-complete": {
         "distance-type-display-string": "kilómetros",
@@ -182,7 +166,11 @@
                 "APS": "<tag-underline>A</tag-underline>PS",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús",
-                "height-difference": "<tag-underline>d</tag-underline>esnivel"
+                "height-difference": "<tag-underline>d</tag-underline>esnivel",
+                "painted-sidewalk": "acera pintada (<tag-underline>h</tag-underline>)",
+                "pedestrian-arcade": "arcada peatonal (<tag-underline>q</tag-underline>)",
+                "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico",
+                "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad"
             },
             "tooltip": {
                 "passable": "Transitable",
@@ -235,5 +223,13 @@
         "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
         "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
         "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "EXPLORAR MISIÓN",
+        "mst-instruction-2": "Etiquete estas funciones de accesibilidad en {{neighborhood}}",
+        "example-type-label-incorrect": "ERROR COMÚN",
+        "label-on-image-title-incorrect": "Error común",
+        "label-on-image-description-correct": "Coloque una etiqueta",
+        "label-on-image-description-incorrect": "<b>No</b> coloque la etiqueta"
     }
 }

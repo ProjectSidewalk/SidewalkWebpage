@@ -150,8 +150,50 @@ input[type="radio"] {
     padding: 5px;
 }
 
+/* Survey */
+#survey-form {
+    padding-right:20px;
+}
+#survey-modal-container ol> li {
+    font-weight: bold;
+    font-size: 16px;
+    content: counter(item);
+}
+#survey-modal-container ol> li h4 {
+    font-size: 16px;
+    font-weight: bold;
+}
+.survey-question {
+    margin-bottom: 10px;
+}
+.survey-textarea {
+    width: 100%;
+    height: 64px;
+    font-weight: normal;
+    font-size: 14px;
+}
+.survey-option-holder {
+    list-style:none;
+    width:100%;
+    margin:0;
+    padding:0 0 10px;
+    display:block;
+}
+.survey-option {
+    display:inline-block;
+    width:19%;
+    text-align:center;
+    vertical-align:top;
+    font-weight:normal;
+    font-size: 14px;
+}
+.survey-option label {
+    width:100%;
+    font-weight:normal;
+}
+
 /**
- * Add this class to any text on the audit page that you want to be selectable. In audit.scala.html we set onselectstart
+ * Add this class to any text on the explore page that should be selectable. In explore.scala.html we set onselectstart
  * to return false over the whole document, except elements where itself or a parent has this class. This was done to
  * prevent an issue where dragging on the GSV pane would select a bunch of stuff in the background; issue link below.
  * https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121

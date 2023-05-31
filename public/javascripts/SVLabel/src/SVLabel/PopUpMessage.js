@@ -82,9 +82,9 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         $(document).keyup(function (e){
             e = e || window.event; //Handle IE
             //enter
-            if (e.keyCode == 13 && !svl.modalMission._status.isOpen) {
+            if (e.keyCode === 13) {
                 tracker.push('KeyboardShortcut_ClickOk');
-                $("#pop-up-message-ok-button").trigger("click", {lowLevelLogging: false});
+                $("#pop-up-message-ok-button").trigger('click', { lowLevelLogging: false });
             }
         });
     };

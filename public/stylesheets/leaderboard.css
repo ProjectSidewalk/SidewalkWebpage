@@ -1,0 +1,56 @@
+.leaderboard-header {
+    font-weight: bold;
+    font-family: Raleway-regular, sans-serif;
+}
+
+.weekly-header {
+    margin-bottom: 35px;
+}
+
+.leaderboard-detail {
+    font-family: Raleway-regular, sans-serif;
+}
+
+.accuracy-cell {
+    position: relative;
+    text-decoration:underline;
+    text-decoration-style: dotted;
+}
+
+.accuracy-cell:hover span.accuracy-tooltip {
+    display:block;
+}
+
+.leaderboard-table-font {
+    font-size: 20px;
+}
+
+.leaderboard-table-header {
+    background-color: rgba(251, 215, 139, 1);
+    font-weight: bold;
+}
+
+.leaderboard-table {
+    padding-right: 30px;
+    min-width: 650px;
+}
+
+.leaderboard-table-striped>tbody>tr:nth-child(even)>td,
+.leaderboard-table-striped>tbody>tr:nth-child(even)>th {
+    background-color: #fce6b5;
+    color: black;
+}
+
+.leaderboard-container {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: center;
+    text-align: center;
+    align-items: top;
+    width: 100%;
+}
+
+#leaderboard-encouragement {
+    text-align: center;
+}

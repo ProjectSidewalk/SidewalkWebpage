@@ -388,9 +388,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         tracker.push('Onboarding_End');
         missionContainer.getCurrentMission().setProperty("isComplete", true);
 
-        // Redirects to the audit page and submits all data through Form.js.
+        // Redirects to the explore page and submits all data through Form.js.
         svl.form.submitData(false);
-        window.location.replace('/audit');
+        window.location.replace('/explore');
     }
 
     function _onboardingStateAnnotationExists(state) {
@@ -647,6 +647,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function _visitInstruction(state, listener) {
         if (state === getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
+            // Remove listeners that alter instruction z-index, and make sure z-index is higher than mini-map.
+            svl.ui.contextMenu.holder.off('mouseover mouseout');
+            uiOnboarding.messageHolder.css('z-index', 3);
         }
         blinkInterface(state);
 
@@ -786,6 +789,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             var panoData = svl.panoramaContainer.getPanorama(state.panoId).data();
             var svImgWidth = panoData.tiles.worldSize.width;
             var svImgHeight = panoData.tiles.worldSize.height;
+            var cameraHeading = panoData.tiles.originHeading;
 
             while (i < properties.length && !labelAppliedCorrectly) {
                 var imageX = properties[i].imageX;
@@ -797,7 +801,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
                 var panoXY = util.panomarker.canvasXYToPanoXY(
-                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.panorama.getPhotographerPov().heading, svImgWidth, svImgHeight
+                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, cameraHeading, svImgWidth, svImgHeight
                 );
                 panoXY.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
                 panoXY.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;

@@ -1,4 +1,7 @@
 measurement.system = metric
+label.type = Tipo de etiqueta
+legend = Leyenda
+severity = Gravedad
 curb.ramp = Rampa peatonal
 curb.ramps = Rampas peatonales
 missing.ramp = Rampa peatonal ausente
@@ -10,7 +13,15 @@ surface.problems = Problemas en superficie
 no.sidewalk = No hay banqueta
 crosswalk = Cruce peatonal
 signal = Semáforo peatonal
+occlusion = No puedo ver la banqueta
 other = Otro
+validated.correct = Validado correcto
+validated.incorrect = Validado incorrecto
+unvalidated = No Validado
+audited.street = Calle auditada
+unaudited.street = Calle no auditada
+not.sure = No Estoy de seguro
+not.applicable.abbr = N/A
 validations = Validaciones
 labels = etiquetas
 label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
@@ -34,7 +45,7 @@ dont.show.again = No mostrar de nuevo
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
-feedback.submitted = Comentarios Enviados
+feedback.submitted = Comentarios enviados
 
 navbar.explore = Comienza a explorar
 navbar.validate = Comienza a validar
@@ -117,6 +128,9 @@ audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más 
 audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
+audit.ribbon.curb.ramp.labels = ETIQUETAS DE RAMPA PEATONAL
+audit.ribbon.sidewalk.labels = ETIQUETAS DE BANQUETA
+audit.ribbon.other.labels = OTRAS ETIQUETAS DE ACCESIBILIDAD
 audit.ribbon.explore = <u>E</u>xplorar
 audit.ribbon.curb.ramp = Rampa peatonal (<u>C</u>)
 audit.ribbon.missing.ramp = Rampa peatonal ausente (<u>M</u>)
@@ -209,7 +223,6 @@ validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
 validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
-validate.mission.complete.not.sure = No Estoy de seguro
 validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
@@ -275,10 +288,8 @@ dashboard.edit.org = Editar
 dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> con el nombre y la descripción de su organización.
 dashboard.orgs.unavailable = ¡No hay organizaciones disponibles!
 dashboard.leave.org = Salir la Organización
-dashboard.audited.street = Calle auditada
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
-dashboard.label.type = Tipo de etiqueta
 dashboard.number.of.labels = Número de etiquetas
 dashboard.missions = Misiones
 dashboard.your.missions = Tus misiones
@@ -321,16 +332,14 @@ leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
-leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/audit"><u>¡Empieza a explorar!</u></a>
+leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/explore"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
 leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard"><u>Únase a una organización</u></a> y trabaje en equipo para mapear y evaluar las aceras!
 
 gallery = Galería
 gallery.show = Mostrar
 gallery.filter.by = Filtrar por
-gallery.severity = Calificación
 gallery.tags = Etiquetas
-gallery.all = Todos
-gallery.occlusion = No puedo ver la banqueta
-gallery.labels.not.found = No hay resultados. ¡<a href="/audit">Comienza a explorar</a> para aportar más datos!
+gallery.all = Todos los tipos de etiquetas
+gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados

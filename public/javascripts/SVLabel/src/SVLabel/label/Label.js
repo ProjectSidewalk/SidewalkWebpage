@@ -299,7 +299,7 @@ function Label(params) {
             severityImage = new Image(),
             severitySVGElement,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
-            msg = i18next.t(util.camelToKebab(properties.labelType) + '-description'),
+            msg = i18next.t('common:' + util.camelToKebab(properties.labelType)),
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
 

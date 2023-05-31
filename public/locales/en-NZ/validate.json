@@ -1,0 +1,90 @@
+{
+  "top-ui": {
+    "title": {
+      "curb-ramp": "Is this a <b>Drop Kerb</b>?",
+      "no-curb-ramp": "Is this a <b>Missing Drop Kerb</b>?",
+      "no-sidewalk": "Should there be a <b>No Footpath</b> label here?",
+      "crosswalk": "Is this a <b>Pedestrian Crossing</b>?"
+    }
+  },
+  "right-ui": {
+    "correct": {
+      "curb-ramp": {
+        "title": "<strong>Correct</strong> Drop Kerb",
+        "example-1-2-3-4": "This label is correctly placed at the bottom of a drop kerb"
+      },
+      "no-curb-ramp": {
+        "title": "<strong>Correct</strong> Missing Drop Kerb",
+        "example-1-2-3": "This intersection is lacking a drop kerb",
+        "example-4": "This pedestrian crossing indicates there should be a drop kerb here"
+      },
+      "obstacle": {
+        "example-1": "These construction cones are blocking a pedestrian crossing",
+        "example-2": "This tree blocks the entire footpath",
+        "example-3": "This pole blocks the footpath and a drop kerb entrance",
+        "example-4": "This fire hydrant blocks the footpath"
+      },
+      "surface-problem": {
+        "example-1": "This footpath is very uneven",
+        "example-2": "Brick footpaths are bumpy and can be difficult to pass",
+        "example-3": "This footpath is cracked",
+        "example-4": "There is a lot of grass growing between the footpath cracks"
+      },
+      "no-sidewalk": {
+        "title": "<strong>Correct</strong> No Footpath",
+        "example-1-2": "This is an abruptly ending footpath",
+        "example-3": "This street has no footpath",
+        "example-4": "This intersection has no footpath"
+      },
+      "crosswalk": {
+        "title": "<strong>Correct</strong> Pedestrian Crossing",
+        "example-1-2-3": "This label is correctly placed on a painted pedestrian crossing",
+        "example-4": "This label is correctly placed on a pedestrian crossing with fading paint"
+      }
+    },
+    "incorrect": {
+      "curb-ramp": {
+        "title": "<strong>Incorrect</strong> Drop Kerb",
+        "example-1-2": "Footpath to driveway transitions are not drop kerbs",
+        "example-3-4": "Driveways are not drop kerbs"
+      },
+      "no-curb-ramp": {
+        "title": "<strong>Incorrect</strong> Missing Drop Kerb",
+        "example-1": "Residential paths should not be labeled as a missing drop kerb"
+      },
+      "obstacle": {
+        "example-1": "There is enough space to comfortably manoeuvre around this pole",
+        "example-2": "This pole located between, but not on these drop kerbs"
+      },
+      "surface-problem": {
+        "example-1": "Surface problems on drop kerbs should be marked with a drop kerb label with a higher severity",
+        "example-4": "Normal footpath tiles are not surface problems"
+      },
+      "no-sidewalk": {
+        "title": "<strong>Incorrect</strong> No Footpath",
+        "example-1": "Narrow footpaths should not be labeled as no footpath",
+        "example-2": "Driveways should not be labeled as no footpath",
+        "example-3": "Traffic medians should not be labeled as no footpath",
+        "example-4": "Alleyways and side streets should not be labeled as no footpath"
+      },
+      "crosswalk": {
+        "title": "<strong>Incorrect</strong> Pedestrian Crossing",
+        "example-1": "Crossings with no visual indicator should not be labeled as pedestrian crossings",
+        "example-2": "Stop lines for cars should not be labeled as pedestrian crossings",
+        "example-3-4": "Speed bumps should not be labeled as pedestrian crossings"
+      }
+    }
+  },
+  "mission-complete": {
+    "body-1": "You just validated {{n}} Drop Kerb labels.",
+    "body-2": "You just validated {{n}} Missing Drop Kerb labels.",
+    "body-7": "You just validated {{n}} No Footpath labels.",
+    "body-9": "You just validated {{n}} Pedestrian Crossing labels."
+  },
+  "mobile": {
+    "info-title-curb-ramp": "What is a Drop Kerb?",
+    "info-title-no-curb-ramp": "What is a Missing Drop Kerb?",
+    "info-title-no-sidewalk": "What is a \"No Footpath\"",
+    "info-title-crosswalk": "What is a Pedestrian Crossing?"
+  }
+}

@@ -6,10 +6,18 @@ function ModalMissionComplete (uiModalMissionComplete, user) {
     let watch;
 
     function _handleButtonClick(event) {
-        // If they've done three missions and clicked the audit button, load the audit page.
+        // If they've done three missions and clicked the audit button, load the explore page.
         if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !isMobile()) {
-            window.location.replace('/audit');
+            window.location.replace('/explore');
         } else {
+
+            // If there is a new validate mission available, we should show the mission screens.
+            const newMission = svv.missionContainer.getCurrentMission();
+            if (newMission && newMission.getProperty('missionType') === 'validation') {
+                const labelTypeID = newMission.getProperty('labelTypeId');
+                const missionStartTutorial = new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], {nLabels: newMission.getProperty('labelsValidated')}, svv);
+            }
+
             self.hide();
         }
     }

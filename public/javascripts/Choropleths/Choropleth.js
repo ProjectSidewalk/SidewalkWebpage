@@ -13,7 +13,7 @@
  * @param params.webpageActivity string showing how to represent the choropleth in logging.
  * @param params.defaultZoomIncrease {number} amount to increase default zoom, increments of 0.5.
  * @param params.zoomSlider {boolean} whether to include zoom slider.
- * @param params.clickData {boolean} whether clicks should be logged when it takes you to the audit page.
+ * @param params.clickData {boolean} whether clicks should be logged when it takes you to the explore page.
  * @param params.scrollWheelZoom {boolean} whether to allow zooming with the scroll wheel.
  * @param params.popupType {string} one of 'none', 'completionRate', or 'issueCounts'.
  * @param params.resetButton {boolean} whether to include a 'reset view' button.
@@ -114,7 +114,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
                     let regionId = feature.properties.region_id;
                     let regionName = feature.properties.region_name;
                     let userCompleted = feature.properties.user_completed;
-                    let url = '/audit/region/' + regionId;
+                    let url = '/explore/region/' + regionId;
                     let compRate = 100.0 * rates[ratesIndex].rate;
                     let compRateRounded = Math.floor(100.0 * rates[ratesIndex].rate);
                     let distanceLeft = rates[ratesIndex].total_distance_m - rates[ratesIndex].completed_distance_m;
@@ -198,7 +198,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
             // Logs when a region is selected from the choropleth and 'Click here' is clicked
             // Logs are of the form 'Click_module=Choropleth_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
             // Log is stored in WebpageActivityTable
-            $('#choropleth').on('click', '.region-selection-trigger', function () {
+            $('.choropleth').on('click', '.region-selection-trigger', function () {
                 let regionId = parseInt($(this).attr('regionId'));
                 let ratesEl = rates.find(function(x) { return regionId === x.region_id; });
                 let compRate = Math.round(100.0 * ratesEl.rate);

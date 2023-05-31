@@ -1,4 +1,7 @@
 measurement.system = 公制
+label.type = 標記類型
+legend = 传奇
+severity = 严重程度
 curb.ramp = 路緣斜坡
 curb.ramps = 路緣斜坡
 missing.ramp = 無路緣斜坡
@@ -10,7 +13,15 @@ surface.problems = 鋪面問題
 no.sidewalk = 無人行道
 crosswalk = 行人穿越道
 signal = 行人號誌
+occlusion = 看不到人行道
 other = 其他
+validated.correct = 验证正确
+validated.incorrect = 验证不正确
+unvalidated = 未验证
+audited.street = 审计街
+unaudited.street = 未经审计的街道
+not.sure = 不確定
+not.applicable.abbr = 不適用
 validations = 檢核
 labels = 標記
 label.icon.alt = 有大目的地記號的極簡風格地圖圖標
@@ -27,13 +38,13 @@ no.caps = 否
 thanks = 謝謝！
 username = 使用者名稱
 loading = 讀取中...
-loading.encouragement = 讓我們來完成挑戰吧!
+loading.encouragement = 讓我們來吧!
 test.server.warning.message = <strong>警告！</strong> 您目前在測試伺服器！您的資料將不會被存取！若您希望資料被存取，請前往正式網頁。
 dont.show.again = 不再顯示
 
 press.key = 點擊 "{0}" 鍵
 press.keys = 點擊 "{0}" 鍵
-feedback.title = 有任何想法或困惑嗎？或是找到bug了！？<br>請給我們回饋！
+feedback.title = 有任何想法或問題嗎？或是找到bug了！<br>任何回饋都很歡迎！
 feedback.submitted = 回饋已提交
 
 navbar.explore = 開始探索
@@ -42,52 +53,52 @@ navbar.howto = 如何標記
 navbar.results = 成果地圖
 navbar.data = 資料
 navbar.labelmap = 標記地圖
-navbar.help = 幫忙
-navbar.leaderboard = 領先榜
+navbar.help = 協助
+navbar.leaderboard = 排行榜
 navbar.retake.tutorial = 重做教學
 navbar.signin = 登入
 navbar.signout = 登出
-navbar.dashboard = 您的儀表板
+navbar.dashboard = 您的儀錶板
 navbar.admin = 系統人員
 navbar.city = 城市
 navbar.lang.aria = 語言選項
 navbar.lang.icon.alt = 語言圖標
 
-landing.create.path = 讓我們為大家創造路徑吧
+landing.create.path = 讓我們為大家創造好走的路吧！
 landing.also.in = 我們也在：
 landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的地圖松活動吧！</a>
-landing.how.you.help = 您如何協助
-landing.how.you.help.content = 通過三個簡單的步驟就可以探索城市並點出街道的無障礙問題—在您舒適的家中就可進行！
+landing.how.you.help = 您可以如何協助
+landing.how.you.help.content = 通過三個簡單的步驟就可以探索城市並找出街道的無障礙問題——在您舒適的家中就可進行！
 landing.how.you.help.explore = 探索
 landing.how.you.help.find = 找尋問題
-landing.how.you.help.assess = 評估嚴重程度
+landing.how.you.help.assess = 評估品質
 landing.video.title = Project Sidewalk是什麼？
 landing.video.watch = 請觀賞
 landing.choropleth.title = 選擇一個鄰里
-landing.choropleth.content = 當您點擊“開始探索”時，系統會自動為您分配一個鄰里，但您也可以直接點擊下方的區域來選擇一個鄰里！
-landing.choropleth.legend = 完成鄰里百分比
-landing.stats.title = 您的協助帶來改變
-landing.stats.content.unfinished.partial = 像您這樣的標記者已經完成了{0}公里的{1}, {2}—這相當於{3}%城市中的目標區域！
-landing.stats.content.unfinished.full = 像您這樣的標記者已經完成了{0}公里的{1}, {2}—這相當於{3}%的城市範圍!
-landing.stats.content.finished.partial = 我們完成了！像您這樣的標記者已經完成了{0}公里的目標區域於{2}{1}。 然而，還有任務還沒完成。越多使用者協助標記，資料的品質會更好。所以開始探索城市街道吧！
-landing.stats.content.finished.full = 我們做到了！像您這樣的標記者已經完成了{0}公里於{2}{1}。然而，我們還沒完成。越多使用者協助標記，資料的品質會更好。所以開始探索城市街道吧！
-landing.stats.percent.partial = 目標區域已標記
+landing.choropleth.content = 當您點擊“開始探索”時，系統會自動為您分配一個鄰里，但您也可以直接點擊下方的區域來選擇一個鄰里直接探索！
+landing.choropleth.legend = 鄰里完成度
+landing.stats.title = 您的協助可以帶來改變
+landing.stats.content.unfinished.partial = 像您這樣的使用者共同完成了{1}, {2} {0}公里的標記—相當於{3}%的目標區域！
+landing.stats.content.unfinished.full = 像您這樣的使用者共同完成了{1}, {2} {0}公里的標記—相當於{3}%的城市範圍!
+landing.stats.content.finished.partial = 我們完成了！像您這樣的使用者共同完成了{2}{1}目標區域中{0}公里的標記。 然而，任務還沒完成。越多使用者協助標記，資料的品質會越好！所以讓我們繼續努力並邀請更多人來參與吧！
+landing.stats.content.finished.full = 我們做到了！像您這樣的使用者已經完成了{2}{1}{0}公里的標記。然而，我們還沒完成。越多使用者協助標記，資料的品質會更好！所以讓我們繼續努力並邀請更多人來參與吧！
+landing.stats.percent.partial = 已標記
 landing.stats.percent.full = {0}已標記
-landing.stats.distance = 公里涵蓋
-landing.stats.labels = 標記
-landing.stats.validations = 檢核
-landing.ml.title = 我們如何利用您的標記？
-landing.ml.content = 您的標記用於改進都市規劃、構建無障礙標示工具以及訓練機器學習演算法以自動尋找街道無障礙問題。
+landing.stats.distance = 公里
+landing.stats.labels = 個標記
+landing.stats.validations = 個檢核
+landing.ml.title = 我們如何使用您的標記？
+landing.ml.content = 您的標記用於改進都市規劃、建構無障礙標示工具以及訓練機器學習演算法以自動尋找街道無障礙問題。
 landing.ml.gif.machine.labels = 機器標記
-landing.ml.gif.you = 您
-landing.ml.gif.user.labels = 使用者標記
+landing.ml.gif.you = 使用者
+landing.ml.gif.user.labels = 標記
 landing.ml.gif.better.city.planning = 更佳的都市規劃
 landing.ml.gif.better.temporal.tracking = 更佳的時序追蹤
 landing.ml.gif.interactive.visualization.tools = 互動式視覺會工具
 landing.ml.gif.smarter.routing = 更聰明的路徑規劃
 landing.ml.gif.machine.learning = 機器學習
 landing.ml.gif.outcomes = 成果
-landing.collaborators.title = 協調者
+landing.collaborators.title = 執行及合作單位
 
 footer.about = 關於我們
 footer.terms = 使用條款
@@ -95,40 +106,43 @@ footer.help = 協助
 footer.guide = 標記指南
 footer.developer = 開發者
 footer.api = 人行道API
-footer.connect = 連結
+footer.connect = 相關連結
 footer.email = Email我們
 footer.funding = 我們由以下單位贊助
 footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> 以及 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
-footer.version = Version {0} | 最後更新： <span class = "timestamp date">{1}</span>
+footer.version = Version {0} | 最後更新時間： <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台中，</span> 您將以虛擬方式探索城市，透過查找和標記環境中的無障礙功能和問題完成任務，包括：
-audit.tutorial.welcome.2 = 我們會以簡短的互動式教學開始。
+audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將虛擬探索城市並透過標記環境中的無障礙設施及問題完成任務，項目包括：
+audit.tutorial.welcome.2 = 我們會以簡短、互動的教學開始。
 audit.tutorial.welcome.3 = 讓我們開始吧！
-audit.tutorial.welcome.4 = 已經完成教學了嗎？ 已經有帳戶了嗎？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">登入</a>或<a value="Skip" class="onboarding-transition-trigger">跳過教學。</a>
+audit.tutorial.welcome.4 = 已經完成教學了嗎？ 已有帳戶？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">跳過教學。</a>
 audit.tutorial.accessible = <span style="color:limegreen">可通行的</span>
 audit.tutorial.inaccessible = <span style="color:red">不可通行的</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者登上及離開人行道
-audit.tutorial.examples.missing.ramp = 輪椅使用者無法利用人行道如果<span style="color:#ff0066">沒有設置路緣斜坡</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">障礙物</span>輪椅使用者之路徑
-audit.tutorial.examples.surface.problem = 人行道有<span style="color:orange">鋪面問題</span>可能造成無法通行
-audit.tutorial.end.1 =很棒！您已學會如何利用介面！現在請<span class="bold">於Google街景中標記無障礙屬性</span>並請針對嚴重影響輪椅使用者之情形加以標記：
-audit.tutorial.end.2 = 再次感謝您<span class="bold">為這個世界創造出更容易行走的環境！</span>
-audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、路徑上的障礙物及鋪面問題。
+audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者上下人行道
+audit.tutorial.examples.missing.ramp = 如果<span style="color:#ff0066">沒有設置路緣斜坡</span>輪椅使用者無法使用人行道
+audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">障礙物</span>阻擋輪椅使用者通行之路徑
+audit.tutorial.examples.surface.problem = 人行道的<span style="color:orange">鋪面問題</span>可能造成無法通行
+audit.tutorial.end.1 =很棒！您已學會如何使用平台介面！請特別針對嚴重影響輪椅使用者之情形於<span class="bold">Google街景中注意並標記以下無障礙項目</span>：
+audit.tutorial.end.2 = 再次感謝您<span class="bold">為這個世界創造出讓所有使用者更容易通行的環境！</span>
+audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、障礙物及鋪面問題。
 
 audit.ribbon.find.and.label = 找尋並標記以下
-audit.ribbon.explore = <u>E</u>探索
-audit.ribbon.curb.ramp = <u>C</u>路緣斜坡
-audit.ribbon.missing.ramp = <u>M</u>無路緣斜坡
-audit.ribbon.obstacle = <u>O</u>路徑上的障礙物
-audit.ribbon.surface.problem = <u>S</u>鋪面問題
-audit.ribbon.no.sidewalk = <u>N</u>無人行道
-audit.ribbon.crosswalk = <u>w</u>行人穿越道
-audit.ribbon.signal = <u>P</u>行人號誌
+audit.ribbon.curb.ramp.labels = 路緣坡道標籤
+audit.ribbon.sidewalk.labels = 人行道標籤
+audit.ribbon.other.labels = 其他無障礙標籤
+audit.ribbon.explore = 探索<u>E</u>
+audit.ribbon.curb.ramp = 路緣斜坡<u>C</u>
+audit.ribbon.missing.ramp = 無路緣斜坡<u>M</u>
+audit.ribbon.obstacle = 障礙物<u>O</u>
+audit.ribbon.surface.problem = 鋪面問題<u>S</u>
+audit.ribbon.no.sidewalk = 無人行道<u>N</u>
+audit.ribbon.crosswalk = 行人穿越道<u>W</u>
+audit.ribbon.signal = 行人號誌<u>P</u>
 audit.ribbon.other = 其他
 audit.ribbon.occlusion = 看不到人行道 (<u>B</u>)
 
-audit.left.ui.zoom.in = <u>Z</u>放大
+audit.left.ui.zoom.in = 放大<u>Z</u>
 audit.left.ui.zoom.out = 縮小
 audit.left.ui.sound = 音效
 audit.left.ui.feedback = 回饋
@@ -136,7 +150,7 @@ audit.left.ui.stuck = 難以抉擇
 audit.left.ui.jump = 跳過
 audit.left.ui.jump.title = 跳到另一個地點，因為：
 audit.left.ui.jump.button.explore = 我想探索其他的鄰里！
-audit.left.ui.jump.button.unavailable = 我無法前往您要我前往的方向。
+audit.left.ui.jump.button.unavailable = 我無法前往您要我前往的方向...
 audit.left.ui.jump.explore.title = 前往新的地點或鄰里嗎？
 audit.left.ui.jump.explore.button.same.neighborhood = 前往此鄰里的另一地點
 audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
@@ -149,13 +163,13 @@ audit.right.ui.current.mission = 目前任務
 audit.center.ui.passable = 可通過的
 audit.center.ui.not.passable = 不可通過的
 audit.center.ui.add.tags = 新增標籤：
-audit.center.ui.temporary = 暫時的 (例如：施工)
+audit.center.ui.temporary = 暫時的 (例如：施工、違停車輛)
 
 audit.mission.complete.labels.title = 任務標記
-audit.mission.complete.progress.mission.you = 您於此任務的探索
-audit.mission.complete.progress.neighborhood.others = 其他標記者於此鄰里的探索
-audit.mission.complete.legend.this.mission = 此任務
-audit.mission.complete.legend.previous.missions = 前一任務
+audit.mission.complete.progress.mission.you = 您於此任務已探索
+audit.mission.complete.progress.neighborhood.others = 其他標記者於此鄰里已探索
+audit.mission.complete.legend.this.mission = 此次任務
+audit.mission.complete.legend.previous.missions = 過往執行任務
 
 audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷
 audit.survey.enjoyment.question = 您對使用Project Sidewalk平台的滿意度？
@@ -193,7 +207,7 @@ audit.help.obstacle.3 = 植栽阻礙了通行路徑，輪椅使用者難以使�
 audit.help.obstacle.5 = 樹木完全擋住了路徑，輪椅使用者無法通行。
 audit.help.surface.problem.1 = 部分損壞的人行道。由於人行道受損部分旁邊有足夠的空間，輪椅使用者仍可通行。
 audit.help.surface.problem.3 = 輪椅使用者難以在磚石舖面人行道和行人穿越道上移動。
-audit.help.surface.problem.5 = 由於植物過度生長，輪椅使用者無法通過嚴重影響的人行道。
+audit.help.surface.problem.5 = 由於植物過度生長，輪椅使用者無法通過人行道。
 
 validate.top.ui.zoom.in = <u>Z</u>放大
 validate.top.ui.zoom.out = 縮小
@@ -202,15 +216,14 @@ validate.left.ui.feedback = 回饋
 validate.bottom.ui.agree = <u>A</u>同意
 validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定
-validate.bottom.ui.add.comment = 如果您不同意，請在此處輸入您的理由，貼標者可以在他們的儀表板中看到
+validate.bottom.ui.add.comment = 於此輸入說明...
 validate.right.ui.current.mission = 目前任務
 validate.right.ui.correct.examples = <strong>正確</strong> 例子
 validate.right.ui.incorrect.examples = <strong>錯誤</strong> 例子
 validate.mission.complete.category = 類別
 validate.mission.complete.agree = 同意
 validate.mission.complete.disagree = 不同意
-validate.mission.complete.not.sure = 不確定
-validate.mission.complete.your.overall.total = 您的總成績
+validate.mission.complete.your.overall.total = 總成績
 
 
 mobile.validate.leave.feedback = 請給予意見回饋
@@ -225,7 +238,7 @@ authenticate.email = 電子郵件地址
 authenticate.password = 密碼
 authenticate.submit = 送出
 authenticate.new = 您是新使用者嗎？ <a href="#" id="form-open-sign-up">請註冊！</a>
-authenticate.non.member = 還不是會員嗎？ <a href="{0}">來註冊吧</a>
+authenticate.non.member = 還不是會員嗎？ <a href="{0}">請註冊</a>
 authenticate.confirm.password = 確認密碼
 authenticate.service.hours.title = 您是否有計畫將您於Project Sidewalk所做的工作計入社區/志工服務時間？
 authenticate.terms = 您同意我們的<a target="_blank" href="/terms">使用條款和隱私政策</a>
@@ -269,17 +282,15 @@ results.reset.view = 重設視角
 results.problems.per.mile = 每英里人行道問題
 results.legend.high = 高
 results.legend.low = 低
-results.legend.body = 灰色鄰里缺乏足夠的數據來評估人行道問題。點擊任何鄰里以開始標記。結果為初步成果呈現，相關使用者標記尚未完成檢核。 我們正在加強相關數據蒐整。 請持續關注！
+results.legend.body = 鄰里顯示灰色表示缺乏足夠的數據協助評估人行道問題，請點擊任何鄰里協助標記！成果地圖為初步的呈現，顯示尚未完成檢核之使用者標記。我們正在加強相關數據呈現，請持續關注！
 
 dashboard.no.org = 無組織
 dashboard.edit.org = 編輯
 dashboard.edit.info = 若您找無您的組織，請email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> 並請提供您的組織名稱及簡介。
 dashboard.orgs.unavailable = 無適用之組織！
 dashboard.leave.org = 退出組織
-dashboard.audited.street = 檢視過的街道
 dashboard.total.distance.explored = 探索距離
 dashboard.number.completed.missions = 完成任務的數量
-dashboard.label.type = 標記類型
 dashboard.number.of.labels = 標記數量
 dashboard.missions = 任務
 dashboard.your.missions = 您的任務
@@ -287,7 +298,7 @@ dashboard.distance = 距離
 dashboard.labels = 標記
 dashboard.mission.icon.alt = 拿著旗幟的輪椅使用者
 dashboard.validation.icon.alt = 在鉛筆旁邊的清單
-dashboard.accuracy.icon.tooltip = 您的標記準確性。 若顯示N/A表示您的標記尚未獲得其他用戶足夠的檢核。
+dashboard.accuracy.icon.tooltip = 您的標記精準度。 若顯示N/A表示您的標記尚未獲得其他用戶足夠的檢核。
 dashboard.achievements = 成就
 dashboard.first = 第一
 dashboard.second = 第二
@@ -315,24 +326,22 @@ leaderboard.overall.title = 總體排行榜
 leaderboard.weekly.title = 單周排行榜
 leaderboard.inter.org.title = 團隊排行榜
 leaderboard.org.title = {0} 排行榜
-leaderboard.overall.detail = 上榜者是依據標記、距離及準確性計算的
+leaderboard.overall.detail = 上榜者是依據標記、距離及精準度計算
 leaderboard.org.detail = 前10總體上榜者於 {0}
 leaderboard.header.team = 團隊
 leaderboard.header.labels = 標記
 leaderboard.header.missions = 任務
 leaderboard.header.distance = 距離
-leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才會顯示準確性
+leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才會顯示精準度
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
-leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/audit"><u>開始探索地圖吧！</u></a>
-leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>請註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一个组织</u></a>并作为一个团队一起工作来绘制和评估人行道!
+leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
+leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
 
-gallery = 藝廊
-gallery.show = 展示
+gallery = 標記彙整
+gallery.show = 顯示項目
 gallery.filter.by = 篩選
-gallery.severity = 嚴重程度
 gallery.tags = 標籤
-gallery.all = 全部
-gallery.occlusion = 看不到人行道
-gallery.labels.not.found = 無相符資料。 <a href="/audit">開始探索</a>以建立更多的資料！
+gallery.all = 所有标签类型
+gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以建立更多的資料！
 gallery.cards = 标签根据选定的过滤器随机排序

@@ -38,6 +38,7 @@
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/main.css")'>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/homepage.css")'>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/isMobile.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/countUp.js")'></script>
@@ -84,13 +85,13 @@
             <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
         </head>
     }
-    @if(url.get == "/audit") {
+    @if(url.get == "/explore") {
         <script type="text/javascript">
             document.getElementsByTagName("body")[0].style.overflow = "hidden";
             document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
     }
-    @if(url.get == "/audit" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
+    @if(url.get == "/explore" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
         <!-- footer code found in app/views/footer.scala.html -->
         @footer()
     } else {
@@ -98,20 +99,20 @@
 
         <div class="container" id="footer-container">
             <div class="row" style="width: 900px; position:relative; left:80px;">
-                <div class="col-sm-4 footerlink">
-                    <span class="footerheader">PROJECT SIDEWALK</span><br/>
+                <div class="col-sm-4 footer-link">
+                    <span class="footer-header">PROJECT SIDEWALK</span><br/>
                     <!-- Back to top<br>-->
                     <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">@Messages("footer.about")</a> <br/>
                     <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">@Messages("footer.terms")</a> <br/>
                     <a href='@routes.ApplicationController.help' id="sidewalk-help-link">@Messages("footer.help")</a> <br/>
                     <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">@Messages("footer.guide")</a> <br/>
                 </div>
-                <div class="col-sm-4 footerlink">
-                    <span class="footerheader">@Messages("footer.developer")</span><br/>
+                <div class="col-sm-4 footer-link">
+                    <span class="footer-header">@Messages("footer.developer")</span><br/>
                     <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a><br/>
                 </div>
-                <div class="col-sm-4 footerlink">
-                    <span class="footerheader">@Messages("footer.connect")</span><br/>
+                <div class="col-sm-4 footer-link">
+                    <span class="footer-header">@Messages("footer.connect")</span><br/>
                     <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
                     <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
                     <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
@@ -127,7 +128,7 @@
                     <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
                         <img src="@routes.Assets.at("assets/nsf.png")">
                     </a>
-                    <div class="col-sm-2" id="awardnum">@Html(Messages("footer.award"))</div>
+                    <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
                 </div>
                 <div class="col-sm-3">
                     <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
@@ -226,7 +227,7 @@
         });
 
         // Log clicks on links in the information footer to WebpageActivityTable
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/help|...>"
+        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
         $('#info-footer').on('click','a', function(e){
             var currentRoute = window.location.pathname;
             var link = e.currentTarget.id.split("-")[0];
@@ -251,6 +252,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/nl.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/zh-tw.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/en-nz.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");

@@ -1,4 +1,7 @@
 measurement.system = metric
+label.type = Etikettype
+legend = Legende
+severity = Ernst
 curb.ramp = Trottoir oprit
 curb.ramps = Trottoir opritten
 missing.ramp = Ontbrekende trottoir oprit
@@ -10,7 +13,15 @@ surface.problems = Oppervlakte Problemen
 no.sidewalk = Geen Trottoir
 crosswalk = Oversteekplaats
 signal = Verkeerslicht
+occlusion = Ik kan geen trottoir zien
 other = Anders
+validated.correct = Gevalideerd juist
+validated.incorrect = Gevalideerd onjuist
+unvalidated = Niet gevalideerd
+audited.street = Gecontroleerde straat
+unaudited.street = Ongecontroleerde straat
+not.sure = Niet Zeker
+not.applicable.abbr = NVT
 validations = Validaties
 labels = labels
 label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
@@ -117,6 +128,9 @@ audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan ee
 audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
 
 audit.ribbon.find.and.label = Vind en label het volgende
+audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
+audit.ribbon.sidewalk.labels = TROTTOIR LABELS
+audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
 audit.ribbon.explore = Ontd<u>e</u>k
 audit.ribbon.curb.ramp = Trottoir Oprit (<u>C</u>)
 audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit
@@ -208,7 +222,6 @@ validate.right.ui.incorrect.examples = <strong>Incorrecte</strong> Voorbeelden
 validate.mission.complete.category = Categorie
 validate.mission.complete.agree = Eens
 validate.mission.complete.disagree = Oneens
-validate.mission.complete.not.sure = Niet Zeker
 validate.mission.complete.your.overall.total = Je Totaal
 
 
@@ -275,10 +288,8 @@ dashboard.edit.org = Bewerken
 dashboard.edit.info = Als je je organisatie niet ziet, stuur dan een e-mail naar <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw .edu</a> en vermeld de naam en beschrijving van je organisatie.
 dashboard.orgs.unavailable = Er zijn geen beschikbare organisaties!
 dashboard.leave.org = Organisatie verlaten
-dashboard.audited.street = Gecontroleerde straat
 dashboard.total.distance.explored = Totale afgelegde afstand
 dashboard.number.completed.missions = Aantal voltooide missies
-dashboard.label.type = Labeltype
 dashboard.number.of.labels = Aantal labels
 dashboard.missions = Missies
 dashboard.your.missions = Jouw missies
@@ -320,16 +331,14 @@ leaderboard.header.missions = Missies
 leaderboard.header.distance = Afstand
 leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten minste 10 van je labels zijn gevalideerd
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
-leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/audit"><u>Begin met verkennen!</u></a>
+leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Sluit je aan bij een organisatie</u></a> en werk samen als een team om trottoirs in kaart te brengen en te beoordelen!
 
 gallery = Galerij
 gallery.show = Tonen
 gallery.filter.by = Filteren op
-gallery.severity = Ernst
 gallery.tags = Tags
-gallery.all = Alles
-gallery.occlusion = Kan de stoep niet zien
-gallery.labels.not.found = Geen overeenkomsten. <a href="/audit">Begin met verkennen</a> om meer data bij te dragen!
+gallery.all = Alle labeltypen
+gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters

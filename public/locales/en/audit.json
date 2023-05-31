@@ -11,15 +11,6 @@
     "surface-problems": "surface problems",
     "no-sidewalks": "no sidewalks",
     "others": "others",
-    "curb-ramp-description": "Curb Ramp",
-    "no-curb-ramp-description": "Missing Curb Ramp",
-    "obstacle-description": "Obstacle in Path",
-    "surface-problem-description": "Surface Problem",
-    "other-description": "Other",
-    "occlusion-description": "Can't see the sidewalk",
-    "no-sidewalk-description": "No Sidewalk",
-    "crosswalk-description": "Crosswalk",
-    "signal-description": "Pedestrian Signal",
     "tutorial": {
         "mission-message": "Complete the onboarding tutorial!",
         "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",
@@ -73,15 +64,6 @@
             "rate-severity-4": "Now <span class=\"bold\">rate the curb ramp’s quality</span>. Use your best judgment. You can also write notes in the <span class=\"bold\">Description Box.</span>",
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Click the \"Curb Ramp\" button</span> to label the other curb ramp now."
         }
-    },
-    "mission-start": {
-        "title": "Explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "First Mission: ",
-        "title-return": "Return to your mission",
-        "title-continue": "Continue exploring __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!",
-        "body-first": "Your <span class=\"bold\">first mission</span> is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
-        "body": "Your mission is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
-        "button-resume": "Resume Mission!"
     },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
@@ -151,7 +133,7 @@
                 "tree": "tr<tag-underline>e</tag-underline>e",
                 "vegetation": "<tag-underline>v</tag-underline>egetation",
                 "parked-car": "parked car (<tag-underline>u</tag-underline>)",
-                "parked-bike":"parked bi<tag-underline>k</tag-underline>e",
+                "parked-bike": "parked bi<tag-underline>k</tag-underline>e",
                 "construction": "cons<tag-underline>t</tag-underline>ruction",
                 "sign": "s<tag-underline>i</tag-underline>gn",
                 "garage-entrance": "<tag-underline>g</tag-underline>arage entrance",
@@ -184,7 +166,11 @@
                 "APS": "<tag-underline>A</tag-underline>PS",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
                 "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess",
-                "height-difference": "height <tag-underline>d</tag-underline>ifference"
+                "height-difference": "height <tag-underline>d</tag-underline>ifference",
+                "painted-sidewalk": "painted sidewalk (<tag-underline>h</tag-underline>)",
+                "pedestrian-arcade": "pedestrian arcade (<tag-underline>q</tag-underline>)",
+                "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
+                "utility-panel": "utility pan<tag-underline>e</tag-underline>l"
             },
             "tooltip": {
                 "passable": "Passable",
@@ -237,5 +223,13 @@
         "still-stuck": "If you're still stuck, click the Stuck button again.",
         "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street.",
         "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "EXPLORE MISSION",
+        "mst-instruction-2": "Label these accessibility features in {{neighborhood}}",
+        "example-type-label-incorrect": "COMMON MISTAKE",
+        "label-on-image-title-incorrect": "Common mistake",
+        "label-on-image-description-correct": "Place a label",
+        "label-on-image-description-incorrect": "Do <b>not</b> place label"
     }
 }

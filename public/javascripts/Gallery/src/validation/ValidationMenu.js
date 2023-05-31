@@ -46,15 +46,15 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
     const cardOverlayHTML = `
         <div id="gallery-validation-button-holder">
-            <button id="gallery-card-agree-button" class="validation-button">${i18next.t('gallery:agree')}</button>
-            <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('gallery:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('gallery:not-sure')}</button>
+            <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
+            <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
+            <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('common:not-sure')}</button>
         </div>`;
     const modalOverlayHTML = `
         <div id="gallery-validation-button-holder">
-            <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('gallery:agree')}</button>
-            <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('gallery:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('gallery:not-sure')}</button>
+            <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('common:agree')}</button>
+            <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('common:disagree')}</button>
+            <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('common:not-sure')}</button>
         </div>`;
     let overlay = $(cardOverlayHTML);
 
@@ -81,23 +81,44 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
         // Add onClick functions for the validation buttons.
         for (const [valKey, button] of Object.entries(validationButtons)) {
-            let validationOption = classToValidationOption[valKey];
-            button.click(function() {
-                // Change the look of the card/expanded view to match the new validation.
-                if (onExpandedView) {
-                    showValidationOnExpandedView(validationOption);
-                    referenceCard.validationMenu.showValidationOnCard(validationOption);
-                } else {
-                    showValidationOnCard(validationOption);
-                    if (currCardProperties.label_id === modal.getProperty('label_id')) {
-                        modal.validationMenu.showValidationOnExpandedView(validationOption);
-                    }
-                }
-                // Actually submit the new validation.
-                validateLabel(validationOption);
-            });
+            button.click(validateOnClick(valKey, false));
+        }
+
+        // Add onClick for the validation thumbs up/down buttons.
+        if (!onExpandedView) {
+            addValidationInfoOnClicks(refCard.validationInfoDisplay);
         }
         gsvImage.append(overlay);
+    }
+
+    /**
+     * Add onClick functions for the thumbs up/down buttons.
+     *
+     * @param valInfoDisplay
+     */
+    function addValidationInfoOnClicks(valInfoDisplay) {
+        valInfoDisplay.agreeContainer.onclick = validateOnClick('validate-agree', true);
+        valInfoDisplay.disagreeContainer.onclick = validateOnClick('validate-disagree', true);
+    }
+
+    /**
+     * OnClick function for validation buttons and thumbs up/down buttons.
+     * @param newValKey
+     * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
+     * @returns {(function(*): void)|*}
+     */
+    function validateOnClick(newValKey, thumbsClick) {
+        return function(e) {
+            if (currSelected !== newValKey) {
+                let validationOption = classToValidationOption[newValKey];
+
+                // Change the look of the card/expanded view to match the new validation.
+                referenceCard.updateUserValidation(validationOption);
+
+                // Actually submit the new validation.
+                _validateLabel(validationOption, thumbsClick);
+            }
+        }
     }
 
     /**
@@ -108,7 +129,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     function showValidationOnCard(validationOption) {
         const validationClass = validationOptionToClass[validationOption];
 
-        // If the label had already been validated differently, remove the visual effects from the older validation.
+        // Remove the visual effects from the older validation.
         if (currSelected && currSelected !== validationClass) {
             validationButtons[currSelected].attr('class', 'validation-button');
             if (galleryCard.hasClass(currSelected)) {
@@ -155,17 +176,22 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
     /**
      * Consolidate data on the validation and submit as a POST request.
-     * 
+     *
      * @param action Validation result.
+     * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
      * @private
      */
-    function validateLabel(action) {
-        referenceCard.setProperty('user_validation', action);
-
-        let actionStr = onExpandedView ? 'Validate_ExpandedMenuClick' + action : 'Validate_MenuClick' + action;
+    function _validateLabel(action, thumbsClick) {
+        // Log how the user validated (thumbs vs on-card menu) and what option they chose.
+        let actionStr;
+        if (onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsExpandedMenuClick';
+        else if (onExpandedView && !thumbsClick) actionStr = 'Validate_ExpandedMenuClick';
+        else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick';
+        else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick';
+        actionStr += action;
         sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
-        let validationTimestamp = new Date().getTime();
 
+        let validationTimestamp = new Date().getTime();
         let data = {
             label_id: currCardProperties.label_id,
             label_type: currCardProperties.label_type,
@@ -258,6 +284,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     self.updateReferenceCard = updateReferenceCard;
     self.showValidationOnCard = showValidationOnCard;
     self.showValidationOnExpandedView = showValidationOnExpandedView;
+    self.addModalValInfoOnClicks = addValidationInfoOnClicks;
 
     _init();
     return self;

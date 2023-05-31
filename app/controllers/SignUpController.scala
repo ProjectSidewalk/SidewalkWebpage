@@ -260,7 +260,7 @@ class SignUpController @Inject() (
 
             // Get the Future[Result] (i.e., the page to redirect), then embed the encoded session authenticator
             // into HTTP header as a cookie.
-            val result = Future.successful(Redirect("/audit"))
+            val result = Future.successful(Redirect("/explore"))
             session.flatMap(s => env.authenticatorService.embed(s, result))
           }
           case None => Future.successful(Redirect("/turkerIdExists"))
@@ -287,7 +287,7 @@ class SignUpController @Inject() (
           authenticator <- env.authenticatorService.create(user.loginInfo)
           value <- env.authenticatorService.init(authenticator)
           result <- env.authenticatorService.embed(value, Future.successful(
-            Redirect("/audit")
+            Redirect("/explore")
           ))
         } yield {
           // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
