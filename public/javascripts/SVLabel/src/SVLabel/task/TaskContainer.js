@@ -422,16 +422,31 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             });
         }
 
+        var connectedTask;
         if (userCandidateTasks.length > 0) {
             newTask = userCandidateTasks[0];
+            connectedTask = true;
         } else {
             newTask = highestPriorityTask;
+            connectedTask = false;
         }
 
-        // Return the new task. Change the starting point and start time of the new task accordingly.
+        // Set the start point of the new task. If it's connected to the current task, use the current task's endpoint.
+        // If the default endpoint of the new task is not connected to any streets, try reversing its direction to
+        // encourage contiguous routes.
+        // TODO take into account street priority when checking for connected tasks here.
         if (finishedTask) {
-            var coordinate = finishedTask.getLastCoordinate();
-            newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+            var startPoint;
+            if (connectedTask) {
+                startPoint = finishedTask.getLastCoordinate();
+            } else {
+                if (self._findConnectedTasks(newTask, false, null, null).length === 0) {
+                    startPoint = newTask.getLastCoordinate();
+                } else {
+                    startPoint = newTask.getStartCoordinate();
+                }
+            }
+            newTask.setStreetEdgeDirection(startPoint.lat, startPoint.lng);
             newTask.setProperty('taskStart', new Date());
         }
 
