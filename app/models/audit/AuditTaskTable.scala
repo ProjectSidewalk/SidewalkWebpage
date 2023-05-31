@@ -389,7 +389,7 @@ object AuditTaskTable {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, if (reverseStartPoint) se.x1 else se.x2, if (reverseStartPoint) se.y1 else se.y2, se.x1, se.y1, se.x2, se.y2, reverseStartPoint, timestamp, scau._2, sep.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
+    } yield (se.streetEdgeId, se.geom, if (reverseStartPoint) se.x2 else se.x1, if (reverseStartPoint) se.y2 else se.y1, se.x1, se.y1, se.x2, se.y2, reverseStartPoint, timestamp, scau._2, sep.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
 
     NewTask.tupled(edges.first)
   }
@@ -401,7 +401,7 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val tutorialTask = streetEdges
       .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
-      .map(e => (e.streetEdgeId, e.geom, e.x2, e.y2, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, None: Option[Int], missionId.asColumnOf[Option[Int]], None: Option[Point]))
+      .map(e => (e.streetEdgeId, e.geom, e.x1, e.y1, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, None: Option[Int], missionId.asColumnOf[Option[Int]], None: Option[Point]))
     NewTask.tupled(tutorialTask.first)
   }
 
@@ -419,7 +419,7 @@ object AuditTaskTable {
       sp <- streetEdgePriorities
       se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
       sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point])
 
     // Get the priority of the highest priority task.
     val highestPriority: Option[Double] = possibleTasks.map(_._12).max.run
@@ -468,7 +468,7 @@ object AuditTaskTable {
       se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, ucs._2.?.getOrElse(timestamp), scau._2, sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5)
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x1, se.y1, se.x2, se.y2, false, ucs._2.?.getOrElse(timestamp), scau._2, sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5)
 
     tasks.list.map(NewTask.tupled(_))
   }
