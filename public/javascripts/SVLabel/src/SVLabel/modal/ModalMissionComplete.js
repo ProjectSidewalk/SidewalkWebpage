@@ -59,18 +59,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         svl.gameEffectModel.loadAudio({ audioType: "success" });
         svl.gameEffectModel.playAudio({ audioType: "success" });
 
-        // TODO I don't know why some of this code is here and some of it is in self.show().
-        // Set mission complete title text differently if user finished their route or the whole neighborhood.
-        if (svl.neighborhoodModel.isRouteComplete) {
-            self.setMissionTitle("Bravo! You completed your route!");
-            self._canShowContinueButton = true;
-        } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            var neighborhoodName = neighborhood.getProperty("name");
-            self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
-            uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
-            self._canShowContinueButton = true;
-        }
         self.show();
     });
 
@@ -182,6 +170,17 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         uiModalMissionComplete.background.css('visibility', "visible");
         uiModalMissionComplete.background.off("click");
         uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
+
+        // Set mission complete title text differently if user finished their route or the whole neighborhood.
+        if (svl.neighborhoodModel.isRouteComplete) {
+            self.setMissionTitle("Bravo! You completed your route!");
+            self._canShowContinueButton = true;
+        } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
+            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            var neighborhoodName = neighborhood.getProperty("name");
+            self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
+            self._canShowContinueButton = true;
+        }
 
         // If the user just completed their first audit mission ever (and they aren't a turker) or they finished their
         // third in a row, make the primary button they see a 'Start validating' button. If they are not a turker, then
