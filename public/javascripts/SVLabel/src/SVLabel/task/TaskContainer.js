@@ -410,11 +410,15 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var highestPriorityTask = tasksNotCompletedByUser[0];
         var highestPriorityDiscretized = highestPriorityTask.getStreetPriorityDiscretized();
 
-        // If the user is following a Route or if any of the connected tasks has max discretized priority, pick the
-        // highest priority connected street, o/w take the highest priority task in the region.
-        userCandidateTasks = self._findConnectedTasks(finishedTask, false, null, null);
+        // Get list of connected streets. If empty, try again with a larger radius.
+        userCandidateTasks = self._findConnectedTasks(finishedTask, false, 0.0075, { units: 'kilometers' });
+        if (userCandidateTasks.length === 0) {
+            userCandidateTasks = self._findConnectedTasks(finishedTask, false, 0.15, { units: 'kilometers' });
+        }
 
-        // For a route, prioritize short streets to help smooth out roundabouts. Otherwise, use street priority.
+        // For a route, prioritize connected streets and short streets to help smooth out roundabouts. If it isn't a
+        // route, if any of the connected tasks has max discretized priority, pick the highest priority connected
+        // street, o/w take the highest priority task in the region.
         if (svl.neighborhoodModel.isRoute) {
             userCandidateTasks = userCandidateTasks.sort(function (t1, t2) {
                 return t1.lineDistance() - t2.lineDistance();
