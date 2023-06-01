@@ -431,20 +431,22 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             connectedTask = false;
         }
 
-        // Set the start point of the new task. If it's connected to the current task, use the current task's endpoint.
-        // If the default endpoint of the new task is not connected to any streets, try reversing its direction to
+        // Set the start point of the new task. If it's connected to the current task or is generally nearby, use the
+        // current task's endpoint to avoid accidentally marking the user as being at the end of the street. Otherwise,
+        // if the default endpoint of the new task is not connected to any streets, try reversing its direction to
         // encourage contiguous routes.
         // TODO take into account street priority when checking for connected tasks here.
         if (finishedTask) {
             var startPoint;
-            if (connectedTask) {
+            var line = newTask.getGeoJSON().features[0];
+            var endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
+            var taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
+            if (connectedTask || taskNearby) {
                 startPoint = finishedTask.getLastCoordinate();
+            } else if (self._findConnectedTasks(newTask, false, null, null).length === 0) {
+                startPoint = newTask.getLastCoordinate();
             } else {
-                if (self._findConnectedTasks(newTask, false, null, null).length === 0) {
-                    startPoint = newTask.getLastCoordinate();
-                } else {
-                    startPoint = newTask.getStartCoordinate();
-                }
+                startPoint = newTask.getStartCoordinate();
             }
             newTask.setStreetEdgeDirection(startPoint.lat, startPoint.lng);
             newTask.setProperty('taskStart', new Date());

@@ -451,8 +451,10 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     this.updateTheFurthestPointReached = function(currentLat, currentLng) {
-        if (this._hasAdvanced(currentLat, currentLng)) {
-            _furthestPoint = turf.point([currentLng, currentLat]);
+        let currentPoint = turf.point([currentLng, currentLat]);
+        if (turf.pointToLineDistance(currentPoint, _geojson.features[0]) < svl.CLOSE_TO_ROUTE_THRESHOLD &&
+            this._hasAdvanced(currentLat, currentLng)) {
+            _furthestPoint = currentPoint;
         }
     };
 

@@ -38,6 +38,7 @@ function Main (params) {
         4: 8,
         5: 16
     };
+    svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
 
     function _init (params) {
         params = params || {};
