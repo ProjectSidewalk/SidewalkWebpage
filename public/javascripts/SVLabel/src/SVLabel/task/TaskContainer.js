@@ -431,10 +431,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             });
         }
 
+        // If there is no connected task, pick the lowest routeStreetId for routes, or highest priority otherwise.
         var connectedTask;
         if (userCandidateTasks.length > 0) {
             newTask = userCandidateTasks[0];
             connectedTask = true;
+        } else if (svl.neighborhoodModel.isRoute) {
+            newTask = tasksNotCompletedByUser.sort(function(t1, t2) {
+                return t1.getProperty('routeStreetId') - t2.getProperty('routeStreetId');
+            })[0];
+            connectedTask = false;
         } else {
             newTask = highestPriorityTask;
             connectedTask = false;
