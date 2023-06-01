@@ -23,13 +23,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     var _modalModel = modalModel;
     this._userModel = userModel;
 
-    this._properties = {
-        boxTop: 180,
-        boxLeft: 45,
-        boxWidth: 640
-    };
     this._status = {
-        isOpen: false
+        isOpen: false,
+        primaryAction: null,
+        secondaryAction: null
     };
     this.showingMissionCompleteScreen = false;
     this._canShowContinueButton = false;
@@ -135,11 +132,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
      * @private
      */
     this._closeModal = function (event) {
-        var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
-        var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
-        if (event.data.button === 'primary' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0)) {
+        var action = event.data.button === 'primary' ? this._status.primaryAction : this._status.secondaryAction;
+        if (action === 'validate') {
             window.location.replace('/validate');
-        } else if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+        } else if (action === 'reloadExplore') {
             window.location.replace('/explore');
         } else {
             var nextMission = missionContainer.getCurrentMission();
@@ -195,6 +191,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
         if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
+            this._status.primaryAction = 'validate';
 
             if (self._userModel.getUser().getProperty("role") === 'Turker') {
                 uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
@@ -204,10 +201,16 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
                 uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
                 uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
+                if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+                    this._status.secondaryAction = 'reloadExplore';
+                } else {
+                    this._status.secondaryAction = 'explore';
+                }
             }
         } else {
             uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-continue'));
+            this._status.primaryAction = 'explore';
             uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
         }
 
@@ -303,10 +306,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 }
 
 
-
-ModalMissionComplete.prototype.getProperty = function (key) {
-    return key in this._properties ? this._properties[key] : null;
-};
 
 ModalMissionComplete.prototype.isOpen = function () {
     return this._status.isOpen;
