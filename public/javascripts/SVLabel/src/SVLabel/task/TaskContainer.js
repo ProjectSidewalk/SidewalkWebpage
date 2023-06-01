@@ -450,6 +450,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             }
             newTask.setStreetEdgeDirection(startPoint.lat, startPoint.lng);
             newTask.setProperty('taskStart', new Date());
+            newTask.render();
         }
 
         return newTask;
