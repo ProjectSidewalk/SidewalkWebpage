@@ -113,6 +113,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
         var task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
+        svl.map.enableWalking(); // Needed so you can click during the 1 second after taking a step.
         mapService.moveToTheTaskLocation(task, true);
         svl.jumpModel.triggerUserClickJumpMessage();
     }
