@@ -103,7 +103,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         mapService.resetBeforeJumpLocationAndListener();
     }
 
-    function _jumpToTheNewRoute() {
+    function _jumpToTheNewTask() {
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
         mapService.finishCurrentTaskBeforeJumping();
@@ -113,7 +113,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
         var task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
-        mapService.moveToTheTaskLocation(task);
+        mapService.moveToTheTaskLocation(task, true);
         svl.jumpModel.triggerUserClickJumpMessage();
     }
 
@@ -122,14 +122,14 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood"); }
         } else {
-            jumpMessageOnclick = _jumpToTheNewRoute
+            jumpMessageOnclick = _jumpToTheNewTask
         }
         uiCompass.messageHolder.on('click', jumpMessageOnclick);
         uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
     function _makeTheLabelBeforeJumpMessageBoxUnclickable () {
-        uiCompass.messageHolder.off('click', _jumpToTheNewRoute);
+        uiCompass.messageHolder.off('click', _jumpToTheNewTask);
         uiCompass.messageHolder.css('cursor', 'default');
     }
 
