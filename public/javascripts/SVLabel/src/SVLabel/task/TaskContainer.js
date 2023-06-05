@@ -548,7 +548,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * segments on Google Maps.
      * TODO This should be done somewhere else.
      */
-    function update () {
+    function update() {
         for (var i = 0, len = previousTasks.length; i < len; i++) {
             previousTasks[i].render();
         }
