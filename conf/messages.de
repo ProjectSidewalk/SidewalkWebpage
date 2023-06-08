@@ -1,0 +1,347 @@
+measurement.system = metrisch
+label.type = Beschriftungskategorie
+legend = Legende
+severity = Schweregrad
+curb.ramp = Trottoirabsenkung
+curb.ramps = Trottoirabsenkungen
+missing.ramp = Fehlende Trottoirabsenkung
+missing.ramps = Fehlende Trottoirabsenkungen
+obstacle = Hindernis im Weg
+obstacles = Hindernisse im Weg
+surface.problem = Oberflächenproblem
+surface.problems = Oberflächenprobleme
+no.sidewalk = Kein Trottoir
+crosswalk = Fussgängerstreifen
+signal = Fussgängerlichtsignal
+occlusion = Trottoir nicht sichtbar
+other = Andere
+validated.correct = Validiert als richtig
+validated.incorrect = validiert als falsch
+unvalidated = Nicht validiert
+audited.street = Geprüfte Strasse
+unaudited.street = Ungeprüfte Strasse
+not.sure = Unsicher
+not.applicable.abbr = k.A.
+validations = Validierungen
+labels = Beschriftungen
+label.icon.alt = Minimalistisches Kartensymbol mit grosser Zielmarkierung
+accuracy = Genauigkeit
+accuracy.caps = Genauigkeit
+accuracy.icon.alt = Zielscheibe mit einem Pfeil im Visier
+dist.metric.abbr = km
+distance.icon.alt = Symbol mit kurvigem Pfad zum Ziel
+ok = Ok
+cancel = Abbrechen
+error = Fehler!
+yes.caps = Ja
+no.caps = Nein
+thanks = Danke!
+username = Benutzername
+loading = Laden...
+loading.encouragement = Los geht''s!
+test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite.
+dont.show.again = Nicht erneut anzeigen.
+
+press.key = Drücken Sie die Taste "{0}"
+press.keys = Drücken Sie die Tasten "{0}"
+feedback.title = Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!
+feedback.submitted = Rückmeldung gesendet
+
+navbar.explore = Erkundung starten
+navbar.validate = Validierung starten
+navbar.howto = Beschriftungsanleitung
+navbar.results = Ergebniskarte
+navbar.data = Daten
+navbar.labelmap = Beschriftungskarte
+navbar.help = Hilfe
+navbar.leaderboard = Bestenliste
+navbar.retake.tutorial = Tutorial wiederholen
+navbar.signin = Anmelden
+navbar.signout = Abmelden
+navbar.dashboard = Ihr Dashboard
+navbar.admin = Admin
+navbar.city = Stadt
+navbar.lang.aria = Sprachoptionen
+navbar.lang.icon.alt = Sprachsymbol
+
+landing.create.path = Schaffen wir einen Weg für alle!
+landing.also.in = Wir sind auch in:
+landing.mapathon = Leben Sie in {0}? Besuchen Sie <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">eine Mapathon-Veranstaltung in Ihrer Nähe!</a>
+landing.how.you.help = Wie Sie dazu beitragen
+landing.how.you.help.content = Erkunden Sie die Stadt virtuell, um Zugänglichkeitsmerkmale in drei einfachen Schritten zu finden und zu beschriften—ganz bequem von zuhause aus.
+landing.how.you.help.explore = ERKUNDEN
+landing.how.you.help.find = PROBLEME FINDEN
+landing.how.you.help.assess = SCHWEREGRAD BEWERTEN
+landing.video.title = Was ist Project Sidewalk?
+landing.video.watch = Jetzt anschauen
+landing.choropleth.title = Viertel wählen
+landing.choropleth.content = Ihnen wird automatisch ein Viertel zugewiesen, wenn Sie auf ''Erkundung starten'' drücken. Sie können das Viertel aber auch selbst wählen, indem Sie auf ein Gebiet auf der Karte unten drücken!
+landing.choropleth.legend = Prozent des Viertels abgeschlossen
+landing.stats.title = Ihr Beitrag macht einen Unterschied
+landing.stats.content.unfinished.partial = Nutzende wie Sie haben bereits {0} Kilometer von {1}, {2} kartiert—das ist {3}% der angestrebten Fläche der Stadt!
+landing.stats.content.unfinished.full = Nutzende wie Sie haben bereits {0} Kilometer von {1}, {2} kartiert—das ist {3}% der Stadt!
+landing.stats.content.finished.partial = Wir haben es geschafft! Nutzende wie Sie haben die ganzen {0} Kilometer der angestrebten Fläche der Stadt {1}, {2} kartiert. Wir sind aber noch nicht fertig. Je mehr beitragende Nutzende, desto höher ist die Datenqualität. Beginnen Sie noch heute mit dem Erkunden!
+landing.stats.content.finished.full = Wir haben es geschafft! Nutzende wie Sie haben die ganzen {0} Kilometer von {1}, {2} kartiert. Wir sind aber noch nicht fertig. Je mehr beitragende Nutzende, desto höher ist die Datenqualität. Beginnen Sie noch heute mit dem Erkunden!
+landing.stats.percent.partial = der angestrebter Fläche kartiert
+landing.stats.percent.full = von {0} kartiert
+landing.stats.distance = Kilometer erfasst
+landing.stats.labels = Beschriftungen
+landing.stats.validations = Validierungen
+landing.ml.title = Was wir mit Ihren Beschriftungen machen
+landing.ml.content = Ihre Beschriftungen werden für eine bessere Stadtplanung und zur Erstellung von Kartenwerkzeugen, welche die Barrierefreiheit berücksichtigen, verwendet. Ausserdem werden anhand Ihrer Beschriftungen maschinelle Lernalgorithmen trainiert, um automatisch Zugänglichkeitsprobleme zu finden.
+landing.ml.gif.machine.labels = automatische beschriftung
+landing.ml.gif.you = sie
+landing.ml.gif.user.labels = beschriftungen durch nutzende
+landing.ml.gif.better.city.planning = bessere stadtplanung
+landing.ml.gif.better.temporal.tracking = bessere zeitliche erfassung
+landing.ml.gif.interactive.visualization.tools = interaktive visualisierungsmethoden
+landing.ml.gif.smarter.routing = verbesserte routenplanung
+landing.ml.gif.machine.learning = maschinelles lernen
+landing.ml.gif.outcomes = ergebnisse
+landing.collaborators.title = Kollaborierende
+
+footer.about = Über uns
+footer.terms = Nutzungsbedingungen
+footer.help = Hilfe
+footer.guide = Beschriftungsanleitung
+footer.developer = ENTWICKLER:IN
+footer.api = Sidewalk API
+footer.connect = KONTAKT
+footer.email = E-Mail senden
+footer.funding = WIR WERDEN MIT STOLZ FINANZIERT VON
+footer.award = Zuschlag <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> und <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
+footer.designed.operated = Project Sidewalk wird entwickelt und betrieben durch das <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> der <a id="universityofwashington" href="http://www.cs.uw.edu/">Universität Washington</a>
+footer.version = Version {0} | Zuletzt aktualisiert: <span class = "timestamp date">{1}</span>
+
+audit.tutorial.welcome.1 = Mit <span class="bold">Project Sidewalk,</span> werden Sie virtuell durch die Stadt gehen und Missionen erfüllen, in denen Sie Zugänglichkeitsmerkmale und -probleme in Ihrer Umgebung finden und beschriften, einschliesslich:
+audit.tutorial.welcome.2 = Wir beginnen mit einem kurzen, interaktiven Tutorial.
+audit.tutorial.welcome.3 = Los geht''s!
+audit.tutorial.welcome.4 = Haben Sie das Tutorial schon absolviert? Haben Sie bereits ein Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Anmelden</a> oder <a value="Skip" class="onboarding-transition-trigger">Tutorial überspringen.</a>
+audit.tutorial.accessible = <span style="color:limegreen">Zugänglich</span>
+audit.tutorial.inaccessible = <span style="color:red">Nicht zugänglich</span>
+audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoirabsenkungen</span> helfen Rollstuhlfahrenden, auf das Trottoir hochzugelangen bzw. vom Trottoir herunterzugelangen
+audit.tutorial.examples.missing.ramp = Rollstuhlnutzende können Gehwege nicht befahren, wenn <span style="color:#ff0066">Trottoirabsenkungen fehlen</span>
+audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Hindernisse</span> versperren den Weg für Rollstuhlfahrende
+audit.tutorial.examples.surface.problem = Trottoirs mit <span style="color:orange">Oberflächenprobleme</span> sind möglicherweise nicht befahrbar
+audit.tutorial.end.1 = Gut! Sie haben nun gelernt, die Benutzeroberfläche zu bedienen! Beginnen Sie nun mit dem <span class="bold">Beschriften der folgenden Zugänglichkeitsmerkmalen in ''Google Street View''</span>, die das Fortbewegen von Rollstuhlfahrenden in der Stadt erheblich beeinflussen:
+audit.tutorial.end.2 = Herzlichen Dank, dass Sie dabei helfen, <span class="bold">die Welt für alle zugänglicher machen!</span>
+audit.tutorial.examples = Beispiele von Zugänglichkeitsmerkmalen: Trottoirabsenkungen, fehlende Trottoirabsenkungen, Hindernisse im Weg und Oberflächenprobleme.
+
+audit.ribbon.find.and.label = Finden und beschriften Sie die folgenden
+audit.ribbon.curb.ramp.labels = BESCHRIFTUNGEN TROTTOIRABSENKUNG
+audit.ribbon.sidewalk.labels = BESCHRIFTUNGEN GEHWEG
+audit.ribbon.other.labels = BESCHRIFTUNGEN ANDERER ZUGÄNGLICHKEITSMERKMALEN
+audit.ribbon.explore = <u>E</u>rkunden
+audit.ribbon.curb.ramp = Trottoirabsenkung (<u>C</u>)
+audit.ribbon.missing.ramp = Fehlende Trottoirabsenkung (<u>M</u>)
+audit.ribbon.obstacle = Hindernis im Weg (<u>O</u>)
+audit.ribbon.surface.problem = Oberflächenproblem (<u>S</u>)
+audit.ribbon.no.sidewalk = kein Trottoir (<u>N</u>)
+audit.ribbon.crosswalk = Fussgängerstreifen (<u>w</u>)
+audit.ribbon.signal = Fussgängerlichtsignal (<u>P</u>)
+audit.ribbon.other = Andere
+audit.ribbon.occlusion = Trottoir nicht sichtbar (<u>B</u>)
+
+audit.left.ui.zoom.in = Hineinzoomen (<u>Z</u>)
+audit.left.ui.zoom.out = Hinauszoomen
+audit.left.ui.sound = Ton
+audit.left.ui.feedback = Rückmeldung
+audit.left.ui.stuck = Verlaufen
+audit.left.ui.jump = Wechseln
+audit.left.ui.jump.title = Ort wechseln, weil:
+audit.left.ui.jump.button.explore = Ich will ein anderes Gebiet erkunden!
+audit.left.ui.jump.button.unavailable = Ich kann nicht in die Richtung gehen, in die ihr mich führt.
+audit.left.ui.jump.explore.title = Zu einem neuem Ort wechseln oder in ein neues Viertel wechseln?
+audit.left.ui.jump.explore.button.same.neighborhood = Zu einem neuen Ort in diesem Viertel wechseln
+audit.left.ui.jump.explore.button.new.neighborhood = In ein neues Viertel wechseln
+
+audit.right.ui.overall.stats = Gesamtübersicht
+audit.right.ui.current.neighborhood = Aktuelles Viertel
+audit.right.ui.distance = Kilometer
+audit.right.ui.current.mission = Aktuelle Mission
+
+audit.center.ui.passable = Passierbar
+audit.center.ui.not.passable = Nicht passierbar
+audit.center.ui.add.tags = Tags hinzufügen:
+audit.center.ui.temporary = Temporär (z.B. Baustelle)
+
+audit.mission.complete.labels.title = Missionsbeschriftungen
+audit.mission.complete.progress.mission.you = Sie haben diese Mission erfüllt
+audit.mission.complete.progress.neighborhood.others = Andere haben dieses Viertel erkundet
+audit.mission.complete.legend.this.mission = Diese Mission
+audit.mission.complete.legend.previous.missions = Vorherige Missionen
+
+audit.survey.title = Bitte nehmen Sie an dieser einmaligen Umfrage zum Project Sidewalk teil.
+audit.survey.enjoyment.question = Wie finden Sie die Anwendung von Project Sidewalk?
+audit.survey.enjoyment.option.1 = Sehr langweilig
+audit.survey.enjoyment.option.2 = Langweilig
+audit.survey.enjoyment.option.3 = Neutral
+audit.survey.enjoyment.option.4 = Angenehm
+audit.survey.enjoyment.option.5 = Sehr angenehm
+audit.survey.difficulty.question = Wie schwierig ist es, Project Sidewalk zu nutzen?
+audit.survey.difficulty.option.1 = Sehr schwierig
+audit.survey.difficulty.option.2 = Schwierig
+audit.survey.difficulty.option.3 = Neutral
+audit.survey.difficulty.option.4 = Einfach
+audit.survey.difficulty.option.5 = Sehr einfach
+audit.survey.performance.question = Wie gut sind Sie Ihrer Meinung nach mit den Beschriftungsaufgaben zurechtgekommen?
+audit.survey.performance.option.1 = Schlecht
+audit.survey.performance.option.2 = Genügend
+audit.survey.performance.option.3 = Gut
+audit.survey.performance.option.4 = Sehr gut
+audit.survey.performance.option.5 = Ausgezeichnet
+audit.survey.rationale.question = Wieso haben Sie sich dazu entschieden, zum Project Sidewalk beizutragen?
+audit.survey.feedback.question = Haben Sie zusätzliche Rückmeldungen, Gestaltungsvorschläge oder Fragen?
+
+audit.help.rating.1 = Bewertung 1: Passierbar
+audit.help.rating.3 = Bewertung 3: Schwer passierbar
+audit.help.rating.5 = Bewertung 5: Nicht passierbar
+audit.help.curb.ramp.1 = Saubere Trottoirabsenkungen, die auf Fussgängerstreifen ausgerichtet sind.
+audit.help.curb.ramp.3 = Eine Trottoirabsenkung mit einem Pfosten in der Mitte. Personen, welche einen grossen Elektrorollstuhl verwenden, haben möglicherweise Mühe, diese Trottoirabsenkung zu benutzen.
+audit.help.curb.ramp.5 = Bei dieser Trottoirabsenkung hat sich aufgrund schlechter Entwässerung Wasser gesammelt. Für eine Person in einem Handrollstuhl ist es schwierig, diese Trottoirabsenkung zu benutzen.
+audit.help.missing.ramp.1 = Obwohl es keine Trottoirabsenkung hat, ist der Höhenunterschied klein und Personen im Rollstuhl können auf das Trottoir gelangen bzw. vom Trottoir herunter gelangen. An derselben Strassenecke befindet sich ausserdem eine zusätzliche Trottoirabsenkung, welche benutzt werden kann, obwohl sie nicht auf denselben Weg ausgerichtet ist.
+audit.help.missing.ramp.3 = Am Ende des Fussgängerstreifens fehlt eine Trottoirabsenkung. Personen im Rollstuhl müssen die Trottoirabsenkung nutzen, die nicht auf diesen Fussgängerstreifen ausgerichtet ist.
+audit.help.missing.ramp.5 = Keine Trottoirabsenkung am Ende dieses Fussgängerstreifens. Rollstuhlfahrende können nicht auf das Trottoir gelangen bzw. vom Trottoir herunter gelangen, um die Strasse hier zu überqueren.
+audit.help.obstacle.1 = Ein Lichtsignal, dass in der Mitte des Trottoirs steht. Es scheint für Rollstuhlfahrende genügend Platz zu haben, um zu passieren. Diejenigen, die einen grösseren Rollstuhl benutzen, könnten möglicherweise Probleme beim Passieren haben.
+audit.help.obstacle.3 = Die Pflanze blockiert den Weg, was es für Rollstuhlfahrende schwierig macht, dieses Trottoir zu benutzen.
+audit.help.obstacle.5 = Dieser Baum blockiert den Weg vollständig, was ihn für Personen im Rollstuhl unpassierbar macht.
+audit.help.surface.problem.1 = Teilweise beschädigtes Trottoir. Da neben dem beschädigten Bereich genügend Platz vorhanden ist, können Rollstuhlfahrende trotzdem passieren.
+audit.help.surface.problem.3 = Für Personen im Rollstuhl kann es schwierig sein, Trottoirs und Fussgängerstreifen aus Kopfsteinpflaster zu benutzen.
+audit.help.surface.problem.5 = Personen im Rollstuhl können das schwer beschädigtes Trottoir mit dem starken Bewuchs nicht passieren.
+
+validate.top.ui.zoom.in = Hineinzoomen (<u>Z</u>)
+validate.top.ui.zoom.out = Hinauszoomen
+validate.left.ui.skip = Überspringen
+validate.left.ui.feedback = Rückmeldung
+validate.bottom.ui.agree = Einverstanden (<u>A</u>)
+validate.bottom.ui.disagree = Nicht einverstanden (<u>D</u>)
+validate.bottom.ui.not.sure = Unsicher (<u>N</u>)
+validate.bottom.ui.add.comment = Wenn Sie nicht einverstanden sind, bitte geben Sie hier eine Begründung an. Diese kann später von der Person, die dieses Zugänglichkeitsmerkmal beschriftet hat, gelesen werden.
+validate.right.ui.current.mission = Aktuelle Mission
+validate.right.ui.correct.examples = <strong>Richtige</strong> Beispiele
+validate.right.ui.incorrect.examples = <strong>Falsche</strong> Beispiele
+validate.mission.complete.category = Kategorie
+validate.mission.complete.agree = Einverstanden
+validate.mission.complete.disagree = Nicht einverstanden
+validate.mission.complete.your.overall.total = Ihr Gesamtwert
+
+
+mobile.validate.leave.feedback = Rückmeldung verfassen
+
+turk.expired.navbar = DIE ZEIT IST UM
+turk.expired.title = Die Zeit ist um!
+turk.expired.body = Sie sollten den Bonusbetrag in den nächsten zwei Tagen erhalten. Bitte geben Sie Ihren Bestätigungscode auf der mturk-Webseite ein. Wenn der Auftrag bereits abgelaufen ist, senden Sie uns eine E-Mail an <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> mit Ihrem Bestätigungscode.
+turk.mturk.code = Mturk-Code:
+turk.reward.earned = Gesamthaft verdiente Belohnung
+
+authenticate.email = E-Mail-Adresse
+authenticate.password = Passwort
+authenticate.submit = Übermitteln
+authenticate.new = Neu dabei? <a href="#" id="form-open-sign-up">Registrieren!</a>
+authenticate.non.member = Kein Mitglied? <a href="{0}">Registrieren Sie sich jetzt</a>
+authenticate.confirm.password = Passwort wiederholen
+authenticate.service.hours.title = Haben Sie vor, Ihre Arbeit im Rahmen von Project Sidewalk als gemeinnützige/freiwillige Arbeit anrechnen zu lassen?
+authenticate.terms = Sie erklären sich mit unseren <a target="_blank" href="/terms">Nutzungsbedingungen und Datenschutzerklärung</a> einverstanden.
+authenticate.signup = Registrieren
+authenticate.signup.new.account = Mit neuem Account registrieren
+authenticate.has.account = Haben Sie einen Account? <a href="#" id="form-open-sign-in">Anmelden</a>
+authenticate.is.member = Schon ein Mitglied? <a href="{0}">Jetzt anmelden</a>
+authenticate.signin.with.credentials = Melden Sie sich mit Ihren Anmeldedaten an
+
+authenticate.error.uhoh = Hoppla!
+authenticate.error.missing.username = Bitte geben Sie einen Benutzernamen ein
+authenticate.error.missing.email = Bitte geben Sie eine gültige E-Mail-Adresse ein
+authenticate.error.missing.password = Bitte geben Sie Ihr Passwort ein
+authenticate.error.email.exists = E-Mail-Adresse wird bereits verwendet
+authenticate.error.username.exists = Benutzername wird bereits verwendet
+authenticate.error.password.length = Passwort muss mindestens 6 Zeichen lang sein
+authenticate.error.password.mismatch = Passwörter stimmen nicht überein
+authenticate.error.missing.service.hours = Bitte berücksichtigen Sie alle Felder
+authenticate.error.invalid.credentials = Ungültige Anmeldedaten
+authenticate.error.generic = Bei der Beantwortung Ihrer Anfrage ist ein Fehler aufgetreten. Bitte vergewissern Sie sich, dass alle Angaben korrekt sind und versuchen Sie es dann erneut.
+
+reset.pw.forgot.title = Passwort vergessen?
+reset.pw.forgot.submit.email = Geben Sie bitte Ihre E-Mail-Adresse an. Wir werden Ihnen einen Link zum Zurücksetzen Ihres Passworts senden.
+reset.pw.forgot.suggest = Wenn Sie Probleme beim Anmelden oder dem Zurücksetzens Ihres Passworts haben, vergewissern Sie sich, dass die richtige Stadt rechts oben auf der Navigationsleiste angezeigt wird. Der erstellte Account ist nicht auf andere Städte übertragbar, Sie müssen also für jede Stadt einen neuen Account anlegen (Sie können aber denselben Benutzername/dasselbe Passwort wiederverwenden).
+
+reset.pw.email.hello = Hallo {0},
+reset.pw.email.reset.title = Passwort für den Project Sidewalk-Account zurücksetzen.
+reset.pw.email.send.link = E-Mail senden
+reset.pw.email.reset.pw.sent = Eine E-Mail zum Zurücksetzen Ihres Passwortes wurde versendet.
+reset.pw.email.reset.request.message = Sie haben kürzlich darum gebeten, das Passwort für Ihren Project Sidewalk-Account zurückzusetzen. Klicken Sie auf den Link, um Ihr Passwort zurückzusetzen:
+reset.pw.email.reset.not.requested = Wenn Sie kein Link für das Zurücksetzen Ihres Passwortes angefordert haben, ignorieren Sie bitte diese Nachricht oder senden Sie uns eine E-Mail, um uns darüber zu informieren.
+reset.pw.email.reset.valid.duration = Dieser Link für das Zurücksetzen des Passworts ist für die nächsten 60 Minuten gültig.
+reset.pw.email.signature = Das Project Sidewalk-Team
+
+reset.pw.submit.new.pw = Neues Passwort eingeben.
+reset.pw.message = Passwort zurücksetzen
+reset.pw.successful = Passwort zurückgesetzt!
+reset.pw.invalid.reset.link = Ungültiger Link
+
+results.reset.view = Ansicht zurücksetzen
+results.problems.per.mile = Zugänglichkeitsprobleme pro Meile
+results.legend.high = Hoch
+results.legend.low = Tief
+results.legend.body = In grauen Viertel ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Viertel, um Daten beizutragen. Die Ergebnisse sind vorläufig und bestehen aus freiwilligen Beiträgen, die noch nicht validiert wurden. Wir arbeiten daran. Bleiben Sie dran!
+
+dashboard.no.org = Keine Organisation
+dashboard.edit.org = Bearbeiten
+dashboard.edit.info = Wenn Sie Ihre Organisation nicht sehen, senden Sie eine E-Mail an <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> und geben Sie den Namen der Organisation und eine Beschreibung an.
+dashboard.orgs.unavailable = Keine Organisationen verfügbar!
+dashboard.leave.org = Organisation verlassen
+dashboard.total.distance.explored = Gesamte erkundete Distanz
+dashboard.number.completed.missions = Anzahl beendeter Missionen
+dashboard.number.of.labels = Anzahl Beschriftungen
+dashboard.missions = Missionen
+dashboard.your.missions = Ihre Missionen
+dashboard.distance = Distanz
+dashboard.labels = Beschriftungen
+dashboard.mission.icon.alt = Symbol von Person im Rollstuhl, die eine Flagge hält
+dashboard.validation.icon.alt = Checkliste neben einem Bleistift
+dashboard.accuracy.icon.tooltip = Ihre Beschriftungsgenauigkeit. Wenn k.A. angezeigt wird, wurden noch nicht genug Ihrer Beschriftungen von anderen Nutzenden validiert.
+dashboard.achievements = Auszeichnungen
+dashboard.first = Erstes
+dashboard.second = Zweites
+dashboard.third = Drittes
+dashboard.fourth = Viertes
+dashboard.fifth = Fünftes
+dashboard.mission.badge = {0} Missionsabzeichen
+dashboard.distance.badge = {0} Distanzabzeichen
+dashboard.label.badge = {0} Beschriftungsabzeichen
+dashboard.validation.badge = {0} Validierungsabzeichen
+dashboard.mistakes.header = Ihre jüngsten Beschriftungsfehler
+dashboard.mistakes.tooltip = Diese Fehler werden von anderen Nutzenden auf der Validierungsseite bestimmt. Bei der Validierung passieren manchmal Fehler und bei den Bewertungen gibt es oft feine Unterschiede.
+dashboard.mistakes.tooltip.alt = Fragezeichensymbol für hilfreichen Tooltip.
+
+labeling.guide.curb.ramp.summary = Eine Trottoirabsenkung ist eine kurze Rampe, die einen erhöhten Randstein unterbricht oder zu ihm hinaufführt. Eine zugängliche Trottoirabsenkung bietet eine barrierefreie Route für Personen mit Mobilitätseinschränkungen, um sicher vom Trottoir zur Fahrbahn und umgekehrt zu gelangen.
+labeling.guide.obstacle.summary = Hindernisse sind Objekte, die sich auf dem Gehweg befinden und den Weg blockieren. Gemäss den Richtlinien für behindertengerechte Fusswegnetze sind Trottoirbreiten unter 1.50 m zu vermeiden. Dies erlaubt Fussgängerinnen und Fussgängern, vor allem denjenigen, die Rollatoren oder Rollstühle nutzen, sicher auf dem Gehweg zu bleiben. Den Gehweg zu verlassen, um Hindernissen auszuweichen, ist zum Teil nicht möglich oder erhöht die Gefahr, das Gleichgewicht zu verlieren oder zu stolpern.
+labeling.guide.surface.problem.summary = Ein Oberflächenproblem ist ein Problem, das für eine Person, die einen Rollstuhl oder ein anderes Hilfsmittel nutzt, eine holprige oder anderweitig unangenehme Erfahrung bedeuten würde. Wenn etwas auf der Oberfläche das Passieren erschwert oder verunmöglicht, ist es als Oberflächenproblem zu beschriften. Bei einem Oberflächenproblem, dass sich über eine grosse Fläche erstreckt, wird eine Beschriftung für Oberflächenprobleme am Anfang des Problems platziert. Anschliessend wird alle paar Meter eine neue Beschriftung eingeführt (ca. 1 pro Bild) bis am Ende des Problems.
+labeling.guide.no.sidewalk.summary = Sie sollten die Beschriftung für kein Trottoir dort beginnen, wo das Trottoir endet und dann alle paar Meter eine Beschriftung hinzufügen (ca. 1 pro Bild) bis zum Punkt, wo das Trottoir wieder beginnt.
+labeling.guide.occlusion.summary = Manchmal ist die Sicht auf das Trottoir vollständig versperrt. Solche Fälle sind mit der Beschriftung "Trottoir nicht sichtbar" zu beschriften. Diese Beschriftung sollte selten verwendet werden. Nutzen Sie sie darum nur, wenn ein Trottoir, eine Trottoirabsenkung oder ein anderes Zugänglichkeitsproblem aufgrund von Hindernissen, wie zum Beispiel Autos, aus keinem anderen Blickwinkel sichtbar ist.
+
+dist.metric.abbr = km
+admin.clear.play.cache = Play-Cache leeren
+
+leaderboard.overall.title = Gesamte Bestenliste
+leaderboard.weekly.title = Wöchentliche Bestenliste
+leaderboard.inter.org.title = Teams-Bestenliste
+leaderboard.org.title = {0} Bestenliste
+leaderboard.overall.detail = Die Bestenliste wird aufgrund von Beschriftungen, Distanz und Genauigkeit der beitragenden Personen berechnet.
+leaderboard.org.detail = Top 10 Beitragende:r zu {0}
+leaderboard.header.team = Team
+leaderboard.header.labels = Beschriftungen
+leaderboard.header.missions = Missionen
+leaderboard.header.distance = Distanz
+leaderboard.tooltip.accuracy = Die Genauigkeit wird nur angezeigt, wenn mindestens 10 Ihrer Beschriftungen validiert wurden.
+leaderboard.tooltip.weekly.reset = Die Statistik wird jeden Sonntag Morgen um 0:00 Uhr PT zurückgesetzt.
+leaderboard.encouragement = Wollen Sie es unter die Top 10 schaffen? <a id="encouragement-link" href="/explore"><u>Erkundung starten!</u></a>
+leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Registrieren</u></a> Sie sich, um Ihren Fortschritt zu verfolgen!
+leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Treten Sie einer Organisation bei</u></a> und arbeiten Sie im Team zusammen, um Gehwege zu kartieren und zu bewerten!
+
+gallery = Galerie
+gallery.show = Anzeigen
+gallery.filter.by = Filtern nach
+gallery.tags = Tags
+gallery.all = Alle Beschriftungskategorien
+gallery.labels.not.found = Keine Treffer. <a href="/explore">Erkundung starten</a>, um mehr Daten beizutragen!
+gallery.cards = Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern
