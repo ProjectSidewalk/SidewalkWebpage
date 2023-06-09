@@ -5,6 +5,9 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "Kilometer",
   "format-number": "{{val, number}}",
+  "agree": "Einverstanden",
+  "disagree": "Nicht einverstanden",
+  "not-sure": "Unsicher",
   "curb-ramp": "Trottoirabsenkung",
   "no-curb-ramp": "fehlende Trottoirabsenkung",
   "obstacle": "Hindernis im Weg",
@@ -33,10 +36,11 @@
     "100-percent-complete": "100% abgeschlossen!",
     "percent-complete": "{{percent}}% abgeschlossen"
   },
-  "label-map": {
-    "add-comment": "Hier Kommentar hinzufügen...",
-    "submit": "Kommentar senden",
-    "comment-submitted" : "Kommentar gesendet"
+  "errors": {
+    "title": "Oops, our fault but there is no longer imagery available for this label.",
+    "explanation": "We use the Google Maps API to show the sidewalk images and sometimes Google removes these images so we can no longer access them. Sorry about that.",
+    "google-connect-error": "We had trouble connecting to Google Street View, please try again later!",
+    "explore-street": "Explore the street</a> again to use Google's newer images!"
   },
   "severity": "Schweregrad",
   "no-severity": "Bei dieser Beschriftung wurde kein Schweregrad angegeben",
@@ -102,7 +106,11 @@
     "button waist height": "Anforderungsgerät auf Hüfthöhe",
     "APS": "akustische Orientierungshilfe",
     "missing crosswalk": "fehlender Fussgängerstreifen",
-    "no bus stop access": "kein Zugang zur Haltestelle"
+    "no bus stop access": "kein Zugang zur Haltestelle",
+    "painted sidewalk": "painted sidewalk",
+    "pedestrian arcade": "pedestrian arcade",
+    "too close to traffic": "too close to traffic",
+    "utility panel": "utility panel"
   },
   "gsv-info": {
     "details-title": "Details",
@@ -110,9 +118,130 @@
     "longitude": "Längengrad",
     "panorama-id": "Panorama ID",
     "street-id": "Strasse ID",
+    "google-street-view": "Google Street View",
     "region-id": "Region ID",
     "label-id": "Beschriftung ID",
     "view-in-gsv": "Ansicht in Google Street View",
     "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
+  },
+  "mission-start-tutorial": {
+    "example-type-label-correct": "RICHTIGES BEISPIEL",
+    "label-type-subtitle": "Wieso ist das falsch?",
+    "label-on-image-title-correct": "Richtige Beschriftung",
+    "start-mission": "Mission starten",
+    "curb-ramp": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "Oft befinden sich Trottoirabsenkungen an beiden Enden eines Fussgängerstreifens oder bei Strassenübergängen ohne Fussgängerstreifen."
+      },
+      "slide-2": {
+        "title": "Ein-/Ausfahrt",
+        "description": "Ein- bzw. Ausfahrten sind <b>keine</b> Trottoirabsenkungen. Diese wurden für Fahrzeuge entworfen und nicht für Fussgänger:innen. Ein-/Ausfahrten sollten <b>nicht</b> als Trottoirabsenkungen beschriftet werden."
+      },
+      "slide-3": {
+        "title": "Garage",
+        "description": "Einfahrten zu Garagen sind <b>nicht</b> Trottoirabsenkungen. Ein-/Ausfahrten sollten <b>nicht</b> als Trottoirabsenkungen beschriftet werden."
+      }
+    },
+    "no-curb-ramp": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "Kreuzungen mit Gehwegen sollten Trottoirabsenkungen haben-idealerweise zwei pro Ecke. Wenn es bei einer Kreuzung ein Trottoir hat, aber keine Trottoirabsenkung, beschriften Sie dies mit fehlender Trottoirabsenkung an der Stelle, wo Ihrer Meinung nach eine Trottoirabsenkung sein sollte."
+      },
+      "slide-2": {
+        "title": "Gehwege für Wohnhäuser",
+        "description": "Auf Gehwegen für Wohnhäuser sollten <b>keine</b> fehlenden Trottoirabsenkungen beschriftet werden."
+      },
+      "slide-3": {
+        "title": "Nicht auf dem Gehweg",
+        "description": "Trottoirabsenkungen sind nicht notwendig bei Strassen, die <b>nicht</b> für Fussgänger:innen gedacht sind."
+      },
+      "slide-4": {
+        "title": "$t(no-sidewalk-caps)",
+        "description": "Bei Kreuzungen <b>ohne Trottoir</b> sollte die Beschriftung für kein Trottoir verwendet werden und nicht die Beschriftung für fehlende Trottoirabsenkungen."
+      }
+    },
+    "obstacle": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "Hindernisse sind Objekte, die den <b>Gehweg</b> für Personen im Rollstuhl, mit Geh- oder anderen Mobilitätshilfen versperren.<br><br>Nicht alle Feuerhydranten, Pfosten oder Schilder sind Hindernisse-nur diejenigen, die klar den Gehweg versperren."
+      },
+      "slide-2": {
+        "title": "Ausreichend Platz um herum zu manövrieren.",
+        "description": "Das Motorrad ist am Rand parkiert und lässt für Fussgänger:innen ausreichend Platz auf dem Gehweg."
+      },
+      "slide-3": {
+        "title": "Hindernis nicht auf Gehweg",
+        "description": "Dieses Verkehrshütchen befindet sich <b>nicht</b> auf dem Gehweg, weshalb es nicht als Hindernis beschriftet werden sollte. <br><br> Beschriften Sie nur Hindernisse auf dem Trottoir, auf Fussgängerstreifen und anderen Gehwegen."
+      },
+      "slide-4": {
+        "title": "Sich bewegendes Objekt",
+        "description": "Das Auto scheint in Bewegung zu sein und sollte nicht als Hindernis beschriftet werden."
+      }
+    },
+    "surface-problem": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "Wenn etwas auf der Oberfläche eines Trottoirs oder Fussgängerstreifens <b>das Passieren erschwert oder verunmöglicht,</b> sollte es als Oberflächenproblem beschriftet werden."
+      },
+      "slide-2": {
+        "title": "Normale Gehwegplatten",
+        "description": "Normale Gehwegplatten (ohne Spalten, Risse oder Unebenheiten) sind kein Oberflächenproblem."
+      },
+      "slide-3": {
+        "title": "Nicht auf dem Gehweg",
+        "description": "Dieses Kies ist <b>nicht</b> auf dem Gehweg, weshalb es nicht als Oberflächenproblem beschriftet werden sollte.<br><br>Beschriften Sie Oberflächenprobleme nur auf dem Trottoir, auf Fussgängerstreifen und anderen Gehwegen."
+      }
+    },
+    "no-sidewalk": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "Wenn eine Strasse kein Trottoir hat, beschriften Sie dies bitte mit <b>kein Trottoir</b>."
+      },
+      "slide-2": {
+        "title": "Verkehrsinsel",
+        "description": "Eine Verkehrsinsel, welche die beiden Verkehrsrichtungen trennt, und nicht für Fussgänger:innen gedacht ist, sollte <b>nicht</b> als kein Trottoir beschriftet werden."
+      },
+      "slide-3": {
+        "title": "Trottoir",
+        "description": "Hier ist ein Trottoir vorhanden. Es sollte <b>nicht</b> mit kein Trottoir beschriftet werden."
+      }
+    },
+    "crosswalk": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "Ein Fussgängerstreifen ist ein rechtlich gesicherter Raum, um eine Strasse zu überqueren.<br><br>Fussgängerstreifen werden meistens durch <b>parallel gestrichelte Linien</b> gekennzeichnet."
+      },
+      "slide-2": {
+        "title": "Kein visueller Hinweis",
+        "description": "Übergänge ohne visuelle Hinweise sollten <b>nicht</b> als Überquerungen für Fussgänger:innen beschriftet werden."
+      },
+      "slide-3": {
+        "title": "Haltelinien",
+        "description": "Haltelinien für Autos sollten nicht als Fussgängerstreifen beschriftet werden."
+      },
+      "slide-4": {
+        "title": "Strassenschwellen",
+        "description": "Strassenschwellen sollten nicht als Fussgängerstreifen beschriftet werden."
+      }
+    },
+    "signal": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "Ein Fussgängerlichtsignal zeigt an, wann Fussgänger:innen die Strasse sicher überqueren können und bietet genügend Zeit, um dies zu tun.<br><br>Einige dieser Signale werden durch ein Anforderungsgerät auf Hüfthöhe aktiviert."
+      },
+      "slide-2": {
+        "title": "Beschilderung",
+        "description": "Dieses Schild gibt keinen Hinweis darauf, wann Fussgänger:innen die Strasse überqueren können."
+      },
+      "slide-3": {
+        "title": "Pfosten",
+        "description": "Dieser Pfosten zeigt keine Verkehrssignale für Fussgänger:innen an."
+      },
+      "slide-4": {
+        "title": "Lichtsignal für Fahrzeuge",
+        "description": "Dieses Lichtsignal ist nur für Fahrzeuge und nicht für Fussgänger:innen."
+      }
+    }
   }
 }

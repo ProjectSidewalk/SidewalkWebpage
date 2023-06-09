@@ -11,15 +11,6 @@
     "surface-problems": "Oberflächenprobleme",
     "no-sidewalks": "keine Trottoirs",
     "others": "andere",
-    "curb-ramp-description": "Trottoirabsenkung",
-    "no-curb-ramp-description": "Fehlende Trottoirabsenkung",
-    "obstacle-description": "Hindernis im Weg",
-    "surface-problem-description": "Oberflächenproblem",
-    "other-description": "Andere",
-    "occlusion-description": "Trottoir nicht sichtbar",
-    "no-sidewalk-description": "Kein Trottoir",
-    "crosswalk-description": "Fussgängerstreifen",
-    "signal-description": "Fussgängerlichtsignal",
     "tutorial": {
         "mission-message": "Absolvieren Sie die Einführung!",
         "select-label-type-1": "In diesem “Street View”-Bild haben wir einen Pfeil zu einer Trottoirabsenkung eingezeichnet. Diese werden wir nun beschriften. Klicken Sie oben auf das beschriftete <span class=\"bold\">\"Trottoirabsenkung\"-Symbol</span>.",
@@ -73,15 +64,6 @@
             "rate-severity-4": "Nun <span class=\"bold\">beurteilen Sie die Qualität der Trottoirabsenkung</span>. Nutzen Sie Ihr bestes Urteilsvermögen. Sie können auch Kommentare ins <span class=\"bold\">Beschreibungsfeld</span> schreiben.",
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Klicken Sie das \"Curb Ramp\"-Symbol</span>, um die andere Trottoirabsenkung zu beschriften."
         }
-    },
-    "mission-start": {
-        "title": "Erkunden Sie __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Erste Mission: ",
-        "title-return": "Zurückkehren zur Mission",
-        "title-continue": "Erkundung der Zugänglichkeit für __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> fortsetzen!",
-        "body-first": "Ihre <span class=\"bold\">erste Mission</span> besteht darin, __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> zu erkunden und alle Zugänglichkeitsmerkmale zu finden, die für Personen mit Mobilitätsbeeinträchtigungen relevant sind!",
-        "body": "Ihre Mission besteht darin, __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> zu erkunden und alle Zugänglichkeitsmerkmale zu finden, die Personen mit Mobilitätsbeeinträchtigungen betreffen!",
-        "button-resume": "Mission fortsetzen!"
     },
     "mission-complete": {
         "distance-type-display-string": "Kilometer",
@@ -184,7 +166,11 @@
                 "APS": "<tag-underline>A</tag-underline>kustische Orientierungshilfe",
                 "missing-crosswalk": "fehlender Fussgängerstre<tag-underline>i</tag-underline>fen",
                 "no-bus-stop-access": "kein Zugang zur H<tag-underline>a</tag-underline>ltestelle",
-                "height-difference": "Höhenunterschie<tag-underline>d</tag-underline>"
+                "height-difference": "Höhenunterschie<tag-underline>d</tag-underline>",
+                "painted-sidewalk": "painted sidewalk (<tag-underline>h</tag-underline>)",
+                "pedestrian-arcade": "pedestrian arcade (<tag-underline>q</tag-underline>)",
+                "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
+                "utility-panel": "utility pan<tag-underline>e</tag-underline>l"
             },
             "tooltip": {
                 "passable": "Passierbar",
@@ -237,5 +223,13 @@
         "still-stuck": "Wenn Sie immer noch feststecken, klicken Sie erneut auf das Verlaufen-Symbol.",
         "stuck-skipped-street": "Wir konnten für Sie keinen Ort auf dieser Strasse finden, daher haben wir Sie auf eine neue Strasse verschoben.",
         "stuck-suggestion": "Wenn Sie sich nicht mithilfe der Pfeile bewegen können, versuchen Sie auf die Navigationsanweisungen unten rechts zu klicken. Oder klicken Sie links auf das Verlaufen-Symbols."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "EXPLORE MISSION",
+        "mst-instruction-2": "Label these accessibility features in {{neighborhood}}",
+        "example-type-label-incorrect": "COMMON MISTAKE",
+        "label-on-image-title-incorrect": "Common mistake",
+        "label-on-image-description-correct": "Place a label",
+        "label-on-image-description-incorrect": "Do <b>not</b> place label"
     }
 }
