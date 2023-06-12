@@ -36,7 +36,7 @@ CREATE TABLE config
     api_region_lng2          DOUBLE PRECISION NOT NULL
 );
 
--- may need to add the current database indicator to these values
+-- note: may need to add the current database indicator to these values
 -- note: what about newberg?
 
 -- seattle
@@ -55,10 +55,10 @@ INSERT INTO config VALUES('fully', NULL, 25.648, -100.385, 25.498, -100.670, 25.
 INSERT INTO config VALUES('partially', NULL, 40.424, -79.960, 40.000, -81.000, 41.000, -79.000, 13.0, 26293, -1, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 40.446, -79.959, 15.25, 40.443, -79.963, 40.449, -79.995, 40.446, -79.959, 15.25, 40.443, -79.963, 40.449, -79.995, 40.442, -79.959, 13.0, 40.425, -79.979, 40.465, -79.939);
 
 -- sidewalk / dc
-INSERT INTO config VALUES('fully', NULL, 38.892, -76.830, 38.761, -77.262, 39.060, -76.830, 12.0, 15250, -9, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 38.910, -76.984, 15.0, 38.909, -76.989, 38.912, -76.982, 38.920, -77.019, 14.0, 38.910, -77.028, 38.929, -77.009, 38.920, -77.019, 14.0, 38.910, -77.028, 38.929, -77.009)
+INSERT INTO config VALUES('fully', NULL, 38.892, -76.830, 38.761, -77.262, 39.060, -76.830, 12.0, 15250, -9, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 38.910, -76.984, 15.0, 38.909, -76.989, 38.912, -76.982, 38.920, -77.019, 14.0, 38.910, -77.028, 38.929, -77.009, 38.920, -77.019, 14.0, 38.910, -77.028, 38.929, -77.009);
 
 -- chicago
-    INSERT INTO config VALUES('partially', NULL, 41.820, -87.769, 40.750, -89.750, 43.000, -86.500, 10.25, 331320, 1, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 41.823, -87.622, 15.0, 41.816, -87.615, 41.83, -87.629, 42.085, -87.985, 15.25, 42.076, -87.993, 42.094, -87.963, 41.793, -88.146, 13.0, 41.700, -88.200, 42.000, -88.000);
+INSERT INTO config VALUES('partially', NULL, 41.820, -87.769, 40.750, -89.750, 43.000, -86.500, 10.25, 331320, 1, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 41.823, -87.622, 15.0, 41.816, -87.615, 41.83, -87.629, 42.085, -87.985, 15.25, 42.076, -87.993, 42.094, -87.963, 41.793, -88.146, 13.0, 41.700, -88.200, 42.000, -88.000);
 
 -- amsterdam
 INSERT INTO config VALUES('partially', NULL, 52.345, 4.925, 52.055, 4.425, 52.655, 5.425, 12.25, 34098, -6, '["garage entrance" "street vendor" "points into traffic" "missing tactile warning" "brick/cobblestone" "uncovered manhole" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 52.372, 4.886, 15.25, 52.295, 4.780, 52.450, 4.990, 52.355, 4.795, 15.25, 52.300, 4.600, 52.400, 4.850, 52.357, 4.918, 14.0, 52.200, 4.805, 52.450, 5.005);
