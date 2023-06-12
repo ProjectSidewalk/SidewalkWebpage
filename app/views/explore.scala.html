@@ -11,7 +11,12 @@
 @main(title, Some("/explore")) {
     @navbar(user, Some("/explore"))
 
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
+
     @icons()
+
+    @missionStartTutorial()
 
     <div id="page-loading">
         <div id="loading-gif">
@@ -95,9 +100,9 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
             <g>
                 <path stroke="white" d="M74 146C112.66 146 144 114.66 144 76C144 37.3401 112.66 6 74 6C35.3401 6 4 37.3401 4 76C4 114.66 35.3401 146 74 146Z" stroke-width="10"/>
-                <path fill="white" d="M75 84.84C60.18 84.84 46.56 96.14 41.12 112.96C40.9791 113.388 40.9568 113.847 41.0554 114.287C41.154 114.727 41.3698 115.133 41.68 115.46C41.9923 115.786 42.3862 116.021 42.8207 116.143C43.2551 116.264 43.7142 116.267 44.15 116.15C64.3657 110.776 85.6343 110.776 105.85 116.15C106.065 116.206 106.287 116.233 106.51 116.23C106.904 116.231 107.293 116.138 107.645 115.959C107.996 115.78 108.3 115.521 108.531 115.201C108.763 114.882 108.915 114.512 108.976 114.123C109.036 113.733 109.004 113.334 108.88 112.96C103.44 96.14 89.82 84.84 75 84.84ZM75 107.12C65.7632 107.089 56.5521 108.095 47.54 110.12C53.05 97.83 63.65 89.84 75 89.84C86.35 89.84 97 97.84 102.46 110.15C93.449 108.115 84.2379 107.098 75 107.12V107.12Z"/>
-                <path fill="white" d="M38.63 42.66C38.3342 42.498 38.0086 42.3976 37.6729 42.3647C37.3372 42.3318 36.9984 42.3673 36.6767 42.4688C36.3551 42.5703 36.0573 42.7359 35.8014 42.9555C35.5454 43.1752 35.3365 43.4443 35.1873 43.7468C35.0381 44.0493 34.9516 44.3788 34.9331 44.7156C34.9146 45.0524 34.9644 45.3894 35.0796 45.7064C35.1948 46.0235 35.3729 46.3139 35.6032 46.5603C35.8336 46.8066 36.1114 47.0038 36.42 47.14L50.68 54.14L36.19 63.35C35.7146 63.6318 35.346 64.0631 35.1417 64.5766C34.9375 65.0901 34.9091 65.6568 35.0611 66.1881C35.2131 66.7194 35.5368 67.1854 35.9817 67.5132C36.4265 67.841 36.9675 68.0122 37.52 68C37.9934 68.0012 38.4577 67.8695 38.86 67.62L60.86 53.68L38.63 42.66Z"/>
-                <path fill="white" d="M113.81 63.35L99.32 54.18L113.58 47.18C113.889 47.0438 114.166 46.8466 114.397 46.6003C114.627 46.3539 114.805 46.0635 114.92 45.7464C115.036 45.4294 115.085 45.0924 115.067 44.7556C115.048 44.4188 114.962 44.0893 114.813 43.7868C114.663 43.4843 114.455 43.2152 114.199 42.9955C113.943 42.7759 113.645 42.6103 113.323 42.5088C113.002 42.4073 112.663 42.3719 112.327 42.4047C111.991 42.4376 111.666 42.538 111.37 42.7L89.12 53.7L111.12 67.64C111.682 67.9891 112.359 68.1029 113.005 67.957C113.65 67.811 114.213 67.417 114.57 66.86C114.756 66.5813 114.884 66.2681 114.946 65.9389C115.009 65.6098 115.004 65.2715 114.933 64.9441C114.862 64.6166 114.726 64.3068 114.534 64.033C114.341 63.7591 114.094 63.5269 113.81 63.35V63.35Z"/>
+                <path fill="white" d="M96 98.24H54C53.337 98.24 52.7011 98.5034 52.2322 98.9722C51.7634 99.4411 51.5 100.077 51.5 100.74C51.5 101.403 51.7634 102.039 52.2322 102.508C52.7011 102.977 53.337 103.24 54 103.24H96C96.663 103.24 97.2989 102.977 97.7678 102.508C98.2366 102.039 98.5 101.403 98.5 100.74C98.5 100.077 98.2366 99.4411 97.7678 98.9722C97.2989 98.5034 96.663 98.24 96 98.24V98.24Z"/>
+                <path fill="white" d="M56.63 56.43C56.63 55.0099 56.2089 53.6218 55.4199 52.441C54.631 51.2603 53.5096 50.34 52.1977 49.7965C50.8857 49.2531 49.442 49.1109 48.0492 49.388C46.6565 49.665 45.3771 50.3488 44.373 51.353C43.3688 52.3571 42.685 53.6365 42.408 55.0293C42.1309 56.422 42.2731 57.8657 42.8165 59.1777C43.36 60.4896 44.2803 61.611 45.461 62.4C46.6417 63.1889 48.0299 63.61 49.45 63.61C50.3929 63.61 51.3265 63.4243 52.1977 63.0635C53.0688 62.7026 53.8603 62.1738 54.527 61.507C55.1937 60.8403 55.7226 60.0488 56.0834 59.1777C56.4443 58.3066 56.63 57.3729 56.63 56.43V56.43Z"/>
+                <path fill="white" d="M100.64 49.25C99.22 49.25 97.8318 49.6711 96.651 50.46C95.4703 51.249 94.55 52.3704 94.0066 53.6823C93.4631 54.9943 93.3209 56.438 93.598 57.8307C93.875 59.2235 94.5589 60.5029 95.563 61.507C96.5671 62.5112 97.8465 63.195 99.2393 63.472C100.632 63.7491 102.076 63.6069 103.388 63.0635C104.7 62.52 105.821 61.5997 106.61 60.419C107.399 59.2383 107.82 57.8501 107.82 56.43C107.82 54.5257 107.064 52.6995 105.717 51.353C104.371 50.0065 102.544 49.25 100.64 49.25Z"/>
             </g>
         </svg>
     </div>
@@ -534,19 +539,6 @@
                     </form>
                 </div>
             </div>
-            <div id="modal-mission-holder">
-                <div id="modal-mission-background" class="modal-background"></div>
-                <div id="modal-mission-foreground" class="modal-foreground">
-                    <h1 id="modal-mission-header" class="text-center">Mission</h1>
-                    @if(user.isDefined) {
-                        @if(user.get.role.getOrElse("") == "Turker") {
-                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
-                        }
-                    }
-                    <div id="modal-mission-instruction"></div>
-                    <button class="button" id="modal-mission-close-button">OK</button>
-                </div>
-            </div>
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
@@ -847,9 +839,6 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
 
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
-
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
@@ -1039,7 +1028,6 @@
                 svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                 $("#current-mission-reward").show();
                 $("#total-mission-reward").show();
-                $("#modal-mission-reward-text").show();
             }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";

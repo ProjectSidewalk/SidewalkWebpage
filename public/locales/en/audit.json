@@ -65,15 +65,6 @@
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Click the \"Curb Ramp\" button</span> to label the other curb ramp now."
         }
     },
-    "mission-start": {
-        "title": "Explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "First Mission: ",
-        "title-return": "Return to your mission",
-        "title-continue": "Continue exploring __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!",
-        "body-first": "Your <span class=\"bold\">first mission</span> is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
-        "body": "Your mission is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
-        "button-resume": "Resume Mission!"
-    },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
         "title": "Mission Complete!",
@@ -232,5 +223,13 @@
         "still-stuck": "If you're still stuck, click the Stuck button again.",
         "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street.",
         "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "EXPLORE MISSION",
+        "mst-instruction-2": "Label these accessibility features in {{neighborhood}}",
+        "example-type-label-incorrect": "COMMON MISTAKE",
+        "label-on-image-title-incorrect": "Common mistake",
+        "label-on-image-description-correct": "Place a label",
+        "label-on-image-description-incorrect": "Do <b>not</b> place label"
     }
 }
