@@ -140,7 +140,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
             // Set the instructional message
             overlayMessageBox.setMessage(labelType);
-            overlayMessageBox.setHelpLink(labelType);
+            // overlayMessageBox.setHelpLink(labelType);
         }
     }
 

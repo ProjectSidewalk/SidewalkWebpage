@@ -9,27 +9,6 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
 
     this._properties = { 'visibility' : 'visible' };
 
-    this._handleHelpLinkClick = function (e) {
-        var labelType = $helpLink.children(0).attr("val");
-        var labelTypes = ["CurbRamp", "NoCurbRamp", "SurfaceProblem", "Obstacle"];
-        if (labelType != undefined && labelTypes.indexOf(labelType) >= 0) {
-            modalModel.showModalExample(labelType);
-        }
-        svl.tracker.push("ExplainThis_Click", {
-            labelType: labelType
-        });
-    };
-
-    this.setHelpLink = function (labelType) {
-        var labelTypes = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
-
-        if (labelTypes.indexOf(labelType) >= 0) {
-            $helpLink.html("<span val='" + labelType + "'>" + i18next.t('top-ui.instruction.explain') + "</span>");
-        } else {
-            $helpLink.html("");
-        }
-    };
-
     /**
      * Set the message in the overlay box
      * @param mode
@@ -43,10 +22,7 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
             modalModel.showModalExample(labelType);
         });
     };
-
     this.setMessage('Walk');
-
-    $helpLink.on('click', this._handleHelpLinkClick);
 }
 
 /**
