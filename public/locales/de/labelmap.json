@@ -1,8 +1,8 @@
 {
-    "is-correct": "Is this label correct?",
-    "explore-street-link": "<a href=\"/explore/street/{{streetId}}\">Click here</a> to explore this street!",
-    "label-type": "Label Type",
-    "validations": "Validations",
+    "is-correct": "Ist diese Beschriftung richtig?",
+    "explore-street-link": "<a href=\"/explore/street/{{streetId}}\">Hier klicken</a>, um diese Strasse zu erkunden!",
+    "label-type": "Beschriftungskategorie",
+    "validations": "Validierungen",
     "add-comment": "Hier Kommentar hinzufügen...",
     "submit-comment": "Kommentar senden",
     "comment-submitted" : "Kommentar gesendet"

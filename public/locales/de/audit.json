@@ -225,11 +225,11 @@
         "stuck-suggestion": "Wenn Sie sich nicht mithilfe der Pfeile bewegen können, versuchen Sie auf die Navigationsanweisungen unten rechts zu klicken. Oder klicken Sie links auf das Verlaufen-Symbols."
     },
     "mission-start-tutorial": {
-        "mst-instruction-1": "EXPLORE MISSION",
-        "mst-instruction-2": "Label these accessibility features in {{neighborhood}}",
-        "example-type-label-incorrect": "COMMON MISTAKE",
-        "label-on-image-title-incorrect": "Common mistake",
-        "label-on-image-description-correct": "Place a label",
-        "label-on-image-description-incorrect": "Do <b>not</b> place label"
+        "mst-instruction-1": "MISSION ERKUNDEN",
+        "mst-instruction-2": "Beschriften Sie diese Zugänglichkeitsmerkmale in {{neighborhood}}",
+        "example-type-label-incorrect": "HÄUFIGER FEHLER",
+        "label-on-image-title-incorrect": "Häufiger Fehler",
+        "label-on-image-description-correct": "Fügen Sie eine Beschriftung hinzu",
+        "label-on-image-description-incorrect": "Fügen Sie <b>keine</b> Beschriftung hinzu"
     }
 }

@@ -37,10 +37,10 @@
     "percent-complete": "{{percent}}% abgeschlossen"
   },
   "errors": {
-    "title": "Oops, our fault but there is no longer imagery available for this label.",
-    "explanation": "We use the Google Maps API to show the sidewalk images and sometimes Google removes these images so we can no longer access them. Sorry about that.",
-    "google-connect-error": "We had trouble connecting to Google Street View, please try again later!",
-    "explore-street": "Explore the street</a> again to use Google's newer images!"
+    "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",
+    "explanation": "Wir verwenden die “Google Maps API”, um die Bilder der Gehwege anzuzeigen. Manchmal entfernt Google diese Bilder und wir können nicht mehr darauf zugreifen. Wir bitten um Entschuldigung!",
+    "google-connect-error": "Wir haben Probleme mit dem Verbinden von “Google Street View”. Versuchen Sie es später erneut!",
+    "explore-street": "Strasse nochmals erkunden</a>, um die neuen Aufnahmen von Google zu verwenden!"
   },
   "severity": "Schweregrad",
   "no-severity": "Bei dieser Beschriftung wurde kein Schweregrad angegeben",
@@ -107,10 +107,10 @@
     "APS": "akustische Orientierungshilfe",
     "missing crosswalk": "fehlender Fussgängerstreifen",
     "no bus stop access": "kein Zugang zur Haltestelle",
-    "painted sidewalk": "painted sidewalk",
-    "pedestrian arcade": "pedestrian arcade",
-    "too close to traffic": "too close to traffic",
-    "utility panel": "utility panel"
+    "painted sidewalk": "gemaltes Trottoir",
+    "pedestrian arcade": "Fussgängerpassage",
+    "too close to traffic": "zu nah am Verkehr",
+    "utility panel": "Bedienungsfeld"
   },
   "gsv-info": {
     "details-title": "Details",
@@ -118,7 +118,7 @@
     "longitude": "Längengrad",
     "panorama-id": "Panorama ID",
     "street-id": "Strasse ID",
-    "google-street-view": "Google Street View",
+    "google-street-view": "“Google Street View”",
     "region-id": "Region ID",
     "label-id": "Beschriftung ID",
     "view-in-gsv": "Ansicht in Google Street View",
