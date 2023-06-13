@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # Read google maps API key from env variable.
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     if api_key is None:
-        print("Couldn't read GOOGLE_MAPS_API_KEY environment variable.")
+        print "Couldn't read GOOGLE_MAPS_API_KEY environment variable."
         exit(1)
 
     # Read street edge data from CSV.
