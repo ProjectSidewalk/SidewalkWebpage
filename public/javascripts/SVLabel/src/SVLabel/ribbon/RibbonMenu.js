@@ -2,13 +2,12 @@
  * RibbonMenu module
  * Todo. Split the RibbonMenu UI component and the label type switching logic
  * Todo. Consider moving this under menu instead of ribbon.
- * @param overlayMessageBox
  * @param tracker
  * @param uiRibbonMenu
  * @returns {{className: string}}
  * @constructor
  */
-function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
+function RibbonMenu(tracker, uiRibbonMenu) {
     var self = {className: 'RibbonMenu'},
         properties = {
             buttonDefaultBorderColor: "transparent",
@@ -137,10 +136,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                     "background-color": borderColor
                 });
             }
-
-            // Set the instructional message
-            overlayMessageBox.setMessage(labelType);
-            // overlayMessageBox.setHelpLink(labelType);
         }
     }
 

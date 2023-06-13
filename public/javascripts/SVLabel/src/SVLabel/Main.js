@@ -64,8 +64,7 @@ function Main (params) {
         svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
 
-        svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
-        svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
+        svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
 
 
@@ -443,14 +442,6 @@ function Main (params) {
         svl.ui.statusMessage.holder = $("#current-status-holder");
         svl.ui.statusMessage.title = $("#current-status-title");
         svl.ui.statusMessage.description = $("#current-status-description");
-
-        // OverlayMessage.
-        svl.ui.overlayMessage = {};
-        svl.ui.overlayMessage.holder = $("#overlay-message-holder");
-        svl.ui.overlayMessage.holder.append("<span id='overlay-message-box'>" +
-            "<span id='overlay-message'>Walk</span><span id='overlay-message-help-link' class='underline bold'></span></span>");
-        svl.ui.overlayMessage.box = $("#overlay-message-box");
-        svl.ui.overlayMessage.message = $("#overlay-message");
 
         // Pop up message.
         svl.ui.popUpMessage = {};
