@@ -68,17 +68,16 @@
             </div>
             <div id="upper-menu-holder">
                 <div id="upper-menu-title-bar"></div>
-                <div id="label-visibility-control-holder">
-                    <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
-                    </button>
+                <div id="label-visibility-control-holder" class="upper-menu-button-holder">
+                    <button id="label-visibility-control-button" class="button upper-menu-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
                 </div>
 
-                <div id="zoom-control-holder">
-                    <button id="zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
+                <div id="zoom-control-holder" class="upper-menu-button-holder">
+                    <button id="zoom-in-button" class="button zoom-control-button upper-menu-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom in">
                         <br/>@Html(Messages("validate.top.ui.zoom.in"))</button>
-                    <button id="zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
+                    <button id="zoom-out-button" class="button zoom-control-button upper-menu-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom out">
                         <br/>@Messages("validate.top.ui.zoom.out")</button>
                 </div>
             </div>

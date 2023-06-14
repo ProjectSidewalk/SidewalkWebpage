@@ -2,7 +2,7 @@
     position: absolute;
     top: 0px;
     width: 730px;
-    height: 70px;
+    height: 75px;
 }
 
 #upper-menu-title-bar {
@@ -11,53 +11,39 @@
     font-size: 25px;
 }
 
-.button.label-visibility-control-button:focus {
-    outline: none;
-}
-
-.button.label-visibility-control-button {
-    color: rgba(0,0,0,1);
-    font-size: 6.3px;
-    height: 36px;
-    width: 65px;
-}
-
-.label-visibility-control-button-icon {
-    height: 18px;
-    width: 18px;
+.upper-menu-button-holder {
+    background: transparent;
+    position: absolute;
+    top: 27px;
 }
 
 #label-visibility-control-holder {
-    background: transparent;
-    position: absolute;
     left: 524px;
-    top: 30px;
-    height: 55px;
     width: 65px;
-}
-
-.button.zoom-control-button {
-    color: rgba(0,0,0,1);
-    font-size: 8px;
-    height: 36px;
-    width: 65px;
-    margin-right: 2px;
-}
-
-.button.zoom-control-button:focus {
-    outline: none;
-}
-
-.zoom-button-icon {
-    height: 18px;
-    width: 18px;
 }
 
 #zoom-control-holder {
-    background: transparent;
-    position: absolute;
     left: 595px;
-    top: 30px;
-    height: 55px;
     width: 185px;
+}
+
+.button.upper-menu-button {
+    color: rgba(0,0,0,1);
+    font-size: 7px;
+    height: 44px;
+    width: 65px;
+    padding-bottom: 10px; /* Not sure why we needed this, but buttons were moving around vertically otherwise.  */
+}
+
+.button.upper-menu-button:focus {
+    outline: none;
+}
+
+.button.zoom-control-button {
+    margin-right: 2px;
+}
+
+.upper-menu-button-icon {
+    height: 18px;
+    width: 18px;
 }
