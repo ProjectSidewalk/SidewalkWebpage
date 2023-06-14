@@ -157,7 +157,7 @@
         "description": "Trottoirabsenkungen sind nicht notwendig bei Strassen, die <b>nicht</b> für Fussgänger:innen gedacht sind."
       },
       "slide-4": {
-        "title": "$t(no-sidewalk-caps)",
+        "title": "$t(common:no-sidewalk)",
         "description": "Bei Kreuzungen <b>ohne Trottoir</b> sollte die Beschriftung für kein Trottoir verwendet werden und nicht die Beschriftung für fehlende Trottoirabsenkungen."
       }
     },

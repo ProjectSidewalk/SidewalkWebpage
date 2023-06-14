@@ -211,8 +211,8 @@ audit.help.surface.problem.5 = Personen im Rollstuhl können das schwer beschäd
 
 validate.top.ui.zoom.in = Hineinzoomen (<u>Z</u>)
 validate.top.ui.zoom.out = Hinauszoomen
-validate.left.ui.skip = Überspringen
-validate.left.ui.feedback = Rückmeldung
+validate.left.ui.skip = <span style="overflow-wrap: break-word;">Überspringen</span>
+validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Rückmeldung</span>
 validate.bottom.ui.agree = Einverstanden (<u>A</u>)
 validate.bottom.ui.disagree = Nicht einverstanden (<u>D</u>)
 validate.bottom.ui.not.sure = Unsicher (<u>N</u>)
