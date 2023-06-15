@@ -48,22 +48,23 @@ function RouteBuilder ($, mapParamData) {
     let unitAbbreviation = i18next.t('common:unit-distance-abbreviation');
     setStreetDistance();
 
-    // Create the tooltip for the share button that says it's copied to the clipboard.
-    shareButton.tooltip({
-        trigger: 'manual'
-    });
-    function setTooltip(btn, message) {
-        $(btn).tooltip('hide')
-            .attr('data-original-title', message)
-            .tooltip('show');
+    // Create instructional tooltips for the buttons.
+    saveButton.tooltip({ title: 'Please select at least one street to save a route.', container: 'body' });
+    exploreButton.tooltip({ title: 'You need to create and save your route before exploring.', container: 'body' });
+    shareButton.tooltip({ title: 'You need to create and save your route before sharing.', container: 'body' });
+
+    // These functions will temporarily show a tooltip. Used when the user clicks the 'copy to clipboard' button.
+    function setTemporaryTooltip(btn, message) {
+        $(btn).attr('data-original-title', message).tooltip('enable').tooltip('show');
         hideTooltip(btn);
     }
     function hideTooltip(btn) {
         setTimeout(function() {
-            $(btn).tooltip('hide');
+            $(btn).tooltip('hide').tooltip('disable');
         }, 1000);
     }
 
+    // Saves the route to the database, enables explore/share buttons, updates tooltips for all buttons.
     let saveRoute = function() {
         fetch('/saveRoute', {
             method: 'POST',
@@ -79,15 +80,17 @@ function RouteBuilder ($, mapParamData) {
                 exploreButton.click(function () {
                     window.location.replace(exploreURL);
                 });
-                exploreButton.prop('disabled', false);
+                exploreButton.attr('aria-disabled', false);
+                exploreButton.tooltip('disable');
+                shareButton.tooltip('disable');
 
                 // Add the 'copied to clipboard' tooltip.
                 shareButton.click(function (e) {
                     navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
-                    setTooltip(e.currentTarget, 'Copied to clipboard!');
+                    setTemporaryTooltip(e.currentTarget, 'Copied to clipboard!');
                     logActivity('RouteBuilder_Click=CopyRoute');
                 });
-                shareButton.prop('disabled', false);
+                shareButton.attr('aria-disabled', false);
             });
     };
     saveButton.click(saveRoute);
@@ -161,7 +164,7 @@ function RouteBuilder ($, mapParamData) {
             offset: [0, -15],
             closeButton: false,
             closeOnClick: false
-        }).setHTML(`A route can only have streets from one region in it at this time.`);
+        }).setHTML(`A route can only have streets from one neighborhood in it at this time.`);
 
         // Mark when a street is being hovered over.
         map.on('mousemove', (event) => {
@@ -215,7 +218,8 @@ function RouteBuilder ($, mapParamData) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
 
                     currRegionId = null;
-                    saveButton.prop('disabled', true);
+                    saveButton.attr('aria-disabled', true);
+                    saveButton.tooltip('disable');
                     map.setPaintProperty(
                         'streets',
                         'line-color',
@@ -234,7 +238,8 @@ function RouteBuilder ($, mapParamData) {
                 // If this was first street added, change style to show you can't choose streets in other regions.
                 if (currRoute.length === 1) {
                     currRegionId = street[0].properties.region_id;
-                    saveButton.prop('disabled', false);
+                    saveButton.attr('aria-disabled', false);
+                    saveButton.tooltip('disable');
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                     map.setPaintProperty(
                         'streets',
