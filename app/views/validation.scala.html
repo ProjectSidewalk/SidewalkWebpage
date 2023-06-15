@@ -56,13 +56,13 @@
                 <div id="left-column-button-holder">
                     <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
-                        <br>@Html(Messages("validate.left.ui.skip"))
+                        <br>@Messages("validate.left.ui.skip")
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-toggle="popover" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
                         <br>
-                        @Html(Messages("validate.left.ui.feedback"))
+                        @Messages("validate.left.ui.feedback")
                     </div>
                 </div>
             </div>
