@@ -10,6 +10,7 @@ function RouteBuilder ($, mapParamData) {
 
     let currRoute = [];
     let currRegionId = null;
+    let savedRoute = null;
 
     let streetDistanceElem = $('#street-distance');
     let saveButton = $('#route-builder-save-button');
@@ -66,16 +67,20 @@ function RouteBuilder ($, mapParamData) {
 
     // Saves the route to the database, enables explore/share buttons, updates tooltips for all buttons.
     let saveRoute = function() {
+        let streetIds = currRoute.map(s => s.properties.street_edge_id);
+        // Don't save if the route hasn't changed.
+        if (JSON.stringify(streetIds) === JSON.stringify(savedRoute)) return;
         fetch('/saveRoute', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ region_id: currRegionId, street_ids: currRoute.map(s => s.properties.street_edge_id) })
+            body: JSON.stringify({ region_id: currRegionId, street_ids: streetIds })
         })
             .then((response) => response.json())
             .then((data) => {
+                savedRoute = streetIds;
                 let exploreURL = `/explore?routeId=${data.route_id}`;
                 exploreButton.click(function () {
                     window.location.replace(exploreURL);
