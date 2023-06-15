@@ -7,25 +7,25 @@
 #left-column-button-holder .button {
     text-align: center;
     width: 60px;
-    height: 90px;
+    height: 75px;
     font-size: 8pt;
     border: 2px #ccc solid;
-    padding: 12px 0 0 0;
+    padding: 5px 1px 0 1px;
     color: rgba(0,0,0,1);
+    line-height: 1.1;
+    overflow-wrap: break-word;
 }
 
 #left-column-button-holder .zoom-control-button {
-    font-size: 7pt;
-    height: 36px;
-    padding: 0;
+    height: 51px;
 }
 
 #left-column-zoom-out-button {
-    margin: 3px 0 10px 0;
+    margin: 3px 0 35px 0;
 }
 
 #left-column-button-holder img {
-    width: 36px;
+    width: 35px;
 }
 .zoom-button-icon {
     height: 18px;

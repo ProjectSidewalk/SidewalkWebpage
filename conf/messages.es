@@ -145,7 +145,7 @@ audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>
 audit.left.ui.zoom.in = Acercar (<u>Z</u>)
 audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
-audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+audit.left.ui.feedback = Retroalimentación
 audit.left.ui.stuck = Atorado
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
