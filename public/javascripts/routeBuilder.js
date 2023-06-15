@@ -68,8 +68,14 @@ function RouteBuilder ($, mapParamData) {
     // Saves the route to the database, enables explore/share buttons, updates tooltips for all buttons.
     let saveRoute = function() {
         let streetIds = currRoute.map(s => s.properties.street_edge_id);
-        // Don't save if the route hasn't changed.
-        if (JSON.stringify(streetIds) === JSON.stringify(savedRoute)) return;
+        // Don't save if the route is empty or hasn't changed.
+        if (streetIds.length === 0) {
+            logActivity(`RouteBuilder_Click=SaveEmpty`);
+            return;
+        } else if (JSON.stringify(streetIds) === JSON.stringify(savedRoute)) {
+            logActivity(`RouteBuilder_Click=SaveDuplicate`);
+            return;
+        }
         fetch('/saveRoute', {
             method: 'POST',
             headers: {
@@ -81,21 +87,32 @@ function RouteBuilder ($, mapParamData) {
             .then((response) => response.json())
             .then((data) => {
                 savedRoute = streetIds;
+                setTemporaryTooltip(saveButton, 'Route saved!');
+                logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
+
+                // Update link and tooltip for Explore route button.
                 let exploreURL = `/explore?routeId=${data.route_id}`;
+                exploreButton.off('click');
                 exploreButton.click(function () {
+                    logActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
                     window.location.replace(exploreURL);
                 });
                 exploreButton.attr('aria-disabled', false);
                 exploreButton.tooltip('disable');
-                shareButton.tooltip('disable');
 
-                // Add the 'copied to clipboard' tooltip.
+                // Add the 'copied to clipboard' tooltip on click.
+                shareButton.tooltip('disable');
+                shareButton.off('click');
                 shareButton.click(function (e) {
                     navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
                     setTemporaryTooltip(e.currentTarget, 'Copied to clipboard!');
-                    logActivity('RouteBuilder_Click=CopyRoute');
+                    logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
                 });
                 shareButton.attr('aria-disabled', false);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                logActivity(`RouteBuilder_Click=SaveError`);
             });
     };
     saveButton.click(saveRoute);
