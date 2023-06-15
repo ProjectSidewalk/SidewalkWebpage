@@ -128,9 +128,9 @@ audit.tutorial.end.2 = Herzlichen Dank, dass Sie dabei helfen, <span class="bold
 audit.tutorial.examples = Beispiele von Zugänglichkeitsmerkmalen: Trottoirabsenkungen, fehlende Trottoirabsenkungen, Hindernisse im Weg und Oberflächenprobleme.
 
 audit.ribbon.find.and.label = Finden und beschriften Sie die folgenden
-audit.ribbon.curb.ramp.labels = BESCHRIFTUNGEN TROTTOIRABSENKUNG
-audit.ribbon.sidewalk.labels = BESCHRIFTUNGEN GEHWEG
-audit.ribbon.other.labels = BESCHRIFTUNGEN ANDERER ZUGÄNGLICHKEITSMERKMALEN
+audit.ribbon.curb.ramp.labels = BESCHR. TROTTOIRABSENKUNGEN
+audit.ribbon.sidewalk.labels = BESCHR. GEHWEG
+audit.ribbon.other.labels = BESCHR. ANDERE ZUGÄNGLICHKEITSMERKMALE
 audit.ribbon.explore = <u>E</u>rkunden
 audit.ribbon.curb.ramp = Trottoirabsenkung (<u>C</u>)
 audit.ribbon.missing.ramp = Fehlende Trottoirabsenkung (<u>M</u>)
