@@ -40,7 +40,7 @@ function LabelVisibilityControl () {
         visible = true;
         let htmlString = `${buttonUiVisibilityControlHide}</button>`;
         labelVisibilityButtonOnPano.html(htmlString);
-        htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="upper-menu-button-icon" alt="Hide Label">
         <br />${buttonUiVisibilityControlHide}</button>`;
         labelVisibilityControlButton.html(htmlString);
         // If we are unhiding because the user is moving on to their next label, then Panomarker.js adds the outline.
@@ -59,7 +59,7 @@ function LabelVisibilityControl () {
         visible = false;
         let htmlString = `${buttonUiVisibilityControlShow}</button>`;
         labelVisibilityButtonOnPano.html(htmlString);
-        htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="upper-menu-button-icon" alt="Hide Label">
         <br />${buttonUiVisibilityControlShow}</button>`;
         labelVisibilityControlButton.html(htmlString);
         panomarker.marker_.classList.remove('icon-outline');
@@ -69,7 +69,7 @@ function LabelVisibilityControl () {
      * Refreshes label visual state
      */
     function refreshLabel () {
-        let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="upper-menu-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         labelVisibilityControlButton.html(htmlString);
         labelVisibilityControlButton.css({
