@@ -271,6 +271,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
         var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority();
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
+        if (svl.neighborhoodModel.isRoute) otherAuditedDistance = 0; // Only show this user's data if on a route.
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
 
         var userCompletedTasks = taskContainer.getCompletedTasks();
