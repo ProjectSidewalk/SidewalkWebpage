@@ -10,6 +10,7 @@ function RouteBuilder ($, mapParamData) {
 
     let currRoute = [];
     let currRegionId = null;
+    let savedRoute = null;
 
     let streetDistanceElem = $('#street-distance');
     let saveButton = $('#route-builder-save-button');
@@ -45,49 +46,72 @@ function RouteBuilder ($, mapParamData) {
 
     // Set up the route length in the top-right of the map.
     let units = i18next.t('common:unit-distance');
-    let unitAbbreviation = i18next.t('common:unit-distance-abbreviation');
-    setStreetDistance();
+    setRouteDistanceText();
 
-    // Create the tooltip for the share button that says it's copied to the clipboard.
-    shareButton.tooltip({
-        trigger: 'manual'
-    });
-    function setTooltip(btn, message) {
-        $(btn).tooltip('hide')
-            .attr('data-original-title', message)
-            .tooltip('show');
+    // Create instructional tooltips for the buttons.
+    saveButton.tooltip({ title: i18next.t('save-button-tooltip'), container: 'body' });
+    exploreButton.tooltip({ title: i18next.t('explore-button-tooltip'), container: 'body' });
+    shareButton.tooltip({ title: i18next.t('share-button-tooltip'), container: 'body' });
+
+    // These functions will temporarily show a tooltip. Used when the user clicks the 'copy to clipboard' button.
+    function setTemporaryTooltip(btn, message) {
+        $(btn).attr('data-original-title', message).tooltip('enable').tooltip('show');
         hideTooltip(btn);
     }
     function hideTooltip(btn) {
         setTimeout(function() {
-            $(btn).tooltip('hide');
+            $(btn).tooltip('hide').tooltip('disable');
         }, 1000);
     }
 
+    // Saves the route to the database, enables explore/share buttons, updates tooltips for all buttons.
     let saveRoute = function() {
+        let streetIds = currRoute.map(s => s.properties.street_edge_id);
+        // Don't save if the route is empty or hasn't changed.
+        if (streetIds.length === 0) {
+            logActivity(`RouteBuilder_Click=SaveEmpty`);
+            return;
+        } else if (JSON.stringify(streetIds) === JSON.stringify(savedRoute)) {
+            logActivity(`RouteBuilder_Click=SaveDuplicate`);
+            return;
+        }
         fetch('/saveRoute', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ region_id: currRegionId, street_ids: currRoute.map(s => s.properties.street_edge_id) })
+            body: JSON.stringify({ region_id: currRegionId, street_ids: streetIds })
         })
             .then((response) => response.json())
             .then((data) => {
+                savedRoute = streetIds;
+                setTemporaryTooltip(saveButton, i18next.t('route-saved'));
+                logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
+
+                // Update link and tooltip for Explore route button.
                 let exploreURL = `/explore?routeId=${data.route_id}`;
+                exploreButton.off('click');
                 exploreButton.click(function () {
+                    logActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
                     window.location.replace(exploreURL);
                 });
-                exploreButton.prop('disabled', false);
+                exploreButton.attr('aria-disabled', false);
+                exploreButton.tooltip('disable');
 
-                // Add the 'copied to clipboard' tooltip.
+                // Add the 'copied to clipboard' tooltip on click.
+                shareButton.tooltip('disable');
+                shareButton.off('click');
                 shareButton.click(function (e) {
                     navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
-                    setTooltip(e.currentTarget, 'Copied to clipboard!');
-                    logActivity('RouteBuilder_Click=CopyRoute');
+                    setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
+                    logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
                 });
-                shareButton.prop('disabled', false);
+                shareButton.attr('aria-disabled', false);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                logActivity(`RouteBuilder_Click=SaveError`);
             });
     };
     saveButton.click(saveRoute);
@@ -124,6 +148,9 @@ function RouteBuilder ($, mapParamData) {
         }
     }
 
+    /**
+     * Renders the streets on the map. Adds the hover/click events for the streets as well.
+     */
     function renderStreetsHelper() {
         map.addSource('streets', {
             type: 'geojson',
@@ -141,8 +168,6 @@ function RouteBuilder ($, mapParamData) {
             paint: {
                 'line-color': ['case',
                     ['boolean', ['feature-state', 'chosen'], false], '#4a6',
-                    // ['all', currRegionId !== null, ['!=', currRegionId, ['get', 'region_id']]], '#bbb', // try with currRegionId === null.
-                    // ['boolean', ['!=', ['get', 'region_id'], ['coalesce', null, null]], false], '#bbb',
                     ['boolean', ['feature-state', 'hover'], false], '#da1',
                     '#777'
                 ],
@@ -158,10 +183,9 @@ function RouteBuilder ($, mapParamData) {
 
         let streetId = null;
         const popup = new mapboxgl.Popup({
-            offset: [0, -15],
             closeButton: false,
             closeOnClick: false
-        }).setHTML(`A route can only have streets from one region in it at this time.`);
+        }).setHTML(i18next.t('one-neighborhood-warning'));
 
         // Mark when a street is being hovered over.
         map.on('mousemove', (event) => {
@@ -215,7 +239,8 @@ function RouteBuilder ($, mapParamData) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
 
                     currRegionId = null;
-                    saveButton.prop('disabled', true);
+                    saveButton.attr('aria-disabled', true);
+                    saveButton.tooltip('disable');
                     map.setPaintProperty(
                         'streets',
                         'line-color',
@@ -234,7 +259,8 @@ function RouteBuilder ($, mapParamData) {
                 // If this was first street added, change style to show you can't choose streets in other regions.
                 if (currRoute.length === 1) {
                     currRegionId = street[0].properties.region_id;
-                    saveButton.prop('disabled', false);
+                    saveButton.attr('aria-disabled', false);
+                    saveButton.tooltip('disable');
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                     map.setPaintProperty(
                         'streets',
@@ -248,7 +274,7 @@ function RouteBuilder ($, mapParamData) {
                     );
                 }
             }
-            setStreetDistance();
+            setRouteDistanceText();
         });
     }
     function renderStreets(streetDataIn) {
@@ -259,11 +285,18 @@ function RouteBuilder ($, mapParamData) {
         }
     }
 
-    function setStreetDistance() {
+    /**
+     * Updates the route distance text shown in the upper-right corner of the map.
+     */
+    function setRouteDistanceText() {
         let routeDistance = currRoute.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
-        streetDistanceElem.text(`Route length: ${routeDistance.toFixed(2)} ${unitAbbreviation}`);
+        streetDistanceElem.text(i18next.t('route-length', { dist: routeDistance.toFixed(2) }));
     }
 
+    /**
+     * Used to log user activity to the `webpage_activity` table.
+     * @param activity
+     */
     function logActivity(activity) {
         var url = "/userapi/logWebpageActivity";
         var async = false;

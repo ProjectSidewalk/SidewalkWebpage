@@ -63,7 +63,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                         });
                     } else {
                         console.error("Error loading Street View imagery");
-                        svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(latLng)});
+                        svl.tracker.push("PanoId_NotFound", { 'Location': JSON.stringify(latLng) });
                         nextTaskIn.complete();
                         // no street view available in this range.
                         self.getFinishedAndInitNextTask(nextTaskIn);
@@ -180,7 +180,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param taskIn {object} Task
      * @param acrossAllUsers
      * @param threshold {number} Distance threshold
-     * @param unit {string} Distance unit
+     * @param unit {object} Distance unit
      * @returns {Array}
      * @private
      */
@@ -194,7 +194,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (taskIn && tasks) {
             var connectedTasks = [];
             if (!threshold) threshold = 0.01;  // 0.01 km.
-            if (!unit) unit = {units: 'kilometers'};
+            if (!unit) unit = { units: 'kilometers' };
 
             tasks = tasks.filter(function (t) {
                 return !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId();
@@ -404,32 +404,68 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }).sort(function(t1, t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });
-        if (tasksNotCompletedByUser.length === 0) { // user has audited entire region
+        if (tasksNotCompletedByUser.length === 0) { // User has audited entire region or route.
             return null;
         }
         var highestPriorityTask = tasksNotCompletedByUser[0];
+        var highestPriorityDiscretized = highestPriorityTask.getStreetPriorityDiscretized();
 
-        // If any of the connected tasks has max discretized priority, pick the highest priority one, o/w take the
-        // highest priority task in the region.
-        userCandidateTasks = self._findConnectedTasks(finishedTask, false, null, null);
-
-        userCandidateTasks = userCandidateTasks.filter(function(t) {
-            return !t.isComplete() && t.getStreetPriorityDiscretized() === highestPriorityTask.getStreetPriorityDiscretized();
-        }).sort(function(t1,t2) {
-            return t2.getStreetPriority() - t1.getStreetPriority();
-        });
-
-        if (userCandidateTasks.length > 0) {
-            newTask = userCandidateTasks[0];
-        } else {
-            newTask = highestPriorityTask;
+        // Get list of connected streets. If empty, try again with a larger radius.
+        userCandidateTasks = self._findConnectedTasks(finishedTask, false, 0.0075, { units: 'kilometers' });
+        if (userCandidateTasks.length === 0) {
+            userCandidateTasks = self._findConnectedTasks(finishedTask, false, 0.15, { units: 'kilometers' });
         }
 
-        // Return the new task. Change the starting point and start time of the new task accordingly.
+        // For a route, prioritize connected streets and short streets to help smooth out roundabouts. If it isn't a
+        // route, if any of the connected tasks has max discretized priority, pick the highest priority connected
+        // street, o/w take the highest priority task in the region.
+        if (svl.neighborhoodModel.isRoute) {
+            userCandidateTasks = userCandidateTasks.sort(function (t1, t2) {
+                return t1.lineDistance() - t2.lineDistance();
+            });
+        } else {
+            userCandidateTasks = userCandidateTasks.filter(function (t) {
+                return t.getStreetPriorityDiscretized() === highestPriorityDiscretized;
+            }).sort(function (t1, t2) {
+                return t2.getStreetPriority() - t1.getStreetPriority();
+            });
+        }
+
+        // If there is no connected task, pick the lowest routeStreetId for routes, or highest priority otherwise.
+        var connectedTask;
+        if (userCandidateTasks.length > 0) {
+            newTask = userCandidateTasks[0];
+            connectedTask = true;
+        } else if (svl.neighborhoodModel.isRoute) {
+            newTask = tasksNotCompletedByUser.sort(function(t1, t2) {
+                return t1.getProperty('routeStreetId') - t2.getProperty('routeStreetId');
+            })[0];
+            connectedTask = false;
+        } else {
+            newTask = highestPriorityTask;
+            connectedTask = false;
+        }
+
+        // Set the start point of the new task. If it's connected to the current task or is generally nearby, use the
+        // current task's endpoint to avoid accidentally marking the user as being at the end of the street. Otherwise,
+        // if the default endpoint of the new task is not connected to any streets, try reversing its direction to
+        // encourage contiguous routes.
+        // TODO take into account street priority when checking for connected tasks here.
         if (finishedTask) {
-            var coordinate = finishedTask.getLastCoordinate();
-            newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
+            var startPoint;
+            var line = newTask.getGeoJSON().features[0];
+            var endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
+            var taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
+            if (connectedTask || taskNearby) {
+                startPoint = finishedTask.getLastCoordinate();
+            } else if (self._findConnectedTasks(newTask, false, null, null).length === 0) {
+                startPoint = newTask.getLastCoordinate();
+            } else {
+                startPoint = newTask.getStartCoordinate();
+            }
+            newTask.setStreetEdgeDirection(startPoint.lat, startPoint.lng);
             newTask.setProperty('taskStart', new Date());
+            newTask.render();
         }
 
         return newTask;
@@ -512,7 +548,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * segments on Google Maps.
      * TODO This should be done somewhere else.
      */
-    function update () {
+    function update() {
         for (var i = 0, len = previousTasks.length; i < len; i++) {
             previousTasks[i].render();
         }
