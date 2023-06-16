@@ -47,7 +47,7 @@ function RouteBuilder ($, mapParamData) {
     // Set up the route length in the top-right of the map.
     let units = i18next.t('common:unit-distance');
     let unitAbbreviation = i18next.t('common:unit-distance-abbreviation');
-    setStreetDistance();
+    setRouteDistanceText();
 
     // Create instructional tooltips for the buttons.
     saveButton.tooltip({ title: 'Please select at least one street to save a route.', container: 'body' });
@@ -149,6 +149,9 @@ function RouteBuilder ($, mapParamData) {
         }
     }
 
+    /**
+     * Renders the streets on the map. Adds the hover/click events for the streets as well.
+     */
     function renderStreetsHelper() {
         map.addSource('streets', {
             type: 'geojson',
@@ -275,7 +278,7 @@ function RouteBuilder ($, mapParamData) {
                     );
                 }
             }
-            setStreetDistance();
+            setRouteDistanceText();
         });
     }
     function renderStreets(streetDataIn) {
@@ -286,11 +289,18 @@ function RouteBuilder ($, mapParamData) {
         }
     }
 
-    function setStreetDistance() {
+    /**
+     * Updates the route distance text shown in the upper-right corner of the map.
+     */
+    function setRouteDistanceText() {
         let routeDistance = currRoute.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
         streetDistanceElem.text(`Route length: ${routeDistance.toFixed(2)} ${unitAbbreviation}`);
     }
 
+    /**
+     * Used to log user activity to the `webpage_activity` table.
+     * @param activity
+     */
     function logActivity(activity) {
         var url = "/userapi/logWebpageActivity";
         var async = false;
