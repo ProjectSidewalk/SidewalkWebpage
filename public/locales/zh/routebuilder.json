@@ -1,0 +1,9 @@
+{
+    "route-length": "路線長度：{{dist}} $t(common:unit-distance-abbreviation)",
+    "save-button-tooltip": "請選擇至少一條街道來保存一條路線。",
+    "explore-button-tooltip": "在探索之前，您需要創建和保存路線。",
+    "share-button-tooltip": "在共享之前，您需要創建和保存路線。",
+    "route-saved": "保存的路線！",
+    "copied-to-clipboard": "複製到剪貼板！",
+    "one-neighborhood-warning": "目前，一條路線只能在其中一個社區中有街道。"
+}

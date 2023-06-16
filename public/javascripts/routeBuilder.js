@@ -46,13 +46,12 @@ function RouteBuilder ($, mapParamData) {
 
     // Set up the route length in the top-right of the map.
     let units = i18next.t('common:unit-distance');
-    let unitAbbreviation = i18next.t('common:unit-distance-abbreviation');
     setRouteDistanceText();
 
     // Create instructional tooltips for the buttons.
-    saveButton.tooltip({ title: 'Please select at least one street to save a route.', container: 'body' });
-    exploreButton.tooltip({ title: 'You need to create and save your route before exploring.', container: 'body' });
-    shareButton.tooltip({ title: 'You need to create and save your route before sharing.', container: 'body' });
+    saveButton.tooltip({ title: i18next.t('save-button-tooltip'), container: 'body' });
+    exploreButton.tooltip({ title: i18next.t('explore-button-tooltip'), container: 'body' });
+    shareButton.tooltip({ title: i18next.t('share-button-tooltip'), container: 'body' });
 
     // These functions will temporarily show a tooltip. Used when the user clicks the 'copy to clipboard' button.
     function setTemporaryTooltip(btn, message) {
@@ -87,7 +86,7 @@ function RouteBuilder ($, mapParamData) {
             .then((response) => response.json())
             .then((data) => {
                 savedRoute = streetIds;
-                setTemporaryTooltip(saveButton, 'Route saved!');
+                setTemporaryTooltip(saveButton, i18next.t('route-saved'));
                 logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
 
                 // Update link and tooltip for Explore route button.
@@ -105,7 +104,7 @@ function RouteBuilder ($, mapParamData) {
                 shareButton.off('click');
                 shareButton.click(function (e) {
                     navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
-                    setTemporaryTooltip(e.currentTarget, 'Copied to clipboard!');
+                    setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
                     logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
                 });
                 shareButton.attr('aria-disabled', false);
@@ -169,8 +168,6 @@ function RouteBuilder ($, mapParamData) {
             paint: {
                 'line-color': ['case',
                     ['boolean', ['feature-state', 'chosen'], false], '#4a6',
-                    // ['all', currRegionId !== null, ['!=', currRegionId, ['get', 'region_id']]], '#bbb', // try with currRegionId === null.
-                    // ['boolean', ['!=', ['get', 'region_id'], ['coalesce', null, null]], false], '#bbb',
                     ['boolean', ['feature-state', 'hover'], false], '#da1',
                     '#777'
                 ],
@@ -186,10 +183,9 @@ function RouteBuilder ($, mapParamData) {
 
         let streetId = null;
         const popup = new mapboxgl.Popup({
-            offset: [0, -15],
             closeButton: false,
             closeOnClick: false
-        }).setHTML(`A route can only have streets from one neighborhood in it at this time.`);
+        }).setHTML(i18next.t('one-neighborhood-warning'));
 
         // Mark when a street is being hovered over.
         map.on('mousemove', (event) => {
@@ -294,7 +290,7 @@ function RouteBuilder ($, mapParamData) {
      */
     function setRouteDistanceText() {
         let routeDistance = currRoute.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
-        streetDistanceElem.text(`Route length: ${routeDistance.toFixed(2)} ${unitAbbreviation}`);
+        streetDistanceElem.text(i18next.t('route-length', { dist: routeDistance.toFixed(2) }));
     }
 
     /**

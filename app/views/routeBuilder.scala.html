@@ -1,7 +1,7 @@
 @import models.user.User
 @(user: Option[User] = None)(implicit lang: Lang)
 
-@main("Sidewalk - RouteBuilder") {
+@main(Messages("route.builder.name")) {
     @navbar(user, Some("/routeBuilder"))
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
@@ -15,13 +15,10 @@
 
     <div id="route-builder-map"></div>
     <div id="route-builder-overlay">
-        <p id="route-builder-instruction">
-            Click on streets to add them to your route, then click "Save route". Then you can explore the route and
-            label accessibility issues, or you can share a link for others to explore the same route!
-        </p>
-        <button type="button" class="route-builder-button" id="route-builder-save-button" aria-disabled="true">Save route</button>
-        <button type="button" class="route-builder-button" id="route-builder-explore-button" aria-disabled="true">Explore route</button>
-        <button type="button" class="route-builder-button" id="route-builder-share-button" aria-disabled="true">Copy link to route</button>
+        <p id="route-builder-instruction">@Messages("route.builder.instructions")</p>
+        <button type="button" class="route-builder-button" id="route-builder-save-button" aria-disabled="true">@Messages("route.builder.save")</button>
+        <button type="button" class="route-builder-button" id="route-builder-explore-button" aria-disabled="true">@Messages("route.builder.explore")</button>
+        <button type="button" class="route-builder-button" id="route-builder-share-button" aria-disabled="true">@Messages("route.builder.share")</button>
         <p id="street-distance"></p>
     </div>
 
@@ -32,8 +29,8 @@
             i18next.init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
                 fallbackLng: 'en',
-                ns: ['common'],
-                defaultNS: 'common',
+                ns: ['routebuilder', 'common'],
+                defaultNS: 'routebuilder',
                 lng: '@lang.code',
                 debug: false
             }, function(err, t) {

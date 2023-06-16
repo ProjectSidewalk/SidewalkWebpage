@@ -1,0 +1,9 @@
+{
+    "route-length": "Routelengte: {{dist}} $t(common:unit-distance-abbreviation)",
+    "save-button-tooltip": "Selecteer ten minste één straat om een route te besparen.",
+    "explore-button-tooltip": "U moet uw route maken en opslaan voordat u verkent.",
+    "share-button-tooltip": "U moet uw route maken en opslaan voordat u deelt.",
+    "route-saved": "Route opgeslagen!",
+    "copied-to-clipboard": "Gekopieerd naar het klembord!",
+    "one-neighborhood-warning": "Een route kan op dit moment slechts straten uit één buurt hebben."
+}
