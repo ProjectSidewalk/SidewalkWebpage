@@ -29,7 +29,7 @@ function Form(url, beaconUrl) {
             };
         }
 
-        // Only label list if there is a label list when we're compiling submission data.
+        // Only include labels if there is a label list when we're compiling submission data.
         if (labelList) {
             data.labels = svv.labelContainer.getCurrentLabels();
             svv.labelContainer.refresh();
@@ -65,10 +65,6 @@ function Form(url, beaconUrl) {
     function submit(data, async) {
         if (typeof async === "undefined") {
             async = false;
-        }
-
-        if (data.constructor !== Array) {
-            data = [data];
         }
 
         $.ajax({
