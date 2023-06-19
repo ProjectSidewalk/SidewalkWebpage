@@ -132,6 +132,9 @@
                                 <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
                             </li>
                         }
+                        <li>
+                            <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("route.builder.name")</a>
+                        </li>
                         <!-- Hides the "Results Map" tab for the Chicago server version-->
                         @if(!List("chicago-il").contains(currentCity)) {
                             <li>
@@ -262,22 +265,25 @@ $(document).ready(function () {
     $("#navbar-help-btn").on('click', function() {
         logWebpageActivity("Click_module=Help");
     });
+    $("#navbar-api-btn").on('click', function() {
+        logWebpageActivity("Click_module=SidewalkAPI");
+    });
 
     // The following buttons are in the Data drop down menu.
-    $("#navbar-results-btn").on('click', function() {
-        logWebpageActivity("Click_module=Results");
-    });
-    $("#navbar-labelmap-btn").on('click', function() {
-        logWebpageActivity("Click_module=LabelMap");
-    });
     $("#navbar-gallery-btn").on('click', function() {
         logWebpageActivity("Click_module=Gallery");
     });
     $("#navbar-leaderboard-btn").on('click', function() {
         logWebpageActivity("Click_module=Leaderboard");
-    }); 
-    $("#navbar-api-btn").on('click', function() {
-        logWebpageActivity("Click_module=SidewalkAPI");
+    });
+    $("#navbar-labelmap-btn").on('click', function() {
+        logWebpageActivity("Click_module=LabelMap");
+    });
+    $("#navbar-route-builder-btn").on('click', function() {
+        logWebpageActivity("Click_module=RouteBuilder");
+    });
+    $("#navbar-results-btn").on('click', function() {
+        logWebpageActivity("Click_module=Results");
     });
 
     // The buttons in the City drop down menu. Log clicks to any of them but the current city.
