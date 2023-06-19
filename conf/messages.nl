@@ -47,11 +47,12 @@ press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
 feedback.submitted = Feedback Ingediend
 
-navbar.explore = Start met Verkennen
-navbar.validate = Start met Valideren
+navbar.explore = Ontdekken
+navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen
+navbar.api = API
+navbar.tools = Hulpmiddelen
 navbar.results = Resultaten kaart
-navbar.data = Data
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
@@ -65,6 +66,7 @@ navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
 
 landing.create.path = Laten we een pad creëren voor iedereen!
+landing.start.exploring = Start met Verkennen
 landing.also.in = We zijn ook in:
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
