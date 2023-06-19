@@ -155,7 +155,6 @@ function Main (params) {
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
-        svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
@@ -490,14 +489,6 @@ function Main (params) {
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
         svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svl.ui.modalComment.textarea = $("#modal-comment-textarea");
-
-        svl.ui.modalExample = {};
-        svl.ui.modalExample.background = $(".modal-background");
-        svl.ui.modalExample.close = $(".modal-example-close-buttons");
-        svl.ui.modalExample.curbRamp = $("#modal-curb-ramp-example");
-        svl.ui.modalExample.noCurbRamp = $("#modal-no-curb-ramp-example");
-        svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
-        svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
         // Modal Mission Complete.
         svl.ui.modalMissionComplete = {};
