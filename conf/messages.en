@@ -345,3 +345,9 @@ gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+
+route.builder.name = RouteBuilder
+route.builder.instructions = Click on streets to add them to your route, then click "Save route". Then you can explore the route and label accessibility issues, or you can share a link for others to explore the same route!
+route.builder.save = Save route
+route.builder.explore = Explore route
+route.builder.share = Copy link to route

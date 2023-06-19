@@ -30,7 +30,8 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         currentLng: currentLng,
         startPointReversed: startPointReversed,
         finishedReversing: false,
-        tutorialTask: tutorialTask
+        tutorialTask: tutorialTask,
+        routeStreetId: null
     };
 
     /**
@@ -49,6 +50,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         self.setProperty("priority", _geojson.features[0].properties.priority);
         self.setProperty("currentMissionId", currMissionId);
         self.setProperty("auditTaskId", _geojson.features[0].properties.audit_task_id);
+        self.setProperty("routeStreetId", _geojson.features[0].properties.route_street_id);
         self.setProperty("taskStart", new Date(`${_geojson.features[0].properties.task_start}Z`));
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
@@ -359,7 +361,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
      */
     this.isConnectedTo = function (task, threshold, unit) {
         if (!threshold) threshold = 0.01;
-        if (!unit) unit = {units: 'kilometers'};
+        if (!unit) unit = { units: 'kilometers' };
 
         var lastCoordinate = self.getLastCoordinate(),
             targetCoordinate1 = task.getStartCoordinate(),
@@ -450,8 +452,10 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     this.updateTheFurthestPointReached = function(currentLat, currentLng) {
-        if (this._hasAdvanced(currentLat, currentLng)) {
-            _furthestPoint = turf.point([currentLng, currentLat]);
+        let currentPoint = turf.point([currentLng, currentLat]);
+        if (turf.pointToLineDistance(currentPoint, _geojson.features[0]) < svl.CLOSE_TO_ROUTE_THRESHOLD &&
+            this._hasAdvanced(currentLat, currentLng)) {
+            _furthestPoint = currentPoint;
         }
     };
 

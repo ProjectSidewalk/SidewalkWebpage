@@ -38,6 +38,7 @@ function Main (params) {
         4: 8,
         5: 16
     };
+    svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
 
     function _init (params) {
         params = params || {};
@@ -329,6 +330,7 @@ function Main (params) {
             });
         });
 
+        svl.taskContainer.getCurrentTask().render();
         svl.taskContainer.renderTasksFromPreviousSessions();
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance();
@@ -481,7 +483,7 @@ function Main (params) {
         svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
         svl.ui.modalSkip.cancelFirst = $("#modal-skip-cancel-first-button");
         svl.ui.modalSkip.secondBox = $("#modal-skip-box-neighborhood");
-        svl.ui.modalSkip.redirect = $("#modal-skip-redirect-jump");
+        svl.ui.modalSkip.newNeighborhood = $("#modal-skip-new-neighborhood");
         svl.ui.modalSkip.explore = $("#modal-skip-explore");
         svl.ui.modalSkip.cancelSecond = $("#modal-skip-cancel-second-button");
         svl.ui.modalComment = {};

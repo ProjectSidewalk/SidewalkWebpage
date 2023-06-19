@@ -145,7 +145,7 @@ audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>
 audit.left.ui.zoom.in = Acercar (<u>Z</u>)
 audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
-audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+audit.left.ui.feedback = Retroalimentación
 audit.left.ui.stuck = Atorado
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
@@ -212,7 +212,7 @@ audit.help.surface.problem.5 = Las personas usuarias de sillas de ruedas no pued
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar
-validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+validate.left.ui.feedback = Retroalimentación
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
@@ -343,3 +343,9 @@ gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
+
+route.builder.name = Constructor de rutas
+route.builder.instructions = Haga clic en las calles para agregarlas a su ruta, luego haga clic en "Guardar ruta". Luego, puede explorar los problemas de accesibilidad de ruta y etiqueta, ¡o puede compartir un enlace para que otros exploren la misma ruta!
+route.builder.save = Guardar ruta
+route.builder.explore = Explorar ruta
+route.builder.share = Copiar enlace a la ruta

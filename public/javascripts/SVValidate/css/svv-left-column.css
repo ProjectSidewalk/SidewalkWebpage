@@ -7,10 +7,12 @@
 #left-column-button-holder .button {
     text-align: center;
     width: 60px;
-    height: 90px;
+    height: 80px;
     font-size: 8pt;
     border: 2px #ccc solid;
-    padding: 15px 0 0 0;
+    padding: 12px 1px 0 1px;
+    line-height: 1.1;
+    overflow-wrap: break-word;
 }
 
 #left-column-button-holder img {
