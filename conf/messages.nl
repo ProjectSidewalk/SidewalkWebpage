@@ -146,7 +146,7 @@ audit.left.ui.zoom.in = <u>Z</u>oom In
 audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
 audit.left.ui.feedback = Feedback
-audit.left.ui.stuck = Vastge<br>lopen
+audit.left.ui.stuck = Vastgelopen
 audit.left.ui.jump = Spring
 audit.left.ui.jump.title = Spring naar een andere locatie omdat:
 audit.left.ui.jump.button.explore = Ik wil een andere locatie ontdekken!
@@ -342,3 +342,9 @@ gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+
+route.builder.name = Routebuilder
+route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!
+route.builder.save = Route bewaren
+route.builder.explore = Verken de route
+route.builder.share = Kopieer link naar route

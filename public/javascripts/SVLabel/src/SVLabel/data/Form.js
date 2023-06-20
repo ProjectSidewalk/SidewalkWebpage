@@ -191,11 +191,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
         }
 
-        task.eraseFromMinimap();
         self.skipSubmit(data, task);
 
-        // If the jump was clicked in the middle of the beforeJumpTask,
-        // reset the beforeJump tracking parameters
+        // If the jump was clicked in the middle of the beforeJumpTask, reset the beforeJump tracking parameters.
         var jumpListenerStatus = mapService.getLabelBeforeJumpListenerStatus();
         if (jumpListenerStatus) {
             mapService.setLabelBeforeJumpListenerStatus(false);
@@ -204,6 +202,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         }
 
         taskContainer.getFinishedAndInitNextTask(task);
+
+        if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+            svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");
+        }
     };
 
     /**

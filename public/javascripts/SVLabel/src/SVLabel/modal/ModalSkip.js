@@ -82,7 +82,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      * This method handles a click Redirect event.
      * @param e
      */
-     this._handleClickRedirect = function(e) {
+     this._handleClickNewNeighborhood = function(e) {
         tracker.push("ModalSkip_ClickRedirect");
          window.location.replace('/explore?newRegion=true&resumeRoute=false');
      };
@@ -174,7 +174,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
     uiModalSkip.continueNeighborhood.bind("click", this._handleClickContinueNeighborhood);
     uiModalSkip.cancelFirst.bind("click", this._handleClickCancelFirst);
     uiModalSkip.cancelSecond.bind("click", this._handleClickCancelSecond);
-    uiModalSkip.redirect.bind("click", this._handleClickRedirect);
+    uiModalSkip.newNeighborhood.bind("click", this._handleClickNewNeighborhood);
     uiModalSkip.explore.bind("click", this._handleClickExplore);
     uiLeftColumn.jump.on('click', this._handleClickJump);
     self.enableStuckButton();

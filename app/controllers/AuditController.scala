@@ -75,7 +75,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Log visit to the Explore page.
         val activityStr: String =
-          if (route.isDefined) s"Visit_Audit_Route=${route.get.routeId}"
+          if (route.isDefined) s"Visit_Audit_RouteId=${route.get.routeId}"
           else if (newRegion)   "Visit_Audit_NewRegionSelected"
           else                   "Visit_Audit"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))

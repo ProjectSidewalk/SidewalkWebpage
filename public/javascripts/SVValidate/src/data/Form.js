@@ -7,8 +7,9 @@ function Form(url, beaconUrl) {
     /**
      * Compiles data into a format that can be parsed by our backend.
      * @returns {{}}
+     * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
-    function compileSubmissionData() {
+    function compileSubmissionData(missionComplete) {
         let data = {};
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
@@ -24,12 +25,12 @@ function Form(url, beaconUrl) {
                 mission_type: mission.getProperty("missionType"),
                 labels_progress: mission.getProperty("labelsProgress"),
                 label_type_id: mission.getProperty("labelTypeId"),
-                completed: mission.getProperty("completed"),
+                completed: missionComplete ? missionComplete : false,
                 skipped: mission.getProperty("skipped")
             };
         }
 
-        // Only label list if there is a label list when we're compiling submission data.
+        // Only include labels if there is a label list when we're compiling submission data.
         if (labelList) {
             data.labels = svv.labelContainer.getCurrentLabels();
             svv.labelContainer.refresh();
@@ -65,10 +66,6 @@ function Form(url, beaconUrl) {
     function submit(data, async) {
         if (typeof async === "undefined") {
             async = false;
-        }
-
-        if (data.constructor !== Array) {
-            data = [data];
         }
 
         $.ajax({
@@ -118,7 +115,7 @@ function Form(url, beaconUrl) {
         //
         // Source for fix and ongoing discussion is here:
         // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
-        let data = [compileSubmissionData()];
+        let data = compileSubmissionData(false);
         let jsonData = JSON.stringify(data);
         navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
     });
