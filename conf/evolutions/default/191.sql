@@ -36,7 +36,6 @@ CREATE TABLE config (
 );
 
 -- note: may need to add the current database indicator to these values
--- note: what about newberg?
 
 -- seattle
 INSERT INTO config VALUES ('partially', NULL , 47.615, -122.332, 47.400, -122.664, 47.850, -122.000, 11.75, 27645, 3, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 47.619, -122.300, 15.5, 47.615, -122.307, 47.623, -122.293, 47.618, -122.299, 16.0, 47.611, -122.309, 47.625, -122.289, 47.616, -122.296, 13.0, 47.600, -122.320, 47.636, -122.275);
@@ -82,6 +81,9 @@ INSERT INTO config VALUES('partially', NULL, -36.598, 174.765458, -37.870572, 17
 
 -- cuenca
 INSERT INTO config VALUES('partially', NULL, -2.898, -79.005, -3.892, -80.008, -1.892, -78.008, 15.75, 15431, -4, '["tactile warning" "fire hydrant" "parked bike" "construction" "no pedestrian priority" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', -2.900, -79.005, 16.0, -2.902, -79.008, -2.898, -79.002, -2.900, -79.005, 16.0, -2.902, -79.008, -2.898, -79.002, -2.898, -79.005, 14.0, -2.906, -79.012, -2.891, -78.998);
+
+-- newberg
+INSERT INTO config VALUES('fully', NULL, 45.306, -122.958, 45.265, -123.010, 45.345, -122.900, 13.75, 1692, 4, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 45.319, -122.975, 16.0, 45.305, -123.000, 45.327, -122.960, 45.319, -122.975, 14.0, 45.310, -123.000, 45.327, -122.960, 45.319, -122.975, 13.0, 45.305, -123.010, 45.345, -122.950);
 
 # --- !Downs
 DROP TABLE config;
