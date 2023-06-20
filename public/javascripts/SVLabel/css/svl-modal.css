@@ -223,34 +223,3 @@
 #modal-mission-complete-holder .button {
     width: 100%;
 }
-
-.modal-background {
-    position: absolute;
-    left: -55px;
-    top: 0;
-    background: rgba(255, 255, 255, 0.5);
-    height: 100%;
-    width: 110%;
-}
-
-.modal-close-button-holder {
-    position: absolute;
-    top: 0;
-    right: 5px;
-}
-
-#modal-curb-ramp-foreground {
-    border: solid 3px rgba(0, 222, 38, 1);
-}
-
-#modal-no-curb-ramp-foreground {
-    border: solid 3px rgba(233, 39, 113, 1);
-}
-
-#modal-obstacle-foreground {
-    border: solid 3px rgba(0, 161, 203, 1);
-}
-
-#modal-surface-problem-foreground {
-    border: solid 3px rgba(241, 141, 5, 1);
-}

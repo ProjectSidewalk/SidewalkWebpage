@@ -105,7 +105,7 @@ function Tracker() {
         var prevItem = actions.slice(-1)[0];
         actions.push(item);
         if (actions.length > 200) {
-            let data = svv.form.compileSubmissionData();
+            let data = svv.form.compileSubmissionData(false);
             svv.form.submit(data, true);
         }
         // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.

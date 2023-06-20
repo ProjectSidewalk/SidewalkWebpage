@@ -48,7 +48,7 @@
 #severity-menu #column-not-passable, #severity-menu #column-passable {
     cursor: default;
     position: relative;
-    padding: 5px;
+    padding: 2px 5px;
     text-align: center;
 }
 
@@ -59,7 +59,7 @@
 }
 
 #severity-menu .severity-level {
-    padding: 5px;
+    padding: 2px 5px;
     margin: 5px;
 }
 
@@ -184,7 +184,8 @@
 
 .label-severity-axis-label {
     cursor: default;
-    font-size: 7.8pt;
+    font-size: 8pt;
+    line-height: 1.2;
 }
 
 #context-menu-problem-description-text-box {
@@ -225,6 +226,7 @@
     font-size: 10px;
     width: 50px;
     height: 25px;
+    overflow-wrap: anywhere;
 }
 
 #context-menu-tag-holder button {

@@ -31,10 +31,7 @@ class RouteBuilderController @Inject() (implicit val env: Environment[User, Sess
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
         val userIdStr: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId)
-        WebpageActivityTable.save(WebpageActivity(0, userIdStr, ipAddress, "SaveRoute", timestamp))
 
         // Save new route in the database.
         val newRouteId: Int = RouteTable.save(Route(0, userIdStr, submission.regionId, "temp", public = false, deleted = false))

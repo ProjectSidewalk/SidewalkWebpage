@@ -1,0 +1,9 @@
+{
+    "route-length": "Route length: {{dist}} $t(common:unit-distance-abbreviation)",
+    "save-button-tooltip": "Please select at least one street to save a route.",
+    "explore-button-tooltip": "You need to create and save your route before exploring.",
+    "share-button-tooltip": "You need to create and save your route before sharing.",
+    "route-saved": "Route saved!",
+    "copied-to-clipboard": "Copied to clipboard!",
+    "one-neighborhood-warning": "A route can only have streets from one neighborhood in it at this time."
+}
