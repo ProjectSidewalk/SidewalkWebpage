@@ -167,8 +167,8 @@
                 "missing-crosswalk": "無行人穿越道(<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "無公車站出入空間(<tag-underline>a</tag-underline>)",
                 "height-difference": "高度差(<tag-underline>d</tag-underline>)",
-                "pedestrian-lane-marking": "行人車道標記(<tag-underline>h</tag-underline>)",
-                "covered-walkway": "有蓋的人行道(<tag-underline>q</tag-underline>)",
+                "pedestrian-lane-marking": "行人車道標記(<tag-underline>i</tag-underline>)",
+                "covered-walkway": "有蓋的人行道(<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "离交通太近(<tag-underline>t</tag-underline>)",
                 "utility-panel": "实用面板(<tag-underline>e</tag-underline>)"
             },

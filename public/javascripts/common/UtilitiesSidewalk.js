@@ -281,13 +281,13 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space')
                     },
-                    'covered walkway': {
-                        keyChar: 'Q',
-                        text: i18next.t('center-ui.context-menu.tag.covered-walkway')
-                    },
                     'pedestrian lane marking': {
-                        keyChar: 'H',
+                        keyChar: 'I',
                         text: i18next.t('center-ui.context-menu.tag.pedestrian-lane-marking')
+                    },
+                    'covered walkway': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.covered-walkway')
                     }
                 }
             },
