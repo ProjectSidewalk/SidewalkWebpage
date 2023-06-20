@@ -196,10 +196,6 @@ function UtilitiesMisc (JSON) {
                     'parked scooter/motorcycle': {
                         keyChar: 'Y',
                         text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
-                    },
-                    'pedestrian arcade': {
-                        keyChar: 'Q',
-                        text: i18next.t('center-ui.context-menu.tag.pedestrian-arcade')
                     }
                 }
             },
@@ -255,10 +251,6 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     },
-                    'painted sidewalk': {
-                        keyChar: 'H',
-                        text: i18next.t('center-ui.context-menu.tag.painted-sidewalk')
-                    },
                     'utility panel': {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.utility-panel')
@@ -288,6 +280,14 @@ function UtilitiesMisc (JSON) {
                     'shared pedestrian/car space': {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space')
+                    },
+                    'covered walkway': {
+                        keyChar: 'Q',
+                        text: i18next.t('center-ui.context-menu.tag.covered-walkway')
+                    },
+                    'pedestrian lane marking': {
+                        keyChar: 'H',
+                        text: i18next.t('center-ui.context-menu.tag.pedestrian-lane-marking')
                     }
                 }
             },
