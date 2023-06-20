@@ -316,11 +316,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     /**
      * A helper function to move a user to the task location if they are far from it.
-     * @param task
+     * @param task - The task to move the user to.
+     * @param force - If true, move the user to the task location even if they are close to it.
      * @param caller
      * @private
      */
-    function moveToTheTaskLocation(task, caller) {
+    function moveToTheTaskLocation(task, force, caller) {
         // Reset all jump parameters.
         if (status.labelBeforeJumpListenerSet) {
             setLabelBeforeJumpListenerStatus(false);
@@ -335,12 +336,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Get a new task and repeat.
                 task = svl.taskContainer.nextTask(task);
                 svl.taskContainer.setCurrentTask(task);
-                if (caller !== undefined) {
-                    moveToTheTaskLocation(task, caller);
-                }
-                else {
-                    moveToTheTaskLocation(task);
-                }
+                moveToTheTaskLocation(task, force, caller);
             }
             self.preparePovReset();
         };
@@ -352,8 +348,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             currentLatLng = getPosition(),
             newTaskPosition = turf.point([lng, lat]),
             currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-            distance = turf.distance(newTaskPosition, currentPosition, {units: 'kilometers'});
-        if (distance > 0.1) {
+            distance = turf.distance(newTaskPosition, currentPosition, { units: 'kilometers' });
+        if (force || distance > svl.CLOSE_TO_ROUTE_THRESHOLD) {
             self.setPosition(lat, lng, callback);
 
             if (caller === "jumpImageryNotFound") {
@@ -499,7 +495,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
-        moveToTheTaskLocation(task, caller);
+        moveToTheTaskLocation(task, false, caller);
     }
 
     function _jumpToNewLocation() {
@@ -698,7 +694,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Move to the new task if the route/neighborhood has not finished.
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);
-                    moveToTheTaskLocation(nextTask);
+                    moveToTheTaskLocation(nextTask, false);
                 }
             }
         }

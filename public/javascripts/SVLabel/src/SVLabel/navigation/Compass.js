@@ -56,23 +56,16 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     /**
-     * Check if the user is following the route that we specified
-     * @param threshold
-     * @param unit
+     * Check if the user is following the route that we specified.
      * @returns {boolean}
      */
-    function _checkEnRoute (threshold, unit) {
+    function _checkEnRoute() {
         var task = taskContainer.getCurrentTask();
-        if (!unit) unit = {units: 'kilometers'};
-        if (!threshold) threshold = 0.05;  // 50 m
-
         if (task) {
-            var geojson = task.getGeoJSON(),
-                latlng = mapService.getPosition(),
-                line = geojson.features[0],
-                currentPoint = turf.point([latlng.lng, latlng.lat]),
-                snapped = turf.nearestPointOnLine(line, currentPoint);
-            return turf.distance(currentPoint, snapped, unit) < threshold;
+            var line = task.getGeoJSON().features[0];
+            var latlng = mapService.getPosition();
+            var currentPoint = turf.point([latlng.lng, latlng.lat]);
+            return turf.pointToLineDistance(currentPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD;
         }
         return true;
     }
@@ -110,7 +103,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         mapService.resetBeforeJumpLocationAndListener();
     }
 
-    function _jumpToTheNewRoute() {
+    function _jumpToTheNewTask() {
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
         mapService.finishCurrentTaskBeforeJumping();
@@ -120,7 +113,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
 
         var task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
-        mapService.moveToTheTaskLocation(task);
+        svl.map.enableWalking(); // Needed so you can click during the 1 second after taking a step.
+        mapService.moveToTheTaskLocation(task, true);
         svl.jumpModel.triggerUserClickJumpMessage();
     }
 
@@ -129,14 +123,14 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood"); }
         } else {
-            jumpMessageOnclick = _jumpToTheNewRoute
+            jumpMessageOnclick = _jumpToTheNewTask
         }
         uiCompass.messageHolder.on('click', jumpMessageOnclick);
         uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
     function _makeTheLabelBeforeJumpMessageBoxUnclickable () {
-        uiCompass.messageHolder.off('click', _jumpToTheNewRoute);
+        uiCompass.messageHolder.off('click', _jumpToTheNewTask);
         uiCompass.messageHolder.css('cursor', 'default');
     }
 

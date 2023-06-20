@@ -47,11 +47,12 @@ press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
 feedback.submitted = Feedback Ingediend
 
-navbar.explore = Start met Verkennen
-navbar.validate = Start met Valideren
+navbar.explore = Ontdekken
+navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen
+navbar.api = API
+navbar.tools = Hulpmiddelen
 navbar.results = Resultaten kaart
-navbar.data = Data
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
@@ -65,6 +66,7 @@ navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
 
 landing.create.path = Laten we een pad creëren voor iedereen!
+landing.start.exploring = Start met Verkennen
 landing.also.in = We zijn ook in:
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
@@ -146,7 +148,7 @@ audit.left.ui.zoom.in = <u>Z</u>oom In
 audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
 audit.left.ui.feedback = Feedback
-audit.left.ui.stuck = Vastge<br>lopen
+audit.left.ui.stuck = Vastgelopen
 audit.left.ui.jump = Spring
 audit.left.ui.jump.title = Spring naar een andere locatie omdat:
 audit.left.ui.jump.button.explore = Ik wil een andere locatie ontdekken!
@@ -342,3 +344,9 @@ gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+
+route.builder.name = Routebuilder
+route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!
+route.builder.save = Route bewaren
+route.builder.explore = Verken de route
+route.builder.share = Kopieer link naar route

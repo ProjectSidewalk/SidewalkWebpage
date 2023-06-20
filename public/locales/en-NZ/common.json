@@ -19,8 +19,7 @@
     "street has a sidewalk": "street has a footpath",
     "street has no sidewalks": "street has no footpaths",
     "level with sidewalk": "level with footpath",
-    "missing crosswalk": "missing pedestrian crossing",
-    "painted sidewalk": "painted footpath"
+    "missing crosswalk": "missing pedestrian crossing"
   },
   "mission-start-tutorial": {
     "curb-ramp": {

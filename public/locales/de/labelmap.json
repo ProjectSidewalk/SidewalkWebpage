@@ -1,0 +1,9 @@
+{
+    "is-correct": "Ist diese Beschriftung richtig?",
+    "explore-street-link": "<a href=\"/explore/street/{{streetId}}\">Hier klicken</a>, um diese Strasse zu erkunden!",
+    "label-type": "Beschriftungskategorie",
+    "validations": "Validierungen",
+    "add-comment": "Hier Kommentar hinzufügen...",
+    "submit-comment": "Kommentar senden",
+    "comment-submitted" : "Kommentar gesendet"
+}
