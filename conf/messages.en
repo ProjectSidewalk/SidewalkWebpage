@@ -47,11 +47,12 @@ press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
 feedback.submitted = Feedback Submitted
 
-navbar.explore = Start Exploring
-navbar.validate = Start Validating
+navbar.explore = Explore
+navbar.validate = Validate
 navbar.howto = How to Label
+navbar.api = API
+navbar.tools = Tools
 navbar.results = Results Map
-navbar.data = Data
 navbar.labelmap = Label Map
 navbar.help = Help
 navbar.leaderboard = Leaderboard
@@ -65,6 +66,7 @@ navbar.lang.aria = Language Options
 navbar.lang.icon.alt = languages icon
 
 landing.create.path = Let''s create a path for everyone
+landing.start.exploring = Start Exploring
 landing.also.in = We are also in:
 landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
