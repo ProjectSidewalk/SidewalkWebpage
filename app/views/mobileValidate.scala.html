@@ -85,6 +85,9 @@
                 <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
+                <p id="city-name-info" class="hidden">
+                    @Play.configuration.getString("city-params.city-name." + currentCity).get,@Play.configuration.getString("city-params.state-abbreviation." + currentCity).get
+                </p>
                 <button class="button" id="modal-mission-close-button">OK</button>
             </div>
         </div>
