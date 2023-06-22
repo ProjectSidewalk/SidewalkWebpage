@@ -92,7 +92,6 @@
             "no-sidewalk": "Beschriften Sie ein <span class=\"underline\">fehlendes Trottoir</span>",
             "crosswalk": "Finden und beschriften Sie ein <span class=\"underline\">Fussgängerstreifen</span>",
             "signal": "Finden und beschriften Sie ein <span class=\"underline\">Fussgängerlichtsignal</span>",
-            "explain": "Erläutern Sie dies!"
         }
     },
     "right-ui": {

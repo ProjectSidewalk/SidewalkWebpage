@@ -92,7 +92,6 @@
             "no-sidewalk": "標記<span class=\"underline\">無人行道</span>",
             "crosswalk": "找出並標記<span class=\"underline\">行人穿越道</span>",
             "signal": "找出並標記<span class=\"underline\">行人號誌</span>",
-            "explain": "解釋這個！"
         }
     },
     "right-ui": {

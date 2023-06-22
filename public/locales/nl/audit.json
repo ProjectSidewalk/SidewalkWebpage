@@ -92,7 +92,6 @@
             "no-sidewalk": "Label een <span class=\"underline\">ontbrekend trottoir</span>",
             "crosswalk": "Localiseer en label een <span class=\"underline\">oversteekplaats</span>",
             "signal": "Localiseer en label een <span class=\"underline\">verkeerslicht</span>",
-            "explain": "Leg dit uit!"
         }
     },
     "right-ui": {

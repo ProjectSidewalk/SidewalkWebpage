@@ -92,7 +92,6 @@
             "no-sidewalk": "Label <span class=\"underline\">missing sidewalk</span>",
             "crosswalk": "Locate and label a <span class=\"underline\">crosswalk</span>",
             "signal": "Locate and label a <span class=\"underline\">pedestrian signal</span>",
-            "explain": "Explain this!"
         }
     },
     "right-ui": {

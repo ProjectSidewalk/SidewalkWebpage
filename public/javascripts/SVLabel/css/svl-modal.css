@@ -223,3 +223,12 @@
 #modal-mission-complete-holder .button {
     width: 100%;
 }
+
+.modal-background {
+    position: absolute;
+    left: -55px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    height: 100%;
+    width: 110%;
+}

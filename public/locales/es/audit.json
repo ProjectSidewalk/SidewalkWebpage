@@ -92,7 +92,6 @@
             "no-sidewalk": "Etiqueta una <span class=\"underline\">banqueta ausente</span>",
             "crosswalk": "Localizar y etiquetar un <span class=\"underline\">cruce peatonal</span>",
             "signal": "Localizar y etiquetar un <span class=\"underline\">semáforo peatonal</span>",
-            "explain": "¡Explica esto!"
         }
     },
     "right-ui": {
