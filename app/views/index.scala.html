@@ -28,7 +28,7 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
                     @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {

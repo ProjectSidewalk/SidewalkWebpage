@@ -167,10 +167,10 @@
                 "missing-crosswalk": "fehlender Fussgängerstre<tag-underline>i</tag-underline>fen",
                 "no-bus-stop-access": "kein Zugang zur H<tag-underline>a</tag-underline>ltestelle",
                 "height-difference": "Höhenunterschie<tag-underline>d</tag-underline>",
-                "painted-sidewalk": "painted sidewalk (<tag-underline>h</tag-underline>)",
-                "pedestrian-arcade": "pedestrian arcade (<tag-underline>q</tag-underline>)",
-                "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
-                "utility-panel": "utility pan<tag-underline>e</tag-underline>l"
+                "pedestrian-lane-marking": "Fußgängerzahnmark<tag-underline>i</tag-underline>erung",
+                "covered-walkway": "überdachter Gehweg (<tag-underline>l</tag-underline>)",
+                "too-close-to-traffic": "zu nah am Verkehr (<tag-underline>t</tag-underline>)",
+                "utility-panel": "B<tag-underline>e</tag-underline>dienungsfeld"
             },
             "tooltip": {
                 "passable": "Passierbar",
