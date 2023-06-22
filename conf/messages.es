@@ -47,11 +47,12 @@ press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
 feedback.submitted = Comentarios enviados
 
-navbar.explore = Comienza a explorar
-navbar.validate = Comienza a validar
+navbar.explore = Explorar
+navbar.validate = Validar
 navbar.howto = Cómo etiquetar
+navbar.api = API
+navbar.tools = Herramientas
 navbar.results = Mapa de resultados
-navbar.data = Datos
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
 navbar.leaderboard = Tabla de clasificación
@@ -65,6 +66,7 @@ navbar.lang.aria = Opciones de idioma
 navbar.lang.icon.alt = icono de idiomas
 
 landing.create.path = Creemos un camino para todas las personas
+landing.start.exploring = Comienza a explorar
 landing.also.in = También estamos en:
 landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar

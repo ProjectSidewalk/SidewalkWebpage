@@ -70,8 +70,7 @@
                 "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a footpath",
                 "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no footpaths",
                 "level-with-sidewalk": "level with footpath (<tag-underline>d</tag-underline>)",
-                "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing pedestrian crossing",
-                "painted-sidewalk": "painted footpat<tag-underline>h</tag-underline>"
+                "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing pedestrian crossing"
             }
         },
         "compass": {

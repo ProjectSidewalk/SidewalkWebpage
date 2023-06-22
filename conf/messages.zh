@@ -47,11 +47,12 @@ press.keys = 點擊 "{0}" 鍵
 feedback.title = 有任何想法或問題嗎？或是找到bug了！<br>任何回饋都很歡迎！
 feedback.submitted = 回饋已提交
 
-navbar.explore = 開始探索
-navbar.validate = 開始檢核
+navbar.explore = 探索
+navbar.validate = 證實
 navbar.howto = 如何標記
+navbar.api = API
+navbar.tools = 工具
 navbar.results = 成果地圖
-navbar.data = 資料
 navbar.labelmap = 標記地圖
 navbar.help = 協助
 navbar.leaderboard = 排行榜
@@ -65,6 +66,7 @@ navbar.lang.aria = 語言選項
 navbar.lang.icon.alt = 語言圖標
 
 landing.create.path = 讓我們為大家創造好走的路吧！
+landing.start.exploring = 開始探索
 landing.also.in = 我們也在：
 landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的地圖松活動吧！</a>
 landing.how.you.help = 您可以如何協助
