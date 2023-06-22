@@ -163,10 +163,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("attributeWithLabels", Array("attributes", "labels"))
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-    } else {  // In GeoJSON format.
+    } else {
+      // In GeoJSON format. Writing objects to a file to save memory.
       val features: List[JsObject] =
         GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
-      Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+      val attributesJsonFile = new java.io.File("access_attributes.json")
+      val writer = new java.io.PrintStream(attributesJsonFile)
+      writer.print("""{"type":"FeatureCollection","features":[""")
+      features.zipWithIndex.foreach { case (feature, i) =>
+        if (i == features.length - 1) writer.print(feature) else writer.print(feature + ",")
+      }
+      writer.print("""]}""")
+      writer.close()
+
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = true, onClose = () => attributesJsonFile.delete()))
     }
   }
 
@@ -206,10 +216,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("accessAttributes", Array("attributes"));
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-    } else { // In GeoJSON format.
+    } else {
+      // In GeoJSON format. Writing objects to a file to save memory.
       val features: List[JsObject] =
         GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
-      Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+      val attributesJsonFile = new java.io.File("access_attributes.json")
+      val writer = new java.io.PrintStream(attributesJsonFile)
+      writer.print("""{"type":"FeatureCollection","features":[""")
+      features.zipWithIndex.foreach { case (feature, i) =>
+        if (i == features.length - 1) writer.print(feature) else writer.print(feature + ",")
+      }
+      writer.print("""]}""")
+      writer.close()
+
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = true, onClose = () => attributesJsonFile.delete()))
     }
   }
 
