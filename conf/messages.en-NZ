@@ -34,15 +34,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighbourhood
 audit.right.ui.current.neighborhood = Current Neighbourhood
 audit.right.ui.distance = kilometres
 audit.mission.complete.progress.neighborhood.others = Others explored in this neighbourhood
-audit.help.curb.ramp.1 = Clean drop kerbs that are aligned with pedestrian crossings.
-audit.help.curb.ramp.3 = A drop kerb with a pole standing in the middle. People who use large electrical wheelchairs may have trouble using this drop kerb.
-audit.help.curb.ramp.5 = Water has accumulated in this drop kerb due to poor drainage. It is hard for manual wheelchair users to use this drop kerb.
-audit.help.missing.ramp.1 = Although there is no drop kerb, the level difference is small and wheelchair users would be able to get on or off the footpath. There is also a drop kerb at the same corner that people could use, although it is not aligned to the path.
-audit.help.missing.ramp.3 = There is no drop kerb at the end of the pedestrian crossing. Wheelchair users are forced to used the drop kerb that is not aligned with the pedestrian crossing.
-audit.help.missing.ramp.5 = No drop kerb at the end of the pedestrian crossing. Wheelchair users cannot get on or off the footpath and cross the street here.
-audit.help.obstacle.3 = The plant is obstructing the path, making it hard for wheelchair users to use this footpath
-audit.help.surface.problem.1 = Partially damaged footpath. Because there is enough space next to the damaged part of the footpath, wheelchair users would be able to pass.
-audit.help.surface.problem.3 = Wheelchair users would have difficulty navigating on the cobblestone footpaths and crossings.
 
 reset.pw.email.hello = Kia ora {0},
 results.problems.per.mile = Footpath Problems per Mile

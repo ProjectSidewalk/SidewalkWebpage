@@ -80,20 +80,7 @@
         "button-continue": "Continuar"
     },
     "top-ui": {
-        "press-key": "Presiona la tecla \"{{key}}\"",
-        "instruction": {
-            "walk": "Explora las calles y encuentra todos los atributos de accesibilidad",
-            "curb-ramp": "Localizar y etiquetar una <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">rampa peatonal</span>",
-            "no-curb-ramp": "Localizar y etiquetar una <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">rampa peatonal ausente</span>",
-            "obstacle": "Localizar y etiquetar un <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstáculo</span>",
-            "surface-problem": "Localizar y etiquetar un <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">problema en superficie</span>",
-            "other": "Modo de etiqueta",
-            "occlusion": "Etiqueta una <span class=\"underline\">parte de una banqueta que no se puede observar</span>",
-            "no-sidewalk": "Etiqueta una <span class=\"underline\">banqueta ausente</span>",
-            "crosswalk": "Localizar y etiquetar un <span class=\"underline\">cruce peatonal</span>",
-            "signal": "Localizar y etiquetar un <span class=\"underline\">semáforo peatonal</span>",
-            "explain": "¡Explica esto!"
-        }
+        "press-key": "Presiona la tecla \"{{key}}\""
     },
     "right-ui": {
         "accuracy-tooltip": "La precisión se basa en validaciones de otros usuarios. Si su precisión es baja, consulte algunos errores recientes en <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">su panel de usuario</a> para ayudarlo a mejorar.",
