@@ -293,7 +293,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
     */
-  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
       s"""SELECT global_attribute.global_attribute_id,
          |       label_type.label_type,
@@ -349,7 +349,9 @@ object GlobalAttributeTable {
          |         AND ${severity.getOrElse("") == "none"}
          |         OR ${severity.isEmpty}
          |         OR global_attribute.severity = ${toInt(severity).getOrElse(-1)}
-         |        );""".stripMargin
+         |        )
+         |ORDER BY user_attribute_label_id
+         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
     )
     attributesWithLabels.list
   }
