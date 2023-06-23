@@ -195,10 +195,6 @@ audit.survey.performance.option.5 = Uitstekend
 audit.survey.rationale.question = Waarom koos je ervoor om bij te dragen aan Project Sidewalk?
 audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
-audit.help.rating.1 = Rating 1: Begaanbaar
-audit.help.rating.3 = Rating 3: Neutraal
-audit.help.rating.5 = Rating 5: Niet begaanbaar
-
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
@@ -339,3 +335,7 @@ route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen
 route.builder.save = Route bewaren
 route.builder.explore = Verken de route
 route.builder.share = Kopieer link naar route
+
+help.rating.1 = Rating 1: Begaanbaar
+help.rating.3 = Rating 3: Neutraal
+help.rating.5 = Rating 5: Niet begaanbaar

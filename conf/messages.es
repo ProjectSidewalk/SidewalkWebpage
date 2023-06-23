@@ -195,10 +195,6 @@ audit.survey.performance.option.5 = Excelente
 audit.survey.rationale.question = ¿Por qué elegiste contribuir a <i>Project Sidewalk</i>?
 audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o preguntas?
 
-audit.help.rating.1 = Calificación 1: Transitable
-audit.help.rating.3 = Calificación 3: Neutral
-audit.help.rating.5 = Calificación 5: No es transitable
-
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar
@@ -339,3 +335,7 @@ route.builder.instructions = Haga clic en las calles para agregarlas a su ruta, 
 route.builder.save = Guardar ruta
 route.builder.explore = Explorar ruta
 route.builder.share = Copiar enlace a la ruta
+
+help.rating.1 = Calificación 1: Transitable
+help.rating.3 = Calificación 3: Neutral
+help.rating.5 = Calificación 5: No es transitable

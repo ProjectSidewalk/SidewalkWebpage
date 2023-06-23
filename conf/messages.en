@@ -195,10 +195,6 @@ audit.survey.performance.option.5 = Excellent
 audit.survey.rationale.question = Why did you choose to contribute to Project Sidewalk?
 audit.survey.feedback.question = Do you have any feedback, design ideas, or questions?
 
-audit.help.rating.1 = Rating 1: Passable
-audit.help.rating.3 = Rating 3: Neutral
-audit.help.rating.5 = Rating 5: Not passable
-
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Out
 validate.left.ui.skip = Skip
@@ -341,3 +337,7 @@ route.builder.instructions = Click on streets to add them to your route, then cl
 route.builder.save = Save route
 route.builder.explore = Explore route
 route.builder.share = Copy link to route
+
+help.rating.1 = Rating 1: Passable
+help.rating.3 = Rating 3: Neutral
+help.rating.5 = Rating 5: Not passable

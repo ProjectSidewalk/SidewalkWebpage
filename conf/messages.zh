@@ -195,10 +195,6 @@ audit.survey.performance.option.5 = 傑出
 audit.survey.rationale.question = 為什麼您願意在Project Sidewalk平台上貢獻呢？
 audit.survey.feedback.question = 您有任何意見回饋、設計想法或問題嗎？
 
-audit.help.rating.1 = Rating 1: 可通行
-audit.help.rating.3 = Rating 3: 尚可通行
-audit.help.rating.5 = Rating 5: 不可通行
-
 validate.top.ui.zoom.in = <u>Z</u>放大
 validate.top.ui.zoom.out = 縮小
 validate.left.ui.skip = 跳過
@@ -341,3 +337,7 @@ route.builder.instructions = 單擊街道以將其添加到您的路線中，然
 route.builder.save = 保存路線
 route.builder.explore = 探索路線
 route.builder.share = 複製鏈接到路線
+
+help.rating.1 = Rating 1: 可通行
+help.rating.3 = Rating 3: 尚可通行
+help.rating.5 = Rating 5: 不可通行
