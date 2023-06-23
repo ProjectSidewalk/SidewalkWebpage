@@ -154,12 +154,6 @@ function RibbonMenu(tracker, uiRibbonMenu) {
     function handleModeSwitchClickCallback() {
         var labelType = $(this).attr('val');
         if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
-
-            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
-
             // Track the user action
             tracker.push('Click_ModeSwitch_' + labelType);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);
@@ -179,11 +173,6 @@ function RibbonMenu(tracker, uiRibbonMenu) {
 
         if (status.disableModeSwitch === false || !modeDisabled) {
             // Change the border color of menu buttons.
-
-            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk').
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
             setLabelTypeButtonBorderColors(labelType);
 
             if (labelType === "Other") {
@@ -397,12 +386,6 @@ function RibbonMenu(tracker, uiRibbonMenu) {
         return key in properties ? properties[key] : null;
     }
 
-    function setAllowedMode(mode) {
-        // This method sets the allowed mode.
-        status.allowedMode = mode;
-        return this;
-    }
-
     function setStatus(name, value, subname) {
         try {
             if (name in status) {
@@ -493,7 +476,6 @@ function RibbonMenu(tracker, uiRibbonMenu) {
     self.modeSwitch = modeSwitch;
     self.modeSwitchClick = modeSwitch;
     self.getStatus = getStatus;
-    self.setAllowedMode = setAllowedMode;
     self.setStatus = setStatus;
     self.startBlinking = startBlinking;
     self.stopBlinking = stopBlinking;

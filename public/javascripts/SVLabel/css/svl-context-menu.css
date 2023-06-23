@@ -15,7 +15,7 @@
 
 #context-menu-vertical-connector {
     position: absolute;
-    display: none; /* Hide the vertical connector bugged bar to clean up UI */
+    visibility: hidden; /* Hide the vertical connector bugged bar to clean up UI */
     top: 0px;
     left: 178px;
     height: 8px;
