@@ -6,6 +6,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.label._
 import models.user.User
+import models.attribute.ConfigTable
 import play.api.libs.json._
 import play.api.mvc.Action
 import play.api.Play
@@ -75,7 +76,8 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getLabelTags() = Action.async { implicit request =>
     val cityStr: String = Play.configuration.getString("city-id").get
-    val excludedTags: List[String] = Play.configuration.getStringList("city-params.excluded-tags." + cityStr).get.asScala.toList
+    // confirm if this works - dylanb
+    val excludedTags: List[String] = ConfigTable.getExcludedTags
     val tags: List[Tag] = TagTable.selectAllTags().filter( tag => !excludedTags.contains(tag.tag))
     Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
       "tag_id" -> tag.tagId,

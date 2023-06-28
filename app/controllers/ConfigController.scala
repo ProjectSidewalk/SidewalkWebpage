@@ -10,6 +10,7 @@ import play.api.Play.current
 import play.api.mvc.Action
 import play.api.libs.json._
 import scala.concurrent.Future
+import models.attribute.ConfigTable
 
 /**
  * Holds the HTTP requests associated with getting data from the parameters in our config files.
@@ -25,13 +26,14 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
   def getCityMapParams() = Action.async { implicit request =>
     val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
     val cityStr: String = Play.configuration.getString("city-id").get
-    val cityLat: Double = Play.configuration.getDouble("city-params.city-center-lat." + cityStr).get
-    val cityLng: Double = Play.configuration.getDouble("city-params.city-center-lng." + cityStr).get
-    val southwestLat: Double = Play.configuration.getDouble("city-params.southwest-boundary-lat." + cityStr).get
-    val southwestLng: Double = Play.configuration.getDouble("city-params.southwest-boundary-lng." + cityStr).get
-    val northeastLat: Double = Play.configuration.getDouble("city-params.northeast-boundary-lat." + cityStr).get
-    val northeastLng: Double = Play.configuration.getDouble("city-params.northeast-boundary-lng." + cityStr).get
-    val defaultZoom: Double = Play.configuration.getDouble("city-params.default-map-zoom." + cityStr).get
+    // replace this through default map zoom - dylanb
+    val cityLat: Double = ConfigTable.getCityLat
+    val cityLng: Double = ConfigTable.getCityLng
+    val southwestLat: Double = ConfigTable.getSouthwestLat
+    val southwestLng: Double = ConfigTable.getSouthwestLng
+    val northeastLat: Double = ConfigTable.getNortheastLat
+    val northeastLng: Double = ConfigTable.getNortheastLng
+    val defaultZoom: Double = ConfigTable.getDefaultMapZoom
     Future.successful(Ok(Json.obj(
       "mapbox_api_key" -> mapboxApiKey,
       "city_center" -> Json.obj("lat" -> cityLat, "lng" -> cityLng),
@@ -56,34 +58,35 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
   def getCityAPIDemoParams() = Action.async { implicit request =>
     val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
     val cityStr: String = Play.configuration.getString("city-id").get
-    val southwestLat: Double = Play.configuration.getDouble("city-params.southwest-boundary-lat." + cityStr).get
-    val southwestLng: Double = Play.configuration.getDouble("city-params.southwest-boundary-lng." + cityStr).get
-    val northeastLat: Double = Play.configuration.getDouble("city-params.northeast-boundary-lat." + cityStr).get
-    val northeastLng: Double = Play.configuration.getDouble("city-params.northeast-boundary-lng." + cityStr).get
+    // replace ALL of this - dylanb
+    val southwestLat: Double = ConfigTable.getSouthwestLat
+    val southwestLng: Double = ConfigTable.getSouthwestLng
+    val northeastLat: Double = ConfigTable.getNortheastLat
+    val northeastLng: Double = ConfigTable.getNortheastLng
 
-    val attributeCenterLat: Double = Play.configuration.getDouble("city-params.api-demos.attribute-center-lat." + cityStr).get
-    val attributeCenterLng: Double = Play.configuration.getDouble("city-params.api-demos.attribute-center-lng." + cityStr).get
-    val attributeZoom: Double = Play.configuration.getDouble("city-params.api-demos.attribute-zoom." + cityStr).get
-    val attributeLat1: Double = Play.configuration.getDouble("city-params.api-demos.attribute-lat1." + cityStr).get
-    val attributeLng1: Double = Play.configuration.getDouble("city-params.api-demos.attribute-lng1." + cityStr).get
-    val attributeLat2: Double = Play.configuration.getDouble("city-params.api-demos.attribute-lat2." + cityStr).get
-    val attributeLng2: Double = Play.configuration.getDouble("city-params.api-demos.attribute-lng2." + cityStr).get
+    val attributeCenterLat: Double = ConfigTable.getApiAttributeCenterLat
+    val attributeCenterLng: Double = ConfigTable.getApiAttributeCenterLng
+    val attributeZoom: Double = ConfigTable.getAttributeZoom
+    val attributeLat1: Double = ConfigTable.getAttributeLatOne
+    val attributeLng1: Double = ConfigTable.getAttributeLngOne
+    val attributeLat2: Double = ConfigTable.getAttributeLatTwo
+    val attributeLng2: Double = ConfigTable.getAttributeLngTwo
 
-    val streetCenterLat: Double = Play.configuration.getDouble("city-params.api-demos.street-center-lat." + cityStr).get
-    val streetCenterLng: Double = Play.configuration.getDouble("city-params.api-demos.street-center-lng." + cityStr).get
-    val streetZoom: Double = Play.configuration.getDouble("city-params.api-demos.street-zoom." + cityStr).get
-    val streetLat1: Double = Play.configuration.getDouble("city-params.api-demos.street-lat1." + cityStr).get
-    val streetLng1: Double = Play.configuration.getDouble("city-params.api-demos.street-lng1." + cityStr).get
-    val streetLat2: Double = Play.configuration.getDouble("city-params.api-demos.street-lat2." + cityStr).get
-    val streetLng2: Double = Play.configuration.getDouble("city-params.api-demos.street-lng2." + cityStr).get
+    val streetCenterLat: Double = ConfigTable.getStreetCenterLat
+    val streetCenterLng: Double = ConfigTable.getStreetCenterLng
+    val streetZoom: Double = ConfigTable.getStreetZoom
+    val streetLat1: Double = ConfigTable.getStreetLatOne
+    val streetLng1: Double = ConfigTable.getStreetLngOne
+    val streetLat2: Double = ConfigTable.getStreetLatTwo
+    val streetLng2: Double = ConfigTable.getStreetLngTwo
 
-    val regionCenterLat: Double = Play.configuration.getDouble("city-params.api-demos.region-center-lat." + cityStr).get
-    val regionCenterLng: Double = Play.configuration.getDouble("city-params.api-demos.region-center-lng." + cityStr).get
-    val regionZoom: Double = Play.configuration.getDouble("city-params.api-demos.region-zoom." + cityStr).get
-    val regionLat1: Double = Play.configuration.getDouble("city-params.api-demos.region-lat1." + cityStr).get
-    val regionLng1: Double = Play.configuration.getDouble("city-params.api-demos.region-lng1." + cityStr).get
-    val regionLat2: Double = Play.configuration.getDouble("city-params.api-demos.region-lat2." + cityStr).get
-    val regionLng2: Double = Play.configuration.getDouble("city-params.api-demos.region-lng2." + cityStr).get
+    val regionCenterLat: Double = ConfigTable.getRegionCenterLat
+    val regionCenterLng: Double = ConfigTable.getRegionCenterLng
+    val regionZoom: Double = ConfigTable.getRegionZoom
+    val regionLat1: Double = ConfigTable.getRegionLatOne
+    val regionLng1: Double = ConfigTable.getRegionLngOne
+    val regionLat2: Double = ConfigTable.getRegionLatTwo
+    val regionLng2: Double = ConfigTable.getRegionLngTwo
 
     Future.successful(Ok(Json.obj(
       "mapbox_api_key" -> mapboxApiKey,

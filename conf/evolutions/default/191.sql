@@ -36,7 +36,6 @@ CREATE TABLE config (
 );
 
 -- note: may need to add the current database indicator to these values
--- also add test server?
 
 -- seattle
 INSERT INTO config VALUES ('partially', NULL , 47.615, -122.332, 47.400, -122.664, 47.850, -122.000, 11.75, 27645, 3, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 47.619, -122.300, 15.5, 47.615, -122.307, 47.623, -122.293, 47.618, -122.299, 16.0, 47.611, -122.309, 47.625, -122.289, 47.616, -122.296, 13.0, 47.600, -122.320, 47.636, -122.275);
@@ -88,6 +87,12 @@ INSERT INTO config VALUES('fully', NULL, 45.306, -122.958, 45.265, -123.010, 45.
 
 -- crowdstudy
 INSERT INTO config VALUES ('partially', NULL , 47.615, -122.332, 47.400, -122.664, 47.850, -122.000, 11.75, 27645, 7, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 47.619, -122.300, 15.5, 47.615, -122.307, 47.623, -122.293, 47.618, -122.299, 16.0, 47.611, -122.309, 47.625, -122.289, 47.616, -122.296, 13.0, 47.600, -122.320, 47.636, -122.275);
+
+-- new-taipei-tw
+INSERT INTO config VALUES('partially', NULL, 25.036, 121.536, 21.684, 119.947, 25.306, 122.282, 14.25, 492898, 12, '["tactile warning" "uncovered manhole" "APS" "level with sidewalk" "missing crosswalk" "rail/tram track" "brick/cobblestone"]', 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.021, 121.532, 14.5, 25.016, 119.947, 25.027, 122.282);
+
+-- keelung-tw
+INSERT INTO config VALUES('partially', NULL, 25.036, 121.536, 21.684, 119.947, 25.306, 122.282, 14.25, 492898, 9, '["tactile warning" "uncovered manhole" "APS" "level with sidewalk" "missing crosswalk" "rail/tram track" "brick/cobblestone"]', 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.021, 121.532, 14.5, 25.016, 119.947, 25.027, 122.282);
 
 # --- !Downs
 DROP TABLE config;

@@ -16,6 +16,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.TagTable.selectTagsByLabelType
 import models.street.StreetEdgePriorityTable
 import models.utils.Configs
+import models.attribute.ConfigTable
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.Messages
@@ -131,7 +132,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-              val mapathonLink: Option[String] = Play.configuration.getString("city-params.mapathon-event-link." + cityStr)
+              // change this line - dylanb
+              val mapathonLink: Option[String] = ConfigTable.getMapathonEventLink
               // Get names and URLs for other cities so we can link to them on landing page.
               val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity = cityStr)
               // Get total audited distance. If using metric system, convert from miles to kilometers.

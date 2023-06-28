@@ -6,6 +6,7 @@ import akka.actor.{Actor, Cancellable, Props}
 import controllers.helper.AttributeControllerHelper
 import play.api.Play.current
 import play.api.{Logger, Play}
+import models.attribute.ConfigTable
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
@@ -19,7 +20,8 @@ class ClusterLabelAttributesActor extends Actor {
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     val cityId: String = Play.configuration.getString("city-id").get
-    val hoursOffset: Int = Play.configuration.getInt(s"city-params.update-offset-hours.${cityId}").get
+    // check if this works - dylanb
+    val hoursOffset: Int = ConfigTable.getOffsetHours
 
     // If we want to update the cluster table at 1 am PDT every day, we need to figure out how much time there is b/w
     // now and the next 1 am, then we can set the update interval to be 24 hours. So we make a calendar object for right
