@@ -14,85 +14,54 @@ case class ConfigApi(apiAttributeCenterLat: Double, apiAttributeCenterLng: Doubl
 
 case class Config(openStatus: String, mapathonEventLink: Option[String], cityCenterLat: Double, cityCenterLng: Double, southwestBoundaryLat: Double,
                   southwestBoundaryLng: Double, northeastBoundaryLat: Double, northeastBoundaryLng: Double, defaultMapZoom: Double,
-                  tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, configApi: ConfigApi)
+                  tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, databaseName: String, configApi: ConfigApi)
 
 class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewalk"), "config") {
   def openStatus: Column[String] = column[String]("open_status", O.NotNull)
-
   def mapathonEventLink: Column[Option[String]] = column[Option[String]]("mapathon_event_link")
-
   def cityCenterLat: Column[Double] = column[Double]("city_center_lat", O.NotNull)
-
   def cityCenterLng: Column[Double] = column[Double]("city_center_lng", O.NotNull)
-
   def southwestBoundaryLat: Column[Double] = column[Double]("southwest_boundary_lat", O.NotNull)
-
   def southwestBoundaryLng: Column[Double] = column[Double]("southwest_boundary_lng", O.NotNull)
-
   def northeastBoundaryLat: Column[Double] = column[Double]("northeast_boundary_lat", O.NotNull)
-
   def northeastBoundaryLng: Column[Double] = column[Double]("northeast_boundary_lng", O.NotNull)
-
   def defaultMapZoom: Column[Double] = column[Double]("default_map_zoom", O.NotNull)
-
   def tutorialStreetEdgeID: Column[Int] = column[Int]("tutorial_street_edge_id", O.NotNull)
-
   def offsetHours: Column[Int] = column[Int]("update_offset_hours", O.NotNull)
-
   def excludedTags: Column[String] = column[String]("excluded_tags", O.NotNull)
-
   def apiAttributeCenterLat: Column[Double] = column[Double]("api_attribute_center_lat", O.NotNull)
-
   def apiAttributeCenterLng: Column[Double] = column[Double]("api_attribute_center_lng", O.NotNull)
-
   def apiAttributeZoom: Column[Double] = column[Double]("api_attribute_zoom", O.NotNull)
-
   def apiAttributeLatOne: Column[Double] = column[Double]("api_attribute_lat1", O.NotNull)
-
   def apiAttributeLngOne: Column[Double] = column[Double]("api_attrubute_lng1", O.NotNull)
-
   def apiAttributeLatTwo: Column[Double] = column[Double]("api_attribute_lat2", O.NotNull)
-
   def apiAttributeLngTwo: Column[Double] = column[Double]("api_attrubute_lng2", O.NotNull)
-
   def apiStreetCenterLat: Column[Double] = column[Double]("api_street_center_lat", O.NotNull)
-
   def apiStreetCenterLng: Column[Double] = column[Double]("api_street_center_lng", O.NotNull)
-
   def apiStreetZoom: Column[Double] = column[Double]("api_street_zoom", O.NotNull)
-
   def apiStreetLatOne: Column[Double] = column[Double]("api_street_lat1", O.NotNull)
-
   def apiStreetLngOne: Column[Double] = column[Double]("api_street_lng1", O.NotNull)
-
   def apiStreetLatTwo: Column[Double] = column[Double]("api_street_lat2", O.NotNull)
-
   def apiStreetLngTwo: Column[Double] = column[Double]("api_street_lng2", O.NotNull)
-
   def apiRegionCenterLat: Column[Double] = column[Double]("api_region_center_lat", O.NotNull)
-
   def apiRegionCenterLng: Column[Double] = column[Double]("api_region_center_lng", O.NotNull)
-
   def apiRegionZoom: Column[Double] = column[Double]("api_region_zoom", O.NotNull)
-
   def apiRegionLatOne: Column[Double] = column[Double]("api_region_lat1", O.NotNull)
-
   def apiRegionLngOne: Column[Double] = column[Double]("api_region_lng1", O.NotNull)
-
   def apiRegionLatTwo: Column[Double] = column[Double]("api_region_lat2", O.NotNull)
-
   def apiRegionLngTwo: Column[Double] = column[Double]("api_region_lng2", O.NotNull)
+  def databaseName: Column[String] = column[String]("database_name", O.NotNull)
 
-  def * = (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags, (
+  def * = (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags, databaseName, (
     apiAttributeCenterLat, apiAttributeCenterLng, apiAttributeZoom, apiAttributeLatOne, apiAttributeLngOne, apiAttributeLatTwo, apiAttributeLngTwo, apiStreetCenterLat, apiStreetCenterLng, apiStreetZoom, apiStreetLatOne, apiStreetLngOne, apiStreetLatTwo, apiStreetLngTwo, apiRegionCenterLat, apiRegionCenterLng, apiRegionZoom, apiRegionLatOne, apiRegionLngOne, apiRegionLatTwo, apiRegionLngTwo
   )
     ).shaped <> ( {
-    case (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, configApi) =>
-      Config(openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, ConfigApi.tupled.apply(configApi))
+    case (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, databaseName, configApi) =>
+      Config(openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, databaseName, ConfigApi.tupled.apply(configApi))
   }, {
     c: Config =>
       def f(i: ConfigApi) = ConfigApi.unapply(i).get
-      Some((c.openStatus, c.mapathonEventLink, c.cityCenterLng, c.cityCenterLng, c.southwestBoundaryLat, c.southwestBoundaryLng, c.northeastBoundaryLat, c.northeastBoundaryLng, c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, f(c.configApi)))
+      Some((c.openStatus, c.mapathonEventLink, c.cityCenterLng, c.cityCenterLng, c.southwestBoundaryLat, c.southwestBoundaryLng, c.northeastBoundaryLat, c.northeastBoundaryLng, c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, c.databaseName, f(c.configApi)))
     }
   )
 }
