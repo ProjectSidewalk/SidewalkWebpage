@@ -7,7 +7,7 @@
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @currentCity =@{Play.configuration.getString("city-id").get}
-@cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._4 == "public")}
+@cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._4 == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c._1)))}
 
 @import views.html.bootstrap._
 
@@ -110,34 +110,37 @@
                         <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
+                <li class="active navbar-lnk">
+                    <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.developer" aria-label="Developer API">@Messages("navbar.api")</a>
+                </li>
 
                 <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
                     <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
-                        @Messages("navbar.data")
+                        @Messages("navbar.tools")
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
-                        <!-- Hides the "Results Map" tab for the Chicago server version-->
-                        @if(!List("chicago-il").contains(currentCity)) {
-                            <li>
-                                <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                            </li>
-                        }
-                        <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                        @if(!List("seattle-wa").contains(currentCity)) {
-                            <li>
-                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
-                            </li>
-                        }
                         <li>
                             <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery("Assorted", "", "", "correct,unvalidated")">@Messages("gallery")</a>
                         </li>
                         <li>
                             <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                         </li>
+                            <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                        @if(!List("seattle-wa").contains(currentCity)) {
+                            <li>
+                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
+                            </li>
+                        }
                         <li>
-                            <a id="navbar-api-btn" role="menuitem" href='@routes.ApplicationController.developer' aria-label="Developer A.P.I.">@Messages("footer.api")</a>
+                            <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("route.builder.name")</a>
                         </li>
+                        <!-- Hides the "Results Map" tab for the Chicago server version-->
+                        @if(!List("chicago-il").contains(currentCity)) {
+                            <li>
+                                <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                            </li>
+                        }
                     </ul>
                 </li>
 
@@ -262,22 +265,25 @@ $(document).ready(function () {
     $("#navbar-help-btn").on('click', function() {
         logWebpageActivity("Click_module=Help");
     });
+    $("#navbar-api-btn").on('click', function() {
+        logWebpageActivity("Click_module=SidewalkAPI");
+    });
 
     // The following buttons are in the Data drop down menu.
-    $("#navbar-results-btn").on('click', function() {
-        logWebpageActivity("Click_module=Results");
-    });
-    $("#navbar-labelmap-btn").on('click', function() {
-        logWebpageActivity("Click_module=LabelMap");
-    });
     $("#navbar-gallery-btn").on('click', function() {
         logWebpageActivity("Click_module=Gallery");
     });
     $("#navbar-leaderboard-btn").on('click', function() {
         logWebpageActivity("Click_module=Leaderboard");
-    }); 
-    $("#navbar-api-btn").on('click', function() {
-        logWebpageActivity("Click_module=SidewalkAPI");
+    });
+    $("#navbar-labelmap-btn").on('click', function() {
+        logWebpageActivity("Click_module=LabelMap");
+    });
+    $("#navbar-route-builder-btn").on('click', function() {
+        logWebpageActivity("Click_module=RouteBuilder");
+    });
+    $("#navbar-results-btn").on('click', function() {
+        logWebpageActivity("Click_module=Results");
     });
 
     // The buttons in the City drop down menu. Log clicks to any of them but the current city.

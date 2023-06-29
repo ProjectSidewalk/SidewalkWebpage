@@ -19,7 +19,80 @@
     "street has a sidewalk": "street has a footpath",
     "street has no sidewalks": "street has no footpaths",
     "level with sidewalk": "level with footpath",
-    "missing crosswalk": "missing pedestrian crossing",
-    "painted sidewalk": "painted footpath"
+    "missing crosswalk": "missing pedestrian crossing"
+  },
+  "mission-start-tutorial": {
+    "curb-ramp": {
+      "slide-1": {
+        "description": "Drop kerbs allow people to transition from the footpath to the street. They should exist at all crossable intersections."
+      },
+      "slide-2": {
+        "description": "Driveways are <b>not</b> drop kerbs. They are designed for vehicles and not pedestrians. Driveways should <b>not</b> be labeled as Drop Kerbs."
+      },
+      "slide-3": {
+        "description": "Driveways to garages are <b>not</b> drop kerbs. Driveways should <b>not</b> be labeled as Drop Kerbs."
+      }
+    },
+    "no-curb-ramp": {
+      "slide-1": {
+        "description": "Footpath intersections should have drop kerbs—ideally two per corner. If a corner has a footpath but does not have a drop kerb, place the Missing Drop Kerb label where you think a drop kerb should exist."
+      },
+      "slide-2": {
+        "description": "Residential walkways should <b>not</b> be labeled as Missing Drop Kerbs."
+      },
+      "slide-3": {
+        "description": "Drop Kerbs are not needed at paths <b>not</b> intended for pedestrians to pass."
+      },
+      "slide-4": {
+        "description": "For corners with <b>no footpaths</b>, use the No Footpath label rather than a Missing Drop Kerb label."
+      }
+    },
+    "obstacle": {
+      "slide-2": {
+        "title": "Ample space to manoeuvre around",
+        "description": "The motorcycle is parked on the side; there is ample space for pedestrians on the remaining space of the footpath."
+      },
+      "slide-3": {
+        "title": "Obstacle not on footpath",
+        "description": "This traffic cone is <b>not</b> on a pedestrian pathway so it should not be marked as an Obstacle.<br><br> Only mark obstacles on footpaths, pedestrian crossings, and other pedestrian pathways."
+      }
+    },
+    "surface-problem": {
+      "slide-1": {
+        "description": "If something on the footpath or pedestrian crossing surface would make it <b>uncomfortable or impossible to cross,</b> it should be labeled as a Surface Problem."
+      },
+      "slide-2": {
+        "title": "Normal footpath tiles",
+        "description": "Normal footpath tiles (without gaps, cracks or bumps) are not surface problems."
+      },
+      "slide-3": {
+        "description": "This gravel is <b>not</b> on a pedestrian pathway so it should not be marked as a Surface Problem.<br><br>Only mark surface problems on footpaths, pedestrian crossings, and other pedestrian pathways."
+      }
+    },
+    "no-sidewalk": {
+      "slide-1": {
+        "description": "If a street side does not have a footpath, please mark it with a <b>No Footpath</b> label."
+      },
+      "slide-2": {
+        "description": "A median that separates two directions of a traffic and is not intended for pedestrians should <b>not</b> be labeled as No Footpath."
+      },
+      "slide-3": {
+        "description": "There is a footpath here. It should <b>not</b> be marked as No Footpath."
+      }
+    },
+    "crosswalk": {
+      "slide-1": {
+        "description": "A pedestrian crossing is a legally defined space to cross a road.<br><br>Pedestrian Crossings are often indicated by <b>parallel dashed lines.</b>"
+      },
+      "slide-2": {
+        "description": "Crossings with no visual indicator should <b>not</b> be labeled as Pedestrian Crossings."
+      },
+      "slide-3": {
+        "description": "Stop lines for cars should not be labeled as Pedestrian Crossings."
+      },
+      "slide-4": {
+        "description": "Speed bumps should not be labeled as Pedestrian Crossings."
+      }
+    }
   }
 }

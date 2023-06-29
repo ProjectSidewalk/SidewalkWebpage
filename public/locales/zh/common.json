@@ -107,8 +107,8 @@
     "APS": "無障礙行人號誌APS",
     "missing crosswalk": "無行人穿越道",
     "no bus stop access": "無公車站出入空間",
-    "painted sidewalk": "彩绘人行道",
-    "pedestrian arcade": "步行街",
+    "pedestrian lane marking": "行人車道標記",
+    "covered walkway": "有蓋的人行道",
     "too close to traffic": "离交通太近",
     "utility panel": "实用面板"
   },
@@ -123,5 +123,125 @@
     "label-id": "標籤編號",
     "view-in-gsv": "在Google街景圖查看",
     "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
+  },
+  "mission-start-tutorial": {
+    "example-type-label-correct": "正確案例",
+    "label-type-subtitle": "為什麼錯誤？",
+    "label-on-image-title-correct": "正確標記",
+    "start-mission": "開始任務",
+    "curb-ramp": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "路緣坡道允許人們從人行道過渡到街道。 它們應該存在於所有可穿越的交叉路口。"
+      },
+      "slide-2": {
+        "title": "車道",
+        "description": "車道<b>不為</b>路緣斜坡，其設計予車輛利用而非行人。車道<b>不該</b>被標記為路緣斜坡。"
+      },
+      "slide-3": {
+        "title": "車庫",
+        "description": "通往車庫的車道<b>不為</b>路緣斜坡。車道<b>不該</b>被標記為路緣斜坡。"
+      }
+    },
+    "no-curb-ramp": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "路口人行道應設置路緣斜坡，理想情況為每個轉角有兩個。若轉角有人行道卻無路緣斜坡，請依據您的判斷標記路緣斜坡應該設置的位置。"
+      },
+      "slide-2": {
+        "title": "住宅步道",
+        "description": "住宅步道<b>不應</b>標記為無路緣斜坡。"
+      },
+      "slide-3": {
+        "title": "不位於行人路徑上",
+        "description": "路緣斜坡不需設置於<b>非</b>行人通行之路徑"
+      },
+      "slide-4": {
+        "title": "$t(common:no-sidewalk)",
+        "description": "<b>無人行道</b>情況應標記為無人行道而非無路緣斜坡。"
+      }
+    },
+    "obstacle": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "障礙物是對於使用輪椅、助行器或其他輔助工具的用路人之<b>通行阻礙</b>。<br><br>然而並非所有的消防栓、桿柱和標誌都是障礙物，只有那些明顯阻礙人行道的物體。"
+      },
+      "slide-2": {
+        "title": "充足的空間可移動",
+        "description": "摩托車停於人行道側邊，行人仍有充足的空間通行。"
+      },
+      "slide-3": {
+        "title": "障礙物不在人行道上",
+        "description": "此交通角錐<b>非</b>放置於人行道上，因此不應標記為障礙物。<br><br>僅需標記在人行道、行人穿越道和其他行人通道上的障礙物。"
+      },
+      "slide-4": {
+        "title": "移動物體",
+        "description": "這輛在街景中的車輛應為移動中，因此不應標記為障礙物。"
+      }
+    },
+    "surface-problem": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "如果人行道或行人穿越道的鋪面會使行人<b>不舒服甚至無法通行</b>就應被標記為鋪面問題。"
+      },
+      "slide-2": {
+        "title": "人行道磚",
+        "description": "人行道磚若無縫隙、裂痕或隆起、凹陷等問題，不為鋪面問題。"
+      },
+      "slide-3": {
+        "title": "不在人行道上",
+        "description": "此碎石路<b>不為</b>行人通道，因此不應標記為鋪面問題。<br><br>請僅針對發生在人行道、行人穿越道和其他行人通道上的鋪面問題進行標記。"
+      }
+    },
+    "no-sidewalk": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "若街道測無設置人行道請選擇<b>無人行道</b>之標記。"
+      },
+      "slide-2": {
+        "title": "道路分隔帶",
+        "description": "道路分隔帶設置目的為分隔兩個不同方向車流，非為行人行走設計，因此<b>不應</b>標記為無人行道。"
+      },
+      "slide-3": {
+        "title": "鋪面",
+        "description": "此處有設置人行道，因此<b>不應</b>標記為無人行道。"
+      }
+    },
+    "crosswalk": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "行人穿越道為法定行人穿越之空間。<br><br>行人穿越道通常以<b>平行斑馬紋</b>標示。"
+      },
+      "slide-2": {
+        "title": "無標線標示",
+        "description": "無標線標示<b>不應</b>標記為行人穿越道。"
+      },
+      "slide-3": {
+        "title": "車輛停止線",
+        "description": "車輛停止線不應標記為行人穿越道。"
+      },
+      "slide-4": {
+        "title": "減速設施",
+        "description": "減速設施不應標記為行人穿越道。"
+      }
+    },
+    "signal": {
+      "slide-1": {
+        "title": "{{labelType}}",
+        "description": "行人號誌指示行人是否可以穿越道路並提供安全的通行時間。<br><br> 部分行人號誌是透過按鈕觸動，一般設置高度齊腰。"
+      },
+      "slide-2": {
+        "title": "標誌",
+        "description": "此標誌無指示行人可以通過的時間。"
+      },
+      "slide-3": {
+        "title": "桿柱",
+        "description": "此桿炷無提供行人號誌。"
+      },
+      "slide-4": {
+        "title": "車輛交通號誌",
+        "description": "此交通號誌僅提供車輛指示，非為行人設置。"
+      }
+    }
   }
 }

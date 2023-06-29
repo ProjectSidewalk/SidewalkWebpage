@@ -1,4 +1,4 @@
-#modal-skip-holder, #modal-comment-holder, #modal-mission-holder {
+#modal-skip-holder, #modal-comment-holder {
     position: absolute;
     left: 0;
     top: 0;
@@ -7,11 +7,7 @@
     text-align: justify;
 }
 
-#modal-mission-holder {
-    visibility: hidden;
-}
-
-#modal-skip-background, #modal-comment-background, #modal-mission-background {
+#modal-skip-background, #modal-comment-background {
     position: absolute;
     left: 0px;
     top: 0;
@@ -211,10 +207,6 @@
     height: 420px;
 }
 
-.modal-mission-images {
-    width: 60%;
-}
-
 .modal-mission-left-column-images {
     width: 100%;
     padding: 25px 0 0 0;
@@ -232,30 +224,6 @@
     width: 100%;
 }
 
-#modal-mission-foreground {
-    padding: 100px 20px 10px 20px;
-    visibility: hidden;
-}
-
-#modal-mission-foreground {
-    padding: 100px 20px 10px 20px;
-    visibility: hidden;
-}
-
-#modal-mission-foreground h1 {
-    font-size: 28pt;
-    /*text-align: left;*/
-}
-
-#modal-mission-foreground p {
-    font-size: 16pt;
-}
-
-#modal-mission-close-button {
-    width: 200px;
-    float: right;
-}
-
 .modal-background {
     position: absolute;
     left: -55px;
@@ -263,26 +231,4 @@
     background: rgba(255, 255, 255, 0.5);
     height: 100%;
     width: 110%;
-}
-
-.modal-close-button-holder {
-    position: absolute;
-    top: 0;
-    right: 5px;
-}
-
-#modal-curb-ramp-foreground {
-    border: solid 3px rgba(0, 222, 38, 1);
-}
-
-#modal-no-curb-ramp-foreground {
-    border: solid 3px rgba(233, 39, 113, 1);
-}
-
-#modal-obstacle-foreground {
-    border: solid 3px rgba(0, 161, 203, 1);
-}
-
-#modal-surface-problem-foreground {
-    border: solid 3px rgba(241, 141, 5, 1);
 }

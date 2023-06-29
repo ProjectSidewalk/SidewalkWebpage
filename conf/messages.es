@@ -47,11 +47,12 @@ press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
 feedback.submitted = Comentarios enviados
 
-navbar.explore = Comienza a explorar
-navbar.validate = Comienza a validar
+navbar.explore = Explorar
+navbar.validate = Validar
 navbar.howto = Cómo etiquetar
+navbar.api = API
+navbar.tools = Herramientas
 navbar.results = Mapa de resultados
-navbar.data = Datos
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
 navbar.leaderboard = Tabla de clasificación
@@ -65,6 +66,7 @@ navbar.lang.aria = Opciones de idioma
 navbar.lang.icon.alt = icono de idiomas
 
 landing.create.path = Creemos un camino para todas las personas
+landing.start.exploring = Comienza a explorar
 landing.also.in = También estamos en:
 landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
@@ -145,7 +147,7 @@ audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>
 audit.left.ui.zoom.in = Acercar (<u>Z</u>)
 audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
-audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+audit.left.ui.feedback = Retroalimentación
 audit.left.ui.stuck = Atorado
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
@@ -193,26 +195,10 @@ audit.survey.performance.option.5 = Excelente
 audit.survey.rationale.question = ¿Por qué elegiste contribuir a <i>Project Sidewalk</i>?
 audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o preguntas?
 
-audit.help.rating.1 = Calificación 1: Transitable
-audit.help.rating.3 = Calificación 3: Neutral
-audit.help.rating.5 = Calificación 5: No es transitable
-audit.help.curb.ramp.1 = Limpia las rampas peatonales que están alineadas con los cruces peatonales.
-audit.help.curb.ramp.3 = Una rampa con un poste parado en el medio. Las personas que usan sillas de ruedas eléctricas grandes pueden tener problemas para usar esta rampa.
-audit.help.curb.ramp.5 = Se ha acumulado agua en esta rampa de peatonal debido al mal drenaje. Es difícil para las personas, usuarias de sillas de ruedas manuales, usar esta rampa peatonal.
-audit.help.missing.ramp.1 = Aunque no hay una rampa peatonal, la diferencia de nivel es pequeña y las personas usuarias de sillas de ruedas podrían subir o bajar de la banqueta. También, hay una rampa peatonal en la misma esquina que la gente podría usar, aunque no está alineada con el camino.
-audit.help.missing.ramp.3 = No hay una rampa al final del cruce peatonal. Las personas usuarias de sillas de ruedas se ven obligadas a usar la rampa que no está alineada con el cruce de peatones.
-audit.help.missing.ramp.5 = No hay rampa al final del cruce peatonal. Las personas usuarias de sillas de ruedas no pueden subir o bajar de la banqueta y cruzar la calle aquí.
-audit.help.obstacle.1 = Un semáforo que está en medio de la banqueta. Parece que hay suficiente espacio para que pasen las personas usuarias de sillas de ruedas, pero aquellas que usan sillas de ruedas más grandes podrían tener problemas para desplazarse.
-audit.help.obstacle.3 = La planta está obstruyendo el camino, lo que dificulta que las personas usuarias de sillas de ruedas usen esta banqueta.
-audit.help.obstacle.5 = El árbol está bloqueando completamente el camino, por lo que no es transitable para las personas usuarias de sillas de ruedas.
-audit.help.surface.problem.1 = Banqueta parcialmente dañada. Debido a que hay suficiente espacio al lado de la parte dañada de la banqueta, las personas usuarias de sillas de ruedas podrían pasar.
-audit.help.surface.problem.3 = Las personas usuarias de sillas de ruedas tendrían dificultades para navegar en las aceras y cruces de adoquines.
-audit.help.surface.problem.5 = Las personas usuarias de sillas de ruedas no pueden pasar por las superficies de las banquetas severamente deterioradas debido a la vegetación sobrecrecida.
-
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar
-validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+validate.left.ui.feedback = Retroalimentación
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
@@ -343,3 +329,13 @@ gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
+
+route.builder.name = Constructor de rutas
+route.builder.instructions = Haga clic en las calles para agregarlas a su ruta, luego haga clic en "Guardar ruta". Luego, puede explorar los problemas de accesibilidad de ruta y etiqueta, ¡o puede compartir un enlace para que otros exploren la misma ruta!
+route.builder.save = Guardar ruta
+route.builder.explore = Explorar ruta
+route.builder.share = Copiar enlace a la ruta
+
+help.rating.1 = Calificación 1: Transitable
+help.rating.3 = Calificación 3: Neutral
+help.rating.5 = Calificación 5: No es transitable

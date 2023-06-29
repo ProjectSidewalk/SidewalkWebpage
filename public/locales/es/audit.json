@@ -65,15 +65,6 @@
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Haz clic en el botón de \"Rampa peatonal\"</span> para etiquetar la otra rampa."
         }
     },
-    "mission-start": {
-        "title": "Explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Primera misión: ",
-        "title-return": "Vuelve a tu misión",
-        "title-continue": "¡Continúa explorando __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> para encontrar elementos de accesibilidad urbana!",
-        "body-first": "¡Tu <span class=\"bold\">primera misión</span> es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "body": "¡Tu misión es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "button-resume": "¡Reanuda tu misión!"
-    },
     "mission-complete": {
         "distance-type-display-string": "kilómetros",
         "title": "¡Misión cumplida!",
@@ -89,20 +80,7 @@
         "button-continue": "Continuar"
     },
     "top-ui": {
-        "press-key": "Presiona la tecla \"{{key}}\"",
-        "instruction": {
-            "walk": "Explora las calles y encuentra todos los atributos de accesibilidad",
-            "curb-ramp": "Localizar y etiquetar una <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">rampa peatonal</span>",
-            "no-curb-ramp": "Localizar y etiquetar una <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">rampa peatonal ausente</span>",
-            "obstacle": "Localizar y etiquetar un <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstáculo</span>",
-            "surface-problem": "Localizar y etiquetar un <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">problema en superficie</span>",
-            "other": "Modo de etiqueta",
-            "occlusion": "Etiqueta una <span class=\"underline\">parte de una banqueta que no se puede observar</span>",
-            "no-sidewalk": "Etiqueta una <span class=\"underline\">banqueta ausente</span>",
-            "crosswalk": "Localizar y etiquetar un <span class=\"underline\">cruce peatonal</span>",
-            "signal": "Localizar y etiquetar un <span class=\"underline\">semáforo peatonal</span>",
-            "explain": "¡Explica esto!"
-        }
+        "press-key": "Presiona la tecla \"{{key}}\""
     },
     "right-ui": {
         "accuracy-tooltip": "La precisión se basa en validaciones de otros usuarios. Si su precisión es baja, consulte algunos errores recientes en <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">su panel de usuario</a> para ayudarlo a mejorar.",
@@ -176,8 +154,8 @@
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús",
                 "height-difference": "<tag-underline>d</tag-underline>esnivel",
-                "painted-sidewalk": "acera pintada (<tag-underline>h</tag-underline>)",
-                "pedestrian-arcade": "arcada peatonal (<tag-underline>q</tag-underline>)",
+                "pedestrian-lane-marking": "marcado de carr<tag-underline>i</tag-underline>l peatonal",
+                "covered-walkway": "pasare<tag-underline>l</tag-underline>a cubierta",
                 "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico",
                 "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad"
             },
@@ -232,5 +210,13 @@
         "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
         "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
         "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "EXPLORAR MISIÓN",
+        "mst-instruction-2": "Etiquete estas funciones de accesibilidad en {{neighborhood}}",
+        "example-type-label-incorrect": "ERROR COMÚN",
+        "label-on-image-title-incorrect": "Error común",
+        "label-on-image-description-correct": "Coloque una etiqueta",
+        "label-on-image-description-incorrect": "<b>No</b> coloque la etiqueta"
     }
 }

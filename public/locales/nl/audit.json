@@ -65,15 +65,6 @@
             "select-label-type-second-curb-ramp": "<span class=\"bold\">Klik op de \"Trottoir Oprit\" button</span> om nu de andere trottoir oprit te labelen."
         }
     },
-    "mission-start": {
-        "title": "Verken __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Eerste Missie: ",
-        "title-return": "Keer terug naar je missie",
-        "title-continue": "Ga door met verkennen __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> voor toegankelijkheids kenmerken!",
-        "body-first": "Je <span class=\"bold\">eerste missie</span> is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
-        "body": "Jouw missie is om __DISTANCE_PLACEHOLDER__ te verkennen in __NEIGHBORHOOD_PLACEHOLDER__</span> en alle toegankelijkheidskenmerken te vinden die van invloed zijn op reizigers die een beperking ervaren!",
-        "button-resume": "Missie hervatten!"
-    },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
         "title": "Missie geslaagd!",
@@ -89,20 +80,7 @@
         "button-continue": "Ga verder"
     },
     "top-ui": {
-        "press-key": "Druk op de \"{{key}}\" knop",
-        "instruction": {
-            "walk": "Verken de straten en vind alle toegankelijkheids kenmereken",
-            "curb-ramp": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">stoep oprit</span>",
-            "no-curb-ramp": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">ontbrekende stoep oprit</span>",
-            "obstacle": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstakel op het pad</span>",
-            "surface-problem": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">oppervlakte probleem</span>",
-            "other": "Label mode",
-            "occlusion": "Label een <span class=\"underline\"> deel van het trottoir dat niet kan worden gezien</span>",
-            "no-sidewalk": "Label een <span class=\"underline\">ontbrekend trottoir</span>",
-            "crosswalk": "Localiseer en label een <span class=\"underline\">oversteekplaats</span>",
-            "signal": "Localiseer en label een <span class=\"underline\">verkeerslicht</span>",
-            "explain": "Leg dit uit!"
-        }
+        "press-key": "Druk op de \"{{key}}\" knop"
     },
     "right-ui": {
         "accuracy-tooltip": "Nauwkeurigheid is gebaseerd op validaties van andere gebruikers. Als uw nauwkeurigheid laag is, bekijk dan enkele recente fouten op <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">uw gebruikersdashboard</a> om u te helpen verbeteren!",
@@ -176,8 +154,8 @@
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssend zebrapad",
                 "no-bus-stop-access": "geen bush<tag-underline>a</tag-underline>lte toegang",
                 "height-difference": "hoogte verschil (<tag-underline>d</tag-underline>)",
-                "painted-sidewalk": "gesc<tag-underline>h</tag-underline>ilderd trottoir",
-                "pedestrian-arcade": "voetgangers galerij (<tag-underline>q</tag-underline>)",
+                "pedestrian-lane-marking": "voetgangersstrookmarker<tag-underline>i</tag-underline>ng",
+                "covered-walkway": "Overdekte <tag-underline>l</tag-underline>oopbrug",
                 "too-close-to-traffic": "<tag-underline>t</tag-underline>e dicht bij het verkeer",
                 "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el"
             },
@@ -232,5 +210,13 @@
         "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
         "stuck-skipped-street": "We konden geen geschikte plek vinden in deze straat, dus we hebben je naar een nieuwe straat verplaatst.",
         "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant."
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "ONTDEK MISSIE",
+        "mst-instruction-2": "Label deze toegankelijkheidsvoorzieningen in {{neighborhood}}",
+        "example-type-label-incorrect": "VEEL VOORKOMENDE FOUT",
+        "label-on-image-title-incorrect": "Veel voorkomende fout",
+        "label-on-image-description-correct": "Plaats een etiket",
+        "label-on-image-description-incorrect": "Plaats <b>geen</b> label"
     }
 }
