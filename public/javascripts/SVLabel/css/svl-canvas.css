@@ -33,3 +33,32 @@
     width: 20px;
     position: absolute;
 }
+
+.speed-limit-sign {
+    background-color: white;
+    display: flex;
+    place-content: center;
+    width: 70px;
+    height: 90px;
+    padding: 3px;
+    margin: 5px;
+    float: right;
+    border-radius: 5px;
+}
+
+.speed-limit-holder {
+    border-radius: 5px;
+    border: 3px solid black;
+}
+
+.speed-limit-text {
+    font-size: 15px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#speed-limit {
+    font-size: 30px;
+    display: block;
+    margin-top: -5px;
+}
