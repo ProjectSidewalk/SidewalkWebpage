@@ -350,9 +350,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val file = new java.io.File("access_score_neighborhoods.csv")
     val writer = new java.io.PrintStream(file)
     val header: String = "Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Score," +
-      "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
-      "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
-      "Surface Problem Significance,Avg Image Capture Date,Avg Label Date"
+                         "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
+                         "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
+                         "Surface Problem Significance,Avg Image Capture Date,Avg Label Date"
     // Write the column headers.
     writer.println(header)
 
@@ -550,9 +550,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val file = new java.io.File("access_score_streets.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Region ID,OSM ID,Access Score,Coordinates,Audit Count,Avg Curb Ramp Score," +
-        "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
-        "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
-        "Surface Problem Significance,Avg Image Capture Date,Avg Label Date"
+                           "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
+                           "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
+                           "Surface Problem Significance,Avg Image Capture Date,Avg Label Date"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
