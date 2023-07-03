@@ -97,19 +97,19 @@ public class ShapefilesCreatorHelper {
                 DataUtilities.createType(
                         "Location",
                         "the_geom:Point:srid=4326," // the geometry attribute: Point type
-                                + "id:Integer," // a attribute ID
-                                + "labelType:String," // Label type
-                                + "streetId:Integer," // Street edge ID of the nearest street
-                                + "osmWayId:Integer," // Street OSM ID of the nearest street
-                                + "neighborhd:String," // Neighborhood Name
-                                + "avgImgDate:String," // Image date
-                                + "avgLblDate:String," // Label date
-                                + "severity:Integer," // Severity
-                                + "temporary:Boolean," // Temporary flag
-                                + "nAgree:Integer," // Agree validations
-                                + "nDisagree:Integer," // Disagree validations
-                                + "nNotsure:Integer," // Notsure validations
-                                + "userIds:String," // List of User Ids
+                        + "id:Integer," // a attribute ID
+                        + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
+                        + "osmWayId:Integer," // Street OSM ID of the nearest street
+                        + "neighborhd:String," // Neighborhood Name
+                        + "avgImgDate:String," // Image date
+                        + "avgLblDate:String," // Label date
+                        + "severity:Integer," // Severity
+                        + "temporary:Boolean," // Temporary flag
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
+                        + "nNotsure:Integer," // Notsure validations
+                        + "userIds:String," // List of User Ids
                 );
 
         /*
@@ -162,31 +162,31 @@ public class ShapefilesCreatorHelper {
                 DataUtilities.createType(
                         "Location",
                         "the_geom:Point:srid=4326," // the geometry attribute: Point type
-                                + "labelId:Integer," // label ID
-                                + "attribId:Integer," // attribute ID
-                                + "labelType:String," // Label type
-                                + "streetId:Integer," // Street edge ID of the nearest street
-                                + "osmWayId:Integer," // Street OSM ID of the nearest street (10 char max)
-                                + "neighborhd:String," // Neighborhood Name
-                                + "severity:Integer," // Severity
-                                + "temporary:Boolean," // Temporary flag
-                                + "gsvPanoID:String," // GSV Panorama ID
-                                + "heading:Double," // heading of panorama
-                                + "pitch:Double," // pitch of panorama
-                                + "zoom:Integer," // zoom of panorama
-                                + "canvasX:Integer," // canvasX position of panorama
-                                + "canvasY:Integer," // canvasY position of panorama
-                                + "canvasWdth:Integer," // width of source viewfinder
-                                + "canvasHght:Integer," // height of source viewfinder
-                                + "gsvUrl:String," // GSV URL
-                                + "imageDate," // Image date
-                                + "labelDate," // Label date
-                                + "nAgree:Integer," // Agree validations
-                                + "nDisagree:Integer," // Disagree validations
-                                + "nNotsure:Integer," // Notsure validations
-                                + "labelTags:String," // Label Tags
-                                + "labelDescr:String," // Label Description
-                                + "userId:String," // User Id
+                        + "labelId:Integer," // label ID
+                        + "attribId:Integer," // attribute ID
+                        + "labelType:String," // Label type
+                        + "streetId:Integer," // Street edge ID of the nearest street
+                        + "osmWayId:Integer," // Street OSM ID of the nearest street (10 char max)
+                        + "neighborhd:String," // Neighborhood Name
+                        + "severity:Integer," // Severity
+                        + "temporary:Boolean," // Temporary flag
+                        + "gsvPanoID:String," // GSV Panorama ID
+                        + "heading:Double," // heading of panorama
+                        + "pitch:Double," // pitch of panorama
+                        + "zoom:Integer," // zoom of panorama
+                        + "canvasX:Integer," // canvasX position of panorama
+                        + "canvasY:Integer," // canvasY position of panorama
+                        + "canvasWdth:Integer," // width of source viewfinder
+                        + "canvasHght:Integer," // height of source viewfinder
+                        + "gsvUrl:String," // GSV URL
+                        + "imageDate," // Image date
+                        + "labelDate," // Label date
+                        + "nAgree:Integer," // Agree validations
+                        + "nDisagree:Integer," // Disagree validations
+                        + "nNotsure:Integer," // Notsure validations
+                        + "labelTags:String," // Label Tags
+                        + "labelDescr:String," // Label Description
+                        + "userId:String," // User Id
                 );
 
 
@@ -258,20 +258,20 @@ public class ShapefilesCreatorHelper {
                 DataUtilities.createType(
                         "Location",
                         "the_geom:LineString:srid=4326," // the geometry attribute: Line type
-                                + "streetId:Integer," // StreetId
-                                + "osmWayId:Integer," // osmWayId
-                                + "score:Double," // street score
-                                + "auditCount:Integer," // boolean representing whether the street is audited
-                                + "sigRamp:Double," // curb ramp significance score
-                                + "sigNoRamp:Double," // no Curb ramp significance score
-                                + "sigObs:Double," // obstacle significance score
-                                + "sigSurfce:Double," // Surface problem significance score
-                                + "nRamp:Double," // curb ramp feature score
-                                + "nNoRamp:Double," // no Curb ramp feature score
-                                + "nObs:Double," // obstacle feature score
-                                + "nSurfce:Double," // Surface problem feature score
-                                + "avgImgDate:String," // average image age in milliseconds
-                                + "avgLblDate:String" // average label age in milliseconds
+                        + "streetId:Integer," // StreetId
+                        + "osmWayId:Integer," // osmWayId
+                        + "score:Double," // street score
+                        + "auditCount:Integer," // boolean representing whether the street is audited
+                        + "sigRamp:Double," // curb ramp significance score
+                        + "sigNoRamp:Double," // no Curb ramp significance score
+                        + "sigObs:Double," // obstacle significance score
+                        + "sigSurfce:Double," // Surface problem significance score
+                        + "nRamp:Double," // curb ramp feature score
+                        + "nNoRamp:Double," // no Curb ramp feature score
+                        + "nObs:Double," // obstacle feature score
+                        + "nSurfce:Double," // Surface problem feature score
+                        + "avgImgDate:String," // average image age in milliseconds
+                        + "avgLblDate:String" // average label age in milliseconds
                 );
 
         /*
@@ -331,20 +331,20 @@ public class ShapefilesCreatorHelper {
                 DataUtilities.createType(
                         "Location",
                         "the_geom:Polygon:srid=4326," // line geometry
-                                + "neighborhd:String," // Neighborhood Name
-                                + "regionId:Integer," // Neighborhood Id
-                                + "coverage:Double," // coverage score
-                                + "score:Double," // obstacle score
-                                + "sigRamp:Double," // curb ramp significance score
-                                + "sigNoRamp:Double," // no Curb ramp significance score
-                                + "sigObs:Double," // obstacle significance score
-                                + "sigSurfce:Double," // Surface problem significance score
-                                + "nRamp:Double," // curb ramp feature score
-                                + "nNoRamp:Double," // no Curb ramp feature score
-                                + "nObs:Double," // obstacle feature score
-                                + "nSurfce:Double," // Surface problem feature score
-                                + "avgImgDate:String," // average image age in milliseconds
-                                + "avgLblDate:String" // average label age in milliseconds
+                        + "neighborhd:String," // Neighborhood Name
+                        + "regionId:Integer," // Neighborhood Id
+                        + "coverage:Double," // coverage score
+                        + "score:Double," // obstacle score
+                        + "sigRamp:Double," // curb ramp significance score
+                        + "sigNoRamp:Double," // no Curb ramp significance score
+                        + "sigObs:Double," // obstacle significance score
+                        + "sigSurfce:Double," // Surface problem significance score
+                        + "nRamp:Double," // curb ramp feature score
+                        + "nNoRamp:Double," // no Curb ramp feature score
+                        + "nObs:Double," // obstacle feature score
+                        + "nSurfce:Double," // Surface problem feature score
+                        + "avgImgDate:String," // average image age in milliseconds
+                        + "avgLblDate:String" // average label age in milliseconds
                 );
 
         /*
