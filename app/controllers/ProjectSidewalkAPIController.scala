@@ -163,10 +163,25 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("attributeWithLabels", Array("attributes", "labels"))
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-    } else {  // In GeoJSON format.
-      val features: List[JsObject] =
-        GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
-      Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    } else {
+      // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
+      val attributesJsonFile = new java.io.File(s"attributesWithLabels_${new Timestamp(Instant.now.toEpochMilli).toString}.json")
+      val writer = new java.io.PrintStream(attributesJsonFile)
+      writer.print("""{"type":"FeatureCollection","features":[""")
+
+      var startIndex: Int = 0
+      val batchSize: Int = 10000
+      var moreWork: Boolean = true
+      while (moreWork) {
+        val features: List[JsObject] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).map(_.toJSON)
+        writer.print(features.map(_.toString).mkString(","))
+        startIndex += batchSize
+        if (features.length < batchSize) moreWork = false
+      }
+      writer.print("]}")
+      writer.close()
+
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = true, onClose = () => attributesJsonFile.delete()))
     }
   }
 
@@ -206,10 +221,25 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("accessAttributes", Array("attributes"));
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-    } else { // In GeoJSON format.
-      val features: List[JsObject] =
-        GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
-      Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    } else {
+      // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
+      val attributesJsonFile = new java.io.File(s"attributes_${new Timestamp(Instant.now.toEpochMilli).toString}.json")
+      val writer = new java.io.PrintStream(attributesJsonFile)
+      writer.print("""{"type":"FeatureCollection","features":[""")
+
+      var startIndex: Int = 0
+      val batchSize: Int = 10000
+      var moreWork: Boolean = true
+      while (moreWork) {
+        val features: List[JsObject] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).map(_.toJSON)
+        writer.print(features.map(_.toString).mkString(","))
+        startIndex += batchSize
+        if (features.length < batchSize) moreWork = false
+      }
+      writer.print("]}")
+      writer.close()
+
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = true, onClose = () => attributesJsonFile.delete()))
     }
   }
 

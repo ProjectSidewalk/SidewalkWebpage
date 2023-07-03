@@ -329,7 +329,6 @@ function Admin(_, $) {
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
                 var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
-                var pedestrianSignals = data.features.filter(function(label) {return label.properties.label_type === "Signal"});
                 
                 var curbRampStats = getSummaryStats(curbRamps, "severity");
                 $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));

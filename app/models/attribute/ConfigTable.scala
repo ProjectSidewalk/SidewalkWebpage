@@ -14,7 +14,7 @@ case class ConfigApi(apiAttributeCenterLat: Double, apiAttributeCenterLng: Doubl
 
 case class Config(openStatus: String, mapathonEventLink: Option[String], cityCenterLat: Double, cityCenterLng: Double, southwestBoundaryLat: Double,
                   southwestBoundaryLng: Double, northeastBoundaryLat: Double, northeastBoundaryLng: Double, defaultMapZoom: Double,
-                  tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, databaseName: String, configApi: ConfigApi)
+                  tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, configApi: ConfigApi)
 
 class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewalk"), "config") {
   def openStatus: Column[String] = column[String]("open_status", O.NotNull)
@@ -50,18 +50,17 @@ class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewa
   def apiRegionLngOne: Column[Double] = column[Double]("api_region_lng1", O.NotNull)
   def apiRegionLatTwo: Column[Double] = column[Double]("api_region_lat2", O.NotNull)
   def apiRegionLngTwo: Column[Double] = column[Double]("api_region_lng2", O.NotNull)
-  def databaseName: Column[String] = column[String]("database_name", O.NotNull)
 
-  def * = (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags, databaseName, (
+  def * = (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags, (
     apiAttributeCenterLat, apiAttributeCenterLng, apiAttributeZoom, apiAttributeLatOne, apiAttributeLngOne, apiAttributeLatTwo, apiAttributeLngTwo, apiStreetCenterLat, apiStreetCenterLng, apiStreetZoom, apiStreetLatOne, apiStreetLngOne, apiStreetLatTwo, apiStreetLngTwo, apiRegionCenterLat, apiRegionCenterLng, apiRegionZoom, apiRegionLatOne, apiRegionLngOne, apiRegionLatTwo, apiRegionLngTwo
   )
     ).shaped <> ( {
-    case (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, databaseName, configApi) =>
-      Config(openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, databaseName, ConfigApi.tupled.apply(configApi))
+    case (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, configApi) =>
+      Config(openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, ConfigApi.tupled.apply(configApi))
   }, {
     c: Config =>
       def f(i: ConfigApi) = ConfigApi.unapply(i).get
-      Some((c.openStatus, c.mapathonEventLink, c.cityCenterLng, c.cityCenterLng, c.southwestBoundaryLat, c.southwestBoundaryLng, c.northeastBoundaryLat, c.northeastBoundaryLng, c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, c.databaseName, f(c.configApi)))
+      Some((c.openStatus, c.mapathonEventLink, c.cityCenterLng, c.cityCenterLng, c.southwestBoundaryLat, c.southwestBoundaryLng, c.northeastBoundaryLat, c.northeastBoundaryLng, c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, f(c.configApi)))
     }
   )
 }

@@ -47,11 +47,12 @@ press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
 feedback.submitted = Feedback Submitted
 
-navbar.explore = Start Exploring
-navbar.validate = Start Validating
+navbar.explore = Explore
+navbar.validate = Validate
 navbar.howto = How to Label
+navbar.api = API
+navbar.tools = Tools
 navbar.results = Results Map
-navbar.data = Data
 navbar.labelmap = Label Map
 navbar.help = Help
 navbar.leaderboard = Leaderboard
@@ -65,6 +66,7 @@ navbar.lang.aria = Language Options
 navbar.lang.icon.alt = languages icon
 
 landing.create.path = Let''s create a path for everyone
+landing.start.exploring = Start Exploring
 landing.also.in = We are also in:
 landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
@@ -192,22 +194,6 @@ audit.survey.performance.option.4 = Very Good
 audit.survey.performance.option.5 = Excellent
 audit.survey.rationale.question = Why did you choose to contribute to Project Sidewalk?
 audit.survey.feedback.question = Do you have any feedback, design ideas, or questions?
-
-audit.help.rating.1 = Rating 1: Passable
-audit.help.rating.3 = Rating 3: Neutral
-audit.help.rating.5 = Rating 5: Not passable
-audit.help.curb.ramp.1 = Clean curb ramps that are aligned with crosswalks.
-audit.help.curb.ramp.3 = A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs may have trouble using this curb ramp.
-audit.help.curb.ramp.5 = Water has accumulated in this curb ramp due to poor drainage. It is hard for manual wheelchair users to use this curb ramp.
-audit.help.missing.ramp.1 = Although there is no curb ramp, the level difference is small and wheelchair users would be able to get on or off the sidewalk. There is also a curb ramp at the same corner that people could use, although it is not aligned to the path.
-audit.help.missing.ramp.3 = There is no curb ramp at the end of the crosswalk. Wheelchair users are forced to used the curb ramp that is not aligned with the crosswalk.
-audit.help.missing.ramp.5 = No curb ramp at the end of the crosswalk. Wheelchair users cannot get on or off the sidewalk and cross the street here.
-audit.help.obstacle.1 = A traffic light standing in the middle of the sidewalk. There seems to be enough space for wheelchair users to pass, but those who are using larger chairs could have trouble navigating.
-audit.help.obstacle.3 = The plant is obstructing the path, making it hard for wheelchair users to use this sidewalk.
-audit.help.obstacle.5 = The tree is completely blocking the path, making it not passable for wheelchair users.
-audit.help.surface.problem.1 = Partially damaged sidewalk. Because there is enough space next to the damaged part of the sidewalk, wheelchair users would be able to pass.
-audit.help.surface.problem.3 = Wheelchair users would have difficulty navigating on the cobblestone sidewalks and crosswalks.
-audit.help.surface.problem.5 = Wheelchair users cannot pass severely degraded sidewalk surfaces due to the over-grown vegetation.
 
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Out
@@ -351,3 +337,7 @@ route.builder.instructions = Click on streets to add them to your route, then cl
 route.builder.save = Save route
 route.builder.explore = Explore route
 route.builder.share = Copy link to route
+
+help.rating.1 = Rating 1: Passable
+help.rating.3 = Rating 3: Neutral
+help.rating.5 = Rating 5: Not passable

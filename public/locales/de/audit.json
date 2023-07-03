@@ -80,20 +80,7 @@
         "button-continue": "Fortsetzen"
     },
     "top-ui": {
-        "press-key": "Drücken Sie auf die \"{{key}}\" Taste",
-        "instruction": {
-            "walk": "Erkunden Sie die Strassen und finden Sie alle Zugänglichkeitsmerkmale",
-            "curb-ramp": "Finden und beschriften Sie eine <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">Trottoirabsenkung</span>",
-            "no-curb-ramp": "Finden und beschriften Sie eine <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">fehlende Trottoirabsenkung</span>",
-            "obstacle": "Finden und beschriften Sie ein <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">Hindernis im Weg</span>",
-            "surface-problem": "Finden und beschriften Sie ein <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">Oberflächenproblem</span>",
-            "other": "Beschriftungsmodus",
-            "occlusion": "Beschriften Sie einen <span class=\"underline\">Teil des Trottoirs, das nicht sichtbar ist</span>",
-            "no-sidewalk": "Beschriften Sie ein <span class=\"underline\">fehlendes Trottoir</span>",
-            "crosswalk": "Finden und beschriften Sie ein <span class=\"underline\">Fussgängerstreifen</span>",
-            "signal": "Finden und beschriften Sie ein <span class=\"underline\">Fussgängerlichtsignal</span>",
-            "explain": "Erläutern Sie dies!"
-        }
+        "press-key": "Drücken Sie auf die \"{{key}}\" Taste"
     },
     "right-ui": {
         "accuracy-tooltip": "Die Bewertung Ihrer Genauigkeit basiert auf der Validierung durch andere Nutzende. Wenn Ihre Genauigkeit tief ist, sehen Sie sich häufige Fehler unter <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">Ihrem Dashboard</a> an, um sich zu verbessern!",

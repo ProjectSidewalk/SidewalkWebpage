@@ -47,11 +47,12 @@ press.keys = Drücken Sie die Tasten "{0}"
 feedback.title = Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!
 feedback.submitted = Rückmeldung gesendet
 
-navbar.explore = Erkundung starten
-navbar.validate = Validierung starten
+navbar.explore = Erkunden
+navbar.validate = Valideren
 navbar.howto = Beschriftungsanleitung
+navbar.api = API
+navbar.tools = Werkzeug
 navbar.results = Ergebniskarte
-navbar.data = Daten
 navbar.labelmap = Beschriftungskarte
 navbar.help = Hilfe
 navbar.leaderboard = Bestenliste
@@ -65,6 +66,7 @@ navbar.lang.aria = Sprachoptionen
 navbar.lang.icon.alt = Sprachsymbol
 
 landing.create.path = Schaffen wir einen Weg für alle!
+landing.start.exploring = Erkundung starten
 landing.also.in = Wir sind auch in:
 landing.mapathon = Leben Sie in {0}? Besuchen Sie <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">eine Mapathon-Veranstaltung in Ihrer Nähe!</a>
 landing.how.you.help = Wie Sie dazu beitragen
@@ -192,22 +194,6 @@ audit.survey.performance.option.4 = Sehr gut
 audit.survey.performance.option.5 = Ausgezeichnet
 audit.survey.rationale.question = Wieso haben Sie sich dazu entschieden, zum Project Sidewalk beizutragen?
 audit.survey.feedback.question = Haben Sie zusätzliche Rückmeldungen, Gestaltungsvorschläge oder Fragen?
-
-audit.help.rating.1 = Bewertung 1: Passierbar
-audit.help.rating.3 = Bewertung 3: Schwer passierbar
-audit.help.rating.5 = Bewertung 5: Nicht passierbar
-audit.help.curb.ramp.1 = Saubere Trottoirabsenkungen, die auf Fussgängerstreifen ausgerichtet sind.
-audit.help.curb.ramp.3 = Eine Trottoirabsenkung mit einem Pfosten in der Mitte. Personen, welche einen grossen Elektrorollstuhl verwenden, haben möglicherweise Mühe, diese Trottoirabsenkung zu benutzen.
-audit.help.curb.ramp.5 = Bei dieser Trottoirabsenkung hat sich aufgrund schlechter Entwässerung Wasser gesammelt. Für eine Person in einem Handrollstuhl ist es schwierig, diese Trottoirabsenkung zu benutzen.
-audit.help.missing.ramp.1 = Obwohl es keine Trottoirabsenkung hat, ist der Höhenunterschied klein und Personen im Rollstuhl können auf das Trottoir gelangen bzw. vom Trottoir herunter gelangen. An derselben Strassenecke befindet sich ausserdem eine zusätzliche Trottoirabsenkung, welche benutzt werden kann, obwohl sie nicht auf denselben Weg ausgerichtet ist.
-audit.help.missing.ramp.3 = Am Ende des Fussgängerstreifens fehlt eine Trottoirabsenkung. Personen im Rollstuhl müssen die Trottoirabsenkung nutzen, die nicht auf diesen Fussgängerstreifen ausgerichtet ist.
-audit.help.missing.ramp.5 = Keine Trottoirabsenkung am Ende dieses Fussgängerstreifens. Rollstuhlfahrende können nicht auf das Trottoir gelangen bzw. vom Trottoir herunter gelangen, um die Strasse hier zu überqueren.
-audit.help.obstacle.1 = Ein Lichtsignal, dass in der Mitte des Trottoirs steht. Es scheint für Rollstuhlfahrende genügend Platz zu haben, um zu passieren. Diejenigen, die einen grösseren Rollstuhl benutzen, könnten möglicherweise Probleme beim Passieren haben.
-audit.help.obstacle.3 = Die Pflanze blockiert den Weg, was es für Rollstuhlfahrende schwierig macht, dieses Trottoir zu benutzen.
-audit.help.obstacle.5 = Dieser Baum blockiert den Weg vollständig, was ihn für Personen im Rollstuhl unpassierbar macht.
-audit.help.surface.problem.1 = Teilweise beschädigtes Trottoir. Da neben dem beschädigten Bereich genügend Platz vorhanden ist, können Rollstuhlfahrende trotzdem passieren.
-audit.help.surface.problem.3 = Für Personen im Rollstuhl kann es schwierig sein, Trottoirs und Fussgängerstreifen aus Kopfsteinpflaster zu benutzen.
-audit.help.surface.problem.5 = Personen im Rollstuhl können das schwer beschädigtes Trottoir mit dem starken Bewuchs nicht passieren.
 
 validate.top.ui.zoom.in = Hineinzoomen (<u>Z</u>)
 validate.top.ui.zoom.out = Hinauszoomen
@@ -351,3 +337,7 @@ route.builder.instructions = Klicken Sie auf Straßen, um sie zu Ihrer Route hin
 route.builder.save = Route speichern
 route.builder.explore = Route erkunden
 route.builder.share = Link zur Route kopieren
+
+help.rating.1 = Bewertung 1: Passierbar
+help.rating.3 = Bewertung 3: Schwer passierbar
+help.rating.5 = Bewertung 5: Nicht passierbar

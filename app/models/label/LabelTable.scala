@@ -1334,7 +1334,7 @@ object LabelTable {
   /**
    * Get metadata used for 2022 CV project for all labels.
    */
-  def getLabelCVMetadata: List[LabelCVMetadata] = db.withSession { implicit session =>
+  def getLabelCVMetadata(startIndex: Int, batchSize: Int): List[LabelCVMetadata] = db.withSession { implicit session =>
     (for {
       _l <- labels
       _lp <- labelPoints if _l.labelId === _lp.labelId
@@ -1343,7 +1343,8 @@ object LabelTable {
     } yield (
       _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount, _gsv.width,
       _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
-      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.get, _gsv.cameraPitch.get
-    )).list.map(LabelCVMetadata.tupled)
+      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.asColumnOf[Float],
+      _gsv.cameraPitch.asColumnOf[Float]
+    )).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
   }
 }

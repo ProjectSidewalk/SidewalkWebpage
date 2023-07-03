@@ -29,6 +29,7 @@ $(document).ready(function () {
         }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
         // Use parameters to fill in example URLs.
+        var fullBBox = `lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}`;
         var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
         var attributesURLCSV = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv`;
         var attributesURLShapeFile = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=shapefile`;
@@ -41,6 +42,7 @@ $(document).ready(function () {
         var regionsURLShapeFile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
 
         // Fill in example URLs in HTML.
+        $('.api-full-bbox').html(fullBBox);
         $('#attributes-link').attr('href', attributesURL);
         $('#attributes-code').html(attributesURL);
         $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL);

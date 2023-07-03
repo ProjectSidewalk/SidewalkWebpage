@@ -47,11 +47,12 @@ press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
 feedback.submitted = Feedback Ingediend
 
-navbar.explore = Start met Verkennen
-navbar.validate = Start met Valideren
+navbar.explore = Ontdekken
+navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen
+navbar.api = API
+navbar.tools = Hulpmiddelen
 navbar.results = Resultaten kaart
-navbar.data = Data
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
@@ -65,6 +66,7 @@ navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
 
 landing.create.path = Laten we een pad creëren voor iedereen!
+landing.start.exploring = Start met Verkennen
 landing.also.in = We zijn ook in:
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
@@ -193,21 +195,6 @@ audit.survey.performance.option.5 = Uitstekend
 audit.survey.rationale.question = Waarom koos je ervoor om bij te dragen aan Project Sidewalk?
 audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
-audit.help.rating.1 = Rating 1: Begaanbaar
-audit.help.rating.3 = Rating 3: Neutraal
-audit.help.rating.5 = Rating 5: Niet begaanbaar
-audit.help.curb.ramp.1 = Schone trottoir opritten die aansluiten met oversteekplekken.
-audit.help.curb.ramp.3 = Een trottoir oprit met een paal in het midden van het pad. Mensen die een grote electrische rolstoel gebruiken hebben wellicht moeite met het gebruiken van deze trottoir oprit.
-audit.help.curb.ramp.5 = Water heeft zich opgehoopt in deze trottoir oprit door een slechte afvoer. Het is lastig voor gebruikers van een handrolstoel om deze trottoir oprit te gebruiken.
-audit.help.missing.ramp.1 = Hoewel er geen trottoir oprit is, is de het hoogteverschil klein en zouden rolstoel gebruikers van en op het trottoir moeten kunnen komen. Er is ook een trottoir oprit op dezelfde hoek die mensen zouden kunnen gebruiken, alhoewel het niet in het verlengde ligt van het huidige pad.
-audit.help.missing.ramp.3 = Er is geen trottoir oprit op het einde van de oversteekplek. Rolstoelgebruikers zijn gedwongen om de oprit te gebruiken die niet in het verlengde ligt van de oversteekplek.
-audit.help.missing.ramp.5 = Geen trottoir oprit aan het einde van de oversteekplek. Rolstoelgebruikers kunnen niet van en op het trottoir komen om de straat hier over te steken.
-audit.help.obstacle.1 = Een verkeerslicht dat in het midden van het trottoir staat. Er lijkt voldoende ruimte te zijn voor rolstoelgebruikers om te passeren, maar degenen die grotere rolstoelen gebruiken kunnen moeite hebben met navigeren.
-audit.help.obstacle.3 = De plant blokkeert het pad, waardoor het voor rolstoelgebruikers moeilijk is om dit trottoir te gebruiken.
-audit.help.obstacle.5 = De boom blokkeert het pad volledig, waardoor deze niet begaanbaar is voor rolstoelgebruikers.
-audit.help.surface.problem.1 = Gedeeltelijk beschadigd trottoir. Omdat er voldoende ruimte is naast het beschadigde deel van het trottoir, zouden rolstoelgebruikers kunnen passeren.
-audit.help.surface.problem.3 = Rolstoelgebruikers zouden moeite hebben met het navigeren op de geplaveide trottoirs en zebrapaden.
-audit.help.surface.problem.5 = Rolstoelgebruikers kunnen ernstig aangetaste stoepoppervlakken niet passeren vanwege de overgroeide vegetatie.
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
@@ -348,3 +335,7 @@ route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen
 route.builder.save = Route bewaren
 route.builder.explore = Verken de route
 route.builder.share = Kopieer link naar route
+
+help.rating.1 = Rating 1: Begaanbaar
+help.rating.3 = Rating 3: Neutraal
+help.rating.5 = Rating 5: Niet begaanbaar
