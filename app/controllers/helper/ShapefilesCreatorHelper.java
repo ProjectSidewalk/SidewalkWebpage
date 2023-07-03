@@ -24,7 +24,7 @@ import controllers.StreetAttributeSignificance;
 
 /**
  * This class handles the creation of Shapefile archives to be used by the SidewalkAPIController.
- *
+ * 
  * Code was started and modified from the Geotools feature tutorial: 
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
  *
