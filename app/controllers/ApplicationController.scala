@@ -132,7 +132,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-              // change this line - dylanb
               val mapathonLink: Option[String] = ConfigTable.getMapathonEventLink
               // Get names and URLs for other cities so we can link to them on landing page.
               val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity = cityStr)

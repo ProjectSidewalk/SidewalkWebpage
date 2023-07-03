@@ -10,6 +10,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
+import models.attribute.ConfigTable
 import models.street.StreetEdgeRegionTable
 import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
@@ -101,8 +102,7 @@ object LabelTable {
 
   // Grab city id of database and the associated tutorial street id for the city
   val cityStr: String = Play.configuration.getString("city-id").get
-  // replace this line - dylan
-  val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+  val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
 
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
   // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table.

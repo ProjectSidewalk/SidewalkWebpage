@@ -134,7 +134,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
         val cityStr: String = Play.configuration.getString("city-id").get
-        // confirm if works - dylanb
         val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
         val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
         if (missionSetProgress.missionType != "audit") {
@@ -193,7 +192,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
             val cityStr: String = Play.configuration.getString("city-id").get
-            // confirm if works - dylanb
             val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
             val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
             if (missionSetProgress.missionType != "audit") {
@@ -260,7 +258,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           }
 
           val cityStr: String = Play.configuration.getString("city-id").get
-          // replaced, confirm if works - dylanb
           val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
           val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
 

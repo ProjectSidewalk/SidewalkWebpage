@@ -20,7 +20,6 @@ class ClusterLabelAttributesActor extends Actor {
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     val cityId: String = Play.configuration.getString("city-id").get
-    // check if this works - dylanb
     val hoursOffset: Int = ConfigTable.getOffsetHours
 
     // If we want to update the cluster table at 1 am PDT every day, we need to figure out how much time there is b/w
