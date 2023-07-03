@@ -33,9 +33,8 @@ CREATE TABLE config (
     api_region_lng1          DOUBLE PRECISION NOT NULL,
     api_region_lat2          DOUBLE PRECISION NOT NULL,
     api_region_lng2          DOUBLE PRECISION NOT NULL,
+    database_name            TEXT             NOT NULL
 );
-
--- note: may need to add the current database indicator to these values
 
 -- seattle
 INSERT INTO config VALUES ('partially', NULL , 47.615, -122.332, 47.400, -122.664, 47.850, -122.000, 11.75, 27645, 3, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 47.619, -122.300, 15.5, 47.615, -122.307, 47.623, -122.293, 47.618, -122.299, 16.0, 47.611, -122.309, 47.625, -122.289, 47.616, -122.296, 13.0, 47.600, -122.320, 47.636, -122.275, 'sidewalk-seattle');
