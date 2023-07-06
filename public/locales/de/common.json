@@ -31,7 +31,7 @@
     "distance-left": "Nur {{n}} Kilometer übrig!",
     "distance-left-one-unit": "Nur 1 Kilometer übrig!",
     "less-than-one-unit-left": "Weniger als 1 Kilometer übrig!",
-    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Hier klicken</a> um beim Vervollständigen dieses Viertels zu helfen",
+    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Hier klicken</a> um beim Vervollständigen dieses Quartiers zu helfen",
     "thanks": "Danke für Ihre grosse Hilfe!",
     "100-percent-complete": "100% abgeschlossen!",
     "percent-complete": "{{percent}}% abgeschlossen"
