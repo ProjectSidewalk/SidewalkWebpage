@@ -69,38 +69,25 @@
         "distance-type-display-string": "Kilometer",
         "title": "Mission erfüllt!",
         "map-legend-label-other-users": "Missionen anderer Nutzenden",
-        "progress-neighborhood-title": "Fortschritt im Viertel",
+        "progress-neighborhood-title": "Fortschritt im Quartier",
         "progress-route-title": "Fortschritt auf der Route",
-        "progress-neighborhood-you": "Sie haben dieses Viertel erkundet",
+        "progress-neighborhood-you": "Sie haben dieses Quartier erkundet",
         "progress-route-you": "Auf Ihrer Route erkundet",
-        "progress-neighborhood-remaining": "Verbleibend in diesem Viertel",
+        "progress-neighborhood-remaining": "Verbleibend in diesem Quartier",
         "progress-route-remaining": "Verbleibend auf Ihrer Route",
         "button-start-validating": "Validierung starten",
         "button-keep-exploring": "Erkundung fortsetzen",
         "button-continue": "Fortsetzen"
     },
     "top-ui": {
-        "press-key": "Drücken Sie auf die \"{{key}}\" Taste",
-        "instruction": {
-            "walk": "Erkunden Sie die Strassen und finden Sie alle Zugänglichkeitsmerkmale",
-            "curb-ramp": "Finden und beschriften Sie eine <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">Trottoirabsenkung</span>",
-            "no-curb-ramp": "Finden und beschriften Sie eine <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">fehlende Trottoirabsenkung</span>",
-            "obstacle": "Finden und beschriften Sie ein <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">Hindernis im Weg</span>",
-            "surface-problem": "Finden und beschriften Sie ein <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">Oberflächenproblem</span>",
-            "other": "Beschriftungsmodus",
-            "occlusion": "Beschriften Sie einen <span class=\"underline\">Teil des Trottoirs, das nicht sichtbar ist</span>",
-            "no-sidewalk": "Beschriften Sie ein <span class=\"underline\">fehlendes Trottoir</span>",
-            "crosswalk": "Finden und beschriften Sie ein <span class=\"underline\">Fussgängerstreifen</span>",
-            "signal": "Finden und beschriften Sie ein <span class=\"underline\">Fussgängerlichtsignal</span>",
-            "explain": "Erläutern Sie dies!"
-        }
+        "press-key": "Drücken Sie auf die \"{{key}}\" Taste"
     },
     "right-ui": {
         "accuracy-tooltip": "Die Bewertung Ihrer Genauigkeit basiert auf der Validierung durch andere Nutzende. Wenn Ihre Genauigkeit tief ist, sehen Sie sich häufige Fehler unter <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">Ihrem Dashboard</a> an, um sich zu verbessern!",
         "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",
         "current-mission": {
             "message-first-mission": "Erkunden Sie __PLACEHOLDER__ und finden Sie alle Zugänglichkeitsmerkmale entlang des Gehwegs",
-            "message": "Erkunden Sie __PLACEHOLDER__ von diesem Viertel"
+            "message": "Erkunden Sie __PLACEHOLDER__ von diesem Quartier"
         },
         "minimap": {
             "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
@@ -170,7 +157,7 @@
                 "pedestrian-lane-marking": "Fußgängerzahnmark<tag-underline>i</tag-underline>erung",
                 "covered-walkway": "überdachter Gehweg (<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "zu nah am Verkehr (<tag-underline>t</tag-underline>)",
-                "utility-panel": "B<tag-underline>e</tag-underline>dienungsfeld"
+                "utility-panel": "Schaltkast<tag-underline>e</tag-underline>n"
             },
             "tooltip": {
                 "passable": "Passierbar",
@@ -189,14 +176,14 @@
             "slight-right": "Biegen Sie leicht rechts ab",
             "u-turn": "Kehrtwende",
             "end-route": "Sie sind am Ende Ihrer Route! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <br><span class='bold'>klicken Sie hier, um die Route zu beenden.</span>",
-            "end-neighborhood": "Sie haben das gesamte Viertel erkundet! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <br><span class='bold'>klicken Sie hier, um das Viertel zu beenden.</span>",
+            "end-neighborhood": "Sie haben das gesamte Quartier erkundet! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <br><span class='bold'>klicken Sie hier, um das Quartier zu beenden.</span>",
             "end-street": "Wir werden Sie an einen neuen Ort bewegen. Beenden sie das Beschriften dieser Kreuzung. Anschliessend <br><span class='bold'>klicken Sie hier um zu einem neuen Ort gebracht zu werden.</span>",
             "far-away": "Ups, Sie sind ziemlich weit von der Route entfernt. <br><span class='bold'>Klicken Sie hier, um zurückzukehren.</span>"
         }
     },
     "popup": {
         "start-title": "Fangen wir an!",
-        "start-body": "Wir haben Sie auf eine Strasse in {{neighborhood}}, {{city}} bewegt! Im Moment stehen Sie an der Kreuzung. Finden und beschriften Sie alle Trottoirabsenkungen und Zugänglichkeitsprobleme an dieser Kreuzung.",
+        "start-body": "Wir haben Sie auf einer Strasse in {{neighborhood}}, {{city}} platziert! Im Moment stehen Sie an der Kreuzung. Finden und beschriften Sie alle Trottoirabsenkungen und Zugänglichkeitsprobleme an dieser Kreuzung.",
         "step-title": "Bewegen wir uns vorwärts!",
         "step-body": "Sie haben sich die ganze Kreuzung angeschaut. Es ist nun Zeit, andere Gebiete zu erkunden. Bewegen Sie sich in Richtung der roten Linie auf der Karte.",
         "both-sides-title": "Bitte beachten Sie beide Strassenseiten.",

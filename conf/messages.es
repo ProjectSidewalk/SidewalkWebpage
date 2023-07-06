@@ -22,6 +22,7 @@ audited.street = Calle auditada
 unaudited.street = Calle no auditada
 not.sure = No Estoy de seguro
 not.applicable.abbr = N/A
+feedback = Retroalimentación
 validations = Validaciones
 labels = etiquetas
 label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
@@ -147,7 +148,6 @@ audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>
 audit.left.ui.zoom.in = Acercar (<u>Z</u>)
 audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
-audit.left.ui.feedback = Retroalimentación
 audit.left.ui.stuck = Atorado
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
@@ -195,26 +195,9 @@ audit.survey.performance.option.5 = Excelente
 audit.survey.rationale.question = ¿Por qué elegiste contribuir a <i>Project Sidewalk</i>?
 audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o preguntas?
 
-audit.help.rating.1 = Calificación 1: Transitable
-audit.help.rating.3 = Calificación 3: Neutral
-audit.help.rating.5 = Calificación 5: No es transitable
-audit.help.curb.ramp.1 = Limpia las rampas peatonales que están alineadas con los cruces peatonales.
-audit.help.curb.ramp.3 = Una rampa con un poste parado en el medio. Las personas que usan sillas de ruedas eléctricas grandes pueden tener problemas para usar esta rampa.
-audit.help.curb.ramp.5 = Se ha acumulado agua en esta rampa de peatonal debido al mal drenaje. Es difícil para las personas, usuarias de sillas de ruedas manuales, usar esta rampa peatonal.
-audit.help.missing.ramp.1 = Aunque no hay una rampa peatonal, la diferencia de nivel es pequeña y las personas usuarias de sillas de ruedas podrían subir o bajar de la banqueta. También, hay una rampa peatonal en la misma esquina que la gente podría usar, aunque no está alineada con el camino.
-audit.help.missing.ramp.3 = No hay una rampa al final del cruce peatonal. Las personas usuarias de sillas de ruedas se ven obligadas a usar la rampa que no está alineada con el cruce de peatones.
-audit.help.missing.ramp.5 = No hay rampa al final del cruce peatonal. Las personas usuarias de sillas de ruedas no pueden subir o bajar de la banqueta y cruzar la calle aquí.
-audit.help.obstacle.1 = Un semáforo que está en medio de la banqueta. Parece que hay suficiente espacio para que pasen las personas usuarias de sillas de ruedas, pero aquellas que usan sillas de ruedas más grandes podrían tener problemas para desplazarse.
-audit.help.obstacle.3 = La planta está obstruyendo el camino, lo que dificulta que las personas usuarias de sillas de ruedas usen esta banqueta.
-audit.help.obstacle.5 = El árbol está bloqueando completamente el camino, por lo que no es transitable para las personas usuarias de sillas de ruedas.
-audit.help.surface.problem.1 = Banqueta parcialmente dañada. Debido a que hay suficiente espacio al lado de la parte dañada de la banqueta, las personas usuarias de sillas de ruedas podrían pasar.
-audit.help.surface.problem.3 = Las personas usuarias de sillas de ruedas tendrían dificultades para navegar en las aceras y cruces de adoquines.
-audit.help.surface.problem.5 = Las personas usuarias de sillas de ruedas no pueden pasar por las superficies de las banquetas severamente deterioradas debido a la vegetación sobrecrecida.
-
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar
-validate.left.ui.feedback = Retroalimentación
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
@@ -279,8 +262,8 @@ reset.pw.message = Restablecer la contraseña
 reset.pw.successful = ¡Contraseña restablecida!
 reset.pw.invalid.reset.link = Enlace de reinicio inválido
 
-results.reset.view = Restablecer vista
-results.problems.per.mile = Problemas de banqueta por milla
+results.reset.view = Resta&shy;blecer vista
+results.problems.per.mile = Problemas por kilómetro
 results.legend.high = Alto
 results.legend.low = Bajo
 results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
@@ -314,7 +297,7 @@ dashboard.mistakes.header = Sus errores de etiquetado recientes
 dashboard.mistakes.tooltip = Estos son errores determinados por otros usuarios desde la página Validar. A veces ocurren errores durante la validación y, a menudo, hay matices en estas evaluaciones.
 dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para información sobre herramientas útil.
 
-labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
+labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Etiquete cada rampa de acera independientemente de si hay problemas.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
@@ -351,3 +334,7 @@ route.builder.instructions = Haga clic en las calles para agregarlas a su ruta, 
 route.builder.save = Guardar ruta
 route.builder.explore = Explorar ruta
 route.builder.share = Copiar enlace a la ruta
+
+help.rating.1 = Calificación 1: Transitable
+help.rating.3 = Calificación 3: Neutral
+help.rating.5 = Calificación 5: No es transitable

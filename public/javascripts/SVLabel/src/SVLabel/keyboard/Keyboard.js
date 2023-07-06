@@ -257,7 +257,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     }
 
                     ribbon.backToWalk();
-                    svl.modalExample.hide();
                     break;
             }
 

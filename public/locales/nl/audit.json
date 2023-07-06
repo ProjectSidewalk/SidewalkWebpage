@@ -80,20 +80,7 @@
         "button-continue": "Ga verder"
     },
     "top-ui": {
-        "press-key": "Druk op de \"{{key}}\" knop",
-        "instruction": {
-            "walk": "Verken de straten en vind alle toegankelijkheids kenmereken",
-            "curb-ramp": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">stoep oprit</span>",
-            "no-curb-ramp": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">ontbrekende stoep oprit</span>",
-            "obstacle": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstakel op het pad</span>",
-            "surface-problem": "Localiseer en label een <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">oppervlakte probleem</span>",
-            "other": "Label mode",
-            "occlusion": "Label een <span class=\"underline\"> deel van het trottoir dat niet kan worden gezien</span>",
-            "no-sidewalk": "Label een <span class=\"underline\">ontbrekend trottoir</span>",
-            "crosswalk": "Localiseer en label een <span class=\"underline\">oversteekplaats</span>",
-            "signal": "Localiseer en label een <span class=\"underline\">verkeerslicht</span>",
-            "explain": "Leg dit uit!"
-        }
+        "press-key": "Druk op de \"{{key}}\" knop"
     },
     "right-ui": {
         "accuracy-tooltip": "Nauwkeurigheid is gebaseerd op validaties van andere gebruikers. Als uw nauwkeurigheid laag is, bekijk dan enkele recente fouten op <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">uw gebruikersdashboard</a> om u te helpen verbeteren!",

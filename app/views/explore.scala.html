@@ -199,7 +199,7 @@
                     </div>
                     <div id="left-column-zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
-                        <br>@Messages("audit.left.ui.zoom.out")
+                        <br>@Html(Messages("audit.left.ui.zoom.out"))
                     </div>
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
@@ -220,7 +220,7 @@
                     <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
                         <br>
-                        @Messages("audit.left.ui.feedback")
+                        @Html(Messages("feedback"))
                     </div>
                 </div>
             </div>
@@ -346,7 +346,6 @@
                     <div id="ribbon-street-view-connector"><!-- border --></div>
                     <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
                     <div id="pano" class="window-streetview" style="z-index: 0;" ></div>
-                    <div id="overlay-message-holder" class="window-streetview"></div>
                     <div id="onboarding-holder" class="window-streetview">
                         <canvas id="onboarding-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
                         <div id="hand-gesture-holder"></div>
@@ -618,126 +617,6 @@
                             }
                             <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
                             <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="modal-curb-ramp-example" class="hidden">
-                <div class="modal-background"></div>
-                <div class="modal-foreground" id="modal-curb-ramp-foreground">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h1 class="text-center bold">@Messages("curb.ramp")</h1>
-                        </div>
-                        <div class="modal-close-button-holder">
-                            <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/CurbRamp_Passable.png")' class="img-responsive" alt="Two good curb ramps" />
-                            <p class="bold">@Messages("audit.help.rating.1")</p>
-                            <p>@Messages("audit.help.curb.ramp.1")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/CurbRamp_HardToPass.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
-                            <p class="bold">@Messages("audit.help.rating.3")</p>
-                            <p>@Messages("audit.help.curb.ramp.3")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/CurbRamp_NotPassable.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
-                            <p class="bold">@Messages("audit.help.rating.5")</p>
-                            <p>@Messages("audit.help.curb.ramp.5")</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="modal-no-curb-ramp-example" class="hidden">
-                <div class="modal-background"></div>
-                <div class="modal-foreground" id="modal-no-curb-ramp-foreground">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h1 class="text-center bold">@Messages("missing.ramp")</h1>
-                        </div>
-                        <div class="modal-close-button-holder">
-                            <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/NoCurbRamp_Passable.png")' class="img-responsive" alt="Curb ramp is not aligned to the crosswalk" />
-                            <p class="bold">@Messages("audit.help.rating.1")</p>
-                            <p>@Messages("audit.help.missing.ramp.1")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/NoCurbRamp_HardToPass.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
-                            <p class="bold">@Messages("audit.help.rating.3")</p>
-                            <p>@Messages("audit.help.missing.ramp.3")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/NoCurbRamp_NotPassable.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
-                            <p class="bold">@Messages("audit.help.rating.5")</p>
-                            <p>@Messages("audit.help.missing.ramp.5")</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="modal-obstacle-example" class="hidden">
-                <div class="modal-background"></div>
-                <div class="modal-foreground" id="modal-obstacle-foreground">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h1 class="text-center bold">@Messages("obstacle")</h1>
-                        </div>
-                        <div class="modal-close-button-holder">
-                            <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/Obstacle_Passable.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
-                            <p class="bold">@Messages("audit.help.rating.1")</p>
-                            <p>@Messages("audit.help.obstacle.1")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/Obstacle_HardToPass.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
-                            <p class="bold">@Messages("audit.help.rating.3")</p>
-                            <p>@Messages("audit.help.obstacle.3")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/Obstacle_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
-                            <p class="bold">@Messages("audit.help.rating.5")</p>
-                            <p>@Messages("audit.help.obstacle.5")</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="modal-surface-problem-example" class="hidden">
-                <div class="modal-background"></div>
-                <div class="modal-foreground" id="modal-surface-problem-foreground">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h1 class="text-center bold">@Messages("surface.problem")</h1>
-                        </div>
-                        <div class="modal-close-button-holder">
-                            <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/SurfaceProblem_Passable.png")' class="img-responsive" alt="A partially damaged sidewalk." />
-                            <p class="bold">@Messages("audit.help.rating.1")</p>
-                            <p>@Messages("audit.help.surface.problem.1")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/SurfaceProblem_HardToPass.png")' class="img-responsive" alt="Cobblestone sidewalks and crosswalks." />
-                            <p class="bold">@Messages("audit.help.rating.3")</p>
-                            <p>@Messages("audit.help.surface.problem.3")</p>
-                        </div>
-                        <div class="col-md-4">
-                            <img src='@routes.Assets.at("images/examples/SurfaceProblem_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
-                            <p class="bold">@Messages("audit.help.rating.5")</p>
-                            <p>@Messages("audit.help.surface.problem.5")</p>
                         </div>
                     </div>
                 </div>

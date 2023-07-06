@@ -4,10 +4,6 @@ function ModalModel () {
 
 _.extend(ModalModel.prototype, Backbone.Events);
 
-ModalModel.prototype.showModalExample = function (labelType) {
-    this.trigger("ModalExample:show", labelType);
-};
-
 ModalModel.prototype.showModalMissionComplete = function () {
     this.trigger("ModalMissionComplete:show");
 };
