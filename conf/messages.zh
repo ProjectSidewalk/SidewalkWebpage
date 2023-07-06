@@ -299,7 +299,7 @@ dashboard.mistakes.header = 您最近的標記失誤
 dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中判定的錯誤。有時其他用戶在檢核時會發生錯誤，這些評估通常存在細微主觀判斷區別。
 dashboard.mistakes.tooltip.alt = 問號圖示可顯示有用的工具提示框。
 
-labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動
+labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 無論是否存在問題，都會標記每個路緣坡道。
 labeling.guide.obstacle.summary = 障礙物是位於行人路徑上的物體，擋住了通道。 美國身心障礙者法（ADA）要求在無障礙路線上有“乾淨的地板或地面空間”。這樣才可使行人可以安全地留在人行道或行人穿越道上，尤其是對於使用助行器或輪椅的行人。離開路徑以避開障礙物對於部分使用者可能是做不到的，或者可能導致不平衡、絆倒或其他危險。
 labeling.guide.surface.problem.summary = 鋪面問題會導致使用輪椅或其他輔助設備的使用者行經時顛簸或不舒服。如果鋪面上的某些東西會使使用者難以或無法通過，則應將其標記為鋪面問題。對於大面積或連續的鋪面問題，建議您在問題的開頭標記一個鋪面問題，並持續於每幾公尺進行標記直到問題結束。
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始標記無人行道，並持續於每幾公尺進行標記直到您到達另一處人行道。
