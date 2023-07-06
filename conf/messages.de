@@ -1,4 +1,4 @@
-measurement.system = metrisch
+measurement.system = metric
 label.type = Beschriftungskategorie
 legend = Legende
 severity = Schweregrad
@@ -22,6 +22,7 @@ audited.street = Geprüfte Strasse
 unaudited.street = Ungeprüfte Strasse
 not.sure = Unsicher
 not.applicable.abbr = k.A.
+feedback = Rück&shy;meldung
 validations = Validierungen
 labels = Beschriftungen
 label.icon.alt = Minimalistisches Kartensymbol mit grosser Zielmarkierung
@@ -39,7 +40,7 @@ thanks = Danke!
 username = Benutzername
 loading = Laden...
 loading.encouragement = Los geht''s!
-test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite.
+test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite
 dont.show.again = Nicht erneut anzeigen.
 
 press.key = Drücken Sie die Taste "{0}"
@@ -115,7 +116,7 @@ footer.award = Zuschlag <a href = "https://www.nsf.gov/awardsearch/showAward?AWD
 footer.designed.operated = Project Sidewalk wird entwickelt und betrieben durch das <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> der <a id="universityofwashington" href="http://www.cs.uw.edu/">Universität Washington</a>
 footer.version = Version {0} | Zuletzt aktualisiert: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = Mit <span class="bold">Project Sidewalk,</span> werden Sie virtuell durch die Stadt gehen und Missionen erfüllen, in denen Sie Zugänglichkeitsmerkmale und -probleme in Ihrer Umgebung finden und beschriften, einschliesslich:
+audit.tutorial.welcome.1 = Mit <span class="bold">Project Sidewalk</span> werden Sie virtuell durch die Stadt gehen und Missionen erfüllen, in denen Sie Zugänglichkeitsmerkmale und -probleme in Ihrer Umgebung finden und beschriften, einschliesslich:
 audit.tutorial.welcome.2 = Wir beginnen mit einem kurzen, interaktiven Tutorial.
 audit.tutorial.welcome.3 = Los geht''s!
 audit.tutorial.welcome.4 = Haben Sie das Tutorial schon absolviert? Haben Sie bereits ein Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Anmelden</a> oder <a value="Skip" class="onboarding-transition-trigger">Tutorial überspringen.</a>
@@ -144,10 +145,9 @@ audit.ribbon.signal = Fussgängerlichtsignal (<u>P</u>)
 audit.ribbon.other = Andere
 audit.ribbon.occlusion = Trottoir nicht sichtbar (<u>B</u>)
 
-audit.left.ui.zoom.in = Hineinzoomen (<u>Z</u>)
-audit.left.ui.zoom.out = Hinauszoomen
+audit.left.ui.zoom.in = (<u>Z</u>) Hinein&shy;zoomen
+audit.left.ui.zoom.out = Hinaus&shy;zoomen
 audit.left.ui.sound = Ton
-audit.left.ui.feedback = Rückmeldung
 audit.left.ui.stuck = Verlaufen
 audit.left.ui.jump = Wechseln
 audit.left.ui.jump.title = Ort wechseln, weil:
@@ -164,7 +164,7 @@ audit.right.ui.current.mission = Aktuelle Mission
 
 audit.center.ui.passable = Passierbar
 audit.center.ui.not.passable = Nicht passierbar
-audit.center.ui.add.tags = Tags hinzufügen:
+audit.center.ui.add.tags = Tags hinzu&shy;fügen:
 audit.center.ui.temporary = Temporär (z.B. Baustelle)
 
 audit.mission.complete.labels.title = Missionsbeschriftungen
@@ -197,8 +197,7 @@ audit.survey.feedback.question = Haben Sie zusätzliche Rückmeldungen, Gestaltu
 
 validate.top.ui.zoom.in = Hineinzoomen (<u>Z</u>)
 validate.top.ui.zoom.out = Hinauszoomen
-validate.left.ui.skip = Überspringen
-validate.left.ui.feedback = Rückmeldung
+validate.left.ui.skip = Über&shy;springen
 validate.bottom.ui.agree = Einverstanden (<u>A</u>)
 validate.bottom.ui.disagree = Nicht einverstanden (<u>D</u>)
 validate.bottom.ui.not.sure = Unsicher (<u>N</u>)
@@ -264,8 +263,8 @@ reset.pw.message = Passwort zurücksetzen
 reset.pw.successful = Passwort zurückgesetzt!
 reset.pw.invalid.reset.link = Ungültiger Link
 
-results.reset.view = Ansicht zurücksetzen
-results.problems.per.mile = Zugänglichkeitsprobleme pro Meile
+results.reset.view = Ansicht zurück&shy;setzen
+results.problems.per.mile = Zugänglichkeitsprobleme pro Kilometer
 results.legend.high = Hoch
 results.legend.low = Tief
 results.legend.body = In grauen Viertel ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Viertel, um Daten beizutragen. Die Ergebnisse sind vorläufig und bestehen aus freiwilligen Beiträgen, die noch nicht validiert wurden. Wir arbeiten daran. Bleiben Sie dran!

@@ -3,7 +3,7 @@
   "admin-clear-play-cache": "Play-Cache erfolgreich gelöscht",
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
-  "unit-distance": "Kilometer",
+  "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
   "agree": "Einverstanden",
   "disagree": "Nicht einverstanden",
@@ -16,7 +16,7 @@
   "no-sidewalk" : "kein Trottoir",
   "crosswalk" : "Fussgängerstreifen",
   "signal" : "Fussgängerlichtsignal",
-  "other": "anderes",
+  "other": "Andere",
   "missing-sidewalks": "keine Trottoirs",
   "missing-ramps": "fehlende Trottoirabsenkungen",
   "surface-problems": "Oberflächenprobleme",
@@ -110,7 +110,7 @@
     "pedestrian lane marking": "Fußgängerzahnmarkierung",
     "covered walkway": "überdachter Gehweg",
     "too close to traffic": "zu nah am Verkehr",
-    "utility panel": "Bedienungsfeld"
+    "utility panel": "Schaltkasten"
   },
   "gsv-info": {
     "details-title": "Details",
@@ -167,7 +167,7 @@
         "description": "Hindernisse sind Objekte, die den <b>Gehweg</b> für Personen im Rollstuhl, mit Geh- oder anderen Mobilitätshilfen versperren.<br><br>Nicht alle Feuerhydranten, Pfosten oder Schilder sind Hindernisse-nur diejenigen, die klar den Gehweg versperren."
       },
       "slide-2": {
-        "title": "Ausreichend Platz um herum zu manövrieren.",
+        "title": "Ausreichend Platz, um darum herum zu manövrieren.",
         "description": "Das Motorrad ist am Rand parkiert und lässt für Fussgänger:innen ausreichend Platz auf dem Gehweg."
       },
       "slide-3": {
