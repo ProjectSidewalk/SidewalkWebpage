@@ -339,3 +339,13 @@ route.builder.share = Copiar enlace a la ruta
 help.rating.1 = Calificación 1: Transitable
 help.rating.3 = Calificación 3: Neutral
 help.rating.5 = Calificación 5: No es transitable
+
+home.graphic = Un gráfico de una intersección con personas que cruzan la calle
+home.graphic.seattle = Un gráfico del horizonte de Seattle, Washington
+home.explain = GIF que explica los resultados del crowdsourcing y el aprendizaje automático en Project Sidewalk
+home.mainvideo = Video que muestra varias aceras inaccesibles y sus impactos en los usuarios de sillas de ruedas/andadores
+home.step1 = Grabación de pantalla de un usuario explorando un mapa en Project Sidewalk
+home.step2 = Grabación de pantalla de un usuario que identifica una acera inaccesible en Project Sidewalk
+home.step3 = Grabación de pantalla de un usuario que evalúa la gravedad de una acera inaccesible en Project Sidewalk
+
+clouds = nubes

@@ -341,3 +341,13 @@ route.builder.share = 複製鏈接到路線
 help.rating.1 = Rating 1: 可通行
 help.rating.3 = Rating 3: 尚可通行
 help.rating.5 = Rating 5: 不可通行
+
+home.graphic = 十字路口的图形，人们正在过马路
+home.graphic.seattle = 华盛顿州西雅图的天际线图
+home.explain = GIF 解释了 Project Sidewalk 上的众包和机器学习的成果
+home.mainvideo = 视频显示各种难以通行的人行道及其对轮椅/助行器使用者的影响
+home.step1 = 用户在 Project Sidewalk 上探索地图的屏幕录制
+home.step2 = 用户在 Project Sidewalk 上识别无法通行的人行道的屏幕录制
+home.step3 = 用户评估 Project Sidewalk 上人行道无法通行严重程度的屏幕录制
+
+clouds = 云

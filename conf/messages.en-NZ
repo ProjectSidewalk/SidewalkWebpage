@@ -45,3 +45,13 @@ dashboard.orgs.unavailable = There are no available organisations!
 dashboard.leave.org = Leave Organisation
 
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organisation</u></a> and work together as a team to map and assess footpaths!
+
+home.graphic = A graphic of an intersection with people travelling across the street
+home.graphic.seattle = A skyline graphic of Seattle, Washington
+home.explain = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
+home.mainvideo = Video showing various inaccessible footpaths and their impacts on wheelchair/walker users
+home.step1 = Screen recording of a user exploring a map on Project Sidewalk
+home.step2 = Screen recording of a user an identifying inaccessible footpath on Project Sidewalk
+home.step3 = Screen recording of a user assessing severity of inaccessible footpath on Project Sidewalk
+
+clouds = clouds
