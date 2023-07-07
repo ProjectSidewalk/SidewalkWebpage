@@ -68,6 +68,7 @@ function Main (params) {
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
 
+        svl.ui.leftColumn.feedback.tooltip({ title: i18next.t('common:left-ui-feedback'), container: 'body' });
 
         // Set map parameters and instantiate it.
         var mapParam = { lat: SVLat, lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 } };
@@ -93,7 +94,6 @@ function Main (params) {
 
         // Game effects
         svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory, svl.storage);
-
 
         var neighborhood;
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
@@ -232,6 +232,11 @@ function Main (params) {
                     'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['keyChar']})
                 });
             }
+        });
+        $(svl.ui.leftColumn.feedback).attr({
+            'data-toggle': 'tooltip',
+            'data-placement': 'top',
+            'title': i18next.t('common:left-ui-feedback')
         });
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },

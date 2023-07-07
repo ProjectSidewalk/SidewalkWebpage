@@ -54,7 +54,7 @@
         <div id="svv-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
-                    <div id="left-column-jump-button" class="button">
+                    <div id="left-column-jump-button" class="button" title="@Messages("validate.left.ui.skip.tooltip")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
                         <br>@Html(Messages("validate.left.ui.skip"))
                     </div>
@@ -63,7 +63,7 @@
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
                         <br>
                         @Html(Messages("feedback"))
-                    </div>
+                    </div>  
                 </div>
             </div>
             <div id="upper-menu-holder">

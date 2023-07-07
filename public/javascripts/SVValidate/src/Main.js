@@ -199,6 +199,11 @@ function Main (param) {
             svv.keyboard.disableKeyboard();
             $(".tool-ui").css('opacity', 0.5);
         });
+        $(svv.ui.modalComment.feedbackButton).attr({
+            'data-toggle': 'tooltip',
+            'data-placement': 'top',
+            'title': i18next.t('common:left-ui-feedback')
+        });
 
         const labelType = param.labelList[0].getAuditProperty('labelType');
 
