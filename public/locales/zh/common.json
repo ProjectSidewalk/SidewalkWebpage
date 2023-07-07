@@ -10,9 +10,9 @@
   "obstacle": "障礙物",
   "surface-problem": "鋪面問題",
   "occlusion": "看不到人行道",
-  "no-sidewalk" : "無人行道",
-  "crosswalk" : "行人穿越道",
-  "signal" : "行人號誌",
+  "no-sidewalk": "無人行道",
+  "crosswalk": "行人穿越道",
+  "signal": "行人號誌",
   "other": "其他",
   "agree": "同意",
   "disagree": "不同意",
@@ -37,10 +37,10 @@
     "percent-complete": "{{percent}}%完成"
   },
   "errors": {
-    "title": "糟糕，我们的错，但此标签不再有可用的图像。",
-    "explanation": "我们使用 Google Maps API 来显示人行道图像，有时 Google 会删除这些图像，因此我们无法再访问它们。 对于那个很抱歉。",
-    "google-connect-error": "我们无法连接到 Google 街景，请稍后重试！",
-    "explore-street": "探索街道</a> 再次使用谷歌的新图片！"
+    "title": "糟糕，我們的錯，現在沒有相關的圖片可供參考。",
+    "explanation": "我們使用 Google Maps API 來顯示人行道的圖像，有時候 Google 會移除這些圖片，因此我們無法再存取它們。很抱歉。",
+    "google-connect-error": "我們在連接到 Google 街景時遇到了問題，請稍後再試！",
+    "explore-street": "請再次探索街道</a> 以使用較新的Google圖片！"
   },
   "severity": "品質評分",
   "no-severity": "該標記無標示品質評分",
@@ -49,7 +49,7 @@
   "temporary": "暫時的",
   "description": "描述",
   "no-description": "無描述",
-  "image-capture-date": "影像拍摄日期",
+  "image-capture-date": "影像拍攝日期",
   "labeled": "已標記",
   "yes": "是",
   "no": "否",
@@ -109,8 +109,8 @@
     "no bus stop access": "無公車站出入空間",
     "pedestrian lane marking": "行人車道標記",
     "covered walkway": "有蓋的人行道",
-    "too close to traffic": "离交通太近",
-    "utility panel": "实用面板"
+    "too close to traffic": "離車流太近",
+    "utility panel": "公用設施面板"
   },
   "gsv-info": {
     "details-title": "詳細資訊",
@@ -236,7 +236,7 @@
       },
       "slide-3": {
         "title": "桿柱",
-        "description": "此桿炷無提供行人號誌。"
+        "description": "此桿柱無提供行人號誌。"
       },
       "slide-4": {
         "title": "車輛交通號誌",
