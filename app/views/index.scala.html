@@ -9,7 +9,7 @@
 @main(title) {
     @navbar(user, Some("/"))
     <div id="vidbanner">
-        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop" alt="@Messages("home.mainvideo")">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
@@ -77,9 +77,9 @@
                         <div class="hidden-xs" id="greenbar">
                         </div>
                         <div id="instructionvideo">
-                            <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
-                            <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
-                            <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4"> </video>
+                            <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4" alt="home.step1"> </video>
+                            <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4" alt="home.step2"> </video>
+                            <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4" alt="home.step3"> </video>
                         </div>
                 </div>
             </div>
@@ -125,11 +125,11 @@
     <div class="ps-skyline">
         <div class="ps-skyline-container">
             @if(cityName == "Washington" || cityName == "Seattle") {
-                <img src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
+                <img src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)" alt="@Messages("home.graphic")">
             } else {
-                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)" alt="@Messages("home.graphic.seattle")">
             }
-            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay">
+            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("clouds")">
         </div>
         <div class="ps-skyline-stats-holder">
             <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
@@ -177,7 +177,7 @@
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
             </div>
             <div class="gif-container">
-                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
+                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" alt="@Messages("home.explain")">
                 <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
                 <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
                 <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
