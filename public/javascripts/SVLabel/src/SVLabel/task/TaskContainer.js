@@ -57,7 +57,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                     if (status === google.maps.StreetViewStatus.OK) {
                         lat = streetViewPanoramaData.location.latLng.lat();
                         lng = streetViewPanoramaData.location.latLng.lng();
+                        let beforeJumpTask = currentTask;
                         self.setCurrentTask(nextTaskIn);
+                        beforeJumpTask.render();
                         navigationModel.setPosition(lat, lng, function(){
                             navigationModel.preparePovReset();
                         });
@@ -113,7 +115,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         pushATask(task); // Push the data into previousTasks.
 
         // Updates the segments that the user has already explored.
-        self.update();
+        self.updateCurrentTask();
         // Renders the next street that the user will explore.
         if(nextTask) nextTask.render();
 
@@ -381,7 +383,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     /**
-     * Get the next task and set it as a current task.
+     * Get the next task.
      *
      * Procedure:
      * Get the list of the highest priority streets that this user has not audited
@@ -545,14 +547,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
-     * segments on Google Maps.
+     * segments of the current task on Google Maps.
      * TODO This should be done somewhere else.
      */
-    function update() {
-        for (var i = 0, len = previousTasks.length; i < len; i++) {
-            previousTasks[i].render();
-        }
-
+    function updateCurrentTask() {
         var currentLatLng = navigationModel.getPosition();
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
@@ -583,14 +581,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     }
 
     /**
-     * Renders all previously completed tasks. Should be called at page load so it does not render redundantly.
+     * Renders all tasks to draw both unexplored and previously completed tasks. Should be called at page load
+     * so it does not render redundantly.
      */
     function renderTasksFromPreviousSessions() {
-        var completedTasks = getCompletedTasks();
-        if (completedTasks) {
-            for (let i = 0; i < completedTasks.length; ++i) {
-                completedTasks[i].render();
-            }
+        for (let task of self._tasks) {
+            task.render();
         }
     }
 
@@ -608,7 +604,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.renderTasksFromPreviousSessions = renderTasksFromPreviousSessions;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
-    self.update = update;
+    self.updateCurrentTask = updateCurrentTask;
     self.updateAuditedDistance = updateAuditedDistance;
     self.updateTaskPriorities = updateTaskPriorities;
     self.getCurrentTaskStreetEdgeId = getCurrentTaskStreetEdgeId;
