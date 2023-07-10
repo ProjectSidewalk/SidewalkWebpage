@@ -120,7 +120,7 @@
                 "tree": "樹木(<tag-underline>e</tag-underline>)",
                 "vegetation": "植/盆栽(<tag-underline>v</tag-underline>)",
                 "parked-car": "停等車輛((<tag-underline>u</tag-underline>)",
-                "parked-bike":"停等自行車(<tag-underline>k</tag-underline>)",
+                "parked-bike": "停等自行車(<tag-underline>k</tag-underline>)",
                 "construction": "施工(<tag-underline>t</tag-underline>)",
                 "sign": "標誌(<tag-underline>i</tag-underline>)",
                 "garage-entrance": "車庫出入口(<tag-underline>g</tag-underline>)",
