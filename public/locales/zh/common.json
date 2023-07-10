@@ -1,247 +1,247 @@
 {
-  "measurement-system": "公制",
-  "admin-clear-play-cache": "已成功清除快取記憶體",
-  "unit-distance-abbreviation": "公里",
-  "unit-abbreviation-mission-distance": "公尺",
-  "unit-distance": "kilometers",
-  "format-number": "{{val, number}}",
-  "curb-ramp": "路緣斜坡",
-  "no-curb-ramp": "無路緣斜坡",
-  "obstacle": "障礙物",
-  "surface-problem": "鋪面問題",
-  "occlusion": "看不到人行道",
-  "no-sidewalk" : "無人行道",
-  "crosswalk" : "行人穿越道",
-  "signal" : "行人號誌",
-  "other": "其他",
-  "agree": "同意",
-  "disagree": "不同意",
-  "not-sure": "没有把握",
-  "missing-sidewalks": "無人行道",
-  "missing-ramps": "無路緣斜坡",
-  "surface-problems": "鋪面問題",
-  "sidewalk-obstacles": "障礙物",
-  "complete": "完成",
-  "mturk-code": "Mturk程式碼: {{code}}",
-  "right-ui-turk-current-reward": "目前任務獎勵: ",
-  "right-ui-turk-total-reward": "總獲取獎勵: ",
-  "mission-complete-confirmation-code": "確認碼: ",
-  "mission-start-turk-reward": "圓滿完成任務的獎勵: ",
-  "map": {
-    "distance-left": "只剩下{{n}}公里了!",
-    "distance-left-one-unit": "只剩下1公里了!",
-    "less-than-one-unit-left": "剩下少於1公里!",
-    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>點選這裡</a>來協助完成這個鄰里",
-    "thanks": "感謝您的協助！",
-    "100-percent-complete": "已完成100%！",
-    "percent-complete": "{{percent}}%完成"
-  },
-  "errors": {
-    "title": "糟糕，我们的错，但此标签不再有可用的图像。",
-    "explanation": "我们使用 Google Maps API 来显示人行道图像，有时 Google 会删除这些图像，因此我们无法再访问它们。 对于那个很抱歉。",
-    "google-connect-error": "我们无法连接到 Google 街景，请稍后重试！",
-    "explore-street": "探索街道</a> 再次使用谷歌的新图片！"
-  },
-  "severity": "品質評分",
-  "no-severity": "該標記無標示品質評分",
-  "unsupported": "此類標記無嚴重程度區別",
-  "tags": "標籤",
-  "temporary": "暫時的",
-  "description": "描述",
-  "no-description": "無描述",
-  "image-capture-date": "影像拍摄日期",
-  "labeled": "已標記",
-  "yes": "是",
-  "no": "否",
-  "tag": {
-    "narrow": "狹窄",
-    "points into traffic": "指向車流",
-    "missing tactile warning": "缺少警示帶",
-    "tactile warning": "警示帶",
-    "steep": "陡峭",
-    "not enough landing space": "坡頂平台空間不足",
-    "not level with street": "與街道高度未切齊",
-    "surface problem": "鋪面問題",
-    "pooled water": "積水",
-    "alternate route present": "有替代路徑",
-    "no alternate route": "無替代路徑",
-    "unclear if needed": "不確定是否需要",
-    "trash/recycling can": "垃圾桶/資源回收桶",
-    "fire hydrant": "消防栓",
-    "pole": "桿柱",
-    "tree": "樹木",
-    "vegetation": "植栽",
-    "parked car": "停等車輛",
-    "parked bike": "停等自行車",
-    "construction": "施工",
-    "sign": "標誌",
-    "garage entrance": "車庫出入口",
-    "stairs": "階梯",
-    "street vendor": "攤販",
-    "litter/garbage": "垃圾",
-    "parked scooter/motorcycle": "停等機車",
-    "bumpy": "凹凸不平",
-    "uneven/slanted": "不平緩/傾斜",
-    "cracks": "裂縫",
-    "grass": "長草",
-    "narrow sidewalk": "人行道狹窄",
-    "brick/cobblestone": "磚石鋪面",
-    "very broken": "損壞嚴重",
-    "rail/tram track": "鐵軌",
-    "sand/gravel": "砂礫/碎石路面",
-    "uncovered manhole": "未封蓋之人孔蓋",
-    "ends abruptly": "突然中斷",
-    "street has a sidewalk": "街道另一側有人行道",
-    "street has no sidewalks": "街道兩側皆無人行道",
-    "gravel/dirt road": "碎石/泥土路",
-    "shared pedestrian/car space": "行人車輛共用空間",
-    "height difference": "高低差",
-    "paint fading": "標線掉漆",
-    "broken surface": "鋪面破損",
-    "uneven surface": "鋪面不平",
-    "no pedestrian priority": "無行人優先",
-    "very long crossing": "過長的行人穿越道",
-    "level with sidewalk": "與人行道齊平",
-    "has button": "有行人觸動按鈕",
-    "button waist height": "行人觸動按鈕高度齊腰",
-    "APS": "無障礙行人號誌APS",
-    "missing crosswalk": "無行人穿越道",
-    "no bus stop access": "無公車站出入空間",
-    "pedestrian lane marking": "行人車道標記",
-    "covered walkway": "有蓋的人行道",
-    "too close to traffic": "离交通太近",
-    "utility panel": "实用面板"
-  },
-  "gsv-info": {
-    "details-title": "詳細資訊",
-    "latitude": "緯度",
-    "longitude": "經度",
-    "panorama-id": "全景圖編號",
-    "google-street-view": "谷歌街景",
-    "street-id": "街道編號",
-    "region-id": "區域編號",
-    "label-id": "標籤編號",
-    "view-in-gsv": "在Google街景圖查看",
-    "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
-  },
-  "mission-start-tutorial": {
-    "example-type-label-correct": "正確案例",
-    "label-type-subtitle": "為什麼錯誤？",
-    "label-on-image-title-correct": "正確標記",
-    "start-mission": "開始任務",
-    "curb-ramp": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "路緣坡道允許人們從人行道過渡到街道。 它們應該存在於所有可穿越的交叉路口。"
-      },
-      "slide-2": {
-        "title": "車道",
-        "description": "車道<b>不為</b>路緣斜坡，其設計予車輛利用而非行人。車道<b>不該</b>被標記為路緣斜坡。"
-      },
-      "slide-3": {
-        "title": "車庫",
-        "description": "通往車庫的車道<b>不為</b>路緣斜坡。車道<b>不該</b>被標記為路緣斜坡。"
-      }
+    "measurement-system": "公制",
+    "admin-clear-play-cache": "已成功清除快取記憶體",
+    "unit-distance-abbreviation": "公里",
+    "unit-abbreviation-mission-distance": "公尺",
+    "unit-distance": "kilometers",
+    "format-number": "{{val, number}}",
+    "curb-ramp": "路緣斜坡",
+    "no-curb-ramp": "無路緣斜坡",
+    "obstacle": "障礙物",
+    "surface-problem": "鋪面問題",
+    "occlusion": "看不到人行道",
+    "no-sidewalk": "無人行道",
+    "crosswalk": "行人穿越道",
+    "signal": "行人號誌",
+    "other": "其他",
+    "agree": "同意",
+    "disagree": "不同意",
+    "not-sure": "没有把握",
+    "missing-sidewalks": "無人行道",
+    "missing-ramps": "無路緣斜坡",
+    "surface-problems": "鋪面問題",
+    "sidewalk-obstacles": "障礙物",
+    "complete": "完成",
+    "mturk-code": "Mturk程式碼: {{code}}",
+    "right-ui-turk-current-reward": "目前任務獎勵: ",
+    "right-ui-turk-total-reward": "總獲取獎勵: ",
+    "mission-complete-confirmation-code": "確認碼: ",
+    "mission-start-turk-reward": "圓滿完成任務的獎勵: ",
+    "map": {
+        "distance-left": "只剩下{{n}}公里了!",
+        "distance-left-one-unit": "只剩下1公里了!",
+        "less-than-one-unit-left": "剩下少於1公里!",
+        "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>點選這裡</a>來協助完成這個鄰里",
+        "thanks": "感謝您的協助！",
+        "100-percent-complete": "已完成100%！",
+        "percent-complete": "{{percent}}%完成"
     },
-    "no-curb-ramp": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "路口人行道應設置路緣斜坡，理想情況為每個轉角有兩個。若轉角有人行道卻無路緣斜坡，請依據您的判斷標記路緣斜坡應該設置的位置。"
-      },
-      "slide-2": {
-        "title": "住宅步道",
-        "description": "住宅步道<b>不應</b>標記為無路緣斜坡。"
-      },
-      "slide-3": {
-        "title": "不位於行人路徑上",
-        "description": "路緣斜坡不需設置於<b>非</b>行人通行之路徑"
-      },
-      "slide-4": {
-        "title": "$t(common:no-sidewalk)",
-        "description": "<b>無人行道</b>情況應標記為無人行道而非無路緣斜坡。"
-      }
+    "errors": {
+        "title": "糟糕，我们的错，但此标签不再有可用的图像。",
+        "explanation": "我们使用 Google Maps API 来显示人行道图像，有时 Google 会删除这些图像，因此我们无法再访问它们。 对于那个很抱歉。",
+        "google-connect-error": "我们无法连接到 Google 街景，请稍后重试！",
+        "explore-street": "探索街道</a> 再次使用谷歌的新图片！"
     },
-    "obstacle": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "障礙物是對於使用輪椅、助行器或其他輔助工具的用路人之<b>通行阻礙</b>。<br><br>然而並非所有的消防栓、桿柱和標誌都是障礙物，只有那些明顯阻礙人行道的物體。"
-      },
-      "slide-2": {
-        "title": "充足的空間可移動",
-        "description": "摩托車停於人行道側邊，行人仍有充足的空間通行。"
-      },
-      "slide-3": {
-        "title": "障礙物不在人行道上",
-        "description": "此交通角錐<b>非</b>放置於人行道上，因此不應標記為障礙物。<br><br>僅需標記在人行道、行人穿越道和其他行人通道上的障礙物。"
-      },
-      "slide-4": {
-        "title": "移動物體",
-        "description": "這輛在街景中的車輛應為移動中，因此不應標記為障礙物。"
-      }
+    "severity": "品質評分",
+    "no-severity": "該標記無標示品質評分",
+    "unsupported": "此類標記無嚴重程度區別",
+    "tags": "標籤",
+    "temporary": "暫時的",
+    "description": "描述",
+    "no-description": "無描述",
+    "image-capture-date": "影像拍摄日期",
+    "labeled": "已標記",
+    "yes": "是",
+    "no": "否",
+    "tag": {
+        "narrow": "狹窄",
+        "points into traffic": "指向車流",
+        "missing tactile warning": "缺少警示帶",
+        "tactile warning": "警示帶",
+        "steep": "陡峭",
+        "not enough landing space": "坡頂平台空間不足",
+        "not level with street": "與街道高度未切齊",
+        "surface problem": "鋪面問題",
+        "pooled water": "積水",
+        "alternate route present": "有替代路徑",
+        "no alternate route": "無替代路徑",
+        "unclear if needed": "不確定是否需要",
+        "trash/recycling can": "垃圾桶/資源回收桶",
+        "fire hydrant": "消防栓",
+        "pole": "桿柱",
+        "tree": "樹木",
+        "vegetation": "植栽",
+        "parked car": "停等車輛",
+        "parked bike": "停等自行車",
+        "construction": "施工",
+        "sign": "標誌",
+        "garage entrance": "車庫出入口",
+        "stairs": "階梯",
+        "street vendor": "攤販",
+        "litter/garbage": "垃圾",
+        "parked scooter/motorcycle": "停等機車",
+        "bumpy": "凹凸不平",
+        "uneven/slanted": "不平緩/傾斜",
+        "cracks": "裂縫",
+        "grass": "長草",
+        "narrow sidewalk": "人行道狹窄",
+        "brick/cobblestone": "磚石鋪面",
+        "very broken": "損壞嚴重",
+        "rail/tram track": "鐵軌",
+        "sand/gravel": "砂礫/碎石路面",
+        "uncovered manhole": "未封蓋之人孔蓋",
+        "ends abruptly": "突然中斷",
+        "street has a sidewalk": "街道另一側有人行道",
+        "street has no sidewalks": "街道兩側皆無人行道",
+        "gravel/dirt road": "碎石/泥土路",
+        "shared pedestrian/car space": "行人車輛共用空間",
+        "height difference": "高低差",
+        "paint fading": "標線掉漆",
+        "broken surface": "鋪面破損",
+        "uneven surface": "鋪面不平",
+        "no pedestrian priority": "無行人優先",
+        "very long crossing": "過長的行人穿越道",
+        "level with sidewalk": "與人行道齊平",
+        "has button": "有行人觸動按鈕",
+        "button waist height": "行人觸動按鈕高度齊腰",
+        "APS": "無障礙行人號誌APS",
+        "missing crosswalk": "無行人穿越道",
+        "no bus stop access": "無公車站出入空間",
+        "pedestrian lane marking": "行人車道標記",
+        "covered walkway": "有蓋的人行道",
+        "too close to traffic": "离交通太近",
+        "utility panel": "实用面板"
     },
-    "surface-problem": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "如果人行道或行人穿越道的鋪面會使行人<b>不舒服甚至無法通行</b>就應被標記為鋪面問題。"
-      },
-      "slide-2": {
-        "title": "人行道磚",
-        "description": "人行道磚若無縫隙、裂痕或隆起、凹陷等問題，不為鋪面問題。"
-      },
-      "slide-3": {
-        "title": "不在人行道上",
-        "description": "此碎石路<b>不為</b>行人通道，因此不應標記為鋪面問題。<br><br>請僅針對發生在人行道、行人穿越道和其他行人通道上的鋪面問題進行標記。"
-      }
+    "gsv-info": {
+        "details-title": "詳細資訊",
+        "latitude": "緯度",
+        "longitude": "經度",
+        "panorama-id": "全景圖編號",
+        "google-street-view": "谷歌街景",
+        "street-id": "街道編號",
+        "region-id": "區域編號",
+        "label-id": "標籤編號",
+        "view-in-gsv": "在Google街景圖查看",
+        "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
     },
-    "no-sidewalk": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "若街道測無設置人行道請選擇<b>無人行道</b>之標記。"
-      },
-      "slide-2": {
-        "title": "道路分隔帶",
-        "description": "道路分隔帶設置目的為分隔兩個不同方向車流，非為行人行走設計，因此<b>不應</b>標記為無人行道。"
-      },
-      "slide-3": {
-        "title": "鋪面",
-        "description": "此處有設置人行道，因此<b>不應</b>標記為無人行道。"
-      }
-    },
-    "crosswalk": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "行人穿越道為法定行人穿越之空間。<br><br>行人穿越道通常以<b>平行斑馬紋</b>標示。"
-      },
-      "slide-2": {
-        "title": "無標線標示",
-        "description": "無標線標示<b>不應</b>標記為行人穿越道。"
-      },
-      "slide-3": {
-        "title": "車輛停止線",
-        "description": "車輛停止線不應標記為行人穿越道。"
-      },
-      "slide-4": {
-        "title": "減速設施",
-        "description": "減速設施不應標記為行人穿越道。"
-      }
-    },
-    "signal": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "行人號誌指示行人是否可以穿越道路並提供安全的通行時間。<br><br> 部分行人號誌是透過按鈕觸動，一般設置高度齊腰。"
-      },
-      "slide-2": {
-        "title": "標誌",
-        "description": "此標誌無指示行人可以通過的時間。"
-      },
-      "slide-3": {
-        "title": "桿柱",
-        "description": "此桿炷無提供行人號誌。"
-      },
-      "slide-4": {
-        "title": "車輛交通號誌",
-        "description": "此交通號誌僅提供車輛指示，非為行人設置。"
-      }
+    "mission-start-tutorial": {
+        "example-type-label-correct": "正確案例",
+        "label-type-subtitle": "為什麼錯誤？",
+        "label-on-image-title-correct": "正確標記",
+        "start-mission": "開始任務",
+        "curb-ramp": {
+            "slide-1": {
+                "title": "{{labelType}}",
+                "description": "路緣坡道允許人們從人行道過渡到街道。 它們應該存在於所有可穿越的交叉路口。"
+            },
+            "slide-2": {
+                "title": "車道",
+                "description": "車道<b>不為</b>路緣斜坡，其設計予車輛利用而非行人。車道<b>不該</b>被標記為路緣斜坡。"
+            },
+            "slide-3": {
+                "title": "車庫",
+                "description": "通往車庫的車道<b>不為</b>路緣斜坡。車道<b>不該</b>被標記為路緣斜坡。"
+            }
+        },
+        "no-curb-ramp": {
+            "slide-1": {
+                "title": "{{labelType}}",
+                "description": "路口人行道應設置路緣斜坡，理想情況為每個轉角有兩個。若轉角有人行道卻無路緣斜坡，請依據您的判斷標記路緣斜坡應該設置的位置。"
+            },
+            "slide-2": {
+                "title": "住宅步道",
+                "description": "住宅步道<b>不應</b>標記為無路緣斜坡。"
+            },
+            "slide-3": {
+                "title": "不位於行人路徑上",
+                "description": "路緣斜坡不需設置於<b>非</b>行人通行之路徑"
+            },
+            "slide-4": {
+                "title": "$t(common:no-sidewalk)",
+                "description": "<b>無人行道</b>情況應標記為無人行道而非無路緣斜坡。"
+            }
+        },
+        "obstacle": {
+            "slide-1": {
+                "title": "{{labelType}}",
+                "description": "障礙物是對於使用輪椅、助行器或其他輔助工具的用路人之<b>通行阻礙</b>。<br><br>然而並非所有的消防栓、桿柱和標誌都是障礙物，只有那些明顯阻礙人行道的物體。"
+            },
+            "slide-2": {
+                "title": "充足的空間可移動",
+                "description": "摩托車停於人行道側邊，行人仍有充足的空間通行。"
+            },
+            "slide-3": {
+                "title": "障礙物不在人行道上",
+                "description": "此交通角錐<b>非</b>放置於人行道上，因此不應標記為障礙物。<br><br>僅需標記在人行道、行人穿越道和其他行人通道上的障礙物。"
+            },
+            "slide-4": {
+                "title": "移動物體",
+                "description": "這輛在街景中的車輛應為移動中，因此不應標記為障礙物。"
+            }
+        },
+        "surface-problem": {
+            "slide-1": {
+                "title": "{{labelType}}",
+                "description": "如果人行道或行人穿越道的鋪面會使行人<b>不舒服甚至無法通行</b>就應被標記為鋪面問題。"
+            },
+            "slide-2": {
+                "title": "人行道磚",
+                "description": "人行道磚若無縫隙、裂痕或隆起、凹陷等問題，不為鋪面問題。"
+            },
+            "slide-3": {
+                "title": "不在人行道上",
+                "description": "此碎石路<b>不為</b>行人通道，因此不應標記為鋪面問題。<br><br>請僅針對發生在人行道、行人穿越道和其他行人通道上的鋪面問題進行標記。"
+            }
+        },
+        "no-sidewalk": {
+            "slide-1": {
+                "title": "{{labelType}}",
+                "description": "若街道測無設置人行道請選擇<b>無人行道</b>之標記。"
+            },
+            "slide-2": {
+                "title": "道路分隔帶",
+                "description": "道路分隔帶設置目的為分隔兩個不同方向車流，非為行人行走設計，因此<b>不應</b>標記為無人行道。"
+            },
+            "slide-3": {
+                "title": "鋪面",
+                "description": "此處有設置人行道，因此<b>不應</b>標記為無人行道。"
+            }
+        },
+        "crosswalk": {
+            "slide-1": {
+                "title": "{{labelType}}",
+                "description": "行人穿越道為法定行人穿越之空間。<br><br>行人穿越道通常以<b>平行斑馬紋</b>標示。"
+            },
+            "slide-2": {
+                "title": "無標線標示",
+                "description": "無標線標示<b>不應</b>標記為行人穿越道。"
+            },
+            "slide-3": {
+                "title": "車輛停止線",
+                "description": "車輛停止線不應標記為行人穿越道。"
+            },
+            "slide-4": {
+                "title": "減速設施",
+                "description": "減速設施不應標記為行人穿越道。"
+            }
+        },
+        "signal": {
+            "slide-1": {
+                "title": "{{labelType}}",
+                "description": "行人號誌指示行人是否可以穿越道路並提供安全的通行時間。<br><br> 部分行人號誌是透過按鈕觸動，一般設置高度齊腰。"
+            },
+            "slide-2": {
+                "title": "標誌",
+                "description": "此標誌無指示行人可以通過的時間。"
+            },
+            "slide-3": {
+                "title": "桿柱",
+                "description": "此桿炷無提供行人號誌。"
+            },
+            "slide-4": {
+                "title": "車輛交通號誌",
+                "description": "此交通號誌僅提供車輛指示，非為行人設置。"
+            }
+        }
     }
-  }
 }
