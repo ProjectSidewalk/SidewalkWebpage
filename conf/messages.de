@@ -322,7 +322,7 @@ leaderboard.tooltip.accuracy = Die Genauigkeit wird nur angezeigt, wenn mindeste
 leaderboard.tooltip.weekly.reset = Die Statistik wird jeden Sonntag Morgen um 0:00 Uhr PT zurückgesetzt.
 leaderboard.encouragement = Wollen Sie es unter die Top 10 schaffen? <a id="encouragement-link" href="/explore"><u>Erkundung starten!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Registrieren</u></a> Sie sich, um Ihren Fortschritt zu verfolgen!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Treten Sie einer Organisation bei</u></a> und arbeiten Sie im Team zusammen, um Gehwege zu kartieren und zu bewerten!
+leaderboard.encouragement.no.org = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="/labelingGuide"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard"><u>Ihrem Dashboard</u></a> an
 
 gallery = Galerie
 gallery.show = Anzeigen
