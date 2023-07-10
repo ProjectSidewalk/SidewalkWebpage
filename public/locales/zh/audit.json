@@ -70,11 +70,11 @@
         "title": "任務完成！",
         "map-legend-label-other-users": "其他標記者的任務",
         "progress-neighborhood-title": "鄰里進度",
-        "progress-route-title": "路线进度",
+        "progress-route-title": "路線進度",
         "progress-neighborhood-you": "您於此鄰里的探索",
-        "progress-route-you": "在您的路线中探索",
+        "progress-route-you": "在您的路線中探索",
         "progress-neighborhood-remaining": "留在此鄰里",
-        "progress-route-remaining": "留在你的路线上",
+        "progress-route-remaining": "留在你的路線上",
         "button-start-validating": "開始檢核",
         "button-keep-exploring": "繼續探索",
         "button-continue": "繼續"
@@ -156,8 +156,8 @@
                 "height-difference": "高度差(<tag-underline>d</tag-underline>)",
                 "pedestrian-lane-marking": "行人車道標記(<tag-underline>i</tag-underline>)",
                 "covered-walkway": "有蓋的人行道(<tag-underline>l</tag-underline>)",
-                "too-close-to-traffic": "离交通太近(<tag-underline>t</tag-underline>)",
-                "utility-panel": "实用面板(<tag-underline>e</tag-underline>)"
+                "too-close-to-traffic": "離車流太近(<tag-underline>t</tag-underline>)",
+                "utility-panel": "公用設施面板(<tag-underline>e</tag-underline>)"
             },
             "tooltip": {
                 "passable": "可通行的",
@@ -175,9 +175,9 @@
             "slight-left": "稍微向左轉",
             "slight-right": "稍微向右轉",
             "u-turn": "迴轉",
-            "end-route": "你在你的路线的尽头！ 完成标记此交叉路口，然后<br><span class='bold'>单击此处完成路线。</span>",
-            "end-neighborhood": "您探索了整个街区！ 完成标记此交叉路口，然后<br><span class='bold'>单击此处完成邻域。</span>",
-            "end-street": "我们需要将您转移到新位置。 完成标记此交叉路口，然后<br><span class='bold'>单击此处移动到新位置。</span>",
+            "end-route": "您已到達路線的盡頭！ 完成標記此路口，然後<br><span class='bold'>點選這裡完成路線。</span>",
+            "end-neighborhood": "您以探索了整個街區！ 完成標記此路口，然後<br><span class='bold'>點選這裡完成此街區。</span>",
+            "end-street": "我們需要將您轉移到新位置。 完成標記此路口，然後<br><span class='bold'>點選這裡移動到新位置。</span>",
             "far-away": "噢喔，您已經離路線很遠了。<br><span class='bold'>點選這裡以回到路線。</span>"
         }
     },
@@ -208,11 +208,11 @@
         "label-shortcuts-signal": "您也可按下<kbd>{{key}}</kbd>鍵以選擇行人號誌標記。",
         "label-shortcuts-occlusion": "您也可按下<kbd>{{key}}</kbd>鍵以選擇看不到人行道標記。",
         "still-stuck": "若您仍難以抉擇，請再次點選難以抉擇鍵。",
-        "stuck-skipped-street": "在前一條街道以無可標記的點，因此我們將您帶往新的街道。",
+        "stuck-skipped-street": "在前一條街道已無可標記的點，因此我們將您帶往新的街道。",
         "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向。或嘗試點選左側的難以抉擇鍵。"
     },
     "mission-start-tutorial": {
-        "mst-instruction-1": "探索使命",
+        "mst-instruction-1": "探索任務",
         "mst-instruction-2": "在 {{neighborhood}} 中標記這些輔助功能",
         "example-type-label-incorrect": "常見的錯誤",
         "label-on-image-title-incorrect": "$t(audit:mission-start-tutorial.example-type-label-incorrect)",
