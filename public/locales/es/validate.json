@@ -140,7 +140,7 @@
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "TU MISIÓN",
-        "mst-instruction-2": "Validar {{nLabels}} etiquetas de {{labelType}}",
+        "mst-instruction-2": "Validar {{nLabels}} etiquetas de {{- labelType}}",
         "example-type-label-incorrect": "EJEMPLO INCORRECTO",
         "label-on-image-title-incorrect": "etiqueta incorrecta",
         "label-on-image-description-correct": "Marcar <b>de acuerdo</b>",

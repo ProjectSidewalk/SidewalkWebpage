@@ -131,7 +131,7 @@
         "start-mission": "開始任務",
         "curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "路緣坡道允許人們從人行道過渡到街道。 它們應該存在於所有可穿越的交叉路口。"
             },
             "slide-2": {
@@ -145,7 +145,7 @@
         },
         "no-curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "路口人行道應設置路緣斜坡，理想情況為每個轉角有兩個。若轉角有人行道卻無路緣斜坡，請依據您的判斷標記路緣斜坡應該設置的位置。"
             },
             "slide-2": {
@@ -163,7 +163,7 @@
         },
         "obstacle": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "障礙物是對於使用輪椅、助行器或其他輔助工具的用路人之<b>通行阻礙</b>。<br><br>然而並非所有的消防栓、桿柱和標誌都是障礙物，只有那些明顯阻礙人行道的物體。"
             },
             "slide-2": {
@@ -181,7 +181,7 @@
         },
         "surface-problem": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "如果人行道或行人穿越道的鋪面會使行人<b>不舒服甚至無法通行</b>就應被標記為鋪面問題。"
             },
             "slide-2": {
@@ -195,7 +195,7 @@
         },
         "no-sidewalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "若街道測無設置人行道請選擇<b>無人行道</b>之標記。"
             },
             "slide-2": {
@@ -209,7 +209,7 @@
         },
         "crosswalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "行人穿越道為法定行人穿越之空間。<br><br>行人穿越道通常以<b>平行斑馬紋</b>標示。"
             },
             "slide-2": {
@@ -227,7 +227,7 @@
         },
         "signal": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "行人號誌指示行人是否可以穿越道路並提供安全的通行時間。<br><br> 部分行人號誌是透過按鈕觸動，一般設置高度齊腰。"
             },
             "slide-2": {

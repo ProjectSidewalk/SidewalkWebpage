@@ -140,7 +140,7 @@
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "您的任務",
-        "mst-instruction-2": "檢核{{nLabels}}個{{labelType}}的標記",
+        "mst-instruction-2": "檢核{{nLabels}}個{{- labelType}}的標記",
         "example-type-label-incorrect": "錯誤案例",
         "label-on-image-title-incorrect": "錯誤標記",
         "label-on-image-description-correct": "選擇<b>同意</b>",
