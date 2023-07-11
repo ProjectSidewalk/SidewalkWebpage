@@ -319,7 +319,7 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/explore"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
-leaderboard.encouragement.no.org = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="/labelingGuide"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard"><u>su tablero</u></a>
+leaderboard.encouragement.no.org = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="/labelingGuide"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>
 
 gallery = Galería
 gallery.show = Mostrar

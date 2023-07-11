@@ -321,7 +321,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標籤指南</u></a>並在<a id="encouragement-link" href="/dashboard"><u>儀表板</u></a>上查看最近的錯誤標籤
+leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標籤指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
 gallery.show = 顯示項目
