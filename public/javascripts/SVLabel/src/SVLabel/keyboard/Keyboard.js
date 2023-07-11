@@ -250,12 +250,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 27:
                     // "Escape"
-                    if (contextMenu.isOpen()) {
-                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                        svl.tracker.push("ContextMenu_CloseKeyboardShortcut");
-                        contextMenu.hide();
-                    }
-
+                    _closeContextMenu(e.keyCode);
                     ribbon.backToWalk();
                     break;
             }
