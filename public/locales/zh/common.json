@@ -37,10 +37,10 @@
         "percent-complete": "{{percent}}%完成"
     },
     "errors": {
-        "title": "糟糕，我们的错，但此标签不再有可用的图像。",
-        "explanation": "我们使用 Google Maps API 来显示人行道图像，有时 Google 会删除这些图像，因此我们无法再访问它们。 对于那个很抱歉。",
-        "google-connect-error": "我们无法连接到 Google 街景，请稍后重试！",
-        "explore-street": "探索街道</a> 再次使用谷歌的新图片！"
+        "title": "糟糕，我們的錯，現在沒有相關的圖片可供參考。",
+        "explanation": "我們使用 Google Maps API 來顯示人行道的圖像，有時候 Google 會移除這些圖片，因此我們無法再存取它們。很抱歉。",
+        "google-connect-error": "我們在連接到 Google 街景時遇到了問題，請稍後再試！",
+        "explore-street": "請再次探索街道</a> 以使用較新的Google圖片！"
     },
     "severity": "品質評分",
     "no-severity": "該標記無標示品質評分",
@@ -49,7 +49,7 @@
     "temporary": "暫時的",
     "description": "描述",
     "no-description": "無描述",
-    "image-capture-date": "影像拍摄日期",
+    "image-capture-date": "影像拍攝日期",
     "labeled": "已標記",
     "yes": "是",
     "no": "否",
@@ -109,8 +109,8 @@
         "no bus stop access": "無公車站出入空間",
         "pedestrian lane marking": "行人車道標記",
         "covered walkway": "有蓋的人行道",
-        "too close to traffic": "离交通太近",
-        "utility panel": "实用面板"
+        "too close to traffic": "離車流太近",
+        "utility panel": "公用設施面板"
     },
     "gsv-info": {
         "details-title": "詳細資訊",
@@ -131,7 +131,7 @@
         "start-mission": "開始任務",
         "curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "路緣坡道允許人們從人行道過渡到街道。 它們應該存在於所有可穿越的交叉路口。"
             },
             "slide-2": {
@@ -145,7 +145,7 @@
         },
         "no-curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "路口人行道應設置路緣斜坡，理想情況為每個轉角有兩個。若轉角有人行道卻無路緣斜坡，請依據您的判斷標記路緣斜坡應該設置的位置。"
             },
             "slide-2": {
@@ -163,7 +163,7 @@
         },
         "obstacle": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "障礙物是對於使用輪椅、助行器或其他輔助工具的用路人之<b>通行阻礙</b>。<br><br>然而並非所有的消防栓、桿柱和標誌都是障礙物，只有那些明顯阻礙人行道的物體。"
             },
             "slide-2": {
@@ -181,7 +181,7 @@
         },
         "surface-problem": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "如果人行道或行人穿越道的鋪面會使行人<b>不舒服甚至無法通行</b>就應被標記為鋪面問題。"
             },
             "slide-2": {
@@ -195,7 +195,7 @@
         },
         "no-sidewalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "若街道測無設置人行道請選擇<b>無人行道</b>之標記。"
             },
             "slide-2": {
@@ -209,7 +209,7 @@
         },
         "crosswalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "行人穿越道為法定行人穿越之空間。<br><br>行人穿越道通常以<b>平行斑馬紋</b>標示。"
             },
             "slide-2": {
@@ -227,7 +227,7 @@
         },
         "signal": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "行人號誌指示行人是否可以穿越道路並提供安全的通行時間。<br><br> 部分行人號誌是透過按鈕觸動，一般設置高度齊腰。"
             },
             "slide-2": {
@@ -236,7 +236,7 @@
             },
             "slide-3": {
                 "title": "桿柱",
-                "description": "此桿炷無提供行人號誌。"
+                "description": "此桿柱無提供行人號誌。"
             },
             "slide-4": {
                 "title": "車輛交通號誌",

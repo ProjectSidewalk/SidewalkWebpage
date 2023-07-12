@@ -140,7 +140,7 @@
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "IHRE MISSION",
-        "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{labelType}}",
+        "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{- labelType}}",
         "example-type-label-incorrect": "FALSCHES BEISPIEL",
         "label-on-image-title-incorrect": "Falsche Beschriftung",
         "label-on-image-description-correct": "Bewerten mit <b>Einverstanden</b>",

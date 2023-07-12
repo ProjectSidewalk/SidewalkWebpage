@@ -131,7 +131,7 @@
         "start-mission": "Missie starten",
         "curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Met stoepranden kunnen mensen overstappen van het trottoir naar de straat. Ze moeten aanwezig zijn op alle oversteekbare kruispunten."
             },
             "slide-2": {
@@ -145,7 +145,7 @@
         },
         "no-curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Trottoirkruisingen moeten stoeprandhellingen hebben - idealiter twee per hoek. Als een hoek wel een trottoir heeft maar geen oprit, plaatst u het label Ontbrekende oprit op de stoep waar u denkt dat er een oprit op de stoep zou moeten staan."
             },
             "slide-2": {
@@ -163,7 +163,7 @@
         },
         "obstacle": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Obstakels zijn barrières die <b>voetpaden</b> belemmeren voor mensen die rolstoelen, rollators of andere mobiliteitshulpmiddelen gebruiken.<br><br>Niet alle brandkranen, palen en borden zijn obstakels, alleen obstakels die voetgangers duidelijk belemmeren paden."
             },
             "slide-2": {
@@ -181,7 +181,7 @@
         },
         "surface-problem": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Als iets op de stoep of oversteekplaats het <b>ongemakkelijk of onmogelijk maakt om over te steken</b>, moet dit worden bestempeld als een oppervlakteprobleem."
             },
             "slide-2": {
@@ -195,7 +195,7 @@
         },
         "no-sidewalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Als een straatkant geen trottoir heeft, markeer deze dan met een label <b>Geen stoep</b>."
             },
             "slide-2": {
@@ -209,7 +209,7 @@
         },
         "crosswalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Een oversteekplaats is een wettelijk gedefinieerde ruimte om een weg over te steken.<br><br>Oversteekplaatsen worden vaak aangegeven door <b>evenwijdige stippellijnen.</b>"
             },
             "slide-2": {
@@ -227,7 +227,7 @@
         },
         "signal": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Een voetgangerssignaal geeft aan wanneer voetgangers de straat kunnen oversteken en geeft hen de tijd om dit veilig te doen.<br><br> Sommige voetgangerssignalen worden geactiveerd door een voetgangersdrukknop op heuphoogte."
             },
             "slide-2": {
