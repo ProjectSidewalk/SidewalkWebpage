@@ -493,6 +493,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return status[key];
     };
 
+    function getMouseStatus() {
+        return mouseStatus;
+    }
+
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
         moveToTheTaskLocation(task, false, caller);
@@ -1478,6 +1482,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.getPosition = getPosition;
     self.getPov = getPov;
     self.getPovChangeStatus = getPovChangeStatus;
+    self.getMouseStatus = getMouseStatus;
     self.hideLinks = hideLinks;
     self.lockDisablePanning = lockDisablePanning;
     self.lockDisableWalking = lockDisableWalking;

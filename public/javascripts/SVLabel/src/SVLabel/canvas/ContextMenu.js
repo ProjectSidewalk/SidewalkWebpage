@@ -65,7 +65,8 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleMouseDown(e) {
         var clickedOut = !($menuWindow[0].contains(event.target));
-        if (isOpen()) {
+        let [mouseX, mouseY] = [svl.map.getMouseStatus().leftDownX, svl.map.getMouseStatus().leftDownY];
+        if (isOpen() && !svl.canvas.onLabel(mouseX, mouseY)) {
             if (clickedOut) {
                 svl.tracker.push('ContextMenu_CloseClickOut');
                 handleSeverityPopup();
