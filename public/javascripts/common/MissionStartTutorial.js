@@ -905,13 +905,25 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
             $('.label-on-image-type-icon').find('use').attr('xlink:href', iconID);
 
             $labelOnImage.show();
-        }
+        } 
 
         const $mstSlide = $('.mst-slide');
         const $labelTypeSubtitle = $('.label-type-subtitle');
         const $mstSlideImage = $('.msts-image');
         const $labelOnImage = $('.label-on-image');
         const $mstDoneButton = $('.mission-start-tutorial-done-btn');
+
+        const $labelOnImageDescription = $('.label-on-image-description');
+        const $languageButton = document.getElementById('language-button');
+        const languageButtonValue = $languageButton?.textContent?.trim() || '';
+
+        if (languageButtonValue === 'de') {
+            $labelOnImageDescription[0].style.transform = 'translateY(' + -12 + '%)';
+        }
+
+        if (languageButtonValue === 'nl') {
+            $labelOnImage[0].style.maxWidth = '230px';
+        }
 
         // Reset the UI first.
         $('.mst-carousel-location-indicator').removeClass('current-location');
