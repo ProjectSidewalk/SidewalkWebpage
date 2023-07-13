@@ -1,247 +1,247 @@
 {
-  "measurement-system": "metric",
-  "admin-clear-play-cache": "Cache succesvol gewist",
-  "unit-distance-abbreviation": "km",
-  "unit-abbreviation-mission-distance": "m",
-  "unit-distance": "kilometers",
-  "format-number": "{{val, number}}",
-  "curb-ramp": "Trottoir oprit",
-  "no-curb-ramp": "Ontbrekende trottoir oprit",
-  "obstacle": "Obstakel op het pad",
-  "surface-problem": "Oppervlakte probleem",
-  "occlusion": "Trottoir niet zichtbaar",
-  "no-sidewalk" : "Geen trottoir",
-  "crosswalk": "Oversteekplaats",
-  "signal": "Verkeerslicht",
-  "other": "Anders",
-  "agree": "Mee eens zijn",
-  "disagree": "Het oneens zijn",
-  "not-sure": "Niet zeker",
-  "missing-sidewalks": "Ontbrekende trottoirs",
-  "missing-ramps": "Ontbrekende Opritten",
-  "surface-problems": "Oppervlakte problemen",
-  "sidewalk-obstacles": "Trottoir obstakels",
-  "complete": "voltooid",
-  "mturk-code": "Mturk Code: {{code}}",
-  "right-ui-turk-current-reward": "Huidige missie beloning: ",
-  "right-ui-turk-total-reward": "Totaal verdiende beloning: ",
-  "mission-complete-confirmation-code": "Bevestigingscode: ",
-  "mission-start-turk-reward": "Beloning voor voldoende voltooiing: ",
-  "map": {
-    "distance-left": "Nog maar {{n}} kilometer te gaan!",
-    "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",
-    "less-than-one-unit-left": "Minder dan een kilometer te gaan!",
-    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Klik hier</a> om te helpen bij het voltooien van deze wijk",
-    "thanks": "Dank voor al je hulp!",
-    "100-percent-complete": "100% Voltooid!",
-    "percent-complete": "{{percent}}% Voltooid"
-  },
-  "errors": {
-    "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
-    "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
-    "google-connect-error": "We hadden problemen met het verbinden met Google Street View, probeer het later opnieuw!",
-    "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
-  },
-  "severity": "Ernst",
-  "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
-  "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
-  "tags": "Tags",
-  "temporary": "Tijdelijk",
-  "description": "Beschrijving",
-  "no-description": "Geen beschrijving",
-  "image-capture-date": "Opnamedatum afbeelding",
-  "labeled": "Gelabeled",
-  "yes": "Ja",
-  "no": "Nee",
-  "tag": {
-    "narrow": "smal",
-    "points into traffic": "het verkeer in gericht",
-    "missing tactile warning": "tactiele waarschuwing ontbreekt",
-    "tactile warning": "tactiele waarschuwing",
-    "steep": "steil",
-    "not enough landing space": "bovenaan niet genoeg ruimte",
-    "not level with street": "niet zelfde niveau met straat",
-    "surface-problem": "oppervlakte probleem",
-    "pooled water": "gepoold water",
-    "alternate route present": "alternatieve route aanwezig",
-    "no alternate route": "geen alternatieve route",
-    "unclear if needed": "onduidelijk of het nodig is",
-    "trash/recycling can": "vuilnisbak",
-    "fire hydrant": "brandkraan",
-    "pole": "paal",
-    "tree": "boom",
-    "vegetation": "vegetatie",
-    "parked car": "geparkeerde auto",
-    "parked bike": "geparkeerde fiets",
-    "construction": "constructie",
-    "sign": "verkeersbord",
-    "garage entrance": "ingang garage",
-    "stairs": "trap",
-    "street vendor": "straatverkoper",
-    "litter/garbage": "zwerfvuil/vuilnis",
-    "parked scooter/motorcycle": "geparkeerde scooter/motor",
-    "bumpy": "hobbelig",
-    "uneven/slanted": "oneven/hellend",
-    "cracks": "scheuren",
-    "grass": "gras",
-    "narrow sidewalk": "smal trottoir",
-    "brick/cobblestone": "steen",
-    "very broken": "erg beschadigd",
-    "rail/tram track": "spoor/trambaan",
-    "sand/gravel": "zand/grind",
-    "uncovered manhole": "onbedekt mangat",
-    "ends abruptly": "eindigt plotseling",
-    "street has a sidewalk": "straat heeft een trottoir",
-    "street has no sidewalks": "straat heeft geen trottoir",
-    "gravel/dirt road": "gavel/zand weg",
-    "shared pedestrian/car space": "gedeeld voetganger/auto gebied",
-    "height difference": "hoogte verschil",
-    "paint fading": "verf vervaagd",
-    "broken surface": "gebroken oppervlak",
-    "uneven surface": "oneven oppervlak",
-    "no pedestrian priority": "geen voetgangersprioriteit",
-    "very long crossing": "zeer lange oversteek",
-    "level with sidewalk": "niveau met stoep",
-    "has button": "heeft een knop",
-    "button waist height": "knop op heuphoogte",
-    "APS": "APS",
-    "missing crosswalk": "missend zebrapad",
-    "no bus stop access": "geen bushalte toegang",
-    "pedestrian lane marking": "voetgangersstrookmarkering",
-    "covered walkway": "Overdekte loopbrug",
-    "too close to traffic": "te dicht bij het verkeer",
-    "utility panel": "hulpprogramma paneel"
-  },
-  "gsv-info": {
-    "details-title": "Details",
-    "latitude": "Breedtegraad",
-    "longitude": "Lengtegraad",
-    "panorama-id": "Panorama-ID",
-    "google-street-view": "Google Street View",
-    "street-id": "Straat-ID",
-    "region-id": "Regio-ID",
-    "label-id": "Etiket-ID",
-    "view-in-gsv": "Bekijken in Google Streetview",
-    "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
-  },
-  "mission-start-tutorial": {
-    "example-type-label-correct": "JUISTE VOORBEELD",
-    "label-type-subtitle": "Waarom is dit verkeerd?",
-    "label-on-image-title-correct": "Correct etiket",
-    "start-mission": "Missie starten",
-    "curb-ramp": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Met stoepranden kunnen mensen overstappen van het trottoir naar de straat. Ze moeten aanwezig zijn op alle oversteekbare kruispunten."
-      },
-      "slide-2": {
-        "title": "Oprit",
-        "description": "Opritten zijn <b>geen</b> stoephellingen. Ze zijn ontworpen voor voertuigen en niet voor voetgangers. Opritten mogen <b>niet</b> worden aangeduid als stoepranden."
-      },
-      "slide-3": {
-        "title": "Garage",
-        "description": "Opritten naar garages zijn <b>geen</b> stoephellingen. Opritten mogen <b>niet</b> worden aangeduid als stoepranden."
-      }
+    "measurement-system": "metric",
+    "admin-clear-play-cache": "Cache succesvol gewist",
+    "unit-distance-abbreviation": "km",
+    "unit-abbreviation-mission-distance": "m",
+    "unit-distance": "kilometers",
+    "format-number": "{{val, number}}",
+    "curb-ramp": "Trottoir oprit",
+    "no-curb-ramp": "Ontbrekende trottoir oprit",
+    "obstacle": "Obstakel op het pad",
+    "surface-problem": "Oppervlakte probleem",
+    "occlusion": "Trottoir niet zichtbaar",
+    "no-sidewalk": "Geen trottoir",
+    "crosswalk": "Oversteekplaats",
+    "signal": "Verkeerslicht",
+    "other": "Anders",
+    "agree": "Mee eens zijn",
+    "disagree": "Het oneens zijn",
+    "not-sure": "Niet zeker",
+    "missing-sidewalks": "Ontbrekende trottoirs",
+    "missing-ramps": "Ontbrekende Opritten",
+    "surface-problems": "Oppervlakte problemen",
+    "sidewalk-obstacles": "Trottoir obstakels",
+    "complete": "voltooid",
+    "mturk-code": "Mturk Code: {{code}}",
+    "right-ui-turk-current-reward": "Huidige missie beloning: ",
+    "right-ui-turk-total-reward": "Totaal verdiende beloning: ",
+    "mission-complete-confirmation-code": "Bevestigingscode: ",
+    "mission-start-turk-reward": "Beloning voor voldoende voltooiing: ",
+    "map": {
+        "distance-left": "Nog maar {{n}} kilometer te gaan!",
+        "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",
+        "less-than-one-unit-left": "Minder dan een kilometer te gaan!",
+        "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Klik hier</a> om te helpen bij het voltooien van deze wijk",
+        "thanks": "Dank voor al je hulp!",
+        "100-percent-complete": "100% Voltooid!",
+        "percent-complete": "{{percent}}% Voltooid"
     },
-    "no-curb-ramp": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Trottoirkruisingen moeten stoeprandhellingen hebben - idealiter twee per hoek. Als een hoek wel een trottoir heeft maar geen oprit, plaatst u het label Ontbrekende oprit op de stoep waar u denkt dat er een oprit op de stoep zou moeten staan."
-      },
-      "slide-2": {
-        "title": "Residentiële looppaden",
-        "description": "Woonpaden mogen <b>niet</b> worden gelabeld als Ontbrekende Trottoir Oprit."
-      },
-      "slide-3": {
-        "title": "Niet op voetpad",
-        "description": "Opritten voor stoepranden zijn niet nodig op paden die <b>niet</b> bedoeld zijn voor voetgangers."
-      },
-      "slide-4": {
-        "title": "$t(common:no-sidewalk)",
-        "description": "Voor hoeken zonder <b>geen trottoirs</b> gebruikt u het label Geen stoep in plaats van het label Ontbrekende oprit."
-      }
+    "errors": {
+        "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
+        "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
+        "google-connect-error": "We hadden problemen met het verbinden met Google Street View, probeer het later opnieuw!",
+        "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
     },
-    "obstacle": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Obstakels zijn barrières die <b>voetpaden</b> belemmeren voor mensen die rolstoelen, rollators of andere mobiliteitshulpmiddelen gebruiken.<br><br>Niet alle brandkranen, palen en borden zijn obstakels, alleen obstakels die voetgangers duidelijk belemmeren paden."
-      },
-      "slide-2": {
-        "title": "Voldoende ruimte om te manoeuvreren",
-        "description": "De motor staat aan de kant geparkeerd - er is voldoende ruimte voor voetgangers op de resterende ruimte van het trottoir."
-      },
-      "slide-3": {
-        "title": "Hindernis niet op stoep",
-        "description": "Deze verkeerskegel bevindt zich <b>niet</b> op een voetpad en mag dus niet worden gemarkeerd als een obstakel.<br><br> Markeer alleen obstakels op trottoirs, oversteekplaatsen en andere voetpaden."
-      },
-      "slide-4": {
-        "title": "Bewegend voorwerp",
-        "description": "De auto lijkt te bewegen in het beeld en mag niet als een obstakel worden bestempeld."
-      }
+    "severity": "Ernst",
+    "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
+    "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
+    "tags": "Tags",
+    "temporary": "Tijdelijk",
+    "description": "Beschrijving",
+    "no-description": "Geen beschrijving",
+    "image-capture-date": "Opnamedatum afbeelding",
+    "labeled": "Gelabeled",
+    "yes": "Ja",
+    "no": "Nee",
+    "tag": {
+        "narrow": "smal",
+        "points into traffic": "het verkeer in gericht",
+        "missing tactile warning": "tactiele waarschuwing ontbreekt",
+        "tactile warning": "tactiele waarschuwing",
+        "steep": "steil",
+        "not enough landing space": "bovenaan niet genoeg ruimte",
+        "not level with street": "niet zelfde niveau met straat",
+        "surface-problem": "oppervlakte probleem",
+        "pooled water": "gepoold water",
+        "alternate route present": "alternatieve route aanwezig",
+        "no alternate route": "geen alternatieve route",
+        "unclear if needed": "onduidelijk of het nodig is",
+        "trash/recycling can": "vuilnisbak",
+        "fire hydrant": "brandkraan",
+        "pole": "paal",
+        "tree": "boom",
+        "vegetation": "vegetatie",
+        "parked car": "geparkeerde auto",
+        "parked bike": "geparkeerde fiets",
+        "construction": "constructie",
+        "sign": "verkeersbord",
+        "garage entrance": "ingang garage",
+        "stairs": "trap",
+        "street vendor": "straatverkoper",
+        "litter/garbage": "zwerfvuil/vuilnis",
+        "parked scooter/motorcycle": "geparkeerde scooter/motor",
+        "bumpy": "hobbelig",
+        "uneven/slanted": "oneven/hellend",
+        "cracks": "scheuren",
+        "grass": "gras",
+        "narrow sidewalk": "smal trottoir",
+        "brick/cobblestone": "steen",
+        "very broken": "erg beschadigd",
+        "rail/tram track": "spoor/trambaan",
+        "sand/gravel": "zand/grind",
+        "uncovered manhole": "onbedekt mangat",
+        "ends abruptly": "eindigt plotseling",
+        "street has a sidewalk": "straat heeft een trottoir",
+        "street has no sidewalks": "straat heeft geen trottoir",
+        "gravel/dirt road": "gavel/zand weg",
+        "shared pedestrian/car space": "gedeeld voetganger/auto gebied",
+        "height difference": "hoogte verschil",
+        "paint fading": "verf vervaagd",
+        "broken surface": "gebroken oppervlak",
+        "uneven surface": "oneven oppervlak",
+        "no pedestrian priority": "geen voetgangersprioriteit",
+        "very long crossing": "zeer lange oversteek",
+        "level with sidewalk": "niveau met stoep",
+        "has button": "heeft een knop",
+        "button waist height": "knop op heuphoogte",
+        "APS": "APS",
+        "missing crosswalk": "missend zebrapad",
+        "no bus stop access": "geen bushalte toegang",
+        "pedestrian lane marking": "voetgangersstrookmarkering",
+        "covered walkway": "Overdekte loopbrug",
+        "too close to traffic": "te dicht bij het verkeer",
+        "utility panel": "hulpprogramma paneel"
     },
-    "surface-problem": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Als iets op de stoep of oversteekplaats het <b>ongemakkelijk of onmogelijk maakt om over te steken</b>, moet dit worden bestempeld als een oppervlakteprobleem."
-      },
-      "slide-2": {
-        "title": "Normale stoeptegels",
-        "description": "Normale stoeptegels (zonder kieren, scheuren of oneffenheden) zijn geen oppervlakteproblemen."
-      },
-      "slide-3": {
-        "title": "Niet op voetpad",
-        "description": "Dit grind ligt <b>niet</b> op een voetpad en mag dus niet worden gemarkeerd als een oppervlakteprobleem.<br><br>Markeer alleen oppervlakteproblemen op trottoirs, oversteekplaatsen en andere voetpaden."
-      }
+    "gsv-info": {
+        "details-title": "Details",
+        "latitude": "Breedtegraad",
+        "longitude": "Lengtegraad",
+        "panorama-id": "Panorama-ID",
+        "google-street-view": "Google Street View",
+        "street-id": "Straat-ID",
+        "region-id": "Regio-ID",
+        "label-id": "Etiket-ID",
+        "view-in-gsv": "Bekijken in Google Streetview",
+        "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
     },
-    "no-sidewalk": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Als een straatkant geen trottoir heeft, markeer deze dan met een label <b>Geen stoep</b>."
-      },
-      "slide-2": {
-        "title": "Mediaan",
-        "description": "Een middenberm die twee verkeersrichtingen scheidt en niet bedoeld is voor voetgangers mag <b>niet</b> worden bestempeld als Geen Stoep."
-      },
-      "slide-3": {
-        "title": "Stoep",
-        "description": "Hier is een trottoir. Het moet <b>niet</b> worden gemarkeerd als Geen trottoir."
-      }
-    },
-    "crosswalk": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Een oversteekplaats is een wettelijk gedefinieerde ruimte om een weg over te steken.<br><br>Oversteekplaatsen worden vaak aangegeven door <b>evenwijdige stippellijnen.</b>"
-      },
-      "slide-2": {
-        "title": "Geen visuele indicator",
-        "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als oversteekplaatsen."
-      },
-      "slide-3": {
-        "title": "Lijn stoppen",
-        "description": "Stoplijnen voor auto's mogen niet worden aangeduid als zebrapaden."
-      },
-      "slide-4": {
-        "title": "Verkeersdrempel",
-        "description": "Verkeersdrempels mogen niet als oversteekplaatsen worden bestempeld."
-      }
-    },
-    "signal": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Een voetgangerssignaal geeft aan wanneer voetgangers de straat kunnen oversteken en geeft hen de tijd om dit veilig te doen.<br><br> Sommige voetgangerssignalen worden geactiveerd door een voetgangersdrukknop op heuphoogte."
-      },
-      "slide-2": {
-        "title": "Bewegwijzering",
-        "description": "Dit bord geeft niet aan wanneer voetgangers kunnen oversteken."
-      },
-      "slide-3": {
-        "title": "Pool",
-        "description": "Deze paal geeft geen verkeerstekens weer aan voetgangers."
-      },
-      "slide-4": {
-        "title": "Verkeerslicht voor voertuigen",
-        "description": "Dit verkeerslicht is alleen voor voertuigen, niet voor voetgangers."
-      }
+    "mission-start-tutorial": {
+        "example-type-label-correct": "JUISTE VOORBEELD",
+        "label-type-subtitle": "Waarom is dit verkeerd?",
+        "label-on-image-title-correct": "Correct etiket",
+        "start-mission": "Missie starten",
+        "curb-ramp": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Met stoepranden kunnen mensen overstappen van het trottoir naar de straat. Ze moeten aanwezig zijn op alle oversteekbare kruispunten."
+            },
+            "slide-2": {
+                "title": "Oprit",
+                "description": "Opritten zijn <b>geen</b> stoephellingen. Ze zijn ontworpen voor voertuigen en niet voor voetgangers. Opritten mogen <b>niet</b> worden aangeduid als stoepranden."
+            },
+            "slide-3": {
+                "title": "Garage",
+                "description": "Opritten naar garages zijn <b>geen</b> stoephellingen. Opritten mogen <b>niet</b> worden aangeduid als stoepranden."
+            }
+        },
+        "no-curb-ramp": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Trottoirkruisingen moeten stoeprandhellingen hebben - idealiter twee per hoek. Als een hoek wel een trottoir heeft maar geen oprit, plaatst u het label Ontbrekende oprit op de stoep waar u denkt dat er een oprit op de stoep zou moeten staan."
+            },
+            "slide-2": {
+                "title": "Residentiële looppaden",
+                "description": "Woonpaden mogen <b>niet</b> worden gelabeld als Ontbrekende Trottoir Oprit."
+            },
+            "slide-3": {
+                "title": "Niet op voetpad",
+                "description": "Opritten voor stoepranden zijn niet nodig op paden die <b>niet</b> bedoeld zijn voor voetgangers."
+            },
+            "slide-4": {
+                "title": "$t(common:no-sidewalk)",
+                "description": "Voor hoeken zonder <b>geen trottoirs</b> gebruikt u het label Geen stoep in plaats van het label Ontbrekende oprit."
+            }
+        },
+        "obstacle": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Obstakels zijn barrières die <b>voetpaden</b> belemmeren voor mensen die rolstoelen, rollators of andere mobiliteitshulpmiddelen gebruiken.<br><br>Niet alle brandkranen, palen en borden zijn obstakels, alleen obstakels die voetgangers duidelijk belemmeren paden."
+            },
+            "slide-2": {
+                "title": "Voldoende ruimte om te manoeuvreren",
+                "description": "De motor staat aan de kant geparkeerd - er is voldoende ruimte voor voetgangers op de resterende ruimte van het trottoir."
+            },
+            "slide-3": {
+                "title": "Hindernis niet op stoep",
+                "description": "Deze verkeerskegel bevindt zich <b>niet</b> op een voetpad en mag dus niet worden gemarkeerd als een obstakel.<br><br> Markeer alleen obstakels op trottoirs, oversteekplaatsen en andere voetpaden."
+            },
+            "slide-4": {
+                "title": "Bewegend voorwerp",
+                "description": "De auto lijkt te bewegen in het beeld en mag niet als een obstakel worden bestempeld."
+            }
+        },
+        "surface-problem": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Als iets op de stoep of oversteekplaats het <b>ongemakkelijk of onmogelijk maakt om over te steken</b>, moet dit worden bestempeld als een oppervlakteprobleem."
+            },
+            "slide-2": {
+                "title": "Normale stoeptegels",
+                "description": "Normale stoeptegels (zonder kieren, scheuren of oneffenheden) zijn geen oppervlakteproblemen."
+            },
+            "slide-3": {
+                "title": "Niet op voetpad",
+                "description": "Dit grind ligt <b>niet</b> op een voetpad en mag dus niet worden gemarkeerd als een oppervlakteprobleem.<br><br>Markeer alleen oppervlakteproblemen op trottoirs, oversteekplaatsen en andere voetpaden."
+            }
+        },
+        "no-sidewalk": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Als een straatkant geen trottoir heeft, markeer deze dan met een label <b>Geen stoep</b>."
+            },
+            "slide-2": {
+                "title": "Mediaan",
+                "description": "Een middenberm die twee verkeersrichtingen scheidt en niet bedoeld is voor voetgangers mag <b>niet</b> worden bestempeld als Geen Stoep."
+            },
+            "slide-3": {
+                "title": "Stoep",
+                "description": "Hier is een trottoir. Het moet <b>niet</b> worden gemarkeerd als Geen trottoir."
+            }
+        },
+        "crosswalk": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Een oversteekplaats is een wettelijk gedefinieerde ruimte om een weg over te steken.<br><br>Oversteekplaatsen worden vaak aangegeven door <b>evenwijdige stippellijnen.</b>"
+            },
+            "slide-2": {
+                "title": "Geen visuele indicator",
+                "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als oversteekplaatsen."
+            },
+            "slide-3": {
+                "title": "Lijn stoppen",
+                "description": "Stoplijnen voor auto's mogen niet worden aangeduid als zebrapaden."
+            },
+            "slide-4": {
+                "title": "Verkeersdrempel",
+                "description": "Verkeersdrempels mogen niet als oversteekplaatsen worden bestempeld."
+            }
+        },
+        "signal": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Een voetgangerssignaal geeft aan wanneer voetgangers de straat kunnen oversteken en geeft hen de tijd om dit veilig te doen.<br><br> Sommige voetgangerssignalen worden geactiveerd door een voetgangersdrukknop op heuphoogte."
+            },
+            "slide-2": {
+                "title": "Bewegwijzering",
+                "description": "Dit bord geeft niet aan wanneer voetgangers kunnen oversteken."
+            },
+            "slide-3": {
+                "title": "Pool",
+                "description": "Deze paal geeft geen verkeerstekens weer aan voetgangers."
+            },
+            "slide-4": {
+                "title": "Verkeerslicht voor voertuigen",
+                "description": "Dit verkeerslicht is alleen voor voertuigen, niet voor voetgangers."
+            }
+        }
     }
-  }
 }

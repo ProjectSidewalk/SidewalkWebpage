@@ -199,7 +199,7 @@
                     </div>
                     <div id="left-column-zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
-                        <br>@Messages("audit.left.ui.zoom.out")
+                        <br>@Html(Messages("audit.left.ui.zoom.out"))
                     </div>
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
@@ -220,7 +220,7 @@
                     <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
                         <br>
-                        @Messages("audit.left.ui.feedback")
+                        @Html(Messages("feedback"))
                     </div>
                 </div>
             </div>
