@@ -41,8 +41,7 @@ def main():
         exit(1)
 
     # Read street edge data from CSV.
-    street_data = pd.read_csv('street_edge_endpoints_small.csv')
-    print(street_data)
+    street_data = pd.read_csv('street_edge_endpoints.csv')
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
     n_streets = len(street_data)
     street_data['id'] = range(1, n_streets + 1)

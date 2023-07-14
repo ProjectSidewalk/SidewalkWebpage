@@ -7,7 +7,7 @@ from scipy.spatial.distance import pdist
 import argparse
 import requests
 import json
-from pandas.io.json import json_normalize
+# from pandas.io.json import json_normalize
 from concurrent.futures import ProcessPoolExecutor
 
 # Custom distance function that returns max float if from the same user id, haversine distance otherwise.
@@ -88,14 +88,14 @@ if __name__ == '__main__':
 
     # Send GET request to get the labels to be clustered.
     try:
-        print getURL
-        print postURL
+        print(getURL)
+        print(postURL)
         response = requests.get(getURL)
         data = response.json()
-        label_data = json_normalize(data[0])
+        label_data = pd.json_normalize(data[0])
         # print label_data
     except:
-        print "Failed to get labels needed to cluster."
+        print("Failed to get labels needed to cluster.")
         sys.exit()
 
     # Define thresholds for single and multi user clustering (numbers are in kilometers).
@@ -137,10 +137,10 @@ if __name__ == '__main__':
 
     # Remove weird entries with latitude and longitude values (on the order of 10^14).
     if sum(label_data.lng > 360) > 0:
-        if DEBUG: print 'There are %d invalid longitude vals, removing those entries.' % sum(label_data.lng > 360)
+        if DEBUG: print('There are %d invalid longitude vals, removing those entries.' % sum(label_data.lng > 360))
         label_data = label_data.drop(label_data[label_data.lng > 360].index)
     if sum(pd.isnull(label_data.lng)) > 0:
-        if DEBUG: print 'There are %d NaN longitude vals, removing those entries.' % sum(pd.isnull(label_data.lng))
+        if DEBUG: print('There are %d NaN longitude vals, removing those entries.' % sum(pd.isnull(label_data.lng)))
         label_data = label_data.drop(label_data[pd.isnull(label_data.lng)].index)
 
     # Check if there are 0 labels left after removing those with errors. If so, just send the post request and exit.
@@ -200,12 +200,12 @@ if __name__ == '__main__':
         label_output = label_output.append(labels_for_type_i.filter(items=label_cols))
 
     if DEBUG:
-        print "LABEL_TYPE: N_LABELS -> N_CLUSTERS"
-        print "----------------------------------"
+        print("LABEL_TYPE: N_LABELS -> N_CLUSTERS")
+        print("----------------------------------")
         for label_type in label_types:
-            print str(label_type) + ": " + \
+            print(str(label_type) + ": " + \
                   str(label_output[label_output.label_type == label_type].cluster.nunique()) + \
-                  " -> " + str(cluster_output[cluster_output.label_type == label_type].cluster.nunique())
+                  " -> " + str(cluster_output[cluster_output.label_type == label_type].cluster.nunique()))
 
     # Convert to JSON.
     cluster_json = cluster_output.to_json(orient='records')

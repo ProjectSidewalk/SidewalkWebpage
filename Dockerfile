@@ -19,6 +19,7 @@ RUN apt-get install -y \
     python-pandas \
     python3-dev \
     python3-pip \
+    libgeos-dev \
     libblas-dev \
     liblapack-dev \
     gfortran \
