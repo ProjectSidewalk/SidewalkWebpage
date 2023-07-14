@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-from pandas.io.json import json_normalize
 import sys
 import os
 from shapely import wkb
@@ -33,21 +32,23 @@ def redistribute_vertices(geom):
         num_vert = 1
     return LineString([geom.interpolate(float(n) / num_vert, normalized=True) for n in range(num_vert + 1)])
 
-if __name__ == '__main__':
+
+def main():
     # Read google maps API key from env variable.
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     if api_key is None:
-        print "Couldn't read GOOGLE_MAPS_API_KEY environment variable."
+        print("Couldn't read GOOGLE_MAPS_API_KEY environment variable.")
         exit(1)
 
     # Read street edge data from CSV.
-    street_data = pd.read_csv('street_edge_endpoints.csv')
+    street_data = pd.read_csv('street_edge_endpoints_small.csv')
+    print(street_data)
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
     n_streets = len(street_data)
     street_data['id'] = range(1, n_streets + 1)
 
     # Convert geom to Shapely format and add vertices approximately every 15 meters.
-    street_data['geom'] = map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), street_data['geom'].values)
+    street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 
     # Create dataframe that will hold output data.
     streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id', 'region_id'])
@@ -80,8 +81,8 @@ if __name__ == '__main__':
         except (requests.exceptions.RequestException, KeyboardInterrupt) as e:
             write_output(streets_with_no_imagery, street)
             exit(1)
-        first_endpoint_fail = json_normalize(first_endpoint.json()).status[0] == 'ZERO_RESULTS'
-        second_endpoint_fail = json_normalize(second_endpoint.json()).status[0] == 'ZERO_RESULTS'
+        first_endpoint_fail = pd.json_normalize(first_endpoint.json()).status[0] == 'ZERO_RESULTS'
+        second_endpoint_fail = pd.json_normalize(second_endpoint.json()).status[0] == 'ZERO_RESULTS'
 
         # If no imagery at either endpoint, add to no imagery list and move on. If at least one has imagery, check many
         # points along the street for imagery to figure out whether or not most of the street is missing imagery.
@@ -101,7 +102,7 @@ if __name__ == '__main__':
                 except (requests.exceptions.RequestException, KeyboardInterrupt) as e:
                     write_output(streets_with_no_imagery, street)
                     exit(1)
-                response_status = json_normalize(response.json()).status[0]
+                response_status = pd.json_normalize(response.json()).status[0]
                 if response_status == 'ZERO_RESULTS':
                     n_fail += 1
                 else:
@@ -116,5 +117,10 @@ if __name__ == '__main__':
                     break
                 elif n_success > 0.75 * n_coord or (n_success > 0.5 * n_coord and not first_endpoint_fail and not second_endpoint_fail):
                     break
+    print() # Stops the overflow on new line
 
     write_output(streets_with_no_imagery, None)
+
+
+if __name__ == '__main__':
+    main()

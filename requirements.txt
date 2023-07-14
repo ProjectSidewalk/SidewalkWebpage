@@ -1,4 +1,4 @@
-# We assume Python 2.7
+# We assume Python 2.7 -- Depricated
 
 futures==3.1.1
 haversine==0.4.5
@@ -7,12 +7,10 @@ requests==2.20.0
 pandas # added by JEF 05/19/2022 to run check_gsv_image_dates.py
 
 # Note: if you're on Windows, you must comment out shapely below
-# and install shapely yourself using: 
+# and install shapely yourself using:
 #  https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely
 # Because you'll otherwise get an error:
 #  WindowsError: [Error 126] The specified module could not be found
 # I downloaded Shapely-1.6.4.post2-cp27-cp27m-win_amd64.whl from the website above
 # and then typed pip install Shapely-1.6.4.post2-cp27-cp27m-win_amd64.whl
 # shapely==1.7.1
-
-
