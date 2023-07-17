@@ -48,15 +48,6 @@
         "progress-neighborhood-you": "You explored in this neighbourhood",
         "progress-neighborhood-remaining": "Remaining in this neighbourhood"
     },
-    "top-ui": {
-        "instruction": {
-            "curb-ramp": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">drop kerb</span>",
-            "no-curb-ramp": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">missing drop kerb</span>",
-            "occlusion": "Label a <span class=\"underline\">part of footpath that cannot be observed</span>",
-            "no-sidewalk": "Label <span class=\"underline\">missing footpath</span>",
-            "crosswalk": "Locate and label a <span class=\"underline\">pedestrian crossing</span>"
-        }
-    },
     "right-ui": {
         "current-mission": {
             "message-first-mission": "Explore for __PLACEHOLDER__ and find all the footpath accessibility attributes",
@@ -70,8 +61,7 @@
                 "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a footpath",
                 "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no footpaths",
                 "level-with-sidewalk": "level with footpath (<tag-underline>d</tag-underline>)",
-                "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing pedestrian crossing",
-                "painted-sidewalk": "painted footpat<tag-underline>h</tag-underline>"
+                "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing pedestrian crossing"
             }
         },
         "compass": {

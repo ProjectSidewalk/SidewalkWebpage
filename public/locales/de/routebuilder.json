@@ -1,0 +1,9 @@
+{
+    "route-length": "Routenlänge: {{dist}} $t(common:unit-distance-abbreviation)",
+    "save-button-tooltip": "Bitte wählen Sie mindestens eine Straße aus, um eine Route zu speichern.",
+    "explore-button-tooltip": "Sie müssen Ihre Route erstellen und speichern, bevor Sie erkundet werden.",
+    "share-button-tooltip": "Sie müssen Ihre Route erstellen und speichern, bevor Sie sie teilen.",
+    "route-saved": "Route gespeichert!",
+    "copied-to-clipboard": "In die Zwischenablage kopiert!",
+    "one-neighborhood-warning": "Eine Route kann zu diesem Zeitpunkt nur Straßen aus einer Nachbarschaft aus sein."
+}

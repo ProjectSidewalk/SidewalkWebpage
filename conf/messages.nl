@@ -22,6 +22,7 @@ audited.street = Gecontroleerde straat
 unaudited.street = Ongecontroleerde straat
 not.sure = Niet Zeker
 not.applicable.abbr = NVT
+feedback = Feedback
 validations = Validaties
 labels = labels
 label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
@@ -47,11 +48,12 @@ press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
 feedback.submitted = Feedback Ingediend
 
-navbar.explore = Start met Verkennen
-navbar.validate = Start met Valideren
+navbar.explore = Ontdekken
+navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen
+navbar.api = API
+navbar.tools = Hulpmiddelen
 navbar.results = Resultaten kaart
-navbar.data = Data
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
@@ -65,6 +67,7 @@ navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
 
 landing.create.path = Laten we een pad creëren voor iedereen!
+landing.start.exploring = Start met Verkennen
 landing.also.in = We zijn ook in:
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
@@ -145,8 +148,7 @@ audit.ribbon.occlusion = Het Trottoir is niet Zicht<u>b</u>aar
 audit.left.ui.zoom.in = <u>Z</u>oom In
 audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
-audit.left.ui.feedback = Feedback
-audit.left.ui.stuck = Vastge<br>lopen
+audit.left.ui.stuck = Vastgelopen
 audit.left.ui.jump = Spring
 audit.left.ui.jump.title = Spring naar een andere locatie omdat:
 audit.left.ui.jump.button.explore = Ik wil een andere locatie ontdekken!
@@ -193,25 +195,9 @@ audit.survey.performance.option.5 = Uitstekend
 audit.survey.rationale.question = Waarom koos je ervoor om bij te dragen aan Project Sidewalk?
 audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
-audit.help.rating.1 = Rating 1: Begaanbaar
-audit.help.rating.3 = Rating 3: Neutraal
-audit.help.rating.5 = Rating 5: Niet begaanbaar
-audit.help.curb.ramp.1 = Schone trottoir opritten die aansluiten met oversteekplekken.
-audit.help.curb.ramp.3 = Een trottoir oprit met een paal in het midden van het pad. Mensen die een grote electrische rolstoel gebruiken hebben wellicht moeite met het gebruiken van deze trottoir oprit.
-audit.help.curb.ramp.5 = Water heeft zich opgehoopt in deze trottoir oprit door een slechte afvoer. Het is lastig voor gebruikers van een handrolstoel om deze trottoir oprit te gebruiken.
-audit.help.missing.ramp.1 = Hoewel er geen trottoir oprit is, is de het hoogteverschil klein en zouden rolstoel gebruikers van en op het trottoir moeten kunnen komen. Er is ook een trottoir oprit op dezelfde hoek die mensen zouden kunnen gebruiken, alhoewel het niet in het verlengde ligt van het huidige pad.
-audit.help.missing.ramp.3 = Er is geen trottoir oprit op het einde van de oversteekplek. Rolstoelgebruikers zijn gedwongen om de oprit te gebruiken die niet in het verlengde ligt van de oversteekplek.
-audit.help.missing.ramp.5 = Geen trottoir oprit aan het einde van de oversteekplek. Rolstoelgebruikers kunnen niet van en op het trottoir komen om de straat hier over te steken.
-audit.help.obstacle.1 = Een verkeerslicht dat in het midden van het trottoir staat. Er lijkt voldoende ruimte te zijn voor rolstoelgebruikers om te passeren, maar degenen die grotere rolstoelen gebruiken kunnen moeite hebben met navigeren.
-audit.help.obstacle.3 = De plant blokkeert het pad, waardoor het voor rolstoelgebruikers moeilijk is om dit trottoir te gebruiken.
-audit.help.obstacle.5 = De boom blokkeert het pad volledig, waardoor deze niet begaanbaar is voor rolstoelgebruikers.
-audit.help.surface.problem.1 = Gedeeltelijk beschadigd trottoir. Omdat er voldoende ruimte is naast het beschadigde deel van het trottoir, zouden rolstoelgebruikers kunnen passeren.
-audit.help.surface.problem.3 = Rolstoelgebruikers zouden moeite hebben met het navigeren op de geplaveide trottoirs en zebrapaden.
-audit.help.surface.problem.5 = Rolstoelgebruikers kunnen ernstig aangetaste stoepoppervlakken niet passeren vanwege de overgroeide vegetatie.
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
-validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = Eens (<u>a</u>)
 validate.bottom.ui.disagree = Oneens (<u>d</u>)
 validate.bottom.ui.not.sure = <u>N</u>iet zeker
@@ -277,10 +263,10 @@ reset.pw.message = Wachtwoord opnieuw instellen
 reset.pw.successful = Wachtwoord opnieuw ingesteld!
 reset.pw.invalid.reset.link = Ongeldige resetlink
 
-results.reset.view = Weergave resetten
-results.problems.per.mile = Stoepproblemen per mijl
-resultaten.legend.high = Hoog
-resultaten.legend.low = Laag
+results.reset.view = Weer&shy;gave reset&shy;ten
+results.problems.per.mile = Stoepproblemen per kilometer
+results.legend.high = Hoog
+results.legend.low = Laag
 results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. De resultaten zijn voorlopig en vertegenwoordigen vrijwilligersbijdragen die nog niet zijn gevalideerd. We zijn er mee bezig. Blijf kijken!
 
 dashboard.no.org = Geen organisatie
@@ -312,7 +298,7 @@ dashboard.mistakes.header = Uw recente etiketteringsfouten
 dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
 dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 
-labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa
+labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.
 labeling.guide.surface.problem.summary = Een oppervlakteprobleem is een probleem dat een hobbelige of anderszins ongemakkelijke ervaring zou kunnen veroorzaken voor iemand die een rolstoel of andere hulpmiddelen gebruikt. Als iets op een oppervlak het moeilijk of onmogelijk maakt om over te steken, moet het worden bestempeld als een oppervlakteprobleem. Voor oppervlakteproblemen die een groot gebied beslaan, moet u een oppervlakteprobleem-label aan het begin van het probleem plaatsen en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen tot het einde van het probleem.
 labeling.guide.no.sidewalk.summary = Je moet een No Sidewalk-label plaatsen vanaf waar het trottoir eindigt, en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen totdat je een plaats bereikt waar het trottoir opnieuw begint.
@@ -333,7 +319,7 @@ leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten m
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Sluit je aan bij een organisatie</u></a> en werk samen als een team om trottoirs in kaart te brengen en te beoordelen!
+leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="/labelingGuide"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
 gallery.show = Tonen
@@ -342,3 +328,13 @@ gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+
+route.builder.name = Routebuilder
+route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!
+route.builder.save = Route bewaren
+route.builder.explore = Verken de route
+route.builder.share = Kopieer link naar route
+
+help.rating.1 = Rating 1: Begaanbaar
+help.rating.3 = Rating 3: Neutraal
+help.rating.5 = Rating 5: Niet begaanbaar

@@ -2,13 +2,12 @@
  * RibbonMenu module
  * Todo. Split the RibbonMenu UI component and the label type switching logic
  * Todo. Consider moving this under menu instead of ribbon.
- * @param overlayMessageBox
  * @param tracker
  * @param uiRibbonMenu
  * @returns {{className: string}}
  * @constructor
  */
-function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
+function RibbonMenu(tracker, uiRibbonMenu) {
     var self = {className: 'RibbonMenu'},
         properties = {
             buttonDefaultBorderColor: "transparent",
@@ -137,10 +136,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                     "background-color": borderColor
                 });
             }
-
-            // Set the instructional message
-            overlayMessageBox.setMessage(labelType);
-            overlayMessageBox.setHelpLink(labelType);
         }
     }
 
@@ -159,12 +154,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     function handleModeSwitchClickCallback() {
         var labelType = $(this).attr('val');
         if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
-
-            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
-
             // Track the user action
             tracker.push('Click_ModeSwitch_' + labelType);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);
@@ -184,11 +173,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
         if (status.disableModeSwitch === false || !modeDisabled) {
             // Change the border color of menu buttons.
-
-            // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk').
-            if (status.allowedMode && status.allowedMode !== labelType) {
-                return false;
-            }
             setLabelTypeButtonBorderColors(labelType);
 
             if (labelType === "Other") {
@@ -402,12 +386,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
         return key in properties ? properties[key] : null;
     }
 
-    function setAllowedMode(mode) {
-        // This method sets the allowed mode.
-        status.allowedMode = mode;
-        return this;
-    }
-
     function setStatus(name, value, subname) {
         try {
             if (name in status) {
@@ -498,7 +476,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     self.modeSwitch = modeSwitch;
     self.modeSwitchClick = modeSwitch;
     self.getStatus = getStatus;
-    self.setAllowedMode = setAllowedMode;
     self.setStatus = setStatus;
     self.startBlinking = startBlinking;
     self.stopBlinking = stopBlinking;

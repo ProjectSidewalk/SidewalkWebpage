@@ -38,6 +38,7 @@ function Main (params) {
         4: 8,
         5: 16
     };
+    svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
 
     function _init (params) {
         params = params || {};
@@ -64,8 +65,7 @@ function Main (params) {
         svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
 
-        svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
-        svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
+        svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
 
 
@@ -156,7 +156,6 @@ function Main (params) {
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
-        svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
@@ -331,6 +330,7 @@ function Main (params) {
             });
         });
 
+        svl.taskContainer.getCurrentTask().render();
         svl.taskContainer.renderTasksFromPreviousSessions();
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance();
@@ -444,14 +444,6 @@ function Main (params) {
         svl.ui.statusMessage.title = $("#current-status-title");
         svl.ui.statusMessage.description = $("#current-status-description");
 
-        // OverlayMessage.
-        svl.ui.overlayMessage = {};
-        svl.ui.overlayMessage.holder = $("#overlay-message-holder");
-        svl.ui.overlayMessage.holder.append("<span id='overlay-message-box'>" +
-            "<span id='overlay-message'>Walk</span><span id='overlay-message-help-link' class='underline bold'></span></span>");
-        svl.ui.overlayMessage.box = $("#overlay-message-box");
-        svl.ui.overlayMessage.message = $("#overlay-message");
-
         // Pop up message.
         svl.ui.popUpMessage = {};
         svl.ui.popUpMessage.holder = $("#pop-up-message-holder");
@@ -491,7 +483,7 @@ function Main (params) {
         svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
         svl.ui.modalSkip.cancelFirst = $("#modal-skip-cancel-first-button");
         svl.ui.modalSkip.secondBox = $("#modal-skip-box-neighborhood");
-        svl.ui.modalSkip.redirect = $("#modal-skip-redirect-jump");
+        svl.ui.modalSkip.newNeighborhood = $("#modal-skip-new-neighborhood");
         svl.ui.modalSkip.explore = $("#modal-skip-explore");
         svl.ui.modalSkip.cancelSecond = $("#modal-skip-cancel-second-button");
         svl.ui.modalComment = {};
@@ -499,14 +491,6 @@ function Main (params) {
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
         svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svl.ui.modalComment.textarea = $("#modal-comment-textarea");
-
-        svl.ui.modalExample = {};
-        svl.ui.modalExample.background = $(".modal-background");
-        svl.ui.modalExample.close = $(".modal-example-close-buttons");
-        svl.ui.modalExample.curbRamp = $("#modal-curb-ramp-example");
-        svl.ui.modalExample.noCurbRamp = $("#modal-no-curb-ramp-example");
-        svl.ui.modalExample.obstacle = $("#modal-obstacle-example");
-        svl.ui.modalExample.surfaceProblem = $("#modal-surface-problem-example");
 
         // Modal Mission Complete.
         svl.ui.modalMissionComplete = {};

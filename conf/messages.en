@@ -22,6 +22,7 @@ audited.street = Audited Street
 unaudited.street = Unaudited Street
 not.sure = Not Sure
 not.applicable.abbr = N/A
+feedback = Feedback
 validations = Validations
 labels = labels
 label.icon.alt = Minimalist map icon with large destination marker
@@ -47,11 +48,12 @@ press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
 feedback.submitted = Feedback Submitted
 
-navbar.explore = Start Exploring
-navbar.validate = Start Validating
+navbar.explore = Explore
+navbar.validate = Validate
 navbar.howto = How to Label
+navbar.api = API
+navbar.tools = Tools
 navbar.results = Results Map
-navbar.data = Data
 navbar.labelmap = Label Map
 navbar.help = Help
 navbar.leaderboard = Leaderboard
@@ -65,6 +67,7 @@ navbar.lang.aria = Language Options
 navbar.lang.icon.alt = languages icon
 
 landing.create.path = Let''s create a path for everyone
+landing.start.exploring = Start Exploring
 landing.also.in = We are also in:
 landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
@@ -145,7 +148,6 @@ audit.ribbon.occlusion = Can''t See the Sidewalk (<u>B</u>)
 audit.left.ui.zoom.in = <u>Z</u>oom In
 audit.left.ui.zoom.out = Zoom Out
 audit.left.ui.sound = Sound
-audit.left.ui.feedback = Feedback
 audit.left.ui.stuck = Stuck
 audit.left.ui.jump = Jump
 audit.left.ui.jump.title = Jump to another location because:
@@ -193,26 +195,9 @@ audit.survey.performance.option.5 = Excellent
 audit.survey.rationale.question = Why did you choose to contribute to Project Sidewalk?
 audit.survey.feedback.question = Do you have any feedback, design ideas, or questions?
 
-audit.help.rating.1 = Rating 1: Passable
-audit.help.rating.3 = Rating 3: Neutral
-audit.help.rating.5 = Rating 5: Not passable
-audit.help.curb.ramp.1 = Clean curb ramps that are aligned with crosswalks.
-audit.help.curb.ramp.3 = A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs may have trouble using this curb ramp.
-audit.help.curb.ramp.5 = Water has accumulated in this curb ramp due to poor drainage. It is hard for manual wheelchair users to use this curb ramp.
-audit.help.missing.ramp.1 = Although there is no curb ramp, the level difference is small and wheelchair users would be able to get on or off the sidewalk. There is also a curb ramp at the same corner that people could use, although it is not aligned to the path.
-audit.help.missing.ramp.3 = There is no curb ramp at the end of the crosswalk. Wheelchair users are forced to used the curb ramp that is not aligned with the crosswalk.
-audit.help.missing.ramp.5 = No curb ramp at the end of the crosswalk. Wheelchair users cannot get on or off the sidewalk and cross the street here.
-audit.help.obstacle.1 = A traffic light standing in the middle of the sidewalk. There seems to be enough space for wheelchair users to pass, but those who are using larger chairs could have trouble navigating.
-audit.help.obstacle.3 = The plant is obstructing the path, making it hard for wheelchair users to use this sidewalk.
-audit.help.obstacle.5 = The tree is completely blocking the path, making it not passable for wheelchair users.
-audit.help.surface.problem.1 = Partially damaged sidewalk. Because there is enough space next to the damaged part of the sidewalk, wheelchair users would be able to pass.
-audit.help.surface.problem.3 = Wheelchair users would have difficulty navigating on the cobblestone sidewalks and crosswalks.
-audit.help.surface.problem.5 = Wheelchair users cannot pass severely degraded sidewalk surfaces due to the over-grown vegetation.
-
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Out
 validate.left.ui.skip = Skip
-validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = <u>A</u>gree
 validate.bottom.ui.disagree = <u>D</u>isagree
 validate.bottom.ui.not.sure = <u>N</u>ot sure
@@ -313,7 +298,7 @@ dashboard.mistakes.header = Your recent labeling mistakes
 dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
 dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
 
-labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa
+labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label every curb ramp regardless of whether there are problems.
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
 labeling.guide.surface.problem.summary = A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience for someone using a wheelchair or other assistive devices. If something on a surface would make it hard or impossible to cross, it should be labeled as a Surface Problem. For surface problems that cover a large area, you should place a Surface Problem label at the start of the problem, and then continue placing labels every few feet (about 1 per panorama) until the end of the problem.
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
@@ -336,7 +321,7 @@ leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your lab
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/explore"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organization</u></a> and work together as a team to map and assess sidewalks!
+leaderboard.encouragement.no.org = Want to improve your accuracy? Read our <a id="encouragement-link" href="/labelingGuide"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
 
 gallery = Gallery
 gallery.show = Show
@@ -345,3 +330,13 @@ gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+
+route.builder.name = RouteBuilder
+route.builder.instructions = Click on streets to add them to your route, then click "Save route". Then you can explore the route and label accessibility issues, or you can share a link for others to explore the same route!
+route.builder.save = Save route
+route.builder.explore = Explore route
+route.builder.share = Copy link to route
+
+help.rating.1 = Rating 1: Passable
+help.rating.3 = Rating 3: Neutral
+help.rating.5 = Rating 5: Not passable

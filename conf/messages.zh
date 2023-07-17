@@ -22,6 +22,7 @@ audited.street = 审计街
 unaudited.street = 未经审计的街道
 not.sure = 不確定
 not.applicable.abbr = 不適用
+feedback = 回饋
 validations = 檢核
 labels = 標記
 label.icon.alt = 有大目的地記號的極簡風格地圖圖標
@@ -47,11 +48,12 @@ press.keys = 點擊 "{0}" 鍵
 feedback.title = 有任何想法或問題嗎？或是找到bug了！<br>任何回饋都很歡迎！
 feedback.submitted = 回饋已提交
 
-navbar.explore = 開始探索
-navbar.validate = 開始檢核
+navbar.explore = 探索
+navbar.validate = 證實
 navbar.howto = 如何標記
+navbar.api = API
+navbar.tools = 工具
 navbar.results = 成果地圖
-navbar.data = 資料
 navbar.labelmap = 標記地圖
 navbar.help = 協助
 navbar.leaderboard = 排行榜
@@ -65,6 +67,7 @@ navbar.lang.aria = 語言選項
 navbar.lang.icon.alt = 語言圖標
 
 landing.create.path = 讓我們為大家創造好走的路吧！
+landing.start.exploring = 開始探索
 landing.also.in = 我們也在：
 landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的地圖松活動吧！</a>
 landing.how.you.help = 您可以如何協助
@@ -145,7 +148,6 @@ audit.ribbon.occlusion = 看不到人行道 (<u>B</u>)
 audit.left.ui.zoom.in = 放大<u>Z</u>
 audit.left.ui.zoom.out = 縮小
 audit.left.ui.sound = 音效
-audit.left.ui.feedback = 回饋
 audit.left.ui.stuck = 難以抉擇
 audit.left.ui.jump = 跳過
 audit.left.ui.jump.title = 跳到另一個地點，因為：
@@ -193,26 +195,9 @@ audit.survey.performance.option.5 = 傑出
 audit.survey.rationale.question = 為什麼您願意在Project Sidewalk平台上貢獻呢？
 audit.survey.feedback.question = 您有任何意見回饋、設計想法或問題嗎？
 
-audit.help.rating.1 = Rating 1: 可通行
-audit.help.rating.3 = Rating 3: 尚可通行
-audit.help.rating.5 = Rating 5: 不可通行
-audit.help.curb.ramp.1 = 簡潔的路緣斜坡並與行人穿越道對齊
-audit.help.curb.ramp.3 = 此路緣斜坡中間有一根桿柱。使用大型電動輪椅的人可能無法使用此路緣斜坡。
-audit.help.curb.ramp.5 = 由於排水不暢該路緣斜坡積水。手動輪椅使用者難以使用此路緣斜坡。
-audit.help.missing.ramp.1 = 雖然沒有路緣斜坡，但由於落差不大，輪椅使用者可以上下人行道。同一轉彎處還有一個路緣斜坡，儘管沒有與路徑對齊，使用者仍可以利用。
-audit.help.missing.ramp.3 = 行人穿越道盡頭沒有路緣斜坡。 輪椅使用者被迫使用與行人穿越道沒有對齊的路緣斜坡。
-audit.help.missing.ramp.5 = 行人穿越道盡頭沒有路緣斜坡。 輪椅使用者不能在這裡上下人行道和過馬路。
-audit.help.obstacle.1 = 紅綠燈設置於人行道中間。周邊似乎有足夠的空間讓輪椅使用者通過，但使用較大輪椅的人可能難以通行。
-audit.help.obstacle.3 = 植栽阻礙了通行路徑，輪椅使用者難以使用此人行道。
-audit.help.obstacle.5 = 樹木完全擋住了路徑，輪椅使用者無法通行。
-audit.help.surface.problem.1 = 部分損壞的人行道。由於人行道受損部分旁邊有足夠的空間，輪椅使用者仍可通行。
-audit.help.surface.problem.3 = 輪椅使用者難以在磚石舖面人行道和行人穿越道上移動。
-audit.help.surface.problem.5 = 由於植物過度生長，輪椅使用者無法通過人行道。
-
 validate.top.ui.zoom.in = <u>Z</u>放大
 validate.top.ui.zoom.out = 縮小
 validate.left.ui.skip = 跳過
-validate.left.ui.feedback = 回饋
 validate.bottom.ui.agree = <u>A</u>同意
 validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定
@@ -313,7 +298,7 @@ dashboard.mistakes.header = 您最近的標記失誤
 dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中判定的錯誤。有時其他用戶在檢核時會發生錯誤，這些評估通常存在細微主觀判斷區別。
 dashboard.mistakes.tooltip.alt = 問號圖示可顯示有用的工具提示框。
 
-labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動
+labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 無論是否存在問題，都會標記每個路緣坡道。
 labeling.guide.obstacle.summary = 障礙物是位於行人路徑上的物體，擋住了通道。 美國身心障礙者法（ADA）要求在無障礙路線上有“乾淨的地板或地面空間”。這樣才可使行人可以安全地留在人行道或行人穿越道上，尤其是對於使用助行器或輪椅的行人。離開路徑以避開障礙物對於部分使用者可能是做不到的，或者可能導致不平衡、絆倒或其他危險。
 labeling.guide.surface.problem.summary = 鋪面問題會導致使用輪椅或其他輔助設備的使用者行經時顛簸或不舒服。如果鋪面上的某些東西會使使用者難以或無法通過，則應將其標記為鋪面問題。對於大面積或連續的鋪面問題，建議您在問題的開頭標記一個鋪面問題，並持續於每幾公尺進行標記直到問題結束。
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始標記無人行道，並持續於每幾公尺進行標記直到您到達另一處人行道。
@@ -336,7 +321,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
+leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標籤指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
 gallery.show = 顯示項目
@@ -345,3 +330,13 @@ gallery.tags = 標籤
 gallery.all = 所有标签类型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以建立更多的資料！
 gallery.cards = 标签根据选定的过滤器随机排序
+
+route.builder.name = Routebuilder
+route.builder.instructions = 單擊街道以將其添加到您的路線中，然後單擊“保存路線”。然後，您可以探索路線並標記可訪問性問題，也可以共享一個鏈接供其他人探索相同的路線！
+route.builder.save = 保存路線
+route.builder.explore = 探索路線
+route.builder.share = 複製鏈接到路線
+
+help.rating.1 = Rating 1: 可通行
+help.rating.3 = Rating 3: 尚可通行
+help.rating.5 = Rating 5: 不可通行

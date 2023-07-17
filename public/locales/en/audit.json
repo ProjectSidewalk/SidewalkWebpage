@@ -80,20 +80,7 @@
         "button-continue": "Continue"
     },
     "top-ui": {
-        "press-key": "Press the \"{{key}}\" key",
-        "instruction": {
-            "walk": "Explore the streets and find all the accessibility attributes",
-            "curb-ramp": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"CurbRamp\">curb ramp</span>",
-            "no-curb-ramp": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"NoCurbRamp\">missing curb ramp</span>",
-            "obstacle": "Locate and label an <span class=\"underline overlay-message-label-type\" val=\"Obstacle\">obstacle in path</span>",
-            "surface-problem": "Locate and label a <span class=\"underline overlay-message-label-type\" val=\"SurfaceProblem\">surface problem</span>",
-            "other": "Label mode",
-            "occlusion": "Label a <span class=\"underline\">part of sidewalk that cannot be observed</span>",
-            "no-sidewalk": "Label <span class=\"underline\">missing sidewalk</span>",
-            "crosswalk": "Locate and label a <span class=\"underline\">crosswalk</span>",
-            "signal": "Locate and label a <span class=\"underline\">pedestrian signal</span>",
-            "explain": "Explain this!"
-        }
+        "press-key": "Press the \"{{key}}\" key"
     },
     "right-ui": {
         "accuracy-tooltip": "Accuracy is based on validations from other users. If your accuracy is low, check out some recent mistakes on <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">your User Dashboard</a> to help you improve!",
@@ -167,8 +154,8 @@
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
                 "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess",
                 "height-difference": "height <tag-underline>d</tag-underline>ifference",
-                "painted-sidewalk": "painted sidewalk (<tag-underline>h</tag-underline>)",
-                "pedestrian-arcade": "pedestrian arcade (<tag-underline>q</tag-underline>)",
+                "pedestrian-lane-marking": "pedestr<tag-underline>i</tag-underline>an lane marking",
+                "covered-walkway": "covered wa<tag-underline>l</tag-underline>kway",
                 "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
                 "utility-panel": "utility pan<tag-underline>e</tag-underline>l"
             },
