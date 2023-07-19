@@ -99,7 +99,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
      * @param missionId
      * @private
      */
-    this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks, missionId) {
+    this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks, missionId, incompleteTasks) {
         var i;
         var leafletLine;
         var layer;
@@ -122,15 +122,24 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
         var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
         var userOldStreets = completedTasks.map( function(t) { return t.getStreetEdgeId(); });
-
-        // Add the other users' tasks layer
-        for (i = 0; i < allCompletedTasks.length; i++) {
-            var otherUserStreet = allCompletedTasks[i].getStreetEdgeId();
-            if(userOldStreets.indexOf(otherUserStreet) === -1 && newStreets.indexOf(otherUserStreet) === -1){
-                leafletLine = L.geoJson(allCompletedTasks[i].getFeature());
+        if (svl.neighborhoodModel.isRoute) {
+            //Add the route remaining layer.
+            for (i = 0; i < incompleteTasks.length; i++) {
+                leafletLine = L.geoJson(incompleteTasks[i].getFeature());
                 layer = leafletLine.addTo(this._map);
                 layer.setStyle(completedTaskAllUsersLayerStyle);
                 this._completedTasksLayer.push(layer);
+            }
+        } else {
+            // Add the other users' tasks layer.
+            for (i = 0; i < allCompletedTasks.length; i++) {
+                var otherUserStreet = allCompletedTasks[i].getStreetEdgeId();
+                if (userOldStreets.indexOf(otherUserStreet) === -1 && newStreets.indexOf(otherUserStreet) === -1) {
+                    leafletLine = L.geoJson(allCompletedTasks[i].getFeature());
+                    layer = leafletLine.addTo(this._map);
+                    layer.setStyle(completedTaskAllUsersLayerStyle);
+                    this._completedTasksLayer.push(layer);
+                }
             }
         }
 
