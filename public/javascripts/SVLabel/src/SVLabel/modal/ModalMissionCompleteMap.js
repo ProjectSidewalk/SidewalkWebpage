@@ -123,7 +123,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
         var userOldStreets = completedTasks.map( function(t) { return t.getStreetEdgeId(); });
         if (svl.neighborhoodModel.isRoute) {
-            //Add the route remaining layer.
+            // Add the route remaining layer.
             for (i = 0; i < incompleteTasks.length; i++) {
                 leafletLine = L.geoJson(incompleteTasks[i].getFeature());
                 layer = leafletLine.addTo(this._map);
