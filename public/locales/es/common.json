@@ -131,7 +131,7 @@
         "start-mission": "Iniciar misión",
         "curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Las rampas en las banquetas permiten a las personas pasar de la banqueta a la calle. Deben existir en todas las intersecciones transitables."
             },
             "slide-2": {
@@ -145,7 +145,7 @@
         },
         "no-curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Las intersecciones de banquetas deben tener rampas en las banquetas, idealmente dos por esquina. Si una esquina tiene una banqueta pero no tiene una rampa peatonal, coloque la etiqueta Rampa peatonal ausente donde cree que debería existir una rampa peatonal."
             },
             "slide-2": {
@@ -163,7 +163,7 @@
         },
         "obstacle": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Los obstáculos son barreras que impiden las <b>vías peatonales</b> para personas que usan sillas de ruedas, andadores u otras ayudas para la movilidad.<br><br>No todas las bocas de incendios, postes y letreros son obstáculos, solo aquellos que obstruyen claramente a los peatones caminos."
             },
             "slide-2": {
@@ -181,7 +181,7 @@
         },
         "surface-problem": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Si hay algo en la superficie de la banqueta o del cruce peatonal que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema en superficie."
             },
             "slide-2": {
@@ -195,7 +195,7 @@
         },
         "no-sidewalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Si un lado de la calle no tiene banqueta, márquelo con una etiqueta <b>No hay banqueta</b>."
             },
             "slide-2": {
@@ -209,7 +209,7 @@
         },
         "crosswalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Un cruce peatonal es un espacio legalmente definido para cruzar una calle.<br><br>Los cruces peatonales a menudo se indican con <b>lineas discontinuas paralelas.</b>"
             },
             "slide-2": {
@@ -227,7 +227,7 @@
         },
         "signal": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Un semáforo peatonal indica cuándo los peatones pueden cruzar la calle y les da tiempo para que lo hagan de manera segura.<br><br> Algunas semáforos peatonales se activan con un botón para peatones a la altura de la cintura."
             },
             "slide-2": {

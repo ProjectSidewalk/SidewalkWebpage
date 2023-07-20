@@ -140,7 +140,7 @@
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "JOUW MISSIE",
-        "mst-instruction-2": "Valideer {{nLabels}} {{labelType}} labels",
+        "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",
         "example-type-label-incorrect": "VERKEERD VOORBEELD",
         "label-on-image-title-incorrect": "Verkeerd etiket",
         "label-on-image-description-correct": "Markeer <b>Akkoord</b>",

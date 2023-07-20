@@ -131,7 +131,7 @@
         "start-mission": "Start mission",
         "curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Curb ramps allow people to transition from the sidewalk to the street. They should exist at all crossable intersections."
             },
             "slide-2": {
@@ -145,7 +145,7 @@
         },
         "no-curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Sidewalk intersections should have curb ramps—ideally two per corner. If a corner has a sidewalk but does not have a curb ramp, place the Missing Curb Ramp label where you think a curb ramp should exist."
             },
             "slide-2": {
@@ -163,7 +163,7 @@
         },
         "obstacle": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Obstacles are barriers that impede <b>pedestrian pathways</b> for people using wheelchairs, walkers, or other mobility aids.<br><br>Not all fire hydrants, poles, and signs are obstacles—only those that clearly obstruct pedestrian paths."
             },
             "slide-2": {
@@ -181,7 +181,7 @@
         },
         "surface-problem": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "If something on the sidewalk or crosswalk surface would make it <b>uncomfortable or impossible to cross,</b> it should be labeled as a Surface Problem."
             },
             "slide-2": {
@@ -195,7 +195,7 @@
         },
         "no-sidewalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "If a street side does not have a sidewalk, please mark it with a <b>No Sidewalk</b> label."
             },
             "slide-2": {
@@ -209,7 +209,7 @@
         },
         "crosswalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "A crosswalk is a legally defined space to cross a road.<br><br>Crosswalks are often indicated by <b>parallel dashed lines.</b>"
             },
             "slide-2": {
@@ -227,7 +227,7 @@
         },
         "signal": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "A pedestrian signal indicates when pedestrians can cross the street and provides time for them to do so safely.<br><br> Some pedestrian signals are activated by a pedestrian push button at waist height."
             },
             "slide-2": {
