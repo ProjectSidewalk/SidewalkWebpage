@@ -25,7 +25,6 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    */
   def getCityMapParams() = Action.async { implicit request =>
     val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
-    val cityStr: String = Play.configuration.getString("city-id").get
     val cityLat: Double = ConfigTable.getCityLat
     val cityLng: Double = ConfigTable.getCityLng
     val southwestLat: Double = ConfigTable.getSouthwestLat
@@ -56,7 +55,6 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    */
   def getCityAPIDemoParams() = Action.async { implicit request =>
     val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
-    val cityStr: String = Play.configuration.getString("city-id").get
     val southwestLat: Double = ConfigTable.getSouthwestLat
     val southwestLng: Double = ConfigTable.getSouthwestLng
     val northeastLat: Double = ConfigTable.getNortheastLat
