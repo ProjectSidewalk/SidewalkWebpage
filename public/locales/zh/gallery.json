@@ -1,8 +1,8 @@
 {
     "not-applicable": "不適用",
     "none": "無",
-    "correct": "验证正确",
-    "incorrect": "验证不正确",
+    "correct": "檢核正確",
+    "incorrect": "檢核不正確",
     "notsure": "$t(common:not-sure)",
-    "unvalidated": "未验证"
+    "unvalidated": "未檢核"
 }

@@ -43,5 +43,3 @@ dashboard.no.org = No Organisation
 dashboard.edit.info = If you don''t see your organisation, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organisation name and description.
 dashboard.orgs.unavailable = There are no available organisations!
 dashboard.leave.org = Leave Organisation
-
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organisation</u></a> and work together as a team to map and assess footpaths!
