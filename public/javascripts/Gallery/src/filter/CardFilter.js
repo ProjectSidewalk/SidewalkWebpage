@@ -119,15 +119,18 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             newUrl += `?labelType=${status.currentLabelType}`;
             // Can only have applied tags if there is a specific label type chosen.
             if (currAppliedTags.length > 0) {
+                $('#clear-filters').show();
                 newUrl += `&tags=${currAppliedTags}`;
             }
             firstQueryParam = false;
         }
         if (currSeverities.length > 0) {
+            $('#clear-filters').show(); 
             newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
             firstQueryParam = false;
         }
         if (currValOptions !== 'correct,unvalidated') {
+            $('#clear-filters').show(); 
             newUrl += firstQueryParam ? `?validationOptions=${currValOptions}` : `&validationOptions=${currValOptions}`;
         }
         return newUrl;
@@ -262,6 +265,20 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         $('.gallery-filter').prop("disabled", false);
     }
 
+    function clearFilters() {
+        severities.unapplySeverities();
+        validationOptions.unapplyValidationOptions();
+        validationOptions.setToDefault();
+        clearCurrentTags();
+        labelTypeMenu.setToDefault();
+    }
+
+    $('#clear-filters').on('click', function() {
+        clearFilters();
+        $('#clear-filters').hide();
+        update();
+    });
+
     self.update = update;
     self.render = render;
     self.getAppliedTagNames = getAppliedTagNames;
@@ -276,6 +293,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     self.unapplyTags = unapplyTags;
     self.disable = disable;
     self.enable = enable;
+    self.clearFilters = clearFilters;
 
     _init();
     return this;

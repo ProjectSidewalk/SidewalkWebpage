@@ -80,3 +80,13 @@
     display: block;
     margin: 4px 2px;
 }
+
+#clear-filters {
+    background-color: transparent;
+    border-color: transparent;
+    cursor: pointer;
+}
+
+#clear-filters h6 {
+    color: darkgray;
+}
