@@ -6,7 +6,6 @@ import argparse
 # TODO add clustering
 # TODO add sidewalk geometry
 # TODO add intersection detection
-# TODO set up a way to call this from PS server with relevant inputs
 
 def preprocess_model_input (severity, zoom, tag, tag_count, description, clustered, cluster_count, sidewalk_distance, intersection_distance, way_type):
 
@@ -107,7 +106,7 @@ if DEBUG:
 # labels_to_cluster = gpd.read_file('q1.shp')
 
 # Load the ONNX model
-onnx_path = "scripts/predictionModel.onnx"
+onnx_path = "scripts/prediction-model-data/predictionModel.onnx"
 session = rt.InferenceSession(onnx_path)
 
 model_input_name = session.get_inputs()[0].name
