@@ -11,7 +11,8 @@ import argparse
 def preprocess_model_input (severity, zoom, tag, tag_count, description, clustered, cluster_count, sidewalk_distance, intersection_distance, way_type):
 
     data = [severity, zoom, clustered, cluster_count, sidewalk_distance, tag, description, tag_count, intersection_distance]
-    print(data)
+    if DEBUG:
+        print(data)
 
     if way_type == '-1':
         data += [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -41,12 +42,15 @@ def preprocess_model_input (severity, zoom, tag, tag_count, description, cluster
         data += [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
     elif way_type == 'unclassified':
         data += [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-    print(data)
+    if DEBUG:
+        print(data)
 
     input_array = np.array(data, dtype=np.float32)
-    print(input_array)
+    if DEBUG:
+        print(input_array)
     input_array = input_array.reshape((1, input_array.shape[0]))
-    print(input_array)
+    if DEBUG:
+        print(input_array)
     
     # Return the array
     return input_array
@@ -75,6 +79,10 @@ parser.add_argument('--no_description', action='store_false', dest='has_descript
 parser.set_defaults(has_description=None)
 parser.add_argument('--tag_count', type=int,
                     help='The number of tags the user applied to the label.')
+parser.add_argument('--lat', type=float,
+                    help='The estimated latitude for the label.')
+parser.add_argument('--lng', type=float,
+                    help='The estimated longitude for the label.')
 parser.add_argument('--debug', action='store_true',
                     help='Debug mode adds print statements')
 args = parser.parse_args()
@@ -83,13 +91,18 @@ ZOOM = args.zoom
 SEVERITY = args.severity
 HAS_DESCRIPTION = args.has_description
 TAG_COUNT = args.tag_count
+LAT = args.lat
+LNG = args.lng
 DEBUG = args.debug
 
-print(LABEL_TYPE)
-print(ZOOM)
-print(SEVERITY)
-print(HAS_DESCRIPTION)
-print(TAG_COUNT)
+if DEBUG:
+    print(LABEL_TYPE)
+    print(ZOOM)
+    print(SEVERITY)
+    print(HAS_DESCRIPTION)
+    print(TAG_COUNT)
+    print(LAT)
+    print(LNG)
 
 # labels_to_cluster = gpd.read_file('q1.shp')
 
@@ -117,4 +130,6 @@ preprocessed_data = preprocess_model_input(severity, zoom, tag, tag_count, descr
 
 # Result - Prediction
 result = predict_model_seattle(session, model_input_name, model_output_name, preprocessed_data)
-print("Predictions:", result)
+if DEBUG:
+    print("Predictions:", result)
+print(result[0][0])
