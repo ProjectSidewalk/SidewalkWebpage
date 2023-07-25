@@ -189,8 +189,6 @@ function Panorama (label) {
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
-                        // Updates the date overlay to match when the current panorama was taken.
-                        svv.ui.date.text(moment(data.imageDate).format('MMM YYYY'));
                         // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
                         // Uses setTimeout because it usually hasn't quite loaded yet.
