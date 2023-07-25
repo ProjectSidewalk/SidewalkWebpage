@@ -420,4 +420,19 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       "refresh_page" -> refreshPage
     )))
   }
+
+  /**
+   * Submit data to get a prediction on whether the label is correct.
+   */
+  def runPredictionModel = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[LabelAccuracyPredictionSubmission]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        Future.successful(Ok(Json.obj("confidence" -> 0.5)))
+      }
+    )
+  }
 }
