@@ -109,6 +109,7 @@ GET     /tasks                                               @controllers.TaskCo
 GET     /routeTasks                                          @controllers.TaskController.getTasksInARoute(userRouteId: Int)
 POST    /task                                                @controllers.TaskController.post
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
+POST    /runPredictionModel                                  @controllers.TaskController.runPredictionModel
 POST    /validationTask                                      @controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
 POST    /galleryTask                                         @controllers.GalleryTaskController.post
