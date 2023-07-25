@@ -18,6 +18,50 @@
 
     @missionStartTutorial()
 
+    <div class="common-mistakes-popup-container" style="display: none;">
+        <div class="common-mistakes-popup-backdrop"></div>
+        <div class="common-mistakes-popup-content">
+            <div class="common-mistakes-popup-header">
+                <div class="popup-close-button">
+                    <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
+                </div>
+            </div>
+            <div class="common-mistakes-current-label-panel">
+                <div class="common-mistakes-current-label-title">Current Label</div>
+                <div class="common-mistakes-current-label-image">
+                    <img src="" alt="" />
+                </div>
+            </div>
+            <div class="examples-panel-container">
+                <div class="examples-panel-title">
+                    <div class="examples-panel-title-text">Correct Examples</div>
+                </div>
+                <div class="example-unit-container template">
+                    <div class="example-unit-image">
+                        <img src="" alt="" />
+                    </div>
+                    <div class="example-unit-description"></div>
+                </div>
+            </div>
+            <div class="back-to-labeling-button">Back to Labeling</div>
+            <div class="common-mistakes-navigation-buttons">
+                <div class="common-mistakes-button">
+                    <div class="common-mistakes-button-label">See correct examples</div>
+                    <div class="common-mistakes-button-icon">
+                        <svg viewBox="0 0 26 42"><use xlink:href="#left-arrow"></use></svg>
+                    </div>
+                </div>
+                <span class="current-page"></span>
+                <div class="correct-examples-button">
+                    <div class="common-mistakes-button-label">See common mistakes</div>
+                    <div class="correct-examples-button-icon">
+                        <svg viewBox="0 0 27 42"><use xlink:href="#right-arrow"></use></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="page-loading">
         <div id="loading-gif">
             <p class="loading-text">@Messages("loading")</p>
@@ -340,6 +384,24 @@
                     </div>
                 </div>
                 <div id="street-view-holder">
+
+                    <div class="prediction-model-popup-container" style="display: none;">
+                        <div class="prediction-model-popup-content">
+                            <div class="prediction-model-popup-header">
+                                <div class="popup-close-button">
+                                    <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
+                                </div>
+                            </div>
+                            <div class="prediction-model-popup-title">Are you sure this is a <span class="label-type"></span>?</div>
+                            <div class="prediction-model-popup-body">
+                                <div class="prediction-model-popup-text"></div>
+                                <div class="prediction-model-button prediction-model-view-examples-button">View Common Mistakes</div>
+                                <div class="prediction-model-button prediction-model-mistake-no-button">Yes, it is correct</div>
+                                <div class="prediction-model-button prediction-model-mistake-yes-button">Oops, it was a mistake</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="svl-panorama-date-holder">
                         <span id="svl-panorama-date"></span>
                     </div>
@@ -728,6 +790,20 @@
 
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
+
+        // This allows us to take screenshots of the Google Street View.
+        // HTMLCanvasElement.prototype.getContext = function(origFn) {
+        //     return function(type, attributes) {
+        //         if (type === 'webgl') {
+        //             attributes = Object.assign({}, attributes, {
+        //                 preserveDrawingBuffer: true,
+        //             });
+        //         }
+        //         return origFn.call(this, type, attributes);
+        //     };
+        // }(HTMLCanvasElement.prototype.getContext);
+
+
         var svl = svl || {};
         var mainParam = {};
         svl.storage = new TemporaryStorage(JSON);
