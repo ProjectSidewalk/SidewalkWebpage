@@ -132,14 +132,6 @@ function Canvas(ribbon) {
         mouseStatus.leftUpX = util.mouseposition(e, this).x;
         mouseStatus.leftUpY = util.mouseposition(e, this).y;
 
-        // Check if the prediction model flags this.
-        const predictionModelResult = false;
-        if (!predictionModelResult) {
-            PredictionModel.showLabelPredictionFlag(mouseStatus, ribbon.getStatus('selectedLabelType'));
-        }
-
-        return;
-
         if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
             createLabel(mouseStatus.leftUpX, mouseStatus.leftUpY);
             clear();

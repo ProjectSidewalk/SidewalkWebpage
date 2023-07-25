@@ -29,7 +29,10 @@
             <div class="common-mistakes-current-label-panel">
                 <div class="common-mistakes-current-label-title">Current Label</div>
                 <div class="common-mistakes-current-label-image">
-                    <img src="" alt="" />
+                    <img class="gsv-layer" src="" alt="" />
+                    <div class="label-layer">
+                        <img class="common-mistakes-current-label-icon" src="" alt="" />
+                    </div>
                 </div>
             </div>
             <div class="examples-panel-container">
@@ -46,14 +49,14 @@
             <div class="back-to-labeling-button">Back to Labeling</div>
             <div class="common-mistakes-navigation-buttons">
                 <div class="common-mistakes-button">
-                    <div class="common-mistakes-button-label">See correct examples</div>
+                    <div class="common-mistakes-button-label">See common mistakes</div>
                     <div class="common-mistakes-button-icon">
                         <svg viewBox="0 0 26 42"><use xlink:href="#left-arrow"></use></svg>
                     </div>
                 </div>
                 <span class="current-page"></span>
                 <div class="correct-examples-button">
-                    <div class="common-mistakes-button-label">See common mistakes</div>
+                    <div class="correct-examples-button-label">See correct examples</div>
                     <div class="correct-examples-button-icon">
                         <svg viewBox="0 0 27 42"><use xlink:href="#right-arrow"></use></svg>
                     </div>
@@ -395,9 +398,13 @@
                             <div class="prediction-model-popup-title">Are you sure this is a <span class="label-type"></span>?</div>
                             <div class="prediction-model-popup-body">
                                 <div class="prediction-model-popup-text"></div>
-                                <div class="prediction-model-button prediction-model-view-examples-button">View Common Mistakes</div>
-                                <div class="prediction-model-button prediction-model-mistake-no-button">Yes, it is correct</div>
-                                <div class="prediction-model-button prediction-model-mistake-yes-button">Oops, it was a mistake</div>
+                                <div class="button-group-left">
+                                    <div class="prediction-model-button prediction-model-view-examples-button">View Common Mistakes</div>
+                                </div>
+                                <div class="button-group-right">
+                                    <div class="prediction-model-button prediction-model-mistake-no-button">Yes, I am sure</div>
+                                    <div class="prediction-model-button prediction-model-mistake-yes-button">No, remove the label</div>
+                                </div>
                             </div>
                         </div>
                     </div>

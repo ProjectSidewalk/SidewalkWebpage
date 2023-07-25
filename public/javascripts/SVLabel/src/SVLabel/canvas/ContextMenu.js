@@ -104,6 +104,18 @@ function ContextMenu (uiContextMenu) {
         svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
         hide();
+
+
+        var labels = svl.labelContainer.getAllLabels();
+        if (labels.length > 0) {
+
+            // Is this the right place to make a call to prediction model?
+            // Check if the prediction model flags this.
+            var predictionModelResult = false;
+            if (!predictionModelResult) {
+                PredictionModel.showLabelPredictionFlag(labels[labels.length - 1]);
+            }
+        }
     }
 
     function handleSeverityPopup() {

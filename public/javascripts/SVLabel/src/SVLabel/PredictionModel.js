@@ -1,16 +1,26 @@
 
 const PredictionModel = function () {
 
-    const popupVerticalOffset = 60;
+    // Vertical distance between the label and the popup.
+    const popupVerticalOffset = 50;
 
     const $predictionModelPopupContainer = $('.prediction-model-popup-container');
     const $commonMistakesPopup = $('.common-mistakes-popup-container');
     const $commonMistakesCurrentLabelImage = $('.common-mistakes-current-label-image');
 
+    const $gsvLayer = $('.gsv-layer');
+
+    const $panorama = $('.window-streetview');
+    const panoWidth = $panorama.width();
+    const panoHeight = $panorama.height();
+
+
+    // Important variable to track the current label.
+    let currentLabel = null;
 
     const predictionModelExamplesDescriptor  = {
         'CurbRamp': {
-            'subtitle': '48% of curb ramps are missed by users.',
+            'subtitle': 'Tip: The #1 curb ramp mistake is labeling <b>driveways</b> as curb ramps.',
             'correct-examples': [
                 {
                     'image': 'assets/images/tutorials/curbramp-correct-1.png',
@@ -81,19 +91,21 @@ const PredictionModel = function () {
     };
 
 
-    function showLabelPredictionFlag (mousePosition, labelType) {
+    function showLabelPredictionFlag (label) {
 
-        $('.label-type', $predictionModelPopupContainer).text(labelType);
-        $('.prediction-model-popup-text', $predictionModelPopupContainer).text(predictionModelExamplesDescriptor[labelType].subtitle);
+        currentLabel = label;
 
-        $predictionModelPopupContainer.attr('data-label-type', labelType);
+        const labelProps = currentLabel.getProperties();
+
+        $('.label-type', $predictionModelPopupContainer).text(labelProps.labelType);
+        $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
 
         $predictionModelPopupContainer.show();
         const popupWidth = $predictionModelPopupContainer.width();
         const popupHeight = $predictionModelPopupContainer.height();
 
-        const left = mousePosition.leftUpX - popupWidth / 2;
-        const top = mousePosition.leftUpY - popupHeight - popupVerticalOffset;
+        const left = labelProps.currCanvasXY.x - popupWidth / 2;
+        const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
         $predictionModelPopupContainer.css({ left: left, top: top });
 
     }
@@ -139,15 +151,40 @@ const PredictionModel = function () {
 
     function showCommonMistakesPopup(labelType) {
 
-        // Show the current label screenshot from the GSV.
+        // Shows and positions the icon on the current label screenshot.
+        function showCurrentLabelScreenshot() {
 
-        var webglImage = (function convertCanvasToImage(canvas) {
-            var image = new Image();
-            image.src = canvas.toDataURL('image/jpeg', 0.8);
-            return image;
-        })($('.widget-scene-canvas')[0]);
+            // Only positions the icon on the pano screenshot.
+            // Should be called once the image is loaded.
+            function positionCurrentLabelIcon() {
+                const currentLabelProps = currentLabel.getProperties();
+                const labelCanvasXY = currentLabelProps.currCanvasXY;
+                const scaledX = (labelCanvasXY.x * $gsvLayer.width()) / panoWidth;
+                const scaledY = (labelCanvasXY.y * $gsvLayer.height()) / panoHeight;
 
-        $('img', $commonMistakesCurrentLabelImage).attr('src', webglImage.src);
+                $('.common-mistakes-current-label-icon', $commonMistakesCurrentLabelImage).css({
+                    'left': scaledX,
+                    'top': scaledY,
+                });
+            }
+
+            // Show the current label screenshot from the GSV.
+            const gsvLayerSrc = (function convertCanvasToImage(canvas) {
+                return canvas.toDataURL('image/png', 1);
+            })($('.widget-scene-canvas')[0]);
+
+            $('img.gsv-layer', $commonMistakesCurrentLabelImage).attr('src', gsvLayerSrc).on('load', function () {
+                positionCurrentLabelIcon();
+            });
+
+            const iconImagePath = util.misc.getIconImagePaths(labelType).iconImagePath;
+            $('.common-mistakes-current-label-icon', $commonMistakesCurrentLabelImage)
+                .attr('src', iconImagePath).show();
+
+        }
+
+        // Shows the current label screenshot along with the label.
+        showCurrentLabelScreenshot();
 
         // Show the common mistakes examples for the current label type.
         showExamples(labelType, 'incorrect');
@@ -156,7 +193,12 @@ const PredictionModel = function () {
     }
 
     function attachEventHandlers() {
-        $('.popup-close-button, .prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function () {
+        $('.popup-close-button, .prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function () {
+            $predictionModelPopupContainer.hide();
+        });
+
+        $('.prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function () {
+            // TODO: delete the label
             $predictionModelPopupContainer.hide();
         });
 
@@ -169,17 +211,17 @@ const PredictionModel = function () {
         });
 
         $('.prediction-model-view-examples-button').on('click', function () {
-            const labelType = $predictionModelPopupContainer.attr('data-label-type');
+            const labelType = currentLabel.getProperties().labelType;
             showCommonMistakesPopup(labelType);
         });
 
         $('.common-mistakes-button').on('click', function () {
-            const labelType = $predictionModelPopupContainer.attr('data-label-type');
+            const labelType = currentLabel.getProperties().labelType;
             showExamples(labelType, 'incorrect');
         });
 
         $('.correct-examples-button').on('click', function () {
-            const labelType = $predictionModelPopupContainer.attr('data-label-type');
+            const labelType = currentLabel.getProperties().labelType;
             showExamples(labelType, 'correct');
         });
     }
