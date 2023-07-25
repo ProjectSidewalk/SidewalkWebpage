@@ -18,7 +18,7 @@ object TaskSubmissionFormats {
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
-  case class LabelAccuracyPredictionSubmission(zoom: Int, severity: Option[Int], tags: Seq[String], hasDescription: Boolean, lat: Option[Float], lng: Option[Float])
+  case class LabelAccuracyPredictionSubmission(zoom: Int, severity: Option[Int], tagCount: Int, hasDescription: Boolean, lat: Option[Float], lng: Option[Float])
 
   implicit val pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and
@@ -147,7 +147,7 @@ object TaskSubmissionFormats {
   implicit val labelAccuracyPredictionSubmissionReads: Reads[LabelAccuracyPredictionSubmission] = (
     (JsPath \ "zoom").read[Int] and
       (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "tags").read[Seq[String]] and
+      (JsPath \ "tag_count").read[Int] and
       (JsPath \ "has_description").read[Boolean] and
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float]
