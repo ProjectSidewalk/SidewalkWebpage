@@ -5,8 +5,6 @@ import geopandas as gpd
 from shapely.geometry import Point
 import clustering_tools
 
-# TODO add sidewalk geometry
-# TODO add way type
 # TODO split into smaller functions
 
 def preprocess_model_input (severity, zoom, tag, tag_count, description, clustered, cluster_count, sidewalk_distance, intersection_distance, way_type):
@@ -138,6 +136,9 @@ input_point = gpd.GeoDataFrame({'geometry': [Point(arg_lng, arg_lat)]}).set_crs(
 dist_to_intersection = intersections_df['geometry'].distance(input_point).min()
 # dist_to_intersection = input_point.sjoin_nearest(intersections_df, distance_col='distance').loc[0, 'distance']
 
+# Get the way type of the closest street to the input point.
+closest_way_type = roads.loc[roads['geometry'].distance(input_point).idxmin(), 'highway']
+
 if DEBUG:
     print(f"Intersection distance: {dist_to_intersection} feet")
     print(f"Cluster count: {cluster_count}")
@@ -159,7 +160,7 @@ clustered = 1 if cluster_count > 1 else 0  # if label is clustered
 cluster_count = cluster_count if cluster_count > 1 else 0  # number of labels in that cluster
 sidewalk_distance = 10  # sidewalk geometry from SDOT, feet -- EVERYTHING IS IN FEET
 intersection_distance = dist_to_intersection  # 24  # distance to nearest intersection, feet
-way_type = 'residential'
+way_type = closest_way_type  # way type of closest street
 
 # Pass input data here
 preprocessed_data = preprocess_model_input(severity, zoom, tag, tag_count, description, clustered, cluster_count, sidewalk_distance, intersection_distance, way_type)
