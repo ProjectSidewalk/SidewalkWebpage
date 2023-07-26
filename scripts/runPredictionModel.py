@@ -1,7 +1,8 @@
 import onnxruntime as rt
 import numpy as np
 import argparse
-# import geopandas as gpd
+import geopandas as gpd
+import clustering_tools
 
 # TODO add clustering
 # TODO add sidewalk geometry
@@ -103,7 +104,22 @@ if DEBUG:
     print(LAT)
     print(LNG)
 
-# labels_to_cluster = gpd.read_file('q1.shp')
+# Read and clean the test set of labels to use for clustering.
+labels_to_cluster = gpd.read_file('scripts/prediction-model-data/labels-route-4.shp')
+labels_to_cluster = labels_to_cluster[labels_to_cluster['labelType'] == LABEL_TYPE]
+labels_to_cluster['lat'] = labels_to_cluster['geometry'].y
+labels_to_cluster['lng'] = labels_to_cluster['geometry'].x
+labels_to_cluster = labels_to_cluster.drop('geometry', axis=1)
+
+# Add the new label to the dataframe.
+labels_to_cluster = labels_to_cluster.append({'labelId': -1, 'labelType': LABEL_TYPE, 'userId': '-1', 'lat': LAT, 'lng': LNG}, ignore_index=True)
+
+# Cluster this label with the other labels on the test route.
+clustered_labels = clustering_tools.cluster(labels_to_cluster, 'CurbRamp')[1]
+
+# Count the number of labels in the cluster for the input label.
+cluster_id = clustered_labels[clustered_labels['labelId'] == -1]['clusterId'].values[0]
+cluster_count = clustered_labels[clustered_labels['clusterId'] == cluster_id].shape[0]
 
 # Load the ONNX model
 onnx_path = "scripts/prediction-model-data/predictionModel.onnx"
@@ -115,12 +131,12 @@ model_output_name = session.get_outputs()[0].name
 # Test - example input data
 severity = SEVERITY if SEVERITY else 0
 zoom = ZOOM if ZOOM else 2
-tag = 1 if TAG_COUNT and TAG_COUNT > 0 else 0 # if label has a tag or not
-tag_count = TAG_COUNT if TAG_COUNT else 0 # number of tags
-description = HAS_DESCRIPTION if HAS_DESCRIPTION else 0 # if there's a description
-clustered = 0 # if it was clustered -- can just do clustering every time in a small radius and then throw it away
-cluster_count = 0 # number of labels in that cluster
-sidewalk_distance = 10 # sidewalk geometry from SDOT, feet -- EVERYTHING IS IN FEET
+tag = 1 if TAG_COUNT and TAG_COUNT > 0 else 0  # if label has a tag or not
+tag_count = TAG_COUNT if TAG_COUNT else 0  # number of tags
+description = HAS_DESCRIPTION if HAS_DESCRIPTION else 0  # if there's a description
+clustered = 1 if cluster_count > 1 else 0  # if label is clustered
+cluster_count = cluster_count if cluster_count > 1 else 0  # number of labels in that cluster
+sidewalk_distance = 10  # sidewalk geometry from SDOT, feet -- EVERYTHING IS IN FEET
 intersection_distance = 24
 way_type = 'residential'
 
