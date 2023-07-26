@@ -435,7 +435,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       submission => {
         val descriptionFlag = if (submission.hasDescription) "--has_description" else "--no_description"
         val predictionCmd: Seq[String] = Seq(
-          "python3", "scripts/runPredictionModel.py",
+          "python3", "scripts/run_prediction_model.py",
           "--label_type", submission.labelType,
           "--severity", submission.severity.getOrElse(0).toString,
           "--zoom", submission.zoom.toString,

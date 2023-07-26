@@ -4,7 +4,6 @@ import argparse
 import geopandas as gpd
 import clustering_tools
 
-# TODO add clustering
 # TODO add sidewalk geometry
 # TODO add intersection detection
 
