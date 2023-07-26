@@ -1,46 +1,50 @@
 
-.popup-close-button { height: 20px; width: 20px; float: right; cursor: pointer; }
+.popup-close-button { height: 20px; width: 20px; float: right; cursor: pointer; margin: 5px 5px 0 0; }
 
 .prediction-model-popup-container { position: absolute; width: 500px; height: fit-content; background: white; z-index: 5; padding: 12px; border-radius: 4px; border: 2px solid black; }
 .prediction-model-popup-header { height: 20px; }
 .prediction-model-popup-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
 .prediction-model-popup-text { width: 100%; margin-bottom: 24px; }
 
-.prediction-model-button { padding: 5px 10px; border-radius: 5px; width: fit-content; cursor: pointer; text-align: center; font-weight: 600; font-size: 12px; }
+.prediction-model-button { padding: 8px 12px; border-radius: 5px; width: fit-content; cursor: pointer; text-align: center; font-weight: 600; font-size: 12px; }
 .button-group-left { float: left; }
-.button-group-right { float: right; }
+.button-group-right { float: right; display: flex; }
 .prediction-model-view-examples-button { background: #FBD78B; width: fit-content; border: 2px solid #FBD78B; }
 .prediction-model-view-examples-button:hover { background: #FFC342; border-color: #FFC342; }
 .prediction-model-mistake-no-button, .prediction-model-mistake-yes-button { border: 2px solid black; display: inline-block; width: fit-content; margin-bottom: 0; }
 .prediction-model-mistake-no-button:hover, .prediction-model-mistake-yes-button:hover { background: #E6E7E8; }
+.prediction-model-mistake-yes-button { margin-left: 8px; }
 
 
 .common-mistakes-popup-backdrop { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 6; transition: all 0.3s; }
 .common-mistakes-popup-container { position: absolute; width: 100%; height: calc(100% - 70px); transition: all 0.3s; display: flex; font-family: 'Open Sans', sans-serif; }
 
+
 .common-mistakes-popup-header { height: 20px; width: 100%; }
 
-.common-mistakes-popup-content { display: flex; flex-wrap: wrap; flex-shrink: 0; position: absolute; background: white; border-radius: 12px; border: 2px solid grey; padding: 12px; z-index: 10; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 70%; height: 90%; }
-.common-mistakes-current-label-panel { width: 35%; padding: 0 10px; height: fit-content; display: flex; flex-wrap: wrap; flex-shrink: 0; }
-.common-mistakes-current-label-title { font-size: 24px; font-weight: 700;}
-.common-mistakes-current-label-image { width: 100%; position: relative; }
-img.gsv-layer, .label-layer { margin: 7px; width: calc(100% - 14px); position: absolute; }
+.common-mistakes-popup-content { display: flex; flex-wrap: wrap; flex-shrink: 0; position: absolute; background: white; border-radius: 12px; border: 2px solid grey; padding: 25px; z-index: 10; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 70%; height: 90%; }
+.common-mistakes-current-label-panel { width: calc(35% - 5px); height: fit-content; display: flex; flex-wrap: wrap; flex-shrink: 0; }
+.common-mistakes-current-label-title { font-size: 24px; font-weight: 700; }
+.common-mistakes-current-label-image { width: calc(100% - 30px); position: relative; margin-top: 7px; }
+img.gsv-layer, .label-layer { width: 100%; position: absolute; }
+img.gsv-layer { filter: grayscale(0.3); }
 .common-mistakes-current-label-icon { position: absolute; height: 20px; width: 20px; border: 1px solid white; border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none; /* Hide by default. JS will show it. */ }
 
 .examples-panel-container { width: 65%; display: flex; flex-shrink: 0; flex-wrap: wrap; margin-right: 0; margin-left: auto; }
-.examples-panel-title { width: 100%; font-size: 24px; font-weight: 700; }
+.examples-panel-title { width: 100%; font-size: 24px; font-weight: 700; margin-left: 5px; }
 .example-unit-container { width: calc(50% - 10px); display: flex; flex-direction: column; align-items: center; margin: 5px; }
 .example-unit-image, .example-unit-image img { width: 100%; }
 .example-unit-description { width: 100%; font-size: 12px; margin-top: 3px; }
 
-.back-to-labeling-button { padding: 5px; border-radius: 5px; margin: 5px 0; width: fit-content; cursor: pointer; background: #FFC342; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; line-height: 14px }
+.back-to-labeling-button { padding: 5px 10px; border-radius: 5px; width: fit-content; cursor: pointer; background: #FBD78B; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; line-height: 14px; align-self: flex-end; }
+.back-to-labeling-button:hover { background: #FFC342; }
 
 .common-mistakes-navigation-buttons { display: flex; margin-right: 0; margin-left: auto; margin-top: 5px; align-content: center; flex-wrap: wrap; font-weight: bold; }
 .correct-examples-button-label, .common-mistakes-button-label { margin: 0 5px; position: relative; }
-.correct-examples-button-label::after, .common-mistakes-button-label::after { content: ""; position: absolute; width: 100%; height: 2px; background: black; bottom: -2px; left: 0; }
+.correct-examples-button-label:hover::after, .common-mistakes-button-label:hover::after { content: ""; position: absolute; width: 100%; height: 2px; background: black; bottom: -2px; left: 0; }
 .common-mistakes-button, .correct-examples-button { margin: 0 5px; cursor: pointer; display: flex; align-items: center; }
 .common-mistakes-button-icon, .correct-examples-button-icon { height: 15px; width: 15px; text-align: center; }
 .common-mistakes-button-icon svg, .correct-examples-button-icon svg { height: 100%; }
 .common-mistakes-current-page { margin: 0 5px; }
 .correct-examples-button-icon { order: -1;}
-.current-page { margin: 0 3px; }
+.current-page { margin: 0 3px; letter-spacing: 2px; }

@@ -14,6 +14,8 @@ const PredictionModel = function () {
     const panoWidth = $panorama.width();
     const panoHeight = $panorama.height();
 
+    let svlLocal = null; // SVLabel instance.
+
 
     // Important variable to track the current label.
     let currentLabel = null;
@@ -91,9 +93,14 @@ const PredictionModel = function () {
     };
 
 
-    function showLabelPredictionFlag (label) {
+    function showLabelPredictionFlag (label, svl) {
 
         currentLabel = label;
+
+        // We probably don't want to reassign. Not sure if it has any implications.
+        // @Mikey please check.
+        if (svlLocal === null)
+            svlLocal = svl;
 
         const labelProps = currentLabel.getProperties();
 
@@ -107,7 +114,6 @@ const PredictionModel = function () {
         const left = labelProps.currCanvasXY.x - popupWidth / 2;
         const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
         $predictionModelPopupContainer.css({ left: left, top: top });
-
     }
 
     function showExamples(labelType, correctOrIncorrect) {
@@ -192,35 +198,46 @@ const PredictionModel = function () {
         $commonMistakesPopup.show();
     }
 
+    // Attaches all the UI event handlers. This should be called only once.
+    // There should not be any other place where event handlers are attached.
+    // Event handlers also take care of logging.
     function attachEventHandlers() {
-        $('.popup-close-button, .prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function () {
+
+        $('.prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function () {
+            svlLocal.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             $predictionModelPopupContainer.hide();
         });
 
         $('.prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function () {
+            svlLocal.tracker.push('PMMistakeYes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             // TODO: delete the label
             $predictionModelPopupContainer.hide();
         });
 
         $('.popup-close-button', $commonMistakesPopup).on('click', function () {
+            // I don't think we need to log this. - Minchu.
             $commonMistakesPopup.hide();
         });
 
         $('.back-to-labeling-button', $commonMistakesPopup).on('click', function () {
+            // I don't think we need to log this. - Minchu.
             $commonMistakesPopup.hide();
         });
 
         $('.prediction-model-view-examples-button').on('click', function () {
+            svlLocal.tracker.push('PMViewExamplesPopup_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             const labelType = currentLabel.getProperties().labelType;
             showCommonMistakesPopup(labelType);
         });
 
         $('.common-mistakes-button').on('click', function () {
+            svlLocal.tracker.push('PMViewCommonMistakes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             const labelType = currentLabel.getProperties().labelType;
             showExamples(labelType, 'incorrect');
         });
 
         $('.correct-examples-button').on('click', function () {
+            svlLocal.tracker.push('PMViewCorrectExamples_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             const labelType = currentLabel.getProperties().labelType;
             showExamples(labelType, 'correct');
         });

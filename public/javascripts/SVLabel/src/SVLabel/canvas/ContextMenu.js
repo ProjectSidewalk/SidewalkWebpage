@@ -113,7 +113,7 @@ function ContextMenu (uiContextMenu) {
             // Check if the prediction model flags this.
             var predictionModelResult = false;
             if (!predictionModelResult) {
-                PredictionModel.showLabelPredictionFlag(labels[labels.length - 1]);
+                PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
             }
         }
     }
