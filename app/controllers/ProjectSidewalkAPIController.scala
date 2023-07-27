@@ -142,6 +142,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date," +
         "Label Date,Label Severity,Label Temporary,Agree Count,Disagree Count,Not Sure Count,Label Tags," +
         "Label Description,User ID"
+
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
@@ -209,7 +210,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val accessAttributesfile = new java.io.File("access_attributes.csv")
       val writer = new java.io.PrintStream(accessAttributesfile)
       // Write column headers.
-      writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,User IDs")
+      writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,User IDs,Cluster Size")
       // Write each row in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         writer.println(current.attributesToArray.mkString(","))
@@ -349,7 +350,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
     val file = new java.io.File("access_score_neighborhoods.csv")
     val writer = new java.io.PrintStream(file)
-    val header: String = "Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Score," +
+    val header: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Score," +
                           "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
                           "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
                           "Surface Problem Significance,Avg Image Capture Date,Avg Label Date"
@@ -416,8 +417,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         if (region.coverage > 0.0D) {
           val properties: JsObject = Json.obj(
             "coverage" -> region.coverage,
-            "region_id" -> region.regionID,
-            "region_name" -> region.name,
+            "Neighborhood ID" -> region.regionID,
+            "Neighborhood Name" -> region.name,
             "score" -> region.score,
             "significance" -> Json.obj(
               "CurbRamp" -> region.significanceScores(0),
@@ -438,8 +439,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         } else {
           val properties: JsObject = Json.obj(
             "coverage" -> 0.0,
-            "region_id" -> region.regionID,
-            "region_name" -> region.name,
+            "Neighborhood ID" -> region.regionID,
+            "Neighborhood Name" -> region.name,
             "score" -> None.asInstanceOf[Option[Double]],
             "significance" -> Json.obj(
               "CurbRamp" -> 0.75,
@@ -549,7 +550,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     if (filetype.isDefined && filetype.get == "csv") {
       val file = new java.io.File("access_score_streets.csv")
       val writer = new java.io.PrintStream(file)
-      val header: String = "Region ID,OSM ID,Access Score,Coordinates,Audit Count,Avg Curb Ramp Score," +
+      val header: String = "Neighborhood ID,OSM ID,Access Score,Coordinates,Audit Count,Avg Curb Ramp Score," +
                             "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
                             "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
                             "Surface Problem Significance,Avg Image Capture Date,Avg Label Date"
