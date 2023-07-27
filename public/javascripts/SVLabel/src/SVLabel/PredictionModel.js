@@ -2,7 +2,7 @@
 const PredictionModel = function () {
 
     // Vertical distance between the label and the popup.
-    const popupVerticalOffset = 50;
+    const popupVerticalOffset = 55;
 
     const $predictionModelPopupContainer = $('.prediction-model-popup-container');
     const $commonMistakesPopup = $('.common-mistakes-popup-container');
@@ -111,7 +111,7 @@ const PredictionModel = function () {
         const popupWidth = $predictionModelPopupContainer.width();
         const popupHeight = $predictionModelPopupContainer.height();
 
-        const left = labelProps.currCanvasXY.x - popupWidth / 2;
+        const left = labelProps.currCanvasXY.x - 24;
         const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
         $predictionModelPopupContainer.css({ left: left, top: top });
     }
@@ -130,6 +130,8 @@ const PredictionModel = function () {
                 $('img', $exampleUnit).attr('src', example.image);
                 $('.example-unit-description', $exampleUnit).text(example.description);
 
+                $exampleUnit.addClass(`unit-${i.toString()}`);
+
                 $('.examples-panel-container', $commonMistakesPopup).append($exampleUnit);
             }
         }
@@ -138,18 +140,27 @@ const PredictionModel = function () {
             renderExamples(predictionModelExamplesDescriptor[labelType]['correct-examples']);
 
             $('.examples-panel-title-text').text('Correct Examples');
+            $('.examples-panel-title-icon.common-mistakes-icon').hide();
+            $('.examples-panel-title-icon.correct-examples-icon').show();
 
             $('.current-page', $commonMistakesPopup).text('2/2');
             $('.correct-examples-button', $commonMistakesPopup).css('visibility', 'hidden');
             $('.common-mistakes-button', $commonMistakesPopup).css('visibility', 'visible');
+
+            $('.examples-panel-container').removeClass('common-mistakes').addClass('correct-examples');
+
         } else {
             renderExamples(predictionModelExamplesDescriptor[labelType]['incorrect-examples']);
 
             $('.examples-panel-title-text').text('Common Mistakes');
+            $('.examples-panel-title-icon.correct-examples-icon').hide();
+            $('.examples-panel-title-icon.common-mistakes-icon').show();
 
             $('.current-page', $commonMistakesPopup).text('1/2');
             $('.correct-examples-button', $commonMistakesPopup).css('visibility', 'visible');
             $('.common-mistakes-button', $commonMistakesPopup).css('visibility', 'hidden');
+
+            $('.examples-panel-container').removeClass('correct-examples').addClass('common-mistakes');
         }
 
         $('.examples-panel-container').addClass(correctOrIncorrect);
@@ -188,6 +199,8 @@ const PredictionModel = function () {
                 .attr('src', iconImagePath).show();
 
         }
+
+        $('.common-mistakes-current-label-title .current-label-type', $commonMistakesPopup).text(labelType);
 
         // Shows the current label screenshot along with the label.
         showCurrentLabelScreenshot();
