@@ -32,8 +32,9 @@ WORKDIR /opt
 
 COPY package.json ./
 COPY requirements.txt ./
+COPY requirements-python3.txt ./
 
 RUN pip install -r requirements.txt
-RUN pip3 install -r scripts/requirements.txt
+RUN pip3 install -r requirements-python3.txt
 
 RUN npm install

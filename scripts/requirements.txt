@@ -1,4 +1,0 @@
-onnxruntime
-geopandas
-haversine==2.8.0
-scipy==1.7.3
