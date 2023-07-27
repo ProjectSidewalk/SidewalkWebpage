@@ -51,7 +51,7 @@ INSERT INTO config VALUES('fully', NULL, 25.648, -100.385, 25.498, -100.670, 25.
 -- pittsburgh
 INSERT INTO config VALUES('partially', NULL, 40.424, -79.960, 40.000, -81.000, 41.000, -79.000, 13.0, 26293, -1, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 40.446, -79.959, 15.25, 40.443, -79.963, 40.449, -79.995, 40.446, -79.959, 15.25, 40.443, -79.963, 40.449, -79.995, 40.442, -79.959, 13.0, 40.425, -79.979, 40.465, -79.939, 'sidewalk-pittsburgh');
 
--- sidewalk / dc
+-- DC
 INSERT INTO config VALUES('fully', NULL, 38.892, -76.830, 38.761, -77.262, 39.060, -76.830, 12.0, 15250, -9, '["tactile warning" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', 38.910, -76.984, 15.0, 38.909, -76.989, 38.912, -76.982, 38.920, -77.019, 14.0, 38.910, -77.028, 38.929, -77.009, 38.920, -77.019, 14.0, 38.910, -77.028, 38.929, -77.009, 'sidewalk');
 
 -- chicago
@@ -73,7 +73,7 @@ INSERT INTO config VALUES('partially', NULL, 47.615, -122.332, 40.750, -122.664,
 INSERT INTO config VALUES('partially', NULL, 47.373, 8.542, 47.297, 8.427, 47.457, 8.639, 15.0, 11242, -8, '["tactile warning" "street vendor" "uncovered manhole" "APS" "level with sidewalk" "missing crosswalk" painted sidewalk" "pedestrian arcade" "too close to traffic"]', 47.736, 8.544, 16.5, 47.375, 8.543, 47.377, 8.545, 47.736, 8.544, 16.5, 47.375, 8.543, 47.377, 8.545, 47.3755, 8.543, 14.5, 47.370, 8.540, 47.380, 8.548, 'sidewalk-zurich');
 
 -- taipei
-INSERT INTO config VALUES('partially', NULL, 25.036, 121.536, 21.684, 119.947, 25.306, 122.282, 14.25, 26434, 10, '["tactile warning" "uncovered manhole" "APS" "level with sidewalk" "missing crosswalk" "rail/tram track" "brick/cobblestone"]', 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.021, 121.532, 14.5, 25.016, 119.947, 25.027, 122.282, 'sidewalk-taipei');
+INSERT INTO config VALUES('partially', NULL, 25.036, 121.536, 21.684, 119.947, 25.306, 122.282, 14.25, 26434, 10, '["tactile warning" "uncovered manhole" "APS" "level with sidewalk" "missing crosswalk" "rail/tram track" "brick/cobblestone"]', 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.023, 121.534, 16.0, 25.020, 121.531, 25.026, 121.537, 25.021, 121.532, 14.5, 25.016, 119.947, 25.027, 122.282, 'sidewalk-taipei-empty');
 
 -- auckland
 INSERT INTO config VALUES('partially', NULL, -36.598, 174.765458, -37.870572, 173.765458, -35.870572, 175.765458, 12.0, 76949, 6, '["tactile warning" "fire hydrant" "garage entrance" "street vendor" "no pedestrian priority" "uncovered manhole" "level with sidewalk" "APS" "missing crosswalk" "painted sidewalk" "pedestrian arcade" "too close to traffic"]', -36.908, 174.671, 15.5, -36.910, 174.668, -36.908, 174.674, -36.908, 174.671, 15.5, -36.910, 174.668, -36.908, 174.674, -36.909, 174.666, 13.0, -36.921, 174.655, -36.896, 174.679, 'sidewalk-auckland');
