@@ -94,12 +94,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Adds an entry to the webpage_activity table with the endpoint used.
-   *
-   * @param remoteAddress  The remote address that made the API call.
-   * @param identity       The user that made the API call. If no user is signed in, the value is None.
-   * @param requestStr     The full request sent by the API call.
-   */
+    * Adds an entry to the webpage_activity table with the endpoint used.
+    *
+    * @param remoteAddress  The remote address that made the API call.
+    * @param identity       The user that made the API call. If no user is signed in, the value is None.
+    * @param requestStr     The full request sent by the API call.
+    */
   def apiLogging(remoteAddress: String, identity: Option[User], requestStr: String) = {
     if (remoteAddress != "0:0:0:0:0:0:0:1") {
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -115,16 +115,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Returns all global attributes within bounding box and the labels that make up those attributes.
-   *
-   * @param lat1
-   * @param lng1
-   * @param lat2
-   * @param lng2
-   * @param severity
-   * @param filetype
-   * @return
-   */
+    * Returns all global attributes within bounding box and the labels that make up those attributes.
+    *
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @param severity
+    * @param filetype
+    * @return
+    */
   def getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
@@ -186,16 +186,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Returns all the global attributes within the bounding box in given file format.
-   *
-   * @param lat1
-   * @param lng1
-   * @param lat2
-   * @param lng2
-   * @param severity
-   * @param filetype
-   * @return
-   */
+    * Returns all the global attributes within the bounding box in given file format.
+    *
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @param severity
+    * @param filetype
+    * @return
+    */
   def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String],
                             filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
@@ -243,15 +243,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     }
   }
 
-  /**
-   * Returns all the global attributes within the bounding box in geoJson.
-   *
-   * @param lat1     First latttude value for the bounding box
-   * @param lng1     First longitude value for the bounding box
-   * @param lat2     Second latitude value for the bounding box
-   * @param lng2     Second longitude value for the bounding box
-   * @param severity The severity of the attributes that should be added in the geojson
-   */
+    /**
+    * Returns all the global attributes within the bounding box in geoJson.
+    *
+    * @param lat1     First latttude value for the bounding box
+    * @param lng1     First longitude value for the bounding box
+    * @param lat2     Second latitude value for the bounding box
+    * @param lng2     Second longitude value for the bounding box
+    * @param severity The severity of the attributes that should be added in the geojson
+    */
   def getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
@@ -283,13 +283,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * E.g. /v1/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
-   * @param lat1 First latitude value for the bounding box
-   * @param lng1 First longitude value for the bounding box
-   * @param lat2 Second latitude value for the bounding box
-   * @param lng2 Second longitude value for the bounding box
-   * @return     The access score for the given neighborhood
-   */
+    * E.g. /v1/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
+    * @param lat1 First latitude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
+    * @return     The access score for the given neighborhood
+    */
   def getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
@@ -297,14 +297,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * E.g. /v2/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
-   * @param lat1
-   * @param lng1
-   * @param lat2
-   * @param lng2
-   * @param filetype
-   * @return
-   */
+    * E.g. /v2/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @param filetype
+    * @return
+    */
   def getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
@@ -337,13 +337,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Generic version of getAccessScoreNeighborHood, makes changes for v1 vs v2, for CSV file format only.
-   *
-   * @param version
-   * @param coordinates: A coordinate representation of the bounding box for the query. Every neighborhood
-   *                     within this bounding box will have their access score calculated and returned.
-   * @return             A CSV representation of the access scores within the given coordinates.
-   */
+    * Generic version of getAccessScoreNeighborHood, makes changes for v1 vs v2, for CSV file format only.
+    *
+    * @param version
+    * @param coordinates: A coordinate representation of the bounding box for the query. Every neighborhood
+    *                     within this bounding box will have their access score calculated and returned.
+    * @return             A CSV representation of the access scores within the given coordinates.
+    */
   def getAccessScoreNeighborhoodsCSV(version: Int, coordinates: Array[Double]): java.io.File = {
     val neighborhoodList = computeAccessScoresForNeighborhoods(coordinates, version)
 
@@ -379,12 +379,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Gets list of clustered attributes within a bounding box.
-   *
-   * @param version
-   * @param coordinates
-   * @return
-   */
+    * Gets list of clustered attributes within a bounding box.
+    *
+    * @param version
+    * @param coordinates
+    * @return
+    */
   def getLabelsForScore(version: Int, coordinates: Array[Double]): List[AttributeForAccessScore] = {
     val labelsForScore: List[AttributeForAccessScore] = version match {
       case 1 =>
@@ -399,13 +399,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Generic version of getAccessScoreNeighborhood, makes changes for v1 vs v2, for GeoJSON file format only.
-   *
-   * @param version
+    * Generic version of getAccessScoreNeighborhood, makes changes for v1 vs v2, for GeoJSON file format only.
+    *
+    * @param version
    * @param coordinates: A coordinate representation of the bounding box for the query. Every neighborhood
    *                     within this bounding box will have their access score calculated and returned.
    * @return             A GeoJSON representation of the access scores within the given coordinates.
-   */
+    */
   def getAccessScoreNeighborhoodsJson(version: Int, coordinates: Array[Double]): JsObject = {
     // Get AccessScore data and output in GeoJSON format.
     def featureCollection = {
@@ -517,15 +517,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * AccessScore:Street
-   *
-   * E.g., /v1/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
-   * @param lat1 First latttude value for the bounding box
-   * @param lng1 First longitude value for the bounding box
-   * @param lat2 Second latitude value for the bounding box
-   * @param lng2 Second longitude value for the bounding box
-   * @return     The access score for the given neighborhood
-   */
+    * AccessScore:Street
+    *
+    * E.g., /v1/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
+    * @param lat1 First latttude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
+    * @return     The access score for the given neighborhood
+    */
   def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val features: List[JsObject] = getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1).map(_.toJSON)
@@ -533,15 +533,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * AccessScore:Street V2 (using new clustering methods)
-   *
-   * E.g., /v2/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
-   * @param lat1 First latitude value for the bounding box
-   * @param lng1 First longitude value for the bounding box
-   * @param lat2 Second latitude value for the bounding box
-   * @param lng2 Second longitude value for the bounding box
-   * @return     The access score for the given neighborhood
-   */
+    * AccessScore:Street V2 (using new clustering methods)
+    *
+    * E.g., /v2/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
+    * @param lat1 First latitude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
+    * @return     The access score for the given neighborhood
+    */
   def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2)
@@ -596,15 +596,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Generic version of getAccessScoreStreets, makes appropriate changes for v1 vs. v2.
-   *
-   * @param lat1
-   * @param lng1
-   * @param lat2
-   * @param lng2
-   * @param version
-   * @return
-   */
+    * Generic version of getAccessScoreStreets, makes appropriate changes for v1 vs. v2.
+    *
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @param version
+    * @return
+    */
   def getAccessScoreStreetsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int): List[AccessScoreStreet]  = {
     val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
     // Retrieve data and cluster them by location and label type.
@@ -656,15 +656,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Retrieve streets in the given bounding box and corresponding labels for each street.
-   *
-   * References:
-   * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
-   *
-   * @param streets        List of streets that should be scored
-   * @param labelLocations List of AttributeForAccessScore
-   *
-   */
+    * Retrieve streets in the given bounding box and corresponding labels for each street.
+    *
+    * References:
+    * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
+    *
+    * @param streets        List of streets that should be scored
+    * @param labelLocations List of AttributeForAccessScore
+    *
+    */
   def computeAccessScoresForStreets(streets: List[StreetEdgeInfo], labelLocations: List[AttributeForAccessScore]): List[AccessScoreStreet] = {
     val radius = 3.0E-4  // Approximately 10 meters
     val pm = new PrecisionModel()
@@ -720,16 +720,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Compute distance between two latlng coordinates using the Haversine formula
-   * References:
-   * https://rosettacode.org/wiki/Haversine_formula#Scala
-   *
-   * @param lat1
-   * @param lon1
-   * @param lat2
-   * @param lon2
-   * @return Distance in meters
-   */
+    * Compute distance between two latlng coordinates using the Haversine formula
+    * References:
+    * https://rosettacode.org/wiki/Haversine_formula#Scala
+    *
+    * @param lat1
+    * @param lon1
+    * @param lat2
+    * @param lon2
+    * @return Distance in meters
+    */
   def haversine(lat1:Double, lon1:Double, lat2:Double, lon2:Double): Double = {
     val R = 6372800.0  //radius in m
     val dLat=(lat2 - lat1).toRadians
@@ -741,20 +741,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Compute distance between two latlng coordinates using the Haversine formula
-   * @param latLng1
-   * @param latLng2
-   * @return Distance in meters
-   */
+    * Compute distance between two latlng coordinates using the Haversine formula
+    * @param latLng1
+    * @param latLng2
+    * @return Distance in meters
+    */
   def haversine(latLng1: JsonLatLng, latLng2: JsonLatLng): Double = haversine(latLng1.lat, latLng1.lng, latLng2.lat, latLng2.lng)
 
   /**
-   * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
-   * @param latLng1 A latlng coordinate
-   * @param latLng2 A latlng coordinate
-   * @param stepSize A step size in meters
-   * @return A list of latlng grid
-   */
+    * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
+    * @param latLng1 A latlng coordinate
+    * @param latLng2 A latlng coordinate
+    * @param stepSize A step size in meters
+    * @return A list of latlng grid
+    */
   def makeALatLngGrid(latLng1: JsonLatLng, latLng2: JsonLatLng, stepSize: Double): List[JsonLatLng] = {
     val minLat: Double = min(latLng1.lat, latLng2.lat)
     val maxLat: Double = max(latLng1.lat, latLng2.lat)
@@ -779,14 +779,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-   * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
-   * @param lat1 Latitude
-   * @param lng1 Longitude
-   * @param lat2 Latitude
-   * @param lng2 Longitude
-   * @param stepSize A step size in meters
-   * @return A list of latlng grid
-   */
+    * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
+    * @param lat1 Latitude
+    * @param lng1 Longitude
+    * @param lat2 Latitude
+    * @param lng2 Longitude
+    * @param stepSize A step size in meters
+    * @return A list of latlng grid
+    */
   def makeALatLngGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double): List[JsonLatLng] =
     makeALatLngGrid(JsonLatLng(lat1, lng1), JsonLatLng(lat2, lng2), stepSize)
 

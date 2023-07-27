@@ -100,8 +100,7 @@ object LabelTable {
 
   val neighborhoods = regions.filter(_.deleted === false)
 
-  // Grab city id of database and the associated tutorial street id for the city
-  val cityStr: String = Play.configuration.getString("city-id").get
+  // Grab the tutorial street id for the city.
   val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
 
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from

@@ -15,7 +15,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.attribute.ConfigTable
-import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.route.{Route, RouteTable, UserRoute, UserRouteTable}
 import models.street.StreetEdgeRegionTable
