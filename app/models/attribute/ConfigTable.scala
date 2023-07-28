@@ -80,6 +80,10 @@ object ConfigTable {
     config.map(_.mapathonEventLink).list.head
   }
 
+  def getOpenStatus: String = db.withSession { implicit session =>
+    config.map(_.openStatus).list.head
+  }
+
   def getOffsetHours: Int = db.withSession { implicit session =>
     config.map(_.offsetHours).list.head
   }
