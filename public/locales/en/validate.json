@@ -127,7 +127,7 @@
         "explore": "Start an exploration mission",
         "no-new-mission-title": "No more validation missions left",
         "no-new-mission-body": "You can add more labels using a laptop/desktop computer, or you can validate labels in another city!",
-        "no-new-mission-button": "Validate In"
+        "no-new-mission-button": "Validate in"
     },
     "mobile": {
         "info-title-curb-ramp": "What is a Curb Ramp?",

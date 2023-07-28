@@ -21,12 +21,18 @@ function ModalNoNewMission (uiModalMission) {
     }
 
     function show () {
-        svv.keyboard.disableKeyboard();
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
         uiModalMission.background.css('visibility', 'visible');
         uiModalMission.instruction.html(noMissionsRemaining);
         uiModalMission.missionTitle.html(i18next.t('mission-complete.no-new-mission-title'));
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
+        // Update widen the button to fit more text when there is no new mission.
+        uiModalMission.closeButton.css('font-size', '42pt');
+        uiModalMission.closeButton.css('width', '60%');
+        uiModalMission.closeButton.css('margin-right', '20%');
         let [city, shorthand] = $('#city-name-info').text().replace(/\s/g, "").split(","); // Get city info from Scala
         uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button') + ` ${city}, ${shorthand}`);
         uiModalMission.closeButton.on('click', _handleButtonClick);
