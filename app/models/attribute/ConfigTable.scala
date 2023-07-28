@@ -33,9 +33,9 @@ class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewa
   def apiAttributeCenterLng: Column[Double] = column[Double]("api_attribute_center_lng", O.NotNull)
   def apiAttributeZoom: Column[Double] = column[Double]("api_attribute_zoom", O.NotNull)
   def apiAttributeLatOne: Column[Double] = column[Double]("api_attribute_lat1", O.NotNull)
-  def apiAttributeLngOne: Column[Double] = column[Double]("api_attrubute_lng1", O.NotNull)
+  def apiAttributeLngOne: Column[Double] = column[Double]("api_attribute_lng1", O.NotNull)
   def apiAttributeLatTwo: Column[Double] = column[Double]("api_attribute_lat2", O.NotNull)
-  def apiAttributeLngTwo: Column[Double] = column[Double]("api_attrubute_lng2", O.NotNull)
+  def apiAttributeLngTwo: Column[Double] = column[Double]("api_attribute_lng2", O.NotNull)
   def apiStreetCenterLat: Column[Double] = column[Double]("api_street_center_lat", O.NotNull)
   def apiStreetCenterLng: Column[Double] = column[Double]("api_street_center_lng", O.NotNull)
   def apiStreetZoom: Column[Double] = column[Double]("api_street_zoom", O.NotNull)
@@ -141,11 +141,11 @@ object ConfigTable {
   }
 
   def getAttributeLatTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeLatOne).list.head
+    config.map(_.apiAttributeLatTwo).list.head
   }
 
   def getAttributeLngTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeLngOne).list.head
+    config.map(_.apiAttributeLngTwo).list.head
   }
 
   def getStreetCenterLat: Double = db.withSession { implicit session =>
