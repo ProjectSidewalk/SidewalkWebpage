@@ -16,8 +16,13 @@ function ModalNoNewMission (uiModalMission) {
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
-        svv.tracker.push("Click_NoMoreMissionModal_Audit");
-        window.location.replace("/explore");
+        if (isMobile()) {
+            svv.tracker.push("Click_NoMoreMissionModal_ValidateSeattle");
+            window.location.replace("https://sidewalk-sea.cs.washington.edu/validate");
+        } else {
+            svv.tracker.push("Click_NoMoreMissionModal_Audit");
+            window.location.replace("/explore");
+        }
     }
 
     function show () {
@@ -29,12 +34,11 @@ function ModalNoNewMission (uiModalMission) {
         uiModalMission.missionTitle.html(i18next.t('mission-complete.no-new-mission-title'));
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
-        // Update widen the button to fit more text when there is no new mission.
+        // Update and widen the button to fit more text when there is no new mission.
         uiModalMission.closeButton.css('font-size', '42pt');
         uiModalMission.closeButton.css('width', '60%');
         uiModalMission.closeButton.css('margin-right', '20%');
-        let [city, shorthand] = $('#city-name-info').text().replace(/\s/g, "").split(","); // Get city info from Scala
-        uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button') + ` ${city}, ${shorthand}`);
+        uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button') + ` Seattle, WA`);
         uiModalMission.closeButton.on('click', _handleButtonClick);
     }
 
