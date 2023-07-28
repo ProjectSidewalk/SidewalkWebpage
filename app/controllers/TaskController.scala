@@ -446,11 +446,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           "--lng", submission.lng.getOrElse(0.0D).toString
         )
 
-//        val predictionModelOutput: String = predictionCmd.!!
-//        val predictionConfidence: Option[Float] = Try(predictionModelOutput.toFloat).toOption
-//        println(predictionModelOutput)
-//        Future.successful(Ok(Json.obj("confidence" -> predictionConfidence)))
-        Future.successful(Ok(Json.obj("confidence" -> 0.5)))
+        val predictionModelOutput: String = predictionCmd.!!
+        val predictionConfidence: Option[Float] = Try(predictionModelOutput.toFloat).toOption
+        println(predictionModelOutput)
+        Future.successful(Ok(Json.obj("confidence" -> predictionConfidence)))
+//        Future.successful(Ok(Json.obj("confidence" -> 0.5)))
       }
     )
   }

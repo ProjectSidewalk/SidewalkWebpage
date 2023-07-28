@@ -100,22 +100,50 @@ function ContextMenu (uiContextMenu) {
         hide();
     }
 
-    function _handleOKButtonClick() {
-        svl.tracker.push('ContextMenu_OKButtonClick');
-        handleSeverityPopup();
-        hide();
-
-
+    // Posts the last label data to the prediction model endpoint
+    // and shows the popup UI if the prediction model flags it.
+    function predictLabelCorrectnessAndShowUI() {
         var labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
 
             // Is this the right place to make a call to prediction model?
             // Check if the prediction model flags this.
             var predictionModelResult = false;
-            if (!predictionModelResult) {
-                PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
-            }
+
+            const currentLabelProps = labels[labels.length - 1].getProperties();
+            const data = {
+                label_type: currentLabelProps.labelType,
+                severity: currentLabelProps.severity,
+                zoom: currentLabelProps.originalPov.zoom,
+                tag_count: 0,
+                lat: currentLabelProps.labelLat,
+                lng: currentLabelProps.labelLng,
+                has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
+            };
+
+            $.ajax({
+                type: 'POST',
+                url: 'runPredictionModel',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (predictionModelResult) {
+                    if (predictionModelResult) {
+                        if (predictionModelResult.confidence === 0) { // TODO: change to the actual threshold.
+                            PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
+                        }
+                    }
+                },
+                error: function (result) {
+                    console.log(result); // TODO: we should handle logging better.
+                }
+            });
         }
+    }
+
+    function _handleOKButtonClick() {
+        svl.tracker.push('ContextMenu_OKButtonClick');
+        handleSeverityPopup();
+        hide();
     }
 
     function handleSeverityPopup() {
@@ -272,6 +300,9 @@ function ContextMenu (uiContextMenu) {
         $connector.css('visibility', 'hidden');
         _setBorderColor('black');
         setStatus('visibility', 'hidden');
+
+        predictLabelCorrectnessAndShowUI();
+
         return this;
     }
 

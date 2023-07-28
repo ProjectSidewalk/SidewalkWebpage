@@ -3,8 +3,10 @@
 
 .prediction-model-popup-container { position: absolute; width: 500px; height: fit-content; background: white; z-index: 5; padding: 12px; border-radius: 4px; border: 2px solid #A7AFB2; }
 .prediction-model-popup-header { height: 20px; }
-.prediction-model-popup-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+.prediction-model-popup-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; }
 .prediction-model-popup-text { width: 100%; margin-bottom: 24px; }
+.prediction-model-popup-title .label-type { margin-left: 5px; }
+.prediction-model-popup-info-button { display: flex; margin-left: 10px; align-items: center; cursor: pointer; }
 
 .triangle-down { position: absolute; bottom: -17px; }
 
