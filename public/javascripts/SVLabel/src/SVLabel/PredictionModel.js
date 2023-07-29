@@ -104,7 +104,7 @@ const PredictionModel = function () {
             const session = await ort.InferenceSession.create('assets/images/predictionModel.onnx');
 
             // prepare inputs. a tensor need its corresponding TypedArray as data
-            const dataA = Float32Array.from(data = [[2, 2, 0, 0, 10, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]);
+            const dataA = Float32Array.from(data = [2, 2, 0, 0, 10, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
             // const dataB = Float32Array.from([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]);
             const tensorA = new ort.Tensor('float32', dataA);
             // const tensorB = new ort.Tensor('float32', dataB, [4, 3]);
