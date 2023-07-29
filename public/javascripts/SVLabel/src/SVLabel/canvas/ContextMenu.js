@@ -121,22 +121,24 @@ function ContextMenu (uiContextMenu) {
                 has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
             };
 
-            $.ajax({
-                type: 'POST',
-                url: 'runPredictionModel',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function (predictionModelResult) {
-                    if (predictionModelResult) {
-                        if (predictionModelResult.confidence === 0) { // TODO: change to the actual threshold.
-                            PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
-                        }
-                    }
-                },
-                error: function (result) {
-                    console.log(result); // TODO: we should handle logging better.
-                }
-            });
+            PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
+
+            // $.ajax({
+            //     type: 'POST',
+            //     url: 'runPredictionModel',
+            //     contentType: 'application/json',
+            //     data: JSON.stringify(data),
+            //     success: function (predictionModelResult) {
+            //         if (predictionModelResult) {
+            //             if (predictionModelResult.confidence === 0) { // TODO: change to the actual threshold.
+            //                 PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
+            //             }
+            //         }
+            //     },
+            //     error: function (result) {
+            //         console.log(result); // TODO: we should handle logging better.
+            //     }
+            // });
         }
     }
 
