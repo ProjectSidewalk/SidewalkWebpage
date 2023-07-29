@@ -89,7 +89,7 @@ object ConfigTable {
   }
 
   def getExcludedTags: List[String] = db.withSession { implicit session =>
-    config.map(_.excludedTags).list
+    config.map(_.excludedTags).list.head.drop(2).dropRight(2).split("\" \"").toList
   }
 
   def getCityLat: Double = db.withSession { implicit session =>
