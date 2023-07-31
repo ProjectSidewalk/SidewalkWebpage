@@ -110,3 +110,7 @@ nohup.out
 
 # docker db files
 db/dump
+
+# Python
+scripts/__pycache__
+
