@@ -1,247 +1,247 @@
 {
-  "measurement-system": "metric",
-  "admin-clear-play-cache": "Reproducir caché borrada con éxito",
-  "unit-distance-abbreviation": "km",
-  "unit-abbreviation-mission-distance": "m",
-  "unit-distance": "kilometers",
-  "format-number": "{{val, number}}",
-  "curb-ramp": "Rampa peatonal",
-  "no-curb-ramp": "Rampa peatonal ausente",
-  "obstacle": "Obstáculo en la banqueta",
-  "surface-problem": "Problema en superficie",
-  "occlusion": "No puedo ver la banqueta",
-  "no-sidewalk" : "No hay banqueta",
-  "crosswalk": "Cruce peatonal",
-  "signal": "Semáforo peatonal",
-  "other": "Otro",
-  "agree": "Aceptar",
-  "disagree": "Discrepar",
-  "not-sure": "No estoy seguro",
-  "missing-sidewalks": "Banqueta ausente",
-  "missing-ramps": "Rampa peatonal ausente",
-  "surface-problems": "Problemas en superficie",
-  "sidewalk-obstacles": "Obstáculos en la banqueta",
-  "complete": "completado",
-  "mturk-code": "Código de Mturk: {{code}}",
-  "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
-  "right-ui-turk-total-reward": "Recompensa total ganada: ",
-  "mission-complete-confirmation-code": "Código de confirmación: ",
-  "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
-  "map": {
-    "distance-left": "Sólo faltan {{n}} kilómetros!",
-    "distance-left-one-unit": "Sólo faltan 1 kilómetro!",
-    "less-than-one-unit-left": "¡Queda menos de un kilómetro!",
-    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio",
-    "thanks": "¡Gracias por tu ayuda!",
-    "100-percent-complete": "¡100% Completa!",
-    "percent-complete": "{{percent}}% Completa"
-  },
-  "errors": {
-    "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
-    "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",
-    "google-connect-error": "Tuvimos problemas para conectarnos a Google Street View, inténtalo de nuevo más tarde.",
-    "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
-  },
-  "severity": "Calificación ",
-  "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
-  "unsupported": "Este tipo de etiqueta no tiene niveles de gravedad significativos",
-  "tags": "Etiquetas ",
-  "temporary": "Temporal",
-  "description": "Descripción",
-  "no-description": "Sin descripción",
-  "image-capture-date": "Fecha de captura de imagen",
-  "labeled": "Etiquetada",
-  "yes": "Sí",
-  "no": "No",
-  "tag": {
-    "narrow": "muy angosta",
-    "points into traffic": "orientada hacia el tráfico",
-    "missing tactile warning": "pavimento de advertencia táctil ausente",
-    "tactile warning": "advertencia táctil",
-    "steep": "empinada (mucha pendiente)",
-    "not enough landing space": "área de aproximación insuficiente",
-    "not level with street": "con desnivel",
-    "surface-problem": "problema en superficie",
-    "pooled water": "encharcada",
-    "alternate route present": "hay una ruta alternativa segura para cruzar",
-    "no alternate route": "no hay una ruta alternativa para cruzar",
-    "unclear if needed": "poco claro si es necesario",
-    "trash/recycling can": "basurero",
-    "fire hydrant": "hidrante contra incendio",
-    "pole": "poste",
-    "tree": "árbol",
-    "vegetation": "vegetación",
-    "parked car": "auto estacionado",
-    "parked bike": "bicicleta estacionada",
-    "construction": "obra en construcción",
-    "sign": "señalamiento",
-    "garage entrance": "entrada a cochera",
-    "stairs": "escalones",
-    "street vendor": "comercio",
-    "litter/garbage": "basura",
-    "parked scooter/motorcycle": "scooter/motocicleta aparcada",
-    "bumpy": "textura irregular",
-    "uneven/slanted": "dispareja/inclinada",
-    "cracks": "grietas",
-    "grass": "hierba",
-    "narrow sidewalk": "muy angosta",
-    "brick/cobblestone": "ladrillo/adoquín",
-    "very broken": "rota",
-    "rail/tram track": "vía férrea/tranvía",
-    "sand/gravel": "arena/grava",
-    "uncovered manhole": "registro sin tapa",
-    "ends abruptly": "termina abruptamente",
-    "street has a sidewalk": "la calle tiene una banqueta",
-    "street has no sidewalks": "la calle no tiene banquetas",
-    "gravel/dirt road": "camino de tierra",
-    "shared pedestrian/car space": "plataforma única",
-    "height difference": "desnivel",
-    "paint fading": "cruce despintado",
-    "broken surface": "bache",
-    "uneven surface": "superficie irregular",
-    "no pedestrian priority": "sin prioridad peatonal",
-    "very long crossing": "cruce muy largo",
-    "level with sidewalk": "al nivel de la acera",
-    "has button": "tiene botón",
-    "button waist height": "botón a la altura de la cintura",
-    "APS": "APS",
-    "missing crosswalk": "paso peatonal ausente (i)",
-    "no bus stop access": "No hay acceso a la parada de autobús",
-    "pedestrian lane marking": "marcado de carril peatonal",
-    "covered walkway": "pasarela cubierta",
-    "too close to traffic": "demasiado cerca del tráfico",
-    "utility panel": "panel de utilidad"
-  },
-  "gsv-info": {
-    "details-title": "Detalles",
-    "latitude": "Latitud",
-    "longitude": "Longitud",
-    "panorama-id": "ID de panorama",
-    "street-id": "ID de calle",
-    "google-street-view": "Google Street View",
-    "region-id": "ID de región",
-    "label-id": "ID de etiqueta",
-    "view-in-gsv": "Ver en Google Street View",
-    "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
-  },
-  "mission-start-tutorial": {
-    "example-type-label-correct": "EJEMPLO CORRECTO",
-    "label-type-subtitle": "¿Por qué está mal?",
-    "label-on-image-title-correct": "Etiqueta correcta",
-    "start-mission": "Iniciar misión",
-    "curb-ramp": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Las rampas en las banquetas permiten a las personas pasar de la banqueta a la calle. Deben existir en todas las intersecciones transitables."
-      },
-      "slide-2": {
-        "title": "Entrada de coches",
-        "description": "Las entradas de vehículos <b>no</b> son rampas para peatones. Están diseñados para vehículos y no para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de peatonal."
-      },
-      "slide-3": {
-        "title": "Garaje",
-        "description": "Las entradas a los garajes <b>no</b> son rampas para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de peatonal."
-      }
+    "measurement-system": "metric",
+    "admin-clear-play-cache": "Reproducir caché borrada con éxito",
+    "unit-distance-abbreviation": "km",
+    "unit-abbreviation-mission-distance": "m",
+    "unit-distance": "kilometers",
+    "format-number": "{{val, number}}",
+    "curb-ramp": "Rampa peatonal",
+    "no-curb-ramp": "Rampa peatonal ausente",
+    "obstacle": "Obstáculo en la banqueta",
+    "surface-problem": "Problema en superficie",
+    "occlusion": "No puedo ver la banqueta",
+    "no-sidewalk": "No hay banqueta",
+    "crosswalk": "Cruce peatonal",
+    "signal": "Semáforo peatonal",
+    "other": "Otro",
+    "agree": "Aceptar",
+    "disagree": "Discrepar",
+    "not-sure": "No estoy seguro",
+    "missing-sidewalks": "Banqueta ausente",
+    "missing-ramps": "Rampa peatonal ausente",
+    "surface-problems": "Problemas en superficie",
+    "sidewalk-obstacles": "Obstáculos en la banqueta",
+    "complete": "completado",
+    "mturk-code": "Código de Mturk: {{code}}",
+    "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
+    "right-ui-turk-total-reward": "Recompensa total ganada: ",
+    "mission-complete-confirmation-code": "Código de confirmación: ",
+    "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
+    "map": {
+        "distance-left": "Sólo faltan {{n}} kilómetros!",
+        "distance-left-one-unit": "Sólo faltan 1 kilómetro!",
+        "less-than-one-unit-left": "¡Queda menos de un kilómetro!",
+        "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio",
+        "thanks": "¡Gracias por tu ayuda!",
+        "100-percent-complete": "¡100% Completa!",
+        "percent-complete": "{{percent}}% Completa"
     },
-    "no-curb-ramp": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Las intersecciones de banquetas deben tener rampas en las banquetas, idealmente dos por esquina. Si una esquina tiene una banqueta pero no tiene una rampa peatonal, coloque la etiqueta Rampa peatonal ausente donde cree que debería existir una rampa peatonal."
-      },
-      "slide-2": {
-        "title": "Pasarelas residenciales",
-        "description": "Los pasillos residenciales <b>no</b> deben estar etiquetados como Rampas peatonales ausentes."
-      },
-      "slide-3": {
-        "title": "No en camino peatonal",
-        "description": "No se necesitan rampas peatonales en caminos <b>no</b> destinados al cruce peatonal."
-      },
-      "slide-4": {
-        "title": "$t(common:no-sidewalk)",
-        "description": "Para las esquinas sin <b>banquetas</b>, use la etiqueta No hay banqueta en lugar de la etiqueta Rampa peatonal ausente."
-      }
+    "errors": {
+        "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
+        "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",
+        "google-connect-error": "Tuvimos problemas para conectarnos a Google Street View, inténtalo de nuevo más tarde.",
+        "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
     },
-    "obstacle": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Los obstáculos son barreras que impiden las <b>vías peatonales</b> para personas que usan sillas de ruedas, andadores u otras ayudas para la movilidad.<br><br>No todas las bocas de incendios, postes y letreros son obstáculos, solo aquellos que obstruyen claramente a los peatones caminos."
-      },
-      "slide-2": {
-        "title": "Amplio espacio para maniobrar",
-        "description": "La motocicleta está estacionada a un lado; hay un amplio espacio para peatones en el espacio restante de la banqueta."
-      },
-      "slide-3": {
-        "title": "Obstáculo no en la banqueta",
-        "description": "Este cono de tráfico <b>no</b> se encuentra en una vía peatonal, por lo que no debe marcarse como un obstáculo.<br><br> Solo marque obstáculos en banquetas, cruces peatonales y otras vías peatonales."
-      },
-      "slide-4": {
-        "title": "Objeto en movimiento",
-        "description": "El automóvil parece estar moviéndose en la imagen y no debe etiquetarse como Obstáculo."
-      }
+    "severity": "Calificación ",
+    "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
+    "unsupported": "Este tipo de etiqueta no tiene niveles de gravedad significativos",
+    "tags": "Etiquetas ",
+    "temporary": "Temporal",
+    "description": "Descripción",
+    "no-description": "Sin descripción",
+    "image-capture-date": "Fecha de captura de imagen",
+    "labeled": "Etiquetada",
+    "yes": "Sí",
+    "no": "No",
+    "tag": {
+        "narrow": "muy angosta",
+        "points into traffic": "orientada hacia el tráfico",
+        "missing tactile warning": "pavimento de advertencia táctil ausente",
+        "tactile warning": "advertencia táctil",
+        "steep": "empinada (mucha pendiente)",
+        "not enough landing space": "área de aproximación insuficiente",
+        "not level with street": "con desnivel",
+        "surface-problem": "problema en superficie",
+        "pooled water": "encharcada",
+        "alternate route present": "hay una ruta alternativa segura para cruzar",
+        "no alternate route": "no hay una ruta alternativa para cruzar",
+        "unclear if needed": "poco claro si es necesario",
+        "trash/recycling can": "basurero",
+        "fire hydrant": "hidrante contra incendio",
+        "pole": "poste",
+        "tree": "árbol",
+        "vegetation": "vegetación",
+        "parked car": "auto estacionado",
+        "parked bike": "bicicleta estacionada",
+        "construction": "obra en construcción",
+        "sign": "señalamiento",
+        "garage entrance": "entrada a cochera",
+        "stairs": "escalones",
+        "street vendor": "comercio",
+        "litter/garbage": "basura",
+        "parked scooter/motorcycle": "scooter/motocicleta aparcada",
+        "bumpy": "textura irregular",
+        "uneven/slanted": "dispareja/inclinada",
+        "cracks": "grietas",
+        "grass": "hierba",
+        "narrow sidewalk": "muy angosta",
+        "brick/cobblestone": "ladrillo/adoquín",
+        "very broken": "rota",
+        "rail/tram track": "vía férrea/tranvía",
+        "sand/gravel": "arena/grava",
+        "uncovered manhole": "registro sin tapa",
+        "ends abruptly": "termina abruptamente",
+        "street has a sidewalk": "la calle tiene una banqueta",
+        "street has no sidewalks": "la calle no tiene banquetas",
+        "gravel/dirt road": "camino de tierra",
+        "shared pedestrian/car space": "plataforma única",
+        "height difference": "desnivel",
+        "paint fading": "cruce despintado",
+        "broken surface": "bache",
+        "uneven surface": "superficie irregular",
+        "no pedestrian priority": "sin prioridad peatonal",
+        "very long crossing": "cruce muy largo",
+        "level with sidewalk": "al nivel de la acera",
+        "has button": "tiene botón",
+        "button waist height": "botón a la altura de la cintura",
+        "APS": "APS",
+        "missing crosswalk": "paso peatonal ausente (i)",
+        "no bus stop access": "No hay acceso a la parada de autobús",
+        "pedestrian lane marking": "marcado de carril peatonal",
+        "covered walkway": "pasarela cubierta",
+        "too close to traffic": "demasiado cerca del tráfico",
+        "utility panel": "panel de utilidad"
     },
-    "surface-problem": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Si hay algo en la superficie de la banqueta o del cruce peatonal que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema en superficie."
-      },
-      "slide-2": {
-        "title": "Azulejos de banqueta normales",
-        "description": "Las baldosas de las banquetas normales (sin huecos, grietas o protuberancias) no son problemas en superficie."
-      },
-      "slide-3": {
-        "title": "No en camino peatonal",
-        "description": "Esta grava <b>no</b> se encuentra en un camino para peatones, por lo que no debe marcarse como un problema en superficie.<br><br>Solo marque los problemas en superficie en banquetas, cruces peatonales y otros caminos para peatones."
-      }
+    "gsv-info": {
+        "details-title": "Detalles",
+        "latitude": "Latitud",
+        "longitude": "Longitud",
+        "panorama-id": "ID de panorama",
+        "street-id": "ID de calle",
+        "google-street-view": "Google Street View",
+        "region-id": "ID de región",
+        "label-id": "ID de etiqueta",
+        "view-in-gsv": "Ver en Google Street View",
+        "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
     },
-    "no-sidewalk": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Si un lado de la calle no tiene banqueta, márquelo con una etiqueta <b>No hay banqueta</b>."
-      },
-      "slide-2": {
-        "title": "Mediana",
-        "description": "Una mediana que separa dos direcciones de tráfico y no está diseñada para peatones <b>no</b> debe etiquetarse como No hay banqueta."
-      },
-      "slide-3": {
-        "title": "Banqueta",
-        "description": "Hay una banqueta aquí. <b>No</b> debe estar marcado como No hay banqueta."
-      }
-    },
-    "crosswalk": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Un cruce peatonal es un espacio legalmente definido para cruzar una calle.<br><br>Los cruces peatonales a menudo se indican con <b>lineas discontinuas paralelas.</b>"
-      },
-      "slide-2": {
-        "title": "Sin indicador visual",
-        "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales."
-      },
-      "slide-3": {
-        "title": "Línea de parada",
-        "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales."
-      },
-      "slide-4": {
-        "title": "Banda de frenado",
-        "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales."
-      }
-    },
-    "signal": {
-      "slide-1": {
-        "title": "{{labelType}}",
-        "description": "Un semáforo peatonal indica cuándo los peatones pueden cruzar la calle y les da tiempo para que lo hagan de manera segura.<br><br> Algunas semáforos peatonales se activan con un botón para peatones a la altura de la cintura."
-      },
-      "slide-2": {
-        "title": "Señalización",
-        "description": "Esta señal no indica cuándo los peatones pueden cruzar la calle."
-      },
-      "slide-3": {
-        "title": "Polo",
-        "description": "Este poste no muestra señales de tráfico a los peatones."
-      },
-      "slide-4": {
-        "title": "Semáforo para vehículos",
-        "description": "Este semáforo es solo para vehículos, no para peatones."
-      }
+    "mission-start-tutorial": {
+        "example-type-label-correct": "EJEMPLO CORRECTO",
+        "label-type-subtitle": "¿Por qué está mal?",
+        "label-on-image-title-correct": "Etiqueta correcta",
+        "start-mission": "Iniciar misión",
+        "curb-ramp": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Las rampas en las banquetas permiten a las personas pasar de la banqueta a la calle. Deben existir en todas las intersecciones transitables."
+            },
+            "slide-2": {
+                "title": "Entrada de coches",
+                "description": "Las entradas de vehículos <b>no</b> son rampas para peatones. Están diseñados para vehículos y no para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de peatonal."
+            },
+            "slide-3": {
+                "title": "Garaje",
+                "description": "Las entradas a los garajes <b>no</b> son rampas para peatones. Las entradas de vehículos <b>no</b> deben etiquetarse como Rampas de peatonal."
+            }
+        },
+        "no-curb-ramp": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Las intersecciones de banquetas deben tener rampas en las banquetas, idealmente dos por esquina. Si una esquina tiene una banqueta pero no tiene una rampa peatonal, coloque la etiqueta Rampa peatonal ausente donde cree que debería existir una rampa peatonal."
+            },
+            "slide-2": {
+                "title": "Pasarelas residenciales",
+                "description": "Los pasillos residenciales <b>no</b> deben estar etiquetados como Rampas peatonales ausentes."
+            },
+            "slide-3": {
+                "title": "No en camino peatonal",
+                "description": "No se necesitan rampas peatonales en caminos <b>no</b> destinados al cruce peatonal."
+            },
+            "slide-4": {
+                "title": "$t(common:no-sidewalk)",
+                "description": "Para las esquinas sin <b>banquetas</b>, use la etiqueta No hay banqueta en lugar de la etiqueta Rampa peatonal ausente."
+            }
+        },
+        "obstacle": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Los obstáculos son barreras que impiden las <b>vías peatonales</b> para personas que usan sillas de ruedas, andadores u otras ayudas para la movilidad.<br><br>No todas las bocas de incendios, postes y letreros son obstáculos, solo aquellos que obstruyen claramente a los peatones caminos."
+            },
+            "slide-2": {
+                "title": "Amplio espacio para maniobrar",
+                "description": "La motocicleta está estacionada a un lado; hay un amplio espacio para peatones en el espacio restante de la banqueta."
+            },
+            "slide-3": {
+                "title": "Obstáculo no en la banqueta",
+                "description": "Este cono de tráfico <b>no</b> se encuentra en una vía peatonal, por lo que no debe marcarse como un obstáculo.<br><br> Solo marque obstáculos en banquetas, cruces peatonales y otras vías peatonales."
+            },
+            "slide-4": {
+                "title": "Objeto en movimiento",
+                "description": "El automóvil parece estar moviéndose en la imagen y no debe etiquetarse como Obstáculo."
+            }
+        },
+        "surface-problem": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Si hay algo en la superficie de la banqueta o del cruce peatonal que hace que sea <b>incómodo o imposible de cruzar,</b> debe etiquetarse como Problema en superficie."
+            },
+            "slide-2": {
+                "title": "Azulejos de banqueta normales",
+                "description": "Las baldosas de las banquetas normales (sin huecos, grietas o protuberancias) no son problemas en superficie."
+            },
+            "slide-3": {
+                "title": "No en camino peatonal",
+                "description": "Esta grava <b>no</b> se encuentra en un camino para peatones, por lo que no debe marcarse como un problema en superficie.<br><br>Solo marque los problemas en superficie en banquetas, cruces peatonales y otros caminos para peatones."
+            }
+        },
+        "no-sidewalk": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Si un lado de la calle no tiene banqueta, márquelo con una etiqueta <b>No hay banqueta</b>."
+            },
+            "slide-2": {
+                "title": "Mediana",
+                "description": "Una mediana que separa dos direcciones de tráfico y no está diseñada para peatones <b>no</b> debe etiquetarse como No hay banqueta."
+            },
+            "slide-3": {
+                "title": "Banqueta",
+                "description": "Hay una banqueta aquí. <b>No</b> debe estar marcado como No hay banqueta."
+            }
+        },
+        "crosswalk": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Un cruce peatonal es un espacio legalmente definido para cruzar una calle.<br><br>Los cruces peatonales a menudo se indican con <b>lineas discontinuas paralelas.</b>"
+            },
+            "slide-2": {
+                "title": "Sin indicador visual",
+                "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales."
+            },
+            "slide-3": {
+                "title": "Línea de parada",
+                "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales."
+            },
+            "slide-4": {
+                "title": "Banda de frenado",
+                "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales."
+            }
+        },
+        "signal": {
+            "slide-1": {
+                "title": "{{- labelType}}",
+                "description": "Un semáforo peatonal indica cuándo los peatones pueden cruzar la calle y les da tiempo para que lo hagan de manera segura.<br><br> Algunas semáforos peatonales se activan con un botón para peatones a la altura de la cintura."
+            },
+            "slide-2": {
+                "title": "Señalización",
+                "description": "Esta señal no indica cuándo los peatones pueden cruzar la calle."
+            },
+            "slide-3": {
+                "title": "Polo",
+                "description": "Este poste no muestra señales de tráfico a los peatones."
+            },
+            "slide-4": {
+                "title": "Semáforo para vehículos",
+                "description": "Este semáforo es solo para vehículos, no para peatones."
+            }
+        }
     }
-  }
 }
