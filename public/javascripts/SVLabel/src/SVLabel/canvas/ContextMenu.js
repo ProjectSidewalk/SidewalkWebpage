@@ -121,7 +121,7 @@ function ContextMenu (uiContextMenu) {
                 has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
             };
 
-            PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
+            PredictionModel.predictAndShowUI(data, labels[labels.length - 1], svl);
 
             // $.ajax({
             //     type: 'POST',

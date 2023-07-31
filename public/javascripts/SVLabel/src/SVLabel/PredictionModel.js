@@ -17,6 +17,9 @@ const PredictionModel = function () {
     let svlLocal = null; // SVLabel instance.
 
 
+    let session = null;
+
+
     // Important variable to track the current label.
     let currentLabel = null;
 
@@ -96,59 +99,64 @@ const PredictionModel = function () {
     async function predict(data) {
         // use an async context to call onnxruntime functions.
         try {
-            // create a new session and load the specific model.
-            //
-            // the model in this example contains a single MatMul node
-            // it has 2 inputs: 'a'(float32, 3x4) and 'b'(float32, 4x3)
-            // it has 1 output: 'c'(float32, 3x3)
-            const session = await ort.InferenceSession.create('assets/images/predictionModel.onnx');
 
             // prepare inputs. a tensor need its corresponding TypedArray as data
-            const dataA = Float32Array.from(data = [2, 2, 0, 0, 10, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-
-            // const dataB = Float32Array.from([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]);
-            const tensorA = new ort.Tensor('float32', dataA);
-            // const tensorB = new ort.Tensor('float32', dataB, [4, 3]);
-
-            const newTensor = tensorA.reshape([1, 23]);
+            const dataA = Float32Array.from(data = [data.severity, data.zoom, 0, 0, 10, 0, data.has_description, data.tag_count, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            const tensorA = new ort.Tensor('float32', dataA, [1, 23]);
 
             // prepare feeds. use model input names as keys.
-            const feeds = { dense_input: newTensor };
+            const feeds = { dense_input: tensorA };
 
             // feed inputs and run
-            const results = await session.run(['dense_2'], feeds);
+            const results = await session.run(feeds, ['dense_2']);
 
             // read from results
-            const dataC = results.c.data;
-            document.write(`data of result tensor 'c': ${dataC}`);
+            const dataC = results.dense_2.data[0];
+
+            return dataC;
 
         } catch (e) {
-            document.write(`failed to inference ONNX model: ${e}.`);
+            alert(`failed to inference ONNX model: ${e}.`);
         }
     }
 
 
-    function showLabelPredictionFlag (label, svl) {
+    function predictAndShowUI (data, label, svl) {
 
-        currentLabel = label;
+        if (session === null) {
+            alert('Please load a model first.');
+        }
 
-        // We probably don't want to reassign. Not sure if it has any implications.
-        // @Mikey please check.
-        if (svlLocal === null)
-            svlLocal = svl;
+        const t1 = new Date().getTime();
 
-        const labelProps = currentLabel.getProperties();
+        const predictedScore = predict(data);
 
-        $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
-        $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
+        predictedScore.then((score) => {
+            console.log(score);
 
-        $predictionModelPopupContainer.show();
-        const popupWidth = $predictionModelPopupContainer.width();
-        const popupHeight = $predictionModelPopupContainer.height();
+            console.log('Time elapsed: ' + (new Date().getTime() - t1).toString());
 
-        const left = labelProps.currCanvasXY.x - 24;
-        const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
-        $predictionModelPopupContainer.css({ left: left, top: top });
+            currentLabel = label;
+
+            // We probably don't want to reassign. Not sure if it has any implications.
+            // @Mikey please check.
+            if (svlLocal === null)
+                svlLocal = svl;
+
+            const labelProps = currentLabel.getProperties();
+
+            $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
+            $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
+
+            $predictionModelPopupContainer.show();
+            const popupWidth = $predictionModelPopupContainer.width();
+            const popupHeight = $predictionModelPopupContainer.height();
+
+            const left = labelProps.currCanvasXY.x - 24;
+            const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
+            $predictionModelPopupContainer.css({ left: left, top: top });
+
+        });
     }
 
     function showExamples(labelType, correctOrIncorrect) {
@@ -316,9 +324,14 @@ const PredictionModel = function () {
         });
     }
 
+    async function loadModel() {
+        session = await ort.InferenceSession.create('assets/images/predictionModel.onnx');
+    }
+
+    loadModel();
     attachEventHandlers();
 
     return {
-        showLabelPredictionFlag: showLabelPredictionFlag
+        predictAndShowUI: predictAndShowUI
     };
 }();
