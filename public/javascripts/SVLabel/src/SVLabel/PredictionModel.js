@@ -108,7 +108,7 @@ const PredictionModel = function () {
         $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
 
         $predictionModelPopupContainer.show();
-        const popupWidth = $predictionModelPopupContainer.width();
+
         const popupHeight = $predictionModelPopupContainer.height();
 
         const left = labelProps.currCanvasXY.x - 24;
@@ -144,8 +144,8 @@ const PredictionModel = function () {
             $('.examples-panel-title-icon.correct-examples-icon').show();
 
             $('.current-page', $commonMistakesPopup).text('2/2');
-            $('.correct-examples-button', $commonMistakesPopup).css('visibility', 'hidden');
-            $('.common-mistakes-button', $commonMistakesPopup).css('visibility', 'visible');
+            $('.correct-examples-button', $commonMistakesPopup).addClass('disabled');
+            $('.common-mistakes-button', $commonMistakesPopup).removeClass('disabled');
 
             $('.examples-panel-container').removeClass('common-mistakes').addClass('correct-examples');
 
@@ -157,8 +157,8 @@ const PredictionModel = function () {
             $('.examples-panel-title-icon.common-mistakes-icon').show();
 
             $('.current-page', $commonMistakesPopup).text('1/2');
-            $('.correct-examples-button', $commonMistakesPopup).css('visibility', 'visible');
-            $('.common-mistakes-button', $commonMistakesPopup).css('visibility', 'hidden');
+            $('.correct-examples-button', $commonMistakesPopup).removeClass('disabled');
+            $('.common-mistakes-button', $commonMistakesPopup).addClass('disabled');
 
             $('.examples-panel-container').removeClass('correct-examples').addClass('common-mistakes');
         }
@@ -224,6 +224,8 @@ const PredictionModel = function () {
             return $commonMistakesPopup.is(':visible');
         }
 
+        // @Mikey, I think this way of attaching multiple event handlers on document is not the best way.
+        // But I am following the other modules for now to keep the consistency. - Minchu
         $(document).on('mousedown', (e) => {
 
             // If the user clicks anywhere outside the popup, hide the popup.
