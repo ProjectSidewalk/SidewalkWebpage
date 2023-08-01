@@ -29,8 +29,19 @@ case class ApiFields(centerLat: Double, centerLng: Double, zoom: Double, latOne:
   }
 }
 
-case class Config(openStatus: String, mapathonEventLink: Option[String], cityMapParams: CityMapParams,
-                  defaultMapZoom: Double, tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String,
+case class LatLngPair(lat: Double, lng: Double) {
+  /**
+    * Converts the data into the JSON format.
+    *
+    * @return
+    */
+  def toJSON: JsObject = {
+    Json.obj("lat" -> lat, "lng" -> lng)
+  }
+}
+
+case class Config(openStatus: String, mapathonEventLink: Option[String], cityCenterPair: LatLngPair,
+                  southwestPair: LatLngPair, northeastPair: LatLngPair, defaultMapZoom: Double, tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String,
                   apiAttribute: ApiFields,  apiStreet: ApiFields, apiRegion: ApiFields)
 
 class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewalk"), "config") {
@@ -68,16 +79,16 @@ class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewa
   def apiRegionLatTwo: Column[Double] = column[Double]("api_region_lat2", O.NotNull)
   def apiRegionLngTwo: Column[Double] = column[Double]("api_region_lng2", O.NotNull)
 
-  def * = (openStatus, mapathonEventLink, (cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng), defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags,
+  def * = (openStatus, mapathonEventLink, (cityCenterLat, cityCenterLng), (southwestBoundaryLat, southwestBoundaryLng), (northeastBoundaryLat, northeastBoundaryLng), defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags,
     (apiAttributeCenterLat, apiAttributeCenterLng, apiAttributeZoom, apiAttributeLatOne, apiAttributeLngOne, apiAttributeLatTwo, apiAttributeLngTwo), (apiStreetCenterLat, apiStreetCenterLng, apiStreetZoom, apiStreetLatOne, apiStreetLngOne, apiStreetLatTwo, apiStreetLngTwo), (apiRegionCenterLat, apiRegionCenterLng, apiRegionZoom, apiRegionLatOne, apiRegionLngOne, apiRegionLatTwo, apiRegionLngTwo)
   ).shaped <> ( {
-    case (openStatus, mapathonEventLink, cityMapParams, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, apiAttribute, apiStreet, apiRegion) =>
-      Config(openStatus, mapathonEventLink, CityMapParams.tupled.apply(cityMapParams), defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, ApiFields.tupled.apply(apiAttribute), ApiFields.tupled.apply(apiStreet), ApiFields.tupled.apply(apiRegion))
+    case (openStatus, mapathonEventLink, cityCenterPair, southwestPair, northeastPair, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, apiAttribute, apiStreet, apiRegion) =>
+      Config(openStatus, mapathonEventLink, LatLngPair.tupled.apply(cityCenterPair), LatLngPair.tupled.apply(southwestPair), LatLngPair.tupled.apply(northeastPair), defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, ApiFields.tupled.apply(apiAttribute), ApiFields.tupled.apply(apiStreet), ApiFields.tupled.apply(apiRegion))
   }, {
     c: Config =>
       def f1(i: ApiFields) = ApiFields.unapply(i).get
-      def f2(i: CityMapParams) = CityMapParams.unapply(i).get
-      Some((c.openStatus, c.mapathonEventLink, f2(c.cityMapParams), c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, f1(c.apiAttribute), f1(c.apiStreet), f1(c.apiRegion)))
+      def f2(i: LatLngPair) = LatLngPair.unapply(i).get
+      Some((c.openStatus, c.mapathonEventLink, f2(c.cityCenterPair), f2(c.southwestPair), f2(c.northeastPair), c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, f1(c.apiAttribute), f1(c.apiStreet), f1(c.apiRegion)))
     }
   )
 }
@@ -92,6 +103,16 @@ object ConfigTable {
   def getApiFields: (ApiFields, ApiFields, ApiFields) = db.withSession { implicit session =>
     val config = TableQuery[ConfigTable].run.head
     (config.apiAttribute, config.apiStreet, config.apiRegion)
+  }
+
+  def getDirectionCords: (LatLngPair, LatLngPair) = db.withSession { implicit session =>
+    val config = TableQuery[ConfigTable].run.head
+    (config.southwestPair, config.northeastPair)
+  }
+
+  def getCityCords: LatLngPair = db.withSession { implicit session =>
+    val config = TableQuery[ConfigTable].run.head
+    (config.cityCenterPair)
   }
 
   def getTutorialStreetId: Int = db.withSession { implicit session =>

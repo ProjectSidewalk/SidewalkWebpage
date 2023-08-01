@@ -10,7 +10,7 @@ import play.api.Play.current
 import play.api.mvc.Action
 import play.api.libs.json._
 import scala.concurrent.Future
-import models.attribute.{ConfigTable, ApiFields}
+import models.attribute.{ConfigTable, ApiFields, LatLngPair}
 
 /**
  * Holds the HTTP requests associated with getting data from the parameters in our config files.
@@ -25,18 +25,14 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    */
   def getCityMapParams() = Action.async { implicit request =>
     val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
-    val cityLat: Double = ConfigTable.getCityLat
-    val cityLng: Double = ConfigTable.getCityLng
-    val southwestLat: Double = ConfigTable.getSouthwestLat
-    val southwestLng: Double = ConfigTable.getSouthwestLng
-    val northeastLat: Double = ConfigTable.getNortheastLat
-    val northeastLng: Double = ConfigTable.getNortheastLng
+    val cityCenterPair: (LatLngPair) = ConfigTable.getCityCords
+    val (southwestPair, northeastPair): (LatLngPair, LatLngPair) = ConfigTable.getDirectionCords
     val defaultZoom: Double = ConfigTable.getDefaultMapZoom
     Future.successful(Ok(Json.obj(
       "mapbox_api_key" -> mapboxApiKey,
-      "city_center" -> Json.obj("lat" -> cityLat, "lng" -> cityLng),
-      "southwest_boundary" -> Json.obj("lat" -> southwestLat, "lng" -> southwestLng),
-      "northeast_boundary" -> Json.obj("lat" -> northeastLat, "lng" -> northeastLng),
+      "city_center" -> cityCenterPair.toJSON,
+      "southwest_boundary" -> southwestPair.toJSON,
+      "northeast_boundary" -> northeastPair.toJSON,
       "default_zoom" -> defaultZoom
     )))
   }
@@ -55,16 +51,12 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    */
   def getCityAPIDemoParams() = Action.async { implicit request =>
     val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
-    val southwestLat: Double = ConfigTable.getSouthwestLat
-    val southwestLng: Double = ConfigTable.getSouthwestLng
-    val northeastLat: Double = ConfigTable.getNortheastLat
-    val northeastLng: Double = ConfigTable.getNortheastLng
+    val (southwestPair, northeastPair): (LatLngPair, LatLngPair) = ConfigTable.getDirectionCords
     val (apiAttribute, apiStreet, apiRegion): (ApiFields, ApiFields, ApiFields) = ConfigTable.getApiFields
-    
     Future.successful(Ok(Json.obj(
       "mapbox_api_key" -> mapboxApiKey,
-      "southwest_boundary" -> Json.obj("lat" -> southwestLat, "lng" -> southwestLng),
-      "northeast_boundary" -> Json.obj("lat" -> northeastLat, "lng" -> northeastLng),
+      "southwest_boundary" -> southwestPair.toJSON,
+      "northeast_boundary" -> northeastPair.toJSON,
       "attribute" -> apiAttribute.toJSON,
       "street" -> apiStreet.toJSON,
       "region" -> apiRegion.toJSON
