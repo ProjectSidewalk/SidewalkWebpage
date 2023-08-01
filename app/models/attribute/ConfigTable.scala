@@ -7,23 +7,10 @@ import play.api.libs.json._
 import scala.slick.lifted.ForeignKeyQuery
 
 case class CityMapParams(cityCenterLat: Double, cityCenterLng: Double, southwestBoundaryLat: Double,
-                         southwestBoundaryLng: Double, northeastBoundaryLat: Double, northeastBoundaryLng: Double) {
-  /**
-    * Converts the data into the JSON format.
-    *
-    * @return
-    */
-  def toJSON: JsObject = {
-    Json.obj(
-      "city_center" -> Json.obj("lat" -> cityCenterLat, "lng" -> cityCenterLng),
-      "southwest_boundary" -> Json.obj("lat" -> southwestBoundaryLat, "lng" -> southwestBoundaryLng),
-      "northeast_boundary" -> Json.obj("lat" -> northeastBoundaryLat, "lng" -> northeastBoundaryLng)
-    )
-  }
-}
+                         southwestBoundaryLng: Double, northeastBoundaryLat: Double, northeastBoundaryLng: Double)
 
-case class ApiAttribute(apiAttributeCenterLat: Double, apiAttributeCenterLng: Double,
-                        apiAttributeZoom: Double, apiAttributeLatOne: Double, apiAttributeLngOne: Double, apiAttributeLatTwo: Double,
+case class ApiAttribute(apiAttributeCenterLat: Double, apiAttributeCenterLng: Double, apiAttributeZoom: Double,
+                        apiAttributeLatOne: Double, apiAttributeLngOne: Double, apiAttributeLatTwo: Double,
                         apiAttributeLngTwo: Double) {
   /**
     * Converts the data into the JSON format.
@@ -83,7 +70,9 @@ case class ApiRegion(apiRegionCenterLat: Double, apiRegionCenterLng: Double, api
   }
 }
 
-case class Config(openStatus: String, mapathonEventLink: Option[String], cityMapParams: CityMapParams, defaultMapZoom: Double, tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, apiAttribute: ApiAttribute,  apiStreet: ApiStreet, apiRegion: ApiRegion)
+case class Config(openStatus: String, mapathonEventLink: Option[String], cityMapParams: CityMapParams,
+                  defaultMapZoom: Double, tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String,
+                  apiAttribute: ApiAttribute,  apiStreet: ApiStreet, apiRegion: ApiRegion)
 
 class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewalk"), "config") {
   def openStatus: Column[String] = column[String]("open_status", O.NotNull)
@@ -142,6 +131,22 @@ class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewa
 object ConfigTable {
   val db = play.api.db.slick.DB
   val config = TableQuery[ConfigTable]
+
+  def getCityMapParams: CityMapParams = db.withSession { implicit session =>
+    CityMapParams.tupled(config.map(c => (c.cityCenterLat, c.cityCenterLng, c.southwestBoundaryLat, c.southwestBoundaryLng, c.northeastBoundaryLat, c.northeastBoundaryLng)).list.head)
+  }
+
+  def getApiAttribute: ApiAttribute = db.withSession { implicit session =>
+    ApiAttribute.tupled(config.map(c => (c.apiAttributeCenterLat, c.apiAttributeCenterLng, c.apiAttributeZoom, c.apiAttributeLatOne, c.apiAttributeLngOne, c.apiAttributeLatTwo, c.apiAttributeLngTwo)).list.head)
+  }
+
+  def getApiStreet: ApiStreet = db.withSession { implicit session =>
+    ApiStreet.tupled(config.map(c => (c.apiStreetCenterLat, c.apiStreetCenterLng, c.apiStreetZoom, c.apiStreetLatOne, c.apiStreetLngOne, c.apiStreetLatTwo, c.apiStreetLngTwo)).list.head)
+  }
+
+  def getApiRegion: ApiRegion = db.withSession { implicit session =>
+    ApiRegion.tupled(config.map(c => (c.apiRegionCenterLat, c.apiRegionCenterLng, c.apiRegionZoom, c.apiRegionLatOne, c.apiRegionLngOne, c.apiRegionLatTwo, c.apiRegionLngTwo)).list.head)
+  }
 
   def getTutorialStreetId: Int = db.withSession { implicit session =>
     config.map(_.tutorialStreetEdgeID).list.head
