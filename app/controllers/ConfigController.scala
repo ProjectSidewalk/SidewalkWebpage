@@ -10,7 +10,7 @@ import play.api.Play.current
 import play.api.mvc.Action
 import play.api.libs.json._
 import scala.concurrent.Future
-import models.attribute.{ConfigTable, ApiFields, LatLngPair}
+import models.attribute.{ConfigTable, MapParams}
 
 /**
  * Holds the HTTP requests associated with getting data from the parameters in our config files.
@@ -24,16 +24,13 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
   def getCityMapParams() = Action.async { implicit request =>
-    val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
-    val cityCenterPair: (LatLngPair) = ConfigTable.getCityCords
-    val (southwestPair, northeastPair): (LatLngPair, LatLngPair) = ConfigTable.getDirectionCords
-    val defaultZoom: Double = ConfigTable.getDefaultMapZoom
+    val cityMapParams: MapParams = ConfigTable.getCityMapParams
     Future.successful(Ok(Json.obj(
-      "mapbox_api_key" -> mapboxApiKey,
-      "city_center" -> cityCenterPair.toJSON,
-      "southwest_boundary" -> southwestPair.toJSON,
-      "northeast_boundary" -> northeastPair.toJSON,
-      "default_zoom" -> defaultZoom
+      "mapbox_api_key" -> Play.configuration.getString("mapbox-api-key").get,
+      "city_center" -> Json.obj("lat" -> cityMapParams.centerLat, "lng" -> cityMapParams.centerLng),
+      "southwest_boundary" -> Json.obj("lat" -> cityMapParams.lat1, "lng" -> cityMapParams.lng1),
+      "northeast_boundary" -> Json.obj("lat" -> cityMapParams.lat2, "lng" -> cityMapParams.lng2),
+      "default_zoom" -> cityMapParams.zoom
     )))
   }
 
@@ -50,13 +47,12 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
    * Get all city-specific parameters needed for the API page demos.
    */
   def getCityAPIDemoParams() = Action.async { implicit request =>
-    val mapboxApiKey: String = Play.configuration.getString("mapbox-api-key").get
-    val (southwestPair, northeastPair): (LatLngPair, LatLngPair) = ConfigTable.getDirectionCords
-    val (apiAttribute, apiStreet, apiRegion): (ApiFields, ApiFields, ApiFields) = ConfigTable.getApiFields
+    val cityMapParams: MapParams = ConfigTable.getCityMapParams
+    val (apiAttribute, apiStreet, apiRegion): (MapParams, MapParams, MapParams) = ConfigTable.getApiFields
     Future.successful(Ok(Json.obj(
-      "mapbox_api_key" -> mapboxApiKey,
-      "southwest_boundary" -> southwestPair.toJSON,
-      "northeast_boundary" -> northeastPair.toJSON,
+      "mapbox_api_key" -> Play.configuration.getString("mapbox-api-key").get,
+      "southwest_boundary" -> Json.obj("lat" -> cityMapParams.lat1, "lng" -> cityMapParams.lng1),
+      "northeast_boundary" -> Json.obj("lat" -> cityMapParams.lat2, "lng" -> cityMapParams.lng2),
       "attribute" -> apiAttribute.toJSON,
       "street" -> apiStreet.toJSON,
       "region" -> apiRegion.toJSON
