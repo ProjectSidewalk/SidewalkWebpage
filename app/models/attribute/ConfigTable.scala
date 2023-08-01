@@ -132,21 +132,26 @@ object ConfigTable {
   val db = play.api.db.slick.DB
   val config = TableQuery[ConfigTable]
 
-  def getCityMapParams: CityMapParams = db.withSession { implicit session =>
-    CityMapParams.tupled(config.map(c => (c.cityCenterLat, c.cityCenterLng, c.southwestBoundaryLat, c.southwestBoundaryLng, c.northeastBoundaryLat, c.northeastBoundaryLng)).list.head)
+  def getApiFields: (ApiAttribute, ApiStreet, ApiRegion) = db.withSession { implicit session =>
+    (
+      ApiAttribute.tupled(config.map(c => (c.apiAttributeCenterLat, c.apiAttributeCenterLng, c.apiAttributeZoom, c.apiAttributeLatOne, c.apiAttributeLngOne, c.apiAttributeLatTwo, c.apiAttributeLngTwo)).list.head),
+      ApiStreet.tupled(config.map(c => (c.apiStreetCenterLat, c.apiStreetCenterLng, c.apiStreetZoom, c.apiStreetLatOne, c.apiStreetLngOne, c.apiStreetLatTwo, c.apiStreetLngTwo)).list.head),
+      ApiRegion.tupled(config.map(c => (c.apiRegionCenterLat, c.apiRegionCenterLng, c.apiRegionZoom, c.apiRegionLatOne, c.apiRegionLngOne, c.apiRegionLatTwo, c.apiRegionLngTwo)).list.head)
+    )
   }
 
-  def getApiAttribute: ApiAttribute = db.withSession { implicit session =>
-    ApiAttribute.tupled(config.map(c => (c.apiAttributeCenterLat, c.apiAttributeCenterLng, c.apiAttributeZoom, c.apiAttributeLatOne, c.apiAttributeLngOne, c.apiAttributeLatTwo, c.apiAttributeLngTwo)).list.head)
-  }
-
-  def getApiStreet: ApiStreet = db.withSession { implicit session =>
-    ApiStreet.tupled(config.map(c => (c.apiStreetCenterLat, c.apiStreetCenterLng, c.apiStreetZoom, c.apiStreetLatOne, c.apiStreetLngOne, c.apiStreetLatTwo, c.apiStreetLngTwo)).list.head)
-  }
-
-  def getApiRegion: ApiRegion = db.withSession { implicit session =>
-    ApiRegion.tupled(config.map(c => (c.apiRegionCenterLat, c.apiRegionCenterLng, c.apiRegionZoom, c.apiRegionLatOne, c.apiRegionLngOne, c.apiRegionLatTwo, c.apiRegionLngTwo)).list.head)
-  }
+//  will remove these after approval
+//  def getApiAttribute: ApiAttribute = db.withSession { implicit session =>
+//    ApiAttribute.tupled(config.map(c => (c.apiAttributeCenterLat, c.apiAttributeCenterLng, c.apiAttributeZoom, c.apiAttributeLatOne, c.apiAttributeLngOne, c.apiAttributeLatTwo, c.apiAttributeLngTwo)).list.head)
+//  }
+//
+//  def getApiStreet: ApiStreet = db.withSession { implicit session =>
+//    ApiStreet.tupled(config.map(c => (c.apiStreetCenterLat, c.apiStreetCenterLng, c.apiStreetZoom, c.apiStreetLatOne, c.apiStreetLngOne, c.apiStreetLatTwo, c.apiStreetLngTwo)).list.head)
+//  }
+//
+//  def getApiRegion: ApiRegion = db.withSession { implicit session =>
+//    ApiRegion.tupled(config.map(c => (c.apiRegionCenterLat, c.apiRegionCenterLng, c.apiRegionZoom, c.apiRegionLatOne, c.apiRegionLngOne, c.apiRegionLatTwo, c.apiRegionLngTwo)).list.head)
+//  }
 
   def getTutorialStreetId: Int = db.withSession { implicit session =>
     config.map(_.tutorialStreetEdgeID).list.head
@@ -195,89 +200,4 @@ object ConfigTable {
   def getDefaultMapZoom: Double = db.withSession { implicit session =>
     config.map(_.defaultMapZoom).list.head
   }
-
-  def getApiAttributeCenterLat: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeCenterLat).list.head
-  }
-
-  def getApiAttributeCenterLng: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeCenterLng).list.head
-  }
-
-  def getAttributeZoom: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeZoom).list.head
-  }
-
-  def getAttributeLatOne: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeLatOne).list.head
-  }
-
-  def getAttributeLngOne: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeLngOne).list.head
-  }
-
-  def getAttributeLatTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeLatTwo).list.head
-  }
-
-  def getAttributeLngTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiAttributeLngTwo).list.head
-  }
-
-  def getStreetCenterLat: Double = db.withSession { implicit session =>
-    config.map(_.apiStreetCenterLat).list.head
-  }
-
-  def getStreetCenterLng: Double = db.withSession { implicit session =>
-    config.map(_.apiStreetCenterLng).list.head
-  }
-
-  def getStreetZoom: Double = db.withSession { implicit session =>
-    config.map(_.apiStreetZoom).list.head
-  }
-
-  def getStreetLatOne: Double = db.withSession { implicit session =>
-    config.map(_.apiStreetLatOne).list.head
-  }
-
-  def getStreetLngOne: Double = db.withSession { implicit session =>
-    config.map(_.apiStreetLngOne).list.head
-  }
-
-  def getStreetLatTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiStreetLatTwo).list.head
-  }
-
-  def getStreetLngTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiStreetLngTwo).list.head
-  }
-
-  def getRegionCenterLat: Double = db.withSession { implicit session =>
-    config.map(_.apiRegionCenterLat).list.head
-  }
-
-  def getRegionCenterLng: Double = db.withSession { implicit session =>
-    config.map(_.apiRegionCenterLng).list.head
-  }
-
-  def getRegionZoom: Double = db.withSession { implicit session =>
-    config.map(_.apiRegionZoom).list.head
-  }
-
-  def getRegionLatOne: Double = db.withSession { implicit session =>
-    config.map(_.apiRegionLatOne).list.head
-  }
-
-  def getRegionLngOne: Double = db.withSession { implicit session =>
-    config.map(_.apiRegionLngOne).list.head
-  }
-
-  def getRegionLatTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiRegionLatTwo).list.head
-  }
-
-  def getRegionLngTwo: Double = db.withSession { implicit session =>
-    config.map(_.apiRegionLngTwo).list.head
-  }
-
 }

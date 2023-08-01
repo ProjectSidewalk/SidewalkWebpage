@@ -10,7 +10,7 @@ import play.api.Play.current
 import play.api.mvc.Action
 import play.api.libs.json._
 import scala.concurrent.Future
-import models.attribute.{ConfigTable, CityMapParams, ApiAttribute, ApiStreet, ApiRegion}
+import models.attribute.{ConfigTable, ApiAttribute, ApiStreet, ApiRegion}
 
 /**
  * Holds the HTTP requests associated with getting data from the parameters in our config files.
@@ -59,36 +59,10 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
     val southwestLng: Double = ConfigTable.getSouthwestLng
     val northeastLat: Double = ConfigTable.getNortheastLat
     val northeastLng: Double = ConfigTable.getNortheastLng
-
-    val apiAttribute: JsObject = ConfigTable.getApiAttribute.toJSON
-
-//    val attributeCenterLat: Double = ConfigTable.getApiAttributeCenterLat
-//    val attributeCenterLng: Double = ConfigTable.getApiAttributeCenterLng
-//    val attributeZoom: Double = ConfigTable.getAttributeZoom
-//    val attributeLat1: Double = ConfigTable.getAttributeLatOne
-//    val attributeLng1: Double = ConfigTable.getAttributeLngOne
-//    val attributeLat2: Double = ConfigTable.getAttributeLatTwo
-//    val attributeLng2: Double = ConfigTable.getAttributeLngTwo
-
-    val apiStreet: JsObject = ConfigTable.getApiStreet.toJSON
-
-//    val streetCenterLat: Double = ConfigTable.getStreetCenterLat
-//    val streetCenterLng: Double = ConfigTable.getStreetCenterLng
-//    val streetZoom: Double = ConfigTable.getStreetZoom
-//    val streetLat1: Double = ConfigTable.getStreetLatOne
-//    val streetLng1: Double = ConfigTable.getStreetLngOne
-//    val streetLat2: Double = ConfigTable.getStreetLatTwo
-//    val streetLng2: Double = ConfigTable.getStreetLngTwo
-
-    val apiRegion: JsObject = ConfigTable.getApiRegion.toJSON
-
-//    val regionCenterLat: Double = ConfigTable.getRegionCenterLat
-//    val regionCenterLng: Double = ConfigTable.getRegionCenterLng
-//    val regionZoom: Double = ConfigTable.getRegionZoom
-//    val regionLat1: Double = ConfigTable.getRegionLatOne
-//    val regionLng1: Double = ConfigTable.getRegionLngOne
-//    val regionLat2: Double = ConfigTable.getRegionLatTwo
-//    val regionLng2: Double = ConfigTable.getRegionLngTwo
+    val apiFields: (ApiAttribute, ApiStreet, ApiRegion) = ConfigTable.getApiFields
+    val apiAttribute: JsObject = apiFields._1.toJSON
+    val apiStreet: JsObject = apiFields._2.toJSON
+    val apiRegion: JsObject = apiFields._3.toJSON
 
     Future.successful(Ok(Json.obj(
       "mapbox_api_key" -> mapboxApiKey,
