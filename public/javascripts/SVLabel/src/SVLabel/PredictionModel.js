@@ -17,6 +17,9 @@ const PredictionModel = function () {
     let svlLocal = null; // SVLabel instance.
 
 
+    let session = null;
+
+
     // Important variable to track the current label.
     let currentLabel = null;
 
@@ -93,27 +96,67 @@ const PredictionModel = function () {
     };
 
 
-    function showLabelPredictionFlag (label, svl) {
+    async function predict(data) {
+        // use an async context to call onnxruntime functions.
+        try {
 
-        currentLabel = label;
+            // prepare inputs. a tensor need its corresponding TypedArray as data
+            const dataA = Float32Array.from(data = [data.severity, data.zoom, 0, 0, 10, 0, data.has_description, data.tag_count, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            const tensorA = new ort.Tensor('float32', dataA, [1, 23]);
 
-        // We probably don't want to reassign. Not sure if it has any implications.
-        // @Mikey please check.
-        if (svlLocal === null)
-            svlLocal = svl;
+            // prepare feeds. use model input names as keys.
+            const feeds = { dense_input: tensorA };
 
-        const labelProps = currentLabel.getProperties();
+            // feed inputs and run
+            const results = await session.run(feeds, ['dense_2']);
 
-        $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
-        $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
+            // read from results
+            const dataC = results.dense_2.data[0];
+
+            return dataC;
+
+        } catch (e) {
+            alert(`failed to inference ONNX model: ${e}.`);
+        }
+    }
+
+
+    function predictAndShowUI (data, label, svl) {
+
+        if (session === null) {
+            alert('Please load a model first.');
+        }
+
+        const t1 = new Date().getTime();
+
+        const predictedScore = predict(data);
+
+        predictedScore.then((score) => {
+            console.log(score);
+
+            console.log('Time elapsed: ' + (new Date().getTime() - t1).toString());
+
+            currentLabel = label;
+
+            // We probably don't want to reassign. Not sure if it has any implications.
+            // @Mikey please check.
+            if (svlLocal === null)
+                svlLocal = svl;
+
+            const labelProps = currentLabel.getProperties();
+
+            $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
+            $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
 
         $predictionModelPopupContainer.show();
 
-        const popupHeight = $predictionModelPopupContainer.height();
+            const popupHeight = $predictionModelPopupContainer.height();
 
-        const left = labelProps.currCanvasXY.x - 24;
-        const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
-        $predictionModelPopupContainer.css({ left: left, top: top });
+            const left = labelProps.currCanvasXY.x - 24;
+            const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
+            $predictionModelPopupContainer.css({ left: left, top: top });
+
+        });
     }
 
     function showExamples(labelType, correctOrIncorrect) {
@@ -283,9 +326,14 @@ const PredictionModel = function () {
         });
     }
 
+    async function loadModel() {
+        session = await ort.InferenceSession.create('assets/images/predictionModel.onnx');
+    }
+
+    loadModel();
     attachEventHandlers();
 
     return {
-        showLabelPredictionFlag: showLabelPredictionFlag
+        predictAndShowUI: predictAndShowUI
     };
 }();
