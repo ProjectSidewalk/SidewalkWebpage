@@ -10,7 +10,7 @@ import play.api.Play.current
 import play.api.mvc.Action
 import play.api.libs.json._
 import scala.concurrent.Future
-import models.attribute.{ConfigTable, ApiAttribute, ApiStreet, ApiRegion}
+import models.attribute.{ConfigTable, ApiFields}
 
 /**
  * Holds the HTTP requests associated with getting data from the parameters in our config files.
@@ -59,18 +59,15 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
     val southwestLng: Double = ConfigTable.getSouthwestLng
     val northeastLat: Double = ConfigTable.getNortheastLat
     val northeastLng: Double = ConfigTable.getNortheastLng
-    val apiFields: (ApiAttribute, ApiStreet, ApiRegion) = ConfigTable.getApiFields
-    val apiAttribute: JsObject = apiFields._1.toJSON
-    val apiStreet: JsObject = apiFields._2.toJSON
-    val apiRegion: JsObject = apiFields._3.toJSON
-
+    val (apiAttribute, apiStreet, apiRegion): (ApiFields, ApiFields, ApiFields) = ConfigTable.getApiFields
+    
     Future.successful(Ok(Json.obj(
       "mapbox_api_key" -> mapboxApiKey,
       "southwest_boundary" -> Json.obj("lat" -> southwestLat, "lng" -> southwestLng),
       "northeast_boundary" -> Json.obj("lat" -> northeastLat, "lng" -> northeastLng),
-      "attribute" -> apiAttribute,
-      "street" -> apiStreet,
-      "region" -> apiRegion
+      "attribute" -> apiAttribute.toJSON,
+      "street" -> apiStreet.toJSON,
+      "region" -> apiRegion.toJSON
     )))
   }
 }
