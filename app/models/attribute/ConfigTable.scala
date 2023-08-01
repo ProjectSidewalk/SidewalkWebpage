@@ -3,18 +3,87 @@ package models.attribute
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import play.api.libs.json._
 import scala.slick.lifted.ForeignKeyQuery
 
-case class ConfigApi(apiAttributeCenterLat: Double, apiAttributeCenterLng: Double,
-                     apiAttributeZoom: Double, apiAttributeLatOne: Double, apiAttributeLngOne: Double, apiAttributeLatTwo: Double,
-                     apiAttributeLngTwo: Double, apiStreetCenterLat: Double, apiStreetCenterLng: Double, apiStreetZoom: Double,
-                     apiStreetLatOne: Double, apiStreetLngOne: Double, apiStreetLatTwo: Double, apiStreetLngTwo: Double,
-                     apiRegionCenterLat: Double, apiRegionCenterLng: Double, apiRegionZoom: Double, apiRegionLatOne: Double,
-                     apiRegionLngOne: Double, apiRegionLatTwo: Double, apiRegionLngTwo: Double)
+case class CityMapParams(cityCenterLat: Double, cityCenterLng: Double, southwestBoundaryLat: Double,
+                         southwestBoundaryLng: Double, northeastBoundaryLat: Double, northeastBoundaryLng: Double) {
+  /**
+    * Converts the data into the JSON format.
+    *
+    * @return
+    */
+  def toJSON: JsObject = {
+    Json.obj(
+      "city_center" -> Json.obj("lat" -> cityCenterLat, "lng" -> cityCenterLng),
+      "southwest_boundary" -> Json.obj("lat" -> southwestBoundaryLat, "lng" -> southwestBoundaryLng),
+      "northeast_boundary" -> Json.obj("lat" -> northeastBoundaryLat, "lng" -> northeastBoundaryLng)
+    )
+  }
+}
 
-case class Config(openStatus: String, mapathonEventLink: Option[String], cityCenterLat: Double, cityCenterLng: Double, southwestBoundaryLat: Double,
-                  southwestBoundaryLng: Double, northeastBoundaryLat: Double, northeastBoundaryLng: Double, defaultMapZoom: Double,
-                  tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, configApi: ConfigApi)
+case class ApiAttribute(apiAttributeCenterLat: Double, apiAttributeCenterLng: Double,
+                        apiAttributeZoom: Double, apiAttributeLatOne: Double, apiAttributeLngOne: Double, apiAttributeLatTwo: Double,
+                        apiAttributeLngTwo: Double) {
+  /**
+    * Converts the data into the JSON format.
+    *
+    * @return
+    */
+  def toJSON: JsObject = {
+    Json.obj(
+      "center_lat" -> apiAttributeCenterLat,
+      "center_lng" -> apiAttributeCenterLng,
+      "zoom" -> apiAttributeZoom,
+      "lat1" -> apiAttributeLatOne,
+      "lng1" -> apiAttributeLngOne,
+      "lat2" -> apiAttributeLatTwo,
+      "lng2" -> apiAttributeLngTwo
+    )
+  }
+}
+
+case class ApiStreet(apiStreetCenterLat: Double, apiStreetCenterLng: Double, apiStreetZoom: Double,
+                     apiStreetLatOne: Double, apiStreetLngOne: Double, apiStreetLatTwo: Double, apiStreetLngTwo: Double) {
+  /**
+    * Converts the data into the JSON format.
+    *
+    * @return
+    */
+  def toJSON: JsObject = {
+    Json.obj(
+      "center_lat" -> apiStreetCenterLat,
+      "center_lng" -> apiStreetCenterLng,
+      "zoom" -> apiStreetZoom,
+      "lat1" -> apiStreetLatOne,
+      "lng1" -> apiStreetLngOne,
+      "lat2" -> apiStreetLatTwo,
+      "lng2" -> apiStreetLngTwo
+    )
+  }
+}
+
+case class ApiRegion(apiRegionCenterLat: Double, apiRegionCenterLng: Double, apiRegionZoom: Double, apiRegionLatOne: Double,
+                     apiRegionLngOne: Double, apiRegionLatTwo: Double, apiRegionLngTwo: Double) {
+  /**
+    * Converts the data into the JSON format.
+    *
+    * @return
+    */
+  def toJSON: JsObject = {
+    Json.obj(
+      "center_lat" -> apiRegionCenterLat,
+      "center_lng" -> apiRegionCenterLng,
+      "zoom" -> apiRegionZoom,
+      "lat1" -> apiRegionLatOne,
+      "lng1" -> apiRegionLngOne,
+      "lat2" -> apiRegionLatTwo,
+      "lng2" -> apiRegionLngTwo
+    )
+  }
+}
+
+case class Config(openStatus: String, mapathonEventLink: Option[String], cityMapParams: CityMapParams, defaultMapZoom: Double, tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, apiAttribute: ApiAttribute,  apiStreet: ApiStreet, apiRegion: ApiRegion)
 
 class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewalk"), "config") {
   def openStatus: Column[String] = column[String]("open_status", O.NotNull)
@@ -51,16 +120,18 @@ class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewa
   def apiRegionLatTwo: Column[Double] = column[Double]("api_region_lat2", O.NotNull)
   def apiRegionLngTwo: Column[Double] = column[Double]("api_region_lng2", O.NotNull)
 
-  def * = (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags, (
-    apiAttributeCenterLat, apiAttributeCenterLng, apiAttributeZoom, apiAttributeLatOne, apiAttributeLngOne, apiAttributeLatTwo, apiAttributeLngTwo, apiStreetCenterLat, apiStreetCenterLng, apiStreetZoom, apiStreetLatOne, apiStreetLngOne, apiStreetLatTwo, apiStreetLngTwo, apiRegionCenterLat, apiRegionCenterLng, apiRegionZoom, apiRegionLatOne, apiRegionLngOne, apiRegionLatTwo, apiRegionLngTwo
-  )
-    ).shaped <> ( {
-    case (openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, configApi) =>
-      Config(openStatus, mapathonEventLink, cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, ConfigApi.tupled.apply(configApi))
+  def * = (openStatus, mapathonEventLink, (cityCenterLat, cityCenterLng, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng), defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTags,
+    (apiAttributeCenterLat, apiAttributeCenterLng, apiAttributeZoom, apiAttributeLatOne, apiAttributeLngOne, apiAttributeLatTwo, apiAttributeLngTwo), (apiStreetCenterLat, apiStreetCenterLng, apiStreetZoom, apiStreetLatOne, apiStreetLngOne, apiStreetLatTwo, apiStreetLngTwo), (apiRegionCenterLat, apiRegionCenterLng, apiRegionZoom, apiRegionLatOne, apiRegionLngOne, apiRegionLatTwo, apiRegionLngTwo)
+  ).shaped <> ( {
+    case (openStatus, mapathonEventLink, cityMapParams, defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, apiAttribute, apiStreet, apiRegion) =>
+      Config(openStatus, mapathonEventLink, CityMapParams.tupled.apply(cityMapParams), defaultMapZoom, tutorialStreetEdgeID, offsetHours, excludedTag, ApiAttribute.tupled.apply(apiAttribute), ApiStreet.tupled.apply(apiStreet), ApiRegion.tupled.apply(apiRegion))
   }, {
     c: Config =>
-      def f(i: ConfigApi) = ConfigApi.unapply(i).get
-      Some((c.openStatus, c.mapathonEventLink, c.cityCenterLng, c.cityCenterLng, c.southwestBoundaryLat, c.southwestBoundaryLng, c.northeastBoundaryLat, c.northeastBoundaryLng, c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, f(c.configApi)))
+      def f1(i: CityMapParams) = CityMapParams.unapply(i).get
+      def f2(i: ApiAttribute) = ApiAttribute.unapply(i).get
+      def f3(i: ApiStreet) = ApiStreet.unapply(i).get
+      def f4(i: ApiRegion) = ApiRegion.unapply(i).get
+      Some((c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.defaultMapZoom, c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, f2(c.apiAttribute), f3(c.apiStreet), f4(c.apiRegion)))
     }
   )
 }
