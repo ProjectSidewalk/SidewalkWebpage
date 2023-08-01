@@ -135,30 +135,6 @@ object ConfigTable {
     config.map(_.excludedTags).list.head.drop(2).dropRight(2).split("\" \"").toList
   }
 
-  def getCityLat: Double = db.withSession { implicit session =>
-    config.map(_.cityCenterLat).list.head
-  }
-
-  def getCityLng: Double = db.withSession { implicit session =>
-    config.map(_.cityCenterLng).list.head
-  }
-
-  def getSouthwestLat: Double = db.withSession { implicit session =>
-    config.map(_.southwestBoundaryLat).list.head
-  }
-
-  def getSouthwestLng: Double = db.withSession { implicit session =>
-    config.map(_.southwestBoundaryLng).list.head
-  }
-
-  def getNortheastLat: Double = db.withSession { implicit session =>
-    config.map(_.northeastBoundaryLat).list.head
-  }
-
-  def getNortheastLng: Double = db.withSession { implicit session =>
-    config.map(_.northeastBoundaryLng).list.head
-  }
-
   def getDefaultMapZoom: Double = db.withSession { implicit session =>
     config.map(_.defaultMapZoom).list.head
   }
