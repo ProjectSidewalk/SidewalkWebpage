@@ -120,8 +120,21 @@ const PredictionModel = function () {
         }
     }
 
+    // We may not support prediction for all label types. Hence this check.
+    function isPredictionSupported(labelType) {
+        // Simple logic to see if support a label type--if it is defined in the descriptor.
+        return predictionModelExamplesDescriptor[labelType] !== undefined;
+    }
 
+
+    // Calls the predict function and depending on the result, shows the popup UI.
     function predictAndShowUI (data, label, svl) {
+
+        // If prediction is not supported for the label type, return.
+        // @Mikey, please check if this is correct.
+        if (!isPredictionSupported(label.getProperties().labelType)) {
+            return;
+        }
 
         if (session === null) {
             alert('Please load a model first.');

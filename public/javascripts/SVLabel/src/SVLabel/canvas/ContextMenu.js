@@ -106,9 +106,8 @@ function ContextMenu (uiContextMenu) {
         var labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
 
-            // Is this the right place to make a call to prediction model?
+            // @Mikey, Is this the right place to make a call to prediction model?
             // Check if the prediction model flags this.
-            var predictionModelResult = false;
 
             const currentLabelProps = labels[labels.length - 1].getProperties();
             const data = {
@@ -303,7 +302,11 @@ function ContextMenu (uiContextMenu) {
         _setBorderColor('black');
         setStatus('visibility', 'hidden');
 
-        predictLabelCorrectnessAndShowUI();
+        // No need to predict correctness if the user is onboarding.
+        // @Mikey, is this the right way to check?
+        if (!svl.isOnboarding()) {
+            predictLabelCorrectnessAndShowUI();
+        }
 
         return this;
     }
