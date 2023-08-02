@@ -102,7 +102,7 @@ const PredictionModel = function () {
 
             // prepare inputs. a tensor need its corresponding TypedArray as data
             const dataA = Float32Array.from(data = [data.severity, data.zoom, 0, 0, 10, 0, data.has_description, data.tag_count, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-            const tensorA = new ort.Tensor('float32', dataA, [1, 23]);
+            const tensorA = new ort.Tensor('float32', dataA, [1, 23]); // @Minchu, try to avoid hardcoding the shape.
 
             // prepare feeds. use model input names as keys.
             const feeds = { dense_input: tensorA };
@@ -138,6 +138,7 @@ const PredictionModel = function () {
 
         if (session === null) {
             alert('Please load a model first.');
+            // Maybe we should log this.
         }
 
         const t1 = new Date().getTime();
@@ -147,7 +148,7 @@ const PredictionModel = function () {
         predictedScore.then((score) => {
             console.log(score);
 
-            console.log('Time elapsed: ' + (new Date().getTime() - t1).toString());
+            console.log('Time elapsed: ' + (new Date().getTime() - t1).toString()); // Should this be logged on the server?
 
             currentLabel = label;
 
@@ -161,7 +162,7 @@ const PredictionModel = function () {
             $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
             $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
 
-        $predictionModelPopupContainer.show();
+            $predictionModelPopupContainer.show();
 
             const popupHeight = $predictionModelPopupContainer.height();
 
