@@ -286,6 +286,7 @@ function ContextMenu (uiContextMenu) {
         // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
         var predictionMade = status.targetLabel.getProperty('predictionMade');
         if (svl.cityId === 'crowdstudy' && !svl.isOnboarding() && !predictionMade && !clickedDelete) {
+            svl.map.disablePanning();
             status.targetLabel.setProperty('predictionMade', true);
             predictLabelCorrectnessAndShowUI();
         }

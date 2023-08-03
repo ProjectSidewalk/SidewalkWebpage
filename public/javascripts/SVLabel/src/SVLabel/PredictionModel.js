@@ -26,9 +26,6 @@ const PredictionModel = function () {
     const panoWidth = $panorama.width();
     const panoHeight = $panorama.height();
 
-    let svlLocal = null; // SVLabel instance.
-
-
     let session = null;
     let clusters = null;
 
@@ -178,25 +175,23 @@ const PredictionModel = function () {
             console.log('Time elapsed: ' + (new Date().getTime() - t1).toString()); // Should this be logged on the server?
 
             currentLabel = label;
+            if (score < 0.5) {
+                svl.map.enablePanning();
+            } else {
+                const labelProps = currentLabel.getProperties();
 
-            // We probably don't want to reassign. Not sure if it has any implications.
-            // @Mikey please check.
-            if (svlLocal === null)
-                svlLocal = svl;
+                $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
+                $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
 
-            const labelProps = currentLabel.getProperties();
+                $predictionModelPopupContainer.show();
 
-            $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
-            $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
+                const popupHeight = $predictionModelPopupContainer.height();
 
-            $predictionModelPopupContainer.show();
+                const left = labelProps.currCanvasXY.x - 24;
+                const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
+                $predictionModelPopupContainer.css({left: left, top: top});
 
-            const popupHeight = $predictionModelPopupContainer.height();
-
-            const left = labelProps.currCanvasXY.x - 24;
-            const top = labelProps.currCanvasXY.y - popupHeight - popupVerticalOffset;
-            $predictionModelPopupContainer.css({ left: left, top: top });
-
+            }
         });
     }
 
@@ -302,29 +297,20 @@ const PredictionModel = function () {
 
         function hidePredictionModelPopup() {
             $predictionModelPopupContainer.hide();
+            svl.map.enablePanning();
         }
 
         function isCommonMistakesPopupOpenShown() {
             return $commonMistakesPopup.is(':visible');
         }
 
-        // @Mikey, I think this way of attaching multiple event handlers on document is not the best way.
-        // But I am following the other modules for now to keep the consistency. - Minchu
-        $(document).on('mousedown', (e) => {
-
-            // If the user clicks anywhere outside the popup, hide the popup.
-            if (!isCommonMistakesPopupOpenShown() && $(e.target).closest('.prediction-model-popup-container').length === 0) {
-                hidePredictionModelPopup();
-            }
-        });
-
         $('.prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function (e) {
-            svlLocal.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
+            svl.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             hidePredictionModelPopup();
         });
 
         $('.prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function (e) {
-            svlLocal.tracker.push('PMMistakeYes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
+            svl.tracker.push('PMMistakeYes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             svl.labelContainer.removeLabel(currentLabel);
             currentLabel = null;
             hidePredictionModelPopup();
@@ -349,19 +335,19 @@ const PredictionModel = function () {
         });
 
         $('.prediction-model-view-examples-button').on('click', function (e) {
-            svlLocal.tracker.push('PMViewExamplesPopup_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
+            svl.tracker.push('PMViewExamplesPopup_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             const labelType = currentLabel.getProperties().labelType;
             showCommonMistakesPopup(labelType);
         });
 
         $('.common-mistakes-button').on('click', function (e) {
-            svlLocal.tracker.push('PMViewCommonMistakes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
+            svl.tracker.push('PMViewCommonMistakes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             const labelType = currentLabel.getProperties().labelType;
             showExamples(labelType, 'incorrect');
         });
 
         $('.correct-examples-button').on('click', function (e) {
-            svlLocal.tracker.push('PMViewCorrectExamples_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
+            svl.tracker.push('PMViewCorrectExamples_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             const labelType = currentLabel.getProperties().labelType;
             showExamples(labelType, 'correct');
         });
