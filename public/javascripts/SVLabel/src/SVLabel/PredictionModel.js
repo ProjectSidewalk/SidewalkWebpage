@@ -18,6 +18,7 @@ const PredictionModel = function () {
 
 
     let session = null;
+    let clusters = null;
 
 
     // Important variable to track the current label.
@@ -136,7 +137,7 @@ const PredictionModel = function () {
             return;
         }
 
-        if (session === null) {
+        if (session === null || clusters === null) {
             alert('Please load a model first.');
             // Maybe we should log this.
         }
@@ -344,7 +345,15 @@ const PredictionModel = function () {
         session = await ort.InferenceSession.create('assets/images/predictionModel.onnx');
     }
 
+    async function loadClusters() {
+        // Read cluster data from geojson file and log the data when finished.
+        $.getJSON('assets/images/labels-route-4.geojson', function (data) {
+            clusters = data.features;
+        });
+    }
+
     loadModel();
+    loadClusters();
     attachEventHandlers();
 
     return {
