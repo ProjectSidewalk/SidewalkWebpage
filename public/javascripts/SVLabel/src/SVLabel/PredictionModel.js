@@ -297,7 +297,6 @@ const PredictionModel = function () {
 
         function hidePredictionModelPopup() {
             $predictionModelPopupContainer.hide();
-            svl.map.enablePanning();
         }
 
         function isCommonMistakesPopupOpenShown() {
@@ -307,6 +306,7 @@ const PredictionModel = function () {
         $('.prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function (e) {
             svl.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             hidePredictionModelPopup();
+            svl.map.enablePanning();
         });
 
         $('.prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function (e) {
@@ -314,6 +314,7 @@ const PredictionModel = function () {
             svl.labelContainer.removeLabel(currentLabel);
             currentLabel = null;
             hidePredictionModelPopup();
+            svl.map.enablePanning();
         });
 
         $('.popup-close-button', $commonMistakesPopup).on('click', function (e) {
@@ -321,7 +322,7 @@ const PredictionModel = function () {
             e.preventDefault();
             e.stopPropagation();  // Stop propagation as we don't want to close the popup.
 
-            // I don't think we need to log this. - Minchu.
+            $predictionModelPopupContainer.show();
             $commonMistakesPopup.hide();
         });
 
@@ -329,8 +330,7 @@ const PredictionModel = function () {
 
             e.preventDefault();
             e.stopPropagation(); // Stop propagation as we don't want to close the popup.
-
-            // I don't think we need to log this. - Minchu.
+            $predictionModelPopupContainer.show();
             $commonMistakesPopup.hide();
         });
 
@@ -338,6 +338,7 @@ const PredictionModel = function () {
             svl.tracker.push('PMViewExamplesPopup_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             const labelType = currentLabel.getProperties().labelType;
             showCommonMistakesPopup(labelType);
+            hidePredictionModelPopup();
         });
 
         $('.common-mistakes-button').on('click', function (e) {

@@ -1,7 +1,7 @@
 
 .popup-close-button { height: 20px; width: 20px; float: right; cursor: pointer; }
 
-.prediction-model-popup-container { position: absolute; width: 500px; height: fit-content; background: white; z-index: 5; padding: 12px; border-radius: 4px; border: 2px solid #A7AFB2; }
+.prediction-model-popup-container { position: absolute; width: 500px; height: fit-content; background: white; z-index: 1050; padding: 12px; border-radius: 4px; border: 2px solid #A7AFB2; }
 .prediction-model-popup-header { height: 20px; }
 .prediction-model-popup-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; }
 .prediction-model-popup-text { width: 100%; margin-bottom: 24px; }
