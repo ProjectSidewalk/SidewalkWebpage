@@ -119,23 +119,6 @@ function ContextMenu (uiContextMenu) {
 
             // Check if the prediction model flags this.
             PredictionModel.predictAndShowUI(data, labels[labels.length - 1], svl);
-
-            // $.ajax({
-            //     type: 'POST',
-            //     url: 'runPredictionModel',
-            //     contentType: 'application/json',
-            //     data: JSON.stringify(data),
-            //     success: function (predictionModelResult) {
-            //         if (predictionModelResult) {
-            //             if (predictionModelResult.confidence === 0) { // TODO: change to the actual threshold.
-            //                 PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
-            //             }
-            //         }
-            //     },
-            //     error: function (result) {
-            //         console.log(result); // TODO: we should handle logging better.
-            //     }
-            // });
         }
     }
 

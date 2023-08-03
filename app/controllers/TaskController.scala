@@ -29,8 +29,6 @@ import play.api.libs.json._
 import play.api.mvc._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
-import scala.sys.process._
-import scala.util.Try
 
 /**
  * Holds the HTTP requests associated with tasks submitted through the explore page.
@@ -421,37 +419,5 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       "updated_streets" -> returnValues.head.updatedStreets.map(_.toJSON),
       "refresh_page" -> refreshPage
     )))
-  }
-
-  /**
-   * Submit data to get a prediction on whether the label is correct.
-   */
-  def runPredictionModel = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[LabelAccuracyPredictionSubmission]
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-        val descriptionFlag = if (submission.hasDescription) "--has_description" else "--no_description"
-        val predictionCmd: Seq[String] = Seq(
-          "python3", "scripts/run_prediction_model.py",
-          "--label_type", submission.labelType,
-          "--severity", submission.severity.getOrElse(0).toString,
-          "--zoom", submission.zoom.toString,
-          descriptionFlag,
-          "--tag_count", submission.tagCount.toString,
-//          "--debug",
-          "--lat", submission.lat.getOrElse(0.0D).toString, // TODO deal with null values.
-          "--lng", submission.lng.getOrElse(0.0D).toString
-        )
-
-        val predictionModelOutput: String = predictionCmd.!!
-        val predictionConfidence: Option[Float] = Try(predictionModelOutput.toFloat).toOption
-        println(predictionModelOutput)
-        Future.successful(Ok(Json.obj("confidence" -> predictionConfidence)))
-//        Future.successful(Ok(Json.obj("confidence" -> 0.5)))
-      }
-    )
   }
 }
