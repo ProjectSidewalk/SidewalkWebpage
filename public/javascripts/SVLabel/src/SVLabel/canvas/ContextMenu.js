@@ -102,24 +102,21 @@ function ContextMenu (uiContextMenu) {
 
     // Sends the last label's data to the prediction model and shows the popup UI if the prediction model flags it.
     function predictLabelCorrectnessAndShowUI() {
-        var labels = svl.labelContainer.getAllLabels();
-        if (labels.length > 0) {
 
-            // Package the data to send to the prediction model.
-            const currentLabelProps = labels[labels.length - 1].getProperties();
-            const data = {
-                label_type: currentLabelProps.labelType,
-                severity: currentLabelProps.severity,
-                zoom: currentLabelProps.originalPov.zoom,
-                tag_count: 0,
-                lat: currentLabelProps.labelLat,
-                lng: currentLabelProps.labelLng,
-                has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
-            };
+        // Package the data to send to the prediction model.
+        const currentLabelProps = status.targetLabel.getProperties();
+        const data = {
+            label_type: currentLabelProps.labelType,
+            severity: currentLabelProps.severity,
+            zoom: currentLabelProps.originalPov.zoom,
+            tag_count: 0,
+            lat: currentLabelProps.labelLat,
+            lng: currentLabelProps.labelLng,
+            has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
+        };
 
-            // Check if the prediction model flags this.
-            PredictionModel.predictAndShowUI(data, labels[labels.length - 1], svl);
-        }
+        // Check if the prediction model flags this.
+        PredictionModel.predictAndShowUI(data, status.targetLabel, svl);
     }
 
     function _handleOKButtonClick() {
