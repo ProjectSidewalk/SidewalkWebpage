@@ -501,6 +501,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     _visitSelectLabelTypeState(state, annotationListener);
                 } else if (state.properties.action === "DeleteAccessibilityAttribute") {
                     _visitDeleteAccessibilityAttributeState(state, annotationListener);
+                    contextMenu.hide();
                 } else if (state.properties.action === "Zoom") {
                     _visitZoomState(state, annotationListener);
                 } else if (state.properties.action === "RateSeverity" || state.properties.action === "RedoRateSeverity") {
