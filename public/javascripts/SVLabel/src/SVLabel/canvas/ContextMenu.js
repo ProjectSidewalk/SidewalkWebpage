@@ -64,13 +64,14 @@ function ContextMenu (uiContextMenu) {
      * @param e
      */
     function _handleMouseDown(e) {
-        var clickedOut = !($menuWindow[0].contains(event.target));
+        var clickedOut = !($menuWindow[0].contains(e.target));
+        var clickedDelete = svl.ui.canvas.deleteIcon[0].contains(e.target);
         if (isOpen()) {
             if (clickedOut) {
                 svl.tracker.push('ContextMenu_CloseClickOut');
                 handleSeverityPopup();
             }
-            hide();
+            hide(clickedDelete);
         }
     }
 
@@ -97,7 +98,7 @@ function ContextMenu (uiContextMenu) {
     function _handleCloseButtonClick() {
         svl.tracker.push('ContextMenu_CloseButtonClick');
         handleSeverityPopup();
-        hide();
+        hide(false);
     }
 
     // Sends the last label's data to the prediction model and shows the popup UI if the prediction model flags it.
@@ -122,7 +123,7 @@ function ContextMenu (uiContextMenu) {
     function _handleOKButtonClick() {
         svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
-        hide();
+        hide(false);
     }
 
     function handleSeverityPopup() {
@@ -268,8 +269,9 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Hide the context menu.
+     * @param clickedDelete Whether we are closing the menu bc the label is being deleted. If so, don't run prediction.
      */
-    function hide() {
+    function hide(clickedDelete) {
         if (isOpen()) {
             $descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
             svl.tracker.push('ContextMenu_Close');
@@ -280,9 +282,10 @@ function ContextMenu (uiContextMenu) {
         _setBorderColor('black');
         setStatus('visibility', 'hidden');
 
-        // Check if we should try to predict label correctness. It's is experimental, so show only on crowdstudy server.
+        // Check if we should try to predict label correctness. It's experimental, so show only on crowdstudy server.
         // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
-        if (svl.cityId === 'crowdstudy' && !svl.isOnboarding() && !status.targetLabel.getProperty('predictionMade')) {
+        var predictionMade = status.targetLabel.getProperty('predictionMade');
+        if (svl.cityId === 'crowdstudy' && !svl.isOnboarding() && !predictionMade && !clickedDelete) {
             status.targetLabel.setProperty('predictionMade', true);
             predictLabelCorrectnessAndShowUI();
         }
