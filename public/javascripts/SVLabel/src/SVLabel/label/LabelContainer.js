@@ -150,6 +150,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
         svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
+        _addLabelToListObject(labelsToLog, label);
         svl.canvas.clear().render();
         return this;
     };
