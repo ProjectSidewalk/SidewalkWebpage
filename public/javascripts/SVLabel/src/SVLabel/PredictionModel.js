@@ -150,6 +150,7 @@ const PredictionModel = function () {
 
     // Calls the predict function and depending on the result, shows the popup UI.
     function predictAndShowUI (data, label, svl) {
+        disableInteractionsForPredictionModelPopup();
 
         // If prediction is not supported for the label type, return.
         // @Mikey, please check if this is correct.
@@ -176,7 +177,7 @@ const PredictionModel = function () {
 
             currentLabel = label;
             if (score < 0.5) {
-                svl.map.enablePanning();
+                enableInteractionsForPredictionModelPopup();
             } else {
                 const labelProps = currentLabel.getProperties();
 
@@ -290,6 +291,22 @@ const PredictionModel = function () {
         $commonMistakesPopup.show();
     }
 
+    function disableInteractionsForPredictionModelPopup() {
+        svl.map.disablePanning();
+        svl.map.disableWalking();
+        svl.ribbon.disableModeSwitch();
+        svl.zoomControl.disableZoomIn();
+        svl.zoomControl.disableZoomOut();
+    }
+
+    function enableInteractionsForPredictionModelPopup() {
+        svl.map.enablePanning();
+        svl.map.enableWalking();
+        svl.ribbon.enableModeSwitch();
+        svl.zoomControl.enableZoomIn();
+        svl.zoomControl.enableZoomOut();
+    }
+
     // Attaches all the UI event handlers. This should be called only once.
     // There should not be any other place where event handlers are attached.
     // Event handlers also take care of logging.
@@ -306,7 +323,7 @@ const PredictionModel = function () {
         $('.prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function (e) {
             svl.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
             hidePredictionModelPopup();
-            svl.map.enablePanning();
+            enableInteractionsForPredictionModelPopup();
         });
 
         $('.prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function (e) {
@@ -314,7 +331,7 @@ const PredictionModel = function () {
             svl.labelContainer.removeLabel(currentLabel);
             currentLabel = null;
             hidePredictionModelPopup();
-            svl.map.enablePanning();
+            enableInteractionsForPredictionModelPopup();
         });
 
         $('.popup-close-button', $commonMistakesPopup).on('click', function (e) {
