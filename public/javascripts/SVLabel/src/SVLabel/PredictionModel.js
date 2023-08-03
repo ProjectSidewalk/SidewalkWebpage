@@ -1,6 +1,18 @@
 
 const PredictionModel = function () {
 
+    const CLUSTERING_THRESHOLDS = {
+        'CurbRamp': 0.0035,
+        'NoCurbRamp': 0.0035,
+        'SurfaceProblem': 0.01,
+        'Obstacle': 0.01,
+        'NoSidewalk': 0.01,
+        'Crosswalk': 0.01,
+        'Signal': 0.01,
+        'Occlusion': 0.01,
+        'Other': 0.01
+    }
+
     // Vertical distance between the label and the popup.
     const popupVerticalOffset = 55;
 
@@ -102,7 +114,7 @@ const PredictionModel = function () {
         try {
 
             // prepare inputs. a tensor need its corresponding TypedArray as data
-            const dataA = Float32Array.from(data = [data.severity, data.zoom, 0, 0, 10, 0, data.has_description, data.tag_count, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            const dataA = Float32Array.from(data = [data.severity, data.zoom, data.close_to_cluster, 0, 10, 0, data.has_description, data.tag_count, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
             const tensorA = new ort.Tensor('float32', dataA, [1, 23]); // @Minchu, try to avoid hardcoding the shape.
 
             // prepare feeds. use model input names as keys.
@@ -127,6 +139,17 @@ const PredictionModel = function () {
         return predictionModelExamplesDescriptor[labelType] !== undefined;
     }
 
+    // Check if the label is close to a cluster.
+    function isCloseToCluster (lat, lng, labelType) {
+        if (clusters[labelType].features.length > 0) {
+            var latLng = turf.point([lng, lat]);
+            var closest = turf.nearestPoint(latLng, clusters[labelType]);
+            return closest.properties.distanceToPoint < CLUSTERING_THRESHOLDS[labelType];
+        } else {
+            return false;
+        }
+    }
+
 
     // Calls the predict function and depending on the result, shows the popup UI.
     function predictAndShowUI (data, label, svl) {
@@ -143,6 +166,9 @@ const PredictionModel = function () {
         }
 
         const t1 = new Date().getTime();
+
+        // Check if the label is close to a cluster.
+        data.close_to_cluster = isCloseToCluster(data.lat, data.lng, data.label_type);
 
         const predictedScore = predict(data);
 
@@ -346,9 +372,18 @@ const PredictionModel = function () {
     }
 
     async function loadClusters() {
-        // Read cluster data from geojson file and log the data when finished.
+        // Read cluster data from geojson file and split the clusters based on label type.
         $.getJSON('assets/images/labels-route-4.geojson', function (data) {
-            clusters = data.features;
+            clusters = {};
+            for (let labType in CLUSTERING_THRESHOLDS) {
+                clusters[labType] = { 'type': 'FeatureCollection', 'features': [] };
+            }
+
+            // Sort the clusters into separate arrays for each label type.
+            for (let i = 0; i < data.features.length; i++) {
+                let labType = data.features[i].properties.labelType;
+                clusters[labType].features.push(data.features[i]);
+            }
         });
     }
 

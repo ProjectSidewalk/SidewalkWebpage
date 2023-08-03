@@ -100,15 +100,12 @@ function ContextMenu (uiContextMenu) {
         hide();
     }
 
-    // Posts the last label data to the prediction model endpoint
-    // and shows the popup UI if the prediction model flags it.
+    // Sends the last label's data to the prediction model and shows the popup UI if the prediction model flags it.
     function predictLabelCorrectnessAndShowUI() {
         var labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
 
-            // @Mikey, Is this the right place to make a call to prediction model?
-            // Check if the prediction model flags this.
-
+            // Package the data to send to the prediction model.
             const currentLabelProps = labels[labels.length - 1].getProperties();
             const data = {
                 label_type: currentLabelProps.labelType,
@@ -120,6 +117,7 @@ function ContextMenu (uiContextMenu) {
                 has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
             };
 
+            // Check if the prediction model flags this.
             PredictionModel.predictAndShowUI(data, labels[labels.length - 1], svl);
 
             // $.ajax({
