@@ -5,6 +5,8 @@
 @import models.amt.AMTAssignmentTable
 @import models.route.UserRoute
 @import views.html.bootstrap._
+@import play.api.Play
+@import play.api.Play.current
 
 @(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
@@ -1039,6 +1041,7 @@
             }
 
             mainParam.language = "@lang.code";
+            mainParam.cityId = "@Play.configuration.getString("city-id").get"
 
             svl.main = new Main(mainParam);
         }

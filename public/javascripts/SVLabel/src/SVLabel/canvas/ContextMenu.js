@@ -283,9 +283,10 @@ function ContextMenu (uiContextMenu) {
         _setBorderColor('black');
         setStatus('visibility', 'hidden');
 
-        // No need to predict correctness if the user is onboarding.
+        // Predicting label correctness is experimental, so show only on crowdstudy server. And no need to predict
+        // correctness if the user is in the tutorial.
         // @Mikey, is this the right way to check?
-        if (!svl.isOnboarding()) {
+        if (svl.cityId === 'crowdstudy' && !svl.isOnboarding()) {
             predictLabelCorrectnessAndShowUI();
         }
 
