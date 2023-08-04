@@ -233,6 +233,7 @@ function Main (params) {
                 });
             }
         });
+
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },
             html: true
@@ -365,7 +366,7 @@ function Main (params) {
                 const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
                     nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
                     neighborhood: currentNeighborhood.getProperty('name')
-                }, svl);
+                }, svl, params.language);
 
                 startTheMission(mission, currentNeighborhood);
             }

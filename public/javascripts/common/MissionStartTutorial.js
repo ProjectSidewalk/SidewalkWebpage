@@ -4,8 +4,9 @@
  * @param labelType one of the seven label types for which the tutorial needs to be initialized.
  * @param labelCount the number of labels to validate in the current mission (VALIDATE mission only).
  * @param svvOrsvl the svvOrsvl SVValidate or SVLabel object to log interactions and perform other actions upon closing the tutorial.
+ * @param language Fdfadfda
  */
-function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
+function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language = 'en') {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -905,7 +906,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
             $('.label-on-image-type-icon').find('use').attr('xlink:href', iconID);
 
             $labelOnImage.show();
-        } 
+        }
 
         const $mstSlide = $('.mst-slide');
         const $labelTypeSubtitle = $('.label-type-subtitle');
@@ -914,14 +915,12 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         const $mstDoneButton = $('.mission-start-tutorial-done-btn');
 
         const $labelOnImageDescription = $('.label-on-image-description');
-        const $languageButton = document.getElementById('language-button');
-        const languageButtonValue = $languageButton?.textContent?.trim() || '';
 
-        if (languageButtonValue === 'de') {
-            $labelOnImageDescription[0].style.transform = 'translateY(' + -12 + '%)';
+        if (language === 'de') {
+            $labelOnImageDescription[0].style.transform = 'translateY(' + -16 + '%)';
         }
 
-        if (languageButtonValue === 'nl') {
+        if (language === 'nl') {
             $labelOnImage[0].style.maxWidth = '230px';
         }
 
