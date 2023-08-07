@@ -1,16 +1,13 @@
 
 const PredictionModel = function () {
 
+    const labelTypesToPredict = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk'];
     const CLUSTERING_THRESHOLDS = {
         'CurbRamp': 0.0035,
         'NoCurbRamp': 0.0035,
         'SurfaceProblem': 0.01,
         'Obstacle': 0.01,
         'NoSidewalk': 0.01,
-        'Crosswalk': 0.01,
-        'Signal': 0.01,
-        'Occlusion': 0.01,
-        'Other': 0.01
     }
     const LABEL_TYPE_ONE_HOT = {
         'CurbRamp': [1, 0, 0, 0, 0],
@@ -422,6 +419,7 @@ const PredictionModel = function () {
     attachEventHandlers();
 
     return {
+        labelTypesToPredict: labelTypesToPredict,
         predictAndShowUI: predictAndShowUI
     };
 }();

@@ -285,7 +285,8 @@ function ContextMenu (uiContextMenu) {
         // Check if we should try to predict label correctness. It's experimental, so show only on crowdstudy server.
         // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
         var predictionMade = status.targetLabel.getProperty('predictionMade');
-        if (svl.cityId === 'crowdstudy' && !svl.isOnboarding() && !predictionMade && !clickedDelete) {
+        var predLabelType = PredictionModel.labelTypesToPredict.includes(status.targetLabel.getLabelType());
+        if (svl.cityId === 'crowdstudy' && !svl.isOnboarding() && !predictionMade && !clickedDelete && predLabelType) {
             status.targetLabel.setProperty('predictionMade', true);
             predictLabelCorrectnessAndShowUI();
         }
