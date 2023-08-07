@@ -126,11 +126,9 @@ const PredictionModel = function () {
         try {
 
             // Prepare inputs. A tensor need its corresponding TypedArray as data.
-            // TODO distance_to_road after close_to_cluster
             // TODO distance_to_intersection after distance_to_road
-            // TODO tag after distance_to_intersection
             // TODO way_type AFTER label_type
-            var input = [data.severity, data.zoom, data.close_to_cluster, 0, 5, data.tag_count, data.has_description];
+            var input = [data.severity, data.zoom, data.close_to_cluster, data.distance_to_road, 5, data.has_tags, data.has_description];
             input = input.concat(LABEL_TYPE_ONE_HOT[data.label_type]);
             input = input.concat(WAY_TYPE_ONE_HOT['residential']);
 

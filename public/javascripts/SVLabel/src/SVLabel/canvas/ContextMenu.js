@@ -110,7 +110,7 @@ function ContextMenu (uiContextMenu) {
             label_type: currentLabelProps.labelType,
             severity: currentLabelProps.severity,
             zoom: currentLabelProps.originalPov.zoom,
-            tag_count: 0,
+            has_tags: currentLabelProps.tagIds.length > 0,
             lat: currentLabelProps.labelLat,
             lng: currentLabelProps.labelLng,
             has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
