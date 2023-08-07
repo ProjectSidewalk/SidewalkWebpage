@@ -415,7 +415,7 @@ const PredictionModel = function () {
 
     async function loadClusters() {
         // Read cluster data from geojson file and split the clusters based on label type.
-        $.getJSON('assets/images/labels-route-4.geojson', function (data) {
+        $.getJSON('assets/images/user-study-seattle-cluster-centroids.json', function (data) {
             clusters = {};
             for (let labType in CLUSTERING_THRESHOLDS) {
                 clusters[labType] = { 'type': 'FeatureCollection', 'features': [] };
@@ -423,7 +423,7 @@ const PredictionModel = function () {
 
             // Sort the clusters into separate arrays for each label type.
             for (let i = 0; i < data.features.length; i++) {
-                let labType = data.features[i].properties.labelType;
+                let labType = data.features[i].properties.label_type;
                 clusters[labType].features.push(data.features[i]);
             }
         });
