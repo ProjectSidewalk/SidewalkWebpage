@@ -12,6 +12,22 @@ const PredictionModel = function () {
         'Occlusion': 0.01,
         'Other': 0.01
     }
+    const LABEL_TYPE_ONE_HOT = {
+        'CurbRamp': [1, 0, 0, 0, 0],
+        'NoCurbRamp': [0, 1, 0, 0, 0],
+        'NoSidewalk': [0, 0, 1, 0, 0],
+        'Obstacle': [0, 0, 0, 1, 0],
+        'SurfaceProblem': [0, 0, 0, 0, 1]
+    }
+    const WAY_TYPE_ONE_HOT = {
+        'living_street': [1, 0, 0, 0, 0, 0, 0],
+        'primary': [0, 1, 0, 0, 0, 0, 0],
+        'residential': [0, 0, 1, 0, 0, 0, 0],
+        'secondary': [0, 0, 0, 1, 0, 0, 0],
+        'tertiary': [0, 0, 0, 0, 1, 0, 0],
+        'trunk': [0, 0, 0, 0, 0, 1, 0],
+        'unclassified': [0, 0, 0, 0, 0, 0, 1]
+    }
 
     // Vertical distance between the label and the popup.
     const popupVerticalOffset = 55;
@@ -27,6 +43,8 @@ const PredictionModel = function () {
     const panoHeight = $panorama.height();
 
     let session = null;
+    let inputParam = null;
+    let outputParam = null;
     let clusters = null;
 
 
@@ -107,29 +125,30 @@ const PredictionModel = function () {
 
 
     async function predict(data) {
-        // use an async context to call onnxruntime functions.
+        // Use an async context to call onnxruntime functions.
         try {
 
-            // prepare inputs. a tensor need its corresponding TypedArray as data
+            // Prepare inputs. A tensor need its corresponding TypedArray as data.
             // TODO distance_to_road after close_to_cluster
             // TODO distance_to_intersection after distance_to_road
             // TODO tag after distance_to_intersection
-            // TODO label_type after has_description
             // TODO way_type AFTER label_type
-            const dataA = Float32Array.from(data = [data.severity, data.zoom, true, 15, 5, data.tag_count, data.has_description, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
-            const tensorA = new ort.Tensor('float32', dataA, [1, 19]); // @Minchu, try to avoid hardcoding the shape.
+            var input = [data.severity, data.zoom, data.close_to_cluster, 0, 5, data.tag_count, data.has_description];
+            input = input.concat(LABEL_TYPE_ONE_HOT[data.label_type]);
+            input = input.concat(WAY_TYPE_ONE_HOT['residential']);
 
-            // prepare feeds. use model input names as keys.
-            const feeds = { float_input: tensorA };
+            const dataA = Float32Array.from(data = input);
+            const tensorA = new ort.Tensor('float32', dataA, [1, input.length]);
 
-            // feed inputs and run
-            const results = await session.run(feeds, ['output_label']);
+            // Prepare feeds. use model input names as keys.
+            const feeds = { };
+            feeds[inputParam] = tensorA;
 
-            // read from results
-            const dataC = results.output_label.data[0];
+            // Feed inputs and run.
+            const results = await session.run(feeds, [outputParam]);
 
-            return dataC;
-
+            // Output from results.
+            return results.output_label.data[0];
         } catch (e) {
             alert(`failed to inference ONNX model: ${e}.`);
         }
@@ -378,6 +397,8 @@ const PredictionModel = function () {
 
     async function loadModel() {
         session = await ort.InferenceSession.create('assets/images/Seattle_Prediction_MLP.onnx');
+        inputParam = session.inputNames[0];
+        outputParam = session.outputNames[0];
     }
 
     async function loadClusters() {
