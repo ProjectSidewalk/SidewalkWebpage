@@ -168,6 +168,21 @@ const PredictionModel = function () {
         }
     }
 
+    // Get the distance from the label to the nearest street.
+    function distanceToNearestStreetWithWayType(lat, lng) {
+        var latLng = turf.point([lng, lat]);
+        let streets = svl.taskContainer.getTasks();
+        let closestStreet = streets[0];
+        let closestDistance = turf.pointToLineDistance(latLng, closestStreet.getGeoJSON().features[0]);
+        svl.taskContainer.getTasks().forEach(function (street, i) {
+            let distance = turf.pointToLineDistance(latLng, street.getGeoJSON().features[0]);
+            if (distance < closestDistance) {
+                closestStreet = street;
+                closestDistance = distance;
+            }
+        });
+        return [closestDistance, closestStreet];
+    }
 
     // Calls the predict function and depending on the result, shows the popup UI.
     function predictAndShowUI (data, label, svl) {
@@ -188,6 +203,8 @@ const PredictionModel = function () {
 
         // Check if the label is close to a cluster.
         data.close_to_cluster = isCloseToCluster(data.lat, data.lng, data.label_type);
+        var closestStreet = distanceToNearestStreetWithWayType(data.lat, data.lng);
+        data.distance_to_road = closestStreet[0];
 
         const predictedScore = predict(data);
 
