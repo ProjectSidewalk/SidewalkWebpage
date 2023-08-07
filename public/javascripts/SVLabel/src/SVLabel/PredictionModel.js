@@ -111,17 +111,22 @@ const PredictionModel = function () {
         try {
 
             // prepare inputs. a tensor need its corresponding TypedArray as data
-            const dataA = Float32Array.from(data = [data.severity, data.zoom, data.close_to_cluster, 0, 10, 0, data.has_description, data.tag_count, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-            const tensorA = new ort.Tensor('float32', dataA, [1, 23]); // @Minchu, try to avoid hardcoding the shape.
+            // TODO distance_to_road after close_to_cluster
+            // TODO distance_to_intersection after distance_to_road
+            // TODO tag after distance_to_intersection
+            // TODO label_type after has_description
+            // TODO way_type AFTER label_type
+            const dataA = Float32Array.from(data = [data.severity, data.zoom, true, 15, 5, data.tag_count, data.has_description, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
+            const tensorA = new ort.Tensor('float32', dataA, [1, 19]); // @Minchu, try to avoid hardcoding the shape.
 
             // prepare feeds. use model input names as keys.
-            const feeds = { dense_input: tensorA };
+            const feeds = { float_input: tensorA };
 
             // feed inputs and run
-            const results = await session.run(feeds, ['dense_2']);
+            const results = await session.run(feeds, ['output_label']);
 
             // read from results
-            const dataC = results.dense_2.data[0];
+            const dataC = results.output_label.data[0];
 
             return dataC;
 
@@ -372,7 +377,7 @@ const PredictionModel = function () {
     }
 
     async function loadModel() {
-        session = await ort.InferenceSession.create('assets/images/predictionModel.onnx');
+        session = await ort.InferenceSession.create('assets/images/Seattle_Prediction_MLP.onnx');
     }
 
     async function loadClusters() {
