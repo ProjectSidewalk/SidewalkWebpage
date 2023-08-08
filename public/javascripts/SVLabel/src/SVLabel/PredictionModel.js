@@ -43,6 +43,7 @@ const PredictionModel = function () {
     let inputParam = null;
     let outputParam = null;
     let clusters = null;
+    let intersections = null;
 
 
     // Important variable to track the current label.
@@ -128,7 +129,7 @@ const PredictionModel = function () {
             // Prepare inputs. A tensor need its corresponding TypedArray as data.
             // TODO distance_to_intersection after distance_to_road
             // TODO way_type AFTER label_type
-            var input = [data.severity, data.zoom, data.close_to_cluster, data.distance_to_road, 5, data.has_tags, data.has_description];
+            var input = [data.severity, data.zoom, data.close_to_cluster, data.distance_to_road, data.intersection_distance, data.has_tags, data.has_description];
             input = input.concat(LABEL_TYPE_ONE_HOT[data.label_type]);
             input = input.concat(WAY_TYPE_ONE_HOT['residential']);
 
@@ -156,24 +157,28 @@ const PredictionModel = function () {
     }
 
     // Check if the label is close to a cluster.
-    function isCloseToCluster (lat, lng, labelType) {
+    function isCloseToCluster (turfPoint, labelType) {
         if (clusters[labelType].features.length > 0) {
-            var latLng = turf.point([lng, lat]);
-            var closest = turf.nearestPoint(latLng, clusters[labelType]);
+            var closest = turf.nearestPoint(turfPoint, clusters[labelType]);
             return closest.properties.distanceToPoint < CLUSTERING_THRESHOLDS[labelType];
         } else {
             return false;
         }
     }
 
+    // Get the distance from the label to the nearest intersection.
+    function distanceToNearestIntersection(turfPoint) {
+        var closest = turf.nearestPoint(turfPoint, intersections);
+        return closest.properties.distanceToPoint;
+    }
+
     // Get the distance from the label to the nearest street.
-    function distanceToNearestStreetWithWayType(lat, lng) {
-        var latLng = turf.point([lng, lat]);
+    function distanceToNearestStreetWithWayType(turfPoint) {
         let streets = svl.taskContainer.getTasks();
         let closestStreet = streets[0];
-        let closestDistance = turf.pointToLineDistance(latLng, closestStreet.getGeoJSON().features[0]);
+        let closestDistance = turf.pointToLineDistance(turfPoint, closestStreet.getGeoJSON().features[0]);
         svl.taskContainer.getTasks().forEach(function (street, i) {
-            let distance = turf.pointToLineDistance(latLng, street.getGeoJSON().features[0]);
+            let distance = turf.pointToLineDistance(turfPoint, street.getGeoJSON().features[0]);
             if (distance < closestDistance) {
                 closestStreet = street;
                 closestDistance = distance;
@@ -192,17 +197,20 @@ const PredictionModel = function () {
             return;
         }
 
-        if (session === null || clusters === null) {
+        if (session === null || clusters === null || intersections === null) {
             alert('Please load a model first.');
             // Maybe we should log this.
         }
 
         const t1 = new Date().getTime();
 
-        // Check if the label is close to a cluster.
-        data.close_to_cluster = isCloseToCluster(data.lat, data.lng, data.label_type);
-        var closestStreet = distanceToNearestStreetWithWayType(data.lat, data.lng);
+        // Check if the label is close to a cluster, and get the distance to the nearest street & intersection.
+        let turfPoint = turf.point([data.lng, data.lat]);
+        data.close_to_cluster = isCloseToCluster(turfPoint, data.label_type);
+        data.intersection_distance = util.math.kilometersToFeet(distanceToNearestIntersection(turfPoint));
+        var closestStreet = distanceToNearestStreetWithWayType(turfPoint);
         data.distance_to_road = util.math.kilometersToFeet(closestStreet[0]);
+        console.log(data);
 
         const predictedScore = predict(data);
 
@@ -415,22 +423,29 @@ const PredictionModel = function () {
 
     async function loadClusters() {
         // Read cluster data from geojson file and split the clusters based on label type.
-        $.getJSON('assets/images/user-study-seattle-cluster-centroids.json', function (data) {
-            clusters = {};
-            for (let labType in CLUSTERING_THRESHOLDS) {
-                clusters[labType] = { 'type': 'FeatureCollection', 'features': [] };
-            }
+        const response = await fetch('assets/images/user-study-seattle-cluster-centroids.json');
+        const data = await response.json();
+        clusters = {};
+        for (let labType of labelTypesToPredict) {
+            clusters[labType] = { 'type': 'FeatureCollection', 'features': [] };
+        }
 
-            // Sort the clusters into separate arrays for each label type.
-            for (let i = 0; i < data.features.length; i++) {
-                let labType = data.features[i].properties.label_type;
-                clusters[labType].features.push(data.features[i]);
-            }
-        });
+        // Sort the clusters into separate arrays for each label type.
+        for (let cluster of data.features) {
+            let labType = cluster.properties.label_type;
+            clusters[labType].features.push(cluster);
+        }
+    }
+
+    async function loadIntersections() {
+        // Read intersection data from geojson file.
+        const response = await fetch('assets/images/user-study-seattle-intersections_on_routes.json');
+        intersections = await response.json();
     }
 
     loadModel();
     loadClusters();
+    loadIntersections();
     attachEventHandlers();
 
     return {
