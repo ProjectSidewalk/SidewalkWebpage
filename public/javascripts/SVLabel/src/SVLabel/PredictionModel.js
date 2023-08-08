@@ -127,11 +127,9 @@ const PredictionModel = function () {
         try {
 
             // Prepare inputs. A tensor need its corresponding TypedArray as data.
-            // TODO distance_to_intersection after distance_to_road
-            // TODO way_type AFTER label_type
             var input = [data.severity, data.zoom, data.close_to_cluster, data.distance_to_road, data.intersection_distance, data.has_tags, data.has_description];
             input = input.concat(LABEL_TYPE_ONE_HOT[data.label_type]);
-            input = input.concat(WAY_TYPE_ONE_HOT['residential']);
+            input = input.concat(WAY_TYPE_ONE_HOT[data.way_type]);
 
             const dataA = Float32Array.from(data = input);
             const tensorA = new ort.Tensor('float32', dataA, [1, input.length]);
@@ -210,6 +208,7 @@ const PredictionModel = function () {
         data.intersection_distance = util.math.kilometersToFeet(distanceToNearestIntersection(turfPoint));
         var closestStreet = distanceToNearestStreetWithWayType(turfPoint);
         data.distance_to_road = util.math.kilometersToFeet(closestStreet[0]);
+        data.way_type = closestStreet[1].getProperty('wayType');
         console.log(data);
 
         const predictedScore = predict(data);

@@ -80,7 +80,7 @@ object UserRouteTable {
       _se2 <- StreetEdgeTable.streetEdges if _se1.streetEdgeId === _se2.streetEdgeId
       _sep <- StreetEdgePriorityTable.streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
       _scau <- AuditTaskTable.streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1
-    } yield (_se2.streetEdgeId, _se2.geom, _se2.x1, _se2.y1, _se2.x1, _se2.y1, _se2.x2, _se2.y2, false, ucs._2.?.getOrElse(timestamp), _scau._2, _sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5, _rs.routeStreetId.?)
+    } yield (_se2.streetEdgeId, _se2.geom, _se2.x1, _se2.y1, _se2.x1, _se2.y1, _se2.x2, _se2.y2, _se2.wayType, false, ucs._2.?.getOrElse(timestamp), _scau._2, _sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5, _rs.routeStreetId.?)
 
     tasks.list.map(NewTask.tupled(_))
   }
