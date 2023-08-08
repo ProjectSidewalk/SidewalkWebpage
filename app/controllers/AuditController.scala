@@ -14,6 +14,7 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
+import models.attribute.ConfigTable
 import models.region._
 import models.route.{Route, RouteTable, UserRoute, UserRouteTable}
 import models.street.StreetEdgeRegionTable
@@ -132,7 +133,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
         val cityStr: String = Play.configuration.getString("city-id").get
-        val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+        val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
         val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
         if (missionSetProgress.missionType != "audit") {
           Future.successful(Redirect("/validate"))
@@ -190,7 +191,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
             val cityStr: String = Play.configuration.getString("city-id").get
-            val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+            val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
             val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
             if (missionSetProgress.missionType != "audit") {
               Future.successful(Redirect("/validate"))
@@ -256,7 +257,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           }
 
           val cityStr: String = Play.configuration.getString("city-id").get
-          val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+          val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
           val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
 
           if (missionSetProgress.missionType != "audit") {

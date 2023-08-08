@@ -8,14 +8,14 @@
     "agree": "Einverstanden",
     "disagree": "Nicht einverstanden",
     "not-sure": "Unsicher",
-    "curb-ramp": "Trottoirabsenkung",
-    "no-curb-ramp": "fehlende Trottoirabsenkung",
+    "curb-ramp": "Trottoir&shy;absenkung",
+    "no-curb-ramp": "fehlende Trottoir&shy;absenkung",
     "obstacle": "Hindernis im Weg",
-    "surface-problem": "Oberflächenproblem",
+    "surface-problem": "Oberflächen&shy;problem",
     "occlusion": "Trottoir nicht sichtbar",
     "no-sidewalk": "kein Trottoir",
-    "crosswalk": "Fussgängerstreifen",
-    "signal": "Fussgängerlichtsignal",
+    "crosswalk": "Fussgänger&shy;streifen",
+    "signal": "Fussgänger&shy;lichtsignal",
     "other": "Andere",
     "missing-sidewalks": "keine Trottoirs",
     "missing-ramps": "fehlende Trottoirabsenkungen",
@@ -131,7 +131,7 @@
         "start-mission": "Mission starten",
         "curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Oft befinden sich Trottoirabsenkungen an beiden Enden eines Fussgängerstreifens oder bei Strassenübergängen ohne Fussgängerstreifen."
             },
             "slide-2": {
@@ -145,7 +145,7 @@
         },
         "no-curb-ramp": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Kreuzungen mit Gehwegen sollten Trottoirabsenkungen haben-idealerweise zwei pro Ecke. Wenn es bei einer Kreuzung ein Trottoir hat, aber keine Trottoirabsenkung, beschriften Sie dies mit fehlender Trottoirabsenkung an der Stelle, wo Ihrer Meinung nach eine Trottoirabsenkung sein sollte."
             },
             "slide-2": {
@@ -163,7 +163,7 @@
         },
         "obstacle": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Hindernisse sind Objekte, die den <b>Gehweg</b> für Personen im Rollstuhl, mit Geh- oder anderen Mobilitätshilfen versperren.<br><br>Nicht alle Feuerhydranten, Pfosten oder Schilder sind Hindernisse-nur diejenigen, die klar den Gehweg versperren."
             },
             "slide-2": {
@@ -181,7 +181,7 @@
         },
         "surface-problem": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Wenn etwas auf der Oberfläche eines Trottoirs oder Fussgängerstreifens <b>das Passieren erschwert oder verunmöglicht,</b> sollte es als Oberflächenproblem beschriftet werden."
             },
             "slide-2": {
@@ -195,7 +195,7 @@
         },
         "no-sidewalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Wenn eine Strasse kein Trottoir hat, beschriften Sie dies bitte mit <b>kein Trottoir</b>."
             },
             "slide-2": {
@@ -209,7 +209,7 @@
         },
         "crosswalk": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Ein Fussgängerstreifen ist ein rechtlich gesicherter Raum, um eine Strasse zu überqueren.<br><br>Fussgängerstreifen werden meistens durch <b>parallel gestrichelte Linien</b> gekennzeichnet."
             },
             "slide-2": {
@@ -227,7 +227,7 @@
         },
         "signal": {
             "slide-1": {
-                "title": "{{labelType}}",
+                "title": "{{- labelType}}",
                 "description": "Ein Fussgängerlichtsignal zeigt an, wann Fussgänger:innen die Strasse sicher überqueren können und bietet genügend Zeit, um dies zu tun.<br><br>Einige dieser Signale werden durch ein Anforderungsgerät auf Hüfthöhe aktiviert."
             },
             "slide-2": {

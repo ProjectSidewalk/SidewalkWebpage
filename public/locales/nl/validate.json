@@ -126,8 +126,8 @@
         "continue": "Ga door met valideren",
         "explore": "Start een ondtekkingsmissie",
         "no-new-mission-title": "Geen valideermissies meer te gaan",
-        "no-new-mission-body": "Klik op de knop om te starten met verkennen",
-        "no-new-mission-button": "Start met verkennen"
+        "no-new-mission-body": "U kunt meer labels toevoegen met behulp van een laptop/desktopcomputer, of u kunt labels valideren in een andere stad!",
+        "no-new-mission-button": "Valideer in"
     },
     "mobile": {
         "info-title-curb-ramp": "Wat is een Trottoir Oprit?",
@@ -140,7 +140,7 @@
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "JOUW MISSIE",
-        "mst-instruction-2": "Valideer {{nLabels}} {{labelType}} labels",
+        "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",
         "example-type-label-incorrect": "VERKEERD VOORBEELD",
         "label-on-image-title-incorrect": "Verkeerd etiket",
         "label-on-image-description-correct": "Markeer <b>Akkoord</b>",

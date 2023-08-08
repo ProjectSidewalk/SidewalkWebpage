@@ -126,8 +126,8 @@
         "continue": "繼續檢核",
         "explore": "開始一個探索任務",
         "no-new-mission-title": "沒有剩下任何檢核任務",
-        "no-new-mission-body": "點選按鈕開始探索",
-        "no-new-mission-button": "開始探索"
+        "no-new-mission-body": "您可以使用笔记本电脑/台式计算机添加更多标签，也可以验证另一个城市的标签！",
+        "no-new-mission-button": "验证于"
     },
     "mobile": {
         "info-title-curb-ramp": "什麼是路緣斜坡？",
@@ -140,7 +140,7 @@
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "您的任務",
-        "mst-instruction-2": "檢核{{nLabels}}個{{labelType}}的標記",
+        "mst-instruction-2": "檢核{{nLabels}}個{{- labelType}}的標記",
         "example-type-label-incorrect": "錯誤案例",
         "label-on-image-title-incorrect": "錯誤標記",
         "label-on-image-description-correct": "選擇<b>同意</b>",
