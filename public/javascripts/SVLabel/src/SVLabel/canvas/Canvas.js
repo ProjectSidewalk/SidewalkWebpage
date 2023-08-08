@@ -178,6 +178,11 @@ function Canvas(ribbon) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+
+                // On crowdstudy server, re-enable walking if the label is deleted.
+                if (svl.cityId === 'seattle-wa' && PredictionModel.labelTypesToPredict.includes(currLabel.getLabelType())) {
+                    svl.map.enableWalking();
+                }
             }
         }
     }

@@ -500,6 +500,11 @@ function ContextMenu (uiContextMenu) {
         var labelType = targetLabel.getLabelType();
         var labelColor = util.misc.getLabelColors()[labelType].fillStyle;
         var labelCoord = targetLabel.getCanvasXY();
+
+        // Disable nav arrows on crowdstudy server so users can't skip pred model UI by clicking on arrows.
+        if (svl.cityId === 'seattle-wa' && PredictionModel.labelTypesToPredict.includes(labelType)) {
+            svl.map.disableWalking();
+        }
         if (labelType !== 'Occlusion') {
             setStatus('targetLabel', targetLabel);
             _setTags(targetLabel);
