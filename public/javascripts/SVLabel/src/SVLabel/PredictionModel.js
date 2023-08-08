@@ -413,15 +413,15 @@ const PredictionModel = function () {
         });
     }
 
-    async function loadModel() {
-        session = await ort.InferenceSession.create('assets/images/Seattle_Prediction_MLP.onnx');
+    async function loadModel(city) {
+        session = await ort.InferenceSession.create(`assets/images/${city}_Prediction_MLP.onnx`);
         inputParam = session.inputNames[0];
         outputParam = session.outputNames[0];
     }
 
-    async function loadClusters() {
+    async function loadClusters(city) {
         // Read cluster data from geojson file and split the clusters based on label type.
-        const response = await fetch('assets/images/user-study-seattle-cluster-centroids.json');
+        const response = await fetch(`assets/images/user-study-${city}-cluster-centroids.json`);
         const data = await response.json();
         clusters = {};
         for (let labType of labelTypesToPredict) {
@@ -435,15 +435,16 @@ const PredictionModel = function () {
         }
     }
 
-    async function loadIntersections() {
+    async function loadIntersections(city) {
         // Read intersection data from geojson file.
-        const response = await fetch('assets/images/user-study-seattle-intersections_on_routes.json');
+        const response = await fetch(`assets/images/user-study-${city}-intersections_on_routes.json`);
         intersections = await response.json();
     }
 
-    loadModel();
-    loadClusters();
-    loadIntersections();
+    let city = svl.regionId < 92 ? 'seattle' : 'oradell';
+    loadModel(city);
+    loadClusters(city);
+    loadIntersections(city);
     attachEventHandlers();
 
     return {

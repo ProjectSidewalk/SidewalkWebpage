@@ -24,6 +24,7 @@ function Main (params) {
     svl.usingPredictionModel = function() {
         return params.cityId === 'crowdstudy';
     }
+    svl.regionId = params.regionId;
     svl.missionsCompleted = params.missionSetProgress;
 
     // Ideally this should be declared in one place and all the callers should refer to that.
