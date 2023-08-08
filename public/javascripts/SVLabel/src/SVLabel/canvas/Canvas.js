@@ -179,9 +179,10 @@ function Canvas(ribbon) {
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
 
-                // On crowdstudy server, re-enable walking if the label is deleted.
-                if (svl.usingPredictionModel() && PredictionModel.labelTypesToPredict.includes(currLabel.getLabelType())) {
-                    svl.map.enableWalking();
+                // On crowdstudy server, re-enable close pred model UI and enable interactions if the label is deleted.
+                if (svl.usingPredictionModel()) {
+                    PredictionModel.hidePredictionModelPopup();
+                    PredictionModel.enableInteractionsForPredictionModelPopup();
                 }
             }
         }

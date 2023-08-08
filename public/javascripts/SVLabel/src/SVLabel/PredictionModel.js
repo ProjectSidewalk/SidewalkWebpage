@@ -350,15 +350,14 @@ const PredictionModel = function () {
         svl.zoomControl.enableZoomOut();
     }
 
+    function hidePredictionModelPopup() {
+        $predictionModelPopupContainer.hide();
+    }
+
     // Attaches all the UI event handlers. This should be called only once.
     // There should not be any other place where event handlers are attached.
     // Event handlers also take care of logging.
     function attachEventHandlers() {
-
-        function hidePredictionModelPopup() {
-            $predictionModelPopupContainer.hide();
-        }
-
         function isCommonMistakesPopupOpenShown() {
             return $commonMistakesPopup.is(':visible');
         }
@@ -449,6 +448,8 @@ const PredictionModel = function () {
 
     return {
         labelTypesToPredict: labelTypesToPredict,
+        hidePredictionModelPopup: hidePredictionModelPopup,
+        enableInteractionsForPredictionModelPopup: enableInteractionsForPredictionModelPopup,
         predictAndShowUI: predictAndShowUI
     };
 }();
