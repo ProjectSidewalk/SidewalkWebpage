@@ -107,13 +107,14 @@ function ContextMenu (uiContextMenu) {
         // Package the data to send to the prediction model.
         const currentLabelProps = status.targetLabel.getProperties();
         const data = {
-            label_type: currentLabelProps.labelType,
+            temporaryLabelId: currentLabelProps.temporaryLabelId,
+            labelType: currentLabelProps.labelType,
             severity: currentLabelProps.severity,
             zoom: currentLabelProps.originalPov.zoom,
-            has_tags: currentLabelProps.tagIds.length > 0,
+            hasTags: currentLabelProps.tagIds.length > 0,
             lat: currentLabelProps.labelLat,
             lng: currentLabelProps.labelLng,
-            has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
+            hasDescription: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
         };
 
         // Check if the prediction model flags this.

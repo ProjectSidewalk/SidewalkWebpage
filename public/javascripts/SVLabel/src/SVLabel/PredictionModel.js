@@ -43,15 +43,33 @@ function PredictionModel() {
     const panoWidth = $panorama.width();
     const panoHeight = $panorama.height();
 
+    // Used in prediction.
     let session = null;
     let inputParam = null;
     let outputParam = null;
     let clusters = null;
     let intersections = null;
 
-
-    // Important variable to track the current label.
-    let currentLabel = null;
+    // Important variable to track for logging.
+    let currLabel = null;
+    let uiStartTime = null;
+    let currLabelLogs = {
+        temporaryLabelId: null,
+        severity: null,
+        zoom: null,
+        hasTags: null,
+        hasDescription: null,
+        wayType: null,
+        closeToCluster: null,
+        distanceToIntersection: null,
+        distanceToRoad: null,
+        predictedCorrect: null,
+        prepTime: null,
+        predictionTime: null,
+        uiTime: null,
+        viewedCommonMistakes: null,
+        viewedCorrectExamples: null,
+    }
 
     const predictionModelExamplesDescriptor  = {
         'CurbRamp': {
@@ -125,15 +143,39 @@ function PredictionModel() {
         }
     };
 
+    function _prepDataForPrediction(data) {
+        // Check if the label is close to a cluster, and get the distance to the nearest street & intersection.
+        let turfPoint = turf.point([data.lng, data.lat]);
+        data.closeToCluster = isCloseToCluster(turfPoint, data.labelType);
+        data.distanceToIntersection = util.math.kilometersToFeet(distanceToNearestIntersection(turfPoint));
+
+        var closestStreet = distanceToNearestStreetWithWayType(turfPoint);
+        data.distanceToRoad = util.math.kilometersToFeet(closestStreet[0]);
+        data.wayType = closestStreet[1].getProperty('wayType');
+        console.log(data);
+
+        // Record data specifically for logging.
+        currLabelLogs.closeToCluster = data.closeToCluster;
+        currLabelLogs.distanceToIntersection = data.distanceToIntersection;
+        currLabelLogs.distanceToRoad = data.distanceToRoad;
+        currLabelLogs.wayType = data.wayType;
+        currLabelLogs.temporaryLabelId = data.temporaryLabelId;
+        currLabelLogs.zoom = data.zoom;
+        currLabelLogs.severity = data.severity;
+        currLabelLogs.hasTags = data.hasTags;
+        currLabelLogs.hasDescription = data.hasDescription;
+
+        return data;
+    }
 
     async function predict(data) {
         // Use an async context to call onnxruntime functions.
         try {
 
             // Prepare inputs. A tensor need its corresponding TypedArray as data.
-            var input = [data.severity, data.zoom, data.close_to_cluster, data.distance_to_road, data.intersection_distance, data.has_tags, data.has_description];
-            input = input.concat(LABEL_TYPE_ONE_HOT[data.label_type]);
-            input = input.concat(WAY_TYPE_ONE_HOT[data.way_type]);
+            var input = [data.severity, data.zoom, data.closeToCluster, data.distanceToRoad, data.distanceToIntersection, data.hasTags, data.hasDescription];
+            input = input.concat(LABEL_TYPE_ONE_HOT[data.labelType]);
+            input = input.concat(WAY_TYPE_ONE_HOT[data.wayType]);
 
             const dataA = Float32Array.from(data = input);
             const tensorA = new ort.Tensor('float32', dataA, [1, input.length]);
@@ -204,34 +246,38 @@ function PredictionModel() {
             // Maybe we should log this.
         }
 
-        const t1 = new Date().getTime();
+        const prepStartTime = new Date().getTime();
+        data = _prepDataForPrediction(data);
 
-        // Check if the label is close to a cluster, and get the distance to the nearest street & intersection.
-        let turfPoint = turf.point([data.lng, data.lat]);
-        data.close_to_cluster = isCloseToCluster(turfPoint, data.label_type);
-        data.intersection_distance = util.math.kilometersToFeet(distanceToNearestIntersection(turfPoint));
-        var closestStreet = distanceToNearestStreetWithWayType(turfPoint);
-        data.distance_to_road = util.math.kilometersToFeet(closestStreet[0]);
-        data.way_type = closestStreet[1].getProperty('wayType');
-        console.log(data);
-
+        const predictionStartTime = new Date().getTime();
         const predictedScore = predict(data);
 
         predictedScore.then((score) => {
+            const predictionEndTime = new Date().getTime();
             console.log(score);
 
-            console.log('Time elapsed: ' + (new Date().getTime() - t1).toString()); // Should this be logged on the server?
+            currLabelLogs.predictedCorrect = score === 1n;
+            currLabelLogs.prepTime = predictionStartTime - prepStartTime;
+            currLabelLogs.predictionTime = predictionEndTime - predictionStartTime;
+            console.log(`Prep time: ${currLabelLogs.prepTime} ms`);
+            console.log(`Inference time: ${currLabelLogs.predictionTime} ms`);
 
-            currentLabel = label;
+            // Score can only be 0 or 1; 1 means label predicted to be correct, 0 means label predicted to be incorrect.
+            currLabel = label;
             if (score === 1n) {
+                _logPredictionData();
                 enableInteractionsForPredictionModelPopup();
             } else {
-                const labelProps = currentLabel.getProperties();
+                currLabelLogs.viewedCommonMistakes = false;
+                currLabelLogs.viewedCorrectExamples = false;
+
+                const labelProps = currLabel.getProperties();
 
                 $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
                 $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
 
                 $predictionModelPopupContainer.show();
+                uiStartTime = new Date().getTime();
 
                 const popupHeight = $predictionModelPopupContainer.height();
 
@@ -301,8 +347,8 @@ function PredictionModel() {
             // Only positions the icon on the pano screenshot.
             // Should be called once the image is loaded.
             function positionCurrentLabelIcon() {
-                const currentLabelProps = currentLabel.getProperties();
-                const labelCanvasXY = currentLabelProps.currCanvasXY;
+                const currLabelProps = currLabel.getProperties();
+                const labelCanvasXY = currLabelProps.currCanvasXY;
                 const scaledX = (labelCanvasXY.x * $gsvLayer.width()) / panoWidth;
                 const scaledY = (labelCanvasXY.y * $gsvLayer.height()) / panoHeight;
 
@@ -367,15 +413,16 @@ function PredictionModel() {
         }
 
         $('.prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function (e) {
-            svl.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
+            svl.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            _logPredictionData();
             hidePredictionModelPopup();
             enableInteractionsForPredictionModelPopup();
         });
 
         $('.prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function (e) {
-            svl.tracker.push('PMMistakeYes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
-            svl.labelContainer.removeLabel(currentLabel);
-            currentLabel = null;
+            svl.tracker.push('PMMistakeYes_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            svl.labelContainer.removeLabel(currLabel);
+            _logPredictionData();
             hidePredictionModelPopup();
             enableInteractionsForPredictionModelPopup();
         });
@@ -398,23 +445,43 @@ function PredictionModel() {
         });
 
         $('.prediction-model-view-examples-button').on('click', function (e) {
-            svl.tracker.push('PMViewExamplesPopup_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
-            const labelType = currentLabel.getProperties().labelType;
+            currLabelLogs.viewedCommonMistakes = true;
+            svl.tracker.push('PMViewExamplesPopup_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            const labelType = currLabel.getProperties().labelType;
             showCommonMistakesPopup(labelType);
             hidePredictionModelPopup();
         });
 
         $('.common-mistakes-button').on('click', function (e) {
-            svl.tracker.push('PMViewCommonMistakes_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
-            const labelType = currentLabel.getProperties().labelType;
+            currLabelLogs.viewedCommonMistakes = true;
+            svl.tracker.push('PMViewCommonMistakes_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            const labelType = currLabel.getProperties().labelType;
             showExamples(labelType, 'incorrect');
         });
 
         $('.correct-examples-button').on('click', function (e) {
-            svl.tracker.push('PMViewCorrectExamples_Click', { 'labelProps': JSON.stringify(currentLabel.getProperties()) }, null);
-            const labelType = currentLabel.getProperties().labelType;
+            currLabelLogs.viewedCorrectExamples = true;
+            svl.tracker.push('PMViewCorrectExamples_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            const labelType = currLabel.getProperties().labelType;
             showExamples(labelType, 'correct');
         });
+    }
+
+    async function _logPredictionData() {
+        if (uiStartTime !== null) {
+            const uiEndTime = new Date().getTime();
+            currLabelLogs.uiTime = uiEndTime - uiStartTime;
+            console.log(`Time spent in UI: ${currLabelLogs.uiTime} ms`);
+        }
+        // TODO create a table on the back end to log to.
+        console.log(currLabelLogs);
+
+        // Reset the logs for the next label.
+        currLabel = null;
+        uiStartTime = null;
+        // for (let key in currLabelLogs) {
+        //     currLabelLogs[key] = null;
+        // }
     }
 
     async function loadModel(city) {
