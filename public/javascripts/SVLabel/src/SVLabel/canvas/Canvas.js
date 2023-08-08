@@ -180,7 +180,7 @@ function Canvas(ribbon) {
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
 
                 // On crowdstudy server, re-enable walking if the label is deleted.
-                if (svl.cityId === 'seattle-wa' && PredictionModel.labelTypesToPredict.includes(currLabel.getLabelType())) {
+                if (svl.usingPredictionModel() && PredictionModel.labelTypesToPredict.includes(currLabel.getLabelType())) {
                     svl.map.enableWalking();
                 }
             }
@@ -304,7 +304,7 @@ function Canvas(ribbon) {
         }
         if (label) {
             // Show delete icon on label. If on the crowdstudy server, only do it for the label under context menu open.
-            if (svl.cityId !== 'seattle-wa' && !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
+            if (svl.usingPredictionModel() && !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
                 label.setHoverInfoVisibility('visible');
             }
         } else {

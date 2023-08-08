@@ -18,9 +18,12 @@ function Main (params) {
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
-    svl.isOnboarding = function () {
+    svl.isOnboarding = function() {
         return params.mission.mission_type === 'auditOnboarding';
     };
+    svl.usingPredictionModel = function() {
+        return params.cityId === 'crowdstudy';
+    }
     svl.missionsCompleted = params.missionSetProgress;
 
     // Ideally this should be declared in one place and all the callers should refer to that.

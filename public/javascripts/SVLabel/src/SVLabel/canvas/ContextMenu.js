@@ -286,7 +286,7 @@ function ContextMenu (uiContextMenu) {
         // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
         var predictionMade = status.targetLabel.getProperty('predictionMade');
         var predLabelType = PredictionModel.labelTypesToPredict.includes(status.targetLabel.getLabelType());
-        if (svl.cityId === 'crowdstudy' && !svl.isOnboarding() && !predictionMade && !clickedDelete && predLabelType) {
+        if (svl.usingPredictionModel() && !svl.isOnboarding() && !predictionMade && !clickedDelete && predLabelType) {
             status.targetLabel.setProperty('predictionMade', true);
             predictLabelCorrectnessAndShowUI();
         }
@@ -502,7 +502,7 @@ function ContextMenu (uiContextMenu) {
         var labelCoord = targetLabel.getCanvasXY();
 
         // Disable nav arrows on crowdstudy server so users can't skip pred model UI by clicking on arrows.
-        if (svl.cityId === 'seattle-wa' && PredictionModel.labelTypesToPredict.includes(labelType)) {
+        if (svl.usingPredictionModel() && PredictionModel.labelTypesToPredict.includes(labelType)) {
             svl.map.disableWalking();
         }
         if (labelType !== 'Occlusion') {
