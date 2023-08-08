@@ -303,7 +303,10 @@ function Canvas(ribbon) {
             labels[i].setHoverInfoVisibility('hidden');
         }
         if (label) {
-            label.setHoverInfoVisibility('visible');
+            // Show delete icon on label. If on the crowdstudy server, only do it for the label under context menu open.
+            if (svl.cityId !== 'seattle-wa' && !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
+                label.setHoverInfoVisibility('visible');
+            }
         } else {
             // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
