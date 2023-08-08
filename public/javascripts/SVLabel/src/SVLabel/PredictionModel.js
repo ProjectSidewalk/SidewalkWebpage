@@ -1,5 +1,9 @@
-
-const PredictionModel = function () {
+/**
+ * Prediction Model module. Used to predict if a label is likely correct, showing a training UI to the user if not.
+ * @constructor
+ */
+function PredictionModel() {
+    var self = { className: 'PredictionModel' };
 
     const labelTypesToPredict = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk'];
     const CLUSTERING_THRESHOLDS = {
@@ -447,10 +451,11 @@ const PredictionModel = function () {
     loadIntersections(city);
     attachEventHandlers();
 
-    return {
-        labelTypesToPredict: labelTypesToPredict,
-        hidePredictionModelPopup: hidePredictionModelPopup,
-        enableInteractionsForPredictionModelPopup: enableInteractionsForPredictionModelPopup,
-        predictAndShowUI: predictAndShowUI
-    };
-}();
+
+    self.labelTypesToPredict = labelTypesToPredict;
+    self.hidePredictionModelPopup = hidePredictionModelPopup;
+    self.enableInteractionsForPredictionModelPopup = enableInteractionsForPredictionModelPopup;
+    self.predictAndShowUI = predictAndShowUI;
+
+    return self;
+}

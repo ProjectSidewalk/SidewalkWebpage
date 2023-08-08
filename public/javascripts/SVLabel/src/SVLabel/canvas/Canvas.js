@@ -181,8 +181,8 @@ function Canvas(ribbon) {
 
                 // On crowdstudy server, re-enable close pred model UI and enable interactions if the label is deleted.
                 if (svl.usingPredictionModel()) {
-                    PredictionModel.hidePredictionModelPopup();
-                    PredictionModel.enableInteractionsForPredictionModelPopup();
+                    svl.predictionModel.hidePredictionModelPopup();
+                    svl.predictionModel.enableInteractionsForPredictionModelPopup();
                 }
             }
         }
@@ -305,7 +305,7 @@ function Canvas(ribbon) {
         }
         if (label) {
             // Show delete icon on label. If on the crowdstudy server, only do it for the label under context menu open.
-            if (svl.usingPredictionModel() && !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
+            if (!svl.usingPredictionModel() || !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
                 label.setHoverInfoVisibility('visible');
             }
         } else {

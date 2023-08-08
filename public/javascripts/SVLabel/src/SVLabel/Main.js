@@ -51,6 +51,9 @@ function Main (params) {
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;
         svl.cityId = params.cityId;
+        if (svl.usingPredictionModel()) {
+            svl.predictionModel = new PredictionModel();
+        }
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();

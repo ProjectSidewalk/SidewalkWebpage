@@ -117,7 +117,7 @@ function ContextMenu (uiContextMenu) {
         };
 
         // Check if the prediction model flags this.
-        PredictionModel.predictAndShowUI(data, status.targetLabel, svl);
+        svl.predictionModel.predictAndShowUI(data, status.targetLabel, svl);
     }
 
     function _handleOKButtonClick() {
@@ -285,7 +285,7 @@ function ContextMenu (uiContextMenu) {
         // Check if we should try to predict label correctness. It's experimental, so show only on crowdstudy server.
         // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
         var predictionMade = status.targetLabel.getProperty('predictionMade');
-        var predLabelType = PredictionModel.labelTypesToPredict.includes(status.targetLabel.getLabelType());
+        var predLabelType = svl.predictionModel.labelTypesToPredict.includes(status.targetLabel.getLabelType());
         if (svl.usingPredictionModel() && !svl.isOnboarding() && !predictionMade && !clickedDelete && predLabelType) {
             status.targetLabel.setProperty('predictionMade', true);
             predictLabelCorrectnessAndShowUI();
@@ -502,7 +502,7 @@ function ContextMenu (uiContextMenu) {
         var labelCoord = targetLabel.getCanvasXY();
 
         // Disable nav arrows on crowdstudy server so users can't skip pred model UI by clicking on arrows.
-        if (svl.usingPredictionModel() && PredictionModel.labelTypesToPredict.includes(labelType)) {
+        if (svl.usingPredictionModel() && svl.predictionModel.labelTypesToPredict.includes(labelType)) {
             svl.map.disableWalking();
         }
         if (labelType !== 'Occlusion') {
