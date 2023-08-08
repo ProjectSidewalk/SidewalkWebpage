@@ -202,7 +202,7 @@ const PredictionModel = function () {
         // Check if the label is close to a cluster.
         data.close_to_cluster = isCloseToCluster(data.lat, data.lng, data.label_type);
         var closestStreet = distanceToNearestStreetWithWayType(data.lat, data.lng);
-        data.distance_to_road = closestStreet[0];
+        data.distance_to_road = util.math.kilometersToFeet(closestStreet[0]);
 
         const predictedScore = predict(data);
 
