@@ -219,7 +219,7 @@ const PredictionModel = function () {
             console.log('Time elapsed: ' + (new Date().getTime() - t1).toString()); // Should this be logged on the server?
 
             currentLabel = label;
-            if (score < 0.5) {
+            if (score === 1n) {
                 enableInteractionsForPredictionModelPopup();
             } else {
                 const labelProps = currentLabel.getProperties();
