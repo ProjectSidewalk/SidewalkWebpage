@@ -134,12 +134,10 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             // Add the other users' tasks layer.
             for (i = 0; i < allCompletedTasks.length; i++) {
                 var otherUserStreet = allCompletedTasks[i].getStreetEdgeId();
-                if (userOldStreets.indexOf(otherUserStreet) === -1 && newStreets.indexOf(otherUserStreet) === -1) {
                     leafletLine = L.geoJson(allCompletedTasks[i].getFeature());
                     layer = leafletLine.addTo(this._map);
                     layer.setStyle(completedTaskAllUsersLayerStyle);
                     this._completedTasksLayer.push(layer);
-                }
             }
         }
 
