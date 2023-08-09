@@ -266,7 +266,7 @@ function PredictionModel() {
         // Check if the label is close to a cluster, and get the distance to the nearest street & intersection.
         let turfPoint = turf.point([data.lng, data.lat]);
         data.closeToCluster = _isCloseToCluster(turfPoint, data.labelType);
-        data.distanceToIntersection = util.math.kilometersToFeet(_distanceToNearestIntersection(turfPoint));
+        data.distanceToIntersection = util.math.kilometersToFeet(_distanceToNearestIntersection(turfPoint, data.labelType));
 
         var closestStreet = _distanceToNearestStreetWithWayType(turfPoint);
         data.distanceToRoad = util.math.kilometersToFeet(closestStreet[0]);
@@ -327,10 +327,14 @@ function PredictionModel() {
         }
     }
 
-    // Get the distance from the label to the nearest intersection.
-    function _distanceToNearestIntersection(turfPoint) {
-        var closest = turf.nearestPoint(turfPoint, intersections);
-        return closest.properties.distanceToPoint;
+    // Get the distance from the label to the nearest intersection. Distance manually set to 0 for some label types.
+    function _distanceToNearestIntersection(turfPoint, labelType) {
+        if (['SurfaceProblem', 'Obstacle', 'NoSidewalk'].includes(labelType)) {
+            return 0;
+        } else {
+            var closest = turf.nearestPoint(turfPoint, intersections);
+            return closest.properties.distanceToPoint;
+        }
     }
 
     // Get the distance from the label to the nearest street. Return the street info as well to extract the wayType.
