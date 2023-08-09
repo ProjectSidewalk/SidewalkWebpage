@@ -285,9 +285,11 @@ function ContextMenu (uiContextMenu) {
 
         // Check if we should try to predict label correctness. It's experimental, so show only on crowdstudy server.
         // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
-        var predictionMade = status.targetLabel.getProperty('predictionMade');
-        var predSupported = svl.predictionModel.isPredictionSupported(status.targetLabel.getLabelType());
-        if (svl.usingPredictionModel() && !svl.isOnboarding() && !predictionMade && !clickedDelete && predSupported) {
+        if (svl.usingPredictionModel()
+            && !svl.isOnboarding()
+            && !status.targetLabel.getProperty('predictionMade')
+            && !clickedDelete
+            && svl.predictionModel.isPredictionSupported(status.targetLabel.getLabelType())) {
             status.targetLabel.setProperty('predictionMade', true);
             predictLabelCorrectnessAndShowUI();
         }
