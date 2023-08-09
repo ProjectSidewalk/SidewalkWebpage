@@ -576,7 +576,7 @@ function PredictionModel() {
 
     // Load the ONNX model for the appropriate city.
     async function _loadModel(city) {
-        session = await ort.InferenceSession.create(`assets/images/${city}_Prediction_MLP.onnx`);
+        session = await ort.InferenceSession.create(`assets/assets/prediction-model/${city}_Prediction_MLP.onnx`);
         inputParam = session.inputNames[0];
         outputParam = session.outputNames[0];
     }
@@ -584,7 +584,7 @@ function PredictionModel() {
     // Load the cluster data for the appropriate city.
     async function _loadClusters(city) {
         // Read cluster data from geojson file and split the clusters based on label type.
-        const response = await fetch(`assets/images/user-study-${city}-cluster-centroids.json`);
+        const response = await fetch(`assets/assets/prediction-model/user-study-${city}-cluster-centroids.json`);
         const data = await response.json();
         clusters = {};
         for (let labType of LABEL_TYPES_TO_PREDICT) {
@@ -601,7 +601,7 @@ function PredictionModel() {
     // Load the intersection data for the appropriate city.
     async function _loadIntersections(city) {
         // Read intersection data from geojson file.
-        const response = await fetch(`assets/images/user-study-${city}-intersections_on_routes.json`);
+        const response = await fetch(`assets/assets/prediction-model/user-study-${city}-intersections_on_routes.json`);
         intersections = await response.json();
     }
 
