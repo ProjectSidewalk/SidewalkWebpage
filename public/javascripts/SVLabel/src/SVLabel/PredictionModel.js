@@ -570,20 +570,22 @@ function PredictionModel() {
     }
 
     async function _logPredictionData() {
+        // Record the time spent in the UI, since we only log this data once the UI is closed.
         if (uiStartTime !== null) {
             const uiEndTime = new Date().getTime();
             currLabelLogs.uiTime = uiEndTime - uiStartTime;
             console.log(`Time spent in UI: ${currLabelLogs.uiTime} ms`);
         }
-        // TODO create a table on the back end to log to.
-        console.log(currLabelLogs);
+
+        // Record everything we care about in this one log for convenience.
+        svl.tracker.push('PMFullPredictionLog', currLabelLogs, null);
 
         // Reset the logs for the next label.
         currLabel = null;
         uiStartTime = null;
-        // for (let key in currLabelLogs) {
-        //     currLabelLogs[key] = null;
-        // }
+        for (let key in currLabelLogs) {
+            currLabelLogs[key] = null;
+        }
     }
 
     async function loadModel(city) {
