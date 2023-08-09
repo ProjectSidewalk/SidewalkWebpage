@@ -86,6 +86,8 @@
         "accuracy-tooltip": "Die Bewertung Ihrer Genauigkeit basiert auf der Validierung durch andere Nutzende. Wenn Ihre Genauigkeit tief ist, sehen Sie sich häufige Fehler unter <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">Ihrem Dashboard</a> an, um sich zu verbessern!",
         "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",
         "current-mission": {
+            "header": "Aktuelle Mission",
+            "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
             "message-first-mission": "Erkunden Sie __PLACEHOLDER__ und finden Sie alle Zugänglichkeitsmerkmale entlang des Gehwegs",
             "message": "Erkunden Sie __PLACEHOLDER__ von diesem Quartier"
         },

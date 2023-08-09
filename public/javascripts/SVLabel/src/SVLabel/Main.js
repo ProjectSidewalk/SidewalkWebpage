@@ -441,6 +441,7 @@ function Main (params) {
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
+        svl.ui.status.currentMissionHeader = $("#current-mission-header");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
         svl.ui.status.currentMissionReward = $("#current-mission-reward");
         svl.ui.status.totalMissionReward = $("#total-mission-reward");
