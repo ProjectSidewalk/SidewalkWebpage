@@ -350,6 +350,7 @@ function PredictionModel() {
 
         const prepStartTime = new Date().getTime();
         data = _prepDataForPrediction(data);
+        svl.tracker.push('PM_DataPrepped', currLabelLogs, null);
 
         const predictionStartTime = new Date().getTime();
         const predictedScore = predict(data);
@@ -363,6 +364,7 @@ function PredictionModel() {
             currLabelLogs.predictionTime = predictionEndTime - predictionStartTime;
             console.log(`Prep time: ${currLabelLogs.prepTime} ms`);
             console.log(`Inference time: ${currLabelLogs.predictionTime} ms`);
+            svl.tracker.push('PM_PredictionComplete', currLabelLogs, null);
 
             // Score can only be 0 or 1; 1 means label predicted to be correct, 0 means label predicted to be incorrect.
             currLabel = label;
@@ -515,14 +517,14 @@ function PredictionModel() {
         }
 
         $('.prediction-model-mistake-keep-label-button', $predictionModelPopupContainer).on('click', function (e) {
-            svl.tracker.push('PMMistakeKeep_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            svl.tracker.push('PM_MistakeKeep_Click', currLabelLogs, null);
             _logPredictionData();
             hidePredictionModelPopup();
             enableInteractionsForPredictionModelPopup();
         });
 
         $('.prediction-model-mistake-remove-label-button', $predictionModelPopupContainer).on('click', function (e) {
-            svl.tracker.push('PMMistakeRemove_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            svl.tracker.push('PM_MistakeRemove_Click', currLabelLogs, null);
             svl.labelContainer.removeLabel(currLabel);
             _logPredictionData();
             hidePredictionModelPopup();
@@ -533,7 +535,7 @@ function PredictionModel() {
 
             e.preventDefault();
             e.stopPropagation();  // Stop propagation as we don't want to close the popup.
-
+            svl.tracker.push('PM_BackToLabelingX_Click', currLabelLogs, null);
             $predictionModelPopupContainer.show();
             $commonMistakesPopup.hide();
         });
@@ -542,13 +544,14 @@ function PredictionModel() {
 
             e.preventDefault();
             e.stopPropagation(); // Stop propagation as we don't want to close the popup.
+            svl.tracker.push('PM_BackToLabelingButton_Click', currLabelLogs, null);
             $predictionModelPopupContainer.show();
             $commonMistakesPopup.hide();
         });
 
         $('.prediction-model-view-examples-button').on('click', function (e) {
             currLabelLogs.viewedCommonMistakes = true;
-            svl.tracker.push('PMViewExamplesPopup_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            svl.tracker.push('PM_ViewExamplesPopup_Click', currLabelLogs, null);
             const labelType = currLabel.getProperties().labelType;
             showCommonMistakesPopup(labelType);
             hidePredictionModelPopup();
@@ -556,14 +559,14 @@ function PredictionModel() {
 
         $('.common-mistakes-button').on('click', function (e) {
             currLabelLogs.viewedCommonMistakes = true;
-            svl.tracker.push('PMViewCommonMistakes_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            svl.tracker.push('PM_ViewCommonMistakes_Click', currLabelLogs, null);
             const labelType = currLabel.getProperties().labelType;
             showExamples(labelType, 'incorrect');
         });
 
         $('.correct-examples-button').on('click', function (e) {
             currLabelLogs.viewedCorrectExamples = true;
-            svl.tracker.push('PMViewCorrectExamples_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+            svl.tracker.push('PM_ViewCorrectExamples_Click', currLabelLogs, null);
             const labelType = currLabel.getProperties().labelType;
             showExamples(labelType, 'correct');
         });
@@ -579,7 +582,7 @@ function PredictionModel() {
         }
 
         // Record everything we care about in this one log for convenience.
-        svl.tracker.push('PMFullPredictionLog', currLabelLogs, null);
+        svl.tracker.push('PM_FullPredictionLog', currLabelLogs, null);
 
         // Reset the logs for the next label.
         currLabel = null;
