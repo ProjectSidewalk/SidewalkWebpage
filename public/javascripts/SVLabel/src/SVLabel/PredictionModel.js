@@ -73,7 +73,10 @@ function PredictionModel() {
 
     const predictionModelExamplesDescriptor  = {
         'CurbRamp': {
-            'subtitle': 'Tip: The #1 curb ramp mistake is labeling <b>driveways</b> as curb ramps.',
+            'tips': [
+                'Tip: do <b>not</b> label <b>driveways</b> as curb ramps.',
+                'Tip: do <b>not</b> label sidewalk-to-alleyway transitions as curb ramps unless a ramp is clearly visible.'
+            ],
             'correct-examples': [
                 {
                     'image': 'assets/images/tutorials/PM_Correct_CurbRamp_1.png',
@@ -108,7 +111,10 @@ function PredictionModel() {
             ],
         },
         'NoCurbRamp': {
-            'subtitle': '48% of curb ramps are missed by users.',
+            'tips': [
+                'Tip: do <b>not</b> label <b>residential walkways</b> (house-to-curb paths) as missing curb ramps.',
+                'Tip: if there is <b>no sidewalk</b>, use a No Sidewalk label and not Missing Curb Ramp.'
+            ],
             'correct-examples': [
                 {
                     'image': 'assets/images/tutorials/PM_Correct_NoCurbRamp_1.png',
@@ -143,7 +149,10 @@ function PredictionModel() {
             ],
         },
         'Obstacle': {
-            'subtitle': '48% of curb ramps are missed by users.',
+            'tips': [
+                'Tip: an obstacle <b>blocks</b> the pedestrian path with limited space to avoid.',
+                'Tip: only label obstacles that are <b>on the pedestrian path</b>.'
+            ],
             'correct-examples': [
                 {
                     'image': 'assets/images/tutorials/PM_Correct_Obstacle_1.png',
@@ -178,7 +187,11 @@ function PredictionModel() {
             ],
         },
         'SurfaceProblem': {
-            'subtitle': '48% of curb ramps are missed by users.',
+            'tips': [
+                'Tip: only label problems that are <b>on the pedestrian path</b>.',
+                'Tip: do <b>not</b> label surface problems if they are on a <b>driveway</b>.',
+                'Tip: always check sidewalks on <b>both sides of the road</b>.'
+            ],
             'correct-examples': [
                 {
                     'image': 'assets/images/tutorials/PM_Correct_SurfaceProblem_1.png',
@@ -213,7 +226,10 @@ function PredictionModel() {
             ],
         },
         'NoSidewalk': {
-            'subtitle': '48% of curb ramps are missed by users.',
+            'tips': [
+                'Tip: always double check that a sidewalk is <b>actually missing</b>.',
+                'Tip: if a sidewalk exists but a curb ramp is missing, use the <b>missing curb ramp label</b>.'
+            ],
             'correct-examples': [
                 {
                     'image': 'assets/images/tutorials/PM_Correct_NoSidewalk_1.png',
@@ -366,8 +382,9 @@ function PredictionModel() {
 
                 const labelProps = currLabel.getProperties();
 
+                let randomTip = Math.floor(Math.random() * predictionModelExamplesDescriptor[labelProps.labelType].tips.length);
                 $('.label-type', $predictionModelPopupContainer).text(i18next.t(`common:${util.camelToKebab(labelProps.labelType)}`));
-                $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].subtitle); // this could contain HTML.
+                $('.prediction-model-popup-text', $predictionModelPopupContainer).html(predictionModelExamplesDescriptor[labelProps.labelType].tips[randomTip]); // this could contain HTML.
 
                 $predictionModelPopupContainer.show();
                 uiStartTime = new Date().getTime();
