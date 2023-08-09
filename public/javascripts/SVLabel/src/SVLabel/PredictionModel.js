@@ -5,6 +5,7 @@
 function PredictionModel() {
     var self = { className: 'PredictionModel' };
 
+    const city = svl.regionId < 92 ? 'seattle' : 'oradell';
     const LABEL_TYPES_TO_PREDICT = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk'];
     const CLUSTERING_THRESHOLDS = {
         'CurbRamp': 0.0035,
@@ -64,6 +65,7 @@ function PredictionModel() {
         distanceToIntersection: null,
         distanceToRoad: null,
         predictedCorrect: null,
+        predictionUsedHeuristic: null,
         prepTime: null,
         predictionTime: null,
         uiTime: null,
@@ -290,23 +292,50 @@ function PredictionModel() {
     async function _predict(data) {
         // Use an async context to call onnxruntime functions.
         try {
-            // Prepare inputs. A tensor need its corresponding TypedArray as data.
-            var input = [data.severity, data.zoom, data.closeToCluster, data.distanceToRoad, data.distanceToIntersection, data.hasTags, data.hasDescription];
-            input = input.concat(LABEL_TYPE_ONE_HOT[data.labelType]);
-            input = input.concat(WAY_TYPE_ONE_HOT[data.wayType]);
+            // First check for Curb Ramp or Missing Curb Ramp labels that are far from an intersection, or too close to
+            // one. These heuristic are a hotfix for some issues with the model.
+            if ((data.labelType === 'CurbRamp' || data.labelType === 'MissingCurbRamp')
+                && (
+                    (
+                        city === 'oradell'
+                        && (data.distanceToIntersection >= 50 || data.distanceToIntersection <= 5)
+                        && data.wayType === 'residential'
+                    ) || (
+                        city === 'seattle'
+                        && (
+                            data.wayType === 'residential'
+                            && (data.distanceToIntersection >= 60 || data.distanceToIntersection <= 5)
+                        )
+                        || (
+                            data.wayType === 'living_street'
+                            && (data.distanceToIntersection >= 50 || data.distanceToIntersection <= 5)
+                        )
+                    )
+                )
+            ) {
+                currLabelLogs.predictionUsedHeuristic = true;
+                return 0n;
+            } else {
+                currLabelLogs.predictionUsedHeuristic = false;
 
-            const dataA = Float32Array.from(data = input);
-            const tensorA = new ort.Tensor('float32', dataA, [1, input.length]);
+                // Prepare inputs. A tensor need its corresponding TypedArray as data.
+                var input = [data.severity, data.zoom, data.closeToCluster, data.distanceToRoad, data.distanceToIntersection, data.hasTags, data.hasDescription];
+                input = input.concat(LABEL_TYPE_ONE_HOT[data.labelType]);
+                input = input.concat(WAY_TYPE_ONE_HOT[data.wayType]);
 
-            // Prepare feeds. use model input names as keys.
-            const feeds = { };
-            feeds[inputParam] = tensorA;
+                const dataA = Float32Array.from(data = input);
+                const tensorA = new ort.Tensor('float32', dataA, [1, input.length]);
 
-            // Feed inputs and run.
-            const results = await session.run(feeds, [outputParam]);
+                // Prepare feeds. use model input names as keys.
+                const feeds = { };
+                feeds[inputParam] = tensorA;
 
-            // Output from results.
-            return results.output_label.data[0];
+                // Feed inputs and run.
+                const results = await session.run(feeds, [outputParam]);
+
+                // Output from results.
+                return results.output_label.data[0];
+            }
         } catch (e) {
             alert(`failed to inference ONNX model: ${e}.`);
         }
@@ -628,7 +657,6 @@ function PredictionModel() {
 
     // Asynchronously load the model and necessary data for the appropriate city. We know that in our crowdstudy server,
     // the first 91 regions are from Seattle and the rest are from Oradell.
-    let city = svl.regionId < 92 ? 'seattle' : 'oradell';
     _loadModel(city);
     _loadClusters(city);
     _loadIntersections(city);
