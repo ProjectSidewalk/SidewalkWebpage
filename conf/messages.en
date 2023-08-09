@@ -344,9 +344,5 @@ help.rating.5 = Rating 5: Not passable
 home.graphic = A graphic of an intersection with people traveling across the street
 home.graphic.seattle = A skyline graphic of Seattle, Washington
 home.explain = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
-home.mainvideo = Video showing various inaccessible sidewalks and their impacts on wheelchair/walker users
-home.step1 = Screen recording of a user exploring a map on Project Sidewalk
-home.step2 = Screen recording of a user an identifying inaccessible sidewalk on Project Sidewalk
-home.step3 = Screen recording of a user assessing severity of inaccessible sidewalk on Project Sidewalk
 
 clouds = clouds

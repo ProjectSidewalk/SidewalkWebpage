@@ -344,9 +344,5 @@ help.rating.5 = Bewertung 5: Nicht passierbar
 home.graphic = Eine Grafik einer Kreuzung mit Menschen, die über die Straße fahren
 home.graphic.seattle = Eine Skyline-Grafik von Seattle, Washington
 home.explain = GIF erklärt die Ergebnisse von Crowdsourcing und maschinellem Lernen bei Project Sidewalk
-home.mainvideo = Video, das verschiedene unzugängliche Gehwege und ihre Auswirkungen auf Rollstuhlfahrer/Gehhilfen zeigt
-home.step1 = Bildschirmaufzeichnung eines Benutzers, der eine Karte auf Project Sidewalk erkundet
-home.step2 = Bildschirmaufzeichnung eines Benutzers, der bei Project Sidewalk einen unzugänglichen Gehweg identifiziert
-home.step3 = Bildschirmaufzeichnung eines Benutzers, der den Schweregrad eines unzugänglichen Gehwegs bei Project Sidewalk beurteilt
 
 clouds = Wolken

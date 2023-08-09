@@ -342,9 +342,5 @@ help.rating.5 = Rating 5: Niet begaanbaar
 home.graphic = Een afbeelding van een kruispunt met mensen die de straat oversteken
 home.graphic.seattle = Een grafische skyline van Seattle, Washington
 home.explain = GIF met uitleg over de resultaten van crowdsourcing en machine learning op Project Sidewalk
-home.mainvideo = Video met verschillende ontoegankelijke trottoirs en hun impact op rolstoel-/rollatorgebruikers
-home.step1 = Schermopname van een gebruiker die een kaart verkent op Project Sidewalk
-home.step2 = Schermopname van een gebruiker die een ontoegankelijk trottoir identificeert op Project Sidewalk
-home.step3 = Schermopname van een gebruiker die de ernst van een ontoegankelijk trottoir op Project Sidewalk beoordeelt
 
 clouds = wolken

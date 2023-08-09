@@ -9,7 +9,7 @@
 @main(title) {
     @navbar(user, Some("/"))
     <div id="vidbanner">
-        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop" alt="@Messages("home.mainvideo")">
+        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
@@ -77,9 +77,9 @@
                         <div class="hidden-xs" id="greenbar">
                         </div>
                         <div id="instructionvideo">
-                            <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4" alt="home.step1"> </video>
-                            <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4" alt="home.step2"> </video>
-                            <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4" alt="home.step3"> </video>
+                            <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
+                            <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
+                            <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4"> </video>
                         </div>
                 </div>
             </div>
@@ -198,23 +198,23 @@
             <section class="collaborator-images-container">
                 <div class="collaborator-image">
                     <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability_Logo'>
+                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability Lab Logo'>
                     </a>
                 </div>
                 <div class="collaborator-image">
                     <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='UIC_Logo'>
+                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='University of Illinois Chicago Institute on Disability and Human Development Logo'>
                     </a>
                 </div>
                 <div class="collaborator-image">
                     <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
-                        <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
+                        <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='Liga Peatonal Logo'>
                     </a>
                 </div>
                 @if("Columbus" == cityName){
                     <div class="collaborator-image">
                         <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
-                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
+                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open Columbus Logo'>
                         </a>
                     </div>
                 }
@@ -223,17 +223,17 @@
                 @if("Amsterdam" == cityName){
                     <div class="collaborator-image">
                         <a id="worldenabled-img-link" href="https://worldenabled.org/">
-                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt='World_Enabled_Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt='World Enabled Logo'>
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
-                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt='City_Of_Amsterdam_Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt='City of Amsterdam Logo'>
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
-                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt='Amsterdam_Intelligence_Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt='Amsterdam Intelligence Logo'>
                         </a>
                     </div>
                 }
