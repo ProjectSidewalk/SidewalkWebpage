@@ -86,6 +86,8 @@
         "accuracy-tooltip": "精準度是依照其他用戶的檢核。若您的精準度很低，請查看近期檢核出的錯誤於 <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">您的用戶儀表板</a> 以協助您增加精準度！",
         "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
         "current-mission": {
+            "header": "目前任務",
+            "header-route": "$t(right-ui.current-mission.header): 路線{{route_number}}",
             "message-first-mission": "探索__PLACEHOLDER__並找到所有人行道無障礙選項",
             "message": "探索__PLACEHOLDER__ "
         },
