@@ -5,7 +5,7 @@
 function PredictionModel() {
     var self = { className: 'PredictionModel' };
 
-    const labelTypesToPredict = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk'];
+    const LABEL_TYPES_TO_PREDICT = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk'];
     const CLUSTERING_THRESHOLDS = {
         'CurbRamp': 0.0035,
         'NoCurbRamp': 0.0035,
@@ -245,16 +245,16 @@ function PredictionModel() {
         }
     };
 
+    // Takes finalized label data and checks proximity to clusters, streets, and intersections as inputs to pred model.
     function _prepDataForPrediction(data) {
         // Check if the label is close to a cluster, and get the distance to the nearest street & intersection.
         let turfPoint = turf.point([data.lng, data.lat]);
-        data.closeToCluster = isCloseToCluster(turfPoint, data.labelType);
-        data.distanceToIntersection = util.math.kilometersToFeet(distanceToNearestIntersection(turfPoint));
+        data.closeToCluster = _isCloseToCluster(turfPoint, data.labelType);
+        data.distanceToIntersection = util.math.kilometersToFeet(_distanceToNearestIntersection(turfPoint));
 
-        var closestStreet = distanceToNearestStreetWithWayType(turfPoint);
+        var closestStreet = _distanceToNearestStreetWithWayType(turfPoint);
         data.distanceToRoad = util.math.kilometersToFeet(closestStreet[0]);
         data.wayType = closestStreet[1].getProperty('wayType');
-        console.log(data);
 
         // Record data specifically for logging.
         currLabelLogs.closeToCluster = data.closeToCluster;
@@ -270,10 +270,10 @@ function PredictionModel() {
         return data;
     }
 
-    async function predict(data) {
+    // Run the prediction model on the label data.
+    async function _predict(data) {
         // Use an async context to call onnxruntime functions.
         try {
-
             // Prepare inputs. A tensor need its corresponding TypedArray as data.
             var input = [data.severity, data.zoom, data.closeToCluster, data.distanceToRoad, data.distanceToIntersection, data.hasTags, data.hasDescription];
             input = input.concat(LABEL_TYPE_ONE_HOT[data.labelType]);
@@ -296,14 +296,13 @@ function PredictionModel() {
         }
     }
 
-    // We may not support prediction for all label types. Hence this check.
+    // We currently support prediction for our 5 primary label types.
     function isPredictionSupported(labelType) {
-        // Simple logic to see if support a label type--if it is defined in the descriptor.
-        return predictionModelExamplesDescriptor[labelType] !== undefined;
+        return LABEL_TYPES_TO_PREDICT.includes(labelType);
     }
 
     // Check if the label is close to a cluster.
-    function isCloseToCluster (turfPoint, labelType) {
+    function _isCloseToCluster(turfPoint, labelType) {
         if (clusters[labelType].features.length > 0) {
             var closest = turf.nearestPoint(turfPoint, clusters[labelType]);
             return closest.properties.distanceToPoint < CLUSTERING_THRESHOLDS[labelType];
@@ -313,13 +312,13 @@ function PredictionModel() {
     }
 
     // Get the distance from the label to the nearest intersection.
-    function distanceToNearestIntersection(turfPoint) {
+    function _distanceToNearestIntersection(turfPoint) {
         var closest = turf.nearestPoint(turfPoint, intersections);
         return closest.properties.distanceToPoint;
     }
 
-    // Get the distance from the label to the nearest street.
-    function distanceToNearestStreetWithWayType(turfPoint) {
+    // Get the distance from the label to the nearest street. Return the street info as well to extract the wayType.
+    function _distanceToNearestStreetWithWayType(turfPoint) {
         let streets = svl.taskContainer.getTasks();
         let closestStreet = streets[0];
         let closestDistance = turf.pointToLineDistance(turfPoint, closestStreet.getGeoJSON().features[0]);
@@ -335,43 +334,33 @@ function PredictionModel() {
 
     // Calls the predict function and depending on the result, shows the popup UI.
     function predictAndShowUI (data, label, svl) {
-        disableInteractionsForPredictionModelPopup();
+        _disableInteractionsForPredictionModelPopup();
 
-        // If prediction is not supported for the label type, return.
-        // @Mikey, please check if this is correct.
-        if (!isPredictionSupported(label.getProperties().labelType)) {
-            return;
-        }
-
-        if (session === null || clusters === null || intersections === null) {
-            alert('Please load a model first.');
-            // Maybe we should log this.
-        }
-
+        // Prep data for prediction. Start some timers for logging.
         const prepStartTime = new Date().getTime();
         data = _prepDataForPrediction(data);
         svl.tracker.push('PM_DataPrepped', currLabelLogs, null);
 
+        // Run the prediction model.
         const predictionStartTime = new Date().getTime();
-        const predictedScore = predict(data);
+        const predictedScore = _predict(data);
 
         predictedScore.then((score) => {
+            // Record how long the prediction took.
             const predictionEndTime = new Date().getTime();
-            console.log(score);
-
             currLabelLogs.predictedCorrect = score === 1n;
             currLabelLogs.prepTime = predictionStartTime - prepStartTime;
             currLabelLogs.predictionTime = predictionEndTime - predictionStartTime;
-            console.log(`Prep time: ${currLabelLogs.prepTime} ms`);
-            console.log(`Inference time: ${currLabelLogs.predictionTime} ms`);
             svl.tracker.push('PM_PredictionComplete', currLabelLogs, null);
 
             // Score can only be 0 or 1; 1 means label predicted to be correct, 0 means label predicted to be incorrect.
             currLabel = label;
             if (score === 1n) {
+                // Label predicted as correct. Log the data, enable interactions again, and don't show the popup.
                 _logPredictionData();
                 enableInteractionsForPredictionModelPopup();
             } else {
+                // Label predicted as incorrect. Show the popup.
                 currLabelLogs.viewedCommonMistakes = false;
                 currLabelLogs.viewedCorrectExamples = false;
 
@@ -393,9 +382,9 @@ function PredictionModel() {
         });
     }
 
-    function showExamples(labelType, correctOrIncorrect) {
+    function _showExamples(labelType, correctOrIncorrect) {
 
-        function renderExamples(examples) {
+        function _renderExamples(examples) {
 
             $('.example-unit-container:not(.template)', $commonMistakesPopup).remove();
 
@@ -414,7 +403,7 @@ function PredictionModel() {
         }
 
         if (correctOrIncorrect === 'correct') {
-            renderExamples(predictionModelExamplesDescriptor[labelType]['correct-examples']);
+            _renderExamples(predictionModelExamplesDescriptor[labelType]['correct-examples']);
 
             $('.examples-panel-title-text').text('Correct Examples');
             $('.examples-panel-title-icon.common-mistakes-icon').hide();
@@ -427,7 +416,7 @@ function PredictionModel() {
             $('.examples-panel-container').removeClass('common-mistakes').addClass('correct-examples');
 
         } else {
-            renderExamples(predictionModelExamplesDescriptor[labelType]['incorrect-examples']);
+            _renderExamples(predictionModelExamplesDescriptor[labelType]['incorrect-examples']);
 
             $('.examples-panel-title-text').text('Common Mistakes');
             $('.examples-panel-title-icon.correct-examples-icon').hide();
@@ -443,14 +432,14 @@ function PredictionModel() {
         $('.examples-panel-container').addClass(correctOrIncorrect);
     }
 
-    function showCommonMistakesPopup(labelType) {
+    function _showCommonMistakesPopup(labelType) {
 
         // Shows and positions the icon on the current label screenshot.
-        function showCurrentLabelScreenshot() {
+        function _showCurrentLabelScreenshot() {
 
             // Only positions the icon on the pano screenshot.
             // Should be called once the image is loaded.
-            function positionCurrentLabelIcon() {
+            function _positionCurrentLabelIcon() {
                 const currLabelProps = currLabel.getProperties();
                 const labelCanvasXY = currLabelProps.currCanvasXY;
                 const scaledX = (labelCanvasXY.x * $gsvLayer.width()) / panoWidth;
@@ -468,7 +457,7 @@ function PredictionModel() {
             })($('.widget-scene-canvas')[0]);
 
             $('img.gsv-layer', $commonMistakesCurrentLabelImage).attr('src', gsvLayerSrc).on('load', function () {
-                positionCurrentLabelIcon();
+                _positionCurrentLabelIcon();
             });
 
             const iconImagePath = util.misc.getIconImagePaths(labelType).iconImagePath;
@@ -480,15 +469,15 @@ function PredictionModel() {
         $('.common-mistakes-current-label-title .current-label-type', $commonMistakesPopup).text(i18next.t(`common:${util.camelToKebab(labelType)}`));
 
         // Shows the current label screenshot along with the label.
-        showCurrentLabelScreenshot();
+        _showCurrentLabelScreenshot();
 
         // Show the common mistakes examples for the current label type.
-        showExamples(labelType, 'incorrect');
+        _showExamples(labelType, 'incorrect');
 
         $commonMistakesPopup.show();
     }
 
-    function disableInteractionsForPredictionModelPopup() {
+    function _disableInteractionsForPredictionModelPopup() {
         svl.map.disablePanning();
         svl.map.disableWalking();
         svl.ribbon.disableModeSwitch();
@@ -508,13 +497,9 @@ function PredictionModel() {
         $predictionModelPopupContainer.hide();
     }
 
-    // Attaches all the UI event handlers. This should be called only once.
-    // There should not be any other place where event handlers are attached.
-    // Event handlers also take care of logging.
-    function attachEventHandlers() {
-        function isCommonMistakesPopupOpenShown() {
-            return $commonMistakesPopup.is(':visible');
-        }
+    // Attaches all the UI event handlers. This should be called only once. There should not be any other place where
+    // event handlers are attached. Event handlers also take care of logging.
+    function _attachEventHandlers() {
 
         $('.prediction-model-mistake-keep-label-button', $predictionModelPopupContainer).on('click', function (e) {
             svl.tracker.push('PM_MistakeKeep_Click', currLabelLogs, null);
@@ -532,7 +517,6 @@ function PredictionModel() {
         });
 
         $('.popup-close-button', $commonMistakesPopup).on('click', function (e) {
-
             e.preventDefault();
             e.stopPropagation();  // Stop propagation as we don't want to close the popup.
             svl.tracker.push('PM_BackToLabelingX_Click', currLabelLogs, null);
@@ -541,7 +525,6 @@ function PredictionModel() {
         });
 
         $('.back-to-labeling-button', $commonMistakesPopup).on('click', function (e) {
-
             e.preventDefault();
             e.stopPropagation(); // Stop propagation as we don't want to close the popup.
             svl.tracker.push('PM_BackToLabelingButton_Click', currLabelLogs, null);
@@ -553,7 +536,7 @@ function PredictionModel() {
             currLabelLogs.viewedCommonMistakes = true;
             svl.tracker.push('PM_ViewExamplesPopup_Click', currLabelLogs, null);
             const labelType = currLabel.getProperties().labelType;
-            showCommonMistakesPopup(labelType);
+            _showCommonMistakesPopup(labelType);
             hidePredictionModelPopup();
         });
 
@@ -561,14 +544,14 @@ function PredictionModel() {
             currLabelLogs.viewedCommonMistakes = true;
             svl.tracker.push('PM_ViewCommonMistakes_Click', currLabelLogs, null);
             const labelType = currLabel.getProperties().labelType;
-            showExamples(labelType, 'incorrect');
+            _showExamples(labelType, 'incorrect');
         });
 
         $('.correct-examples-button').on('click', function (e) {
             currLabelLogs.viewedCorrectExamples = true;
             svl.tracker.push('PM_ViewCorrectExamples_Click', currLabelLogs, null);
             const labelType = currLabel.getProperties().labelType;
-            showExamples(labelType, 'correct');
+            _showExamples(labelType, 'correct');
         });
     }
 
@@ -578,7 +561,6 @@ function PredictionModel() {
         if (uiStartTime !== null) {
             const uiEndTime = new Date().getTime();
             currLabelLogs.uiTime = uiEndTime - uiStartTime;
-            console.log(`Time spent in UI: ${currLabelLogs.uiTime} ms`);
         }
 
         // Record everything we care about in this one log for convenience.
@@ -593,19 +575,19 @@ function PredictionModel() {
     }
 
     // Load the ONNX model for the appropriate city.
-    async function loadModel(city) {
+    async function _loadModel(city) {
         session = await ort.InferenceSession.create(`assets/images/${city}_Prediction_MLP.onnx`);
         inputParam = session.inputNames[0];
         outputParam = session.outputNames[0];
     }
 
     // Load the cluster data for the appropriate city.
-    async function loadClusters(city) {
+    async function _loadClusters(city) {
         // Read cluster data from geojson file and split the clusters based on label type.
         const response = await fetch(`assets/images/user-study-${city}-cluster-centroids.json`);
         const data = await response.json();
         clusters = {};
-        for (let labType of labelTypesToPredict) {
+        for (let labType of LABEL_TYPES_TO_PREDICT) {
             clusters[labType] = { 'type': 'FeatureCollection', 'features': [] };
         }
 
@@ -617,7 +599,7 @@ function PredictionModel() {
     }
 
     // Load the intersection data for the appropriate city.
-    async function loadIntersections(city) {
+    async function _loadIntersections(city) {
         // Read intersection data from geojson file.
         const response = await fetch(`assets/images/user-study-${city}-intersections_on_routes.json`);
         intersections = await response.json();
@@ -626,13 +608,13 @@ function PredictionModel() {
     // Asynchronously load the model and necessary data for the appropriate city. We know that in our crowdstudy server,
     // the first 91 regions are from Seattle and the rest are from Oradell.
     let city = svl.regionId < 92 ? 'seattle' : 'oradell';
-    loadModel(city);
-    loadClusters(city);
-    loadIntersections(city);
-    attachEventHandlers();
+    _loadModel(city);
+    _loadClusters(city);
+    _loadIntersections(city);
+    _attachEventHandlers();
 
 
-    self.labelTypesToPredict = labelTypesToPredict;
+    self.isPredictionSupported = isPredictionSupported;
     self.hidePredictionModelPopup = hidePredictionModelPopup;
     self.enableInteractionsForPredictionModelPopup = enableInteractionsForPredictionModelPopup;
     self.predictAndShowUI = predictAndShowUI;
