@@ -514,15 +514,15 @@ function PredictionModel() {
             return $commonMistakesPopup.is(':visible');
         }
 
-        $('.prediction-model-mistake-no-button', $predictionModelPopupContainer).on('click', function (e) {
-            svl.tracker.push('PMMistakeNo_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+        $('.prediction-model-mistake-keep-label-button', $predictionModelPopupContainer).on('click', function (e) {
+            svl.tracker.push('PMMistakeKeep_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
             _logPredictionData();
             hidePredictionModelPopup();
             enableInteractionsForPredictionModelPopup();
         });
 
-        $('.prediction-model-mistake-yes-button', $predictionModelPopupContainer).on('click', function (e) {
-            svl.tracker.push('PMMistakeYes_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
+        $('.prediction-model-mistake-remove-label-button', $predictionModelPopupContainer).on('click', function (e) {
+            svl.tracker.push('PMMistakeRemove_Click', { 'labelProps': JSON.stringify(currLabel.getProperties()) }, null);
             svl.labelContainer.removeLabel(currLabel);
             _logPredictionData();
             hidePredictionModelPopup();
@@ -569,7 +569,8 @@ function PredictionModel() {
         });
     }
 
-    async function _logPredictionData() {
+    // Log all the data we've collected for the current label. Only called once user has finished with the UI.
+    function _logPredictionData() {
         // Record the time spent in the UI, since we only log this data once the UI is closed.
         if (uiStartTime !== null) {
             const uiEndTime = new Date().getTime();
@@ -588,12 +589,14 @@ function PredictionModel() {
         }
     }
 
+    // Load the ONNX model for the appropriate city.
     async function loadModel(city) {
         session = await ort.InferenceSession.create(`assets/images/${city}_Prediction_MLP.onnx`);
         inputParam = session.inputNames[0];
         outputParam = session.outputNames[0];
     }
 
+    // Load the cluster data for the appropriate city.
     async function loadClusters(city) {
         // Read cluster data from geojson file and split the clusters based on label type.
         const response = await fetch(`assets/images/user-study-${city}-cluster-centroids.json`);
@@ -610,12 +613,15 @@ function PredictionModel() {
         }
     }
 
+    // Load the intersection data for the appropriate city.
     async function loadIntersections(city) {
         // Read intersection data from geojson file.
         const response = await fetch(`assets/images/user-study-${city}-intersections_on_routes.json`);
         intersections = await response.json();
     }
 
+    // Asynchronously load the model and necessary data for the appropriate city. We know that in our crowdstudy server,
+    // the first 91 regions are from Seattle and the rest are from Oradell.
     let city = svl.regionId < 92 ? 'seattle' : 'oradell';
     loadModel(city);
     loadClusters(city);

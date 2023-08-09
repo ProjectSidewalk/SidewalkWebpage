@@ -16,9 +16,9 @@
 .button-group-right { float: right; display: flex; }
 .prediction-model-view-examples-button { background: #FBD78B; width: fit-content; border: 2px solid #FBD78B; }
 .prediction-model-view-examples-button:hover { background: #FFC342; border-color: #FFC342; }
-.prediction-model-mistake-no-button, .prediction-model-mistake-yes-button { border: 2px solid black; display: inline-block; width: fit-content; margin-bottom: 0; }
-.prediction-model-mistake-no-button:hover, .prediction-model-mistake-yes-button:hover { background: #E6E7E8; }
-.prediction-model-mistake-yes-button { margin-left: 8px; }
+.prediction-model-mistake-keep-label-button, .prediction-model-mistake-remove-label-button { border: 2px solid black; display: inline-block; width: fit-content; margin-bottom: 0; }
+.prediction-model-mistake-keep-label-button:hover, .prediction-model-mistake-remove-label-button:hover { background: #E6E7E8; }
+.prediction-model-mistake-remove-label-button { margin-left: 8px; }
 
 
 .common-mistakes-popup-backdrop { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 6; transition: all 0.3s; }
