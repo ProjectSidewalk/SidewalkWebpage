@@ -76,70 +76,157 @@ function PredictionModel() {
             'subtitle': 'Tip: The #1 curb ramp mistake is labeling <b>driveways</b> as curb ramps.',
             'correct-examples': [
                 {
-                    'image': 'assets/images/tutorials/curbramp-correct-1.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
+                    'image': 'assets/images/tutorials/PM_Correct_CurbRamps_1.png',
+                    'description': 'This is a good <b>curb ramp</b>. it’s wide, has a yellow tactile warning, and is not too steep.'
                 },
                 {
-                    'image': 'assets/images/tutorials/curbramp-correct-1.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
+                    'image': 'assets/images/tutorials/PM_Correct_CurbRamps_2.png',
+                    'description': 'This is an OK <b>curb ramp</b>. It’s missing a tactile warning strip and is angled into the street.'
                 },
                 {
-                    'image': 'assets/images/tutorials/curbramp-correct-1.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
+                    'image': 'assets/images/tutorials/PM_Correct_CurbRamps_3.png',
+                    'description': 'Label flat <b>curb ramps</b> with tactile warning strips.'
                 },
                 {
-                    'image': 'assets/images/tutorials/curbramp-correct-1.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
+                    'image': 'assets/images/tutorials/PM_Correct_CurbRamps_4.png',
+                    'description': 'Some corners have very wide <b>curb ramps</b> to support travel in both directions.'
                 },
             ],
             'incorrect-examples': [
                 {
-                    'image': 'assets/images/tutorials/curbramp-incorrect-2.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
+                    'image': 'assets/images/tutorials/PM_Mistake_CurbRamps_1.png',
+                    'description': '<b>Driveways</b>. Driveways are <b>not</b> curb ramps. They are designed for vehicles and not pedestrians.'
                 },
                 {
-                    'image': 'assets/images/tutorials/curbramp-incorrect-2.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
+                    'image': 'assets/images/tutorials/PM_Mistake_CurbRamps_2.png',
+                    'description': '<b>Curb Missing</b>. When a curb ramp is missing, use the Missing Curb Ramp label instead.'
                 },
                 {
-                    'image': 'assets/images/tutorials/curbramp-incorrect-2.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
-                },
-                {
-                    'image': 'assets/images/tutorials/curbramp-incorrect-2.png',
-                    'description': 'The curb ramp is clearly visible and is not obstructed by any objects.'
+                    'image': 'assets/images/tutorials/PM_Mistake_CurbRamps_3.png',
+                    'description': '<b>Not on pedestrian route</b>. Curb ramps are not needed at paths not intended for pedestrians.'
                 },
             ],
         },
         'NoCurbRamp': {
             'subtitle': '48% of curb ramps are missed by users.',
-            'correct-examples': [],
-            'incorrect-examples': [],
+            'correct-examples': [
+
+            ],
+            'incorrect-examples': [
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_NoCurbRamp_1.png',
+                    'description': '<b>Curb ramp exists</b>. Do not label Missing Curb Ramps when curb ramps exist.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_NoCurbRamp_2.png',
+                    'description': '<b>House-to-curb</b>. Residential walkways should <b>not</b> be labeled as Missing Curb Ramps.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_NoCurbRamp_3.png',
+                    'description': '<b>Missing Sidewalk</b>. For corners with <b>no sidewalks</b>, use the No Sidewalk label.'
+                },
+            ],
         },
         'Obstacle': {
             'subtitle': '48% of curb ramps are missed by users.',
-            'correct-examples': [],
-            'incorrect-examples': [],
+            'correct-examples': [
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_Obstacles_1.png',
+                    'description': 'This pole and narrow sidewalk create an impassable barrier for wheelchair users.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_Obstacles_2.png',
+                    'description': ''
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_Obstacles_3.png',
+                    'description': 'When a bicycle is parked in the sidewalk and there is no room to pass, it is an obstacle.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_Obstacles_4.png',
+                    'description': ''
+                },
+            ],
+            'incorrect-examples': [
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_Obstacles_1.png',
+                    'description': '<b>Space to avoid</b>. There is ample space for pedestrians on the remaining space of the sidewalk.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_Obstacles_2.png',
+                    'description': '<b>Not on pedestrian route</b>. Only mark obstacles on pedestrian pathways.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_Obstacles_3.png',
+                    'description': '<b>Not an obstacle</b>. Do not mark moving cars or people as obstacles.'
+                },
+            ],
         },
         'SurfaceProblem': {
             'subtitle': '48% of curb ramps are missed by users.',
-            'correct-examples': [],
-            'incorrect-examples': [],
+            'correct-examples': [
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_SurfaceProblems_1.png',
+                    'description': '<b>Sidewalk uplifts</b> create tripping hazards and mobility barriers for wheelchairs.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_SurfaceProblems_2.png',
+                    'description': '<b>Cobblestone pathways</b> create harmful vibrations for wheelchair users.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_SurfaceProblems_3.png',
+                    'description': 'Grass and vegetation overgrowth on the sidewalk are <b>surface problems</b>.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_SurfaceProblems_4.png',
+                    'description': 'This sidewalk has severe cracking and cross-slants that are <b>surface problems</b>.'
+                },
+            ],
+            'incorrect-examples': [
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_SurfaceProblems_1.png',
+                    'description': '<b>Not on pedestrian route</b>. Only mark surface problems on pedestrian pathways.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_SurfaceProblems_2.png',
+                    'description': '<b>Normal sidewalk tiling</b>. Sidewalk tiles without gaps, cracks or bumps are not surface problems.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_SurfaceProblems_3.png',
+                    'description': '<b>Wrong Label Type</b>. Do not mark obstacles (e.g. construction sites) as surface problems.'
+                },
+            ],
         },
         'NoSidewalk': {
             'subtitle': '48% of curb ramps are missed by users.',
-            'correct-examples': [],
-            'incorrect-examples': [],
-        },
-        'Crosswalk': {
-            'subtitle': '48% of curb ramps are missed by users.',
-            'correct-examples': [],
-            'incorrect-examples': [],
-        },
-        'Signal': {
-            'subtitle': '48% of curb ramps are missed by users.',
-            'correct-examples': [],
-            'incorrect-examples': [],
+            'correct-examples': [
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_NoSidewalk_1.png',
+                    'description': 'A dirt path beside the road is a missing sidewalk.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_NoSidewalk_2.png',
+                    'description': 'Many suburban streets are missing sidewalks on both sides of the street.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_NoSidewalk_3.png',
+                    'description': ' A dirt path beside the road is not a replacement for a sidewalk.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Correct_NoSidewalk_4.png',
+                    'description': 'This street is missing sidewalks on both sides of the street.'
+                },
+            ],
+            'incorrect-examples': [
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_NoSidewalk_1.png',
+                    'description': '<b>Sidewalk exists</b>. There is a sidewalk here. It should <b>not</b> be marked as Missing Sidewalk.'
+                },
+                {
+                    'image': 'assets/images/tutorials/PM_Mistake_NoSidewalk_2.png',
+                    'description': '<b>Wrong label type</b>. This should be marked as a Missing Curb Ramp instead of Missing Sidewalk.'
+                },
+            ],
         }
     };
 
@@ -301,7 +388,7 @@ function PredictionModel() {
 
                 const example = examples[i];
                 $('img', $exampleUnit).attr('src', example.image);
-                $('.example-unit-description', $exampleUnit).text(example.description);
+                $('.example-unit-description', $exampleUnit).html(example.description);
 
                 $exampleUnit.addClass(`unit-${i.toString()}`);
 
