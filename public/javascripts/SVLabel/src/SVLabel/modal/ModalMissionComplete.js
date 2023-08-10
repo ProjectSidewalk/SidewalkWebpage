@@ -276,6 +276,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
         var userCompletedTasks = taskContainer.getCompletedTasks();
         var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
+        var incompleteTasks = taskContainer.getIncompleteTasks();
         mission.pushATaskToTheRoute(taskContainer.getCurrentTask());
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
@@ -294,7 +295,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var neighborhoodName = neighborhood.getProperty("name");
         this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title'));
 
-        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'));
+        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'), incompleteTasks);
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
         this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance);
