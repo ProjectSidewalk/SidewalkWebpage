@@ -1,4 +1,6 @@
-html { font-size: 14px; }
+html {
+    font-size: 14px;
+}
 
 .popup-close-button {
     height: 20px;
