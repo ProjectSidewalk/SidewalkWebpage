@@ -287,6 +287,7 @@ function ContextMenu (uiContextMenu) {
         // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
         if (svl.usingPredictionModel()
             && !svl.isOnboarding()
+            && status.targetLabel
             && !status.targetLabel.getProperty('predictionMade')
             && !clickedDelete
             && svl.predictionModel.isPredictionSupported(status.targetLabel.getLabelType())) {
