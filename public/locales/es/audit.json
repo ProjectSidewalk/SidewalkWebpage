@@ -86,6 +86,8 @@
         "accuracy-tooltip": "La precisión se basa en validaciones de otros usuarios. Si su precisión es baja, consulte algunos errores recientes en <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">su panel de usuario</a> para ayudarlo a mejorar.",
         "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",
         "current-mission": {
+            "header": "Misión actual",
+            "header-route": "$t(right-ui.current-mission.header): Ruta {{route_number}}",
             "message-first-mission": "Explora __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
             "message": "Explora __PLACEHOLDER__ de este barrio"
         },

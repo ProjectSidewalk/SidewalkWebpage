@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
 audit.right.ui.overall.stats = 整體統計數據
 audit.right.ui.current.neighborhood = 目前所在鄰里
 audit.right.ui.distance = 公里
-audit.right.ui.current.mission = 目前任務
 
 audit.center.ui.passable = 可通過的
 audit.center.ui.not.passable = 不可通過的
