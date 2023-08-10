@@ -122,22 +122,22 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
         var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
         var userOldStreets = completedTasks.map( function(t) { return t.getStreetEdgeId(); });
+
+        // If on a route, add all streets that haven't been finished yet. Otherwise, add all streets that have been
+        // completed by other users. These lines are drawn in gray.
         if (svl.neighborhoodModel.isRoute) {
-            // Add the route remaining layer.
-            for (i = 0; i < incompleteTasks.length; i++) {
-                leafletLine = L.geoJson(incompleteTasks[i].getFeature());
+            for (var incompleteStreet of incompleteTasks) {
+                leafletLine = L.geoJson(incompleteStreet.getFeature());
                 layer = leafletLine.addTo(this._map);
                 layer.setStyle(completedTaskAllUsersLayerStyle);
                 this._completedTasksLayer.push(layer);
             }
         } else {
-            // Add the other users' tasks layer.
-            for (i = 0; i < allCompletedTasks.length; i++) {
-                var otherUserStreet = allCompletedTasks[i].getStreetEdgeId();
-                    leafletLine = L.geoJson(allCompletedTasks[i].getFeature());
-                    layer = leafletLine.addTo(this._map);
-                    layer.setStyle(completedTaskAllUsersLayerStyle);
-                    this._completedTasksLayer.push(layer);
+            for (var otherUserStreet of allCompletedTasks) {
+                leafletLine = L.geoJson(otherUserStreet.getFeature());
+                layer = leafletLine.addTo(this._map);
+                layer.setStyle(completedTaskAllUsersLayerStyle);
+                this._completedTasksLayer.push(layer);
             }
         }
 
