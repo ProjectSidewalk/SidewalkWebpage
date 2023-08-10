@@ -27,7 +27,7 @@
 
 .common-mistakes-popup-header { height: 20px; width: 100%; }
 
-.common-mistakes-popup-content { display: flex; flex-wrap: wrap; flex-shrink: 0; position: absolute; background: white; border-radius: 12px; border: 2px solid grey; padding: 25px; z-index: 10; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 67%; height: 90%; }
+.common-mistakes-popup-content { display: flex; flex-wrap: wrap; flex-shrink: 0; position: absolute; background: white; border-radius: 12px; border: 2px solid grey; padding: 25px; z-index: 10; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 67%; height: 90%; max-width: 965px; max-height: 657px; }
 .common-mistakes-current-label-panel { width: calc(35% - 5px); height: fit-content; display: flex; flex-wrap: wrap; flex-shrink: 0; }
 .common-mistakes-current-label-title { font-size: 24px; font-weight: 700; }
 .common-mistakes-current-label-image { width: calc(100% - 30px); position: relative; margin-top: 16px; }
