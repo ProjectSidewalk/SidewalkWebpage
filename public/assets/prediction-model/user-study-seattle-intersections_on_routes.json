@@ -1,0 +1,26 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "978786644", "route_id": 9.0, "region_id": null, "street_edge_id": 2950 }, "geometry": { "type": "Point", "coordinates": [ -122.3714506, 47.6850293 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "6453938", "route_id": 9.0, "region_id": null, "street_edge_id": 2950 }, "geometry": { "type": "Point", "coordinates": [ -122.3727668, 47.6851176 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "978786654", "route_id": 9.0, "region_id": null, "street_edge_id": 2950 }, "geometry": { "type": "Point", "coordinates": [ -122.3728394, 47.6850728 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "978786652", "route_id": 9.0, "region_id": null, "street_edge_id": 2950 }, "geometry": { "type": "Point", "coordinates": [ -122.3727619, 47.6850201 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "978786653", "route_id": 9.0, "region_id": null, "street_edge_id": 2950 }, "geometry": { "type": "Point", "coordinates": [ -122.3726945, 47.685076 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "978786644", "route_id": 9.0, "region_id": null, "street_edge_id": 2950 }, "geometry": { "type": "Point", "coordinates": [ -122.3715172, 47.6850789 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "978786643", "route_id": 9.0, "region_id": null, "street_edge_id": 11553 }, "geometry": { "type": "Point", "coordinates": [ -122.3713794, 47.6850782 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "9112005", "route_id": 9.0, "region_id": null, "street_edge_id": 11553 }, "geometry": { "type": "Point", "coordinates": [ -122.3714501, 47.6851229 ] } },
+{ "type": "Feature", "properties": { "way_type": "tertiary", "osmid": "6394365", "route_id": 9.0, "region_id": null, "street_edge_id": 11553 }, "geometry": { "type": "Point", "coordinates": [ -122.3714417, 47.6868922 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "6505136", "route_id": 9.0, "region_id": null, "street_edge_id": 9657 }, "geometry": { "type": "Point", "coordinates": [ -122.3113958, 47.6204962 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "992730793", "route_id": 9.0, "region_id": null, "street_edge_id": 9657 }, "geometry": { "type": "Point", "coordinates": [ -122.3112835, 47.6220852 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "6505136", "route_id": 9.0, "region_id": null, "street_edge_id": 9657 }, "geometry": { "type": "Point", "coordinates": [ -122.3113726, 47.622027 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "992730794", "route_id": 9.0, "region_id": null, "street_edge_id": 9657 }, "geometry": { "type": "Point", "coordinates": [ -122.3113702, 47.6221442 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "8111709", "route_id": 9.0, "region_id": null, "street_edge_id": 9657 }, "geometry": { "type": "Point", "coordinates": [ -122.3114581, 47.6220883 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "989762759", "route_id": 6.0, "region_id": 12.0, "street_edge_id": 4144 }, "geometry": { "type": "Point", "coordinates": [ -122.2868427, 47.6648393 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "1092434642", "route_id": 6.0, "region_id": 12.0, "street_edge_id": 4144 }, "geometry": { "type": "Point", "coordinates": [ -122.286911, 47.664885 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "6440702", "route_id": 6.0, "region_id": 12.0, "street_edge_id": 4144 }, "geometry": { "type": "Point", "coordinates": [ -122.2868439, 47.6649293 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "989762755", "route_id": 6.0, "region_id": 12.0, "street_edge_id": 4144 }, "geometry": { "type": "Point", "coordinates": [ -122.2879408, 47.6648889 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "989762757", "route_id": 6.0, "region_id": 12.0, "street_edge_id": 4144 }, "geometry": { "type": "Point", "coordinates": [ -122.2867774, 47.6648939 ] } },
+{ "type": "Feature", "properties": { "way_type": "residential", "osmid": "336908260", "route_id": 5.0, "region_id": 30.0, "street_edge_id": 7555 }, "geometry": { "type": "Point", "coordinates": [ -122.2846964, 47.6081518 ] } }
+]
+}

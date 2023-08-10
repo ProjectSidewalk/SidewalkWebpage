@@ -411,6 +411,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       writer.print(features.map(_.toString).mkString(","))
       startIndex += batchSize
       if (features.length < batchSize) moreWork = false
+      else writer.print(",")
     }
     writer.print("]")
     writer.close()

@@ -64,13 +64,14 @@ function ContextMenu (uiContextMenu) {
      * @param e
      */
     function _handleMouseDown(e) {
-        var clickedOut = !($menuWindow[0].contains(event.target));
+        var clickedOut = !($menuWindow[0].contains(e.target));
+        var clickedDelete = svl.ui.canvas.deleteIcon[0].contains(e.target);
         if (isOpen()) {
             if (clickedOut) {
                 svl.tracker.push('ContextMenu_CloseClickOut');
                 handleSeverityPopup();
             }
-            hide();
+            hide(clickedDelete);
         }
     }
 
@@ -97,54 +98,33 @@ function ContextMenu (uiContextMenu) {
     function _handleCloseButtonClick() {
         svl.tracker.push('ContextMenu_CloseButtonClick');
         handleSeverityPopup();
-        hide();
+        hide(false);
     }
 
-    // Posts the last label data to the prediction model endpoint
-    // and shows the popup UI if the prediction model flags it.
+    // Sends the last label's data to the prediction model and shows the popup UI if the prediction model flags it.
     function predictLabelCorrectnessAndShowUI() {
-        var labels = svl.labelContainer.getAllLabels();
-        if (labels.length > 0) {
 
-            // @Mikey, Is this the right place to make a call to prediction model?
-            // Check if the prediction model flags this.
+        // Package the data to send to the prediction model.
+        const currentLabelProps = status.targetLabel.getProperties();
+        const data = {
+            temporaryLabelId: currentLabelProps.temporaryLabelId,
+            labelType: currentLabelProps.labelType,
+            severity: currentLabelProps.severity,
+            zoom: currentLabelProps.originalPov.zoom,
+            hasTags: currentLabelProps.tagIds.length > 0,
+            lat: currentLabelProps.labelLat,
+            lng: currentLabelProps.labelLng,
+            hasDescription: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
+        };
 
-            const currentLabelProps = labels[labels.length - 1].getProperties();
-            const data = {
-                label_type: currentLabelProps.labelType,
-                severity: currentLabelProps.severity,
-                zoom: currentLabelProps.originalPov.zoom,
-                tag_count: 0,
-                lat: currentLabelProps.labelLat,
-                lng: currentLabelProps.labelLng,
-                has_description: (currentLabelProps.description && currentLabelProps.description.length > 0) ? true : false,
-            };
-
-            PredictionModel.predictAndShowUI(data, labels[labels.length - 1], svl);
-
-            // $.ajax({
-            //     type: 'POST',
-            //     url: 'runPredictionModel',
-            //     contentType: 'application/json',
-            //     data: JSON.stringify(data),
-            //     success: function (predictionModelResult) {
-            //         if (predictionModelResult) {
-            //             if (predictionModelResult.confidence === 0) { // TODO: change to the actual threshold.
-            //                 PredictionModel.showLabelPredictionFlag(labels[labels.length - 1], svl);
-            //             }
-            //         }
-            //     },
-            //     error: function (result) {
-            //         console.log(result); // TODO: we should handle logging better.
-            //     }
-            // });
-        }
+        // Check if the prediction model flags this.
+        svl.predictionModel.predictAndShowUI(data, status.targetLabel, svl);
     }
 
     function _handleOKButtonClick() {
         svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
-        hide();
+        hide(false);
     }
 
     function handleSeverityPopup() {
@@ -290,8 +270,9 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Hide the context menu.
+     * @param clickedDelete Whether we are closing the menu bc the label is being deleted. If so, don't run prediction.
      */
-    function hide() {
+    function hide(clickedDelete) {
         if (isOpen()) {
             $descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
             svl.tracker.push('ContextMenu_Close');
@@ -302,9 +283,14 @@ function ContextMenu (uiContextMenu) {
         _setBorderColor('black');
         setStatus('visibility', 'hidden');
 
-        // No need to predict correctness if the user is onboarding.
-        // @Mikey, is this the right way to check?
-        if (!svl.isOnboarding()) {
+        // Check if we should try to predict label correctness. It's experimental, so show only on crowdstudy server.
+        // No need to predict correctness if the user is in the tutorial or if it's already been done for this label.
+        if (svl.usingPredictionModel()
+            && !svl.isOnboarding()
+            && !status.targetLabel.getProperty('predictionMade')
+            && !clickedDelete
+            && svl.predictionModel.isPredictionSupported(status.targetLabel.getLabelType())) {
+            status.targetLabel.setProperty('predictionMade', true);
             predictLabelCorrectnessAndShowUI();
         }
 
@@ -517,6 +503,11 @@ function ContextMenu (uiContextMenu) {
         var labelType = targetLabel.getLabelType();
         var labelColor = util.misc.getLabelColors()[labelType].fillStyle;
         var labelCoord = targetLabel.getCanvasXY();
+
+        // Disable nav arrows on crowdstudy server so users can't skip pred model UI by clicking on arrows.
+        if (svl.usingPredictionModel() && svl.predictionModel.isPredictionSupported(labelType)) {
+            svl.map.disableWalking();
+        }
         if (labelType !== 'Occlusion') {
             setStatus('targetLabel', targetLabel);
             _setTags(targetLabel);

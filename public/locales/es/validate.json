@@ -126,8 +126,8 @@
         "continue": "Continuar validando",
         "explore": "Comienza una misión de exploración",
         "no-new-mission-title": "No quedan más misiones de validación",
-        "no-new-mission-body": "Haz clic en el botón para comenzar a explorar",
-        "no-new-mission-button": "Comienza a explorar"
+        "no-new-mission-body": "¡Puede agregar más etiquetas usando una computadora portátil/de escritorio, o puede validar etiquetas en otra ciudad!",
+        "no-new-mission-button": "Validar en"
     },
     "mobile": {
         "info-title-curb-ramp": "¿Qué es una Rampa Peatonal?",

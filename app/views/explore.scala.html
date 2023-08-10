@@ -5,6 +5,8 @@
 @import models.amt.AMTAssignmentTable
 @import models.route.UserRoute
 @import views.html.bootstrap._
+@import play.api.Play
+@import play.api.Play.current
 
 @(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
@@ -375,8 +377,8 @@
                     </div>
                 </div>
                 <div id="mission-completion-status-box" class="status-box">
-                    <h1>@Messages("audit.right.ui.current.mission")</h1>
-                    <h2 id="current-mission-description">Let's make this neighborhood accessible</h2>
+                    <h1 id="current-mission-header"></h1>
+                    <h2 id="current-mission-description"></h2>
                     <div id='status-current-mission-completion-bar'>
                         <div id='status-current-mission-completion-bar-filler'>
                             <div id='status-current-mission-completion-rate'></div>
@@ -422,8 +424,8 @@
                                     <div class="prediction-model-button prediction-model-view-examples-button">View Common Mistakes</div>
                                 </div>
                                 <div class="button-group-right">
-                                    <div class="prediction-model-button prediction-model-mistake-no-button">Yes, I am sure</div>
-                                    <div class="prediction-model-button prediction-model-mistake-yes-button">No, remove the label</div>
+                                    <div class="prediction-model-button prediction-model-mistake-keep-label-button">Yes, I am sure</div>
+                                    <div class="prediction-model-button prediction-model-mistake-remove-label-button">No, remove the label</div>
                                 </div>
                             </div>
                         </div>
@@ -825,20 +827,6 @@
 
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
-
-        // This allows us to take screenshots of the Google Street View.
-        // HTMLCanvasElement.prototype.getContext = function(origFn) {
-        //     return function(type, attributes) {
-        //         if (type === 'webgl') {
-        //             attributes = Object.assign({}, attributes, {
-        //                 preserveDrawingBuffer: true,
-        //             });
-        //         }
-        //         return origFn.call(this, type, attributes);
-        //     };
-        // }(HTMLCanvasElement.prototype.getContext);
-
-
         var svl = svl || {};
         var mainParam = {};
         svl.storage = new TemporaryStorage(JSON);
@@ -1039,6 +1027,7 @@
             }
 
             mainParam.language = "@lang.code";
+            mainParam.cityId = "@Play.configuration.getString("city-id").get"
 
             svl.main = new Main(mainParam);
         }

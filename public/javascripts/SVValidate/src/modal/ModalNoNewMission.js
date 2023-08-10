@@ -16,18 +16,29 @@ function ModalNoNewMission (uiModalMission) {
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
-        svv.tracker.push("Click_NoMoreMissionModal_Audit");
-        window.location.replace("/explore");
+        if (isMobile()) {
+            svv.tracker.push("Click_NoMoreMissionModal_ValidateSeattle");
+            window.location.replace("https://sidewalk-sea.cs.washington.edu/validate");
+        } else {
+            svv.tracker.push("Click_NoMoreMissionModal_Audit");
+            window.location.replace("/explore");
+        }
     }
 
     function show () {
-        svv.keyboard.disableKeyboard();
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
         uiModalMission.background.css('visibility', 'visible');
         uiModalMission.instruction.html(noMissionsRemaining);
         uiModalMission.missionTitle.html(i18next.t('mission-complete.no-new-mission-title'));
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
-        uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button'));
+        // Update and widen the button to fit more text when there is no new mission.
+        uiModalMission.closeButton.css('font-size', '42pt');
+        uiModalMission.closeButton.css('width', '60%');
+        uiModalMission.closeButton.css('margin-right', '20%');
+        uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button') + ` Seattle, WA`);
         uiModalMission.closeButton.on('click', _handleButtonClick);
     }
 

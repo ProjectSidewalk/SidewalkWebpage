@@ -1,5 +1,0 @@
-# Used in run_prediction_model.py only for now. Package version most up-to-date as of Jul 27, 2023.
-onnxruntime==1.14.1
-geopandas==0.10.2
-haversine==2.8.0
-scipy==1.7.3
