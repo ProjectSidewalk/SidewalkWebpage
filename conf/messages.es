@@ -328,6 +328,7 @@ gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
+gallery.reset.all = Resetear Todo
 
 route.builder.name = Constructor de rutas
 route.builder.instructions = Haga clic en las calles para agregarlas a su ruta, luego haga clic en "Guardar ruta". Luego, puede explorar los problemas de accesibilidad de ruta y etiqueta, ¡o puede compartir un enlace para que otros exploren la misma ruta!
