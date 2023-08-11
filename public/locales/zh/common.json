@@ -25,6 +25,7 @@
     "mturk-code": "Mturk程式碼: {{code}}",
     "right-ui-turk-current-reward": "目前任務獎勵: ",
     "right-ui-turk-total-reward": "總獲取獎勵: ",
+    "left-ui-feedback": "和我們分享一下你的想法",
     "mission-complete-confirmation-code": "確認碼: ",
     "mission-start-turk-reward": "圓滿完成任務的獎勵: ",
     "map": {

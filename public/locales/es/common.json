@@ -25,6 +25,7 @@
     "mturk-code": "Código de Mturk: {{code}}",
     "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
     "right-ui-turk-total-reward": "Recompensa total ganada: ",
+    "left-ui-feedback": "Comparte tus pensamientos con nosotros",
     "mission-complete-confirmation-code": "Código de confirmación: ",
     "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
     "map": {
