@@ -46,6 +46,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
+    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+
+    val studyGroupParam: Option[String] = qString.get("studyGroup")
+    val studyGroup: String = studyGroupParam.map(g => if (g == "1" || g == "2") g else "-1").getOrElse("-1")
 
     val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
 
@@ -138,13 +142,20 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         if (missionSetProgress.missionType != "audit") {
           Future.successful(Redirect("/validate"))
         } else {
-          Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+          // On the crowdstudy server, we want to assign users to a study group.
+          val response = Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityShortName, tutorialStreetId))
+          if (cityStr == "crowdstudy") Future.successful(response.withCookies(Cookie("STUDY_GROUP", studyGroup, httpOnly = false)))
+          else Future.successful(response)
         }
       // For anonymous users.
       case None =>
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        val queryParams: String = routeId.map(rId => s"%3FrouteId=$rId").getOrElse("")
-        Future.successful(Redirect("/anonSignUp?url=/explore" + queryParams))
+        val routeParam: String = routeId.map(rId => s"%3FrouteId=$rId").getOrElse("")
+        val studyGroupParam: String =
+          if (routeParam.nonEmpty && studyGroup.nonEmpty) s"%26studyGroup=$studyGroup"
+          else if (studyGroup.nonEmpty) s"%3FstudyGroup=$studyGroup"
+          else ""
+        Future.successful(Redirect("/anonSignUp?url=/explore" + routeParam + studyGroupParam))
     }
   }
 
