@@ -218,9 +218,11 @@
                         @Messages("audit.left.ui.stuck")
                     </div>
                     <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
-                        <br>
-                        @Html(Messages("feedback"))
+                        <div id="feedback-button-tooltip" data-toggle="tooltip" data-placement="top">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
+                            <br>
+                            @Html(Messages("feedback"))
+                        </div>
                     </div>
                 </div>
             </div>

@@ -68,7 +68,6 @@ function Main (params) {
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
 
-        svl.ui.leftColumn.feedback.tooltip({ title: i18next.t('common:left-ui-feedback'), container: 'body' });
 
         // Set map parameters and instantiate it.
         var mapParam = { lat: SVLat, lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 } };
@@ -233,10 +232,10 @@ function Main (params) {
                 });
             }
         });
-        $(svl.ui.leftColumn.feedback).attr({
-            'data-toggle': 'tooltip',
-            'data-placement': 'top',
-            'title': i18next.t('common:left-ui-feedback')
+        $("#feedback-button-tooltip").tooltip({
+            title: i18next.t('common:left-ui-feedback'),
+            delay: { "show": 500, "hide": 100 },
+            container: 'body'
         });
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },

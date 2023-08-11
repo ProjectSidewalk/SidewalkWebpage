@@ -153,6 +153,7 @@ function Main (param) {
             svv.pinchZoom = new PinchZoomDetector();
         }
 
+
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
@@ -199,10 +200,14 @@ function Main (param) {
             svv.keyboard.disableKeyboard();
             $(".tool-ui").css('opacity', 0.5);
         });
-        $(svv.ui.modalComment.feedbackButton).attr({
-            'data-toggle': 'tooltip',
-            'data-placement': 'top',
-            'title': i18next.t('common:left-ui-feedback')
+        $("#feedback-button-tooltip").tooltip({
+            title: i18next.t('common:left-ui-feedback'),
+            delay: { "show": 500, "hide": 100 },
+            container: 'body'
+        });
+        $('[data-toggle="tooltip"]').tooltip({
+            delay: { "show": 500, "hide": 100 },
+            html: true
         });
 
         const labelType = param.labelList[0].getAuditProperty('labelType');

@@ -60,10 +60,12 @@
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-toggle="popover" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
-                        <br>
-                        @Html(Messages("feedback"))
-                    </div>  
+                        <div id="feedback-button-tooltip" data-toggle="tooltip" data-placement="top">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                            <br>
+                            @Html(Messages("feedback"))
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="upper-menu-holder">
