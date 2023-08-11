@@ -48,8 +48,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
-    val studyGroupParam: Option[String] = qString.get("studyGroup")
-    val studyGroup: String = studyGroupParam.map(g => if (g == "1" || g == "2") g else "-1").getOrElse("-1")
+    val studyGroupInput: Option[String] = qString.get("studyGroup")
+    val studyGroup: String = studyGroupInput.map(g => if (g == "1" || g == "2") g else "").getOrElse("")
 
     val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
 
@@ -144,7 +144,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         } else {
           // On the crowdstudy server, we want to assign users to a study group.
           val response = Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityShortName, tutorialStreetId))
-          if (cityStr == "crowdstudy") Future.successful(response.withCookies(Cookie("STUDY_GROUP", studyGroup, httpOnly = false)))
+          if (cityStr == "crowdstudy" && studyGroup.nonEmpty) Future.successful(response.withCookies(Cookie("SIDEWALK_STUDY_GROUP", studyGroup, httpOnly = false)))
           else Future.successful(response)
         }
       // For anonymous users.
