@@ -22,7 +22,7 @@ function Main (params) {
         return params.mission.mission_type === 'auditOnboarding';
     };
     svl.usingPredictionModel = function() {
-        return params.cityId === 'crowdstudy';
+        return params.cityId === 'crowdstudy' && Cookies.get('SIDEWALK_STUDY_GROUP') === '2';
     }
     svl.regionId = params.regionId;
     svl.missionsCompleted = params.missionSetProgress;
