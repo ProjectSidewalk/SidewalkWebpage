@@ -616,6 +616,10 @@ function PredictionModel() {
         // Record everything we care about in this one log for convenience.
         svl.tracker.push('PM_FullPredictionLog', currLabelLogs, null);
 
+        // Temporarily log to the console for debugging. Need to do at least a shallow copy since we overwrite it after.
+        let copiedLogs = Object.assign({}, currLabelLogs);
+        console.log(copiedLogs);
+
         // Reset the logs for the next label.
         currLabel = null;
         uiStartTime = null;
