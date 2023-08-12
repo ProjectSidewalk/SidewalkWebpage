@@ -110,6 +110,7 @@ public class ShapefilesCreatorHelper {
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer," // Notsure validations
                         + "userIds:String," // List of User Ids
+                        + "clusterSize:Integer" //Label count
                 );
 
         /*
@@ -145,6 +146,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.disagreeCount());
             featureBuilder.add(a.notsureCount());
             featureBuilder.add("[" + a.usersList().mkString(",") + "]");
+            featureBuilder.add(a.labelCount());
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }

@@ -33,8 +33,8 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
         val features: List[JsObject] =
           RegionTable.getNeighborhoodsWithUserCompletionStatus(user.userId, regionIds).map { case (region, userCompleted) =>
             val properties: JsObject = Json.obj(
-              "Neighborhood ID" -> region.regionId,
-              "Neighborhood Name" -> region.name,
+              "region_id" -> region.regionId,
+              "region_name" -> region.name,
               "user_completed" -> userCompleted
             )
             Json.obj("type" -> "Feature", "geometry" -> region.geom.toJSON, "properties" -> properties)
