@@ -4,8 +4,9 @@
  * @param labelType one of the seven label types for which the tutorial needs to be initialized.
  * @param labelCount the number of labels to validate in the current mission (VALIDATE mission only).
  * @param svvOrsvl the svvOrsvl SVValidate or SVLabel object to log interactions and perform other actions upon closing the tutorial.
+ * @param language Fdfadfda
  */
-function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
+function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language = 'en') {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -912,6 +913,14 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         const $mstSlideImage = $('.msts-image');
         const $labelOnImage = $('.label-on-image');
         const $mstDoneButton = $('.mission-start-tutorial-done-btn');
+        const $labelOnImageDescription = $('.label-on-image-description');
+
+        // Change spacing for the descriptions for different languages based on how verbose they are.
+        if (language === 'de') {
+            $labelOnImageDescription[0].style.transform = 'translateY(' + -16 + '%)';
+        } else if (language === 'nl') {
+            $labelOnImage[0].style.maxWidth = '230px';
+        }
 
         // Reset the UI first.
         $('.mst-carousel-location-indicator').removeClass('current-location');
