@@ -115,6 +115,7 @@
                 "not-level-with-street": "與街道高度未齊平(<tag-underline>v</tag-underline>)",
                 "surface-problem": "鋪面問題(<tag-underline>r</tag-underline>)",
                 "pooled-water": "積水(<tag-underline>d</tag-underline>)",
+                "parallel-lines": "平行線(<tag-underline>j</tag-underline>)",
                 "alternate-route-present": "有替代路徑(<tag-underline>a</tag-underline>)",
                 "no-alternate-route": "無替代路徑(<tag-underline>l</tag-underline>)",
                 "unclear-if-needed": "不確定是否需要(<tag-underline>u</tag-underline>)",
