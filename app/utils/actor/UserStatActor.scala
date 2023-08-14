@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
 import akka.actor.{Actor, Cancellable, Props}
 import models.user.UserStatTable
-import play.api.Play.current
+import models.attribute.ConfigTable
 import play.api.{Logger, Play}
 import java.sql.Timestamp
 import java.time.Instant
@@ -20,8 +20,7 @@ class UserStatActor extends Actor {
   override def preStart(): Unit = {
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
-    val cityId: String = Play.configuration.getString("city-id").get
-    val hoursOffset: Int = Play.configuration.getInt(s"city-params.update-offset-hours.${cityId}").get
+    val hoursOffset: Int = ConfigTable.getOffsetHours
 
     // If we want to update the user_stat table at 12:30 am PDT every day, we need to figure out how much time there is
     // b/w now and the next 12:30 am, then we can set the update interval to be 24 hours. So we make a calendar object

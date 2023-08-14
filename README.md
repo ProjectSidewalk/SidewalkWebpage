@@ -60,11 +60,13 @@ Make sure Docker is running on your machine. You should see a Docker whale in yo
 
 On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7) (built in to Win10). On Mac, use the basic terminal or, even better, [iTerm2](https://www.iterm2.com/). On Linux (or if you're using WSL2 on Windows), the default Linux Shell (such as [Bash](https://www.gnu.org/software/bash/)) is a great choice.
 
-1. Email Mikey (michaelssaugstad@gmail.com) and ask for a database dump, a Mapbox API key, and a Google Maps API key & secret (if you are not part of our team, you'll have to [create a Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) yourself). Rename the database dump `sidewalk-dump` and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
+1. Email Mikey (michaelssaugstad@gmail.com) and ask for a database dump, a Mapbox API key, and a Google Maps API key & secret (if you are not part of our team, you'll have to [create a Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) yourself).
 1. If your computer has an Apple Silicon (M1 or M2) chip, then you should modify the `platform` line in the `docker-compose.yml`, changing it to `linux/arm64`.
 1. If your computer has less than 16 GB of RAM, I'd recommend modifying `-mem 12288` to `-mem 8192` or lower in the `package.json` file so that you don't fill up your computer's memory.
 1. Modify the `MAPBOX_API_KEY`, `GOOGLE_MAPS_API_KEY`, and `GOOGLE_MAPS_SECRET` lines in the `docker-compose.yml` using the keys and secret you've acquired.
 1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
+1. Modify the `DATABASE_URL` line in the `docker-compose.yml`, replacing "sidewalk" with "sidewalk-\<city-name\>", where the `<city-name>` comes from the city ID you found in the previous step. Note that if a state abbreviation comes after, you'll remove that. So if the `city-id` is "newberg-or", your db URL will contain "sidewalk-newberg". And if your `city-id` is "cdmx" then your URL will contain "sidewalk-cdmx".
+1. Rename the database dump file that you got from Mikey to "sidewalk-\<city-name\>-dump" (same name as prev step) and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`).
 1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container in that same terminal. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
@@ -75,14 +77,14 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with one of `dc`, `seattle`, `newberg`, `columbus`, `cdmx`, `spgg`, `chicago`, `amsterdam`, `la-piedad`, `oradell`, or `pittsburg` (pittsburgh is missing the 'h', but it's a typo we're stuck with), depending on which city your database dump is for.
+1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with the one used above. There is one outlier: `pittsburg` (pittsburgh is missing the 'h', but it's a typo we're stuck with; the typo is only relevant for this one command).
 
     ```
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE sidewalk_<city-name> SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
     ```
 
-1. Run `make import-dump db=sidewalk` from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
+1. Run `make import-dump db=sidewalk-<city-name>` (needs to be the same thing you put in the `DATABASE_URL`) from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
 1. Run `npm start` from inside the Docker shell (the terminal where you ran `make dev`). If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
 
     The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Successful output of this command will look like:
