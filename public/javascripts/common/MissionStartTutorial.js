@@ -913,14 +913,12 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         const $mstSlideImage = $('.msts-image');
         const $labelOnImage = $('.label-on-image');
         const $mstDoneButton = $('.mission-start-tutorial-done-btn');
-
         const $labelOnImageDescription = $('.label-on-image-description');
 
+        // Change spacing for the descriptions for different languages based on how verbose they are.
         if (language === 'de') {
             $labelOnImageDescription[0].style.transform = 'translateY(' + -16 + '%)';
-        }
-
-        if (language === 'nl') {
+        } else if (language === 'nl') {
             $labelOnImage[0].style.maxWidth = '230px';
         }
 
