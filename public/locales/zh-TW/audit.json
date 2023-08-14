@@ -161,7 +161,8 @@
                 "pedestrian-lane-marking": "行人車道標記(<tag-underline>i</tag-underline>)",
                 "covered-walkway": "有蓋的人行道(<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "離車流太近(<tag-underline>t</tag-underline>)",
-                "utility-panel": "公用設施面板(<tag-underline>e</tag-underline>)"
+                "utility-panel": "公用設施面板(<tag-underline>e</tag-underline>)",
+                "outdoor-dining-area": "戶外用餐區(<tag-underline>q</tag-underline>)"
             },
             "tooltip": {
                 "passable": "可通行的",

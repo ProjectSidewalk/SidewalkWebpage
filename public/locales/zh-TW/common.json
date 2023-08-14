@@ -110,7 +110,8 @@
         "pedestrian lane marking": "行人車道標記",
         "covered walkway": "有蓋的人行道",
         "too close to traffic": "離車流太近",
-        "utility panel": "公用設施面板"
+        "utility panel": "公用設施面板",
+        "outdoor dining area": "戶外用餐區"
     },
     "gsv-info": {
         "details-title": "詳細資訊",

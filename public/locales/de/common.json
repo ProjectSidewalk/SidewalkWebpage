@@ -110,7 +110,8 @@
         "pedestrian lane marking": "Längsstreifen / Gehwegmarkierung",
         "covered walkway": "überdachter Gehweg",
         "too close to traffic": "zu nah am Verkehr",
-        "utility panel": "Schaltkasten"
+        "utility panel": "Schaltkasten",
+        "outdoor dining area": "Aussenbereich Gastronomie"
     },
     "gsv-info": {
         "details-title": "Details",
