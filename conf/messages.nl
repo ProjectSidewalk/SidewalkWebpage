@@ -162,7 +162,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ga naar een nieuwe wijk
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
-audit.right.ui.current.mission = Huidige Missie
 
 audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar

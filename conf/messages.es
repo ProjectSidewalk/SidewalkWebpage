@@ -162,7 +162,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
 audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.distance = kilómetros
-audit.right.ui.current.mission = Misión actual
 
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable

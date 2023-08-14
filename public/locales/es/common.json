@@ -111,7 +111,8 @@
         "pedestrian lane marking": "marcado de carril peatonal",
         "covered walkway": "pasarela cubierta",
         "too close to traffic": "demasiado cerca del tráfico",
-        "utility panel": "panel de utilidad"
+        "utility panel": "panel de utilidad",
+        "outdoor dining area": "comedor al aire libre"
     },
     "gsv-info": {
         "details-title": "Detalles",

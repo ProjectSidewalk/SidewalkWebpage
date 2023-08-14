@@ -162,7 +162,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood
 audit.right.ui.overall.stats = Overall Stats
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.distance = kilometers
-audit.right.ui.current.mission = Current Mission
 
 audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable

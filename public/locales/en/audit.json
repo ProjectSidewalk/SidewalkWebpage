@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
-        "title": "Mission Complete!",
+        "title-generic": "Mission Complete!",
+        "title-neighborhood-complete": "Bravo! You completed the {{neighborhoodName}} neighborhood!",
+        "title-route-complete": "Bravo! You completed your route!",
         "map-legend-label-other-users": "Other Users' Missions",
         "progress-neighborhood-title": "Neighborhood Progress",
         "progress-route-title": "Route Progress",
@@ -86,6 +88,8 @@
         "accuracy-tooltip": "Accuracy is based on validations from other users. If your accuracy is low, check out some recent mistakes on <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">your User Dashboard</a> to help you improve!",
         "no-accuracy-tooltip": "We need more data to calculate an accuracy rating for you. Add more labels and sign up to keep track of your accuracy rating!",
         "current-mission": {
+            "header": "Current Mission",
+            "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
             "message-first-mission": "Explore for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
             "message": "Explore __PLACEHOLDER__ of this neighborhood"
         },
@@ -157,7 +161,8 @@
                 "pedestrian-lane-marking": "pedestr<tag-underline>i</tag-underline>an lane marking",
                 "covered-walkway": "covered wa<tag-underline>l</tag-underline>kway",
                 "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
-                "utility-panel": "utility pan<tag-underline>e</tag-underline>l"
+                "utility-panel": "utility pan<tag-underline>e</tag-underline>l",
+                "outdoor-dining-area": "outdoor dining area (<tag-underline>q</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passable",

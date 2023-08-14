@@ -18,9 +18,13 @@ function Main (params) {
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
-    svl.isOnboarding = function () {
+    svl.isOnboarding = function() {
         return params.mission.mission_type === 'auditOnboarding';
     };
+    svl.usingPredictionModel = function() {
+        return params.cityId === 'crowdstudy' && Cookies.get('SIDEWALK_STUDY_GROUP') === '2';
+    }
+    svl.regionId = params.regionId;
     svl.missionsCompleted = params.missionSetProgress;
 
     // Ideally this should be declared in one place and all the callers should refer to that.
@@ -46,6 +50,10 @@ function Main (params) {
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;
+        svl.cityId = params.cityId;
+        if (svl.usingPredictionModel()) {
+            svl.predictionModel = new PredictionModel();
+        }
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -437,6 +445,7 @@ function Main (params) {
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
+        svl.ui.status.currentMissionHeader = $("#current-mission-header");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
         svl.ui.status.currentMissionReward = $("#current-mission-reward");
         svl.ui.status.totalMissionReward = $("#total-mission-reward");

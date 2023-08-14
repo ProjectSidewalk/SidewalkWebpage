@@ -65,7 +65,8 @@ function Label(params) {
         tutorial: null,
         temporaryLabelId: null,
         temporaryLabel: false,
-        description: null
+        description: null,
+        predictionMade: null
     };
 
     var status = {

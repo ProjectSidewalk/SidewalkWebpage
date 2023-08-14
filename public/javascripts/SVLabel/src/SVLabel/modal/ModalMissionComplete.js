@@ -173,12 +173,12 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
         // Set mission complete title text differently if user finished their route or the whole neighborhood.
         if (svl.neighborhoodModel.isRouteComplete) {
-            self.setMissionTitle("Bravo! You completed your route!");
+            self.setMissionTitle(i18next.t('mission-complete.title-route-complete'));
             self._canShowContinueButton = true;
         } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
             var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             var neighborhoodName = neighborhood.getProperty("name");
-            self.setMissionTitle("Bravo! You completed the " + neighborhoodName + " neighborhood!");
+            self.setMissionTitle(i18next.t('mission-complete.title-neighborhood-complete', { neighborhoodName: neighborhoodName }));
             self._canShowContinueButton = true;
         }
 
@@ -276,6 +276,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
         var userCompletedTasks = taskContainer.getCompletedTasks();
         var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
+        var incompleteTasks = taskContainer.getIncompleteTasks();
         mission.pushATaskToTheRoute(taskContainer.getCurrentTask());
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
@@ -292,9 +293,9 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
-        this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title'));
+        this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title-generic'));
 
-        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'));
+        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'), incompleteTasks);
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
         this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance);
