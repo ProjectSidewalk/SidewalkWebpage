@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
-        "title": "Mission Complete!",
+        "title-generic": "Mission Complete!",
+        "title-neighborhood-complete": "Bravo! You completed the {{neighborhoodName}} neighborhood!",
+        "title-route-complete": "Bravo! You completed your route!",
         "map-legend-label-other-users": "Other Users' Missions",
         "progress-neighborhood-title": "Neighborhood Progress",
         "progress-route-title": "Route Progress",

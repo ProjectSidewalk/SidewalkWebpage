@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "公里",
-        "title": "任務完成！",
+        "title-generic": "任務完成！",
+        "title-neighborhood-complete": "勇敢！您完成了{{neighborhoodName}}社區！",
+        "title-route-complete": "勇敢！您完成了路線！",
         "map-legend-label-other-users": "其他標記者的任務",
         "progress-neighborhood-title": "鄰里進度",
         "progress-route-title": "路線進度",

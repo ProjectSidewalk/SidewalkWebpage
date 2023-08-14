@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
-        "title": "Missie geslaagd!",
+        "title-generic": "Missie geslaagd!",
+        "title-neighborhood-complete": "Bravo! Je hebt de {{neighborhoodName}} -buurt voltooid!",
+        "title-route-complete": "Bravo! Je hebt je route voltooid!",
         "map-legend-label-other-users": "Missies Van Anderen",
         "progress-neighborhood-title": "Wijk voortgang",
         "progress-route-title": "Routevoortgang",

@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "Kilometer",
-        "title": "Mission erfüllt!",
+        "title-generic": "Mission erfüllt!",
+        "title-neighborhood-complete": "Bravo! Sie haben die {{neighborhoodName}} -Nachbarschaft abgeschlossen!",
+        "title-route-complete": "Bravo! Sie haben Ihre Route beendet!",
         "map-legend-label-other-users": "Missionen anderer Nutzenden",
         "progress-neighborhood-title": "Fortschritt im Quartier",
         "progress-route-title": "Fortschritt auf der Route",
@@ -76,7 +78,7 @@
         "progress-neighborhood-remaining": "Verbleibend in diesem Quartier",
         "progress-route-remaining": "Verbleibend auf Ihrer Route",
         "button-start-validating": "Validierung starten",
-        "button-keep-exploring": "Erkundung fortsetzen",
+        "button-keep-exploring": "Weiter erkunden",
         "button-continue": "Fortsetzen"
     },
     "top-ui": {
@@ -156,7 +158,7 @@
                 "missing-crosswalk": "fehlender Fussgängerstre<tag-underline>i</tag-underline>fen",
                 "no-bus-stop-access": "kein Zugang zur H<tag-underline>a</tag-underline>ltestelle",
                 "height-difference": "Höhenunterschie<tag-underline>d</tag-underline>",
-                "pedestrian-lane-marking": "Fußgängerzahnmark<tag-underline>i</tag-underline>erung",
+                "pedestrian-lane-marking": "Längsstre<tag-underline>i</tag-underline>fen / Gehwegmark<tag-underline>i</tag-underline>erung",
                 "covered-walkway": "überdachter Gehweg (<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "zu nah am Verkehr (<tag-underline>t</tag-underline>)",
                 "utility-panel": "Schaltkast<tag-underline>e</tag-underline>n"
