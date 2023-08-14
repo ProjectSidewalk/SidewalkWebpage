@@ -110,7 +110,8 @@
         "pedestrian lane marking": "pedestrian lane marking",
         "covered walkway": "covered walkway",
         "too close to traffic": "too close to traffic",
-        "utility panel": "utility panel"
+        "utility panel": "utility panel",
+        "outdoor dining area": "outdoor dining area"
     },
     "gsv-info": {
         "details-title": "Details",

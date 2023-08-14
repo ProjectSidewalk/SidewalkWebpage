@@ -161,7 +161,8 @@
                 "pedestrian-lane-marking": "marcado de carr<tag-underline>i</tag-underline>l peatonal",
                 "covered-walkway": "pasare<tag-underline>l</tag-underline>a cubierta",
                 "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico",
-                "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad"
+                "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad",
+                "outdoor-dining-area": "comedor al aire libre (<tag-underline>q</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Transitable",

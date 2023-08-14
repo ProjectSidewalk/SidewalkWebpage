@@ -161,7 +161,8 @@
                 "pedestrian-lane-marking": "voetgangersstrookmarker<tag-underline>i</tag-underline>ng",
                 "covered-walkway": "Overdekte <tag-underline>l</tag-underline>oopbrug",
                 "too-close-to-traffic": "<tag-underline>t</tag-underline>e dicht bij het verkeer",
-                "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el"
+                "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el",
+                "outdoor-dining-area": "buiten eetgedeelte (<tag-underline>q</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Begaanbaar",
