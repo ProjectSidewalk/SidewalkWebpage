@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "Kilometer",
-        "title": "Mission erfüllt!",
+        "title-generic": "Mission erfüllt!",
+        "title-neighborhood-complete": "Bravo! Sie haben die {{neighborhoodName}} -Nachbarschaft abgeschlossen!",
+        "title-route-complete": "Bravo! Sie haben Ihre Route beendet!",
         "map-legend-label-other-users": "Missionen anderer Nutzenden",
         "progress-neighborhood-title": "Fortschritt im Quartier",
         "progress-route-title": "Fortschritt auf der Route",
@@ -76,7 +78,7 @@
         "progress-neighborhood-remaining": "Verbleibend in diesem Quartier",
         "progress-route-remaining": "Verbleibend auf Ihrer Route",
         "button-start-validating": "Validierung starten",
-        "button-keep-exploring": "Erkundung fortsetzen",
+        "button-keep-exploring": "Weiter erkunden",
         "button-continue": "Fortsetzen"
     },
     "top-ui": {
@@ -86,6 +88,8 @@
         "accuracy-tooltip": "Die Bewertung Ihrer Genauigkeit basiert auf der Validierung durch andere Nutzende. Wenn Ihre Genauigkeit tief ist, sehen Sie sich häufige Fehler unter <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">Ihrem Dashboard</a> an, um sich zu verbessern!",
         "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",
         "current-mission": {
+            "header": "Aktuelle Mission",
+            "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
             "message-first-mission": "Erkunden Sie __PLACEHOLDER__ und finden Sie alle Zugänglichkeitsmerkmale entlang des Gehwegs",
             "message": "Erkunden Sie __PLACEHOLDER__ von diesem Quartier"
         },
@@ -111,6 +115,7 @@
                 "not-level-with-street": "nicht auf dem selben Ni<tag-underline>v</tag-underline>eau wie Strasse",
                 "surface-problem": "Obe<tag-underline>r</tag-underline>flächenproblem",
                 "pooled-water": "Wasserpfütze (<tag-underline>d</tag-underline>)",
+                "parallel-lines": "parallele Linien (<tag-underline>j</tag-underline>)",
                 "alternate-route-present": "<tag-underline>a</tag-underline>lternative Route vorhanden",
                 "no-alternate-route": "keine a<tag-underline>l</tag-underline>ternative Route vorhanden",
                 "unclear-if-needed": "<tag-underline>u</tag-underline>nklar ob notwendig",
@@ -154,10 +159,11 @@
                 "missing-crosswalk": "fehlender Fussgängerstre<tag-underline>i</tag-underline>fen",
                 "no-bus-stop-access": "kein Zugang zur H<tag-underline>a</tag-underline>ltestelle",
                 "height-difference": "Höhenunterschie<tag-underline>d</tag-underline>",
-                "pedestrian-lane-marking": "Fußgängerzahnmark<tag-underline>i</tag-underline>erung",
+                "pedestrian-lane-marking": "Längsstre<tag-underline>i</tag-underline>fen / Gehwegmark<tag-underline>i</tag-underline>erung",
                 "covered-walkway": "überdachter Gehweg (<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "zu nah am Verkehr (<tag-underline>t</tag-underline>)",
-                "utility-panel": "Schaltkast<tag-underline>e</tag-underline>n"
+                "utility-panel": "Schaltkast<tag-underline>e</tag-underline>n",
+                "outdoor-dining-area": "Aussenbereich Gastronomie (<tag-underline>q</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passierbar",

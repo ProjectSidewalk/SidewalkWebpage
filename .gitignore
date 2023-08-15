@@ -2,6 +2,8 @@ node_modules
 .DS_Store
 tmp/**/*
 .idea
+.ivy2/cache/org.jetbrains.scala/
+.ivy2/cache/scala_2.10/sbt_0.13/org.jetbrains.scala/
 #.idea/**/*
 *.iml
 *.sublime-*
@@ -110,3 +112,7 @@ nohup.out
 
 # docker db files
 db/dump
+
+# Python
+scripts/__pycache__
+
