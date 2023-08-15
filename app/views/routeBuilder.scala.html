@@ -1,8 +1,8 @@
 @import models.user.User
-@(user: Option[User] = None)(implicit lang: Lang)
+@(cityId: String, user: Option[User] = None)(implicit lang: Lang)
 
-@main("Sidewalk - RouteBuilder") {
-    @navbar(user, Some("/routeBuilder"))
+@main("Sidewalk - RouteBuilder", cityId) {
+    @navbar(user, cityId, Some("/routeBuilder"))
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>

@@ -13,6 +13,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import forms.ResetPasswordForm
 import models.services.{ AuthTokenService, UserService }
 import models.user._
+import models.utils.Configs.cityId
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.i18n.Messages
 import scala.concurrent.Future
@@ -42,7 +43,7 @@ class ResetPasswordController @Inject() (
     authTokenService.validate(token).flatMap {
       case Some(authToken) =>
         ResetPasswordForm.form.bindFromRequest.fold(
-          form => Future.successful(BadRequest(views.html.resetPassword(form, token))),
+          form => Future.successful(BadRequest(views.html.resetPassword(cityId(request), form, token))),
           passwordData => userService.retrieve(authToken.userID).flatMap {
             case Some(user) if user.loginInfo.providerID == CredentialsProvider.ID =>
               if (passwordData.password != passwordData.passwordConfirm) {

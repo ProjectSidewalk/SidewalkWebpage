@@ -7,6 +7,7 @@ import formats.json.GalleryFormats._
 import models.user._
 import models.label.LabelTable
 import models.label.LabelTable._
+import models.utils.Configs.cityId
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import formats.json.LabelFormat
@@ -46,7 +47,7 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
 
             // Get labels from LabelTable.
             val labels: Seq[LabelValidationMetadata] =
-              LabelTable.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, severities, tags, user.userId)
+              LabelTable.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, severities, tags, user.userId, cityId(request))
 
             val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
                 "label" -> LabelFormat.validationLabelMetadataToJson(l),

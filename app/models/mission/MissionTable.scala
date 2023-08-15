@@ -7,6 +7,7 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
+import models.utils.Configs.schema
 import models.region._
 import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
 import play.api.Logger
@@ -48,7 +49,8 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
   }
 }
 
-class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "mission") {
+class MissionTable(tag: Tag, schema: Option[String]) extends Table[Mission](tag, schema, "mission") {
+  def this(tag: Tag) = this(tag, Some("sidewalk"))
   def missionId: Column[Int] = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
   def missionTypeId: Column[Int] = column[Int]("mission_type_id", O.NotNull)
   def userId: Column[String] = column[String]("user_id", O.NotNull)
@@ -82,8 +84,12 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 }
 
 object MissionTable {
+  def forCity(cityId: String) = new MissionTableForCity(cityId)
+}
+
+class MissionTableForCity(cityId: String) {
   val db = play.api.db.slick.DB
-  val missions = TableQuery[MissionTable]
+  val missions = TableQuery(new MissionTable(_, schema(cityId)))
   val missionTypes = TableQuery[MissionTypeTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
@@ -158,7 +164,7 @@ object MissionTable {
     * Returns true if the user has an amt_assignment and has completed an audit mission during it, false o/w.
     */
   def hasCompletedAuditMissionInThisAmtAssignment(username: String): Boolean = db.withSession { implicit session =>
-    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
+    val asmt: Option[AMTAssignment] = AMTAssignmentTable.forCity(cityId).getMostRecentAssignment(username)
     if (asmt.isEmpty) {
       false
     } else {
@@ -181,7 +187,7 @@ object MissionTable {
    *      because we're talking about making big changes to the mission flow, so I want a lightweight solution for now.
    */
   def getProgressOnMissionSet(username: String): MissionSetProgress = db.withSession { implicit session =>
-    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
+    val asmt: Option[AMTAssignment] = AMTAssignmentTable.forCity(cityId).getMostRecentAssignment(username)
     if (asmt.isEmpty) {
       defaultAuditMissionSetProgress
     } else {
@@ -207,7 +213,7 @@ object MissionTable {
     */
   def getMostRecentConfirmationCodeIfCompletedAuditMission(username: String): Option[String] = db.withSession { implicit session =>
     if (hasCompletedAuditMissionInThisAmtAssignment(username)) {
-      AMTAssignmentTable.getMostRecentConfirmationCode(username)
+      AMTAssignmentTable.forCity(cityId).getMostRecentConfirmationCode(username)
     } else {
       None
     }

@@ -132,16 +132,16 @@ object UserStatTable {
    * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
    * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
    */
-  def usersToUpdateInAPI(): List[String] = db.withSession { implicit session =>
+  def usersToUpdateInAPI(cityId: String): List[String] = db.withSession { implicit session =>
     // Get the labels that are currently present in the API.
     val labelsInAPI = for {
       _ual <- userAttributeLabels
       _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
-      _m <- MissionTable.missions if _l.missionId === _m.missionId
+      _m <- MissionTable.forCity(cityId).missions if _l.missionId === _m.missionId
     } yield (_m.userId, _l.labelId)
 
     // Find all mismatches between the list of labels above using an outer join.
-    UserClusteringSessionTable.labelsForAPIQuery
+    UserClusteringSessionTable.labelsForAPIQuery(cityId)
       .outerJoin(labelsInAPI).on(_._2 === _._2)            // FULL OUTER JOIN.
       .filter(x => x._1._2.?.isEmpty || x._2._2.?.isEmpty) // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
       .map(x => (x._1._1.?, x._2._1.?))                    // SELECT no_api.user_id, in_api.user_id.
@@ -151,22 +151,22 @@ object UserStatTable {
   /**
     * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
     */
-  def updateUserStatTable(cutoffTime: Timestamp) = db.withSession { implicit session =>
-    updateAuditedDistance(cutoffTime)
-    updateLabelsPerMeter(cutoffTime)
+  def updateUserStatTable(cutoffTime: Timestamp, cityId: String) = db.withSession { implicit session =>
+    updateAuditedDistance(cutoffTime, cityId)
+    updateLabelsPerMeter(cutoffTime, cityId)
     updateAccuracy(List())
-    updateHighQuality(cutoffTime)
+    updateHighQuality(cutoffTime, cityId)
   }
 
   /**
     * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
     */
-  def updateAuditedDistance(cutoffTime: Timestamp) = db.withSession { implicit session =>
+  def updateAuditedDistance(cutoffTime: Timestamp, cityId: String) = db.withSession { implicit session =>
 
     // Get the list of users who have done any auditing since the cutoff time.
     val usersToUpdate: List[String] = (for {
       _user <- userTable if _user.username =!= "anonymous"
-      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
+      _mission <- MissionTable.forCity(cityId).auditMissions if _mission.userId === _user.userId
       if _mission.missionEnd > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1).list
 
@@ -188,15 +188,15 @@ object UserStatTable {
   /**
     * Update labels_per_meter column in the user_stat table for all users who have done any auditing since `cutoffTime`.
     */
-  def updateLabelsPerMeter(cutoffTime: Timestamp) = db.withSession { implicit session =>
+  def updateLabelsPerMeter(cutoffTime: Timestamp, cityId: String) = db.withSession { implicit session =>
 
     // Get the list of users who have done any auditing since the cutoff time.
-    val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
+    val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime, cityId)
 
     // Compute label counts for each of those users.
     val labelCounts = (for {
-      _mission <- MissionTable.auditMissions
-      _label <- LabelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
+      _mission <- MissionTable.forCity(cityId).auditMissions
+      _label <- LabelTable.labelsWithExcludedUsers(cityId) if _mission.missionId === _label.missionId
       if _mission.userId inSet usersStatsToUpdate
     } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
@@ -264,7 +264,7 @@ object UserStatTable {
    *
    * @return Number of user's whose records were updated.
    */
-  def updateHighQuality(cutoffTime: Timestamp): Int = db.withSession { implicit session =>
+  def updateHighQuality(cutoffTime: Timestamp, cityId: String): Int = db.withSession { implicit session =>
 
     // First get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsers: List[(String, Boolean)] =
@@ -287,7 +287,7 @@ object UserStatTable {
 
     // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
     val usersToUpdate: List[String] =
-      (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct
+      (usersThatAuditedSinceCutoffTime(cutoffTime, cityId) ++ usersValidatedSinceCutoffTime(cutoffTime, cityId)).distinct
 
     // Make separate lists for low vs high quality users, then bulk update each.
     val updateToHighQual: List[String] =
@@ -305,11 +305,11 @@ object UserStatTable {
   /**
    * Helper function to get list of users who have done any auditing since the cutoff time.
    */
-  def usersThatAuditedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
+  def usersThatAuditedSinceCutoffTime(cutoffTime: Timestamp, cityId: String): List[String] = db.withSession { implicit session =>
     (for {
       _user <- userTable
       _userStat <- userStats if _user.userId === _userStat.userId
-      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
+      _mission <- MissionTable.forCity(cityId).auditMissions if _mission.userId === _user.userId
       if _user.username =!= "anonymous"
       if _userStat.metersAudited > 0F
       if _mission.missionEnd > cutoffTime
@@ -319,11 +319,11 @@ object UserStatTable {
   /**
     * Helper function to get list of users who have had any of their labels validated since the cutoff time.
     */
-  def usersValidatedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
+  def usersValidatedSinceCutoffTime(cutoffTime: Timestamp, cityId: String): List[String] = db.withSession { implicit session =>
     (for {
-      _labelVal <- LabelValidationTable.validationLabels
-      _label <- LabelTable.labels if _labelVal.labelId === _label.labelId
-      _mission <- MissionTable.missions if _label.missionId === _mission.missionId
+      _labelVal <- LabelValidationTable.forCity(cityId).validationLabels
+      _label <- LabelTable.labels(cityId) if _labelVal.labelId === _label.labelId
+      _mission <- MissionTable.forCity(cityId).missions if _label.missionId === _mission.missionId
       _user <- userTable if _mission.userId === _user.userId
       if _user.username =!= "anonymous"
       if _labelVal.endTimestamp > cutoffTime
@@ -440,7 +440,7 @@ object UserStatTable {
   /**
    * Computes some stats on users that will be served through a public API.
    */
-  def getStatsForAPI: List[UserStatAPI] = db.withSession { implicit session =>
+  def getStatsForAPI(cityId: String): List[UserStatAPI] = db.withSession { implicit session =>
     val statsQuery = Q.queryNA[UserStatAPI](
       s"""SELECT user_stat.user_id,
          |       COALESCE(label_counts.labels, 0) AS labels,
@@ -561,8 +561,8 @@ object UserStatTable {
          |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |    WHERE deleted = FALSE
          |        AND tutorial = FALSE
-         |        AND label.street_edge_id <> ${LabelTable.tutorialStreetId}
-         |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId}
+         |        AND label.street_edge_id <> ${LabelTable.tutorialStreetId(cityId)}
+         |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId(cityId)}
          |    GROUP BY user_id
          |) label_counts ON user_stat.user_id = label_counts.user_id
          |WHERE role.role <> 'Anonymous'

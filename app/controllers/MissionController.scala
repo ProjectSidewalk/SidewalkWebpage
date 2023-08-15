@@ -8,6 +8,7 @@ import formats.json.TaskSubmissionFormats.AMTAssignmentCompletionSubmission
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.amt.AMTAssignmentTable
+import models.utils.Configs.cityId
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
 import scala.concurrent.Future
@@ -32,7 +33,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
           println(s"problem with /neighborhoodMissions: user has no current region.")
 
         val completedMissions: List[Mission] =
-          MissionTable.selectCompletedAuditMissions(user.userId, userCurrentRegion.get)
+          MissionTable.forCity(cityId(request)).selectCompletedAuditMissions(user.userId, userCurrentRegion.get)
 
         Future.successful(Ok(JsArray(completedMissions.map(_.toJSON))))
 
@@ -46,7 +47,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     */
   def getTotalRewardEarned() = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Ok(Json.obj("reward_earned" -> MissionTable.totalRewardEarned(user.userId))))
+      case Some(user) => Future.successful(Ok(Json.obj("reward_earned" -> MissionTable.forCity(cityId(request)).totalRewardEarned(user.userId))))
       case _ => Future.successful(Redirect(s"/anonSignUp?url=/rewardEarned"))
     }
   }
@@ -68,7 +69,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         amtAssignmentId match {
           case Some(asgId) =>
             // Update the AMTAssignmentTable
-            AMTAssignmentTable.updateCompleted(asgId, completed=true)
+            AMTAssignmentTable.forCity(cityId(request)).updateCompleted(asgId, completed=true)
             Future.successful(Ok(Json.obj("success" -> true)))
           case None =>
             Future.successful(Ok(Json.obj("success" -> false)))

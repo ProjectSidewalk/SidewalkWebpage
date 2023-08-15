@@ -4,9 +4,8 @@
 @import models.mission.MissionTable
 @import models.amt.AMTAssignmentTable
 @import models.utils.Configs
-@(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
+@(user: Option[User] = None, currentCity: String, url: Option[String] = Some("/"))(implicit lang: Lang)
 
-@currentCity =@{Play.configuration.getString("city-id").get}
 @cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._4 == "public")}
 
 @import views.html.bootstrap._
@@ -21,10 +20,10 @@
             <div class="navbar-right pull-left navbar-turker-timer-container">
                 <ul class="nav pull-left navbar-turker-timer-list-container">
                     @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
-                        @if(MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
+                        @if(MissionTable.forCity(currentCity).hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                             <li id="mturk-confirmation-code">
                                 <img id="mturk-checkmark" src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
-                                <p id="mturk-confirmation-code-text">@Messages("turk.mturk.code"): @AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))</p>
+                                <p id="mturk-confirmation-code-text">@Messages("turk.mturk.code"): @AMTAssignmentTable.forCity(currentCity).getConfirmationCode(user.get.username,AMTAssignmentTable.forCity(currentCity).getMostRecentAssignmentId(user.get.username))</p>
                             </li>
                         }
                         <li id="navbar-timer">
@@ -34,7 +33,7 @@
                         <script>
                             // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
                             var expired = true;
-                            var msRemaining = @{models.amt.AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username)};
+                            var msRemaining = @{models.amt.AMTAssignmentTable.forCity(currentCity).getMsLeftOnMostRecentAsmt(user.get.username)};
     
                             // Update the count-down every 1 second
                             var timerInterval = setInterval(function() {

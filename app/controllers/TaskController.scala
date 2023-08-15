@@ -23,6 +23,7 @@ import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
+import models.utils.Configs.cityId
 import play.api.Play.current
 import play.api.{Logger, Play}
 import play.api.libs.json._
@@ -108,11 +109,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   /**
    * Insert or update the submitted audit task in the database.
    */
-  def updateAuditTaskTable(user: Option[User], auditTask: TaskSubmission, missionId: Int, amtAssignmentId: Option[Int]): Int = {
+  def updateAuditTaskTable(user: Option[User], cityId: String, auditTask: TaskSubmission, missionId: Int, amtAssignmentId: Option[Int]): Int = {
     if (auditTask.auditTaskId.isDefined) {
       // Update the existing audit task row (don't update if they are in the tutorial).
       val id: Int = auditTask.auditTaskId.get
-      if (MissionTable.getMissionType(missionId) == Some("audit")) {
+      if (MissionTable.forCity(cityId).getMissionType(missionId) == Some("audit")) {
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng, missionId, auditTask.currentMissionStart)
       }
@@ -139,7 +140,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     *
     * @return Option[Mission] a new mission if the old one was completed, o/w None.
     */
-  def updateMissionTable(user: Option[User], missionProgress: AuditMissionProgress): Option[Mission] = {
+  def updateMissionTable(user: Option[User], cityId: String, missionProgress: AuditMissionProgress): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
@@ -148,9 +149,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     val payPerMeter: Double =
       if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
 
-    if (MissionTable.isOnboardingMission(missionProgress.missionId)) {
+    if (MissionTable.forCity(cityId).isOnboardingMission(missionProgress.missionId)) {
       if (missionProgress.completed) {
-        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, skipped)
+        MissionTable.forCity(cityId).updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, skipped)
       } else {
         None
       }
@@ -160,9 +161,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskId: Option[Int] = missionProgress.auditTaskId
 
       if (missionProgress.completed) {
-        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, auditTaskId, skipped)
+        MissionTable.forCity(cityId).updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, auditTaskId, skipped)
       } else {
-        MissionTable.updateAuditProgressOnly(userId, missionId, distProgress, auditTaskId)
+        MissionTable.forCity(cityId).updateAuditProgressOnly(userId, missionId, distProgress, auditTaskId)
       }
     }
   }
@@ -189,7 +190,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        processAuditTaskSubmissions(submission, request.remoteAddress, request.identity)
+        processAuditTaskSubmissions(submission, request.remoteAddress, request.identity, cityId(request))
       }
     )
   }
@@ -205,7 +206,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        processAuditTaskSubmissions(submission, request.remoteAddress, request.identity)
+        processAuditTaskSubmissions(submission, request.remoteAddress, request.identity, cityId(request))
       }
     )
   }
@@ -213,7 +214,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   /**
    * Helper function that updates database with all data submitted through the explore page.
    */
-  def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
+  def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User], cityId: String) = {
     var newLabels: ListBuffer[(Int, Timestamp)] = ListBuffer()
     var refreshPage: Boolean = false // If we notice something out of whack, tell the front-end to refresh the page.
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
@@ -252,11 +253,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
 
       // Update the AuditTaskTable and get auditTaskId.
-      val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
+      val auditTaskId: Int = updateAuditTaskTable(userOption, cityId, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
       // Add to the audit_task_user_route and user_route tables if we are on a route and not in the tutorial.
-      if (data.userRouteId.isDefined && MissionTable.getMissionType(missionId) == Some("audit")) {
+      if (data.userRouteId.isDefined && MissionTable.forCity(cityId).getMissionType(missionId) == Some("audit")) {
         AuditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId)
         UserRouteTable.updateCompleteness(data.userRouteId.get)
       }
@@ -265,7 +266,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       if (data.auditTask.currentMissionStart.isDefined) updateMissionStart(auditTaskId, data.auditTask.currentMissionStart.get)
 
       // Update the MissionTable.
-      val possibleNewMission: Option[Mission] = updateMissionTable(userOption, data.missionProgress)
+      val possibleNewMission: Option[Mission] = updateMissionTable(userOption, cityId, data.missionProgress)
 
       // Insert the skip information or update task street_edge_assignment_count.completion_count.
       if (data.incomplete.isDefined) {
@@ -387,7 +388,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
           val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
-          val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
+          val regionId: Int = MissionTable.forCity(cityId).getMission(data.missionProgress.missionId).flatMap(_.regionId).get
           val updatedStreetIds: List[Int] = AuditTaskTable.streetsCompletedAfterTime(regionId, lastPriorityUpdateTime)
           val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)
           Some(UpdatedStreets(newPriorityUpdateTime, updatedStreetPriorities))
@@ -398,7 +399,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       // If this user is a turker who has just finished 3 audit missions, switch them to validations.
       val switchToValidation: Boolean = userOption.isDefined &&
         userOption.get.role.getOrElse("") == "Turker" &&
-        MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
+        MissionTable.forCity(cityId).getProgressOnMissionSet(userOption.get.username).missionType != "audit"
 
       TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation, updatedStreets)
     }

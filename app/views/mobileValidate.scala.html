@@ -4,11 +4,9 @@
 @import play.api.Play
 @import play.api.Play.current
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@(title: String, currentCity: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
-@currentCity =@{Play.configuration.getString("city-id").get}
-
-@main(title, Some("/mobile")) {
+@main(title, currentCity, Some("/mobile")) {
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
@@ -198,7 +196,7 @@
 
         let hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-            let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            let msRemaining = @AMTAssignmentTable.forCity(currentCity).getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemaining < 0) {
                 hitExpired = true;
             }

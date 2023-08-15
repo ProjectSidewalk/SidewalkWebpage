@@ -15,6 +15,7 @@ import formats.json.UserFormats._
 import forms.SignUpForm
 import models.services.UserService
 import models.user._
+import models.utils.Configs.cityId
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
@@ -55,7 +56,7 @@ class SignUpController @Inject() (
     val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signUp(form))),
+      form => Future.successful(BadRequest(views.html.signUp(cityId(request), form))),
       data => {
         // If they are getting community service hours, make sure they redirect to the instructions page.
         val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")

@@ -15,6 +15,7 @@ import models.user.UserOrgTable
 import models.label.{LabelLocation, LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
 import models.utils.CommonUtils.METERS_TO_MILES
+import models.utils.Configs.cityId
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
@@ -45,7 +46,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
         else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
       }
-      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
+      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), cityId(request), auditedDistance)))
     }
   }
 
@@ -103,7 +104,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedLabels(regionId: Option[Int]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels: List[LabelLocation] = LabelTable.getLabelLocations(user.userId, regionId)
+        val labels: List[LabelLocation] = LabelTable.getLabelLocations(user.userId, cityId(request), regionId)
         val features: List[JsObject] = labels.map { label =>
           val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
           val properties = Json.obj(
@@ -149,7 +150,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * Get a count of the number of validations that have been completed each day.
    */
   def getAllValidationCounts = UserAwareAction.async { implicit request =>
-    val validationCounts = LabelValidationTable.getValidationsByDate
+    val validationCounts = LabelValidationTable.forCity(cityId(request)).getValidationsByDate
     val json = Json.arr(validationCounts.map(x => Json.obj(
       "date" -> x.date, "count" -> x.count
     )))
@@ -163,7 +164,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    */
   def getRecentMistakes(n: Int) = UserAwareAction.async {implicit request =>
     val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
-    val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
+    val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, cityId(request), n, labelTypes)
     val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
       t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
     }.toMap)
@@ -210,8 +211,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         }
         Future.successful(Ok(Json.obj(
           "distance_audited" -> auditedDistance,
-          "label_count" -> LabelTable.countLabels(userId),
-          "accuracy" -> LabelValidationTable.getUserAccuracy(userId)
+          "label_count" -> LabelTable.countLabels(userId, cityId(request)),
+          "accuracy" -> LabelValidationTable.forCity(cityId(request)).getUserAccuracy(userId)
         )))
       case None =>
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))

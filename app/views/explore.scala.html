@@ -6,10 +6,10 @@
 @import models.route.UserRoute
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
+@(title: String, cityId: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
-@main(title, Some("/explore")) {
-    @navbar(user, Some("/explore"))
+@main(title, cityId, Some("/explore")) {
+    @navbar(user, cityId, Some("/explore"))
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
@@ -178,7 +178,7 @@
                         <span class="overlay-header">@Messages("turk.expired.title")</span>
                     </p>
                     <p>
-                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.forCity(cityId).getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
                     </p>
                 </div>
             </div>
@@ -612,7 +612,7 @@
                                 </tr>
                             </table>
                             @if(user.isDefined) {
-                                @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
+                                @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.forCity(cityId).hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -877,7 +877,7 @@
         svl.userModel._user = svl.user;
         var hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            var msRemaining = @AMTAssignmentTable.forCity(cityId).getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemaining < 0) {
                 hitExpired = true;
             }
@@ -1024,8 +1024,8 @@
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
 
             @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
-                svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                svl.amtAssignmentId = @AMTAssignmentTable.forCity(cityId).getMostRecentAMTAssignmentId(user.get.username);
+                svl.confirmationCode = "@AMTAssignmentTable.forCity(cityId).getConfirmationCode(user.get.username,AMTAssignmentTable.forCity(cityId).getMostRecentAssignmentId(user.get.username))";
                 $("#current-mission-reward").show();
                 $("#total-mission-reward").show();
             }

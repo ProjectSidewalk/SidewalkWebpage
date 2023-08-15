@@ -3,6 +3,7 @@ package models.amt
 import java.sql.Timestamp
 import java.time.Instant
 import models.utils.MyPostgresDriver.simple._
+import models.utils.Configs.schema
 import play.api.Play.current
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
@@ -12,7 +13,7 @@ case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: Stri
 /**
  *
  */
-class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidewalk"), "amt_assignment") {
+class AMTAssignmentTable(tag: Tag, schema: Option[String]) extends Table[AMTAssignment](tag, schema, "amt_assignment") {
   def amtAssignmentId = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
   def hitId = column[String]("hit_id", O.NotNull)
   def assignmentId = column[String]("assignment_id", O.NotNull)
@@ -29,14 +30,18 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
  * Data access object for the amt_assignment table.
  */
 object AMTAssignmentTable {
-  val db = play.api.db.slick.DB
-  val amtAssignments = TableQuery[AMTAssignmentTable]
-
   val TURKER_TUTORIAL_PAY: Double = 1.00D
   val TURKER_PAY_PER_MILE: Double = 5.00D
   val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
   val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
   val VOLUNTEER_PAY: Double = 0.0D
+
+  def forCity(cityId: String) = new AMTAssignmentTableForCity(cityId)
+}
+
+class AMTAssignmentTableForCity(cityId: String) {
+  val db = play.api.db.slick.DB
+  val amtAssignments = TableQuery(new AMTAssignmentTable(_, schema(cityId)))
 
   def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
     val asgId: Int =

@@ -9,6 +9,7 @@ import forms.ForgotPasswordForm
 import models.services.{AuthTokenService, UserService}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import models.user._
+import models.utils.Configs.cityId
 import play.api.i18n.Messages
 import controllers.headers.ProvidesHeader
 import models.daos.slick.DBTableDefinitions.UserTable
@@ -42,7 +43,7 @@ class ForgotPasswordController @Inject() (
     val userId: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
 
     ForgotPasswordForm.form.bindFromRequest.fold (
-      form => Future.successful(BadRequest(views.html.forgotPassword(form))),
+      form => Future.successful(BadRequest(views.html.forgotPassword(cityId(request), form))),
       email => {
         val loginInfo = LoginInfo(CredentialsProvider.ID, email.toLowerCase)
         val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))

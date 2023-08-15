@@ -1,9 +1,9 @@
 @import models.user.User
-@(user: Option[User] = None, isMobile: Boolean)(implicit lang: Lang)
+@(cityId: String, user: Option[User] = None, isMobile: Boolean)(implicit lang: Lang)
 
-@main("Sidewalk - Service Hours") {
+@main("Sidewalk - Service Hours", cityId) {
     @if(!isMobile) {
-        @navbar(user, Some("/serviceHoursInstructions"))
+        @navbar(user, cityId, Some("/serviceHoursInstructions"))
     }
     <div class="container">
         <div class="row">

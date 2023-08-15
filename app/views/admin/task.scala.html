@@ -1,9 +1,9 @@
 @import models.user.User
 @import models.audit.AuditTask
-@(title: String, admin: Option[User] = None, task: AuditTask)
+@(title: String, admin: Option[User] = None, task: AuditTask, cityId: String)
 
-@main(title) {
-    @navbar(admin)
+@main(title, cityId) {
+    @navbar(admin, cityId)
     <div class="container">
         <div class="row">
             <div class="col-md-4">

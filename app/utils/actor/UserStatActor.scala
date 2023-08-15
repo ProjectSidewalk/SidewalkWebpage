@@ -19,36 +19,37 @@ class UserStatActor extends Actor {
 
   override def preStart(): Unit = {
     super.preStart()
-    // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
-    val cityId: String = Play.configuration.getString("city-id").get
-    val hoursOffset: Int = Play.configuration.getInt(s"city-params.update-offset-hours.${cityId}").get
+    for (cityId <- Play.configuration.getStringSeq("city-params.city-ids").get) {
+      // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
+      val hoursOffset: Int = Play.configuration.getInt(s"city-params.update-offset-hours.${cityId}").get
 
-    // If we want to update the user_stat table at 12:30 am PDT every day, we need to figure out how much time there is
-    // b/w now and the next 12:30 am, then we can set the update interval to be 24 hours. So we make a calendar object
-    // for right now, and one for 12:30 am today. If it is after 12:30 am right now, we set the 12:30 am object to be
-    // 12:30 am tomorrow. Then we get the time difference between the 12:30 am object and now.
-    val currentTime: Calendar = Calendar.getInstance(TIMEZONE)
-    val timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
-    timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 7 + hoursOffset)
-    timeOfNextUpdate.set(Calendar.MINUTE, 30)
-    timeOfNextUpdate.set(Calendar.SECOND, 0)
+      // If we want to update the user_stat table at 12:30 am PDT every day, we need to figure out how much time there is
+      // b/w now and the next 12:30 am, then we can set the update interval to be 24 hours. So we make a calendar object
+      // for right now, and one for 12:30 am today. If it is after 12:30 am right now, we set the 12:30 am object to be
+      // 12:30 am tomorrow. Then we get the time difference between the 12:30 am object and now.
+      val currentTime: Calendar = Calendar.getInstance(TIMEZONE)
+      val timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
+      timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 7 + hoursOffset)
+      timeOfNextUpdate.set(Calendar.MINUTE, 30)
+      timeOfNextUpdate.set(Calendar.SECOND, 0)
 
-    // If already past 12:30 am, set next update to 12:30 am tomorrow.
-    if (currentTime.after(timeOfNextUpdate)) {
-      timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
+      // If already past 12:30 am, set next update to 12:30 am tomorrow.
+      if (currentTime.after(timeOfNextUpdate)) {
+        timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
+      }
+      // If it is after 12:30 am, this should have just incremented.
+      val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
+      val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
+
+      cancellable = Some(
+        context.system.scheduler.schedule(
+          durationToNextUpdate,
+          24.hour,
+          self,
+          UserStatActor.Tick(cityId)
+        )(context.dispatcher)
+      )
     }
-    // If it is after 12:30 am, this should have just incremented.
-    val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
-    val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
-
-    cancellable = Some(
-      context.system.scheduler.schedule(
-        durationToNextUpdate,
-        24.hour,
-        self,
-        UserStatActor.Tick
-      )(context.dispatcher)
-    )
   }
 
   override def postStop(): Unit = {
@@ -58,7 +59,7 @@ class UserStatActor extends Actor {
   }
 
   def receive: Receive = {
-    case UserStatActor.Tick =>
+    case UserStatActor.Tick(cityId) =>
       val dateFormatter = new SimpleDateFormat("EE MMM dd HH:mm:ss zzz yyyy", Locale.US)
       dateFormatter.setTimeZone(TIMEZONE)
 
@@ -67,7 +68,7 @@ class UserStatActor extends Actor {
       // Update stats for anyone who audited in past 36 hours.
       val msCutoff: Long = 36 * 3600000L
       val cutoffTime: Timestamp = new Timestamp(Instant.now.toEpochMilli - msCutoff)
-      UserStatTable.updateUserStatTable(cutoffTime)
+      UserStatTable.updateUserStatTable(cutoffTime, cityId)
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Updating user stats completed at: $currentEndTime")
   }
@@ -76,5 +77,5 @@ class UserStatActor extends Actor {
 object UserStatActor {
   val Name = "user-stats-actor"
   def props = Props(new UserStatActor)
-  case object Tick
+  case class Tick(cityId: String)
 }

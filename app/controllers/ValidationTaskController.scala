@@ -14,6 +14,7 @@ import models.label.LabelTable.LabelValidationMetadata
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserStatTable}
 import models.validation._
+import models.utils.Configs.cityId
 import play.api.libs.json._
 import play.api.{Logger, Play}
 import play.api.mvc._
@@ -37,7 +38,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   /**
    * Helper function that updates database with all data submitted through the validation page.
    */
-  def processValidationTaskSubmissions(submission: Seq[ValidationTaskSubmission], remoteAddress: String, identity: Option[User]) = {
+  def processValidationTaskSubmissions(submission: Seq[ValidationTaskSubmission], remoteAddress: String, identity: Option[User], cityId: String) = {
     val userOption = identity
     val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
       ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
@@ -57,7 +58,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       for (label: LabelValidationSubmission <- data.labels) {
         userOption match {
           case Some(user) =>
-            LabelValidationTable.insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
+            LabelValidationTable.forCity(cityId).insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
               user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
               label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
               new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.isMobile))
@@ -67,7 +68,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       }
       // For any users whose labels have been validated, update their accuracy in the user_stat table.
       if (data.labels.nonEmpty) {
-        val usersValidated: List[String] = LabelValidationTable.usersValidated(data.labels.map(_.labelId).toList)
+        val usersValidated: List[String] = LabelValidationTable.forCity(cityId).usersValidated(data.labels.map(_.labelId).toList)
         UserStatTable.updateAccuracy(usersValidated)
       }
 
@@ -76,16 +77,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         case Some(_) =>
           val missionProgress: ValidationMissionProgress = data.missionProgress.get
           val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
-          val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(userOption, missionProgress, Some(currentMissionLabelTypeId))
+          val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(userOption, cityId, missionProgress, Some(currentMissionLabelTypeId))
           nextMissionLabelTypeId match {
             // Load new mission, generate label list for validation.
             case Some (nextMissionLabelTypeId) =>
-              val possibleNewMission: Option[Mission] = updateMissionTable(userOption, missionProgress, Some(nextMissionLabelTypeId))
-              val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId)
-              val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
+              val possibleNewMission: Option[Mission] = updateMissionTable(userOption, cityId, missionProgress, Some(nextMissionLabelTypeId))
+              val labelList: Option[JsValue] = getLabelList(userOption, cityId, missionProgress, nextMissionLabelTypeId)
+              val progress: Option[JsObject] = Some(LabelValidationTable.forCity(cityId).getValidationProgress(possibleNewMission.get.missionId))
               ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
             case None =>
-              updateMissionTable(userOption, missionProgress, None)
+              updateMissionTable(userOption, cityId, missionProgress, None)
               // No more validation missions available.
               if (missionProgress.completed) {
                 ValidationTaskPostReturnValue(None, None, None, None)
@@ -112,7 +113,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
     val switchToAuditing = userOption.isDefined &&
       userOption.get.role.getOrElse("") == "Turker" &&
-      MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "validation"
+      MissionTable.forCity(cityId).getProgressOnMissionSet(userOption.get.username).missionType != "validation"
 
     Future.successful(Ok(Json.obj(
       "hasMissionAvailable" -> returnValues.head.hasMissionAvailable,
@@ -134,7 +135,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
+        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity, cityId(request))
       }
     )
   }
@@ -151,7 +152,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
+        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity, cityId(request))
       }
     )
   }
@@ -170,16 +171,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         // Get the (or create a) mission_id for this user_id and label_type_id.
         val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
         val mission: Mission =
-          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
+          MissionTable.forCity(cityId(request)).resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
 
         // Insert a label_validation entry for this label.
-        LabelValidationTable.insertOrUpdate(LabelValidation(0, submission.labelId, submission.validationResult,
+        LabelValidationTable.forCity(cityId(request)).insertOrUpdate(LabelValidation(0, submission.labelId, submission.validationResult,
           request.identity.get.userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
           submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
           new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.isMobile))
 
         // For the user whose labels has been validated, update their accuracy in the user_stat table.
-        val usersValidated: List[String] = LabelValidationTable.usersValidated(List(submission.labelId))
+        val usersValidated: List[String] = LabelValidationTable.forCity(cityId(request)).usersValidated(List(submission.labelId))
         UserStatTable.updateAccuracy(usersValidated)
         Future.successful(Ok(Json.obj("status" -> "Success")))
       }
@@ -201,7 +202,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         // Get the (or create a) mission_id for this user_id and label_type_id.
         val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
         val mission: Mission =
-          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
+          MissionTable.forCity(cityId(request)).resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
         
         val ipAddress: String = request.remoteAddress
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -223,11 +224,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress    Progress of the current validation mission.
     * @param currentLabelTypeId Label Type ID of the current mission
     */
-  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
+  def getLabelTypeId(user: Option[User], cityId: String, missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
-      val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
+      val labelsToRetrieve: Int = MissionTable.forCity(cityId).validationMissionLabelsToRetrieve
+      val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, cityId, labelsToRetrieve, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
@@ -249,10 +250,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress  Metadata for this mission
     * @return                 List of label metadata (if this mission is complete).
     */
-  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[JsValue] = {
+  def getLabelList(user: Option[User], cityId: String, missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[JsValue] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      Some(getLabelListForValidation(userId, MissionTable.validationMissionLabelsToRetrieve, labelTypeId))
+      Some(getLabelListForValidation(userId, cityId, MissionTable.forCity(cityId).validationMissionLabelsToRetrieve, labelTypeId))
     } else {
       None
     }
@@ -266,8 +267,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param labelTypeId  Label Type to retrieve
     * @return             JsValue containing a list of labels.
     */
-  def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, skippedLabelId = None)
+  def getLabelListForValidation(userId: UUID, cityId: String, n: Int, labelTypeId: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, cityId, n, labelTypeId, skippedLabelId = None)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(LabelFormat.validationLabelMetadataToJson)
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
@@ -296,7 +297,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           val userId: UUID = request.identity.get.userId
-          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId, Some(skippedLabelId)).head
+          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, cityId(request), n = 1, labelTypeId, Some(skippedLabelId)).head
           LabelFormat.validationLabelMetadataToJson(labelMetadata)
         }
         Future.successful(Ok(labelMetadataJson.head))
@@ -305,14 +306,14 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
+    * Updates the MissionTable.forCity(cityId(request)). If the current mission is completed, then retrieves a new mission.
     *
     * @param user                     User ID
     * @param missionProgress          Metadata for this mission
     * @param nextMissionLabelTypeId   Label Type ID for the next mission
     * @return
     */
-  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Option[Mission] = {
+  def updateMissionTable(user: Option[User], cityId: String, missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
@@ -322,9 +323,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
+      MissionTable.forCity(cityId).updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
     } else {
-      MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
+      MissionTable.forCity(cityId).updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }
 }

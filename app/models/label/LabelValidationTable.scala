@@ -5,6 +5,7 @@ import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, UserRoleTable, UserStatTable}
+import models.utils.Configs.schema
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
@@ -33,7 +34,8 @@ case class LabelValidation(labelValidationId: Int,
   * https://www.programcreek.com/scala/slick.lifted.ForeignKeyQuery
   * @param tag
   */
-class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, Some("sidewalk"), "label_validation") {
+class LabelValidationTable (tag: slick.lifted.Tag, schema: Option[String]) extends Table[LabelValidation](tag, schema, "label_validation") {
+  def this(tag: slick.lifted.Tag) = this(tag, Some("sidewalk"))
   def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Notsure
@@ -61,22 +63,27 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
     foreignKey("label_validation_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+    foreignKey("label_validation_mission_id_fkey", missionId, TableQuery(new MissionTable(_, schema)))(_.missionId)
 }
 
 /**
   * Data access table for label_validation table.
   */
 object LabelValidationTable {
+  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "NotSure")
+  def forCity(cityId: String) = new LabelValidationTableForCity(cityId)
+}
+
+class LabelValidationTableForCity(cityId: String) {
   val db = play.api.db.slick.DB
-  val validationLabels = TableQuery[LabelValidationTable]
+  val validationLabels = TableQuery(new LabelValidationTable(_, schema(cityId)))
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
   val labels = TableQuery[LabelTable]
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
-  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "NotSure")
+  val validationOptions: Map[Int, String] = LabelValidationTable.validationOptions
 
   /**
     * Returns how many agree, disagree, or notsure validations a user entered for a given mission.
@@ -118,7 +125,7 @@ object LabelValidationTable {
   def usersValidated(labelIds: List[Int]): List[String] = db.withSession { implicit session =>
     (for {
       l <- labels
-      m <- MissionTable.missions if l.missionId === m.missionId
+      m <- MissionTable.forCity(cityId).missions if l.missionId === m.missionId
       if l.labelId inSet labelIds
     } yield m.userId).groupBy(x => x).map(_._1).list
   }
@@ -133,7 +140,7 @@ object LabelValidationTable {
     val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
     val userThatAppliedLabel: String =
     labels.filter(_.labelId === label.labelId)
-      .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
+      .innerJoin(MissionTable.forCity(cityId).missions).on(_.missionId === _.missionId)
       .map(_._2.userId)
       .list.head
 
@@ -237,8 +244,8 @@ object LabelValidationTable {
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
     val labels = for {
-      _label <- LabelTable.labelsWithExcludedUsers
-      _mission <- MissionTable.missions if _label.missionId === _mission.missionId
+      _label <- LabelTable.labelsWithExcludedUsers(cityId)
+      _mission <- MissionTable.forCity(cityId).missions if _label.missionId === _mission.missionId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId

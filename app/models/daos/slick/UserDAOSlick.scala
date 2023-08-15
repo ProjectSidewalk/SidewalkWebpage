@@ -153,12 +153,12 @@ object UserDAOSlick {
   /**
    * Get all users, excluding anonymous users who haven't placed any labels (so admin user table isn't too big).
    */
-  def usersMinusAnonUsersWithNoLabels: Query[UserTable, DBUser, Seq] = {
+  def usersMinusAnonUsersWithNoLabels(cityId: String): Query[UserTable, DBUser, Seq] = {
     val anonUsers = (for {
       _user <- userTable
       _userRole <- userRoleTable if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      _mission <- MissionTable.missions if _user.userId === _mission.userId
+      _mission <- MissionTable.forCity(cityId).missions if _user.userId === _mission.userId
       _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _mission.missionId === _label.missionId
       if _role.role === "Anonymous"
     } yield _user).groupBy(x => x).map(_._1)
@@ -231,11 +231,11 @@ object UserDAOSlick {
   /**
    * Count the number of users of the given role who have ever started (or completed) validating a label.
    */
-  def countValidationUsersContributed(roles: List[String], labelValidated: Boolean): Int = db.withSession { implicit session =>
+  def countValidationUsersContributed(roles: List[String], labelValidated: Boolean, cityId: String): Int = db.withSession { implicit session =>
 
     val users =
-      if (labelValidated) LabelValidationTable.validationLabels.map(_.userId)
-      else MissionTable.validationMissions.map(_.userId)
+      if (labelValidated) LabelValidationTable.forCity(cityId).validationLabels.map(_.userId)
+      else MissionTable.forCity(cityId).validationMissions.map(_.userId)
 
     val filteredUsers = for {
       _users <- users
@@ -255,15 +255,15 @@ object UserDAOSlick {
    *
    * Researchers include the Researcher, Administrator, and Owner roles.
    */
-  def countValidationResearchersContributed(labelValidated: Boolean): Int = db.withSession { implicit session =>
-    countValidationUsersContributed(List("Researcher", "Administrator", "Owner"), labelValidated)
+  def countValidationResearchersContributed(labelValidated: Boolean, cityId: String): Int = db.withSession { implicit session =>
+    countValidationUsersContributed(List("Researcher", "Administrator", "Owner"), labelValidated, cityId)
   }
 
   /**
    * Count the number of users who have ever started (or completed) validating a label (across all roles).
    */
-  def countAllValidationUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-    countValidationUsersContributed(roleTable.map(_.role).list, taskCompleted)
+  def countAllValidationUsersContributed(taskCompleted: Boolean, cityId: String): Int = db.withSession { implicit session =>
+    countValidationUsersContributed(roleTable.map(_.role).list, taskCompleted, cityId)
   }
 
   /**
@@ -462,7 +462,7 @@ object UserDAOSlick {
   /**
    * Gets metadata for each user that we use on the admin page.
    */
-  def getUserStatsForAdminPage: List[UserStatsForAdminPage] = db.withSession { implicit session =>
+  def getUserStatsForAdminPage(cityId: String): List[UserStatsForAdminPage] = db.withSession { implicit session =>
 
     // We run different queries for each bit of metadata that we need. We run each query and convert them to Scala maps
     // with the user_id as the key. We then query for all the users in the `user` table and for each user, we lookup
@@ -487,7 +487,7 @@ object UserDAOSlick {
 
     // Map(user_id: String -> mission_count: Int).
     val missionCounts =
-      MissionTable.missions.filter(_.completed)
+      MissionTable.forCity(cityId).missions.filter(_.completed)
         .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> audit_count: Int).
@@ -500,12 +500,12 @@ object UserDAOSlick {
         .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).
-    val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
+    val validatedCounts = LabelValidationTable.forCity(cityId).getValidationCountsPerUser.map { valCount =>
       (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
     }.toMap
 
     // Map(user_id: String -> (count: Int, agreed: Int)).
-    val othersValidatedCounts = LabelValidationTable.getValidatedCountsPerUser.map { valCount =>
+    val othersValidatedCounts = LabelValidationTable.forCity(cityId).getValidatedCountsPerUser.map { valCount =>
       (valCount._1, (valCount._2, valCount._3))
     }.toMap
 
@@ -513,7 +513,7 @@ object UserDAOSlick {
       UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    usersMinusAnonUsersWithNoLabels.list.map { u =>
+    usersMinusAnonUsersWithNoLabels(cityId).list.map { u =>
       val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3

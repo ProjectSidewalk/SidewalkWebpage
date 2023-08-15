@@ -2,10 +2,10 @@
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@(title: String, cityId: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
-@main(title, Some("/validate")) {
-    @navbar(user, Some("/validate"))
+@main(title, cityId, Some("/validate")) {
+    @navbar(user, cityId, Some("/validate"))
 
     @icons()
 
@@ -46,7 +46,7 @@
                         <span class="overlay-header">@Messages("turk.expired.title")</span>
                     </p>
                     <p>
-                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.forCity(cityId).getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
                     </p>
                 </div>
             </div>
@@ -253,7 +253,7 @@
 
         let hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-            let msRemainingInHIT = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            let msRemainingInHIT = @AMTAssignmentTable.forCity(cityId).getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemainingInHIT < 0) {
                 hitExpired = true;
             }

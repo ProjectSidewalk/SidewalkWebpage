@@ -18,6 +18,7 @@ import models.label.LabelValidationTable
 import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.validation._
 import models.user._
+import models.utils.Configs.cityId
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
@@ -40,11 +41,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_Validate")
+        val validationData = getDataForValidationPages(user, cityId(request), ipAddress, labelCount = 10, "Visit_Validate")
         if (validationData._4.missionType != "validation") {
           Future.successful(Redirect("/explore"))
         } else {
-          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", cityId(request), Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
@@ -59,11 +60,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_MobileValidate")
+        val validationData = getDataForValidationPages(user, cityId(request), ipAddress, labelCount = 10, "Visit_MobileValidate")
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !ControllerUtils.isMobile(request)) {
           Future.successful(Redirect("/explore"))
         } else {
-          Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+          Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", cityId(request), Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
@@ -75,19 +76,19 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     *
     * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedValidations)
     */
-  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, visitTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int) = {
+  def getDataForValidationPages(user: User, cityId: String, ipAddress: String, labelCount: Int, visitTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int) = {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, visitTypeStr, timestamp))
 
     val missionSetProgress: MissionSetProgress =
-      if (user.role.getOrElse("") == "Turker") MissionTable.getProgressOnMissionSet(user.username)
-      else MissionTable.defaultValidationMissionSetProgress
+      if (user.role.getOrElse("") == "Turker") MissionTable.forCity(cityId).getProgressOnMissionSet(user.username)
+      else MissionTable.forCity(cityId).defaultValidationMissionSetProgress
 
-    val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, labelCount, None)
+    val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, cityId, labelCount, None)
     val hasWork: Boolean = possibleLabTypeIds.nonEmpty
 
-    val completedValidations: Int = LabelValidationTable.countValidations(user.userId)
+    val completedValidations: Int = LabelValidationTable.forCity(cityId).countValidations(user.userId)
     // Checks if there are still labels in the database for the user to validate.
     if (hasWork && missionSetProgress.missionType == "validation") {
       // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
@@ -96,12 +97,12 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         else possibleLabTypeIds
       val index: Int = if (possibleIds.size > 1) scala.util.Random.nextInt(possibleIds.size) else 0
       val labelTypeId: Int = possibleIds(index)
-      val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId,
+      val mission: Mission = MissionTable.forCity(cityId).resumeOrCreateNewValidationMission(user.userId,
         AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationMissionStr, labelTypeId).get
 
-      val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId, mission)
+      val labelList: JsValue = getLabelListForValidation(user.userId, cityId, labelTypeId, mission)
       val missionJsObject: JsObject = mission.toJSON
-      val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
+      val progressJsObject: JsObject = LabelValidationTable.forCity(cityId).getValidationProgress(mission.missionId)
 
       (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, true, completedValidations)
     } else {
@@ -118,12 +119,12 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * @param mission    Mission object for the current mission
     * @return           JsValue containing a list of labels.
     */
-  def getLabelListForValidation(userId: UUID, labelType: Int, mission: Mission): JsValue = {
+  def getLabelListForValidation(userId: UUID, cityId: String, labelType: Int, mission: Mission): JsValue = {
     val labelsProgress: Int = mission.labelsProgress.get
-    val labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
+    val labelsToValidate: Int = MissionTable.forCity(cityId).validationMissionLabelsToRetrieve
     val labelsToRetrieve: Int = labelsToValidate - labelsProgress
 
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType, skippedLabelId = None)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, cityId, labelsToRetrieve, labelType, skippedLabelId = None)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelFormat.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson

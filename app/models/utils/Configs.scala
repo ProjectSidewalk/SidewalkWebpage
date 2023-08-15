@@ -2,6 +2,7 @@ package models.utils
 
 import play.api.Play
 import play.api.Play.current
+import play.api.mvc.RequestHeader
 import scala.collection.JavaConverters._
 
 object Configs {
@@ -22,4 +23,7 @@ object Configs {
     }
     cityInfo
   }
+
+  def cityId(request: RequestHeader) = request.headers.get("city-id").get
+  def schema(cityId: String) = Play.configuration.getString(s"city-params.schemata.${cityId}")
 }

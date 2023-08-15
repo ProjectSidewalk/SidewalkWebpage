@@ -1,9 +1,9 @@
 @import models.user.User
-@(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, lang: Lang)
+@(cityId: String, signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, lang: Lang)
 
 @import views.html.bootstrap._
 
-@main("Project Sidewalk - Sign In", Some("/signInMobile")) {
+@main("Project Sidewalk - Sign In", cityId, Some("/signInMobile")) {
     @request.flash.get("success").map { msg =>
         <div class="col-md-6 col-md-offset-3 alert alert-success alert-mobile">
             <a href="#" class="close" data-dismiss="alert">&times;</a>

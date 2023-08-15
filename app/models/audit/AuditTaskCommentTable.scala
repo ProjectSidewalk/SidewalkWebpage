@@ -5,6 +5,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import models.utils.CommonUtils.ordered
+import models.utils.Configs.schema
 import models.validation.ValidationTaskCommentTable
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
@@ -15,7 +16,7 @@ case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId
                             timestamp: Timestamp, comment: String)
 case class GenericComment(commentType: String, username: String, gsvPanoramaId: Option[String], timestamp: Timestamp, comment: String, heading: Option[Double], pitch: Option[Double], zoom: Option[Int], labelId: Option[Int])
 
-class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some("sidewalk"), "audit_task_comment") {
+class AuditTaskCommentTable(tag: Tag, schema: Option[String]) extends Table[AuditTaskComment](tag, schema, "audit_task_comment") {
   def auditTaskCommentId = column[Int]("audit_task_comment_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
@@ -38,12 +39,16 @@ class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some(
     foreignKey("audit_task_comment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("audit_task_comment_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+    foreignKey("audit_task_comment_mission_id_fkey", missionId, TableQuery(new MissionTable(_, schema)))(_.missionId)
 }
 
 object AuditTaskCommentTable {
+  def forCity(cityId: String) = new AuditTaskCommentTableForCity(cityId)
+}
+
+class AuditTaskCommentTableForCity(cityId: String) {
   val db = play.api.db.slick.DB
-  val auditTaskComments = TableQuery[AuditTaskCommentTable]
+  val auditTaskComments = TableQuery(new AuditTaskCommentTable(_, schema(cityId)))
   val users = TableQuery[UserTable]
 
   /**

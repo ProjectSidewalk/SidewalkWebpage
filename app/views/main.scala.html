@@ -2,10 +2,9 @@
 @import play.api.Play
 @import play.api.Play.current
 
-@(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
+@(title: String, cityId: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
 
-@cityId = @{Play.configuration.getString("city-id").get}
-@environmentType = @{Play.configuration.getString("environment-type").get}
+@environmentType = @{Play.configuration.getString(s"environment-type").get}
 @googleAnalytics4Id = @{Play.configuration.getString(s"city-params.google-analytics-4-id.${environmentType}.${cityId}")}
 @prodURL = @{Play.configuration.getString(s"city-params.landing-page-url.prod.${cityId}")}
 
@@ -46,6 +45,7 @@
     <script src='@routes.Assets.at("javascripts/common/pagetop-padding.js")'></script>
 </head>
 <body onload="checkIfPaddingNeeded()">
+    <h1>@cityId @environmentType</h1>
     <div id="wrap">
         <!-- Banner is only visible if user is on test server-->
         @if(environmentType == "test") {

@@ -26,6 +26,7 @@ import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
+import models.utils.Configs.cityId
 import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
@@ -63,7 +64,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val user: User = request.identity.get
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
       }
-      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
+      Future.successful(Ok(views.html.admin.index("Project Sidewalk", cityId(request), request.identity)))
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
@@ -82,7 +83,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
             else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
           }
-          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity.get, user, auditedDistance)))
+          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity.get, cityId(request), user, auditedDistance)))
         case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
@@ -96,7 +97,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def task(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       AuditTaskTable.find(taskId) match {
-        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
+        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task, cityId(request))))
         case _ => Future.successful(Redirect("/"))
       }
     } else {
@@ -109,7 +110,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List())
+      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List(), cityId(request))
       val features: List[JsObject] = labels.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
@@ -135,7 +136,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabelsForLabelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
     val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds)
+    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds, cityId(request))
     val features: List[JsObject] = labels.map { label =>
       val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties: JsObject = Json.obj(
@@ -204,7 +205,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val missionCounts: List[(String, String, Int)] = MissionTable.selectMissionCountsPerUser
+      val missionCounts: List[(String, String, Int)] = MissionTable.forCity(cityId(request)).selectMissionCountsPerUser
       val jsonArray = Json.arr(missionCounts.map(x => {
         Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
       }))
@@ -270,7 +271,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val labels = LabelTable.getLabelLocations(UUID.fromString(user.userId))
+          val labels = LabelTable.getLabelLocations(UUID.fromString(user.userId), cityId(request))
           val features: List[JsObject] = labels.map { label =>
             val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
             val properties = Json.obj(
@@ -335,7 +336,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
+          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId), cityId(request)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
         case _ => Future.failed(new NotFoundException("Username not found."))
       }
@@ -398,7 +399,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    * Get metadata used for 2022 CV project for all labels, and output as JSON.
    */
   def getAllLabelMetadataForCV = UserAwareAction.async { implicit request =>
-    val labels: List[LabelCVMetadata] = LabelTable.getLabelCVMetadata
+    val labels: List[LabelCVMetadata] = LabelTable.getLabelCVMetadata(cityId(request))
     val json: JsValue = Json.toJson(labels.map(l => Json.toJson(l)))
     Future.successful(Ok(json))
   }
@@ -434,7 +435,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val validationCounts = LabelValidationTable.getValidationCountsPerUser
+      val validationCounts = LabelValidationTable.forCity(cityId(request)).getValidationCountsPerUser
       val json: JsArray = Json.arr(validationCounts.map(x => Json.obj(
         "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
       )))
@@ -565,7 +566,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           new Timestamp(Instant.EPOCH.toEpochMilli)
       }
 
-      UserStatTable.updateUserStatTable(cutoffTime)
+      UserStatTable.updateUserStatTable(cutoffTime, cityId(request))
       Future.successful(Ok("User stats updated!"))
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))

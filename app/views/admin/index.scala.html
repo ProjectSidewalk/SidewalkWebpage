@@ -6,13 +6,13 @@
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
 
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, cityId: String, user: Option[User] = None)(implicit lang: Lang)
 @convertDistance(distance: Float) = @{
     if (Messages("measurement.system") == "metric") distance * 1.60934.toDouble
     else distance.toDouble
 }
-@main(title) {
-    @navbar(user, Some("/admin"))
+@main(title, cityId) {
+    @navbar(user, cityId, Some("/admin"))
     <style>
         .no-js #loader { display: none;  }
         .js #loader { display: block; position: absolute; left: 100px; top: 0; }
@@ -171,61 +171,61 @@
                                 </tr>
                                 <tr>
                                     <th>Total Validation Users</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
+                                    <th>@UserDAOSlick.countAllValidationUsersContributed(false, cityId) (@UserDAOSlick.countAllValidationUsersContributed(true, cityId))</th>
                                     <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
                                     <th>@UserDAOSlick.countAllValidationUsersContributedPastWeek</th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false, cityId) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true, cityId))</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Registered")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false, cityId) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true, cityId))</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Anonymous")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turkers</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
+                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false, cityId) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true, cityId))</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
                                     <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Turker")</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researchers</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
+                                    <td>@UserDAOSlick.countValidationResearchersContributed(false, cityId) (@UserDAOSlick.countValidationResearchersContributed(true, cityId))</td>
                                     <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
                                     <td>@UserDAOSlick.countValidationResearchersContributedPastWeek</td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <th>Total Validations</th>
-                                    <th>@LabelValidationTable.countValidations</th>
-                                    <th>@LabelValidationTable.countTodayValidations</th>
-                                    <th>@LabelValidationTable.countPastWeekValidations</th>
+                                    <th>@LabelValidationTable.forCity(cityId).countValidations</th>
+                                    <th>@LabelValidationTable.forCity(cityId).countTodayValidations</th>
+                                    <th>@LabelValidationTable.forCity(cityId).countPastWeekValidations</th>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Agreed</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countValidationsByResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(1) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countValidationsByResult(1) (@("%.0f".format(LabelValidationTable.forCity(cityId).countValidationsByResult(1) * 100.0 / LabelValidationTable.forCity(cityId).countValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countTodayValidationsByResult(1) (@("%.0f".format(LabelValidationTable.forCity(cityId).countTodayValidationsByResult(1) * 100.0 / LabelValidationTable.forCity(cityId).countTodayValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countPastWeekValidationsByResult(1) (@("%.0f".format(LabelValidationTable.forCity(cityId).countPastWeekValidationsByResult(1) * 100.0 / LabelValidationTable.forCity(cityId).countPastWeekValidations))%)</td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Disagreed</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countValidationsByResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(2) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countValidationsByResult(2) (@("%.0f".format(LabelValidationTable.forCity(cityId).countValidationsByResult(2) * 100.0 / LabelValidationTable.forCity(cityId).countValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countTodayValidationsByResult(2) (@("%.0f".format(LabelValidationTable.forCity(cityId).countTodayValidationsByResult(2) * 100.0 / LabelValidationTable.forCity(cityId).countTodayValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countPastWeekValidationsByResult(2) (@("%.0f".format(LabelValidationTable.forCity(cityId).countPastWeekValidationsByResult(2) * 100.0 / LabelValidationTable.forCity(cityId).countPastWeekValidations))%)</td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Not Sure</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(3) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countValidationsByResult(3) (@("%.0f".format(LabelValidationTable.forCity(cityId).countValidationsByResult(3) * 100.0 / LabelValidationTable.forCity(cityId).countValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countTodayValidationsByResult(3) (@("%.0f".format(LabelValidationTable.forCity(cityId).countTodayValidationsByResult(3) * 100.0 / LabelValidationTable.forCity(cityId).countTodayValidations))%)</td>
+                                    <td>@LabelValidationTable.forCity(cityId).countPastWeekValidationsByResult(3) (@("%.0f".format(LabelValidationTable.forCity(cityId).countPastWeekValidationsByResult(3) * 100.0 / LabelValidationTable.forCity(cityId).countPastWeekValidations))%)</td>
                                 </tr>
                             </table>
                             <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have completed
@@ -346,7 +346,7 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @AuditTaskCommentTable.takeRightAuditAndValidationComments(100).map { comment =>
+                                @AuditTaskCommentTable.forCity(cityId).takeRightAuditAndValidationComments(100).map { comment =>
                                 <tr>
                                     <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
                                     </td>
@@ -693,59 +693,59 @@
                                     </tr>
                                     <tr>
                                         <th>Overall</th>
-                                        <th>@LabelValidationTable.countValidations</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations)))%</th>
+                                        <th>@LabelValidationTable.forCity(cityId).countValidations</th>
+                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1) * 100.0 / LabelValidationTable.forCity(cityId).countValidations)))%</th>
+                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2) * 100.0 / LabelValidationTable.forCity(cityId).countValidations)))%</th>
+                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3) * 100.0 / LabelValidationTable.forCity(cityId).countValidations)))%</th>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("curb.ramp")</td>
-                                        <td>@LabelValidationTable.countValidations("CurbRamp")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
+                                        <td>@LabelValidationTable.forCity(cityId).countValidations("CurbRamp")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1, "CurbRamp") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("CurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2, "CurbRamp") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("CurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3, "CurbRamp") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("CurbRamp"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("missing.ramp")</td>
-                                        <td>@LabelValidationTable.countValidations("NoCurbRamp")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
+                                        <td>@LabelValidationTable.forCity(cityId).countValidations("NoCurbRamp")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1, "NoCurbRamp") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("NoCurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2, "NoCurbRamp") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("NoCurbRamp"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3, "NoCurbRamp") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("NoCurbRamp"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("obstacle")</td>
-                                        <td>@LabelValidationTable.countValidations("Obstacle")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
+                                        <td>@LabelValidationTable.forCity(cityId).countValidations("Obstacle")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1, "Obstacle") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Obstacle"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2, "Obstacle") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Obstacle"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3, "Obstacle") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Obstacle"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("surface.problem")</td>
-                                        <td>@LabelValidationTable.countValidations("SurfaceProblem")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
+                                        <td>@LabelValidationTable.forCity(cityId).countValidations("SurfaceProblem")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1, "SurfaceProblem") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("SurfaceProblem"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2, "SurfaceProblem") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("SurfaceProblem"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3, "SurfaceProblem") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("SurfaceProblem"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
-                                        <td>@LabelValidationTable.countValidations("NoSidewalk")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
+                                        <td>@LabelValidationTable.forCity(cityId).countValidations("NoSidewalk")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1, "NoSidewalk") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("NoSidewalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3, "NoSidewalk") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("NoSidewalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2, "NoSidewalk") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("NoSidewalk"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("crosswalk")</td>
-                                        <td>@LabelValidationTable.countValidations("Crosswalk")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                        <td>@LabelValidationTable.forCity(cityId).countValidations("Crosswalk")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1, "Crosswalk") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Crosswalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2, "Crosswalk") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Crosswalk"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3, "Crosswalk") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Crosswalk"))))%</td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("signal")</td>
-                                        <td>@LabelValidationTable.countValidations("Signal")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
+                                        <td>@LabelValidationTable.forCity(cityId).countValidations("Signal")</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(1, "Signal") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Signal"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Signal"))))%</td>
+                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.forCity(cityId).countValidationsByResult(2, "Signal") * 100.0 / LabelValidationTable.forCity(cityId).countValidations("Signal"))))%</td>
                                     </tr>
                                 </table>
                             </div>
@@ -825,7 +825,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                @UserDAOSlick.getUserStatsForAdminPage.map { u =>
+                                @UserDAOSlick.getUserStatsForAdminPage(cityId).map { u =>
                                 <tr>
                                     <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
                                     <td>@u.userId</td>

@@ -281,14 +281,14 @@ object AuditTaskTable {
   /**
     * Return a list of tasks associated with labels.
     */
-  def selectTasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
+  def selectTasksWithLabels(userId: UUID, cityId: String): List[AuditTaskWithALabel] = db.withSession { implicit session =>
     val userTasks = for {
       (_users, _tasks) <- users.innerJoin(auditTasks).on(_.userId === _.userId)
       if _users.userId === userId.toString
     } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
 
     val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithExcludedUsers).on(_._3 === _.auditTaskId)
+      (_userTasks, _labels) <- userTasks.leftJoin(LabelTable.labelsWithExcludedUsers(cityId)).on(_._3 === _.auditTaskId)
     } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val tasksWithLabels = for {
@@ -397,10 +397,10 @@ object AuditTaskTable {
   /**
    * Get a NewTask object for the tutorial. Some dummy values are filled in specifically for the tutorial.
    */
-  def getATutorialTask(missionId: Int): NewTask = db.withSession { implicit session =>
+  def getATutorialTask(missionId: Int, cityId: String): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val tutorialTask = streetEdges
-      .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
+      .filter(_.streetEdgeId === LabelTable.tutorialStreetId(cityId))
       .map(e => (e.streetEdgeId, e.geom, e.x2, e.y2, e.x1, e.y1, e.x2, e.y2, false, timestamp, false, 1.0, false, None: Option[Int], missionId.asColumnOf[Option[Int]], None: Option[Point]))
     NewTask.tupled(tutorialTask.first)
   }

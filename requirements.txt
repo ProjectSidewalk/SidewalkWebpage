@@ -1,9 +1,9 @@
 # We assume Python 2.7
 
-futures==3.1.1
-haversine==0.4.5
-scipy==1.1.0
-requests==2.20.0
+futures
+haversine
+scipy
+requests
 pandas # added by JEF 05/19/2022 to run check_gsv_image_dates.py
 
 # Note: if you're on Windows, you must comment out shapely below

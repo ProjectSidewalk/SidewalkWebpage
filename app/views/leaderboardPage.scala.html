@@ -1,9 +1,9 @@
 @import models.user._
 @import play.api.i18n.Messages
 
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
 
-@main(title) {
-    @navbar(user)
+@main(title, cityId) {
+    @navbar(user, cityId)
     @leaderboard(1, user)
 }

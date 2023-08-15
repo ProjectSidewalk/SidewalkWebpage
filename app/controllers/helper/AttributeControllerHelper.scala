@@ -15,9 +15,9 @@ object AttributeControllerHelper {
    * @param clusteringType One of "singleUser", "multiUser", or "both".
    * @return Counts of attributes and the labels that were clustered into those attributes in JSON.
    */
-  def runClustering(clusteringType: String) = {
+  def runClustering(clusteringType: String, cityId: String) = {
     if (clusteringType == "singleUser" || clusteringType == "both") {
-      runSingleUserClustering()
+      runSingleUserClustering(cityId)
     }
     if (clusteringType == "multiUser" || clusteringType == "both") {
       runMultiUserClustering()
@@ -46,11 +46,11 @@ object AttributeControllerHelper {
   /**
    * Runs single user clustering for each high quality user who has placed a label since `cutoffTime`.
    */
-  def runSingleUserClustering() = {
+  def runSingleUserClustering(cityId: String) = {
     val key: String = Play.configuration.getString("internal-api-key").get
 
     // Get list of users who's data we want to delete or re-cluster (or cluster for the first time).
-    val usersToUpdate: List[String] = UserStatTable.usersToUpdateInAPI()
+    val usersToUpdate: List[String] = UserStatTable.usersToUpdateInAPI(cityId)
 
     // Delete data from users we want to re-cluster.
     UserClusteringSessionTable.deleteUsersClusteringSessions(usersToUpdate)
@@ -62,7 +62,7 @@ object AttributeControllerHelper {
     for ((userId, i) <- usersToUpdate.view.zipWithIndex) {
       Logger.info(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
       val clusteringOutput =
-        Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
+        Seq("python2", "label_clustering.py", "--key", key, "--user_id", userId).!!
       // Logger.info(clusteringOutput)
     }
     Logger.info("Finshed 100% of users!!\n")
@@ -85,7 +85,7 @@ object AttributeControllerHelper {
     // Runs multi-user clustering within each region.
     for ((regionId, i) <- regionIds.view.zipWithIndex) {
       Logger.info(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
-      val clusteringOutput = Seq("python", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+      val clusteringOutput = Seq("python2", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
     }
     Logger.info("Finshed 100% of regions!!\n\n")
   }

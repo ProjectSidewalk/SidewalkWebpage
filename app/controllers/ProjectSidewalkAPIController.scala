@@ -19,6 +19,7 @@ import models.label.{LabelLocation, LabelTable, ProjectSidewalkStats}
 import models.street.{OsmWayStreetEdge, OsmWayStreetEdgeTable}
 import models.street.{StreetEdge, StreetEdgeInfo, StreetEdgeTable}
 import models.user.{User, UserStatTable, WebpageActivity, WebpageActivityTable}
+import models.utils.Configs.cityId
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
@@ -790,13 +791,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "Others Not Validated"
       writer.println(header)
       // Write each row in the CSV.
-      for (current <- UserStatTable.getStatsForAPI) {
+      for (current <- UserStatTable.getStatsForAPI(cityId(request))) {
         writer.println(current.toArray.mkString(","))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = userStatsFile, onClose = () => userStatsFile.delete()))
     } else { // In JSON format.
-      Future.successful(Ok(Json.toJson(UserStatTable.getStatsForAPI.map(_.toJSON))))
+      Future.successful(Ok(Json.toJson(UserStatTable.getStatsForAPI(cityId(request)).map(_.toJSON))))
     }
   }
 
@@ -807,7 +808,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val sidewalkStatsFile = new java.io.File("project_sidewalk_stats.csv")
       val writer = new java.io.PrintStream(sidewalkStatsFile)
 
-      val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
+      val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality, cityId(request))
       writer.println(s"KM Explored,${stats.kmExplored}")
       writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
       writer.println(s"Total User Count,${stats.nUsers}")
@@ -834,7 +835,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete()))
     } else { // In JSON format.
-      Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI(filterLowQuality))))
+      Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI(filterLowQuality, cityId(request)))))
     }
   }
 }

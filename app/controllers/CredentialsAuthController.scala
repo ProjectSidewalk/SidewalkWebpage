@@ -14,6 +14,7 @@ import formats.json.UserFormats._
 import forms.SignInForm
 import models.services.UserService
 import models.user._
+import models.utils.Configs.cityId
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
@@ -37,7 +38,7 @@ class CredentialsAuthController @Inject() (
     */
   def authenticate(url: String) = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signIn(form))),
+      form => Future.successful(BadRequest(views.html.signIn(cityId(request), form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase, credentials.password))
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
@@ -65,7 +66,7 @@ class CredentialsAuthController @Inject() (
     */
   def postAuthenticate = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signIn(form))),
+      form => Future.successful(BadRequest(views.html.signIn(cityId(request), form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase, credentials.password))
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))

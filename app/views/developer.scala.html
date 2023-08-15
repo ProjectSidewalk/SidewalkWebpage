@@ -1,8 +1,8 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
 
-@main(title) {
-    @navbar(user, Some("/api"))
+@main(title, cityId) {
+    @navbar(user, cityId, Some("/api"))
     <div class="container">
         <h1>Developer Zone</h1>
         <p class="text-justify">

@@ -1,14 +1,14 @@
 @import models.user.User
 @(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
 
-@main(title) {
+@main(title, cityId) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("/javascripts/common/Utilities.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
 
-    @navbar(user, Some("/gallery"))
+    @navbar(user, cityId, Some("/gallery"))
 
     @icons()
 

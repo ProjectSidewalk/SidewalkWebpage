@@ -110,3 +110,11 @@ nohup.out
 
 # docker db files
 db/dump
+
+# netbeans
+nbproject
+
+# MBB local
+start.sh
+.project
+data-migration

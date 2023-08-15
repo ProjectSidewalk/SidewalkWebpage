@@ -16,6 +16,7 @@ import formats.json.AttributeFormats
 import models.attribute._
 import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionTable
+import models.utils.Configs.cityId
 import play.api.Play.current
 import play.api.{Logger, Play}
 
@@ -32,7 +33,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
+      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity, cityId(request))))
     } else {
       Future.successful(Redirect("/"))
     }
@@ -65,7 +66,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def runClustering(clusteringType: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val json = AttributeControllerHelper.runClustering(clusteringType)
+      val json = AttributeControllerHelper.runClustering(clusteringType, cityId(request))
       Future.successful(Ok(json))
     } else {
       Future.successful(Redirect("/"))
@@ -81,7 +82,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   def getUserLabelsToCluster(key: String, userId: String) = UserAwareAction.async { implicit request =>
 
     val json = if (authenticate(key)) {
-      Json.arr(UserClusteringSessionTable.getUserLabelsToCluster(userId).map(_.toJSON))
+      Json.arr(UserClusteringSessionTable.getUserLabelsToCluster(userId, cityId(request)).map(_.toJSON))
     } else {
       Json.obj("error_msg" -> "Could not authenticate.")
     }

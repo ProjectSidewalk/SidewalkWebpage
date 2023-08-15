@@ -11,7 +11,7 @@ import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.street.StreetEdgeRegionTable
-import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
+import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable, User}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.utils.CommonUtils.ordered
@@ -100,25 +100,25 @@ object LabelTable {
   val neighborhoods = regions.filter(_.deleted === false)
 
   // Grab city id of database and the associated tutorial street id for the city
-  val cityStr: String = Play.configuration.getString("city-id").get
-  val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+  // val cityStr: String = Play.configuration.getString("city-id").get
+  def tutorialStreetId(cityStr: String): Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
 
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
   // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table.
-  val labels = labelsUnfiltered
+  def labels(cityId: String) = labelsUnfiltered
     .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
     .innerJoin(UserStatTable.userStats).on(_._2.userId === _.userId)
     .filterNot { case ((_l, _at), _us) =>
-      _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId ||
+      _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId(cityId) || _at.streetEdgeId === tutorialStreetId(cityId) ||
         _us.excluded
     }.map(_._1._1)
 
   // Subquery for labels without deleted or tutorial ones, but includes "excluded" users. You might need to include
   // these users if you're displaying a page for one of those users (like the user dashboard).
-  val labelsWithExcludedUsers = labelsUnfiltered
+  def labelsWithExcludedUsers(cityId: String) = labelsUnfiltered
     .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
     .filterNot { case (_l, _at) =>
-      _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId
+      _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId(cityId) || _at.streetEdgeId === tutorialStreetId(cityId)
     }.map(_._1)
 
   // Subquery for labels without deleted ones, but includes tutorial labels and labels from "excluded" users. You might
@@ -353,10 +353,10 @@ object LabelTable {
     * @param userId User id
     * @return A number of labels submitted by the user
     */
-  def countLabels(userId: UUID): Int = db.withSession { implicit session =>
+  def countLabels(userId: UUID, cityId: String): Int = db.withSession { implicit session =>
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val _labels = for {
-      (_tasks, _labels) <- tasks.innerJoin(labelsWithExcludedUsers).on(_.auditTaskId === _.auditTaskId)
+      (_tasks, _labels) <- tasks.innerJoin(labelsWithExcludedUsers(cityId)).on(_.auditTaskId === _.auditTaskId)
     } yield _labels
     _labels.length.run
   }
@@ -506,13 +506,13 @@ object LabelTable {
     *
     * @return List[(label_type_id, label_count)]
     */
-  def getAvailableValidationLabelsByType(userId: UUID): List[(Int, Int)] = db.withSession { implicit session =>
+  def getAvailableValidationLabelsByType(userId: UUID, cityId: String): List[(Int, Int)] = db.withSession { implicit session =>
     val userIdString: String = userId.toString
     val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
 
     // Get labels the given user has not placed that have non-expired GSV imagery.
     val labelsToValidate =  for {
-      _lb <- labels
+      _lb <- labels(cityId)
       _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId
       _ms <- missions if _ms.missionId === _lb.missionId
       _us <- UserStatTable.userStats if _ms.userId === _us.userId
@@ -540,7 +540,7 @@ object LabelTable {
     * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
     * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelListForValidation(userId: UUID, cityId: String, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
     val userIdStr = userId.toString
@@ -589,8 +589,8 @@ object LabelTable {
            |    AND label.deleted = FALSE
            |    AND label.tutorial = FALSE
            |    AND user_stat.excluded = FALSE
-           |    AND label.street_edge_id <> $tutorialStreetId
-           |    AND audit_task.street_edge_id <> $tutorialStreetId
+           |    AND label.street_edge_id <> ${tutorialStreetId(cityId)}
+           |    AND audit_task.street_edge_id <> ${tutorialStreetId(cityId)}
            |    AND gsv_data.expired = FALSE
            |    AND mission.user_id <> '$userIdStr'
            |    AND label.label_id NOT IN (
@@ -642,9 +642,9 @@ object LabelTable {
    * @param tags              Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], severity: Set[Int], tags: Set[String], userId: UUID, cityId: String): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Filter labels based on correctness.
-    val _l1 = if (!valOptions.contains("correct")) labels.filter(l => l.correct.isEmpty || !l.correct) else labels
+    val _l1 = if (!valOptions.contains("correct")) labels(cityId).filter(l => l.correct.isEmpty || !l.correct) else labels(cityId)
     val _l2 = if (!valOptions.contains("incorrect")) _l1.filter(l => l.correct.isEmpty || l.correct) else _l1
     val _l3 = if (!valOptions.contains("notsure")) _l2.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.notsureCount === 0)) else _l2
     val _labelsFilteredByCorrectness = if (!valOptions.contains("unvalidated")) _l3.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.notsureCount > 0) else _l3
@@ -716,7 +716,7 @@ object LabelTable {
    * @param labTypes List of label types where we are looking for mistakes.
    * @return
    */
-  def getRecentValidatedLabelsForUser(userId: UUID, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = db.withSession { implicit session =>
+  def getRecentValidatedLabelsForUser(userId: UUID, cityId: String, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = db.withSession { implicit session =>
     // Attach comments to validations using a left join.
     val _validationsWithComments = labelValidations
       .leftJoin(ValidationTaskCommentTable.validationTaskComments)
@@ -725,7 +725,7 @@ object LabelTable {
 
     // Grab validations and associated label information for the given user's labels.
     val _validations = for {
-      _lb <- labelsWithExcludedUsers
+      _lb <- labelsWithExcludedUsers(cityId)
       _m <- missions if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
@@ -882,8 +882,8 @@ object LabelTable {
     * @param count                Number of labels for this mission.
     * @param currentLabelTypeId   Label ID of the current mission
     */
-  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
-    getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(valLabelTypeIds.contains(_))
+  def retrievePossibleLabelTypeIds(userId: UUID, cityId: String, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
+    getAvailableValidationLabelsByType(userId, cityId).filter(_._2 > count * 2).map(_._1).filter(valLabelTypeIds.contains(_))
   }
 
     /**
@@ -934,9 +934,9 @@ object LabelTable {
   /**
     * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
     */
-  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int], cityId: String): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
-      _l <- labels
+      _l <- labels(cityId)
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
@@ -982,9 +982,9 @@ object LabelTable {
   /**
    * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
    */
-  def getLabelLocations(userId: UUID, regionId: Option[Int] = None): List[LabelLocation] = db.withSession { implicit session =>
+  def getLabelLocations(userId: UUID, cityId: String, regionId: Option[Int] = None): List[LabelLocation] = db.withSession { implicit session =>
     val _labels = for {
-      _l <- labelsWithExcludedUsers
+      _l <- labelsWithExcludedUsers(cityId)
       _lt <- labelTypes if _l.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
@@ -1094,7 +1094,7 @@ object LabelTable {
     labelsInRegionQuery.list
   }
 
-  def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>
+  def getOverallStatsForAPI(filterLowQuality: Boolean, cityId: String): ProjectSidewalkStats = db.withSession { implicit session =>
     // We use a different filter in all the sub-queries, depending on whether or not we filter out low quality data.
     val userFilter: String =
       if (filterLowQuality) "user_stat.high_quality"
@@ -1266,8 +1266,8 @@ object LabelTable {
          |    WHERE $userFilter
          |        AND deleted = FALSE
          |        AND tutorial = FALSE
-         |        AND label.street_edge_id <> $tutorialStreetId
-         |        AND audit_task.street_edge_id <> $tutorialStreetId
+         |        AND label.street_edge_id <> ${tutorialStreetId(cityId)}
+         |        AND audit_task.street_edge_id <> ${tutorialStreetId(cityId)}
          |) AS label_counts_and_severity, (
          |    SELECT COUNT(*) AS validation_count
          |    FROM label_validation
@@ -1312,8 +1312,8 @@ object LabelTable {
          |    WHERE $userFilter
          |        AND deleted = FALSE
          |        AND tutorial = FALSE
-         |        AND label.street_edge_id <> $tutorialStreetId
-         |        AND audit_task.street_edge_id <> $tutorialStreetId
+         |        AND label.street_edge_id <> ${tutorialStreetId(cityId)}
+         |        AND audit_task.street_edge_id <> ${tutorialStreetId(cityId)}
          |) AS val_counts;""".stripMargin
     )
     overallStatsQuery.first
@@ -1333,9 +1333,9 @@ object LabelTable {
   /**
    * Get metadata used for 2022 CV project for all labels.
    */
-  def getLabelCVMetadata: List[LabelCVMetadata] = db.withSession { implicit session =>
+  def getLabelCVMetadata(cityId: String): List[LabelCVMetadata] = db.withSession { implicit session =>
     (for {
-      _l <- labels
+      _l <- labels(cityId)
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
       if _gsv.cameraHeading.isDefined && _gsv.cameraPitch.isDefined
