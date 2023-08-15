@@ -185,10 +185,11 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         // If the user just completed their first audit mission ever (and they aren't a turker) or they finished their
         // third in a row, make the primary button they see a 'Start validating' button. If they are not a turker, then
         // also show a secondary button that lets them continue auditing. On any other mission just show a 'Continue'
-        // button that has them audit more.
+        // button that has them audit more. If we are on the crowdstudy server: don't show any buttons if they finished
+        // their route, otherwise show a 'Continue' button.
         var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
-        if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+        if (svl.cityId !== 'crowdstudy' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteOrNeighborhoodComplete())) {
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
             this._status.primaryAction = 'validate';
 
@@ -206,6 +207,9 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
                     this._status.secondaryAction = 'explore';
                 }
             }
+        } else if (svl.cityId === 'crowdstudy' && svl.neighborhoodModel.isRouteComplete) {
+            uiModalMissionComplete.closeButtonPrimary.css('visibility', "hidden");
+            uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
         } else {
             uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-continue'));
