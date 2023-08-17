@@ -584,7 +584,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Renders all tasks to draw both unexplored and previously completed tasks. Should be called at page load
      * so it does not render redundantly.
      */
-    function renderTasksFromPreviousSessions() {
+    function renderAllTasks() {
         for (let task of self._tasks) {
             task.render();
         }
@@ -601,7 +601,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.isFirstTask = isFirstTask;
     self.length = length;
     self.push = pushATask;
-    self.renderTasksFromPreviousSessions = renderTasksFromPreviousSessions;
+    self.renderAllTasks = renderAllTasks;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.updateCurrentTask = updateCurrentTask;

@@ -339,7 +339,7 @@ function Main (params) {
             });
         });
 
-        svl.taskContainer.renderTasksFromPreviousSessions();
+        svl.taskContainer.renderAllTasks();
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance();
         svl.statusFieldNeighborhood.setAuditedDistance(distance, unit);
