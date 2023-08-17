@@ -68,7 +68,7 @@ function Admin(_, $) {
     };
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView(true);
+        self.adminGSVLabelView = AdminGSVLabelView(true, "AdminContributionPage");
     }
 
     function initializeAdminGSVCommentView(){

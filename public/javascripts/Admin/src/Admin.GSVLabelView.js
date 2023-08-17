@@ -1,4 +1,4 @@
-function AdminGSVLabelView(admin) {
+function AdminGSVLabelView(admin, source) {
     var self = {};
     self.admin = admin;
 
@@ -146,19 +146,19 @@ function AdminGSVLabelView(admin) {
         self.agreeButton.click(function() {
             if (self.prevAction !== "Agree") {
                 _disableValidationButtons();
-                _validateLabel("Agree");
+                _validateLabel("Agree", source);
             }
         });
         self.disagreeButton.click(function() {
             if (self.prevAction !== "Disagree") {
                 _disableValidationButtons();
-                _validateLabel("Disagree");
+                _validateLabel("Disagree", source);
             }
         });
         self.notSureButton.click(function() {
             if (self.prevAction !== "NotSure") {
                 _disableValidationButtons();
-                _validateLabel("NotSure");
+                _validateLabel("NotSure", source);
             }
         });
 
@@ -198,7 +198,7 @@ function AdminGSVLabelView(admin) {
      * @param action
      * @private
      */
-    function _validateLabel(action) {
+    function _validateLabel(action, location) {
         var validationTimestamp = new Date().getTime();
         var canvasWidth = self.panorama.svHolder.width();
         var canvasHeight = self.panorama.svHolder.height();
@@ -245,7 +245,8 @@ function AdminGSVLabelView(admin) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false
+            is_mobile: false,
+            source: location
         };
 
         // Submit the validation via POST request.
@@ -336,7 +337,7 @@ function AdminGSVLabelView(admin) {
             pitch: userPov.pitch,
             zoom: zoom,
             lat: pos.lat(),
-            lng: pos.lng(),
+            lng: pos.lng()
         };
 
         // Submit the comment via POST request.
