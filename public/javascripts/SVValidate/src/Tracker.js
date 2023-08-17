@@ -71,7 +71,7 @@ function Tracker() {
             timestamp: timestamp,
             zoom: pov ? pov.zoom : null,
             is_mobile: isMobile(),
-            source: isMobile ? "ValidateMobile" : "ValidateDesktop"
+            source: isMobile() ? "ValidateMobile" : "ValidateDesktop"
         };
 
         return data;

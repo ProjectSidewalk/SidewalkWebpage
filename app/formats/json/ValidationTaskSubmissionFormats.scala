@@ -8,7 +8,7 @@ import play.api.libs.functional.syntax._
 
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String)
-  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Boolean, source: String)
+  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Boolean)
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, isMobile: Boolean, source: String)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
@@ -40,8 +40,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "zoom").readNullable[Float] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "timestamp").read[Long] and
-      (JsPath \ "is_mobile").read[Boolean] and
-      (JsPath \ "source").read[String]
+      (JsPath \ "is_mobile").read[Boolean]
     )(InteractionSubmission.apply _)
 
   implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
