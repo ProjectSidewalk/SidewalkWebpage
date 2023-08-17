@@ -42,7 +42,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
       ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
         interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
-        new Timestamp(interaction.timestamp), interaction.isMobile)
+        new Timestamp(interaction.timestamp), interaction.isMobile, interaction.source)
     })
 
     // Insert Environment.
@@ -59,7 +59,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           LabelValidationTable.insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
             user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
             label.canvasHeight, label.canvasWidth, new Timestamp(label.startTimestamp),
-            new Timestamp(label.endTimestamp), label.isMobile))
+            new Timestamp(label.endTimestamp), label.isMobile, label.source))
         case None =>
           Logger.warn("User without user_id validated a label, but every user should have a user_id.")
       }
@@ -174,7 +174,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         LabelValidationTable.insertOrUpdate(LabelValidation(0, submission.labelId, submission.validationResult,
           request.identity.get.userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
           submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
-          new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.isMobile))
+          new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.isMobile, submission.source))
 
         // For the user whose labels has been validated, update their accuracy in the user_stat table.
         val usersValidated: List[String] = LabelValidationTable.usersValidated(List(submission.labelId))
