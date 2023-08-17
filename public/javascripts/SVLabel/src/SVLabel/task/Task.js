@@ -407,8 +407,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
             self.eraseFromMinimap();
             // If the task has been completed already, or if it has not been completed and is not the current task,
             // render it using one green or gray Polyline, respectively.
-            if (self.isComplete() ||
-                (!self.isComplete() && self.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId())) {
+            if (self.isComplete() || self.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
                     return new google.maps.LatLng(coord[1], coord[0]);
                 });
@@ -423,7 +422,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
                         strokeWeight: 2
                     })
                 ];
-            // If the task is incomplete and is the current task, render it using two Polylines
+            // If the task is incomplete and is the current task, render it using two Polylines (red and green).
             } else {
                 var latlng = svl.map.getPosition();
                 paths = self.getGooglePolylines(latlng.lat, latlng.lng);
@@ -436,7 +435,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     /**
-     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     * Flip the coordinates of the linestring if the last point is closer to the endpoint of the current street segment.
      */
     this.reverseCoordinates = function() {
         _geojson.features[0].geometry.coordinates.reverse();
