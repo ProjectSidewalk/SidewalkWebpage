@@ -144,7 +144,7 @@ function ObservedArea(uiMiniMap) {
      * Updates everything relevant to the user's observed area.
      */
     this.update = function() {
-        if (observedAreas.length > 0) {
+        if (observedAreas.length > 0 && svl.map.getMap().getProjection()) {
             updateAngles();
             renderFogOfWar();
             renderFov();

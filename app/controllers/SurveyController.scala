@@ -13,7 +13,8 @@ import models.survey._
 import models.user._
 import models.mission.MissionTable
 import models.user.{User, WebpageActivityTable}
-import play.api.Logger
+import play.api.{Logger, Play}
+import play.api.Play.current
 import play.api.libs.json._
 import play.api.mvc._
 import scala.collection.immutable.Seq
@@ -108,11 +109,15 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
+        val cityId: String = Play.configuration.getString("city-id").get
 
         // The survey will show exactly once, in the middle of the 2nd mission.
         val numMissionsBeforeSurvey = 1
-        val surveyShown = WebpageActivityTable.findUserActivity("SurveyShown", userId).length
-        val displaySurvey = (MissionTable.countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true) == numMissionsBeforeSurvey && (surveyShown == 0))
+        val surveyShown: Boolean = WebpageActivityTable.findUserActivity("SurveyShown", userId).nonEmpty
+        val displaySurvey: Boolean =
+          MissionTable.countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true) == numMissionsBeforeSurvey &&
+            !surveyShown &&
+            cityId != "crowdstudy" // Crowdstudy has pre- and post- questionnaires with similar questions.
 
         //maps displaymodal to true in the future.
         Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))

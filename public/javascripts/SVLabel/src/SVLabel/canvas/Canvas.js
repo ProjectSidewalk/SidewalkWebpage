@@ -178,6 +178,12 @@ function Canvas(ribbon) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+
+                // On crowdstudy server, re-enable close pred model UI and enable interactions if the label is deleted.
+                if (svl.usingPredictionModel()) {
+                    svl.predictionModel.hidePredictionModelPopup();
+                    svl.predictionModel.enableInteractionsForPredictionModelPopup();
+                }
             }
         }
     }
@@ -298,7 +304,10 @@ function Canvas(ribbon) {
             labels[i].setHoverInfoVisibility('hidden');
         }
         if (label) {
-            label.setHoverInfoVisibility('visible');
+            // Show delete icon on label. If on the crowdstudy server, only do it for the label under context menu open.
+            if (!svl.usingPredictionModel() || !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
+                label.setHoverInfoVisibility('visible');
+            }
         } else {
             // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
