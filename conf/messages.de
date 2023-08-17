@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = In ein neues Quartier wechs
 audit.right.ui.overall.stats = Gesamtübersicht
 audit.right.ui.current.neighborhood = Aktuelles Quartier
 audit.right.ui.distance = Kilometer
-audit.right.ui.current.mission = Aktuelle Mission
 
 audit.center.ui.passable = Passierbar
 audit.center.ui.not.passable = Nicht passierbar

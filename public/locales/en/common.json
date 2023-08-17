@@ -63,6 +63,7 @@
         "not level with street": "not level with street",
         "surface problem": "surface problem",
         "pooled water": "pooled water",
+        "parallel lines": "parallel lines",
         "alternate route present": "alternate route present",
         "no alternate route": "no alternate route",
         "unclear if needed": "unclear if needed",
@@ -110,7 +111,8 @@
         "pedestrian lane marking": "pedestrian lane marking",
         "covered walkway": "covered walkway",
         "too close to traffic": "too close to traffic",
-        "utility panel": "utility panel"
+        "utility panel": "utility panel",
+        "outdoor dining area": "outdoor dining area"
     },
     "gsv-info": {
         "details-title": "Details",
