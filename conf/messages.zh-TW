@@ -1,25 +1,25 @@
 measurement.system = 公制
 label.type = 標記類型
-legend = 传奇
-severity = 严重程度
+legend = 圖例
+severity = 嚴重程度
 curb.ramp = 路緣斜坡
 curb.ramps = 路緣斜坡
 missing.ramp = 無路緣斜坡
 missing.ramps = 無路緣斜坡
-obstacle = 路徑上障礙物
-obstacles = 路徑上障礙物
+obstacle = 有障礙物
+obstacles = 有障礙物
 surface.problem = 鋪面問題
 surface.problems = 鋪面問題
-no.sidewalk = 無人行道
+no.sidewalk = 無實體人行道
 crosswalk = 行人穿越道
 signal = 行人號誌
-occlusion = 看不到人行道
+occlusion = 看不見人行道
 other = 其他
-validated.correct = 验证正确
-validated.incorrect = 验证不正确
-unvalidated = 未验证
-audited.street = 审计街
-unaudited.street = 未经审计的街道
+validated.correct = 檢核正確
+validated.incorrect = 檢核不正確
+unvalidated = 未檢核
+audited.street = 已標記街道
+unaudited.street = 尚未標記街道
 not.sure = 不確定
 not.applicable.abbr = 不適用
 feedback = 回饋
@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
 audit.right.ui.overall.stats = 整體統計數據
 audit.right.ui.current.neighborhood = 目前所在鄰里
 audit.right.ui.distance = 公里
-audit.right.ui.current.mission = 目前任務
 
 audit.center.ui.passable = 可通過的
 audit.center.ui.not.passable = 不可通過的
@@ -321,7 +320,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
+leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標籤指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
 gallery.show = 顯示項目

@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood
 audit.right.ui.overall.stats = Overall Stats
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.distance = kilometers
-audit.right.ui.current.mission = Current Mission
 
 audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable
@@ -321,7 +320,7 @@ leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your lab
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/explore"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organization</u></a> and work together as a team to map and assess sidewalks!
+leaderboard.encouragement.no.org = Want to improve your accuracy? Read our <a id="encouragement-link" href="/labelingGuide"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
 
 gallery = Gallery
 gallery.show = Show
