@@ -334,7 +334,7 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:Polygon:srid=4326," // line geometry
                         + "neighborhd:String," // Neighborhood Name
-                        + "regionId:Integer," // Neighborhood Id
+                        + "neighborhoodID:Integer," // Neighborhood Id
                         + "coverage:Double," // coverage score
                         + "score:Double," // obstacle score
                         + "sigRamp:Double," // curb ramp significance score

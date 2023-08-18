@@ -441,8 +441,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         } else {
           val properties: JsObject = Json.obj(
             "coverage" -> 0.0,
-            "Neighborhood ID" -> region.regionID,
-            "Neighborhood Name" -> region.name,
+            "neighborhood_id" -> region.regionID,
+            "neighborhood_name" -> region.name,
             "score" -> None.asInstanceOf[Option[Double]],
             "significance" -> Json.obj(
               "CurbRamp" -> 0.75,
