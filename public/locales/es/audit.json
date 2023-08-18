@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "kilómetros",
-        "title": "¡Misión cumplida!",
+        "title-generic": "¡Misión cumplida!",
+        "title-neighborhood-complete": "¡Bravo! ¡Completaste el vecindario {{neighborhoodName}}!",
+        "title-route-complete": "¡Bravo! ¡Completaste tu ruta!",
         "map-legend-label-other-users": "Misiones de otras",
         "progress-neighborhood-title": "Progreso del barrio",
         "progress-route-title": "Progreso de la ruta",
@@ -113,6 +115,7 @@
                 "not-level-with-street": "con desni<tag-underline>v</tag-underline>el",
                 "surface-problem": "problema en supe<tag-underline>r</tag-underline>ficie",
                 "pooled-water": "encharca<tag-underline>d</tag-underline>a",
+                "parallel-lines": "lineas paralelas (<tag-underline>j</tag-underline>)",
                 "alternate-route-present": "hay una ruta <tag-underline>a</tag-underline>lternativa segura para cruzar",
                 "no-alternate-route": "no hay una ruta a<tag-underline>l</tag-underline>ternativa para cruzar",
                 "unclear-if-needed": "poco claro si es necesario (<tag-underline>u</tag-underline>)",
@@ -159,7 +162,8 @@
                 "pedestrian-lane-marking": "marcado de carr<tag-underline>i</tag-underline>l peatonal",
                 "covered-walkway": "pasare<tag-underline>l</tag-underline>a cubierta",
                 "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico",
-                "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad"
+                "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad",
+                "outdoor-dining-area": "comedor al aire libre (<tag-underline>q</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Transitable",

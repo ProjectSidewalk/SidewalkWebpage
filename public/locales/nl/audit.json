@@ -67,7 +67,9 @@
     },
     "mission-complete": {
         "distance-type-display-string": "kilometers",
-        "title": "Missie geslaagd!",
+        "title-generic": "Missie geslaagd!",
+        "title-neighborhood-complete": "Bravo! Je hebt de {{neighborhoodName}} -buurt voltooid!",
+        "title-route-complete": "Bravo! Je hebt je route voltooid!",
         "map-legend-label-other-users": "Missies Van Anderen",
         "progress-neighborhood-title": "Wijk voortgang",
         "progress-route-title": "Routevoortgang",
@@ -113,6 +115,7 @@
                 "not-level-with-street": "niet zelfde ni<tag-underline>v</tag-underline>eau met straat",
                 "surface-problem": "oppervlakte p<tag-underline>r</tag-underline>obleem",
                 "pooled-water": "gepool<tag-underline>d</tag-underline> water",
+                "parallel-lines": "parallelle li<tag-underline>j</tag-underline>nen",
                 "alternate-route-present": "<tag-underline>a</tag-underline>lternatieve route aanwezig",
                 "no-alternate-route": "geen a<tag-underline>l</tag-underline>ternatieve route",
                 "unclear-if-needed": "ond<tag-underline>u</tag-underline>idelijk of het nodig is",
@@ -159,7 +162,8 @@
                 "pedestrian-lane-marking": "voetgangersstrookmarker<tag-underline>i</tag-underline>ng",
                 "covered-walkway": "Overdekte <tag-underline>l</tag-underline>oopbrug",
                 "too-close-to-traffic": "<tag-underline>t</tag-underline>e dicht bij het verkeer",
-                "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el"
+                "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el",
+                "outdoor-dining-area": "buiten eetgedeelte (<tag-underline>q</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Begaanbaar",
