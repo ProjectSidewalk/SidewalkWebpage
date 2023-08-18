@@ -4,8 +4,8 @@ legend = 圖例
 severity = 嚴重程度
 curb.ramp = 路緣斜坡
 curb.ramps = 路緣斜坡
-missing.ramp = 無路緣斜坡
-missing.ramps = 無路緣斜坡
+missing.ramp = 缺路緣斜坡
+missing.ramps = 缺路緣斜坡
 obstacle = 有障礙物
 obstacles = 有障礙物
 surface.problem = 鋪面問題
@@ -25,7 +25,7 @@ not.applicable.abbr = 不適用
 feedback = 回饋
 validations = 檢核
 labels = 標記
-label.icon.alt = 有大目的地記號的極簡風格地圖圖標
+label.icon.alt = 有大目的地記號的極簡風格地圖圖示
 accuracy = 精準度
 accuracy.caps = 精準度
 accuracy.icon.alt = 射正目標紅心
@@ -40,16 +40,16 @@ thanks = 謝謝！
 username = 使用者名稱
 loading = 讀取中...
 loading.encouragement = 讓我們來吧!
-test.server.warning.message = <strong>警告！</strong> 您目前在測試伺服器！您的資料將不會被存取！若您希望資料被存取，請前往正式網頁。
+test.server.warning.message = <strong>警告！</strong> 您目前在測試伺服器！您的資料將不會被儲存！若您希望資料被儲存，請前往正式網頁。
 dont.show.again = 不再顯示
 
 press.key = 點擊 "{0}" 鍵
 press.keys = 點擊 "{0}" 鍵
-feedback.title = 有任何想法或問題嗎？或是找到bug了！<br>任何回饋都很歡迎！
-feedback.submitted = 回饋已提交
+feedback.title = 有任何想法或問題嗎？或是找到程式錯誤?<br>很歡迎給我們任何回饋喔！
+feedback.submitted = 回饋已交出
 
 navbar.explore = 探索
-navbar.validate = 證實
+navbar.validate = 檢核
 navbar.howto = 如何標記
 navbar.api = API
 navbar.tools = 工具
@@ -64,16 +64,16 @@ navbar.dashboard = 您的儀錶板
 navbar.admin = 系統人員
 navbar.city = 城市
 navbar.lang.aria = 語言選項
-navbar.lang.icon.alt = 語言圖標
+navbar.lang.icon.alt = 語言圖示
 
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
 landing.also.in = 我們也在：
 landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的地圖松活動吧！</a>
 landing.how.you.help = 您可以如何協助
-landing.how.you.help.content = 通過三個簡單的步驟就可以探索城市並找出街道的無障礙問題——在您舒適的家中就可進行！
+landing.how.you.help.content = 通過三個簡單的步驟就可以探索您的城市並找出街道上的可及性問題——在您舒適的家中就可進行！
 landing.how.you.help.explore = 探索
-landing.how.you.help.find = 找尋問題
+landing.how.you.help.find = 尋找問題
 landing.how.you.help.assess = 評估品質
 landing.video.title = Project Sidewalk是什麼？
 landing.video.watch = 請觀賞
@@ -91,13 +91,13 @@ landing.stats.distance = 公里
 landing.stats.labels = 個標記
 landing.stats.validations = 個檢核
 landing.ml.title = 我們如何使用您的標記？
-landing.ml.content = 您的標記用於改進都市規劃、建構無障礙標示工具以及訓練機器學習演算法以自動尋找街道無障礙問題。
+landing.ml.content = 您的標記用於改進都市規劃、建構可及性標示工具以及訓練機器學習演算法以自動尋找街道可及性問題。
 landing.ml.gif.machine.labels = 機器標記
 landing.ml.gif.you = 使用者
 landing.ml.gif.user.labels = 標記
 landing.ml.gif.better.city.planning = 更佳的都市規劃
 landing.ml.gif.better.temporal.tracking = 更佳的時序追蹤
-landing.ml.gif.interactive.visualization.tools = 互動式視覺會工具
+landing.ml.gif.interactive.visualization.tools = 互動式視覺化工具
 landing.ml.gif.smarter.routing = 更聰明的路徑規劃
 landing.ml.gif.machine.learning = 機器學習
 landing.ml.gif.outcomes = 成果
@@ -108,7 +108,7 @@ footer.terms = 使用條款
 footer.help = 協助
 footer.guide = 標記指南
 footer.developer = 開發者
-footer.api = 人行道API
+footer.api = 人行道應用程式介面(API)
 footer.connect = 相關連結
 footer.email = Email我們
 footer.funding = 我們由以下單位贊助
@@ -116,21 +116,21 @@ footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_I
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
 footer.version = Version {0} | 最後更新時間： <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將虛擬探索城市並透過標記環境中的無障礙設施及問題完成任務，項目包括：
+audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬方式探索一座城市並透過標記環境中的無障礙設施及問題完成任務，項目包括：
 audit.tutorial.welcome.2 = 我們會以簡短、互動的教學開始。
 audit.tutorial.welcome.3 = 讓我們開始吧！
 audit.tutorial.welcome.4 = 已經完成教學了嗎？ 已有帳戶？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">跳過教學。</a>
 audit.tutorial.accessible = <span style="color:limegreen">可通行的</span>
 audit.tutorial.inaccessible = <span style="color:red">不可通行的</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者上下人行道
-audit.tutorial.examples.missing.ramp = 如果<span style="color:#ff0066">沒有設置路緣斜坡</span>輪椅使用者無法使用人行道
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">障礙物</span>阻擋輪椅使用者通行之路徑
+audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者進出人行道
+audit.tutorial.examples.missing.ramp = 如果<span style="color:#ff0066">沒有設置路緣斜坡</span>輪椅使用者將無法使用人行道
+audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">有障礙物</span>阻擋輪椅使用者通行之路徑
 audit.tutorial.examples.surface.problem = 人行道的<span style="color:orange">鋪面問題</span>可能造成無法通行
-audit.tutorial.end.1 =很棒！您已學會如何使用平台介面！請特別針對嚴重影響輪椅使用者之情形於<span class="bold">Google街景中注意並標記以下無障礙項目</span>：
+audit.tutorial.end.1 =很棒！您已學會如何使用平臺介面！請特別針對嚴重影響輪椅使用者之情形於<span class="bold">Google街景中注意並標記以下無障礙項目</span>：
 audit.tutorial.end.2 = 再次感謝您<span class="bold">為這個世界創造出讓所有使用者更容易通行的環境！</span>
-audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、障礙物及鋪面問題。
+audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、有障礙物及鋪面問題。
 
-audit.ribbon.find.and.label = 找尋並標記以下
+audit.ribbon.find.and.label = 尋找並標記以下
 audit.ribbon.curb.ramp.labels = 路緣坡道標籤
 audit.ribbon.sidewalk.labels = 人行道標籤
 audit.ribbon.other.labels = 其他無障礙標籤
@@ -139,7 +139,7 @@ audit.ribbon.curb.ramp = 路緣斜坡<u>C</u>
 audit.ribbon.missing.ramp = 無路緣斜坡<u>M</u>
 audit.ribbon.obstacle = 障礙物<u>O</u>
 audit.ribbon.surface.problem = 鋪面問題<u>S</u>
-audit.ribbon.no.sidewalk = 無人行道<u>N</u>
+audit.ribbon.no.sidewalk = 無實體人行道<u>N</u>
 audit.ribbon.crosswalk = 行人穿越道<u>W</u>
 audit.ribbon.signal = 行人號誌<u>P</u>
 audit.ribbon.other = 其他
@@ -154,15 +154,15 @@ audit.left.ui.jump.title = 跳到另一個地點，因為：
 audit.left.ui.jump.button.explore = 我想探索其他的鄰里！
 audit.left.ui.jump.button.unavailable = 我無法前往您要我前往的方向...
 audit.left.ui.jump.explore.title = 前往新的地點或鄰里嗎？
-audit.left.ui.jump.explore.button.same.neighborhood = 前往此鄰里的另一地點
+audit.left.ui.jump.explore.button.same.neighborhood = 前往此鄰里的另一個地點
 audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
 
 audit.right.ui.overall.stats = 整體統計數據
-audit.right.ui.current.neighborhood = 目前所在鄰里
+audit.right.ui.current.neighborhood = 目前所在的鄰里
 audit.right.ui.distance = 公里
 
-audit.center.ui.passable = 可通過的
-audit.center.ui.not.passable = 不可通過的
+audit.center.ui.passable = 可通行的
+audit.center.ui.not.passable = 不可通行的
 audit.center.ui.add.tags = 新增標籤：
 audit.center.ui.temporary = 暫時的 (例如：施工、違停車輛)
 
@@ -174,12 +174,12 @@ audit.mission.complete.legend.previous.missions = 過往執行任務
 
 audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷
 audit.survey.enjoyment.question = 您對使用Project Sidewalk平台的滿意度？
-audit.survey.enjoyment.option.1 = 非常無聊
+audit.survey.enjoyment.option.1 = 很無聊
 audit.survey.enjoyment.option.2 = 無聊
 audit.survey.enjoyment.option.3 = 普通
 audit.survey.enjoyment.option.4 = 有趣
-audit.survey.enjoyment.option.5 = 非常有趣
-audit.survey.difficulty.question = 使用Project Sidewalk平台的難易程度？
+audit.survey.enjoyment.option.5 = 很有趣
+audit.survey.difficulty.question = 使用Project Sidewalk平臺的難易程度？
 audit.survey.difficulty.option.1 = 非常困難
 audit.survey.difficulty.option.2 = 困難
 audit.survey.difficulty.option.3 = 普通
@@ -232,7 +232,7 @@ authenticate.has.account = 已有帳號了嗎？ <a href="#" id="form-open-sign-
 authenticate.is.member = 已經是會員了嗎？ <a href="{0}">請登入</a>
 authenticate.signin.with.credentials = 透過您的身分認證登入
 
-authenticate.error.uhoh = 噢喔！
+authenticate.error.uhoh = 出錯了！
 authenticate.error.missing.username = 請輸入使用者名稱
 authenticate.error.missing.email = 請輸入有效的電子郵件
 authenticate.error.missing.password = 請輸入密碼
@@ -246,27 +246,27 @@ authenticate.error.generic = 處理您的要求時出現錯誤。請確認您的
 
 reset.pw.forgot.title = 忘記密碼？
 reset.pw.forgot.submit.email = 別擔心，輸入您的電子郵件，我們將寄送重設密碼的連結給您。
-reset.pw.forgot.suggest = 如果您在登录或重置密码时遇到问题，请通过查看页面右上角的导航栏来检查您是否正在查看您创建帐户的城市。不同城市之间的帐户不可互换，因此您需要为每个城市创建一个新帐户（您可以使用相同的用户名/密码）。
+reset.pw.forgot.suggest = 如果您在登錄或重設密碼時遇到問題，請查看頁面右上角的導航欄，來確認您是否正在檢視您設立帳戶的城市。不同城市之間的帳戶並不相通，因此您需要為每個城市設立一個新帳戶（您可以使用相同的用戶名/密碼）。
 
 reset.pw.email.hello = 嗨 {0},
 reset.pw.email.reset.title = 重設您的Project Sidewalk密碼
 reset.pw.email.send.link = 傳送電子郵件
 reset.pw.email.reset.pw.sent = 重設密碼的電子郵件已寄出。
 reset.pw.email.reset.request.message = 您最近要求重設Project Sidewalk密碼，點擊以下連結重設密碼：
-reset.pw.email.reset.not.requested = 如果您沒有要求重設密碼，請忽略此訊息或給發送電子郵件告知我們。
+reset.pw.email.reset.not.requested = 如果您沒有要求重設密碼，請忽略此訊息，或發送電子郵件通知我們。
 reset.pw.email.reset.valid.duration = 此密碼重設將於60分鐘內有效
 reset.pw.email.signature = Project Sidewalk團隊
 
 reset.pw.submit.new.pw = 請輸入新密碼
 reset.pw.message = 重設密碼
-reset.pw.successful = 密碼以重設！
+reset.pw.successful = 密碼已重設！
 reset.pw.invalid.reset.link = 無效的重設連結
 
 results.reset.view = 重設視角
-results.problems.per.mile = 每英里人行道問題
+results.problems.per.mile = 每英里內的人行道問題數量
 results.legend.high = 高
 results.legend.low = 低
-results.legend.body = 鄰里顯示灰色表示缺乏足夠的數據協助評估人行道問題，請點擊任何鄰里協助標記！成果地圖為初步的呈現，顯示尚未完成檢核之使用者標記。我們正在加強相關數據呈現，請持續關注！
+results.legend.body = 當鄰里顯示灰色時，代表缺乏足夠的數據協助評估人行道問題。請點擊任何一個鄰里協助標記！成果地圖為初步的呈現方式，顯示尚未完成檢核之標記。我們正在加強相關數據的呈現方式，請持續關注！
 
 dashboard.no.org = 無組織
 dashboard.edit.org = 編輯
@@ -280,7 +280,7 @@ dashboard.missions = 任務
 dashboard.your.missions = 您的任務
 dashboard.distance = 距離
 dashboard.labels = 標記
-dashboard.mission.icon.alt = 拿著旗幟的輪椅使用者
+dashboard.mission.icon.alt = 手持旗子的輪椅使用者
 dashboard.validation.icon.alt = 在鉛筆旁邊的清單
 dashboard.accuracy.icon.tooltip = 您的標記精準度。 若顯示N/A表示您的標記尚未獲得其他用戶足夠的檢核。
 dashboard.achievements = 成就
@@ -294,21 +294,21 @@ dashboard.distance.badge = {0} 距離勳章
 dashboard.label.badge = {0} 標記勳章
 dashboard.validation.badge = {0} 檢核勳章
 dashboard.mistakes.header = 您最近的標記失誤
-dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中判定的錯誤。有時其他用戶在檢核時會發生錯誤，這些評估通常存在細微主觀判斷區別。
-dashboard.mistakes.tooltip.alt = 問號圖示可顯示有用的工具提示框。
+dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中所判定的錯誤。有時其他用戶在檢核時會犯錯，這些評估錯誤通常是因細微的主觀判斷差異。
+dashboard.mistakes.tooltip.alt = 問號圖示顯示有用的工具提示框。
 
-labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 無論是否存在問題，都會標記每個路緣坡道。
-labeling.guide.obstacle.summary = 障礙物是位於行人路徑上的物體，擋住了通道。 美國身心障礙者法（ADA）要求在無障礙路線上有“乾淨的地板或地面空間”。這樣才可使行人可以安全地留在人行道或行人穿越道上，尤其是對於使用助行器或輪椅的行人。離開路徑以避開障礙物對於部分使用者可能是做不到的，或者可能導致不平衡、絆倒或其他危險。
-labeling.guide.surface.problem.summary = 鋪面問題會導致使用輪椅或其他輔助設備的使用者行經時顛簸或不舒服。如果鋪面上的某些東西會使使用者難以或無法通過，則應將其標記為鋪面問題。對於大面積或連續的鋪面問題，建議您在問題的開頭標記一個鋪面問題，並持續於每幾公尺進行標記直到問題結束。
-labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始標記無人行道，並持續於每幾公尺進行標記直到您到達另一處人行道。
-labeling.guide.occlusion.summary = 有時人行道的視線完全被擋住了，在這些情況下，您可以標記“看不到人行道”。這種情況應該不常見，因此請只在人行道、路緣斜坡或其他無障礙問題受障礙物（例如汽車）遮蔽而無法從任何角度觀察時才標記為“看不到人行道”。
+labeling.guide.curb.ramp.summary = 路緣斜坡是一個切入路緣或將道路路面和人行道連接的短坡道。無障礙路緣斜坡提供給行動不便的用路人一個通行的路徑，讓他們可以安全地在實體人行道及路面之間通行 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 每一個路緣坡道，無論是否有問題，都應該標記。
+labeling.guide.obstacle.summary = 「障礙物」是位於行人路徑上，直接阻擋通道的任何物體。 「美國身心障礙者法」（ADA）要求在無障礙路線上必須提供“清空的地板或地面空間”。這樣才可讓行人，尤其是助行器或輪椅使用者，安全地留在人行道或行人穿越道上。對於部分的用路人，為了避開障礙物而移離原路徑可能是無法做到的，或者可能導致站立不穩、跌倒或發生其他危險。
+labeling.guide.surface.problem.summary = 鋪面問題是那種會導致輪椅或其他輔助器具使用者行經時會造成顛簸或不舒適的鋪面。如果鋪面上存有某種狀況會使用路人難以或無法通行，則應將它標記為鋪面問題。對於涵蓋大幅面積或是連續性的鋪面問題，建議您在問題開始的那一端設置一個鋪面問題標籤，並於每隔幾公尺處持續設置標籤，一直到問題結束為止。
+labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始設置「無人行道」標籤，並於每幾公尺持續設置標籤，一直到人行道再次出現處。。
+labeling.guide.occlusion.summary = 有時候，從街道景照片看往人行道的視線完全被阻擋了，在這種情況下，您可以標記“看不見人行道”。這種情況應該不常見到，因此請只在當人行道、路緣斜坡或其他可及性問題受阻礙物體（例如路邊停車）遮蔽而無法從任何角度觀察時，才標記為“看不見人行道”。
 
 dist.metric.abbr = 公里
 admin.clear.play.cache = 清除快取
 
 leaderboard.overall.title = 總體排行榜
-leaderboard.weekly.title = 單周排行榜
-leaderboard.inter.org.title = 團隊排行榜
+leaderboard.weekly.title = 單週排行榜
+leaderboard.inter.org.title = 隊伍排行榜
 leaderboard.org.title = {0} 排行榜
 leaderboard.overall.detail = 上榜者是依據標記、距離及精準度計算
 leaderboard.org.detail = 前10總體上榜者於 {0}
@@ -320,22 +320,22 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標籤指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
+leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
 gallery.show = 顯示項目
 gallery.filter.by = 篩選
 gallery.tags = 標籤
-gallery.all = 所有标签类型
-gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以建立更多的資料！
-gallery.cards = 标签根据选定的过滤器随机排序
+gallery.all = 所有的標記類型
+gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以蒐集更多的資料！
+gallery.cards = 所有標記依據所選定的過濾器而隨機排序
 
-route.builder.name = Routebuilder
-route.builder.instructions = 單擊街道以將其添加到您的路線中，然後單擊“保存路線”。然後，您可以探索路線並標記可訪問性問題，也可以共享一個鏈接供其他人探索相同的路線！
-route.builder.save = 保存路線
-route.builder.explore = 探索路線
-route.builder.share = 複製鏈接到路線
+route.builder.name = 路徑設立工具
+route.builder.instructions = 當要設立自己的路徑時，請點擊您想行走的街道以將其加入您的路徑，然後點擊“儲存路徑”。然後，您可以探索該路徑並標記所見到的可及性問題，或是您也可以將此路徑的連結分享給其他人，讓他們探索同一個路徑！
+route.builder.save = 儲存路徑
+route.builder.explore = 探索路徑
+route.builder.share = 複製此路徑的連結
 
-help.rating.1 = Rating 1: 可通行
-help.rating.3 = Rating 3: 尚可通行
-help.rating.5 = Rating 5: 不可通行
+help.rating.1 = Rating 1: 能通行
+help.rating.3 = Rating 3: 還能通行
+help.rating.5 = Rating 5: 無法通行
