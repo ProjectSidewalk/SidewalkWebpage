@@ -22,6 +22,7 @@ audited.street = Gecontroleerde straat
 unaudited.street = Ongecontroleerde straat
 not.sure = Niet Zeker
 not.applicable.abbr = NVT
+feedback = Feedback
 validations = Validaties
 labels = labels
 label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
@@ -147,7 +148,6 @@ audit.ribbon.occlusion = Het Trottoir is niet Zicht<u>b</u>aar
 audit.left.ui.zoom.in = <u>Z</u>oom In
 audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
-audit.left.ui.feedback = Feedback
 audit.left.ui.stuck = Vastgelopen
 audit.left.ui.jump = Spring
 audit.left.ui.jump.title = Spring naar een andere locatie omdat:
@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ga naar een nieuwe wijk
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
-audit.right.ui.current.mission = Huidige Missie
 
 audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
@@ -198,7 +197,6 @@ audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
-validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = Eens (<u>a</u>)
 validate.bottom.ui.disagree = Oneens (<u>d</u>)
 validate.bottom.ui.not.sure = <u>N</u>iet zeker
@@ -264,10 +262,10 @@ reset.pw.message = Wachtwoord opnieuw instellen
 reset.pw.successful = Wachtwoord opnieuw ingesteld!
 reset.pw.invalid.reset.link = Ongeldige resetlink
 
-results.reset.view = Weergave resetten
-results.problems.per.mile = Stoepproblemen per mijl
-resultaten.legend.high = Hoog
-resultaten.legend.low = Laag
+results.reset.view = Weer&shy;gave reset&shy;ten
+results.problems.per.mile = Stoepproblemen per kilometer
+results.legend.high = Hoog
+results.legend.low = Laag
 results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. De resultaten zijn voorlopig en vertegenwoordigen vrijwilligersbijdragen die nog niet zijn gevalideerd. We zijn er mee bezig. Blijf kijken!
 
 dashboard.no.org = Geen organisatie
@@ -299,7 +297,7 @@ dashboard.mistakes.header = Uw recente etiketteringsfouten
 dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
 dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 
-labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa
+labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.
 labeling.guide.surface.problem.summary = Een oppervlakteprobleem is een probleem dat een hobbelige of anderszins ongemakkelijke ervaring zou kunnen veroorzaken voor iemand die een rolstoel of andere hulpmiddelen gebruikt. Als iets op een oppervlak het moeilijk of onmogelijk maakt om over te steken, moet het worden bestempeld als een oppervlakteprobleem. Voor oppervlakteproblemen die een groot gebied beslaan, moet u een oppervlakteprobleem-label aan het begin van het probleem plaatsen en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen tot het einde van het probleem.
 labeling.guide.no.sidewalk.summary = Je moet een No Sidewalk-label plaatsen vanaf waar het trottoir eindigt, en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen totdat je een plaats bereikt waar het trottoir opnieuw begint.
@@ -320,7 +318,7 @@ leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten m
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Sluit je aan bij een organisatie</u></a> en werk samen als een team om trottoirs in kaart te brengen en te beoordelen!
+leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="/labelingGuide"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
 gallery.show = Tonen

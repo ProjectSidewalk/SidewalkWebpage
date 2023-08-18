@@ -178,6 +178,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         writer.print(features.map(_.toString).mkString(","))
         startIndex += batchSize
         if (features.length < batchSize) moreWork = false
+        else writer.print(",")
       }
       writer.print("]}")
       writer.close()
@@ -236,6 +237,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         writer.print(features.map(_.toString).mkString(","))
         startIndex += batchSize
         if (features.length < batchSize) moreWork = false
+        else writer.print(",")
       }
       writer.print("]}")
       writer.close()

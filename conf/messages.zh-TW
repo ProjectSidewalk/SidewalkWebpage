@@ -1,27 +1,28 @@
 measurement.system = 公制
 label.type = 標記類型
-legend = 传奇
-severity = 严重程度
+legend = 圖例
+severity = 嚴重程度
 curb.ramp = 路緣斜坡
 curb.ramps = 路緣斜坡
 missing.ramp = 無路緣斜坡
 missing.ramps = 無路緣斜坡
-obstacle = 路徑上障礙物
-obstacles = 路徑上障礙物
+obstacle = 有障礙物
+obstacles = 有障礙物
 surface.problem = 鋪面問題
 surface.problems = 鋪面問題
-no.sidewalk = 無人行道
+no.sidewalk = 無實體人行道
 crosswalk = 行人穿越道
 signal = 行人號誌
-occlusion = 看不到人行道
+occlusion = 看不見人行道
 other = 其他
-validated.correct = 验证正确
-validated.incorrect = 验证不正确
-unvalidated = 未验证
-audited.street = 审计街
-unaudited.street = 未经审计的街道
+validated.correct = 檢核正確
+validated.incorrect = 檢核不正確
+unvalidated = 未檢核
+audited.street = 已標記街道
+unaudited.street = 尚未標記街道
 not.sure = 不確定
 not.applicable.abbr = 不適用
+feedback = 回饋
 validations = 檢核
 labels = 標記
 label.icon.alt = 有大目的地記號的極簡風格地圖圖標
@@ -147,7 +148,6 @@ audit.ribbon.occlusion = 看不到人行道 (<u>B</u>)
 audit.left.ui.zoom.in = 放大<u>Z</u>
 audit.left.ui.zoom.out = 縮小
 audit.left.ui.sound = 音效
-audit.left.ui.feedback = 回饋
 audit.left.ui.stuck = 難以抉擇
 audit.left.ui.jump = 跳過
 audit.left.ui.jump.title = 跳到另一個地點，因為：
@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
 audit.right.ui.overall.stats = 整體統計數據
 audit.right.ui.current.neighborhood = 目前所在鄰里
 audit.right.ui.distance = 公里
-audit.right.ui.current.mission = 目前任務
 
 audit.center.ui.passable = 可通過的
 audit.center.ui.not.passable = 不可通過的
@@ -198,7 +197,6 @@ audit.survey.feedback.question = 您有任何意見回饋、設計想法或問�
 validate.top.ui.zoom.in = <u>Z</u>放大
 validate.top.ui.zoom.out = 縮小
 validate.left.ui.skip = 跳過
-validate.left.ui.feedback = 回饋
 validate.bottom.ui.agree = <u>A</u>同意
 validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定
@@ -299,7 +297,7 @@ dashboard.mistakes.header = 您最近的標記失誤
 dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中判定的錯誤。有時其他用戶在檢核時會發生錯誤，這些評估通常存在細微主觀判斷區別。
 dashboard.mistakes.tooltip.alt = 問號圖示可顯示有用的工具提示框。
 
-labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動
+labeling.guide.curb.ramp.summary = 路緣斜坡是一個短坡道，可以切過或融合至人行道路緣。無障礙路緣斜坡提供可通行路線予行動不便的用路人，可以安全地在實體人行道及路面間移動 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 無論是否存在問題，都會標記每個路緣坡道。
 labeling.guide.obstacle.summary = 障礙物是位於行人路徑上的物體，擋住了通道。 美國身心障礙者法（ADA）要求在無障礙路線上有“乾淨的地板或地面空間”。這樣才可使行人可以安全地留在人行道或行人穿越道上，尤其是對於使用助行器或輪椅的行人。離開路徑以避開障礙物對於部分使用者可能是做不到的，或者可能導致不平衡、絆倒或其他危險。
 labeling.guide.surface.problem.summary = 鋪面問題會導致使用輪椅或其他輔助設備的使用者行經時顛簸或不舒服。如果鋪面上的某些東西會使使用者難以或無法通過，則應將其標記為鋪面問題。對於大面積或連續的鋪面問題，建議您在問題的開頭標記一個鋪面問題，並持續於每幾公尺進行標記直到問題結束。
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始標記無人行道，並持續於每幾公尺進行標記直到您到達另一處人行道。
@@ -322,7 +320,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>加入一個組織</u></a>就可與您的隊友競賽！
+leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標籤指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
 gallery.show = 顯示項目

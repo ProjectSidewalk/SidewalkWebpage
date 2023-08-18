@@ -1,4 +1,4 @@
-measurement.system = metrisch
+measurement.system = metric
 label.type = Beschriftungskategorie
 legend = Legende
 severity = Schweregrad
@@ -22,6 +22,7 @@ audited.street = Geprüfte Strasse
 unaudited.street = Ungeprüfte Strasse
 not.sure = Unsicher
 not.applicable.abbr = k.A.
+feedback = Rück&shy;meldung
 validations = Validierungen
 labels = Beschriftungen
 label.icon.alt = Minimalistisches Kartensymbol mit grosser Zielmarkierung
@@ -39,7 +40,7 @@ thanks = Danke!
 username = Benutzername
 loading = Laden...
 loading.encouragement = Los geht''s!
-test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite.
+test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite
 dont.show.again = Nicht erneut anzeigen.
 
 press.key = Drücken Sie die Taste "{0}"
@@ -76,9 +77,9 @@ landing.how.you.help.find = PROBLEME FINDEN
 landing.how.you.help.assess = SCHWEREGRAD BEWERTEN
 landing.video.title = Was ist Project Sidewalk?
 landing.video.watch = Jetzt anschauen
-landing.choropleth.title = Viertel wählen
-landing.choropleth.content = Ihnen wird automatisch ein Viertel zugewiesen, wenn Sie auf ''Erkundung starten'' drücken. Sie können das Viertel aber auch selbst wählen, indem Sie auf ein Gebiet auf der Karte unten drücken!
-landing.choropleth.legend = Prozent des Viertels abgeschlossen
+landing.choropleth.title = Quartier wählen
+landing.choropleth.content = Ihnen wird automatisch ein Quartier zugewiesen, wenn Sie auf ''Erkundung starten'' drücken. Sie können das Quartier aber auch selbst wählen, indem Sie auf ein Gebiet auf der Karte unten drücken!
+landing.choropleth.legend = Prozent des Quartiers abgeschlossen
 landing.stats.title = Ihr Beitrag macht einen Unterschied
 landing.stats.content.unfinished.partial = Nutzende wie Sie haben bereits {0} Kilometer von {1}, {2} kartiert—das ist {3}% der angestrebten Fläche der Stadt!
 landing.stats.content.unfinished.full = Nutzende wie Sie haben bereits {0} Kilometer von {1}, {2} kartiert—das ist {3}% der Stadt!
@@ -115,7 +116,7 @@ footer.award = Zuschlag <a href = "https://www.nsf.gov/awardsearch/showAward?AWD
 footer.designed.operated = Project Sidewalk wird entwickelt und betrieben durch das <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> der <a id="universityofwashington" href="http://www.cs.uw.edu/">Universität Washington</a>
 footer.version = Version {0} | Zuletzt aktualisiert: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = Mit <span class="bold">Project Sidewalk,</span> werden Sie virtuell durch die Stadt gehen und Missionen erfüllen, in denen Sie Zugänglichkeitsmerkmale und -probleme in Ihrer Umgebung finden und beschriften, einschliesslich:
+audit.tutorial.welcome.1 = Mit <span class="bold">Project Sidewalk</span> werden Sie virtuell durch die Stadt gehen und Missionen erfüllen, in denen Sie Zugänglichkeitsmerkmale und -probleme in Ihrer Umgebung finden und beschriften, einschliesslich:
 audit.tutorial.welcome.2 = Wir beginnen mit einem kurzen, interaktiven Tutorial.
 audit.tutorial.welcome.3 = Los geht''s!
 audit.tutorial.welcome.4 = Haben Sie das Tutorial schon absolviert? Haben Sie bereits ein Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Anmelden</a> oder <a value="Skip" class="onboarding-transition-trigger">Tutorial überspringen.</a>
@@ -144,32 +145,30 @@ audit.ribbon.signal = Fussgängerlichtsignal (<u>P</u>)
 audit.ribbon.other = Andere
 audit.ribbon.occlusion = Trottoir nicht sichtbar (<u>B</u>)
 
-audit.left.ui.zoom.in = Hineinzoomen (<u>Z</u>)
-audit.left.ui.zoom.out = Hinauszoomen
+audit.left.ui.zoom.in = (<u>Z</u>) Hinein&shy;zoomen
+audit.left.ui.zoom.out = Hinaus&shy;zoomen
 audit.left.ui.sound = Ton
-audit.left.ui.feedback = Rückmeldung
 audit.left.ui.stuck = Verlaufen
 audit.left.ui.jump = Wechseln
 audit.left.ui.jump.title = Ort wechseln, weil:
 audit.left.ui.jump.button.explore = Ich will ein anderes Gebiet erkunden!
 audit.left.ui.jump.button.unavailable = Ich kann nicht in die Richtung gehen, in die ihr mich führt.
-audit.left.ui.jump.explore.title = Zu einem neuem Ort wechseln oder in ein neues Viertel wechseln?
-audit.left.ui.jump.explore.button.same.neighborhood = Zu einem neuen Ort in diesem Viertel wechseln
-audit.left.ui.jump.explore.button.new.neighborhood = In ein neues Viertel wechseln
+audit.left.ui.jump.explore.title = Zu einem neuem Ort wechseln oder in ein neues Quartier wechseln?
+audit.left.ui.jump.explore.button.same.neighborhood = Zu einem neuen Ort in diesem Quartier wechseln
+audit.left.ui.jump.explore.button.new.neighborhood = In ein neues Quartier wechseln
 
 audit.right.ui.overall.stats = Gesamtübersicht
-audit.right.ui.current.neighborhood = Aktuelles Viertel
+audit.right.ui.current.neighborhood = Aktuelles Quartier
 audit.right.ui.distance = Kilometer
-audit.right.ui.current.mission = Aktuelle Mission
 
 audit.center.ui.passable = Passierbar
 audit.center.ui.not.passable = Nicht passierbar
-audit.center.ui.add.tags = Tags hinzufügen:
+audit.center.ui.add.tags = Tags hinzu&shy;fügen:
 audit.center.ui.temporary = Temporär (z.B. Baustelle)
 
 audit.mission.complete.labels.title = Missionsbeschriftungen
 audit.mission.complete.progress.mission.you = Sie haben diese Mission erfüllt
-audit.mission.complete.progress.neighborhood.others = Andere haben dieses Viertel erkundet
+audit.mission.complete.progress.neighborhood.others = Andere haben dieses Quartier erkundet
 audit.mission.complete.legend.this.mission = Diese Mission
 audit.mission.complete.legend.previous.missions = Vorherige Missionen
 
@@ -197,8 +196,7 @@ audit.survey.feedback.question = Haben Sie zusätzliche Rückmeldungen, Gestaltu
 
 validate.top.ui.zoom.in = Hineinzoomen (<u>Z</u>)
 validate.top.ui.zoom.out = Hinauszoomen
-validate.left.ui.skip = Überspringen
-validate.left.ui.feedback = Rückmeldung
+validate.left.ui.skip = Über&shy;springen
 validate.bottom.ui.agree = Einverstanden (<u>A</u>)
 validate.bottom.ui.disagree = Nicht einverstanden (<u>D</u>)
 validate.bottom.ui.not.sure = Unsicher (<u>N</u>)
@@ -264,11 +262,11 @@ reset.pw.message = Passwort zurücksetzen
 reset.pw.successful = Passwort zurückgesetzt!
 reset.pw.invalid.reset.link = Ungültiger Link
 
-results.reset.view = Ansicht zurücksetzen
-results.problems.per.mile = Zugänglichkeitsprobleme pro Meile
+results.reset.view = Ansicht zurück&shy;setzen
+results.problems.per.mile = Zugänglichkeitsprobleme pro Kilometer
 results.legend.high = Hoch
 results.legend.low = Tief
-results.legend.body = In grauen Viertel ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Viertel, um Daten beizutragen. Die Ergebnisse sind vorläufig und bestehen aus freiwilligen Beiträgen, die noch nicht validiert wurden. Wir arbeiten daran. Bleiben Sie dran!
+results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Die Ergebnisse sind vorläufig und bestehen aus freiwilligen Beiträgen, die noch nicht validiert wurden. Wir arbeiten daran. Bleiben Sie dran!
 
 dashboard.no.org = Keine Organisation
 dashboard.edit.org = Bearbeiten
@@ -299,7 +297,7 @@ dashboard.mistakes.header = Ihre jüngsten Beschriftungsfehler
 dashboard.mistakes.tooltip = Diese Fehler werden von anderen Nutzenden auf der Validierungsseite bestimmt. Bei der Validierung passieren manchmal Fehler und bei den Bewertungen gibt es oft feine Unterschiede.
 dashboard.mistakes.tooltip.alt = Fragezeichensymbol für hilfreichen Tooltip.
 
-labeling.guide.curb.ramp.summary = Eine Trottoirabsenkung ist eine kurze Rampe, die einen erhöhten Randstein unterbricht oder zu ihm hinaufführt. Eine zugängliche Trottoirabsenkung bietet eine barrierefreie Route für Personen mit Mobilitätseinschränkungen, um sicher vom Trottoir zur Fahrbahn und umgekehrt zu gelangen.
+labeling.guide.curb.ramp.summary = Eine Trottoirabsenkung ist eine kurze Rampe, die einen erhöhten Randstein unterbricht oder zu ihm hinaufführt. Eine zugängliche Trottoirabsenkung bietet eine barrierefreie Route für Personen mit Mobilitätseinschränkungen, um sicher vom Trottoir zur Fahrbahn und umgekehrt zu gelangen (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Beschriften Sie jede Bordsteinrampe unabhängig davon, ob es Probleme gibt.
 labeling.guide.obstacle.summary = Hindernisse sind Objekte, die sich auf dem Gehweg befinden und den Weg blockieren. Gemäss den Richtlinien für behindertengerechte Fusswegnetze sind Trottoirbreiten unter 1.50 m zu vermeiden. Dies erlaubt Fussgängerinnen und Fussgängern, vor allem denjenigen, die Rollatoren oder Rollstühle nutzen, sicher auf dem Gehweg zu bleiben. Den Gehweg zu verlassen, um Hindernissen auszuweichen, ist zum Teil nicht möglich oder erhöht die Gefahr, das Gleichgewicht zu verlieren oder zu stolpern.
 labeling.guide.surface.problem.summary = Ein Oberflächenproblem ist ein Problem, das für eine Person, die einen Rollstuhl oder ein anderes Hilfsmittel nutzt, eine holprige oder anderweitig unangenehme Erfahrung bedeuten würde. Wenn etwas auf der Oberfläche das Passieren erschwert oder verunmöglicht, ist es als Oberflächenproblem zu beschriften. Bei einem Oberflächenproblem, dass sich über eine grosse Fläche erstreckt, wird eine Beschriftung für Oberflächenprobleme am Anfang des Problems platziert. Anschliessend wird alle paar Meter eine neue Beschriftung eingeführt (ca. 1 pro Bild) bis am Ende des Problems.
 labeling.guide.no.sidewalk.summary = Sie sollten die Beschriftung für kein Trottoir dort beginnen, wo das Trottoir endet und dann alle paar Meter eine Beschriftung hinzufügen (ca. 1 pro Bild) bis zum Punkt, wo das Trottoir wieder beginnt.
@@ -322,7 +320,7 @@ leaderboard.tooltip.accuracy = Die Genauigkeit wird nur angezeigt, wenn mindeste
 leaderboard.tooltip.weekly.reset = Die Statistik wird jeden Sonntag Morgen um 0:00 Uhr PT zurückgesetzt.
 leaderboard.encouragement = Wollen Sie es unter die Top 10 schaffen? <a id="encouragement-link" href="/explore"><u>Erkundung starten!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Registrieren</u></a> Sie sich, um Ihren Fortschritt zu verfolgen!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Treten Sie einer Organisation bei</u></a> und arbeiten Sie im Team zusammen, um Gehwege zu kartieren und zu bewerten!
+leaderboard.encouragement.no.org = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="/labelingGuide"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an
 
 gallery = Galerie
 gallery.show = Anzeigen

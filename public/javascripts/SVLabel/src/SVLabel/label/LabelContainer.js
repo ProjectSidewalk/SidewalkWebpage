@@ -35,11 +35,13 @@ function LabelContainer ($, nextTemporaryLabelId) {
      */
     this.createLabel = function(params, isNew) {
         if (isNew) {
+            params.predictionMade = false;
             params.temporaryLabelId = nextTempLabelId;
             nextTempLabelId++;
+        } else {
+            params.predictionMade = true;
         }
         var label = new Label(params);
-        var panoId = label.getPanoId();
 
         // Add to list of labels. If new, also add to current canvas labels.
         if (isNew) {
@@ -148,6 +150,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
         svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
+        _addLabelToListObject(labelsToLog, label);
         svl.canvas.clear().render();
         return this;
     };

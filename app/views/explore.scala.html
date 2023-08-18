@@ -5,6 +5,8 @@
 @import models.amt.AMTAssignmentTable
 @import models.route.UserRoute
 @import views.html.bootstrap._
+@import play.api.Play
+@import play.api.Play.current
 
 @(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
 
@@ -14,9 +16,68 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
 
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+
     @icons()
 
     @missionStartTutorial()
+
+    <div class="common-mistakes-popup-container" style="display: none;">
+        <div class="common-mistakes-popup-backdrop"></div>
+        <div class="common-mistakes-popup-content">
+            <div class="common-mistakes-popup-header">
+                <div class="popup-close-button">
+                    <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
+                </div>
+            </div>
+            <div class="common-mistakes-current-label-panel">
+                <div class="common-mistakes-current-label-title">Your <span class="current-label-type"></span> Label</div>
+                <div class="common-mistakes-current-label-image">
+                    <img class="gsv-layer" src="" alt="" />
+                    <div class="label-layer">
+                        <img class="common-mistakes-current-label-icon" src="" alt="" />
+                    </div>
+                </div>
+            </div>
+            <div class="examples-panel-container">
+                <div class="examples-panel-title">
+                    <div class="examples-panel-title-icon common-mistakes-icon" style="display: none;">
+                        <svg width="32" height="33" viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21.0613 13.5612L18.125 16.5L21.065 19.4387C21.3468 19.7205 21.5051 20.1027 21.5051 20.5012C21.5051 20.8998 21.3468 21.282 21.065 21.5637C20.7832 21.8455 20.401 22.0039 20.0025 22.0039C19.604 22.0039 19.2218 21.8455 18.94 21.5637L16 18.625L13.0613 21.565C12.7795 21.8468 12.3973 22.0051 11.9988 22.0051C11.6002 22.0051 11.218 21.8468 10.9363 21.565C10.6545 21.2832 10.4962 20.901 10.4962 20.5025C10.4962 20.104 10.6545 19.7218 10.9363 19.44L13.875 16.5L10.9388 13.5612C10.7992 13.4217 10.6885 13.2561 10.613 13.0738C10.5375 12.8915 10.4987 12.6961 10.4987 12.4987C10.4987 12.1002 10.657 11.718 10.9388 11.4362C11.2205 11.1545 11.6027 10.9961 12.0013 10.9961C12.3998 10.9961 12.782 11.1545 13.0638 11.4362L16 14.375L18.9388 11.435C19.2205 11.1532 19.6027 10.9949 20.0013 10.9949C20.3998 10.9949 20.782 11.1532 21.0638 11.435C21.3455 11.7168 21.5039 12.099 21.5039 12.4975C21.5039 12.896 21.3455 13.2782 21.0638 13.56L21.0613 13.5612ZM29.5 16.5C29.5 19.17 28.7082 21.7801 27.2248 24.0002C25.7414 26.2203 23.633 27.9506 21.1662 28.9724C18.6994 29.9942 15.985 30.2615 13.3663 29.7406C10.7475 29.2197 8.34207 27.934 6.45406 26.0459C4.56606 24.1579 3.28031 21.7525 2.7594 19.1337C2.2385 16.515 2.50585 13.8006 3.52763 11.3338C4.54942 8.86697 6.27974 6.75856 8.49981 5.27516C10.7199 3.79176 13.33 3 16 3C19.5792 3.00397 23.0107 4.42756 25.5416 6.95844C28.0724 9.48932 29.496 12.9208 29.5 16.5ZM26.5 16.5C26.5 14.4233 25.8842 12.3932 24.7304 10.6665C23.5767 8.9398 21.9368 7.59399 20.0182 6.79926C18.0996 6.00454 15.9884 5.79661 13.9516 6.20175C11.9148 6.6069 10.0438 7.60693 8.57538 9.07538C7.10693 10.5438 6.10691 12.4148 5.70176 14.4516C5.29662 16.4884 5.50455 18.5996 6.29927 20.5182C7.09399 22.4368 8.4398 24.0767 10.1665 25.2304C11.8932 26.3842 13.9233 27 16 27C18.7839 26.997 21.4529 25.8898 23.4213 23.9213C25.3898 21.9528 26.497 19.2839 26.5 16.5Z" fill="#B11030"/>
+                        </svg>
+                    </div>
+                    <div class="examples-panel-title-icon correct-examples-icon" style="display: none;">
+                        <svg width="32" height="33" viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.0613 12.4388C22.2011 12.5781 22.312 12.7437 22.3878 12.926C22.4635 13.1083 22.5024 13.3038 22.5024 13.5013C22.5024 13.6987 22.4635 13.8942 22.3878 14.0765C22.312 14.2588 22.2011 14.4244 22.0613 14.5638L15.0613 21.5637C14.9219 21.7036 14.7563 21.8145 14.574 21.8903C14.3917 21.966 14.1962 22.0049 13.9988 22.0049C13.8013 22.0049 13.6059 21.966 13.4235 21.8903C13.2412 21.8145 13.0756 21.7036 12.9363 21.5637L9.93626 18.5637C9.79673 18.4242 9.68605 18.2586 9.61053 18.0763C9.53502 17.894 9.49615 17.6986 9.49615 17.5012C9.49615 17.3039 9.53502 17.1085 9.61053 16.9262C9.68605 16.7439 9.79673 16.5783 9.93626 16.4388C10.0758 16.2992 10.2414 16.1885 10.4237 16.113C10.606 16.0375 10.8014 15.9986 10.9988 15.9986C11.1961 15.9986 11.3915 16.0375 11.5738 16.113C11.7561 16.1885 11.9217 16.2992 12.0613 16.4388L14 18.375L19.9388 12.435C20.0783 12.2958 20.2439 12.1854 20.4262 12.1103C20.6084 12.0351 20.8037 11.9966 21.0008 11.9969C21.1979 11.9973 21.393 12.0365 21.575 12.1123C21.757 12.1881 21.9222 12.299 22.0613 12.4388ZM29.5 16.5C29.5 19.17 28.7082 21.7801 27.2248 24.0002C25.7414 26.2203 23.633 27.9506 21.1662 28.9724C18.6994 29.9942 15.985 30.2615 13.3663 29.7406C10.7475 29.2197 8.34207 27.934 6.45406 26.0459C4.56606 24.1579 3.28031 21.7525 2.7594 19.1337C2.2385 16.515 2.50585 13.8006 3.52763 11.3338C4.54942 8.86697 6.27974 6.75856 8.49981 5.27516C10.7199 3.79176 13.33 3 16 3C19.5792 3.00397 23.0107 4.42756 25.5416 6.95844C28.0724 9.48932 29.496 12.9208 29.5 16.5ZM26.5 16.5C26.5 14.4233 25.8842 12.3932 24.7304 10.6665C23.5767 8.9398 21.9368 7.59399 20.0182 6.79926C18.0996 6.00454 15.9884 5.79661 13.9516 6.20175C11.9148 6.6069 10.0438 7.60693 8.57538 9.07538C7.10693 10.5438 6.10691 12.4148 5.70176 14.4516C5.29662 16.4884 5.50455 18.5996 6.29927 20.5182C7.09399 22.4368 8.4398 24.0767 10.1665 25.2304C11.8932 26.3842 13.9233 27 16 27C18.7839 26.997 21.4529 25.8898 23.4213 23.9213C25.3898 21.9528 26.497 19.2839 26.5 16.5Z" fill="#007A4B"/>
+                        </svg>
+                    </div>
+                    <div class="examples-panel-title-text">Correct Examples</div>
+                </div>
+                <div class="example-unit-container template">
+                    <div class="example-unit-image">
+                        <img src="" alt="" />
+                    </div>
+                    <div class="example-unit-description"></div>
+                </div>
+            </div>
+            <div class="back-to-labeling-button">Back to Labeling</div>
+            <div class="common-mistakes-navigation-buttons">
+                <div class="common-mistakes-button">
+                    <div class="common-mistakes-button-label">See common mistakes</div>
+                    <div class="common-mistakes-button-icon">
+                        <svg viewBox="0 0 26 42"><use xlink:href="#left-arrow"></use></svg>
+                    </div>
+                </div>
+                <span class="current-page"></span>
+                <div class="correct-examples-button">
+                    <div class="correct-examples-button-label">See correct examples</div>
+                    <div class="correct-examples-button-icon">
+                        <svg viewBox="0 0 27 42"><use xlink:href="#right-arrow"></use></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="page-loading">
         <div id="loading-gif">
@@ -199,7 +260,7 @@
                     </div>
                     <div id="left-column-zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
-                        <br>@Messages("audit.left.ui.zoom.out")
+                        <br>@Html(Messages("audit.left.ui.zoom.out"))
                     </div>
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
@@ -220,7 +281,7 @@
                     <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
                         <br>
-                        @Messages("audit.left.ui.feedback")
+                        @Html(Messages("feedback"))
                     </div>
                 </div>
             </div>
@@ -316,8 +377,8 @@
                     </div>
                 </div>
                 <div id="mission-completion-status-box" class="status-box">
-                    <h1>@Messages("audit.right.ui.current.mission")</h1>
-                    <h2 id="current-mission-description">Let's make this neighborhood accessible</h2>
+                    <h1 id="current-mission-header"></h1>
+                    <h2 id="current-mission-description"></h2>
                     <div id='status-current-mission-completion-bar'>
                         <div id='status-current-mission-completion-bar-filler'>
                             <div id='status-current-mission-completion-rate'></div>
@@ -340,6 +401,44 @@
                     </div>
                 </div>
                 <div id="street-view-holder">
+
+                    <div class="prediction-model-popup-container" style="display: none;">
+                        <div class="prediction-model-popup-content">
+@*                            Disabling for now to keep in sync with mockups. Still unsure so leaving code in place.*@
+@*                            <div class="prediction-model-popup-header">*@
+@*                                <div class="popup-close-button">*@
+@*                                    <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>*@
+@*                                </div>*@
+@*                            </div>*@
+                            <div class="prediction-model-popup-title">Are you sure this is a <span class="label-type"></span>?
+                            <div class="prediction-model-popup-info-button" data-toggle="tooltip" data-placement="right" title="We use AI to predict user mistakes, which is not 100% accurate. Your label may actually be correct.">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2.25C10.0716 2.25 8.18657 2.82183 6.58319 3.89317C4.97981 4.96451 3.73013 6.48726 2.99218 8.26884C2.25422 10.0504 2.06114 12.0108 2.43734 13.9021C2.81355 15.7934 3.74215 17.5307 5.10571 18.8943C6.46927 20.2579 8.20656 21.1865 10.0979 21.5627C11.9892 21.9389 13.9496 21.7458 15.7312 21.0078C17.5127 20.2699 19.0355 19.0202 20.1068 17.4168C21.1782 15.8134 21.75 13.9284 21.75 12C21.7473 9.41498 20.7192 6.93661 18.8913 5.10872C17.0634 3.28084 14.585 2.25273 12 2.25ZM12 20.25C10.3683 20.25 8.77325 19.7661 7.41655 18.8596C6.05984 17.9531 5.00242 16.6646 4.37799 15.1571C3.75357 13.6496 3.59019 11.9908 3.90852 10.3905C4.22685 8.79016 5.01259 7.32015 6.16637 6.16637C7.32015 5.01259 8.79016 4.22685 10.3905 3.90852C11.9908 3.59019 13.6496 3.75357 15.1571 4.37799C16.6646 5.00242 17.9531 6.05984 18.8596 7.41655C19.7661 8.77325 20.25 10.3683 20.25 12C20.2475 14.1873 19.3775 16.2843 17.8309 17.8309C16.2843 19.3775 14.1873 20.2475 12 20.25ZM13.5 16.5C13.5 16.6989 13.421 16.8897 13.2803 17.0303C13.1397 17.171 12.9489 17.25 12.75 17.25C12.3522 17.25 11.9706 17.092 11.6893 16.8107C11.408 16.5294 11.25 16.1478 11.25 15.75V12C11.0511 12 10.8603 11.921 10.7197 11.7803C10.579 11.6397 10.5 11.4489 10.5 11.25C10.5 11.0511 10.579 10.8603 10.7197 10.7197C10.8603 10.579 11.0511 10.5 11.25 10.5C11.6478 10.5 12.0294 10.658 12.3107 10.9393C12.592 11.2206 12.75 11.6022 12.75 12V15.75C12.9489 15.75 13.1397 15.829 13.2803 15.9697C13.421 16.1103 13.5 16.3011 13.5 16.5ZM10.5 7.875C10.5 7.6525 10.566 7.43499 10.6896 7.24998C10.8132 7.06498 10.9889 6.92078 11.1945 6.83564C11.4 6.75049 11.6262 6.72821 11.8445 6.77162C12.0627 6.81502 12.2632 6.92217 12.4205 7.0795C12.5778 7.23684 12.685 7.43729 12.7284 7.65552C12.7718 7.87375 12.7495 8.09995 12.6644 8.30552C12.5792 8.51109 12.435 8.68679 12.25 8.8104C12.065 8.93402 11.8475 9 11.625 9C11.3266 9 11.0405 8.88147 10.8295 8.6705C10.6185 8.45952 10.5 8.17337 10.5 7.875Z" fill="black"/>
+                                </svg>
+
+                            </div>
+                            </div>
+                            <div class="prediction-model-popup-body">
+                                <div class="prediction-model-popup-text"></div>
+                                <div class="button-group-left">
+                                    <div class="prediction-model-button prediction-model-view-examples-button">View Common Mistakes</div>
+                                </div>
+                                <div class="button-group-right">
+                                    <div class="prediction-model-button prediction-model-mistake-keep-label-button">Yes, I am sure</div>
+                                    <div class="prediction-model-button prediction-model-mistake-remove-label-button">No, remove the label</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="triangle-down">
+                            <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g id="Frame 167">
+                                    <path id="beak - bottom - border" d="M20 3L0 3L10 15L20 3Z" fill="#A7AFB2"/>
+                                    <path id="beak - bottom" d="M20 4.24391e-06L0 0L10 12L20 4.24391e-06Z" fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+
                     <div id="svl-panorama-date-holder">
                         <span id="svl-panorama-date"></span>
                     </div>
@@ -928,6 +1027,7 @@
             }
 
             mainParam.language = "@lang.code";
+            mainParam.cityId = "@Play.configuration.getString("city-id").get"
 
             svl.main = new Main(mainParam);
         }
