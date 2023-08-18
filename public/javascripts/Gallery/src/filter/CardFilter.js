@@ -116,6 +116,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
 
         // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
         if (status.currentLabelType !== 'Assorted') {
+            $('#clear-filters').show();
             newUrl += `?labelType=${status.currentLabelType}`;
             // Can only have applied tags if there is a specific label type chosen.
             if (currAppliedTags.length > 0) {
