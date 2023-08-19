@@ -124,7 +124,7 @@ object TaskSubmissionFormats {
       (JsPath \ "completed").read[Boolean] and
       (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "skipped").read[Boolean]
-  )(AuditMissionProgress.apply _)
+    )(AuditMissionProgress.apply _)
 
   implicit val auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
     (JsPath \ "mission").read[AuditMissionProgress] and

@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
 audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.distance = kilómetros
-audit.right.ui.current.mission = Misión actual
 
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
@@ -319,7 +318,7 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/explore"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
-leaderboard.encouragement.no.org = ¡<a id="encouragement-link" href="/dashboard"><u>Únase a una organización</u></a> y trabaje en equipo para mapear y evaluar las aceras!
+leaderboard.encouragement.no.org = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="/labelingGuide"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>
 
 gallery = Galería
 gallery.show = Mostrar

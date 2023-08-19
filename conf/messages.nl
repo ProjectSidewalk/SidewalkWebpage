@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ga naar een nieuwe wijk
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
-audit.right.ui.current.mission = Huidige Missie
 
 audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
@@ -319,7 +318,7 @@ leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten m
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Sluit je aan bij een organisatie</u></a> en werk samen als een team om trottoirs in kaart te brengen en te beoordelen!
+leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="/labelingGuide"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
 gallery.show = Tonen

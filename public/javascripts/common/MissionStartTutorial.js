@@ -4,8 +4,9 @@
  * @param labelType one of the seven label types for which the tutorial needs to be initialized.
  * @param labelCount the number of labels to validate in the current mission (VALIDATE mission only).
  * @param svvOrsvl the svvOrsvl SVValidate or SVLabel object to log interactions and perform other actions upon closing the tutorial.
+ * @param language Fdfadfda
  */
-function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
+function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language = 'en') {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -853,7 +854,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         }
 
         $('.mst-instruction-1').html(labelTypeModule.missionInstruction1); // Explore mission screens have HTML in strings.
-        $('.mst-instruction-2').text(labelTypeModule.missionInstruction2);
+        $('.mst-instruction-2').html(labelTypeModule.missionInstruction2);
 
         $('.mission-start-tutorial-done-btn').text(i18next.t('common:mission-start-tutorial.start-mission'));
 
@@ -861,13 +862,13 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         // And set up other UI.
         if (missionType === MISSION_TYPES.EXPLORE) {
 
-            $('.explore-mission-start-tab.label[data-label-type="CurbRamp"]').find('.explore-mission-start-tab-text').text(i18next.t('common:curb-ramp'));
-            $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]').find('.explore-mission-start-tab-text').text(i18next.t('common:no-curb-ramp'));
-            $('.explore-mission-start-tab.label[data-label-type="Obstacle"]').find('.explore-mission-start-tab-text').text(i18next.t('common:obstacle'));
-            $('.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]').find('.explore-mission-start-tab-text').text(i18next.t('common:surface-problem'));
-            $('.explore-mission-start-tab.label[data-label-type="NoSideWalk"]').find('.explore-mission-start-tab-text').text(i18next.t('common:no-sidewalk'));
-            $('.explore-mission-start-tab.label[data-label-type="Crosswalk"]').find('.explore-mission-start-tab-text').text(i18next.t('common:crosswalk'));
-            $('.explore-mission-start-tab.label[data-label-type="Signal"]').find('.explore-mission-start-tab-text').text(i18next.t('common:signal'));
+            $('.explore-mission-start-tab.label[data-label-type="CurbRamp"]').find('.explore-mission-start-tab-text').html(i18next.t('common:curb-ramp'));
+            $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-curb-ramp'));
+            $('.explore-mission-start-tab.label[data-label-type="Obstacle"]').find('.explore-mission-start-tab-text').html(i18next.t('common:obstacle'));
+            $('.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]').find('.explore-mission-start-tab-text').html(i18next.t('common:surface-problem'));
+            $('.explore-mission-start-tab.label[data-label-type="NoSideWalk"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-sidewalk'));
+            $('.explore-mission-start-tab.label[data-label-type="Crosswalk"]').find('.explore-mission-start-tab-text').html(i18next.t('common:crosswalk'));
+            $('.explore-mission-start-tab.label[data-label-type="Signal"]').find('.explore-mission-start-tab-text').html(i18next.t('common:signal'));
 
             $('.explore-mission-start-tab-bar').show();
 
@@ -912,6 +913,14 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         const $mstSlideImage = $('.msts-image');
         const $labelOnImage = $('.label-on-image');
         const $mstDoneButton = $('.mission-start-tutorial-done-btn');
+        const $labelOnImageDescription = $('.label-on-image-description');
+
+        // Change spacing for the descriptions for different languages based on how verbose they are.
+        if (language === 'de') {
+            $labelOnImageDescription[0].style.transform = 'translateY(' + -16 + '%)';
+        } else if (language === 'nl') {
+            $labelOnImage[0].style.maxWidth = '230px';
+        }
 
         // Reset the UI first.
         $('.mst-carousel-location-indicator').removeClass('current-location');

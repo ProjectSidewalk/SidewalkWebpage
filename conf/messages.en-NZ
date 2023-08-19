@@ -43,6 +43,7 @@ dashboard.no.org = No Organisation
 dashboard.edit.info = If you don''t see your organisation, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organisation name and description.
 dashboard.orgs.unavailable = There are no available organisations!
 dashboard.leave.org = Leave Organisation
+<<<<<<< HEAD
 
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organisation</u></a> and work together as a team to map and assess footpaths!
 
@@ -55,3 +56,5 @@ home.step2 = Screen recording of a user an identifying inaccessible footpath on 
 home.step3 = Screen recording of a user assessing severity of inaccessible footpath on Project Sidewalk
 
 clouds = clouds
+=======
+>>>>>>> 5657aabe5f71c18d39cf6381a54a56811da1928b
