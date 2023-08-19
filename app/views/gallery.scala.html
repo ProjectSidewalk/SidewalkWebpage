@@ -31,7 +31,7 @@
     </div>
 
     <div id="gallery">
-        <div class="sidebar">
+        <div class="sidebar" style="height: 100%">
             <div id="card-filter">
                 <div id="city-filter-holder" class="filter-section-holder">
                     <span id="city-type-holder">
@@ -48,9 +48,10 @@
                     </span>
                 </div>
                 <div id="horizontal-line"></div>
-                <div id="label-type-filter-holder" class="filter-section-holder">
+                <div id="filters">
+                    <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
+                    <h5 id="label-type-filter-holder" class="filter-subheader">@Messages("gallery.show")</h5>
                     <span id="label-type-holder">
-                        <h4><b>@Messages("gallery.show")</b></h4>
                         <select id="label-select" class="gallery-filter" disabled>
                             @for((value, message) <- labels) {
                                 @if(value == labelType) {
@@ -61,10 +62,6 @@
                             }
                         </select>
                     </span>
-                </div>
-                <div id="horizontal-line"></div>
-                <div id="filters">
-                    <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
                     <h5 id="severity-header" class="filter-subheader">@Messages("severity")</h5>
                     <span id="severity-select"></span>
                     <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
