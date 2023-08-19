@@ -343,3 +343,12 @@ home.graphic.seattle = Un gráfico del horizonte de Seattle, Washington
 home.explain = GIF que explica los resultados del crowdsourcing y el aprendizaje automático en Project Sidewalk
 
 clouds = nubes
+
+logo.makeability = Logotipo del laboratorio de creación
+logo.uic = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de Chicago de la Universidad de Illinois
+logo.liga.peatonal = Logotipo de la Liga Peatonal
+logo.open.columbus = Logotipo abierto de Colón
+logo.world.enabled = Logotipo mundial habilitado
+logo.city.of.amsterdam = Logotipo de la ciudad de Ámsterdam
+logo.amsterdam.intelligence = Logotipo de Amsterdam Intelligence
+logo.people.nudge = Logo de Empuje de Personas

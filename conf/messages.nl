@@ -343,3 +343,12 @@ home.graphic.seattle = Een grafische skyline van Seattle, Washington
 home.explain = GIF met uitleg over de resultaten van crowdsourcing en machine learning op Project Sidewalk
 
 clouds = wolken
+
+logo.makeability = Makeability Lab-logo
+logo.uic = University of Illinois Chicago Institute on Disability and Human Development Logo
+logo.liga.peatonal = Liga Peatonal-logo
+logo.open.columbus = Columbus-logo openen
+logo.world.enabled = Wereld ingeschakeld logo
+logo.city.of.amsterdam = Logo gemeente Amsterdam
+logo.amsterdam.intelligence = Amsterdam Intelligence-logo
+logo.people.nudge = People Nudge-logo
