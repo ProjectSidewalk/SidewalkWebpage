@@ -196,33 +196,44 @@
             <div class="im-centered3" id="collaborators-title">
                 <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
             </div>
-            @if("Taipei" != cityName && "New Taipei" != cityName && "Keelung" != cityName){
-                <section class="collaborator-images-container">
+
+            <section class="collaborator-images-container">
+                <div class="collaborator-image">
+                    <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
+                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='@Messages("logo.makeability")'>
+                    </a>
+                </div>
+                <div class="collaborator-image">
+                    <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
+                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='@Messages("logo.uic")'>
+                    </a>
+                </div>
+
+                @if("taipei-tw" == cityId || "new-taipei-tw" == cityId || "keelung-tw" == cityId){
                     <div class="collaborator-image">
-                        <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-                            <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='@Messages("logo.makeability")'>
+                        <a id="people-nudge-img-link" href="https://www.facebook.com/peoplenudge?mibextid=LQQJ4d">
+                            <img src='@routes.Assets.at("assets/people_nudge_logo.png")' alt='@Messages("logo.people_nudge")'>
                         </a>
                     </div>
-                    <div class="collaborator-image">
-                        <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-                            <img src='@routes.Assets.at("assets/uic_logo.png")' alt='@Messages("logo.uic")'>
-                        </a>
-                    </div>
+                } else {
                     <div class="collaborator-image">
                         <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
                             <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='@Messages("logo.liga.peatonal")'>
                         </a>
                     </div>
-                    @if("Columbus" == cityName){
-                        <div class="collaborator-image">
-                            <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
-                                <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='@Messages("logo.open.columbus")'>
-                            </a>
-                        </div>
-                    }
-                </section>
-                <section class="collaborator-images-container">
-                @if("Amsterdam" == cityName){
+                }
+
+                @if("columbus-oh" == cityId){
+                    <div class="collaborator-image">
+                        <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
+                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='@Messages("logo.open.columbus")'>
+                        </a>
+                    </div>
+                }
+            </section>
+
+            <section class="collaborator-images-container">
+                @if("amsterdam" == cityId){
                     <div class="collaborator-image">
                         <a id="worldenabled-img-link" href="https://worldenabled.org/">
                             <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt='@Messages("logo.world.enabled")'>
@@ -239,26 +250,7 @@
                         </a>
                     </div>
                 }
-                </section>
-            } else {
-                <section class="collaborator-images-container">
-                <div class="collaborator-image">
-                    <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='@Messages("logo.makeability")'>
-                    </a>
-                </div>
-                <div class="collaborator-image">
-                    <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='@Messages("logo.uic")'>
-                    </a>
-                </div>
-                <div class="collaborator-image">
-                    <a id="people-nudge-img-link" href="https://www.facebook.com/peoplenudge?mibextid=LQQJ4d">
-                        <img src='@routes.Assets.at("assets/people_nudge_logo.png")' alt='@Messages("logo.people_nudge")'>
-                    </a>
-                </div>
-                </section>
-            }
+            </section>
         </div>
     </div>
 
