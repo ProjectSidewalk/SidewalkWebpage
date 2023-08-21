@@ -321,7 +321,6 @@ leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp">
 leaderboard.encouragement.no.org = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="/labelingGuide"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>
 
 gallery = Galería
-gallery.show = Mostrar
 gallery.filter.by = Filtrar por
 gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas

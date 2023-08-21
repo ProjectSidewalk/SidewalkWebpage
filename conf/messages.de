@@ -323,7 +323,6 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="/labelingGuide"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an
 
 gallery = Galerie
-gallery.show = Anzeigen
 gallery.filter.by = Filtern nach
 gallery.tags = Tags
 gallery.all = Alle Beschriftungskategorien

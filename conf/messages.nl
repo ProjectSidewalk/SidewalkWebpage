@@ -321,7 +321,6 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="/labelingGuide"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
-gallery.show = Tonen
 gallery.filter.by = Filteren op
 gallery.tags = Tags
 gallery.all = Alle labeltypen
