@@ -40,24 +40,24 @@ thanks = 謝謝！
 username = 使用者名稱
 loading = 讀取中...
 loading.encouragement = 讓我們來吧!
-test.server.warning.message = <strong>警告！</strong> 您目前在測試伺服器！您的資料將不會被儲存！若您希望資料被儲存，請前往正式網頁。
+test.server.warning.message = <strong>警告！</strong> 您目前在測試版伺服器！您的資料將不會被儲存！若您希望資料被儲存，請使用正式版伺服器。
 dont.show.again = 不再顯示
 
 press.key = 點擊 "{0}" 鍵
 press.keys = 點擊 "{0}" 鍵
-feedback.title = 有任何想法或問題嗎？或是找到程式錯誤?<br>很歡迎給我們任何回饋喔！
-feedback.submitted = 回饋已交出
+feedback.title = 有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！
+feedback.submitted = 已送出回饋
 
 navbar.explore = 探索
 navbar.validate = 檢核
 navbar.howto = 如何標記
-navbar.api = API
+navbar.api = 應用程式介面(API)
 navbar.tools = 工具
 navbar.results = 成果地圖
 navbar.labelmap = 標記地圖
 navbar.help = 協助
 navbar.leaderboard = 排行榜
-navbar.retake.tutorial = 重做教學
+navbar.retake.tutorial = 重上簡介教學
 navbar.signin = 登入
 navbar.signout = 登出
 navbar.dashboard = 您的儀錶板
@@ -69,11 +69,11 @@ navbar.lang.icon.alt = 語言圖示
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
 landing.also.in = 我們也在：
-landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的地圖松活動吧！</a>
+landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
 landing.how.you.help = 您可以如何協助
 landing.how.you.help.content = 通過三個簡單的步驟就可以探索您的城市並找出街道上的可及性問題——在您舒適的家中就可進行！
 landing.how.you.help.explore = 探索
-landing.how.you.help.find = 尋找問題
+landing.how.you.help.find = 尋找可及性問題
 landing.how.you.help.assess = 評估品質
 landing.video.title = Project Sidewalk是什麼？
 landing.video.watch = 請觀賞
@@ -98,7 +98,7 @@ landing.ml.gif.user.labels = 標記
 landing.ml.gif.better.city.planning = 更佳的都市規劃
 landing.ml.gif.better.temporal.tracking = 更佳的時序追蹤
 landing.ml.gif.interactive.visualization.tools = 互動式視覺化工具
-landing.ml.gif.smarter.routing = 更聰明的路徑規劃
+landing.ml.gif.smarter.routing = 更智慧的路徑規劃
 landing.ml.gif.machine.learning = 機器學習
 landing.ml.gif.outcomes = 成果
 landing.collaborators.title = 執行及合作單位
@@ -108,7 +108,7 @@ footer.terms = 使用條款
 footer.help = 協助
 footer.guide = 標記指南
 footer.developer = 開發者
-footer.api = 人行道應用程式介面(API)
+footer.api = 應用程式介面(API)
 footer.connect = 相關連結
 footer.email = Email我們
 footer.funding = 我們由以下單位贊助
@@ -116,9 +116,9 @@ footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_I
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
 footer.version = Version {0} | 最後更新時間： <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬方式探索一座城市並透過標記環境中的無障礙設施及問題完成任務，項目包括：
-audit.tutorial.welcome.2 = 我們會以簡短、互動的教學開始。
-audit.tutorial.welcome.3 = 讓我們開始吧！
+audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬的方式探索一座城市，尋找和檢視環境中的可及性特徵及標記有可及性問題的地點，已完成改善人行環性的任務，項目包括：
+audit.tutorial.welcome.2 = 我們會以簡短、互動式的教學來學習。
+audit.tutorial.welcome.3 = 我們開始吧！
 audit.tutorial.welcome.4 = 已經完成教學了嗎？ 已有帳戶？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">跳過教學。</a>
 audit.tutorial.accessible = <span style="color:limegreen">可通行的</span>
 audit.tutorial.inaccessible = <span style="color:red">不可通行的</span>

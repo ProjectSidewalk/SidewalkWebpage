@@ -101,14 +101,14 @@
     "center-ui": {
         "context-menu": {
             "description": "描述（非必填）",
-            "severity": "請點選並標記品質",
+            "severity": "請點選並標記問題嚴重度",
             "severity-example": "品質{{n}}案例",
             "severity-shortcuts": "從1-5選擇品質",
             "label-popup-shortcuts": "點選<tag-underline>{{c}}</tag-underline>以增加標籤",
             "tag": {
                 "narrow": "狹窄(<tag-underline>a</tag-underline>)",
                 "points-into-traffic": "對著交通車流(<tag-underline>i</tag-underline>)",
-                "missing-tactile-warning": "無觸感式警示(<tag-underline>e</tag-underline>)",
+                "missing-tactile-warning": "缺觸感式警示(<tag-underline>e</tag-underline>)",
                 "tactile-warning": "觸感式警示(<tag-underline>h</tag-underline>)",
                 "steep": "陡峭(<tag-underline>t</tag-underline>)",
                 "not-enough-landing-space": "坡頂平臺空間不足(<tag-underline>l</tag-underline>)",
