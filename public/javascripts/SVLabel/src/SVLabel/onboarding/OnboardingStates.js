@@ -3,7 +3,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
     var panoId = "tutorial";
     var afterWalkPanoId = "afterWalkTutorial";
     var headingRanges = {
-        "stage-1": [238, 242],
+        "stage-1": [230, 233],
         "stage-2-adjust": [197, 242],
         "stage-2": [197, 209],
         "stage-3-adjust": [98, 197],
@@ -25,7 +25,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "initialize": {
             "properties": {
                 "action": "Introduction",
-                "heading": 241,
+                "heading": 230,
                 "pitch": -6,
                 "zoom": 1,
                 "lat": 38.9404982935884,
