@@ -197,8 +197,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (severity === 1) {
                     contextMenu.hide();
                     _updateProgressBar(4);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1", step: 4});
-                    return "adjust-heading-angle-1";
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-22", step: 4});
+                    return "select-label-type-22";
                 } else {
                     tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                     return "redo-rate-attribute-1";
@@ -215,9 +215,150 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-1') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                'alt="Rating curb ramp quality as 2, somewhat passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" ' +
+                    'alt="Rating curb ramp quality as 2, somewhat passable">',
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var severity = parseInt(this.getAttribute("value"), 10);
+                if (severity === 1) {
+                    contextMenu.hide();
+                    _updateProgressBar(4);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2", step: 4});
+                    return "select-label-type-22";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
+                    return "redo-rate-attribute-1";
+                }
+            }
+        },
+        "select-label-type-22": {
+            "properties": {
+                "action": "SelectLabelType",
+                "labelType": "Crosswalk",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1]
+            },
+            "message": {
+                "message": 'Pick Crosswalk label type',
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 8950,
+                    "y": -300,
+                    "length": 50,
+                    "angle": 0
+                }
+            ],
+            "transition": function () {
+                _updateProgressBar(2);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-22", step: 2});
+                return "label-attribute-22";
+            }
+        },
+        "label-attribute-22": {
+            "properties": [{
+                "action": "LabelAccessibilityAttribute",
+                "labelType": "Crosswalk",
+                "imageX": 420,
+                "imageY": 3800,
+                "tolerance": 300,
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1]
+            }],
+            "message": {
+                "message": 'Place the Crosswalk label',
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 8950,
+                    "y": -300,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": "yellow"
+                }
+            ],
+            "transition": [function (params) {
+                if (params.accurate) {
+                    _updateProgressBar(3);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-22", step: 3});
+                    return "rate-severity-22";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-22"});
+                    return "delete-attribute-22";
+                }
+            }]
+        },
+        "delete-attribute-22": {
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "Crosswalk",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1],
+            },
+            "message": {
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 8950,
+                    "y": -300,
+                    "length": 50,
+                    "angle": 0
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-22"});
+                return "redo-select-label-type-22";
+            }
+        },
+        "redo-select-label-type-22": {
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "Crosswalk",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 8950,
+                    "y": -300,
+                    "length": 50,
+                    "angle": 0
+                }
+            ],
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-22"});
+                return "label-attribute-22";
+            }
+        },
+        "rate-severity-22": {
+            "properties": {
+                "action": "RateSeverity",
+                "labelType": "Crosswalk",
+                "severity": 1,
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1]
+            },
+            "message": {
+                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint is not yet fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
                 "parameters": null
             },
             "panoId": panoId,
@@ -230,8 +371,35 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1", step: 4});
                     return "adjust-heading-angle-1";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
-                    return "redo-rate-attribute-1";
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-22"});
+                    return "redo-rate-attribute-22";
+                }
+            }
+        },
+        "redo-rate-attribute-22": {
+            "properties": {
+                "action": "RedoRateSeverity",
+                "labelType": "Crosswalk",
+                "severity": 2,
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1]
+            },
+            "message": {
+                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint is not yet fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var severity = parseInt(this.getAttribute("value"), 10);
+                if (severity === 1) {
+                    contextMenu.hide();
+                    _updateProgressBar(4);
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1", step: 4});
+                    return "adjust-heading-angle-1";
+                } else {
+                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-22"});
+                    return "redo-rate-attribute-22";
                 }
             }
         },
