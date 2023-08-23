@@ -15,14 +15,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "stage-6": [281, 14]
     };
 
-    function _updateProgressBar(stepNumber) {
-        var completedRate = stepNumber / numSteps;
-        statusModel.setMissionCompletionRate(completedRate);
-        statusModel.setProgressBar(completedRate);
-    }
-
-    this.states = {
-        "initialize": {
+    this.states = [
+        {
+            "id": "initialize",
+            "progression": true,
             "properties": {
                 "action": "Introduction",
                 "heading": 230,
@@ -45,24 +41,24 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "initialize", step: 0});
                 var value = this.getAttribute("value");
                 // If "Let's get started!" button is clicked.
                 if (value === "OK") {
-                    _updateProgressBar(1);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-1", step: 1});
                     return "select-label-type-1";
                 } else {
                     return "end-onboarding-skip";
                 }
             }
-        },
-        "end-onboarding-skip": {
+        }, {
+            "id": "end-onboarding-skip",
+            "progression": false,
             "end-onboarding": {
                 "skip": true
             }
         },
-        "select-label-type-1": {
+        {
+            "id": "select-label-type-1",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
@@ -82,13 +78,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(2);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1", step: 2});
-                return "label-attribute-1";
-            }
+            "transition": "label-attribute-1"
         },
-        "label-attribute-1": {
+        {
+            "id": "label-attribute-1",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -115,16 +109,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(3);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-1", step: 3});
                     return "rate-severity-1";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-1"});
                     return "delete-attribute-1";
                 }
             }]
         },
-        "delete-attribute-1": {
+        {
+            "id": "delete-attribute-1",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -145,12 +138,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-1"});
-                return "redo-select-label-type-1";
-            }
+            "transition": "redo-select-label-type-1"
         },
-        "redo-select-label-type-1": {
+        {
+            "id": "redo-select-label-type-1",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "CurbRamp",
@@ -171,12 +163,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-1"});
-                return "label-attribute-1";
-            }
+            "transition": "label-attribute-1"
         },
-        "rate-severity-1": {
+        {
+            "id": "rate-severity-1",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -196,16 +187,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(4);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-22", step: 4});
                     return "select-label-type-22";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                     return "redo-rate-attribute-1";
                 }
             }
         },
-        "redo-rate-attribute-1": {
+        {
+            "id": "redo-rate-attribute-1",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
@@ -226,16 +216,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(4);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2", step: 4});
                     return "select-label-type-22";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                     return "redo-rate-attribute-1";
                 }
             }
         },
-        "select-label-type-22": {
+        {
+            "id": "select-label-type-22",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "Crosswalk",
@@ -255,13 +244,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(2);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-22", step: 2});
-                return "label-attribute-22";
-            }
+            "transition": "label-attribute-22"
         },
-        "label-attribute-22": {
+        {
+            "id": "label-attribute-22",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "Crosswalk",
@@ -288,16 +275,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(3);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-22", step: 3});
                     return "rate-severity-22";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-22"});
                     return "delete-attribute-22";
                 }
             }]
         },
-        "delete-attribute-22": {
+        {
+            "id": "delete-attribute-22",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "Crosswalk",
@@ -318,12 +304,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-22"});
-                return "redo-select-label-type-22";
-            }
+            "transition": "redo-select-label-type-22"
         },
-        "redo-select-label-type-22": {
+        {
+            "id": "redo-select-label-type-22",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "Crosswalk",
@@ -344,12 +329,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-22"});
-                return "label-attribute-22";
-            }
+            "transition": "label-attribute-22"
         },
-        "rate-severity-22": {
+        {
+            "id": "rate-severity-22",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "Crosswalk",
@@ -367,16 +351,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(4);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1", step: 4});
                     return "adjust-heading-angle-1";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-22"});
                     return "redo-rate-attribute-22";
                 }
             }
         },
-        "redo-rate-attribute-22": {
+        {
+            "id": "redo-rate-attribute-22",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "Crosswalk",
@@ -394,16 +377,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(4);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1", step: 4});
                     return "adjust-heading-angle-1";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-22"});
                     return "redo-rate-attribute-22";
                 }
             }
         },
-        "adjust-heading-angle-1": {
+        {
+            "id": "adjust-heading-angle-1",
+            "progression": true,
             "properties": {
                 "action": "AdjustHeadingAngle",
                 "heading": 210,
@@ -417,13 +399,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(5);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-in", step: 5});
-                return "zoom-in";
-            }
+            "transition": "zoom-in"
         },
-        "zoom-in": {
+        {
+            "id": "zoom-in",
+            "progression": true,
             "properties": {
                 "action": "Zoom",
                 "type": "in",
@@ -438,13 +418,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(6);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2", step: 6});
-                return "select-label-type-2";
-            }
+            "transition": "select-label-type-2"
         },
-        "select-label-type-2": {
+        {
+            "id": "select-label-type-2",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
@@ -466,13 +444,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(7);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2", step: 7});
-                return "label-attribute-2";
-            }
+            "transition": "label-attribute-2"
         },
-        "label-attribute-2": {
+        {
+            "id": "label-attribute-2",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -499,16 +475,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(8);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2", step: 8});
                     return "rate-severity-2";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-2"});
                     return "delete-attribute-2";
                 }
             }]
         },
-        "delete-attribute-2": {
+        {
+            "id": "delete-attribute-2",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -530,12 +505,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-2"});
-                return "redo-select-label-type-2";
-            }
+            "transition": "redo-select-label-type-2"
         },
-        "redo-select-label-type-2": {
+        {
+            "id": "redo-select-label-type-2",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "CurbRamp",
@@ -557,12 +531,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
-                return "label-attribute-2";
-            }
+            "transition": "label-attribute-2"
         },
-        "rate-severity-2": {
+        {
+            "id": "rate-severity-2",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -572,8 +545,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.rate-severity-2') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" + '" ' +
-                'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" + '" ' +
+                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -581,16 +554,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
-                    _updateProgressBar(9);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2", step: 9});
                     return "tag-attribute-2";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                     return "redo-rate-attribute-2";
                 }
             }
         },
-        "redo-rate-attribute-2": {
+        {
+            "id": "redo-rate-attribute-2",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
@@ -600,9 +572,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-2') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
-                'somewhat passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
+                    'somewhat passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -610,16 +582,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
-                    _updateProgressBar(9);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2", step: 9});
                     return "tag-attribute-2";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                     return "redo-rate-attribute-2";
                 }
             }
         },
-        "tag-attribute-2": {
+        {
+            "id": "tag-attribute-2",
+            "progression": true,
             "properties": {
                 "action": "AddTag",
                 "labelType": "CurbRamp",
@@ -638,16 +609,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
                     contextMenu.hide();
-                    _updateProgressBar(10);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3", step: 10});
                     return "select-label-type-3";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
                     return "redo-tag-attribute-2";
                 }
             }
         },
-        "redo-tag-attribute-2": {
+        {
+            "id": "redo-tag-attribute-2",
+            "progression": false,
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "CurbRamp",
@@ -666,16 +636,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
                     contextMenu.hide();
-                    _updateProgressBar(10);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3", step: 10});
                     return "select-label-type-3";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
                     return "redo-tag-attribute-2";
                 }
             }
         },
-        "select-label-type-3": {
+        {
+            "id": "select-label-type-3",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "NoCurbRamp",
@@ -697,13 +666,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(11);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3", step: 11});
-                return "label-attribute-3";
-            }
+            "transition": "label-attribute-3"
         },
-        "label-attribute-3": {
+        {
+            "id": "label-attribute-3",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoCurbRamp",
@@ -730,16 +697,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(12);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3", step: 12});
                     return "rate-severity-3";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-3"});
                     return "delete-attribute-3";
                 }
             }]
         },
-        "delete-attribute-3": {
+        {
+            "id": "delete-attribute-3",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "NoCurbRamp",
@@ -761,12 +727,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-3"});
-                return "redo-select-label-type-3";
-            }
+            "transition": "redo-select-label-type-3"
         },
-        "redo-select-label-type-3": {
+        {
+            "id": "redo-select-label-type-3",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "NoCurbRamp",
@@ -788,12 +753,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
-                return "label-attribute-3";
-            }
+            "transition": "label-attribute-3"
         },
-        "rate-severity-3": {
+        {
+            "id": "rate-severity-3",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "NoCurbRamp",
@@ -803,8 +767,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.rate-severity-3') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
                     '3, a slightly severe problem">',
                 "parameters": null
             },
@@ -813,16 +777,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    _updateProgressBar(13);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3", step: 13});
                     return "tag-attribute-3";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                     return "redo-rate-attribute-3";
                 }
             }
         },
-        "redo-rate-attribute-3": {
+        {
+            "id": "redo-rate-attribute-3",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "NoCurbRamp",
@@ -832,9 +795,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-3') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
-                'a slightly severe problem">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
+                    'a slightly severe problem">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -842,16 +805,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    _updateProgressBar(13);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3", step: 13});
                     return "tag-attribute-3";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                     return "redo-rate-attribute-3";
                 }
             }
         },
-        "tag-attribute-3": {
+        {
+            "id": "tag-attribute-3",
+            "progression": true,
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoCurbRamp",
@@ -870,16 +832,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
                     contextMenu.hide();
-                    _updateProgressBar(14);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out", step: 14});
                     return "zoom-out";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
                     return "redo-tag-attribute-3";
                 }
             }
         },
-        "redo-tag-attribute-3": {
+        {
+            "id": "redo-tag-attribute-3",
+            "progression": false,
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoCurbRamp",
@@ -898,16 +859,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
                     contextMenu.hide();
-                    _updateProgressBar(14);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out", step: 14});
                     return "zoom-out";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
                     return "redo-tag-attribute-3";
                 }
             }
         },
-        "zoom-out": {
+        {
+            "id": "zoom-out",
+            "progression": true,
             "properties": {
                 "action": "Zoom",
                 "type": "out",
@@ -922,13 +882,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(15);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2", step: 15});
-                return "adjust-heading-angle-2";
-            }
+            "transition": "adjust-heading-angle-2"
         },
-        "adjust-heading-angle-2": {
+        {
+            "id": "adjust-heading-angle-2",
+            "progression": true,
             "properties": {
                 "action": "AdjustHeadingAngle",
                 "heading": 177,
@@ -942,13 +900,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(16);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3", step: 16});
-                return "adjust-heading-angle-3";
-            }
+            "transition": "adjust-heading-angle-3"
         },
-        "adjust-heading-angle-3": {
+        {
+            "id": "adjust-heading-angle-3",
+            "progression": true,
             "properties": {
                 "action": "AdjustHeadingAngle",
                 "heading": 115,
@@ -962,13 +918,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(17);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4", step: 17});
-                return "select-label-type-4";
-            }
+            "transition": "select-label-type-4"
         },
-        "select-label-type-4": {
+        {
+            "id": "select-label-type-4",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
@@ -998,13 +952,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": "white"
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(18);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs", step: 18});
-                return "label-both-curbs";
-            }
+            "transition": "label-both-curbs"
         },
-        "label-both-curbs": {
+        {
+            "id": "label-both-curbs",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1013,7 +965,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "tolerance": 300,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
-            },{
+            }, {
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
                 "imageX": 8660,
@@ -1045,25 +997,21 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(19);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4", step: 19});
                     return "rate-severity-4";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4"});
                     return "delete-attribute-4";
                 }
             }, function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(19);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5-goto-4", step: 19});
                     return "rate-severity-5-goto-4";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4"});
                     return "delete-attribute-4";
                 }
             }]
         },
-        "delete-attribute-4": {
+        {
+            "id": "delete-attribute-4",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1093,12 +1041,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-4"});
-                return "redo-select-label-type-4";
-            }
+            "transition": "redo-select-label-type-4"
         },
-        "redo-select-label-type-4": {
+        {
+            "id": "redo-select-label-type-4",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "CurbRamp",
@@ -1128,12 +1075,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": "white"
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs"});
-                return "label-both-curbs";
-            }
+            "transition": "label-both-curbs"
         },
-        "rate-severity-4": {
+        {
+            "id": "rate-severity-4",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -1143,8 +1089,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-4') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1153,16 +1099,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5", step: 20});
                     return "select-label-type-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
                     return "redo-rate-attribute-4";
                 }
             }
         },
-        "redo-rate-attribute-4": {
+        {
+            "id": "redo-rate-attribute-4",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
@@ -1172,8 +1117,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1182,16 +1127,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5", step: 20});
                     return "select-label-type-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4"});
                     return "redo-rate-attribute-4";
                 }
             }
         },
-        "select-label-type-5": {
+        {
+            "id": "select-label-type-5",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
@@ -1213,13 +1157,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": "white"
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(21);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5", step: 21});
-                return "label-attribute-5";
-            }
+            "transition": "label-attribute-5"
         },
-        "label-attribute-5": {
+        {
+            "id": "label-attribute-5",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1246,16 +1188,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(22);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5", step: 22});
                     return "rate-severity-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-5"});
                     return "delete-attribute-5";
                 }
             }]
         },
-        "delete-attribute-5": {
+        {
+            "id": "delete-attribute-5",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1277,12 +1218,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-5"});
-                return "redo-select-label-type-5";
-            }
+            "transition": "redo-select-label-type-5"
         },
-        "redo-select-label-type-5": {
+        {
+            "id": "redo-select-label-type-5",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "CurbRamp",
@@ -1304,12 +1244,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
-                return "label-attribute-5";
-            }
+            "transition": "label-attribute-5"
         },
-        "rate-severity-5": {
+        {
+            "id": "rate-severity-5",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -1319,8 +1258,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1329,16 +1268,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
                     return "redo-rate-attribute-5";
                 }
             }
         },
-        "redo-rate-attribute-5": {
+        {
+            "id": "redo-rate-attribute-5",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
@@ -1348,8 +1286,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1358,16 +1296,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5"});
                     return "redo-rate-attribute-5";
                 }
             }
         },
-        "select-label-type-4-after-5": {
+        {
+            "id": "select-label-type-4-after-5",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
@@ -1390,13 +1327,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 }
 
             ],
-            "transition": function () {
-                _updateProgressBar(21);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4-after-5", step: 21});
-                return "label-attribute-4-after-5";
-            }
+            "transition": "label-attribute-4-after-5"
         },
-        "label-attribute-4-after-5": {
+        {
+            "id": "label-attribute-4-after-5",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1423,16 +1358,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(22);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4-after-5", step: 22});
                     return "rate-severity-4-after-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-4-after-5"});
                     return "delete-attribute-4-after-5";
                 }
             }]
         },
-        "delete-attribute-4-after-5": {
+        {
+            "id": "delete-attribute-4-after-5",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1454,12 +1388,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-4-after-5"});
-                return "redo-select-label-type-4-after-5";
-            }
+            "transition": "redo-select-label-type-4-after-5"
         },
-        "redo-select-label-type-4-after-5": {
+        {
+            "id": "redo-select-label-type-4-after-5",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "CurbRamp",
@@ -1481,12 +1414,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4-after-5"});
-                return "label-attribute-4-after-5";
-            }
+            "transition": "label-attribute-4-after-5"
         },
-        "rate-severity-4-after-5": {
+        {
+            "id": "rate-severity-4-after-5",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -1496,7 +1428,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-4') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1505,16 +1437,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10); // I expect the caller to set this to the <input type="radio">.
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4-after-5"});
                     return "redo-rate-attribute-4-after-5";
                 }
             }
         },
-        "redo-rate-attribute-4-after-5": {
+        {
+            "id": "redo-rate-attribute-4-after-5",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
@@ -1524,8 +1455,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1534,16 +1465,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(23);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6", step: 23});
                     return "select-label-type-6";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-4-after-5"});
                     return "redo-rate-attribute-4-after-5";
                 }
             }
         },
-        "rate-severity-5-goto-4": {
+        {
+            "id": "rate-severity-5-goto-4",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -1553,8 +1483,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1563,16 +1493,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5", step: 20});
                     return "select-label-type-4-after-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5-goto-4"});
                     return "redo-rate-attribute-5-goto-4";
                 }
             }
         },
-        "redo-rate-attribute-5-goto-4": {
+        {
+            "id": "redo-rate-attribute-5-goto-4",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
@@ -1582,8 +1511,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1592,16 +1521,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(20);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5", step: 20});
                     return "select-label-type-4-after-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-5-goto-4"});
                     return "redo-rate-attribute-5-goto-4";
                 }
             }
         },
-        "select-label-type-6": {
+        {
+            "id": "select-label-type-6",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "NoSidewalk",
@@ -1623,13 +1551,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": "white"
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(24);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6", step: 24});
-                return "label-attribute-6";
-            }
+            "transition": "label-attribute-6"
         },
-        "label-attribute-6": {
+        {
+            "id": "label-attribute-6",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "NoSidewalk",
@@ -1656,16 +1582,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(25);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6", step: 25});
                     return "rate-severity-6";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-6"});
                     return "delete-attribute-6";
                 }
             }]
         },
-        "delete-attribute-6": {
+        {
+            "id": "delete-attribute-6",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "NoSidewalk",
@@ -1687,12 +1612,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-6"});
-                return "redo-select-label-type-6";
-            }
+            "transition": "redo-select-label-type-6"
         },
-        "redo-select-label-type-6": {
+        {
+            "id": "redo-select-label-type-6",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "NoSidewalk",
@@ -1714,12 +1638,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
-                return "label-attribute-6";
-            }
+            "transition": "label-attribute-6"
         },
-        "rate-severity-6": {
+        {
+            "id": "rate-severity-6",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "NoSidewalk",
@@ -1740,16 +1663,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    _updateProgressBar(26);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6", step: 26});
                     return "tag-attribute-6";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
                     return "redo-rate-attribute-6";
                 }
             }
         },
-        "redo-rate-attribute-6": {
+        {
+            "id": "redo-rate-attribute-6",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "NoSidewalk",
@@ -1770,16 +1692,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    _updateProgressBar(26);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6", step: 26});
                     return "tag-attribute-6";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
                     return "redo-rate-attribute-6";
                 }
             }
         },
-        "tag-attribute-6": {
+        {
+            "id": "tag-attribute-6",
+            "progression": true,
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoSidewalk",
@@ -1800,22 +1721,19 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 if (tags.length === 2 && tags.includes(20) && tags.includes(21)) {
                     // We have both tags correct, so lets continue.
                     contextMenu.hide();
-                    _updateProgressBar(28);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4", step: 28});
                     return "adjust-heading-angle-4";
                 } else if (tags.length === 1 && (tags.includes(20) || tags.includes(21))) {
                     // We have one of the two tags so far, so stay in this state.
-                    _updateProgressBar(27);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6", step: 27});
                     return "tag-attribute-6";
                 } else {
                     // A mistake was made, move to the redo state.
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-6"});
                     return "redo-tag-attribute-6";
                 }
             }
         },
-        "redo-tag-attribute-6": {
+        {
+            "id": "redo-tag-attribute-6",
+            "progression": false,
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoSidewalk",
@@ -1834,24 +1752,21 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var tags = this.getProperty('tagIds');
                 if (tags.length === 2 && tags.includes(20) && tags.includes(21)) {
-                    // We have both tags correct, so lets continue.
-                    _updateProgressBar(28);
+                    // We have both tags correct, so let's continue.
                     contextMenu.hide();
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-4", step: 28});
                     return "adjust-heading-angle-4";
                 } else if (tags.includes(20) || tags.includes(21)) {
                     // We have at least one of the two tags so far, but not both. Move progress bar, stay in this state.
-                    _updateProgressBar(27);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-6", step: 27});
                     return "redo-tag-attribute-6";
                 } else {
                     // We don't have any correct tags, don't move progress bar forward, stay in same state.
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-6"});
                     return "redo-tag-attribute-6";
                 }
             }
         },
-        "adjust-heading-angle-4": {
+        {
+            "id": "adjust-heading-angle-4",
+            "progression": true,
             "properties": {
                 "action": "AdjustHeadingAngle",
                 "heading": 0,
@@ -1865,13 +1780,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(29);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7", step: 29});
-                return "select-label-type-7";
-            }
+            "transition": "select-label-type-7"
         },
-        "select-label-type-7": {
+        {
+            "id": "select-label-type-7",
+            "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
@@ -1893,13 +1806,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": "white"
                 }
             ],
-            "transition": function () {
-                _updateProgressBar(30);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7", step: 30});
-                return "label-attribute-7";
-            }
+            "transition": "label-attribute-7"
         },
-        "label-attribute-7": {
+        {
+            "id": "label-attribute-7",
+            "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1926,16 +1837,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    _updateProgressBar(31);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7", step: 31});
                     return "rate-severity-7";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "delete-attribute-7"});
                     return "delete-attribute-7";
                 }
             }]
         },
-        "delete-attribute-7": {
+        {
+            "id": "delete-attribute-7",
+            "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "CurbRamp",
@@ -1957,12 +1867,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-select-label-type-7"});
-                return "redo-select-label-type-7";
-            }
+            "transition": "redo-select-label-type-7"
         },
-        "redo-select-label-type-7": {
+        {
+            "id": "redo-select-label-type-7",
+            "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "CurbRamp",
@@ -1984,12 +1893,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-7"});
-                return "label-attribute-7";
-            }
+            "transition": "label-attribute-7"
         },
-        "rate-severity-7": {
+        {
+            "id": "rate-severity-7",
+            "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
@@ -1999,9 +1907,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                'alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" ' +
+                    'alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -2010,16 +1918,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(32);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5", step: 32});
                     return "adjust-heading-angle-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
                     return "redo-rate-attribute-7";
                 }
             }
         },
-        "redo-rate-attribute-7": {
+        {
+            "id": "redo-rate-attribute-7",
+            "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
@@ -2029,9 +1936,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
-                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                'alt="Rating curb ramp quality as 1, passable">',
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" ' +
+                    'alt="Rating curb ramp quality as 1, passable">',
                 "parameters": null
             },
             "panoId": panoId,
@@ -2040,16 +1947,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    _updateProgressBar(32);
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5", step: 32});
                     return "adjust-heading-angle-5";
                 } else {
-                    tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-7"});
                     return "redo-rate-attribute-7";
                 }
             }
         },
-        "adjust-heading-angle-5": {
+        {
+            "id": "adjust-heading-angle-5",
+            "progression": true,
             "properties": {
                 "action": "AdjustHeadingAngle",
                 "heading": 346,
@@ -2063,13 +1969,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(33);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1", step: 33});
-                return "walk-1";
-            }
+            "transition": "walk-1"
         },
-        "walk-1": {
+        {
+            "id": "walk-1",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-5"][0],
@@ -2085,20 +1989,20 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "transition": function () {
-                _updateProgressBar(34);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2", step: 34});
 
                 // Set Compass Message
                 var uiCompassMessageHolder = compass.getCompassMessageHolder();
                 var image = "<img src='" + compass.directionToImagePath("straight") + "' class='compass-turn-images' alt='Turn icon' />";
-                var message =  "<span class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') +
+                var message = "<span class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') +
                     "</span><br/>" + image + "<span class='bold'>" + i18next.t('center-ui.compass.straight') + "</span>";
                 uiCompassMessageHolder.message.html(message);
                 compass.showMessage();
                 return "walk-2";
             }
         },
-        "walk-2": {
+        {
+            "id": "walk-2",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "blinks": ["compass"],
@@ -2114,13 +2018,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(35);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-3", step: 35});
-                return "walk-3";
-            }
+            "transition": "walk-3"
         },
-        "walk-3": {
+        {
+            "id": "walk-3",
+            "progression": true,
             "properties": {
                 "action": "WalkTowards",
                 "blinks": ["compass", "movement-arrow"],
@@ -2135,14 +2037,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "transition": function () {
-                _updateProgressBar(36);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-4", step: 36});
                 mapService.setPov({heading: 330, pitch: 0, zoom: 1});
                 svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/afterWalkTutorialMiniMap.jpg')`);
                 return "walk-4";
             }
         },
-        "walk-4": {
+        {
+            "id": "walk-4",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "stopBlinking": true,
@@ -2161,13 +2063,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "panoId": afterWalkPanoId,
             "annotations": null,
             // okButtonText: "Yes! I see the missing curb ramps.",
-            "transition": function () {
-                _updateProgressBar(37);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-5", step: 37});
-                return "walk-5";
-            }
+            "transition": "walk-5"
         },
-        "walk-5": {
+        {
+            "id": "walk-5",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-6"][0],
@@ -2199,13 +2099,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
 
             ],
             okButtonText: i18next.t('tutorial.walk-5-2'),
-            "transition": function () {
-                _updateProgressBar(38);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "walk-6", step: 38});
-                return "walk-6";
-            }
-         },
-        "walk-6": {
+            "transition": "walk-6"
+        },
+        {
+            "id": "walk-6",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "minHeading": headingRanges["stage-6"][0],
@@ -2213,7 +2111,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.walk-6-1') +
-                '<img src="' + svl.rootDirectory + 'img/icons/NoCurbRamp_small.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
+                    '<img src="' + svl.rootDirectory + 'img/icons/NoCurbRamp_small.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
                     i18next.t('tutorial.walk-6-2'),
                 "width": 400,
                 "fade-direction": "fadeIn"
@@ -2238,13 +2136,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 }
 
             ],
-            "transition": function () {
-                _updateProgressBar(39);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1", step: 39});
-                return "instruction-1";
-            }
+            "transition": "instruction-1"
         },
-        "instruction-1": {
+        {
+            "id": "instruction-1",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "blinks": ["minimap"],
@@ -2260,13 +2156,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(40);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2", step: 40});
-                return "instruction-2";
-            }
+            "transition": "instruction-2"
         },
-        "instruction-2": {
+        {
+            "id": "instruction-2",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "blinks": ["stuck"],
@@ -2282,13 +2176,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
-            "transition": function () {
-                _updateProgressBar(41);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "outro", step: 41});
-                return "outro";
-            }
+            "transition": "outro"
         },
-        "outro": {
+        {
+            "id": "outro",
+            "progression": true,
             "properties": {
                 "action": "Instruction",
                 "heading": 280,
@@ -2310,16 +2202,16 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "okButton": false,
             "panoId": afterWalkPanoId,
             "annotations": null,
-            "transition": function () {
-                return "end-onboarding";
-            }
+            "transition": "end-onboarding"
         },
-        "end-onboarding": {
+        {
+            "id": "end-onboarding",
+            "progression": false,
             "end-onboarding": {
                 "skip": false
             }
         }
-    };
+    ];
 
-    this.get = function () { return this.states; };
+    this.get = function () { console.log(this.states); return this.states; };
 }

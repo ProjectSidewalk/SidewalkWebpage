@@ -33,6 +33,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var blink_timer = 0;
     var blink_function_identifier = [];
     var states = onboardingStates.get();
+    var statesWithProgress = states.filter(state => state.progression);
 
     var _mouseDownCanvasDrawingHandler;
     var currentLabelState;
@@ -278,8 +279,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         povChange["status"] = false;
     }
 
-    function getState(stateIndex) {
-        return states[stateIndex];
+    function getState(stateId) {
+        return states.find(state => state.id === stateId);
     }
 
     /**
@@ -297,7 +298,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function next(nextState, params) {
         if (typeof nextState === "function") {
             _visit(getState(nextState.call(this, params)));
-        } else if (nextState in states) {
+        } else if (states.find(state => state.id === nextState)) {
             _visit(getState(nextState));
         } else {
             _visit(null);
@@ -445,6 +446,20 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @param state
      */
     function _visit(state) {
+        // Update the progress bar (if the state marks progress in the tutorial) & log the transition to the new state.
+        var stepNum = statesWithProgress.findIndex(s => s.id === state.id);
+        if (stepNum !== -1 && !state.visited) {
+            var completionRate = stepNum / statesWithProgress.length;
+            svl.statusModel.setMissionCompletionRate(completionRate);
+            svl.statusModel.setProgressBar(completionRate);
+            console.log({ onboardingTransition: state.id, step: stepNum });
+            tracker.push('Onboarding_Transition', { onboardingTransition: state.id, step: stepNum });
+        } else {
+            console.log({ onboardingTransition: state.id });
+            tracker.push('Onboarding_Transition', { onboardingTransition: state.id });
+        }
+        state.visited = true;
+
         var annotationListener;
 
         clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
@@ -801,11 +816,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var pov = mapService.getPov();
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
+                // console.log("canvasXY: " + canvasX + ", " + canvasY);
                 var panoXY = util.panomarker.canvasXYToPanoXY(
                     pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, cameraHeading, svImgWidth, svImgHeight
                 );
+                // console.log("panoXY: " + panoXY.x + ", " + panoXY.y);
                 panoXY.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
                 panoXY.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;
+                // console.log("panoXY: " + panoXY.x + ", " + panoXY.y);
 
                 distance[i] = (imageX - panoXY.x) * (imageX - panoXY.x) + (imageY - panoXY.y) * (imageY - panoXY.y);
                 currentLabelState = state;
