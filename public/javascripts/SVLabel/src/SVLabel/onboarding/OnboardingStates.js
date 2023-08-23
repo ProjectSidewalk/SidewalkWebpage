@@ -187,7 +187,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    return "select-label-type-22";
+                    return "select-label-type-2";
                 } else {
                     return "redo-rate-attribute-1";
                 }
@@ -216,14 +216,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    return "select-label-type-22";
+                    return "select-label-type-2";
                 } else {
                     return "redo-rate-attribute-1";
                 }
             }
         },
         {
-            "id": "select-label-type-22",
+            "id": "select-label-type-2",
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
@@ -244,10 +244,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": "label-attribute-22"
+            "transition": "label-attribute-2"
         },
         {
-            "id": "label-attribute-22",
+            "id": "label-attribute-2",
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
@@ -275,14 +275,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-22";
+                    return "rate-severity-2";
                 } else {
-                    return "delete-attribute-22";
+                    return "delete-attribute-2";
                 }
             }]
         },
         {
-            "id": "delete-attribute-22",
+            "id": "delete-attribute-2",
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
@@ -304,10 +304,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": "redo-select-label-type-22"
+            "transition": "redo-select-label-type-2"
         },
         {
-            "id": "redo-select-label-type-22",
+            "id": "redo-select-label-type-2",
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
@@ -329,10 +329,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "angle": 0
                 }
             ],
-            "transition": "label-attribute-22"
+            "transition": "label-attribute-2"
         },
         {
-            "id": "rate-severity-22",
+            "id": "rate-severity-2",
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
@@ -353,12 +353,12 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     contextMenu.hide();
                     return "adjust-heading-angle-1";
                 } else {
-                    return "redo-rate-attribute-22";
+                    return "redo-rate-attribute-2";
                 }
             }
         },
         {
-            "id": "redo-rate-attribute-22",
+            "id": "redo-rate-attribute-2",
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
@@ -379,7 +379,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     contextMenu.hide();
                     return "adjust-heading-angle-1";
                 } else {
-                    return "redo-rate-attribute-22";
+                    return "redo-rate-attribute-2";
                 }
             }
         },
@@ -418,10 +418,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": "select-label-type-2"
+            "transition": "select-label-type-3"
         },
         {
-            "id": "select-label-type-2",
+            "id": "select-label-type-3",
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
@@ -444,10 +444,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "label-attribute-2"
+            "transition": "label-attribute-3"
         },
         {
-            "id": "label-attribute-2",
+            "id": "label-attribute-3",
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
@@ -475,14 +475,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-2";
+                    return "rate-severity-3";
                 } else {
-                    return "delete-attribute-2";
+                    return "delete-attribute-3";
                 }
             }]
         },
         {
-            "id": "delete-attribute-2",
+            "id": "delete-attribute-3",
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
@@ -505,10 +505,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "redo-select-label-type-2"
+            "transition": "redo-select-label-type-3"
         },
         {
-            "id": "redo-select-label-type-2",
+            "id": "redo-select-label-type-3",
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
@@ -531,10 +531,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "label-attribute-2"
+            "transition": "label-attribute-3"
         },
         {
-            "id": "rate-severity-2",
+            "id": "rate-severity-3",
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
@@ -554,14 +554,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
-                    return "tag-attribute-2";
+                    return "tag-attribute-3";
                 } else {
-                    return "redo-rate-attribute-2";
+                    return "redo-rate-attribute-3";
                 }
             }
         },
         {
-            "id": "redo-rate-attribute-2",
+            "id": "redo-rate-attribute-3",
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
@@ -582,14 +582,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
-                    return "tag-attribute-2";
+                    return "tag-attribute-3";
                 } else {
-                    return "redo-rate-attribute-2";
+                    return "redo-rate-attribute-3";
                 }
             }
         },
         {
-            "id": "tag-attribute-2",
+            "id": "tag-attribute-3",
             "progression": true,
             "properties": {
                 "action": "AddTag",
@@ -609,14 +609,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
                     contextMenu.hide();
-                    return "select-label-type-3";
+                    return "select-label-type-4";
                 } else {
-                    return "redo-tag-attribute-2";
+                    return "redo-tag-attribute-3";
                 }
             }
         },
         {
-            "id": "redo-tag-attribute-2",
+            "id": "redo-tag-attribute-3",
             "progression": false,
             "properties": {
                 "action": "RedoAddTag",
@@ -636,14 +636,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
                     contextMenu.hide();
-                    return "select-label-type-3";
+                    return "select-label-type-4";
                 } else {
-                    return "redo-tag-attribute-2";
+                    return "redo-tag-attribute-3";
                 }
             }
         },
         {
-            "id": "select-label-type-3",
+            "id": "select-label-type-4",
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
@@ -666,10 +666,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "label-attribute-3"
+            "transition": "label-attribute-4"
         },
         {
-            "id": "label-attribute-3",
+            "id": "label-attribute-4",
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
@@ -697,14 +697,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-3";
+                    return "rate-severity-4";
                 } else {
-                    return "delete-attribute-3";
+                    return "delete-attribute-4";
                 }
             }]
         },
         {
-            "id": "delete-attribute-3",
+            "id": "delete-attribute-4",
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
@@ -727,10 +727,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "redo-select-label-type-3"
+            "transition": "redo-select-label-type-4"
         },
         {
-            "id": "redo-select-label-type-3",
+            "id": "redo-select-label-type-4",
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
@@ -753,10 +753,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "label-attribute-3"
+            "transition": "label-attribute-4"
         },
         {
-            "id": "rate-severity-3",
+            "id": "rate-severity-4",
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
@@ -777,14 +777,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    return "tag-attribute-3";
+                    return "tag-attribute-4";
                 } else {
-                    return "redo-rate-attribute-3";
+                    return "redo-rate-attribute-4";
                 }
             }
         },
         {
-            "id": "redo-rate-attribute-3",
+            "id": "redo-rate-attribute-4",
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
@@ -805,14 +805,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    return "tag-attribute-3";
+                    return "tag-attribute-4";
                 } else {
-                    return "redo-rate-attribute-3";
+                    return "redo-rate-attribute-4";
                 }
             }
         },
         {
-            "id": "tag-attribute-3",
+            "id": "tag-attribute-4",
             "progression": true,
             "properties": {
                 "action": "AddTag",
@@ -832,14 +832,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
                     contextMenu.hide();
-                    return "zoom-out";
+                    return "select-label-type-5";
                 } else {
-                    return "redo-tag-attribute-3";
+                    return "redo-tag-attribute-4";
                 }
             }
         },
         {
-            "id": "redo-tag-attribute-3",
+            "id": "redo-tag-attribute-4",
             "progression": false,
             "properties": {
                 "action": "RedoAddTag",
@@ -859,11 +859,125 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
                     contextMenu.hide();
-                    return "zoom-out";
+                    return "select-label-type-5";
                 } else {
-                    return "redo-tag-attribute-3";
+                    return "redo-tag-attribute-4";
                 }
             }
+        },
+        {
+            "id": "select-label-type-5",
+            "progression": true,
+            "properties": {
+                "action": "SelectLabelType",
+                "labelType": "Signal",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": "On the pole you can see a light telling pedestrians that they can cross the street. Click the Pedestrian Signal button to label it.",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7705,
+                    "y": -285,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null
+                }
+            ],
+            "transition": "label-attribute-5"
+        },
+        {
+            "id": "label-attribute-5",
+            "progression": true,
+            "properties": [{
+                "action": "LabelAccessibilityAttribute",
+                "labelType": "Signal",
+                "imageX": 12500,
+                "imageY": 3690,
+                "tolerance": 200,
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            }],
+            "message": {
+                "message": "Label that pedestrian signal! You can see the light higher up on the pole, but we add labels at the bottom of the pole because it gives us a more accurate location.",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7705,
+                    "y": -285,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": "yellow"
+                }
+            ],
+            "transition": [function (params) {
+                if (params.accurate) {
+                    contextMenu.hide();
+                    return "zoom-out";
+                } else {
+                    return "delete-attribute-5";
+                }
+            }]
+        },
+        {
+            "id": "delete-attribute-5",
+            "progression": false,
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "Signal",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+            },
+            "message": {
+                "message": `Oops! Your label is too far away.  For tall objects like poles, let's add labels at the base of the pole. This gives us more accurate location info! Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7705,
+                    "y": -285,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null
+                }
+            ],
+            "transition": "redo-select-label-type-5"
+        },
+        {
+            "id": "redo-select-label-type-5",
+            "progression": false,
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "Signal",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7705,
+                    "y": -285,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null
+                }
+            ],
+            "transition": "label-attribute-5"
         },
         {
             "id": "zoom-out",
