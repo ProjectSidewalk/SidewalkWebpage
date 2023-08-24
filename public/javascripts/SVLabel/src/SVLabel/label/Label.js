@@ -236,35 +236,37 @@ function Label(params) {
                 );
             }
 
-            // Draw the label icon.
-            var imageObj, imageHeight, imageWidth, imageX, imageY;
-            imageObj = new Image();
-            imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
-            imageX =  properties.currCanvasXY.x - svl.LABEL_ICON_RADIUS + 2;
-            imageY = properties.currCanvasXY.y - svl.LABEL_ICON_RADIUS + 2;
-            imageObj.src = getProperty('iconImagePath');
-            try {
-                ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-            } catch (e) {
-                console.debug(e);
-            }
+            if (properties.currCanvasXY.x > 0 && properties.currCanvasXY.y > 0) {
+                // Draw the label icon.
+                var imageObj, imageHeight, imageWidth, imageX, imageY;
+                imageObj = new Image();
+                imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
+                imageX =  properties.currCanvasXY.x - svl.LABEL_ICON_RADIUS + 2;
+                imageY = properties.currCanvasXY.y - svl.LABEL_ICON_RADIUS + 2;
+                imageObj.src = getProperty('iconImagePath');
+                try {
+                    ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+                } catch (e) {
+                    console.debug(e);
+                }
 
-            // Draws label outline.
-            ctx.beginPath();
-            ctx.fillStyle = getProperty('fillStyle');
-            ctx.lineWidth = 0.7;
-            ctx.beginPath();
-            ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 15.3, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'black';
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 16.2, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'white';
-            ctx.stroke();
+                // Draws label outline.
+                ctx.beginPath();
+                ctx.fillStyle = getProperty('fillStyle');
+                ctx.lineWidth = 0.7;
+                ctx.beginPath();
+                ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 15.3, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'black';
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 16.2, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'white';
+                ctx.stroke();
 
-            // Only render severity warning if there's a severity option.
-            if (!['Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
-                showSeverityAlert(ctx);
+                // Only render severity warning if there's a severity option.
+                if (!['Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
+                    showSeverityAlert(ctx);
+                }
             }
         }
 
