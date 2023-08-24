@@ -25,12 +25,12 @@ not.applicable.abbr = 不適用
 feedback = 回饋
 validations = 檢核
 labels = 標記
-label.icon.alt = 有大目的地記號的極簡風格地圖圖示
+label.icon.alt = 用大目的地記號的極簡風格地圖圖示
 accuracy = 精準度
 accuracy.caps = 精準度
 accuracy.icon.alt = 射正目標紅心
 dist.metric.abbr = 哩
-distance.icon.alt = 圖標顯示到目的地的彎曲路徑
+distance.icon.alt = 顯示彎曲路徑到達目的地的圖示
 ok = 確認
 cancel = 取消
 error = 錯誤！
@@ -39,8 +39,8 @@ no.caps = 否
 thanks = 謝謝！
 username = 使用者名稱
 loading = 讀取中...
-loading.encouragement = 讓我們來吧!
-test.server.warning.message = <strong>警告！</strong> 您目前在測試版伺服器！您的資料將不會被儲存！若您希望資料被儲存，請使用正式版伺服器。
+loading.encouragement = 讓我們來做吧!
+test.server.warning.message = <strong>警告！</strong> 您目前在使用測試版伺服器！您的資料將不會被儲存！若您希望資料被儲存，請使用正式版伺服器。
 dont.show.again = 不再顯示
 
 press.key = 點擊 "{0}" 鍵
@@ -116,10 +116,10 @@ footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_I
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
 footer.version = Version {0} | 最後更新時間： <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬的方式探索一座城市，尋找和檢視環境中的可及性特徵及標記有可及性問題的地點，已完成改善人行環性的任務，項目包括：
+audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬的方式探索市區，尋找和檢視該環境中的可及性特徵及標記有可及性問題的地點，來完成改善人行環境的任務。涵蓋的項目包括：
 audit.tutorial.welcome.2 = 我們會以簡短、互動式的教學來學習。
 audit.tutorial.welcome.3 = 我們開始吧！
-audit.tutorial.welcome.4 = 已經完成教學了嗎？ 已有帳戶？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">跳過教學。</a>
+audit.tutorial.welcome.4 = 已完成教學或已有帳戶了嗎？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">來跳過教學。</a>
 audit.tutorial.accessible = <span style="color:limegreen">可通行的</span>
 audit.tutorial.inaccessible = <span style="color:red">不可通行的</span>
 audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者進出人行道
@@ -130,10 +130,10 @@ audit.tutorial.end.1 =很棒！您已學會如何使用平臺介面！請特別�
 audit.tutorial.end.2 = 再次感謝您<span class="bold">為這個世界創造出讓所有使用者更容易通行的環境！</span>
 audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、有障礙物及鋪面問題。
 
-audit.ribbon.find.and.label = 尋找並標記以下
+audit.ribbon.find.and.label = 尋找並標記以下狀況
 audit.ribbon.curb.ramp.labels = 路緣坡道標籤
 audit.ribbon.sidewalk.labels = 人行道標籤
-audit.ribbon.other.labels = 其他無障礙標籤
+audit.ribbon.other.labels = 其他可及性標籤
 audit.ribbon.explore = 探索<u>E</u>
 audit.ribbon.curb.ramp = 路緣斜坡<u>C</u>
 audit.ribbon.missing.ramp = 無路緣斜坡<u>M</u>
@@ -148,11 +148,11 @@ audit.ribbon.occlusion = 看不到人行道 (<u>B</u>)
 audit.left.ui.zoom.in = 放大<u>Z</u>
 audit.left.ui.zoom.out = 縮小
 audit.left.ui.sound = 音效
-audit.left.ui.stuck = 難以抉擇
+audit.left.ui.stuck = 卡住
 audit.left.ui.jump = 跳過
 audit.left.ui.jump.title = 跳到另一個地點，因為：
-audit.left.ui.jump.button.explore = 我想探索其他的鄰里！
-audit.left.ui.jump.button.unavailable = 我無法前往您要我前往的方向...
+audit.left.ui.jump.button.explore = 我想要探索其他的鄰里！
+audit.left.ui.jump.button.unavailable = 我無法往您要我行走的方向前進...
 audit.left.ui.jump.explore.title = 前往新的地點或鄰里嗎？
 audit.left.ui.jump.explore.button.same.neighborhood = 前往此鄰里的另一個地點
 audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
@@ -170,22 +170,22 @@ audit.mission.complete.labels.title = 任務標記
 audit.mission.complete.progress.mission.you = 您於此任務已探索
 audit.mission.complete.progress.neighborhood.others = 其他標記者於此鄰里已探索
 audit.mission.complete.legend.this.mission = 此次任務
-audit.mission.complete.legend.previous.missions = 過往執行任務
+audit.mission.complete.legend.previous.missions = 過往的執行任務
 
-audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷
+audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷調查
 audit.survey.enjoyment.question = 您對使用Project Sidewalk平台的滿意度？
 audit.survey.enjoyment.option.1 = 很無聊
 audit.survey.enjoyment.option.2 = 無聊
-audit.survey.enjoyment.option.3 = 普通
+audit.survey.enjoyment.option.3 = 普通/無意見
 audit.survey.enjoyment.option.4 = 有趣
 audit.survey.enjoyment.option.5 = 很有趣
 audit.survey.difficulty.question = 使用Project Sidewalk平臺的難易程度？
 audit.survey.difficulty.option.1 = 非常困難
 audit.survey.difficulty.option.2 = 困難
-audit.survey.difficulty.option.3 = 普通
+audit.survey.difficulty.option.3 = 普通/無意見
 audit.survey.difficulty.option.4 = 簡單
 audit.survey.difficulty.option.5 = 非常簡單
-audit.survey.performance.question = 您覺得您在標記任務中的表現為何？
+audit.survey.performance.question = 您覺得您在標記任務中的表現如何？
 audit.survey.performance.option.1 = 差勁
 audit.survey.performance.option.2 = 尚可
 audit.survey.performance.option.3 = 好
@@ -202,8 +202,8 @@ validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定
 validate.bottom.ui.add.comment = 於此輸入說明...
 validate.right.ui.current.mission = 目前任務
-validate.right.ui.correct.examples = <strong>正確</strong> 例子
-validate.right.ui.incorrect.examples = <strong>錯誤</strong> 例子
+validate.right.ui.correct.examples = <strong>正確</strong> 的範例
+validate.right.ui.incorrect.examples = <strong>錯誤</strong> 的範例
 validate.mission.complete.category = 類別
 validate.mission.complete.agree = 同意
 validate.mission.complete.disagree = 不同意
@@ -214,9 +214,9 @@ mobile.validate.leave.feedback = 請給予意見回饋
 
 turk.expired.navbar = 時間到
 turk.expired.title = 時間到！
-turk.expired.body = 您應該會在接下來的兩天內收到額外獎勵。 請在 mturk 網站上提交您的確認碼。 如果作業已經過期，請發送電子郵件至 <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> 並附上您的確認號碼
+turk.expired.body = 您應該會在接下來的兩天內收到額外獎勵。 請在 mturk 網站上提交您的確認碼。 如果此功課已經過期，請發送電子郵件至 <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> 並附上您的確認號碼
 turk.mturk.code = Mturk代碼:
-turk.reward.earned = 所有獲取獎勵
+turk.reward.earned = 所有獲得的獎勵
 
 authenticate.email = 電子郵件地址
 authenticate.password = 密碼
@@ -224,7 +224,7 @@ authenticate.submit = 送出
 authenticate.new = 您是新使用者嗎？ <a href="#" id="form-open-sign-up">請註冊！</a>
 authenticate.non.member = 還不是會員嗎？ <a href="{0}">請註冊</a>
 authenticate.confirm.password = 確認密碼
-authenticate.service.hours.title = 您是否有計畫將您於Project Sidewalk所做的工作計入社區/志工服務時間？
+authenticate.service.hours.title = 您是否有打畫將您於Project Sidewalk所做的工作計入社區/志工服務時間？
 authenticate.terms = 您同意我們的<a target="_blank" href="/terms">使用條款和隱私政策</a>
 authenticate.signup = 註冊
 authenticate.signup.new.account = 註冊新帳號
@@ -238,23 +238,23 @@ authenticate.error.missing.email = 請輸入有效的電子郵件
 authenticate.error.missing.password = 請輸入密碼
 authenticate.error.email.exists = 電子郵件已存在
 authenticate.error.username.exists = 使用者名稱已存在
-authenticate.error.password.length = 密碼至少須有6個字元
+authenticate.error.password.length = 密碼須含有至少6個字元
 authenticate.error.password.mismatch = 密碼不相符
-authenticate.error.missing.service.hours = 請回覆所有問題
+authenticate.error.missing.service.hours = 請回覆所有的問題
 authenticate.error.invalid.credentials = 無效的認證！
-authenticate.error.generic = 處理您的要求時出現錯誤。請確認您的所有訊息正確無誤並重試
+authenticate.error.generic = 處理您的要求時發生了錯誤。請確認您的所有訊息都正確無誤後再重試一次。
 
-reset.pw.forgot.title = 忘記密碼？
+reset.pw.forgot.title = 忘記密碼了嗎？
 reset.pw.forgot.submit.email = 別擔心，輸入您的電子郵件，我們將寄送重設密碼的連結給您。
 reset.pw.forgot.suggest = 如果您在登錄或重設密碼時遇到問題，請查看頁面右上角的導航欄，來確認您是否正在檢視您設立帳戶的城市。不同城市之間的帳戶並不相通，因此您需要為每個城市設立一個新帳戶（您可以使用相同的用戶名/密碼）。
 
-reset.pw.email.hello = 嗨 {0},
-reset.pw.email.reset.title = 重設您的Project Sidewalk密碼
+reset.pw.email.hello = {0}您好,
+reset.pw.email.reset.title = 請重設您的Project Sidewalk密碼
 reset.pw.email.send.link = 傳送電子郵件
 reset.pw.email.reset.pw.sent = 重設密碼的電子郵件已寄出。
-reset.pw.email.reset.request.message = 您最近要求重設Project Sidewalk密碼，點擊以下連結重設密碼：
+reset.pw.email.reset.request.message = 您最近要求重設Project Sidewalk密碼，點擊以下連結以重設密碼：
 reset.pw.email.reset.not.requested = 如果您沒有要求重設密碼，請忽略此訊息，或發送電子郵件通知我們。
-reset.pw.email.reset.valid.duration = 此密碼重設將於60分鐘內有效
+reset.pw.email.reset.valid.duration = 此密碼重設將在下60分鐘內有效
 reset.pw.email.signature = Project Sidewalk團隊
 
 reset.pw.submit.new.pw = 請輸入新密碼
@@ -266,11 +266,11 @@ results.reset.view = 重設視角
 results.problems.per.mile = 每英里內的人行道問題數量
 results.legend.high = 高
 results.legend.low = 低
-results.legend.body = 當鄰里顯示灰色時，代表缺乏足夠的數據協助評估人行道問題。請點擊任何一個鄰里協助標記！成果地圖為初步的呈現方式，顯示尚未完成檢核之標記。我們正在加強相關數據的呈現方式，請持續關注！
+results.legend.body = 當鄰里顯示灰色時，代表目前缺乏足夠的數據來評估人行道問題。請點擊任何一個鄰里協助標記！成果地圖所呈現的狀況是目前初步的資料，顯示尚未完成檢核之標記。我們的工作還在進行中，請持續關注！
 
 dashboard.no.org = 無組織
 dashboard.edit.org = 編輯
-dashboard.edit.info = 若您找無您的組織，請email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> 並請提供您的組織名稱及簡介。
+dashboard.edit.info = 若您找不到您的組織，請email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> 並請提供您的組織名稱及簡介。
 dashboard.orgs.unavailable = 無適用之組織！
 dashboard.leave.org = 退出組織
 dashboard.total.distance.explored = 探索距離
@@ -281,27 +281,27 @@ dashboard.your.missions = 您的任務
 dashboard.distance = 距離
 dashboard.labels = 標記
 dashboard.mission.icon.alt = 手持旗子的輪椅使用者
-dashboard.validation.icon.alt = 在鉛筆旁邊的清單
-dashboard.accuracy.icon.tooltip = 您的標記精準度。 若顯示N/A表示您的標記尚未獲得其他用戶足夠的檢核。
+dashboard.validation.icon.alt = 在鉛筆旁的清單
+dashboard.accuracy.icon.tooltip = 您的標記精準度。 若顯示「N/A」，此表示您所做的的標記尚未獲得其他用戶足夠的檢核量。
 dashboard.achievements = 成就
-dashboard.first = 第一
-dashboard.second = 第二
-dashboard.third = 第三
-dashboard.fourth = 第四
-dashboard.fifth = 第五
+dashboard.first = 第一名
+dashboard.second = 第二名
+dashboard.third = 第三名
+dashboard.fourth = 第四名
+dashboard.fifth = 第五名
 dashboard.mission.badge = {0} 任務勳章
 dashboard.distance.badge = {0} 距離勳章
 dashboard.label.badge = {0} 標記勳章
 dashboard.validation.badge = {0} 檢核勳章
 dashboard.mistakes.header = 您最近的標記失誤
-dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中所判定的錯誤。有時其他用戶在檢核時會犯錯，這些評估錯誤通常是因細微的主觀判斷差異。
+dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中所判定的錯誤。有時其他用戶在檢核時也會犯錯，這些評估錯誤通常是由於細微的主觀判斷差異。
 dashboard.mistakes.tooltip.alt = 問號圖示顯示有用的工具提示框。
 
 labeling.guide.curb.ramp.summary = 路緣斜坡是一個切入路緣或將道路路面和人行道連接的短坡道。無障礙路緣斜坡提供給行動不便的用路人一個通行的路徑，讓他們可以安全地在實體人行道及路面之間通行 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 每一個路緣坡道，無論是否有問題，都應該標記。
 labeling.guide.obstacle.summary = 「障礙物」是位於行人路徑上，直接阻擋通道的任何物體。 「美國身心障礙者法」（ADA）要求在無障礙路線上必須提供“清空的地板或地面空間”。這樣才可讓行人，尤其是助行器或輪椅使用者，安全地留在人行道或行人穿越道上。對於部分的用路人，為了避開障礙物而移離原路徑可能是無法做到的，或者可能導致站立不穩、跌倒或發生其他危險。
 labeling.guide.surface.problem.summary = 鋪面問題是那種會導致輪椅或其他輔助器具使用者行經時會造成顛簸或不舒適的鋪面。如果鋪面上存有某種狀況會使用路人難以或無法通行，則應將它標記為鋪面問題。對於涵蓋大幅面積或是連續性的鋪面問題，建議您在問題開始的那一端設置一個鋪面問題標籤，並於每隔幾公尺處持續設置標籤，一直到問題結束為止。
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始設置「無人行道」標籤，並於每幾公尺持續設置標籤，一直到人行道再次出現處。。
-labeling.guide.occlusion.summary = 有時候，從街道景照片看往人行道的視線完全被阻擋了，在這種情況下，您可以標記“看不見人行道”。這種情況應該不常見到，因此請只在當人行道、路緣斜坡或其他可及性問題受阻礙物體（例如路邊停車）遮蔽而無法從任何角度觀察時，才標記為“看不見人行道”。
+labeling.guide.occlusion.summary = 有時候，從街道景照片看往人行道的視線完全被阻擋了，在這種情況下，您可以標記“看不見人行道”。這種情況應該不常見到，因此請只在當人行道、路緣斜坡或其他可及性問題，受阻礙物體（例如路邊停車）遮蔽而無法從任何角度觀察到時，才標記為「看不見人行道」。
 
 dist.metric.abbr = 公里
 admin.clear.play.cache = 清除快取
@@ -311,14 +311,14 @@ leaderboard.weekly.title = 單週排行榜
 leaderboard.inter.org.title = 隊伍排行榜
 leaderboard.org.title = {0} 排行榜
 leaderboard.overall.detail = 上榜者是依據標記、距離及精準度計算
-leaderboard.org.detail = 前10總體上榜者於 {0}
+leaderboard.org.detail = 前10名總體上榜者於 {0}
 leaderboard.header.team = 團隊
 leaderboard.header.labels = 標記
 leaderboard.header.missions = 任務
 leaderboard.header.distance = 距離
 leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才會顯示精準度
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
-leaderboard.encouragement = 想進入排行榜前10嗎？ <a id="encouragement-link" href="/explore"><u>開始探索地圖吧！</u></a>
+leaderboard.encouragement = 想進入排行榜前10名嗎？ <a id="encouragement-link" href="/explore"><u>開始探索這張地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
 leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
@@ -330,12 +330,12 @@ gallery.all = 所有的標記類型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以蒐集更多的資料！
 gallery.cards = 所有標記依據所選定的過濾器而隨機排序
 
-route.builder.name = 路徑設立工具
-route.builder.instructions = 當要設立自己的路徑時，請點擊您想行走的街道以將其加入您的路徑，然後點擊“儲存路徑”。然後，您可以探索該路徑並標記所見到的可及性問題，或是您也可以將此路徑的連結分享給其他人，讓他們探索同一個路徑！
-route.builder.save = 儲存路徑
-route.builder.explore = 探索路徑
-route.builder.share = 複製此路徑的連結
+route.builder.name = 路線設立工具
+route.builder.instructions = 當要設立自己的路線時，請點擊您想行走的街道以將其加入您的路線，然後點擊“儲存路線”。然後，您可以探索該路線並標記所見到的可及性問題，或是您也可以將此路線的連結分享給其他人，讓他們探索同一個路線！
+route.builder.save = 儲存路線
+route.builder.explore = 探索此路線
+route.builder.share = 複製此路線的連結
 
 help.rating.1 = Rating 1: 能通行
-help.rating.3 = Rating 3: 還能通行
+help.rating.3 = Rating 3: 普通
 help.rating.5 = Rating 5: 無法通行
