@@ -160,7 +160,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ga naar een nieuwe wijk
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
-audit.right.ui.current.mission = Huidige Missie
 
 audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
@@ -309,6 +308,7 @@ admin.clear.play.cache = Wis Play cache
 
 leaderboard.overall.title = Algemeen klassement
 leaderboard.weekly.title = Wekelijks Scoreboard
+leaderboard.inter.org.title = Teams klassement
 leaderboard.org.title = {0} Scoreboard
 leaderboard.overall.detail = Leiders worden berekend op basis van hun labels, afstand en nauwkeurigheid
 leaderboard.org.detail = Top 10 algemene bijdragers aan {0}

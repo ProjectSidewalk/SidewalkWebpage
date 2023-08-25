@@ -63,6 +63,7 @@
         "not level with street": "con desnivel",
         "surface-problem": "problema en superficie",
         "pooled water": "encharcada",
+        "parallel lines": "lineas paralelas",
         "alternate route present": "hay una ruta alternativa segura para cruzar",
         "no alternate route": "no hay una ruta alternativa para cruzar",
         "unclear if needed": "poco claro si es necesario",
@@ -110,7 +111,8 @@
         "pedestrian lane marking": "marcado de carril peatonal",
         "covered walkway": "pasarela cubierta",
         "too close to traffic": "demasiado cerca del tráfico",
-        "utility panel": "panel de utilidad"
+        "utility panel": "panel de utilidad",
+        "outdoor dining area": "comedor al aire libre"
     },
     "gsv-info": {
         "details-title": "Detalles",

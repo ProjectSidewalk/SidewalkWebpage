@@ -1,0 +1,149 @@
+{
+    "user-description": "使用者描述： ",
+    "temporary": "暫時的",
+    "top-ui": {
+        "title": {
+            "curb-ramp": "這是<b>路緣斜坡嗎</b>？",
+            "no-curb-ramp": "這裡<b>無路緣斜坡嗎</b>？",
+            "obstacle": "這是<b>障礙物嗎</b>？",
+            "surface-problem": "這是<b>鋪面問題嗎</b>？",
+            "no-sidewalk": "此處是否應該標記<b>無人行道</b>呢？",
+            "crosswalk": "這是<b>行人穿越道</b>嗎？",
+            "signal": "這是<b>行人號誌</b>嗎？"
+        },
+        "visibility-control-hide": "隱藏標記<u>H</u>",
+        "visibility-control-show": "顯示標記<u>h</u>"
+    },
+    "right-ui": {
+        "current-mission": {
+            "validate-labels": "檢核{{n}}標記"
+        },
+        "correct": {
+            "curb-ramp": {
+                "title": "<strong>正確的</strong>路緣斜坡標記",
+                "example-1-2-3-4": "這個標記被正確地標示於路緣斜坡底端。"
+            },
+            "no-curb-ramp": {
+                "title": "<strong>正確的</strong>無路緣斜坡標記",
+                "example-1-2-3": "這個路口缺乏路緣斜坡",
+                "example-4": "此行人穿越道尾端應該要有路緣斜坡"
+            },
+            "obstacle": {
+                "title": "<strong>正確的</strong>障礙物標記",
+                "example-1": "這些工程角錐擋住了行人穿越道",
+                "example-2": "這棵樹擋住了整個人行道",
+                "example-3": "這根桿柱擋住了人行道及路緣斜坡入口",
+                "example-4": "這個消防栓擋住了人行道"
+            },
+            "surface-problem": {
+                "title": "<strong>正確的</strong>鋪面問題標記",
+                "example-1": "這個人行道非常地不平整",
+                "example-2": "此磚砌的人行道是顛簸的且難以通行",
+                "example-3": "這個人行道上有裂縫",
+                "example-4": "人行道裂縫中生長許多雜草"
+            },
+            "no-sidewalk": {
+                "title": "<strong>正確的</strong>無人行道標記",
+                "example-1-2": "這是個突然中斷的人行道",
+                "example-3": "這條街道沒有人行道",
+                "example-4": "這個路口轉角沒有人行道"
+            },
+            "crosswalk": {
+                "title": "<strong>正確的</strong>行人穿越道標記",
+                "example-1-2-3": "這個標記被正確地標示在行人穿越道上",
+                "example-4": "這個標記被正確地標示在油漆褪色的行人穿越道上"
+            },
+            "signal": {
+                "title": "<strong>正確的</strong>行人號誌標記",
+                "example-1-2-3": "此標記被正確地標示在行人號誌桿柱的底部",
+                "example-4": "此桿柱上有行人號誌燈及啟動按鈕"
+            }
+        },
+        "incorrect": {
+            "curb-ramp": {
+                "title": "<strong>錯誤的</strong>路緣斜坡標記",
+                "example-1-2": "人行道與道路車道之間的銜接方式不是路緣斜坡",
+                "example-3-4": "私家車道不是路緣斜坡"
+            },
+            "no-curb-ramp": {
+                "title": "<strong>錯誤的</strong>無路緣斜坡標記",
+                "example-1": "住宅前走道不應該被標記為無路緣斜坡",
+                "example-2-4": "這不位於行人路徑上",
+                "example-3": "此處不是行人應該穿越的路口"
+            },
+            "obstacle": {
+                "title": "<strong>錯誤的</strong>障礙物標記",
+                "example-1": "桿柱的周邊有足夠的空間供平順地繞道通行",
+                "example-2": "此桿柱是位於路緣斜坡之間，並非在路緣斜坡上",
+                "example-3": "這棵樹木不位於行人路徑上",
+                "example-4": "此孔蓋周邊有足夠的空間可平順地繞道通行"
+            },
+            "surface-problem": {
+                "title": "<strong>錯誤的</strong>鋪面問題標記",
+                "example-1": "路緣斜坡上的鋪面問題應使用路緣斜坡標記並點選高嚴重度評分",
+                "example-2": "此碎石鋪面不在行人路徑上",
+                "example-3": "此草皮不在行人路徑上",
+                "example-4": "正常的人行道磚砌不是鋪面問題"
+            },
+            "no-sidewalk": {
+                "title": "<strong>錯誤的</strong>無人行道標記",
+                "example-1": "狹窄的人行道不應被標記為無人行道",
+                "example-2": "私家車道不應被標記為無人行道",
+                "example-3": "道路分隔島不應被標記為無人行道",
+                "example-4": "窄巷及弄不應被標記為無人行道"
+            },
+            "crosswalk": {
+                "title": "<strong>錯誤的</strong>行人穿越道標記",
+                "example-1": "交叉路口路面上無任何標線處，不應被標記為行人穿越道",
+                "example-2": "車輛停止線不應被標記為行人穿越道",
+                "example-3-4": "減速丘不應被標記為行人穿越道"
+            },
+            "signal": {
+                "title": "<strong>錯誤的</strong>行人號誌標記",
+                "example-1-2": "這個交通標誌並不指示行人何時可以穿越街道",
+                "example-3": "此為車輛號誌，非行人號誌",
+                "example-4": "這個燈桿沒有行人號誌啟動按鈕"
+            }
+        }
+    },
+    "center-ui": {
+        "no-info": "無資訊"
+    },
+    "mission-start": {
+        "title": "檢核{{n}} {{label_type}}標記",
+        "body": "您的任務是判斷__LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span>其他使用者的標記正確性！"
+    },
+    "mission-complete": {
+        "title": "做得好！",
+        "body-1": "您檢核了{{n}}個路緣斜坡的標記。",
+        "body-2": "您檢核了{{n}}個無路緣斜坡的標記。",
+        "body-3": "您檢核了{{n}}個障礙物的標記。",
+        "body-4": "您檢核了{{n}}個鋪面問題的標記。",
+        "body-7": "您檢核了{{n}}個無人行道的標記。",
+        "body-9": "您檢核了{{n}}個行人穿越道的標記",
+        "body-10": "您檢核了{{n}}個行人號誌的標記。",
+        "validate-more": "檢核更多標記",
+        "continue": "繼續檢核",
+        "explore": "開始一個探索任務",
+        "no-new-mission-title": "已無任何剩餘檢核任務",
+        "no-new-mission-body": "您可以使用筆記本型或桌上型電腦增添更多標記，也可以檢核另一個城市！",
+        "no-new-mission-button": "檢核於"
+    },
+    "mobile": {
+        "info-title-curb-ramp": "路緣斜坡是什麼？",
+        "info-title-no-curb-ramp": "無路緣斜坡是什麼？",
+        "info-title-obstacle": "障礙物是什麼？",
+        "info-title-surface-problem": "鋪面問題是什麼？",
+        "info-title-no-sidewalk": "\"無人行道\"是什麼 ",
+        "info-title-crosswalk": "行人穿越道是什麼？",
+        "info-title-signal": "行人號誌是什麼？"
+    },
+    "mission-start-tutorial": {
+        "mst-instruction-1": "您的任務",
+        "mst-instruction-2": "檢核{{nLabels}}個{{- labelType}}的標記",
+        "example-type-label-incorrect": "錯誤案例",
+        "label-on-image-title-incorrect": "錯誤標記",
+        "label-on-image-description-correct": "選擇<b>同意</b>",
+        "label-on-image-description-incorrect": "選擇<b>不同意</b>"
+    }
+}
