@@ -70,8 +70,8 @@ function Tracker() {
             pitch: pov ? pov.pitch : null,
             timestamp: timestamp,
             zoom: pov ? pov.zoom : null,
-            is_mobile: isMobile(),
-            source: isMobile() ? "ValidateMobile" : "ValidateDesktop"
+            is_mobile: isMobile()
+            // source: isMobile() ? "ValidateMobile" : "ValidateDesktop"
         };
 
         return data;
