@@ -198,7 +198,7 @@ function AdminGSVLabelView(admin, source) {
      * @param action
      * @private
      */
-    function _validateLabel(action, location) {
+    function _validateLabel(action, source) {
         var validationTimestamp = new Date().getTime();
         var canvasWidth = self.panorama.svHolder.width();
         var canvasHeight = self.panorama.svHolder.height();
@@ -246,7 +246,7 @@ function AdminGSVLabelView(admin, source) {
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
             is_mobile: false,
-            source: location
+            source: source
         };
 
         // Submit the validation via POST request.

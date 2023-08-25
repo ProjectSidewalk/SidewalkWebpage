@@ -36,7 +36,7 @@ function LabelContainer() {
             validation_result: labelMetadata.validationResult,
             zoom: labelMetadata.zoom,
             is_mobile: labelMetadata.isMobile,
-            source: "ValidateTest"
+            source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop"
         };
         currentLabels.push(data);
     }
