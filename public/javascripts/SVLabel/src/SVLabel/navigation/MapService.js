@@ -42,14 +42,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svLinkArrowsLoaded : false,
             labelBeforeJumpListenerSet: false,
             jumpMsgShown: false,
-            jumpImageryNotFoundStatus: undefined
+            jumpImageryNotFoundStatus: undefined,
+            contextMenuWasOpen: false
         },
         listeners = {
             beforeJumpListenerHandle: undefined
         },
         jumpLocation = undefined,
         missionJump = undefined,
-        contextMenuWasOpen = false,
         _stuckPanos = [];
 
     var initialPositionUpdate = true,
@@ -879,12 +879,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
-                if (contextMenuWasOpen) {
+                if (status.contextMenuWasOpen) {
                     svl.contextMenu.hide();
                 } else {
                     svl.contextMenu.show(selectedLabel);
                 }
-                contextMenuWasOpen = false;
+                status.contextMenuWasOpen = false;
             }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
             // Continue logging double click. We don't have any features for it now, but it's good to know how
