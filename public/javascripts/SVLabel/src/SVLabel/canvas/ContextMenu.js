@@ -72,7 +72,7 @@ function ContextMenu (uiContextMenu) {
                 handleSeverityPopup();
             }
             hide(clickedDelete);
-            svl.map.closeContextMenu();
+            svl.map.setStatus('contextMenuWasOpen', true);
         }
     }
 
@@ -271,6 +271,7 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Hide the context menu.
+     * @param clickedDelete Whether we are closing the menu bc the label is being deleted. If so, don't run prediction.
      */
     function hide(clickedDelete) {
         if (isOpen()) {
