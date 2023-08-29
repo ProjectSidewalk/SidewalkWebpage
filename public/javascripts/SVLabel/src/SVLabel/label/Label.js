@@ -236,7 +236,7 @@ function Label(params) {
                 );
             }
 
-            if (properties.currCanvasXY.x > 0 && properties.currCanvasXY.y > 0) {
+            if (properties.currCanvasXY.x !== null && properties.currCanvasXY.y !== null) {
                 // Draw the label icon.
                 var imageObj, imageHeight, imageWidth, imageX, imageY;
                 imageObj = new Image();
