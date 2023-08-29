@@ -268,8 +268,8 @@ function getCanvasCoordinate(origPov, newPov, canvasWidth, canvasHeight, iconWid
             outputCoord.x = offset.left;
             outputCoord.y = offset.top;
         } else {
-            outputCoord.x = -iconWidth;
-            outputCoord.y = -iconWidth;
+            outputCoord.x = null;
+            outputCoord.y = null;
         }
         return outputCoord;
 }
