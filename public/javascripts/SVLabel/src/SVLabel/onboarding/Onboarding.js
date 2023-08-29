@@ -110,6 +110,35 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     /**
+     * Draw a box on the onboarding canvas.
+     * @param x {number} Starting x coordinate
+     * @param y {number} Starting y coordinate
+     * @param width {number} pixel width
+     * @param height {number} pixel height
+     * @param parameters {object} parameters
+     */
+    function drawBox(x, y, width, height, parameters) {
+        if (ctx) {
+            ctx.save();
+            ctx.strokeStyle = parameters.strokeStyle;
+            ctx.lineWidth = parameters.lineWidth;
+
+            // Draw a box!
+            ctx.strokeRect(x, y, width, height);
+            // ctx.beginPath();
+            // ctx.moveTo(x, y);
+            // ctx.lineTo(x + width, y);
+            // ctx.lineTo(x + width, y + height);
+            // ctx.lineTo(x, y + height);
+            // ctx.lineTo(x, y);
+            // ctx.closePath();
+            // ctx.stroke();
+            ctx.restore();
+        }
+        return this;
+    }
+
+    /**
      * Draw an arrow on the onboarding canvas
      * @param x1 {number} Starting x coordinate
      * @param y1 {number} Starting y coordinate
@@ -155,8 +184,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             ctx.lineTo(-arrowWidth * Math.sin(theta), +arrowWidth * Math.cos(theta));
 
             ctx.fill();
-            ctx.stroke();
             ctx.closePath();
+            ctx.stroke();
             ctx.restore();
         }
         return this;
@@ -274,6 +303,15 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 else {
                     drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier);
                 }
+            } else if (state.annotations[i].type === "box") {
+                lineAngle = state.annotations[i].angle;
+                var x = canvasCoordinate.x;
+                var y = canvasCoordinate.y;
+                var parameters = {
+                    lineWidth: 4,
+                    strokeStyle: 'rgba(255, 255, 255, 1)'
+                };
+                drawBox(x, y, state.annotations[i].width, state.annotations[i].height, parameters);
             }
         }
         povChange["status"] = false;

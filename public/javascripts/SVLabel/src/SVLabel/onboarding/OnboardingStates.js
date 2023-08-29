@@ -885,8 +885,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "x": 7705,
                     "y": -285,
                     "length": 50,
-                    "angle": 0,
-                    "fill": null
+                    "angle": 0
+                },
+                {
+                    "type": "box",
+                    "x": 7735,
+                    "y": 64,
+                    "width": 30,
+                    "height": 46
                 }
             ],
             "transition": "label-attribute-5"
@@ -916,7 +922,14 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "length": 50,
                     "angle": 0,
                     "fill": "yellow"
-                }
+                },
+                {
+                    "type": "box",
+                    "x": 7735,
+                    "y": 64,
+                    "width": 30,
+                    "height": 46
+                },
             ],
             "transition": [function (params) {
                 if (params.accurate) {
