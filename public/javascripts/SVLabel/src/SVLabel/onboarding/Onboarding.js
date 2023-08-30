@@ -34,6 +34,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var blink_function_identifier = [];
     var states = onboardingStates.get();
     var statesWithProgress = states.filter(state => state.progression);
+    var savedAnnotations = [];
 
     var _mouseDownCanvasDrawingHandler;
     var currentLabelState;
@@ -110,6 +111,21 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     /**
+     * Draw a label on the onboarding canvas. Only used to draw static labels as exampels in the tutorial.
+     * @param x
+     * @param y
+     * @param labelType
+     * @private
+     */
+    function _drawStaticLabel(x, y, labelType) {
+        if (ctx) {
+            ctx.save();
+            Label.renderLabelIcon(ctx, labelType, x, y);
+            ctx.restore();
+        }
+    }
+
+    /**
      * Draw a box on the onboarding canvas.
      * @param x {number} Starting x coordinate
      * @param y {number} Starting y coordinate
@@ -117,7 +133,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @param height {number} pixel height
      * @param parameters {object} parameters
      */
-    function drawBox(x, y, width, height, parameters) {
+    function _drawBox(x, y, width, height, parameters) {
         if (ctx) {
             ctx.save();
             ctx.strokeStyle = parameters.strokeStyle;
@@ -145,9 +161,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @param x2 {number} Ending x coordinate
      * @param y2 {number} Ending y coordinate
      * @param parameters {object} parameters
-     * @returns {drawArrow}
+     * @returns {_drawArrow}
      */
-    function drawArrow(x1, y1, x2, y2, parameters) {
+    function _drawArrow(x1, y1, x2, y2, parameters) {
         if (ctx) {
             var lineWidth = parameters.lineWidth,
                 fill = parameters.fill,
@@ -191,7 +207,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         return this;
     }
 
-    function drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier) {
+    function _drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier) {
         var max_frequency = 60 * blink_frequency_modifier;
         var blink_period = 0.5;
         var originalFillColor = parameters.fill;
@@ -205,7 +221,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 parameters["fill"] = "white";
             }
             param = parameters;
-            drawArrow(x1, y1, x2, y2, param);
+            _drawArrow(x1, y1, x2, y2, param);
 
             //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
             //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
@@ -241,6 +257,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             y1,
             y2,
             povOfLabelIfCentered,
+            params,
             i,
             len;
 
@@ -251,16 +268,19 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         clear();
 
+        // Get the full list of annotations, including those from previous states that should remain.
+        var currAnnotations = state.annotations ? savedAnnotations.concat(state.annotations) : savedAnnotations;
+
         var blink_frequency_modifier = 0;
-        for (i = 0, len = state.annotations.length; i < len; i++) {
-            if (state.annotations[i].type === "arrow") {
+        for (i = 0, len = currAnnotations.length; i < len; i++) {
+            if (currAnnotations[i].type === "arrow") {
                 blink_frequency_modifier = blink_frequency_modifier + 1;
             }
         }
 
-        for (i = 0, len = state.annotations.length; i < len; i++) {
-            imX = state.annotations[i].x;
-            imY = state.annotations[i].y;
+        for (const annotation of currAnnotations) {
+            imX = annotation.x;
+            imY = annotation.y;
             povOfLabelIfCentered = null;
 
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
@@ -280,41 +300,44 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 povOfLabelIfCentered, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
 
-            if (state.annotations[i].type === "arrow") {
-                lineLength = state.annotations[i].length;
-                lineAngle = state.annotations[i].angle;
+            if (annotation.type === "arrow") {
+                lineLength = annotation.length;
+                lineAngle = annotation.angle;
                 x2 = canvasCoordinate.x;
                 y2 = canvasCoordinate.y;
                 x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
                 y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
 
                 // The color of the arrow will by default alternate between white and the fill specified in annotation.
-                var parameters = {
+                params = {
                     lineWidth: 1,
-                    fill: state.annotations[i].fill,
+                    fill: annotation.fill,
                     lineCap: 'round',
                     arrowWidth: 6,
                     strokeStyle: 'rgba(96, 96, 96, 1)'
                 };
 
-                if (state.annotations[i].fill == null || state.annotations[i].fill === "white") {
-                    drawArrow(x1, y1, x2, y2, parameters);
+                if (annotation.fill == null || annotation.fill === "white") {
+                    _drawArrow(x1, y1, x2, y2, params);
                 }
                 else {
-                    drawBlinkingArrow(x1, y1, x2, y2, parameters, blink_frequency_modifier);
+                    _drawBlinkingArrow(x1, y1, x2, y2, params, blink_frequency_modifier);
                 }
-            } else if (state.annotations[i].type === "box") {
-                lineAngle = state.annotations[i].angle;
-                var x = canvasCoordinate.x;
-                var y = canvasCoordinate.y;
-                var parameters = {
+            } else if (annotation.type === "box") {
+                lineAngle = annotation.angle;
+                params = {
                     lineWidth: 4,
                     strokeStyle: 'rgba(255, 255, 255, 1)'
                 };
-                drawBox(x, y, state.annotations[i].width, state.annotations[i].height, parameters);
+                _drawBox(canvasCoordinate.x, canvasCoordinate.y, annotation.width, annotation.height, params);
+            } else if (annotation.type === "label") {
+                _drawStaticLabel(canvasCoordinate.x, canvasCoordinate.y, annotation.labelType);
             }
         }
         povChange["status"] = false;
+
+        // Save any annotations that should be sticking around.
+        savedAnnotations = currAnnotations.filter(a => a.keepUntil && a.keepUntil !== state.id);
     }
 
     function getState(stateId) {
@@ -517,7 +540,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         }
 
         // Draw arrows to annotate target accessibility attributes
-        if (_onboardingStateAnnotationExists(state)) {
+        if (_onboardingStateAnnotationExists(state) || savedAnnotations.length > 0) {
             _drawAnnotations(state);
             if (typeof google != "undefined") {
                 annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", function () {
@@ -663,6 +686,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         var callback = function () {
             var pov = mapService.getPov();
+            // Note that the tolerance is only a tolerance to the left. Must hit at least the given heading to proceed.
             if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
