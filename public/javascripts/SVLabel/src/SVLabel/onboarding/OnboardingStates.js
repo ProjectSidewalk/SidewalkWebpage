@@ -6,13 +6,15 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         "stage-1": [230, 233],
         "stage-2-adjust": [197, 242],
         "stage-2": [197, 209],
-        "stage-3-adjust": [98, 197],
-        "stage-3": [98, 108],
-        "stage-4-adjust": [359, 108],
-        "stage-4": [355, 1],
-        "stage-5-adjust": [315, 1],
-        "stage-5": [315, 343],
-        "stage-6": [281, 14]
+        "stage-3-adjust": [167, 197],
+        "stage-3": [167, 187],
+        "stage-4-adjust": [98, 187],
+        "stage-4": [98, 108],
+        "stage-5-adjust": [359, 108],
+        "stage-5": [355, 1],
+        "stage-6-adjust": [315, 1],
+        "stage-6": [315, 343],
+        "stage-7": [281, 14]
     };
 
     this.states = [
@@ -1016,7 +1018,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 177,
+                "heading": 187,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-3-adjust"][0],
                 "maxHeading": headingRanges["stage-3-adjust"][1]
@@ -1027,7 +1029,172 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": "adjust-heading-angle-3"
+            "transition": "select-label-type-6"
+        },
+        {
+            "id": "select-label-type-6",
+            "progression": true,
+            "properties": {
+                "action": "SelectLabelType",
+                "labelType": "Crosswalk",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1]
+            },
+            "message": {
+                "message": "You are going to label another crosswalk, and you are going to LIKE it!",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7050,
+                    "y": -450,
+                    "length": 50,
+                    "angle": 0
+                }
+            ],
+            "transition": "label-attribute-6"
+        },
+        {
+            "id": "label-attribute-6",
+            "progression": true,
+            "properties": [{
+                "action": "LabelAccessibilityAttribute",
+                "labelType": "Crosswalk",
+                "imageX": 11850,
+                "imageY": 3980,
+                "tolerance": 350,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1]
+            }],
+            "message": {
+                "message": "See that crosswalk? Click somewhere near the middle of it.",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7050,
+                    "y": -450,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": "yellow"
+                }
+            ],
+            "transition": [function (params) {
+                if (params.accurate) {
+                    contextMenu.hide();
+                    return "rate-severity-6";
+                } else {
+                    return "delete-attribute-6";
+                }
+            }]
+        },
+        {
+            "id": "delete-attribute-6",
+            "progression": false,
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "Crosswalk",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": `Oops! Your label is too far away.  Try adding your label at the center of the crosswalk. Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7050,
+                    "y": -450,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null
+                }
+            ],
+            "transition": "redo-select-label-type-6"
+        },
+        {
+            "id": "redo-select-label-type-6",
+            "progression": false,
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "Crosswalk",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 7050,
+                    "y": -450,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null
+                }
+            ],
+            "transition": "label-attribute-6"
+        },
+        {
+            "id": "rate-severity-6",
+            "progression": true,
+            "properties": {
+                "action": "RateSeverity",
+                "labelType": "Crosswalk",
+                "severity": 1,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1]
+            },
+            "message": {
+                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint is not yet fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var severity = parseInt(this.getAttribute("value"), 10);
+                if (severity === 1) {
+                    contextMenu.hide();
+                    return "adjust-heading-angle-3";
+                } else {
+                    return "redo-rate-attribute-6";
+                }
+            }
+        },
+        {
+            "id": "redo-rate-attribute-6",
+            "progression": false,
+            "properties": {
+                "action": "RedoRateSeverity",
+                "labelType": "Crosswalk",
+                "severity": 2, // TODO what is this doing here?
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1]
+            },
+            "message": {
+                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint is not yet fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var severity = parseInt(this.getAttribute("value"), 10);
+                if (severity === 1) {
+                    contextMenu.hide();
+                    return "adjust-heading-angle-3";
+                } else {
+                    return "redo-rate-attribute-6";
+                }
+            }
         },
         {
             "id": "adjust-heading-angle-3",
@@ -1036,8 +1203,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "AdjustHeadingAngle",
                 "heading": 115,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-3-adjust"][0],
-                "maxHeading": headingRanges["stage-3-adjust"][1]
+                "minHeading": headingRanges["stage-4-adjust"][0],
+                "maxHeading": headingRanges["stage-4-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-3'),
@@ -1045,16 +1212,16 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": "select-label-type-6"
+            "transition": "select-label-type-7"
         },
         {
-            "id": "select-label-type-6",
+            "id": "select-label-type-7",
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-6'),
@@ -1071,10 +1238,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": "white"
                 }
             ],
-            "transition": "label-attribute-6"
+            "transition": "label-attribute-7"
         },
         {
-            "id": "label-attribute-6",
+            "id": "label-attribute-7",
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
@@ -1082,8 +1249,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageX": 7550,
                 "imageY": 3900,
                 "tolerance": 300,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.label-attribute-6'),
@@ -1102,20 +1269,20 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-6";
+                    return "rate-severity-7";
                 } else {
-                    return "delete-attribute-6";
+                    return "delete-attribute-7";
                 }
             }]
         },
         {
-            "id": "delete-attribute-6",
+            "id": "delete-attribute-7",
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
                 "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
@@ -1132,16 +1299,16 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "redo-select-label-type-6"
+            "transition": "redo-select-label-type-7"
         },
         {
-            "id": "redo-select-label-type-6",
+            "id": "redo-select-label-type-7",
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1],
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
                 "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('no-sidewalk')}),
@@ -1158,17 +1325,17 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "label-attribute-6"
+            "transition": "label-attribute-7"
         },
         {
-            "id": "rate-severity-6",
+            "id": "rate-severity-7",
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "NoSidewalk",
                 "severity": 3,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.rate-severity-6') +
@@ -1183,21 +1350,21 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    return "tag-attribute-6";
+                    return "tag-attribute-7";
                 } else {
-                    return "redo-rate-attribute-6";
+                    return "redo-rate-attribute-7";
                 }
             }
         },
         {
-            "id": "redo-rate-attribute-6",
+            "id": "redo-rate-attribute-7",
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "NoSidewalk",
                 "severity": 3,
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-6') +
@@ -1212,20 +1379,20 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 3) {
-                    return "tag-attribute-6";
+                    return "tag-attribute-7";
                 } else {
-                    return "redo-rate-attribute-6";
+                    return "redo-rate-attribute-7";
                 }
             }
         },
         {
-            "id": "tag-attribute-6",
+            "id": "tag-attribute-7",
             "progression": true,
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-6') +
@@ -1244,21 +1411,21 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     return "adjust-heading-angle-4";
                 } else if (tags.length === 1 && (tags.includes(20) || tags.includes(21))) {
                     // We have one of the two tags so far, so stay in this state.
-                    return "tag-attribute-6";
+                    return "tag-attribute-7";
                 } else {
                     // A mistake was made, move to the redo state.
-                    return "redo-tag-attribute-6";
+                    return "redo-tag-attribute-7";
                 }
             }
         },
         {
-            "id": "redo-tag-attribute-6",
+            "id": "redo-tag-attribute-7",
             "progression": false,
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-3"][0],
-                "maxHeading": headingRanges["stage-3"][1]
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-6') +
@@ -1277,10 +1444,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     return "adjust-heading-angle-4";
                 } else if (tags.includes(20) || tags.includes(21)) {
                     // We have at least one of the two tags so far, but not both. Move progress bar, stay in this state.
-                    return "redo-tag-attribute-6";
+                    return "redo-tag-attribute-7";
                 } else {
                     // We don't have any correct tags, don't move progress bar forward, stay in same state.
-                    return "redo-tag-attribute-6";
+                    return "redo-tag-attribute-7";
                 }
             }
         },
@@ -1291,8 +1458,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "AdjustHeadingAngle",
                 "heading": 0,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-4-adjust"][0],
-                "maxHeading": headingRanges["stage-4-adjust"][1]
+                "minHeading": headingRanges["stage-5-adjust"][0],
+                "maxHeading": headingRanges["stage-5-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-4'),
@@ -1300,16 +1467,16 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": "select-label-type-7"
+            "transition": "select-label-type-8"
         },
         {
-            "id": "select-label-type-7",
+            "id": "select-label-type-8",
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
                 "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.select-label-type-7'),
@@ -1326,10 +1493,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": "white"
                 }
             ],
-            "transition": "label-attribute-7"
+            "transition": "label-attribute-8"
         },
         {
-            "id": "label-attribute-7",
+            "id": "label-attribute-8",
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
@@ -1337,8 +1504,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "imageX": 5550,
                 "imageY": 4080,
                 "tolerance": 250,
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1]
             }],
             "message": {
                 "message": i18next.t('tutorial.label-attribute-7'),
@@ -1357,20 +1524,20 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-7";
+                    return "rate-severity-8";
                 } else {
-                    return "delete-attribute-7";
+                    return "delete-attribute-8";
                 }
             }]
         },
         {
-            "id": "delete-attribute-7",
+            "id": "delete-attribute-8",
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
                 "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1],
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
                 "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
@@ -1387,16 +1554,16 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "redo-select-label-type-7"
+            "transition": "redo-select-label-type-8"
         },
         {
-            "id": "redo-select-label-type-7",
+            "id": "redo-select-label-type-8",
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
                 "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1],
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
                 "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
@@ -1413,17 +1580,17 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "fill": null
                 }
             ],
-            "transition": "label-attribute-7"
+            "transition": "label-attribute-8"
         },
         {
-            "id": "rate-severity-7",
+            "id": "rate-severity-8",
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
                 "severity": null,
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
@@ -1440,19 +1607,19 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     contextMenu.hide();
                     return "adjust-heading-angle-5";
                 } else {
-                    return "redo-rate-attribute-7";
+                    return "redo-rate-attribute-8";
                 }
             }
         },
         {
-            "id": "redo-rate-attribute-7",
+            "id": "redo-rate-attribute-8",
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1,
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
@@ -1469,7 +1636,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     contextMenu.hide();
                     return "adjust-heading-angle-5";
                 } else {
-                    return "redo-rate-attribute-7";
+                    return "redo-rate-attribute-8";
                 }
             }
         },
@@ -1480,8 +1647,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "AdjustHeadingAngle",
                 "heading": 346,
                 "tolerance": 20,
-                "minHeading": headingRanges["stage-5-adjust"][0],
-                "maxHeading": headingRanges["stage-5-adjust"][1]
+                "minHeading": headingRanges["stage-6-adjust"][0],
+                "maxHeading": headingRanges["stage-6-adjust"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.adjust-heading-angle-5'),
@@ -1496,8 +1663,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "Instruction",
-                "minHeading": headingRanges["stage-5"][0],
-                "maxHeading": headingRanges["stage-5"][1],
+                "minHeading": headingRanges["stage-6"][0],
+                "maxHeading": headingRanges["stage-6"][1],
                 "blinks": ["minimap"]
             },
             "message": {
@@ -1526,8 +1693,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "Instruction",
                 "blinks": ["compass"],
-                "minHeading": headingRanges["stage-5"][0],
-                "maxHeading": headingRanges["stage-5"][1]
+                "minHeading": headingRanges["stage-6"][0],
+                "maxHeading": headingRanges["stage-6"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-2'),
@@ -1547,8 +1714,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "action": "WalkTowards",
                 "blinks": ["compass", "movement-arrow"],
                 "panoId": afterWalkPanoId,
-                "minHeading": headingRanges["stage-5"][0],
-                "maxHeading": headingRanges["stage-5"][1],
+                "minHeading": headingRanges["stage-6"][0],
+                "maxHeading": headingRanges["stage-6"][1],
                 "fade-direction": "fadeIn"
             },
             "message": {
@@ -1568,8 +1735,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "Instruction",
                 "stopBlinking": true,
-                "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1],
+                "minHeading": headingRanges["stage-7"][0],
+                "maxHeading": headingRanges["stage-7"][1],
                 "blinks": ["minimap"]
             },
             "message": {
@@ -1590,8 +1757,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "Instruction",
-                "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "minHeading": headingRanges["stage-7"][0],
+                "maxHeading": headingRanges["stage-7"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-5-1'),
@@ -1626,8 +1793,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "Instruction",
-                "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "minHeading": headingRanges["stage-7"][0],
+                "maxHeading": headingRanges["stage-7"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.walk-6-1') +
@@ -1664,8 +1831,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "Instruction",
                 "blinks": ["minimap"],
-                "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "minHeading": headingRanges["stage-7"][0],
+                "maxHeading": headingRanges["stage-7"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-1'),
@@ -1684,8 +1851,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "Instruction",
                 "blinks": ["stuck"],
-                "minHeading": headingRanges["stage-6"][0],
-                "maxHeading": headingRanges["stage-6"][1]
+                "minHeading": headingRanges["stage-7"][0],
+                "maxHeading": headingRanges["stage-7"][1]
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-2'),
