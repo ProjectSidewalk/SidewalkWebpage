@@ -173,7 +173,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 1,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
             },
@@ -201,7 +200,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 2,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
             },
@@ -339,7 +337,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "Crosswalk",
-                "severity": 1,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
             },
@@ -365,7 +362,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "Crosswalk",
-                "severity": 2,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
             },
@@ -541,7 +537,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 2,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
             },
@@ -568,7 +563,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 2,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
             },
@@ -763,7 +757,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "NoCurbRamp",
-                "severity": 3,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
             },
@@ -791,7 +784,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "NoCurbRamp",
-                "severity": 3,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
             },
@@ -1150,7 +1142,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "Crosswalk",
-                "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
             },
@@ -1176,7 +1167,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "Crosswalk",
-                "severity": 2, // TODO what is this doing here?
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
             },
@@ -1212,7 +1202,45 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": "select-label-type-7"
+            "transition": "testing"
+        },
+        {
+            "id": "testing",
+            "progression": true,
+            "properties": {
+                "action": "Instruction",
+                "minHeading": headingRanges["stage-4"][0],
+                "maxHeading": headingRanges["stage-4"][1]
+            },
+            "message": {
+                "message": 'To help speed things up, we are labeling these two curb ramps and this pedestrian signal for you.',
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "label",
+                    "labelType": "CurbRamp",
+                    "x": 3850,
+                    "y": -975,
+                    "keepUntil": "select-label-type-8"
+                },
+                {
+                    "type": "label",
+                    "labelType": "CurbRamp",
+                    "x": 4925,
+                    "y": -850,
+                    "keepUntil": "select-label-type-8"
+                },
+                {
+                    "type": "label",
+                    "labelType": "Signal",
+                    "x": 5225,
+                    "y": -650,
+                    "keepUntil": "select-label-type-8"
+                }
+            ],
+            "transition": 'select-label-type-7'
         },
         {
             "id": "select-label-type-7",
@@ -1333,7 +1361,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "NoSidewalk",
-                "severity": 3,
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
             },
@@ -1362,7 +1389,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "NoSidewalk",
-                "severity": 3,
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
             },
@@ -1588,7 +1614,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
-                "severity": null,
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1]
             },
@@ -1617,7 +1642,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 1,
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1]
             },
