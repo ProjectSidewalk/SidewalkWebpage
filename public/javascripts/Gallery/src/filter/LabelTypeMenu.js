@@ -51,7 +51,7 @@ function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
      * Returns to the default selection (All Label Types).
      */
     function setToDefault() {
-        $('#label-select').val('Assorted');
+        uiLabelTypeMenu.select.val(defaultType);
         setStatus("currentLabelType", defaultType);
         sg.tracker.push("Filter_LabelType=" + defaultType);
         sg.cardFilter.update();

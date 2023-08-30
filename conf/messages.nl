@@ -326,7 +326,7 @@ gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
-gallery.reset.all = Alles Resetten
+gallery.clear.filters = Filters Wissen
 
 route.builder.name = Routebuilder
 route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!

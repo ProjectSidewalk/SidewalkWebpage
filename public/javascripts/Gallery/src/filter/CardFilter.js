@@ -116,22 +116,21 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
 
         // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
         if (status.currentLabelType !== 'Assorted') {
-            $('#clear-filters').show();
+            uiCardFilter.clearFilters.show();
             newUrl += `?labelType=${status.currentLabelType}`;
             // Can only have applied tags if there is a specific label type chosen.
             if (currAppliedTags.length > 0) {
-                $('#clear-filters').show();
                 newUrl += `&tags=${currAppliedTags}`;
             }
             firstQueryParam = false;
         }
         if (currSeverities.length > 0) {
-            $('#clear-filters').show(); 
+            uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
             firstQueryParam = false;
         }
         if (currValOptions !== 'correct,unvalidated') {
-            $('#clear-filters').show(); 
+            uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?validationOptions=${currValOptions}` : `&validationOptions=${currValOptions}`;
         }
         return newUrl;
@@ -268,15 +267,14 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
 
     function clearFilters() {
         severities.unapplySeverities();
-        validationOptions.unapplyValidationOptions();
         validationOptions.setToDefault();
         clearCurrentTags();
         labelTypeMenu.setToDefault();
     }
 
-    $('#clear-filters').on('click', function() {
+    uiCardFilter.clearFilters.on('click', function() {
         clearFilters();
-        $('#clear-filters').hide();
+        uiCardFilter.clearFilters.hide();
         update();
     });
 

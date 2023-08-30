@@ -70,6 +70,7 @@ function ValidationOptionBucket(initialValidationOptions) {
      * Resets the validation options to the default/initial values.
      */
     function setToDefault() {
+        unapplyValidationOptions();
         bucket[0].apply();
         bucket[3].apply();
     }

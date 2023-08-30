@@ -328,7 +328,7 @@ gallery.tags = 標籤
 gallery.all = 所有标签类型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以建立更多的資料！
 gallery.cards = 标签根据选定的过滤器随机排序
-gallery.reset.all = 重置全部
+gallery.clear.filters = 清除過濾器
 
 route.builder.name = Routebuilder
 route.builder.instructions = 單擊街道以將其添加到您的路線中，然後單擊“保存路線”。然後，您可以探索路線並標記可訪問性問題，也可以共享一個鏈接供其他人探索相同的路線！
