@@ -923,7 +923,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "y": 64,
                     "width": 30,
                     "height": 46
-                },
+                }
             ],
             "transition": [function (params) {
                 if (params.accurate) {
@@ -944,7 +944,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `Oops! Your label is too far away.  For tall objects like poles, let's add labels at the base of the pole. This gives us more accurate location info! Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "message": `Oops! Your label is too far away. For tall objects like poles, let's add labels at the base of the pole. This gives us more accurate location info! Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
                 "parameters": null
             },
             "panoId": panoId,
@@ -956,6 +956,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "length": 50,
                     "angle": 0,
                     "fill": null
+                },
+                {
+                    "type": "box",
+                    "x": 7735,
+                    "y": 64,
+                    "width": 30,
+                    "height": 46
                 }
             ],
             "transition": "redo-select-label-type-5"
@@ -982,6 +989,13 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "length": 50,
                     "angle": 0,
                     "fill": null
+                },
+                {
+                    "type": "box",
+                    "x": 7735,
+                    "y": 64,
+                    "width": 30,
+                    "height": 46
                 }
             ],
             "transition": "label-attribute-5"
@@ -1644,7 +1658,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    return "adjust-heading-angle-5";
+                    return "select-label-type-9";
                 } else {
                     return "redo-rate-attribute-8";
                 }
@@ -1672,11 +1686,152 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 1) {
                     contextMenu.hide();
-                    return "adjust-heading-angle-5";
+                    return "select-label-type-9";
                 } else {
                     return "redo-rate-attribute-8";
                 }
             }
+        },
+        {
+            "id": "select-label-type-9",
+            "progression": true,
+            "properties": {
+                "action": "SelectLabelType",
+                "labelType": "Signal",
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1]
+            },
+            "message": {
+                "message": "We shouldn't forget the pedestrian signal! Click the Pedestrian Signal button to label it.",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 225,
+                    "y": -750,
+                    "length": 50,
+                    "angle": 0
+                },
+                {
+                    "type": "box",
+                    "x": 255,
+                    "y": 440,
+                    "width": 45,
+                    "height": 65
+                }
+            ],
+            "transition": "label-attribute-9"
+        },
+        {
+            "id": "label-attribute-9",
+            "progression": true,
+            "properties": [{
+                "action": "LabelAccessibilityAttribute",
+                "labelType": "Signal",
+                "imageX": 5015,
+                "imageY": 4260,
+                "tolerance": 200,
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1]
+            }],
+            "message": {
+                "message": "Label that pedestrian signal! You can see the light higher up on the pole, but we add labels at the bottom of the pole because it gives us a more accurate location.",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 225,
+                    "y": -750,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": "yellow"
+                },
+                {
+                    "type": "box",
+                    "x": 255,
+                    "y": 440,
+                    "width": 45,
+                    "height": 65
+                }
+            ],
+            "transition": [function (params) {
+                if (params.accurate) {
+                    contextMenu.hide();
+                    return "adjust-heading-angle-5";
+                } else {
+                    return "delete-attribute-9";
+                }
+            }]
+        },
+        {
+            "id": "delete-attribute-9",
+            "progression": false,
+            "properties": {
+                "action": "DeleteAccessibilityAttribute",
+                "labelType": "Signal",
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1],
+            },
+            "message": {
+                "message": `Oops! Your label is too far away. For tall objects like poles, let's add labels at the base of the pole. This gives us more accurate location info! Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 225,
+                    "y": -750,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null
+                },
+                {
+                    "type": "box",
+                    "x": 255,
+                    "y": 440,
+                    "width": 45,
+                    "height": 65
+                }
+            ],
+            "transition": "redo-select-label-type-9"
+        },
+        {
+            "id": "redo-select-label-type-9",
+            "progression": false,
+            "properties": {
+                "action": "RedoSelectLabelType",
+                "labelType": "Signal",
+                "minHeading": headingRanges["stage-5"][0],
+                "maxHeading": headingRanges["stage-5"][1],
+            },
+            "message": {
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')}),
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": [
+                {
+                    "type": "arrow",
+                    "x": 225,
+                    "y": -750,
+                    "length": 50,
+                    "angle": 0,
+                    "fill": null
+                },
+                {
+                    "type": "box",
+                    "x": 255,
+                    "y": 440,
+                    "width": 45,
+                    "height": 65
+                }
+            ],
+            "transition": "label-attribute-9"
         },
         {
             "id": "adjust-heading-angle-5",
