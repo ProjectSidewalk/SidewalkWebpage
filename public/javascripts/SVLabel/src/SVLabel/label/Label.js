@@ -98,32 +98,10 @@ function Label(params) {
 
         // Create the marker on the minimap.
         if (typeof google !== "undefined" && google && google.maps) {
-            googleMarker = createMinimapMarker(properties.labelType);
-            googleMarker.setMap(svl.map.getMap());
-        }
-    }
-
-    /**
-     * This method creates a Google Maps marker.
-     * https://developers.google.com/maps/documentation/javascript/markers
-     * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
-     * @returns {google.maps.Marker}
-     */
-    function createMinimapMarker(labelType) {
-        if (typeof google !== "undefined") {
             var latlng = toLatLng();
-            var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
-
-            var imagePaths = util.misc.getIconImagePaths(),
-                url = imagePaths[labelType].minimapIconImagePath;
-
-            return new google.maps.Marker({
-                position: googleLatLng,
-                map: svl.map.getMap(),
-                title: "Hi!",
-                icon: url,
-                size: new google.maps.Size(20, 20)
-            });
+            console.log(latlng);
+            googleMarker = Label.createMinimapMarker(properties.labelType, latlng.lat, latlng.lng);
+            googleMarker.setMap(svl.map.getMap());
         }
     }
 
@@ -468,4 +446,25 @@ Label.renderLabelIcon = function(ctx, labelType, x, y) {
     ctx.arc(x, y, 16.2, 0, 2 * Math.PI);
     ctx.strokeStyle = 'white';
     ctx.stroke();
+}
+
+/**
+ * This method creates a Google Maps marker.
+ * https://developers.google.com/maps/documentation/javascript/markers
+ * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
+ * @returns {google.maps.Marker}
+ */
+Label.createMinimapMarker = function(labelType, lat, lng) {
+    if (typeof google !== "undefined") {
+        var googleLatLng = new google.maps.LatLng(lat, lng);
+        var url = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+
+        return new google.maps.Marker({
+            position: googleLatLng,
+            map: svl.map.getMap(),
+            title: "Hi!",
+            icon: url,
+            size: new google.maps.Size(20, 20)
+        });
+    }
 }

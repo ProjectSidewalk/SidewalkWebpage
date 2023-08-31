@@ -1222,6 +1222,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "labelType": "Crosswalk",
                     "x": 2150,
                     "y": -1150,
+                    "lat": 38.94048737098884,
+                    "lng": -77.06751796530399,
                     "keepUntil": "select-label-type-8"
                 },
                 {
@@ -1229,6 +1231,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "labelType": "CurbRamp",
                     "x": 3850,
                     "y": -975,
+                    "lat": 38.94039365744705,
+                    "lng": -77.06749504111177,
                     "keepUntil": "select-label-type-8"
                 },
                 {
@@ -1236,6 +1240,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "labelType": "CurbRamp",
                     "x": 4925,
                     "y": -850,
+                    "lat": 38.940334177869914,
+                    "lng": -77.06752911216995,
                     "keepUntil": "select-label-type-8"
                 },
                 {
@@ -1243,6 +1249,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     "labelType": "Signal",
                     "x": 5225,
                     "y": -650,
+                    "lat": 38.94030890329519,
+                    "lng": -77.06755034635032,
                     "keepUntil": "select-label-type-8"
                 }
             ],
