@@ -1077,7 +1077,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    contextMenu.hide();
                     return "rate-severity-6";
                 } else {
                     return "delete-attribute-6";
