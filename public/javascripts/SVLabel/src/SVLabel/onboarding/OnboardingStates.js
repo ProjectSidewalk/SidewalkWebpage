@@ -1212,11 +1212,18 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": 'To help speed things up, we are labeling these two curb ramps and this pedestrian signal for you.',
+                "message": 'To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you.',
                 "parameters": null
             },
             "panoId": panoId,
             "annotations": [
+                {
+                    "type": "label",
+                    "labelType": "Crosswalk",
+                    "x": 2150,
+                    "y": -1150,
+                    "keepUntil": "select-label-type-8"
+                },
                 {
                     "type": "label",
                     "labelType": "CurbRamp",
