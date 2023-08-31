@@ -1762,7 +1762,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "transition": function () {
-                mapService.setPov({heading: 330, pitch: 0, zoom: 1});
+                mapService.setPov({heading: 329, pitch: 0, zoom: 1});
                 svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/afterWalkTutorialMiniMap.jpg')`);
                 return "walk-4";
             }
@@ -1787,7 +1787,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
-            // okButtonText: "Yes! I see the missing curb ramps.",
             "transition": "walk-5"
         },
         {
@@ -1835,30 +1834,57 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-7"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.walk-6-1') +
-                    '<img src="' + svl.rootDirectory + 'img/icons/NoCurbRamp_small.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
-                    i18next.t('tutorial.walk-6-2'),
+                "message": i18next.t('tutorial.walk-6'),
                 "width": 400,
                 "fade-direction": "fadeIn"
             },
             "panoId": afterWalkPanoId,
             "annotations": [
                 {
-                    "type": "arrow",
-                    "x": 200,
-                    "y": -600,
-                    "length": 50,
-                    "angle": 0,
-                    "fill": "yellow"
+                    "type": "label",
+                    "labelType": "Signal",
+                    "x": 10510,
+                    "y": -500,
+                    "lat": 38.940656819984454,
+                    "lng": -77.06787178273665,
+                    "keepUntil": "outro"
                 },
                 {
-                    "type": "arrow",
-                    "x": -2530,
-                    "y": -470,
-                    "length": 50,
-                    "angle": 0,
-                    "fill": "yellow"
-                }
+                    "type": "label",
+                    "labelType": "NoCurbRamp",
+                    "x": 10800,
+                    "y": -525,
+                    "lat": 38.94067750463137,
+                    "lng": -77.06786106607106,
+                    "keepUntil": "outro"
+                },
+                {
+                    "type": "label",
+                    "labelType": "Crosswalk",
+                    "x": 12150,
+                    "y": -785,
+                    "lat": 38.940735726268095,
+                    "lng": -77.06778530284552,
+                    "keepUntil": "outro"
+                },
+                {
+                    "type": "label",
+                    "labelType": "NoCurbRamp",
+                    "x": 225,
+                    "y": -700,
+                    "lat": 38.94076274068959,
+                    "lng": -77.0676653183858,
+                    "keepUntil": "outro"
+                },
+                {
+                    "type": "label",
+                    "labelType": "Signal",
+                    "x": 510,
+                    "y": -600,
+                    "lat": 38.94076199025627,
+                    "lng": -77.06763764329555,
+                    "keepUntil": "outro"
+                },
 
             ],
             "transition": "instruction-1"
