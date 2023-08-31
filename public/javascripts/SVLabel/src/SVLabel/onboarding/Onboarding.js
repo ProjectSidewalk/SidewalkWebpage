@@ -520,10 +520,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             var completionRate = stepNum / statesWithProgress.length;
             svl.statusModel.setMissionCompletionRate(completionRate);
             svl.statusModel.setProgressBar(completionRate);
-            console.log({ onboardingTransition: state.id, step: stepNum });
             tracker.push('Onboarding_Transition', { onboardingTransition: state.id, step: stepNum });
         } else {
-            console.log({ onboardingTransition: state.id });
             tracker.push('Onboarding_Transition', { onboardingTransition: state.id });
         }
         state.visited = true;
@@ -899,6 +897,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 i = i + 1;
             }
 
+            if (listener) google.maps.event.removeListener(listener);
             var indexOfClosest = distance.indexOf(Math.min(...distance));
             if (distance[indexOfClosest] < tolerance * tolerance) {
                 // Disable deleting of label
@@ -911,7 +910,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 ribbon.enableMode("Walk");
                 uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
 
-                if (listener) google.maps.event.removeListener(listener);
                 next(transition[indexOfClosest], { accurate: true });
             } else {
                 next(transition[indexOfClosest], { accurate: false });
