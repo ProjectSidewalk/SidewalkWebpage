@@ -111,13 +111,13 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     /**
-     * Draw a label on the onboarding canvas. Only used to draw static labels as exampels in the tutorial.
+     * Draw a label on the onboarding canvas. Only used to draw static labels as examples in the tutorial.
      * @param x
      * @param y
      * @param labelType
      * @private
      */
-    function _drawStaticLabel(x, y, labelType) {
+    function _drawStaticLabel(labelType, x, y) {
         if (ctx) {
             ctx.save();
             Label.renderLabelIcon(ctx, labelType, x, y);
@@ -296,15 +296,15 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             povOfLabelIfCentered = util.panomarker.calculatePovFromPanoXY(
                 imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT
             );
-            var canvasCoordinate = util.panomarker.getCanvasCoordinate(
+            var canvasCoord = util.panomarker.getCanvasCoordinate(
                 povOfLabelIfCentered, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
 
             if (annotation.type === "arrow") {
                 lineLength = annotation.length;
                 lineAngle = annotation.angle;
-                x2 = canvasCoordinate.x;
-                y2 = canvasCoordinate.y;
+                x2 = canvasCoord.x;
+                y2 = canvasCoord.y;
                 x1 = x2 - lineLength * Math.sin(util.math.toRadians(lineAngle));
                 y1 = y2 - lineLength * Math.cos(util.math.toRadians(lineAngle));
 
@@ -329,9 +329,16 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     lineWidth: 4,
                     strokeStyle: 'rgba(255, 255, 255, 1)'
                 };
-                _drawBox(canvasCoordinate.x, canvasCoordinate.y, annotation.width, annotation.height, params);
+                _drawBox(canvasCoord.x, canvasCoord.y, annotation.width, annotation.height, params);
             } else if (annotation.type === "label") {
-                _drawStaticLabel(canvasCoordinate.x, canvasCoordinate.y, annotation.labelType);
+                _drawStaticLabel(annotation.labelType, canvasCoord.x, canvasCoord.y);
+
+                // The first time we draw the label, create the marker on the minimap.
+                if (!annotation.firstDraw && typeof google !== "undefined" && google && google.maps) {
+                    var googleMarker = Label.createMinimapMarker(annotation.labelType, annotation.lat, annotation.lng);
+                    googleMarker.setMap(svl.map.getMap());
+                    annotation.firstDraw = true;
+                }
             }
         }
         povChange["status"] = false;
