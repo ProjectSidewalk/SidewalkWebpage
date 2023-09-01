@@ -71,7 +71,7 @@ function Tracker() {
             timestamp: timestamp,
             zoom: pov ? pov.zoom : null,
             is_mobile: isMobile()
-            // source: isMobile() ? "ValidateMobile" : "ValidateDesktop"
+            // @mikey should this is_mobile be removed?
         };
 
         return data;
