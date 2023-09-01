@@ -6,6 +6,7 @@
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
 @(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
+@skylineImg =@{Play.configuration.getString("city-params.skyline-img." + cityId).get}
 
 @main(title) {
     @navbar(user, Some("/"))
@@ -126,11 +127,11 @@
     <div class="ps-skyline">
         <div class="ps-skyline-container">
             @if(cityName == "Washington" || cityName == "Seattle") {
-                <img src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)" alt="@Messages("home.graphic")">
+                <img src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages("landing." + skylineImg + ".alt")">
             } else {
-                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)" alt="@Messages("home.graphic.seattle")">
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages("landing." + skylineImg + ".alt")">
             }
-            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("clouds")">
+            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
         </div>
         <div class="ps-skyline-stats-holder">
             <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
@@ -178,7 +179,7 @@
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
             </div>
             <div class="gif-container">
-                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" alt="@Messages("home.explain")">
+                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
                 <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
                 <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
                 <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
@@ -199,23 +200,23 @@
             <section class="collaborator-images-container">
                 <div class="collaborator-image">
                     <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability Lab Logo'>
+                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt="@Messages("landing.collaborators.logo.makeability.alt")">
                     </a>
                 </div>
                 <div class="collaborator-image">
                     <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='University of Illinois Chicago Institute on Disability and Human Development Logo'>
+                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt="@Messages("landing.collaborators.logo.uic.alt")">
                     </a>
                 </div>
                 <div class="collaborator-image">
                     <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
-                        <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='Liga Peatonal Logo'>
+                        <img src='@routes.Assets.at("assets/LigaLogo.png")' alt="@Messages("landing.collaborators.logo.liga.peatonal.alt")">
                     </a>
                 </div>
                 @if("Columbus" == cityName){
                     <div class="collaborator-image">
                         <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
-                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open Columbus Logo'>
+                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
                         </a>
                     </div>
                 }
@@ -224,17 +225,17 @@
                 @if("Amsterdam" == cityName){
                     <div class="collaborator-image">
                         <a id="worldenabled-img-link" href="https://worldenabled.org/">
-                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt='World Enabled Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
-                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt='City of Amsterdam Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt="@Messages("landing.collaborators.logo.city.of.amsterdam.alt")">
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
-                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt='Amsterdam Intelligence Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt="@Messages("landing.collaborators.logo.amsterdam.intelligence.alt")">
                         </a>
                     </div>
                 }

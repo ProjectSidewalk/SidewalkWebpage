@@ -101,7 +101,21 @@ landing.ml.gif.interactive.visualization.tools = interactive visualization tools
 landing.ml.gif.smarter.routing = smarter routing
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = outcomes
+landing.ml.gif.explain.alt = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
 landing.collaborators.title = Collaborators
+landing.collaborators.logo.makeability.alt = Makeability Lab Logo
+landing.collaborators.logo.uic.alt = University of Illinois Chicago Institute on Disability and Human Development Logo
+landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal Logo
+landing.collaborators.logo.open.columbus.alt = Open Columbus Logo
+landing.collaborators.logo.world.enabled.alt = World Enabled Logo
+landing.collaborators.logo.city.of.amsterdam.alt = City of Amsterdam Logo
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
+landing.collaborators.logo.people.nudge.alt = People Nudge Logo
+landing.clouds.alt = White clouds partially covering the image above, with statistics shown on top of the clouds.
+landing.skyline1.png.alt = An illustration of an intersection with people traveling across the street.
+landing.skyline2.png.alt = An illustration of an intersection with people traveling across the street. A flag showing the colors of the flag of Mexico is in the background.
+landing.skyline-dc.png.alt = An illustration showing the skyline of Washington, DC.
+landing.skyline-seattle.png.alt = An illustration showing the skyline of Seattle, Washington.
 
 footer.about = About Us
 footer.terms = Terms of Use
@@ -340,17 +354,8 @@ help.rating.1 = Rating 1: Passable
 help.rating.3 = Rating 3: Neutral
 help.rating.5 = Rating 5: Not passable
 
-home.graphic = A graphic of an intersection with people traveling across the street
-home.graphic.seattle = A skyline graphic of Seattle, Washington
-home.explain = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
-
-clouds = clouds
-
-logo.makeability = Makeability Lab Logo
-logo.uic = University of Illinois Chicago Institute on Disability and Human Development Logo
-logo.liga.peatonal = Liga Peatonal Logo
-logo.open.columbus = Open Columbus Logo
-logo.world.enabled = World Enabled Logo
-logo.city.of.amsterdam = City of Amsterdam Logo
-logo.amsterdam.intelligence = Amsterdam Intelligence Logo
-logo.people.nudge = People Nudge Logo
+footer.logo.nsf.alt = National Science Foundation Logo
+footer.logo.google.alt = Google Logo
+footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
+footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
+footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo

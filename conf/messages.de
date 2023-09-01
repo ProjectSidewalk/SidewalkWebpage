@@ -101,7 +101,21 @@ landing.ml.gif.interactive.visualization.tools = interaktive visualisierungsmeth
 landing.ml.gif.smarter.routing = verbesserte routenplanung
 landing.ml.gif.machine.learning = maschinelles lernen
 landing.ml.gif.outcomes = ergebnisse
+landing.ml.gif.explain.alt = GIF erklärt die Ergebnisse von Crowdsourcing und maschinellem Lernen bei Project Sidewalk
 landing.collaborators.title = Kollaborierende
+landing.collaborators.logo.makeability.alt = Makeability Lab-Logo
+landing.collaborators.logo.uic.alt = Logo des Chicago Institute on Disability and Human Development der University of Illinois
+landing.collaborators.logo.liga.peatonal.alt = Logo der Liga Peatonal
+landing.collaborators.logo.open.columbus.alt = Columbus-Logo öffnen
+landing.collaborators.logo.world.enabled.alt = World Enabled-Logo
+landing.collaborators.logo.city.of.amsterdam.alt = Logo der Stadt Amsterdam
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
+landing.collaborators.logo.people.nudge.alt = People Nudge Logo
+landing.clouds.alt = Weiße Wolken bedecken teilweise das Bild oben, mit Statistiken über den Wolken.
+Landing.skyline1.png.alt = Eine Illustration einer Kreuzung mit Menschen, die über die Straße fahren.
+Landing.skyline2.png.alt = Eine Illustration einer Kreuzung mit Menschen, die über die Straße fahren. Im Hintergrund ist eine Flagge in den Farben der mexikanischen Flagge zu sehen.
+landing.skyline-dc.png.alt = Eine Illustration, die die Skyline von Washington, DC zeigt.
+landing.skyline-seattle.png.alt = Eine Illustration, die die Skyline von Seattle, Washington, zeigt.
 
 footer.about = Über uns
 footer.terms = Nutzungsbedingungen
@@ -340,17 +354,8 @@ help.rating.1 = Bewertung 1: Passierbar
 help.rating.3 = Bewertung 3: Schwer passierbar
 help.rating.5 = Bewertung 5: Nicht passierbar
 
-home.graphic = Eine Grafik einer Kreuzung mit Menschen, die über die Straße fahren
-home.graphic.seattle = Eine Skyline-Grafik von Seattle, Washington
-home.explain = GIF erklärt die Ergebnisse von Crowdsourcing und maschinellem Lernen bei Project Sidewalk
-
-clouds = Wolken
-
-logo.makeability = Makeability Lab-Logo
-logo.uic = Logo des University of Illinois Chicago Institute on Disability and Human Development
-logo.liga.peatonal = Logo der Liga Peatonal
-logo.open.columbus = Columbus-Logo öffnen
-logo.world.enabled = World Enabled-Logo
-logo.city.of.amsterdam = Logo der Stadt Amsterdam
-logo.amsterdam.intelligence = Logo des Amsterdamer Geheimdienstes
-logo.people.nudge = People Nudge Logo
+footer.logo.nsf.alt = Logo der National Science Foundation
+footer.logo.google.alt = Google-Logo
+footer.logo.sloan.alt = Logo der Alfred P. Sloan Foundation
+footer.logo.pactrans.alt = Logo des Pacific Northwest Transportation Consortium (PacTrans).
+footer.logo.create.alt = Logo des Zentrums für Forschung und Bildung zu barrierefreien Technologien und Erfahrungen (CREATE).

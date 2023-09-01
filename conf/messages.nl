@@ -101,7 +101,21 @@ landing.ml.gif.interactive.visualization.tools = interactieve visualisatietools
 landing.ml.gif.smarter.routing = slimmere routering
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = resultaten
+landing.ml.gif.explain.alt = GIF met uitleg over de resultaten van crowdsourcing en machine learning op Project Sidewalk
 landing.collaborators.title = Partners
+landing.collaborators.logo.makeability.alt = Makeability Lab-logo
+landing.collaborators.logo.uic.alt = Logo van het Chicago Institute on Disability and Human Development van de Universiteit van Illinois
+landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal-logo
+landing.collaborators.logo.open.columbus.alt = Open het Columbus-logo
+landing.collaborators.logo.world.enabled.alt = Wereld ingeschakeld logo
+landing.collaborators.logo.city.of.amsterdam.alt = Logo gemeente Amsterdam
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence-logo
+landing.collaborators.logo.people.nudge.alt = Mensen duwen logo
+landing.clouds.alt = Witte wolken bedekken de afbeelding hierboven gedeeltelijk, terwijl de statistieken bovenop de wolken worden weergegeven.
+landing.skyline1.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken.
+landing.skyline2.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken. Op de achtergrond staat een vlag met de kleuren van de vlag van Mexico.
+landing.skyline-dc.png.alt = Een illustratie van de skyline van Washington, DC.
+landing.skyline-seattle.png.alt = Een illustratie van de skyline van Seattle, Washington.
 
 footer.about = Over ons
 footer.terms = Gebruiksvoorwaarden
@@ -339,17 +353,8 @@ help.rating.1 = Rating 1: Begaanbaar
 help.rating.3 = Rating 3: Neutraal
 help.rating.5 = Rating 5: Niet begaanbaar
 
-home.graphic = Een afbeelding van een kruispunt met mensen die de straat oversteken
-home.graphic.seattle = Een grafische skyline van Seattle, Washington
-home.explain = GIF met uitleg over de resultaten van crowdsourcing en machine learning op Project Sidewalk
-
-clouds = wolken
-
-logo.makeability = Makeability Lab-logo
-logo.uic = University of Illinois Chicago Institute on Disability and Human Development Logo
-logo.liga.peatonal = Liga Peatonal-logo
-logo.open.columbus = Columbus-logo openen
-logo.world.enabled = Wereld ingeschakeld logo
-logo.city.of.amsterdam = Logo gemeente Amsterdam
-logo.amsterdam.intelligence = Amsterdam Intelligence-logo
-logo.people.nudge = People Nudge-logo
+footer.logo.nsf.alt = National Science Foundation-logo
+footer.logo.google.alt = Google-logo
+footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
+footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
+footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo

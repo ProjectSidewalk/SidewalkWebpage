@@ -101,7 +101,21 @@ landing.ml.gif.interactive.visualization.tools = herramientas de visualización 
 landing.ml.gif.smarter.routing = enrutamiento inteligente
 landing.ml.gif.machine.learning = aprendizaje de máquinas
 landing.ml.gif.outcomes = resultados
+landing.ml.gif.explain.alt = GIF que explica los resultados del crowdsourcing y el aprendizaje automático en Project Sidewalk
 landing.collaborators.title = Colaboradores
+landing.collaborators.logo.makeability.alt = Logotipo del laboratorio de capacidad de creación
+landing.collaborators.logo.uic.alt = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de Chicago de la Universidad de Illinois
+landing.collaborators.logo.liga.peatonal.alt = Logotipo Liga Peatonal
+landing.collaborators.logo.open.columbus.alt = Logotipo abierto de Columbus
+landing.collaborators.logo.world.enabled.alt = Logotipo habilitado para el mundo
+landing.collaborators.logo.city.of.amsterdam.alt = Logotipo de la ciudad de Ámsterdam
+landing.collaborators.logo.amsterdam.intelligence.alt = Logotipo de Inteligencia de Ámsterdam
+landing.collaborators.logo.people.nudge.alt = Logotipo de empujón de personas
+landing.clouds.alt = Nubes blancas que cubren parcialmente la imagen de arriba, con estadísticas mostradas encima de las nubes.
+landing.skyline1.png.alt = Una ilustración de una intersección con personas cruzando la calle.
+landing.skyline2.png.alt = Una ilustración de una intersección con personas cruzando la calle. Al fondo hay una bandera que muestra los colores de la bandera de México.
+landing.skyline-dc.png.alt = Una ilustración que muestra el horizonte de Washington, DC.
+landing.skyline-seattle.png.alt = Una ilustración que muestra el horizonte de Seattle, Washington.
 
 footer.about = Sobre nosotros
 footer.terms = Términos de uso
@@ -338,17 +352,8 @@ help.rating.1 = Calificación 1: Transitable
 help.rating.3 = Calificación 3: Neutral
 help.rating.5 = Calificación 5: No es transitable
 
-home.graphic = Un gráfico de una intersección con personas que cruzan la calle
-home.graphic.seattle = Un gráfico del horizonte de Seattle, Washington
-home.explain = GIF que explica los resultados del crowdsourcing y el aprendizaje automático en Project Sidewalk
-
-clouds = nubes
-
-logo.makeability = Logotipo del laboratorio de creación
-logo.uic = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de Chicago de la Universidad de Illinois
-logo.liga.peatonal = Logotipo de la Liga Peatonal
-logo.open.columbus = Logotipo abierto de Colón
-logo.world.enabled = Logotipo mundial habilitado
-logo.city.of.amsterdam = Logotipo de la ciudad de Ámsterdam
-logo.amsterdam.intelligence = Logotipo de Amsterdam Intelligence
-logo.people.nudge = Logo de Empuje de Personas
+footer.logo.nsf = Logotipo de la Fundación Nacional de Ciencias
+footer.logo.google = Logotipo de Google
+footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan
+footer.logo.pactrans = Logotipo del Consorcio de Transporte del Noroeste del Pacífico (PacTrans)
+footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Tecnologías y Experiencias Accesibles (CREATE)
