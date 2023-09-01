@@ -201,7 +201,6 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             canvas_width: gsvImage.width(),
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false,
             source: sourceStr
         };
 
