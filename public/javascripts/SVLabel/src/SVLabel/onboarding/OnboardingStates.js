@@ -232,7 +232,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": 'Pick Crosswalk label type',
+                "message": "Now let's label the painted crosswalk. <span class=\"bold\">Click the \"Crosswalk\" button</span>.",
             },
             "panoId": panoId,
             "annotations": [
@@ -259,7 +259,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             }],
             "message": {
-                "message": 'Place the Crosswalk label',
+                "message": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the crosswalk.",
                 "parameters": null
             },
             "panoId": panoId,
@@ -291,7 +291,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "message": `Oops! Your label is too far away. Try adding your label at the center of the crosswalk. <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
                 "parameters": null
             },
             "panoId": panoId,
@@ -341,7 +341,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint is not yet fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
+                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
                 "parameters": null
             },
             "panoId": panoId,
@@ -366,7 +366,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint is not yet fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
+                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
                 "parameters": null
             },
             "panoId": panoId,
@@ -869,7 +869,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": "On the pole you can see a light telling pedestrians that they can cross the street. Click the Pedestrian Signal button to label it.",
+                "message": "On the pole you can see a light telling pedestrians that they can cross the street. <span class=\"bold\">Click the \"Pedestrian\" Signal button</span> to label it.",
                 "parameters": null
             },
             "panoId": panoId,
@@ -904,7 +904,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": "Label that pedestrian signal! You can see the light higher up on the pole, but we add labels at the bottom of the pole because it gives us a more accurate location.",
+                "message": "Now let\'s label it by <span class=\"bold\">clicking beneath the flashing yellow arrow</span>. You can see the light higher up on the pole, but we ask you to add your label at the bottom of the pole because it gives us a more accurate location.",
                 "parameters": null
             },
             "panoId": panoId,
@@ -944,7 +944,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `Oops! Your label is too far away. For tall objects like poles, let's add labels at the base of the pole. This gives us more accurate location info! Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "message": `Oops! Your label is too far away. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
                 "parameters": null
             },
             "panoId": panoId,
@@ -1047,7 +1047,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "You are going to label another crosswalk, and you are going to LIKE it!",
+                "message": "There seems to be a painted crosswalk here as well. First, <span class=\"bold\">click on the \"Crosswalk\" button</span>.",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1075,7 +1075,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
-                "message": "See that crosswalk? Click somewhere near the middle of it.",
+                "message": "Let's label it by placing your label near the center of the crosswalk. <span class=\"bold\">Click below the flashing arrow</span> to add your label.",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1107,7 +1107,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": `Oops! Your label is too far away.  Try adding your label at the center of the crosswalk. Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "message": `Oops! Your label is too far away. Try adding your label at the center of the crosswalk. Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
                 "parameters": null
             },
             "panoId": panoId,
@@ -1159,7 +1159,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint is not yet fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
+                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1184,7 +1184,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint is not yet fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
+                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1226,7 +1226,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": 'To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you.',
+                "message": 'To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you. In the future, you should label all of these yourself!',
                 "parameters": null
             },
             "panoId": panoId,
@@ -1702,7 +1702,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": "We shouldn't forget the pedestrian signal! Click the Pedestrian Signal button to label it.",
+                "message": "We shouldn't forget the pedestrian signal! <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it.",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1737,7 +1737,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             }],
             "message": {
-                "message": "Label that pedestrian signal! You can see the light higher up on the pole, but we add labels at the bottom of the pole because it gives us a more accurate location.",
+                "message": "<span class=\"bold\">Click at the base of the pole</span> to label this pedestrian signal.",
                 "parameters": null
             },
             "panoId": panoId,
@@ -1777,7 +1777,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": `Oops! Your label is too far away. For tall objects like poles, let's add labels at the base of the pole. This gives us more accurate location info! Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+                "message": `Oops! Your label is too far away. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
                 "parameters": null
             },
             "panoId": panoId,
