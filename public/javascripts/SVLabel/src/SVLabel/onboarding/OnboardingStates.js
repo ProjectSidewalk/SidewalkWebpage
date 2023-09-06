@@ -68,7 +68,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-1'),
+                "message": i18next.t('tutorial.select-label-type-1')
             },
             "panoId": panoId,
             "annotations": [
@@ -95,8 +95,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.label-attribute-1'),
-                "parameters": null
+                "message": i18next.t('tutorial.label-attribute-1')
             },
             "panoId": panoId,
             "annotations": [
@@ -127,8 +126,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -152,8 +150,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')})
             },
             "panoId": panoId,
             "annotations": [
@@ -179,8 +176,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.rate-severity-1') +
                     '<br><img src="' + svl.rootDirectory + 'img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" ' +
-                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
-                "parameters": null
+                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -207,8 +203,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.redo-rate-attribute-1') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                    'alt="Rating curb ramp quality as 2, somewhat passable">',
-                "parameters": null
+                    'alt="Rating curb ramp quality as 2, somewhat passable">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -259,8 +254,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             }],
             "message": {
-                "message": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the crosswalk.",
-                "parameters": null
+                "message": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the crosswalk."
             },
             "panoId": panoId,
             "annotations": [
@@ -291,8 +285,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. Try adding your label at the center of the crosswalk. <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. Try adding your label at the center of the crosswalk. <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -316,8 +309,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')})
             },
             "panoId": panoId,
             "annotations": [
@@ -341,8 +333,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
-                "parameters": null
+                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>"
             },
             "panoId": panoId,
             "annotations": null,
@@ -366,8 +357,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
-                "parameters": null
+                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>"
             },
             "panoId": panoId,
             "annotations": null,
@@ -392,8 +382,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2-adjust"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.adjust-heading-angle-1'),
-                "parameters": null
+                "message": i18next.t('tutorial.adjust-heading-angle-1')
             },
             "panoId": panoId,
             "annotations": null,
@@ -428,8 +417,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-2'),
-                "parameters": null
+                "message": i18next.t('tutorial.select-label-type-2')
             },
             "panoId": panoId,
             "annotations": [
@@ -457,8 +445,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.common.label-curb-ramp'),
-                "parameters": null
+                "message": i18next.t('tutorial.common.label-curb-ramp')
             },
             "panoId": panoId,
             "annotations": [
@@ -489,8 +476,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -515,8 +501,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')})
             },
             "panoId": panoId,
             "annotations": [
@@ -543,8 +528,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.rate-severity-2') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" + '" ' +
-                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
-                "parameters": null
+                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -570,8 +554,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.redo-rate-attribute-2') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
-                    'somewhat passable">',
-                "parameters": null
+                    'somewhat passable">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -596,8 +579,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-2') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
-                "parameters": null
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -623,8 +605,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-2') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
-                "parameters": null
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -648,8 +629,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-3'),
-                "parameters": null
+                "message": i18next.t('tutorial.select-label-type-3')
             },
             "panoId": panoId,
             "annotations": [
@@ -677,8 +657,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.label-attribute-3'),
-                "parameters": null
+                "message": i18next.t('tutorial.label-attribute-3')
             },
             "panoId": panoId,
             "annotations": [
@@ -709,8 +688,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -735,8 +713,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:no-curb-ramp')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:no-curb-ramp')})
             },
             "panoId": panoId,
             "annotations": [
@@ -764,8 +741,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.rate-severity-3') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
-                    '3, a slightly severe problem">',
-                "parameters": null
+                    '3, a slightly severe problem">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -791,8 +767,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.redo-rate-attribute-3') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
-                    'a slightly severe problem">',
-                "parameters": null
+                    'a slightly severe problem">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -817,8 +792,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-3') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
-                "parameters": null
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -844,8 +818,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-3') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
-                "parameters": null
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -869,8 +842,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": "On the pole you can see a light telling pedestrians that they can cross the street. <span class=\"bold\">Click the \"Pedestrian\" Signal button</span> to label it.",
-                "parameters": null
+                "message": "On the pole you can see a light telling pedestrians that they can cross the street. <span class=\"bold\">Click the \"Pedestrian\" Signal button</span> to label it."
             },
             "panoId": panoId,
             "annotations": [
@@ -904,8 +876,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": "Now let\'s label it by <span class=\"bold\">clicking beneath the flashing yellow arrow</span>. You can see the light higher up on the pole, but we ask you to add your label at the bottom of the pole because it gives us a more accurate location.",
-                "parameters": null
+                "message": "Now let\'s label it by <span class=\"bold\">clicking beneath the flashing yellow arrow</span>. You can see the light higher up on the pole, but we ask you to add your label at the bottom of the pole because it gives us a more accurate location."
             },
             "panoId": panoId,
             "annotations": [
@@ -944,8 +915,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -977,8 +947,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')})
             },
             "panoId": panoId,
             "annotations": [
@@ -1030,8 +999,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3-adjust"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.adjust-heading-angle-2'),
-                "parameters": null
+                "message": i18next.t('tutorial.adjust-heading-angle-2')
             },
             "panoId": panoId,
             "annotations": null,
@@ -1047,8 +1015,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "There seems to be a painted crosswalk here as well. First, <span class=\"bold\">click on the \"Crosswalk\" button</span>.",
-                "parameters": null
+                "message": "There seems to be a painted crosswalk here as well. First, <span class=\"bold\">click on the \"Crosswalk\" button</span>."
             },
             "panoId": panoId,
             "annotations": [
@@ -1075,8 +1042,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
-                "message": "Let's label it by placing your label near the center of the crosswalk. <span class=\"bold\">Click below the flashing arrow</span> to add your label.",
-                "parameters": null
+                "message": "Let's label it by placing your label near the center of the crosswalk. <span class=\"bold\">Click below the flashing arrow</span> to add your label."
             },
             "panoId": panoId,
             "annotations": [
@@ -1107,8 +1073,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. Try adding your label at the center of the crosswalk. Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. Try adding your label at the center of the crosswalk. Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1133,8 +1098,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')})
             },
             "panoId": panoId,
             "annotations": [
@@ -1159,8 +1123,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>",
-                "parameters": null
+                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1184,8 +1147,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
-                "parameters": null
+                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1226,8 +1188,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": `To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>`,
-                "parameters": null
+                "message": `To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>`
             },
             "panoId": panoId,
             "annotations": [
@@ -1280,8 +1241,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-6'),
-                "parameters": null
+                "message": i18next.t('tutorial.select-label-type-6')
             },
             "panoId": panoId,
             "annotations": [
@@ -1309,8 +1269,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.label-attribute-6'),
-                "parameters": null
+                "message": i18next.t('tutorial.label-attribute-6')
             },
             "panoId": panoId,
             "annotations": [
@@ -1341,8 +1300,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1367,8 +1325,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('no-sidewalk')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('no-sidewalk')})
             },
             "panoId": panoId,
             "annotations": [
@@ -1397,7 +1354,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
-                "parameters": null,
                 "left": 410
             },
             "panoId": panoId,
@@ -1425,7 +1381,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
-                "parameters": null,
                 "left": 410
             },
             "panoId": panoId,
@@ -1452,7 +1407,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.tag-attribute-6') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
-                "parameters": null,
                 "left": 410
             },
             "panoId": panoId,
@@ -1485,7 +1439,6 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.redo-tag-attribute-6') +
                     '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
-                "parameters": null,
                 "left": 410
             },
             "panoId": panoId,
@@ -1516,8 +1469,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5-adjust"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.adjust-heading-angle-4'),
-                "parameters": null
+                "message": i18next.t('tutorial.adjust-heading-angle-4')
             },
             "panoId": panoId,
             "annotations": null,
@@ -1533,8 +1485,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-7'),
-                "parameters": null
+                "message": i18next.t('tutorial.select-label-type-7')
             },
             "panoId": panoId,
             "annotations": [
@@ -1562,8 +1513,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.label-attribute-7'),
-                "parameters": null
+                "message": i18next.t('tutorial.label-attribute-7')
             },
             "panoId": panoId,
             "annotations": [
@@ -1594,8 +1544,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1620,8 +1569,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')})
             },
             "panoId": panoId,
             "annotations": [
@@ -1647,10 +1595,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                    'alt="Rating curb ramp quality as 1, passable">',
-                "parameters": null
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
+                    `" class="width-75" style="margin: 5px auto;display:block;" `
             },
             "panoId": panoId,
             "annotations": null,
@@ -1674,11 +1620,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                    'alt="Rating curb ramp quality as 1, passable">',
-                "parameters": null
+                "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
+                    `" class="width-75" style="margin: 5px auto;display:block;" `
             },
             "panoId": panoId,
             "annotations": null,
@@ -1702,8 +1646,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": "We shouldn't forget the pedestrian signal! <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it.",
-                "parameters": null
+                "message": "We shouldn't forget the pedestrian signal! <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it."
             },
             "panoId": panoId,
             "annotations": [
@@ -1737,8 +1680,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             }],
             "message": {
-                "message": "<span class=\"bold\">Click at the base of the pole</span> to label this pedestrian signal.",
-                "parameters": null
+                "message": "<span class=\"bold\">Click at the base of the pole</span> to label this pedestrian signal."
             },
             "panoId": panoId,
             "annotations": [
@@ -1777,8 +1719,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
-                "parameters": null
+                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1810,8 +1751,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')}),
-                "parameters": null
+                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')})
             },
             "panoId": panoId,
             "annotations": [
@@ -1844,8 +1784,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-6-adjust"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.adjust-heading-angle-5'),
-                "parameters": null
+                "message": i18next.t('tutorial.adjust-heading-angle-5')
             },
             "panoId": panoId,
             "annotations": null,
@@ -1912,8 +1851,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "fade-direction": "fadeIn"
             },
             "message": {
-                "message": i18next.t('tutorial.walk-3'),
-                "parameters": null
+                "message": i18next.t('tutorial.walk-3')
             },
             "panoId": panoId,
             "transition": function () {
@@ -2119,5 +2057,5 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
         }
     ];
 
-    this.get = function () { console.log(this.states); return this.states; };
+    this.get = function () { return this.states; };
 }
