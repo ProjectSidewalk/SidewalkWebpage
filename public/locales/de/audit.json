@@ -51,7 +51,9 @@
         "instruction-1": "Sie können Ihre Beschriftungen auf der kleinen Karte verfolgen!",
         "instruction-2": "Falls Sie sich bei Ihrer Erkundung verlaufen, können Sie das <span class=\"bold\">Verlaufen-Symbol</span> nutzen, um zu einem anderen Ort zu gelangen.",
         "common": {
-            "label-too-far": "Ups! <span class=\"bold\">Ihre Beschriftung ist zu weit entfernt</span>. Lassen Sie uns die falsch platzierte Beschriftung entfernen. <span class=\"bold\">Fahren Sie mit dem Mauszeiger über die Beschriftung und klicken Sie das Löschen-Symbol </span>",
+            "label-too-far-start": "Ups! <span class=\"bold\">Ihre Beschriftung ist zu weit entfernt.</span>",
+            "label-too-far-end": "<span class=\"bold\">Fahren Sie mit dem Mauszeiger über die Beschriftung und klicken Sie das Löschen-Symbol.</span>",
+            "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Lassen Sie uns die falsch platzierte Beschriftung entfernen. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Gut! Nun werden wir eine neue Beschriftung hinzufügen. <span class=\"bold\">Klicken Sie auf das \"{{label_type}}\"-Symbol</span> oberhalb.",
             "label-curb-ramp": "Nun <span class=\"bold\">klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
             "redo-rate-curb-ramp-severity-1": "Hmm, Sie sollten diese Trottoirabsenkung mit 1, passierbar bewerten. Diese Trottoirabsenkung ist breit genug, hat eine taktile Orientierungshilfe und ist nicht auf den Verkehr ausgerichtet. <span class=\"bold\">Klicken Sie \"1\" um den Schweregrad zu ändern.</span>",

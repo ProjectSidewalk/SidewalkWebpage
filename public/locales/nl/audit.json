@@ -51,7 +51,9 @@
         "instruction-1": "Je kunt je labels bijhouden op de mini kaart!",
         "instruction-2": "Tenslotte, als je vast komt te zitten tijdens het labelen kun je de <span class=\"bold\">Vastgelopen knop</span> gebruiken om naar een andere locatie te verplaatsen.",
         "common": {
-            "label-too-far": "Oeps! <span class=\"bold\">Je label is te ver weg</span>. Laten we dit verkeerd geplaatste label opnieuw plaatsen. <span class=\"bold\">Beweeg over het label en klik op het verwijder icoontje.</span>",
+            "label-too-far-start": "Oeps! <span class=\"bold\">Je label is te ver weg.</span>",
+            "label-too-far-end": "<span class=\"bold\">Beweeg over het label en klik op het verwijder icoontje.</span>",
+            "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Laten we dit verkeerd geplaatste label opnieuw plaatsen. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Goed zo! Laten we er nog een labelen. <span class=\"bold\">Klik de \"{{label_type}}\" knop</span> bovenaan.",
             "label-curb-ramp": "<span class=\"bold\">Klik nu op de trottoir oprit</span> onder de gele knipperende pijl om het te labelen.",
             "redo-rate-curb-ramp-severity-1": "Hmm, je zou hem met een 1 moeten beoordelen, begaanbaar. Deze trottoir oprit is breed genoeg, heeft een tactiele waarschuwing, en is niet het verkeer in gericht. <span class=\"bold\">Klik \"1\" om deze beoordeling te veranderen.</span>",

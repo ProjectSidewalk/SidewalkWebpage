@@ -53,7 +53,11 @@
         "instruction-1": "You can track your labels in the mini map!",
         "instruction-2": "Finally, if you get stuck while exploring, you can use the <span class=\"bold\">Stuck button</span> to move to a different location.",
         "common": {
-            "label-too-far": "Oops! <span class=\"bold\">Your label is too far away</span>. Let's remove the misplaced label. <span class=\"bold\">Hover over the label and click the delete icon</span>",
+            "label-too-far-start": "Oops! <span class=\"bold\">Your label is too far away.</span>",
+            "label-too-far-end": "<span class=\"bold\">Hover over the label and click the delete icon.</span>",
+            "label-too-far-crosswalk": "$t(audit:tutorial.common.label-too-far-start) Try adding your label at the center of the crosswalk. $t(audit:tutorial.common.label-too-far-end)",
+            "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! $t(audit:tutorial.common.label-too-far-end)",
+            "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Let's remove the misplaced label. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> above.",
             "label-curb-ramp": "Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
             "redo-rate-curb-ramp-severity-1": "Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a tactile warning, and doesn't point into traffic. <span class=\"bold\">Let’s click \"1\" to change its rating.</span>",

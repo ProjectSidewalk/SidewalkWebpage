@@ -126,7 +126,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -285,7 +285,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. Try adding your label at the center of the crosswalk. <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-crosswalk')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -476,7 +476,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -688,7 +688,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -915,7 +915,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-signal')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1073,7 +1073,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. Try adding your label at the center of the crosswalk. Hover over the label and click the delete icon. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-crosswalk')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1300,7 +1300,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1544,7 +1544,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": `${i18next.t('tutorial.common.label-too-far')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [
@@ -1719,7 +1719,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": `Oops! <span class=\"bold\">Your label is too far away</span>. For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! <span class=\"bold\">Hover over the label and click the delete icon</span>. <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
+                "message": `${i18next.t('tutorial.common.label-too-far-signal')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`
             },
             "panoId": panoId,
             "annotations": [

@@ -51,7 +51,9 @@
         "instruction-1": "¡Puedes seguir tus etiquetas en el mini mapa!",
         "instruction-2": "Finalmente, si te quedas atascado mientras exploras, puedes usar el <span class=\"bold\">botón de Atorado</span> para moverte a una ubicación diferente.",
         "common": {
-            "label-too-far": "¡Uy! <span class=\"bold\">Tu etiqueta está demasiado lejos</span>. Quitemos la etiqueta mal colocada. <span class=\"bold\">Desplázate sobre la etiqueta y haz clic en el icono eliminar</span>",
+            "label-too-far-start": "¡Uy! <span class=\"bold\">Tu etiqueta está demasiado lejos.</span>",
+            "label-too-far-end": "<span class=\"bold\">Desplázate sobre la etiqueta y haz clic en el icono eliminar.</span>",
+            "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Quitemos la etiqueta mal colocada. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "¡Bueno! Ahora, etiquetemos de nuevo. <span class=\"bold\">Haz clic en el botón \"{{label_type}}\"</span> ubicado en la parte superior.",
             "label-curb-ramp": "Ahora <span class=\"bold\">haz clic en la rampa peatonal</span>, debajo de la flecha amarilla parpadeante, para etiquetarla.",
             "redo-rate-curb-ramp-severity-1": "Hmm, deberías calificar esta rampa peatonal como 1, transitable. Es una rampa peatonal de alta calidad. <span class=\"bold\">Haz clic en \"1\" para establecer su calidad.</span>",
