@@ -1,5 +1,4 @@
 function OnboardingStates (contextMenu, compass, mapService, statusModel, tracker) {
-    var numSteps = 41;
     var panoId = "tutorial";
     var afterWalkPanoId = "afterWalkTutorial";
     var headingRanges = {
@@ -150,7 +149,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') })
             },
             "panoId": panoId,
             "annotations": [
@@ -176,7 +175,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.rate-severity-1') +
                     '<br><img src="' + svl.rootDirectory + 'img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" ' +
-                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">'
+                    'class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -201,9 +200,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-1') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                    'alt="Rating curb ramp quality as 2, somewhat passable">'
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-severity-2-v3.gif` +
+                    `" class="width-75" style="margin: 5px auto;display:block;"`
             },
             "panoId": panoId,
             "annotations": null,
@@ -227,7 +225,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": "Now let's label the painted crosswalk. <span class=\"bold\">Click the \"Crosswalk\" button</span>.",
+                "message": i18next.t('tutorial.select-label-type-2'),
             },
             "panoId": panoId,
             "annotations": [
@@ -254,7 +252,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             }],
             "message": {
-                "message": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the crosswalk."
+                "message": i18next.t('tutorial.label-attribute-2')
             },
             "panoId": panoId,
             "annotations": [
@@ -309,7 +307,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:crosswalk') })
             },
             "panoId": panoId,
             "annotations": [
@@ -333,7 +331,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>"
+                "message": i18next.t('tutorial.common.rate-crosswalk-sev-1')
             },
             "panoId": panoId,
             "annotations": null,
@@ -357,7 +355,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>"
+                "message": i18next.t('tutorial.common.redo-rate-crosswalk-sev-1')
             },
             "panoId": panoId,
             "annotations": null,
@@ -417,7 +415,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-2')
+                "message": i18next.t('tutorial.select-label-type-3')
             },
             "panoId": panoId,
             "annotations": [
@@ -445,7 +443,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.common.label-curb-ramp')
+                "message": i18next.t('tutorial.label-attribute-3')
             },
             "panoId": panoId,
             "annotations": [
@@ -501,7 +499,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') })
             },
             "panoId": panoId,
             "annotations": [
@@ -526,9 +524,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.rate-severity-2') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" + '" ' +
-                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">'
+                "message": i18next.t('tutorial.rate-severity-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" ` +
+                    'class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -551,10 +549,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.redo-rate-attribute-2') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
-                    'somewhat passable">'
+                "message": i18next.t('tutorial.redo-rate-attribute-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -577,9 +574,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.tag-attribute-2') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">'
+                "message": i18next.t('tutorial.tag-attribute-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -603,9 +600,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-2') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">'
+                "message": i18next.t('tutorial.redo-tag-attribute-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -629,7 +626,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-3')
+                "message": i18next.t('tutorial.select-label-type-4')
             },
             "panoId": panoId,
             "annotations": [
@@ -657,7 +654,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.label-attribute-3')
+                "message": i18next.t('tutorial.label-attribute-4')
             },
             "panoId": panoId,
             "annotations": [
@@ -713,7 +710,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:no-curb-ramp')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:no-curb-ramp') })
             },
             "panoId": panoId,
             "annotations": [
@@ -738,10 +735,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.rate-severity-3') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
-                    '3, a slightly severe problem">'
+                "message": i18next.t('tutorial.rate-severity-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -764,10 +760,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.redo-rate-attribute-3') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
-                    'a slightly severe problem">'
+                "message": i18next.t('tutorial.redo-rate-attribute-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -790,9 +785,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.tag-attribute-3') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">'
+                "message": i18next.t('tutorial.tag-attribute-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -816,9 +811,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-3') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">'
+                "message": i18next.t('tutorial.redo-tag-attribute-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -842,7 +837,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             },
             "message": {
-                "message": "On the pole you can see a light telling pedestrians that they can cross the street. <span class=\"bold\">Click the \"Pedestrian\" Signal button</span> to label it."
+                "message": i18next.t('tutorial.select-label-type-5')
             },
             "panoId": panoId,
             "annotations": [
@@ -876,7 +871,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1]
             }],
             "message": {
-                "message": "Now let\'s label it by <span class=\"bold\">clicking beneath the flashing yellow arrow</span>. You can see the light higher up on the pole, but we ask you to add your label at the bottom of the pole because it gives us a more accurate location."
+                "message": i18next.t('tutorial.label-attribute-5')
             },
             "panoId": panoId,
             "annotations": [
@@ -947,7 +942,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-2"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:signal') })
             },
             "panoId": panoId,
             "annotations": [
@@ -1015,7 +1010,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "There seems to be a painted crosswalk here as well. First, <span class=\"bold\">click on the \"Crosswalk\" button</span>."
+                "message": i18next.t('tutorial.select-label-type-6')
             },
             "panoId": panoId,
             "annotations": [
@@ -1042,7 +1037,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             }],
             "message": {
-                "message": "Let's label it by placing your label near the center of the crosswalk. <span class=\"bold\">Click below the flashing arrow</span> to add your label."
+                "message": i18next.t('tutorial.label-attribute-6')
             },
             "panoId": panoId,
             "annotations": [
@@ -1098,7 +1093,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:crosswalk')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:crosswalk') })
             },
             "panoId": panoId,
             "annotations": [
@@ -1123,7 +1118,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "Now you can rate the quality of the crosswalk where 1 is passable and 5 is not passable for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate it as 1, passable.</span>"
+                "message": i18next.t('tutorial.common.rate-crosswalk-sev-1')
             },
             "panoId": panoId,
             "annotations": null,
@@ -1147,7 +1142,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-3"][1]
             },
             "message": {
-                "message": "Uh-oh, you should rate this crosswalk as 1, passable. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>"
+                "message": i18next.t('tutorial.common.redo-rate-crosswalk-sev-1')
             },
             "panoId": panoId,
             "annotations": null,
@@ -1177,10 +1172,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": "testing"
+            "transition": "speed-things-up"
         },
         {
-            "id": "testing",
+            "id": "speed-things-up",
             "progression": true,
             "properties": {
                 "action": "Instruction",
@@ -1188,7 +1183,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": `To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>`
+                "message": i18next.t('tutorial.speed-things-up')
             },
             "panoId": panoId,
             "annotations": [
@@ -1241,7 +1236,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-6')
+                "message": i18next.t('tutorial.select-label-type-7')
             },
             "panoId": panoId,
             "annotations": [
@@ -1269,7 +1264,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.label-attribute-6')
+                "message": i18next.t('tutorial.label-attribute-7')
             },
             "panoId": panoId,
             "annotations": [
@@ -1325,7 +1320,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('no-sidewalk')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('no-sidewalk') })
             },
             "panoId": panoId,
             "annotations": [
@@ -1350,10 +1345,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.rate-severity-6') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
-                    'as 3, a slightly severe problem">',
+                "message": i18next.t('tutorial.rate-severity-7') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">',
                 "left": 410
             },
             "panoId": panoId,
@@ -1377,10 +1371,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.redo-rate-attribute-6') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
-                    'as 3, a slightly severe problem">',
+                "message": i18next.t('tutorial.redo-rate-attribute-7') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">',
                 "left": 410
             },
             "panoId": panoId,
@@ -1404,9 +1397,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.tag-attribute-6') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
+                "message": i18next.t('tutorial.tag-attribute-7') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">',
                 "left": 410
             },
             "panoId": panoId,
@@ -1436,9 +1429,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-4"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-6') +
-                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
+                "message": i18next.t('tutorial.redo-tag-attribute-7') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">',
                 "left": 410
             },
             "panoId": panoId,
@@ -1485,7 +1478,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-7')
+                "message": i18next.t('tutorial.select-label-type-8')
             },
             "panoId": panoId,
             "annotations": [
@@ -1513,7 +1506,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             }],
             "message": {
-                "message": i18next.t('tutorial.label-attribute-7')
+                "message": i18next.t('tutorial.label-attribute-8')
             },
             "panoId": panoId,
             "annotations": [
@@ -1569,7 +1562,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:curb-ramp')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') })
             },
             "panoId": panoId,
             "annotations": [
@@ -1594,7 +1587,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.common.rate-severity-4') +
+                "message": i18next.t('tutorial.rate-severity-8') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
                     `" class="width-75" style="margin: 5px auto;display:block;" `
             },
@@ -1620,7 +1613,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.common.rate-severity-4') +
+                "message": i18next.t('tutorial.redo-rate-attribute-8') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
                     `" class="width-75" style="margin: 5px auto;display:block;" `
             },
@@ -1646,7 +1639,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": "We shouldn't forget the pedestrian signal! <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it."
+                "message": i18next.t('tutorial.select-label-type-9')
             },
             "panoId": panoId,
             "annotations": [
@@ -1680,7 +1673,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             }],
             "message": {
-                "message": "<span class=\"bold\">Click at the base of the pole</span> to label this pedestrian signal."
+                "message": i18next.t('tutorial.label-attribute-9')
             },
             "panoId": panoId,
             "annotations": [
@@ -1751,7 +1744,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1],
             },
             "message": {
-                "message": i18next.t('tutorial.common.re-label', {label_type: i18next.t('common:signal')})
+                "message": i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:signal') })
             },
             "panoId": panoId,
             "annotations": [
