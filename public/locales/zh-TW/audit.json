@@ -33,8 +33,6 @@
         "zoom-out": "現在請縮小視窗，轉往另一個轉角前進。<span class=\"bold\">請點選「縮小」按鈕</span>。",
         "adjust-heading-angle-2": "請 <span class=\"bold\">拖拉街景</span>往左看。",
         "adjust-heading-angle-3": "繼續往<span class=\"bold\">左</span>。",
-        "select-label-type-4": "好的，這個角落有兩個路緣斜坡，來給它們評分吧！<span class=\"bold\">請點選\"路緣斜坡\"項目。</span>",
-        "label-both-curbs": "<span class=\"bold\">點選其中一個路緣斜坡</span>來標記。",
         "select-label-type-6": "注意喔，這段人行道突然在這裡中斷，請標記這個狀態。點選<span class=\"bold\">\"無實體人行道\"</span>項目來標記。",
         "label-attribute-6": "請<span class=\"bold\">點選人行道中斷位置的地面</span>。",
         "rate-severity-6": "由於此街道的另一側有設置人行道，可及性問題不為最嚴重。因此<span class=\"bold\">請將此處評為3分。</span>",
@@ -49,20 +47,15 @@
         "walk-2": "我們也將透過在這個地區出現的<span class=\"bold\">導航訊息</span>來引導您。您可直接點選它們來轉向或移動。",
         "walk-3": "現在我們往前移動吧！您可以<span class=\"bold\">點選導航訊息</span>, 或<span class=\"bold\">點選路面上的箭頭</span>往想移動的方向前進。",
         "walk-4": "很棒喔！您剛剛以順著街道往前走了。已行經過的街道會轉為<span class= \"bold\" style=\"color: #3c763d;\">綠色</span>路線呈現於小地圖中。",
-        "walk-5-1": "您可以檢視這個地點的人行環境問題了。請注意此處行人穿越道的的尾端<span class=\"bold\">無路緣斜坡</span>。",
         "walk-5-2": "有！我看到缺路緣斜坡的地方了！",
-        "walk-6-1": "通常依照慣例，您應該於閃爍的黃色箭頭下標記「缺路緣斜坡」。",
-        "walk-6-2": "但是，我們希望讓您儘快地開始做實際的標記任務，所以讓我們<span class=\"bold\">把這個教學完成吧！</span>",
         "instruction-1": "您可以於小地圖中追蹤您的標記。",
         "instruction-2": "最後一點，若您於探索過程中卡住，不知道怎麼辦，您可以點選<span class=\"bold\">卡住鍵</span>，來前往其他地點。",
         "common": {
             "label-too-far": "啊唷！<span class=\"bold\">您標記的位置太遠了。</span>讓我們移除放錯位置的標記吧。 <span class=\"bold\">將游標移至標記處並點選「刪除鍵」</span>",
             "re-label": "很好！現在讓我們再標記一次吧。 <span class=\"bold\">點選\"{{label_type}}\" 位於上方的選項</span>",
             "label-curb-ramp": "現在 <span class=\"bold\">點選「路緣斜坡」</span> ，它位於閃爍的黃色箭頭下並標記它。",
-            "rate-severity-curb-ramp": "<span class=\"bold\">請為路緣斜坡的品質評分。</span>",
             "redo-rate-curb-ramp-severity-1": "不對喔...您應該將此路緣斜坡評為1分，可通行。 這個路緣斜坡寬度足夠、有設置導盲警示帶並且並不對著交通車流。 <span class=\"bold\">請點選\"1\" 更改評分。</span>",
-            "rate-severity-4": "現在<span class=\"bold\">請針對此路緣斜坡的品質評分</span>。請以您的最佳判斷評分。您也可以於<span class=\"bold\">描述欄</span>內留言形容狀況",
-            "select-label-type-second-curb-ramp": "<span class=\"bold\">點選\"路緣斜坡\" 選項</span>來標記另一個路緣斜坡。"
+            "rate-severity-4": "現在<span class=\"bold\">請針對此路緣斜坡的品質評分</span>。請以您的最佳判斷評分。您也可以於<span class=\"bold\">描述欄</span>內留言形容狀況"
         }
     },
     "mission-complete": {

@@ -33,8 +33,6 @@
         "zoom-out": "Ahora alejémonos y miremos la siguiente esquina de la intersección. <span class=\"bold\">Haz clic en el botón \"Alejar\".</span>",
         "adjust-heading-angle-2": "Mira a la izquierda <span class=\"bold\">agarrando y arrastrando la imagen de Google Street View.</span>",
         "adjust-heading-angle-3": "Sigue mirando a la <span class=\"bold\">izquierda.</span>",
-        "select-label-type-4": "Bien, esta esquina tiene dos rampas. ¡Etiquetemos ambas! <span class=\"bold\">Haz clic en el botón \"Rampa peatonal\".</span>",
-        "label-both-curbs": "Ahora <span class=\"bold\">haz clic en una de las rampas</span> para etiquetarla.",
         "select-label-type-6": "Observa que la banqueta termina de repente aquí. Vamos a etiquetar esto. Haz clic en el botón <span class=\"bold\">\"Sin banqueta\"</span> para etiquetarlo.",
         "label-attribute-6": "<span class=\"bold\">Haz clic en el suelo</span> donde falta la banqueta.",
         "rate-severity-6": "Dado que hay una banqueta al otro lado de la calle, este problema de accesibilidad es menos grave. Así que <span class=\"bold\">puedes calificarlo con un 3.</span>",
@@ -49,20 +47,15 @@
         "walk-2": "También te guiaremos a través de los <span class=\"bold\">mensajes de navegación</span> que se muestran en esta área. Puedes hacer clic en ellos para girar o moverte.",
         "walk-3": "Ahora sí, avancemos! <span class=\"bold\">Haz clic en el mensaje de navegación</span>, o <span class=\"bold\">haz clic en la flecha</span> que apunta en la dirección que quieres avanzar.",
         "walk-4": "¡Excelente! Acabas de avanzar por la calle. Las partes visitadas de una ruta están marcadas en <span class= \"bold\" style=\"color: #3c763d;\">verde</span> en el mini mapa.",
-        "walk-5-1": "Ahora puedes buscar más problemas en esta ubicación. En este caso, observa cómo hay un cruce peatonal <span class=\"bold\">sin rampas</span>.",
         "walk-5-2": "¡Si! Veo las rampas que faltan.",
-        "walk-6-1": "Normalmente, etiquetarías las áreas debajo de las flechas parpadeantes con rampa peatonal ausente ",
-        "walk-6-2": "Sin embargo, queremos que empieces con misiones reales así que <span class=\"bold\">terminemos el tutorial.</span>",
         "instruction-1": "¡Puedes seguir tus etiquetas en el mini mapa!",
         "instruction-2": "Finalmente, si te quedas atascado mientras exploras, puedes usar el <span class=\"bold\">botón de Atorado</span> para moverte a una ubicación diferente.",
         "common": {
             "label-too-far": "¡Uy! <span class=\"bold\">Tu etiqueta está demasiado lejos</span>. Quitemos la etiqueta mal colocada. <span class=\"bold\">Desplázate sobre la etiqueta y haz clic en el icono eliminar</span>",
             "re-label": "¡Bueno! Ahora, etiquetemos de nuevo. <span class=\"bold\">Haz clic en el botón \"{{label_type}}\"</span> ubicado en la parte superior.",
             "label-curb-ramp": "Ahora <span class=\"bold\">haz clic en la rampa peatonal</span>, debajo de la flecha amarilla parpadeante, para etiquetarla.",
-            "rate-severity-curb-ramp": "<span class=\"bold\">Califiquemos la calidad</span> de la rampa.",
             "redo-rate-curb-ramp-severity-1": "Hmm, deberías calificar esta rampa peatonal como 1, transitable. Es una rampa peatonal de alta calidad. <span class=\"bold\">Haz clic en \"1\" para establecer su calidad.</span>",
-            "rate-severity-4": "Ahora <span class=\"bold\">califica la calidad de las rampas peatonales</span>. Usa tu mejor criterio. También puedes escribir notas en el “Cuadro de descripciones”.",
-            "select-label-type-second-curb-ramp": "<span class=\"bold\">Haz clic en el botón de \"Rampa peatonal\"</span> para etiquetar la otra rampa."
+            "rate-severity-4": "Ahora <span class=\"bold\">califica la calidad de las rampas peatonales</span>. Usa tu mejor criterio. También puedes escribir notas en el “Cuadro de descripciones”."
         }
     },
     "mission-complete": {

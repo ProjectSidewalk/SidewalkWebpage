@@ -1594,7 +1594,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
+                "message": i18next.t('tutorial.common.rate-severity-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
                     `" class="width-75" style="margin: 5px auto;display:block;" `
             },
@@ -1620,7 +1620,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-5"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
+                "message": i18next.t('tutorial.common.rate-severity-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
                     `" class="width-75" style="margin: 5px auto;display:block;" `
             },

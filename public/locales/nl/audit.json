@@ -33,8 +33,6 @@
         "zoom-out": "Laten we nu uitzoomen en de volgende hoek op het kruispunt bekijken. <span class=\"bold\">Klik de “Zoom Uit knop</span>.",
         "adjust-heading-angle-2": "Kijk naar links door <span class=\"bold\">de Street View image te selecteren en te slepen.</span>",
         "adjust-heading-angle-3": "Blijf <span class=\"bold\">links</span> kijken.",
-        "select-label-type-4": "Oké, deze hoek heeft twee trottoir opritten. Laten we ze beide labelen! <span class=\"bold\">Klik op de \"trottoir oprit\" knop.</span>",
-        "label-both-curbs": "Vervolgens <span class=\"bold\">klik op een van de trottoir opritten</span> om die te labelen.",
         "select-label-type-6": "Merk op dat het trottoir hier plotseling ophoudt. Laten we dit labelen. Klik de <span class=\"bold\">\"Geen Trottoir\"</span> knop om het te labelen.",
         "label-attribute-6": "<span class=\"bold\">Klik op de grond</span> waar het trottoir ontbreekt.",
         "rate-severity-6": "Aangezien er een trottoir is aan de andere kant van de straat is het minder problematisch voor de toegankelijkheid. Laten we het daarom <span class=\"bold\">beoordelen met een 3.</span>",
@@ -49,20 +47,15 @@
         "walk-2": "We zullen je leiden aan de hand van<span class=\"bold\">navigatie berichten</span> die weergegeven worden in dit gebied. Je kunt erop klikken om te draaien of te verplaatsen.",
         "walk-3": "Laten we nu vooruit bewegen! <span class=\"bold\">Klik op het navigatiebericht</span> of <span class=\"bold\">klik op de pijl</span> die in de richting wijst waar je heen wilt bewegen.",
         "walk-4": "Perfect! Je hebt je net bewogen door de straat. Reeds bezochte delen van een route zijn gemarkeerd in het <span class= \"bold\" style=\"color: #3c763d;\">groen</span> in de mini kaart.",
-        "walk-5-1": "Je kunt nu voor meer punten kijken op deze locatie. In dit geval, merk op dat er een oversteeklaats is zonder <span class=\"bold\">trottoir opritten</span>.",
         "walk-5-2": "Yes! Ik zie de ontbrekende trottoir opritten.",
-        "walk-6-1": "Gewoonlijk, zou je het label onder de knipperende pijlen met een ontbrekende trottoir oprit selecteren",
-        "walk-6-2": "Echter, willen we je aan de slag laten gaan met echte voorbeelden, dus laten we <span class=\"bold\"> deze tutorial afmaken!</span>",
         "instruction-1": "Je kunt je labels bijhouden op de mini kaart!",
         "instruction-2": "Tenslotte, als je vast komt te zitten tijdens het labelen kun je de <span class=\"bold\">Vastgelopen knop</span> gebruiken om naar een andere locatie te verplaatsen.",
         "common": {
             "label-too-far": "Oeps! <span class=\"bold\">Je label is te ver weg</span>. Laten we dit verkeerd geplaatste label opnieuw plaatsen. <span class=\"bold\">Beweeg over het label en klik op het verwijder icoontje.</span>",
             "re-label": "Goed zo! Laten we er nog een labelen. <span class=\"bold\">Klik de \"{{label_type}}\" knop</span> bovenaan.",
             "label-curb-ramp": "<span class=\"bold\">Klik nu op de trottoir oprit</span> onder de gele knipperende pijl om het te labelen.",
-            "rate-severity-curb-ramp": "<span class=\"bold\">Beoordeel de kwaliteit</span> van de trottoir oprit.",
             "redo-rate-curb-ramp-severity-1": "Hmm, je zou hem met een 1 moeten beoordelen, begaanbaar. Deze trottoir oprit is breed genoeg, heeft een tactiele waarschuwing, en is niet het verkeer in gericht. <span class=\"bold\">Klik \"1\" om deze beoordeling te veranderen.</span>",
-            "rate-severity-4": "Vervolgens <span class=\"bold\">Beoordeel de kwaliteit van de trottoir oprit</span>. Probeer hem zo juist mogelijk te beoordelen. Je kunt ook altijd aantekeningen maken in de <span class=\"bold\">Beschrijving Box.</span>",
-            "select-label-type-second-curb-ramp": "<span class=\"bold\">Klik op de \"Trottoir Oprit\" button</span> om nu de andere trottoir oprit te labelen."
+            "rate-severity-4": "Vervolgens <span class=\"bold\">Beoordeel de kwaliteit van de trottoir oprit</span>. Probeer hem zo juist mogelijk te beoordelen. Je kunt ook altijd aantekeningen maken in de <span class=\"bold\">Beschrijving Box.</span>"
         }
     },
     "mission-complete": {
