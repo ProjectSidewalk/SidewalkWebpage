@@ -56,7 +56,7 @@
         "instruction-1": "您可以於小地圖中追蹤您的標記。",
         "instruction-2": "最後一點，若您於探索過程中卡住，不知道怎麼辦，您可以點選<span class=\"bold\">卡住鍵</span>，來前往其他地點。",
         "common": {
-            "label-too-far": "啊唷！您標記的位置太遠了。讓我們移除放錯位置的標記吧。 <span class=\"bold\">將游標移至標記處並點選「刪除鍵」</span>",
+            "label-too-far": "啊唷！<span class=\"bold\">您標記的位置太遠了。</span>讓我們移除放錯位置的標記吧。 <span class=\"bold\">將游標移至標記處並點選「刪除鍵」</span>",
             "re-label": "很好！現在讓我們再標記一次吧。 <span class=\"bold\">點選\"{{label_type}}\" 位於上方的選項</span>",
             "label-curb-ramp": "現在 <span class=\"bold\">點選「路緣斜坡」</span> ，它位於閃爍的黃色箭頭下並標記它。",
             "rate-severity-curb-ramp": "<span class=\"bold\">請為路緣斜坡的品質評分。</span>",

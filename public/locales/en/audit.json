@@ -55,7 +55,7 @@
         "instruction-1": "You can track your labels in the mini map!",
         "instruction-2": "Finally, if you get stuck while exploring, you can use the <span class=\"bold\">Stuck button</span> to move to a different location.",
         "common": {
-            "label-too-far": "Oops! Your label is too far away. Let's remove the misplaced label. <span class=\"bold\">Hover over the label and click the delete icon</span>",
+            "label-too-far": "Oops! <span class=\"bold\">Your label is too far away</span>. Let's remove the misplaced label. <span class=\"bold\">Hover over the label and click the delete icon</span>",
             "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> above.",
             "label-curb-ramp": "Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
             "rate-severity-curb-ramp": "<span class=\"bold\">Let’s rate the quality</span> of the curb ramp.",
