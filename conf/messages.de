@@ -328,6 +328,7 @@ gallery.tags = Tags
 gallery.all = Alle Beschriftungskategorien
 gallery.labels.not.found = Keine Treffer. <a href="/explore">Erkundung starten</a>, um mehr Daten beizutragen!
 gallery.cards = Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern
+gallery.clear.filters = Filter löschen
 
 route.builder.name = RouteBuilder
 route.builder.instructions = Klicken Sie auf Straßen, um sie zu Ihrer Route hinzuzufügen, und klicken Sie dann auf "Route speichern". Anschließend können Sie die Probleme mit der Route und der Beschriftung der Barrierefreiheit erkunden oder einen Link für andere teilen, um dieselbe Route zu erkunden!

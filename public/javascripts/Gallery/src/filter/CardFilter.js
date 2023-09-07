@@ -265,6 +265,9 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         $('.gallery-filter').prop("disabled", false);
     }
 
+    /**
+     * Clear all filters, setting them to their default state.
+     */
     function clearFilters() {
         severities.unapplySeverities();
         validationOptions.setToDefault();
