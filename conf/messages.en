@@ -323,12 +323,12 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = Want to improve your accuracy? Read our <a id="encouragement-link" href="/labelingGuide"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
 
 gallery = Gallery
-gallery.show = Show
 gallery.filter.by = Filter By
 gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+gallery.clear.filters = Clear Filters
 
 route.builder.name = RouteBuilder
 route.builder.instructions = Click on streets to add them to your route, then click "Save route". Then you can explore the route and label accessibility issues, or you can share a link for others to explore the same route!
