@@ -405,20 +405,24 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     this.render = function () {
         if ('map' in svl && google) {
             self.eraseFromMinimap();
-            if (self.isComplete()) {
-                // If the task has been completed already, set the paths to a green polyline
+            // If the task has been completed already, or if it has not been completed and is not the current task,
+            // render it using one green or gray Polyline, respectively.
+            if (self.isComplete() || self.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
                     return new google.maps.LatLng(coord[1], coord[0]);
                 });
+                var color = self.isComplete() ? '#00ff00' : '#808080';
+                var opacity = self.isComplete() ? 1.0 : 0.75;
                 paths = [
                     new google.maps.Polyline({
                         path: gCoordinates,
                         geodesic: true,
-                        strokeColor: '#00ff00',
-                        strokeOpacity: 1.0,
+                        strokeColor: color,
+                        strokeOpacity: opacity,
                         strokeWeight: 2
                     })
                 ];
+            // If the task is incomplete and is the current task, render it using two Polylines (red and green).
             } else {
                 var latlng = svl.map.getPosition();
                 paths = self.getGooglePolylines(latlng.lat, latlng.lng);
@@ -431,7 +435,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     /**
-     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     * Flip the coordinates of the linestring if the last point is closer to the endpoint of the current street segment.
      */
     this.reverseCoordinates = function() {
         _geojson.features[0].geometry.coordinates.reverse();
