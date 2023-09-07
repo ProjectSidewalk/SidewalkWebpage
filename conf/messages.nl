@@ -308,6 +308,7 @@ admin.clear.play.cache = Wis Play cache
 
 leaderboard.overall.title = Algemeen klassement
 leaderboard.weekly.title = Wekelijks Scoreboard
+leaderboard.inter.org.title = Teams klassement
 leaderboard.org.title = {0} Scoreboard
 leaderboard.overall.detail = Leiders worden berekend op basis van hun labels, afstand en nauwkeurigheid
 leaderboard.org.detail = Top 10 algemene bijdragers aan {0}

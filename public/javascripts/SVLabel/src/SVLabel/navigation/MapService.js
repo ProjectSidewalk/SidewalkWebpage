@@ -42,14 +42,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svLinkArrowsLoaded : false,
             labelBeforeJumpListenerSet: false,
             jumpMsgShown: false,
-            jumpImageryNotFoundStatus: undefined
+            jumpImageryNotFoundStatus: undefined,
+            contextMenuWasOpen: false
         },
         listeners = {
             beforeJumpListenerHandle: undefined
         },
         jumpLocation = undefined,
         missionJump = undefined,
-        contextMenuWasOpen = false,
         _stuckPanos = [];
 
     var initialPositionUpdate = true,
@@ -676,6 +676,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
                 // If jumping to a new place, set the newTask before jumping.
                 if (nextTask && !task.isConnectedTo(nextTask)) {
+                    nextTask.eraseFromMinimap();
                     svl.taskContainer.setBeforeJumpNewTask(nextTask);
                 }
                 status.labelBeforeJumpListenerSet = true;
@@ -793,13 +794,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.update();
             }
             if (!isOnboarding && "taskContainer" in svl && svl.taskContainer.tasksLoaded()) {
-                svl.taskContainer.update();
 
                 // End of the task if the user is close enough to the end point and we aren't in the tutorial.
                 var task = svl.taskContainer.getCurrentTask();
                 if (!isOnboarding && task && task.isAtEnd(position.lat(), position.lng(), END_OF_STREET_THRESHOLD)) {
                     _endTheCurrentTask(task, currentMission);
                 }
+                svl.taskContainer.updateCurrentTask();
             }
             if ("observedArea" in svl) {
                 svl.observedArea.panoChanged();
@@ -878,12 +879,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
-                if (contextMenuWasOpen) {
+                if (status.contextMenuWasOpen) {
                     svl.contextMenu.hide();
                 } else {
                     svl.contextMenu.show(selectedLabel);
                 }
-                contextMenuWasOpen = false;
+                status.contextMenuWasOpen = false;
             }
         } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
             // Continue logging double click. We don't have any features for it now, but it's good to know how
