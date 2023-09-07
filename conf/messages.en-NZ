@@ -16,24 +16,6 @@ landing.stats.content.finished.partial = We did it! Users like you have mapped a
 landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometres of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 landing.stats.distance = kilometres covered
 
-landing.clouds.alt = White clouds partially covering the image above, with statistics shown on top of the clouds.
-
-landing.ml.gif.explain.alt = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
-
-landing.collaborators.logo.makeability.alt = Makeability Lab Logo
-landing.collaborators.logo.uic.alt = University of Illinois Chicago Institute on Disability and Human Development Logo
-landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal Logo
-landing.collaborators.logo.open.columbus.alt = Open Columbus Logo
-landing.collaborators.logo.world.enabled.alt = World Enabled Logo
-landing.collaborators.logo.city.of.amsterdam.alt = City of Amsterdam Logo
-landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
-landing.collaborators.logo.people.nudge.alt = People Nudge Logo
-
-landing.skyline1.png.alt = An illustration of an intersection with people traveling across the street.
-landing.skyline2.png.alt = An illustration of an intersection with people traveling across the street. A flag showing the colors of the flag of Mexico is in the background.
-landing.skyline-dc.png.alt = An illustration showing the skyline of Washington, DC.
-landing.skyline-seattle.png.alt = An illustration showing the skyline of Seattle, Washington.
-
 audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Drop kerbs</span> help wheelchair users get on and off the footpaths
 audit.tutorial.examples.missing.ramp = Wheelchair users cannot navigate footpaths when <span style="color:#ff0066">drop kerbs are missing</span>
 audit.tutorial.examples.surface.problem = Footpaths with <span style="color:orange">surface problems</span> may not be navigable
@@ -63,9 +45,3 @@ dashboard.orgs.unavailable = There are no available organisations!
 dashboard.leave.org = Leave Organisation
 
 leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organisation</u></a> and work together as a team to map and assess footpaths!
-
-footer.logo.nsf.alt = National Science Foundation Logo
-footer.logo.google.alt = Google Logo
-footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
-footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
-footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo

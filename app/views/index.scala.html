@@ -127,9 +127,9 @@
     <div class="ps-skyline">
         <div class="ps-skyline-container">
             @if(cityName == "Washington" || cityName == "Seattle") {
-                <img src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages("landing." + skylineImg + ".alt")">
+                <img src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
             } else {
-                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages("landing." + skylineImg + ".alt")">
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
             }
             <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
         </div>
