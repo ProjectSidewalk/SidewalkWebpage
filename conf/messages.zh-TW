@@ -337,12 +337,12 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
-gallery.show = 顯示項目
 gallery.filter.by = 篩選
 gallery.tags = 標籤
 gallery.all = 所有的標記類型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以蒐集更多的資料！
 gallery.cards = 所有標記依據所選定的過濾器而隨機排序
+gallery.clear.filters = 清除過濾器
 
 route.builder.name = 路線設立工具
 route.builder.instructions = 當要設立自己的路線時，請點擊您想行走的街道以將其加入您的路線，然後點擊“儲存路線”。然後，您可以探索該路線並標記所見到的可及性問題，或是您也可以將此路線的連結分享給其他人，讓他們探索同一個路線！

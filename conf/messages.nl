@@ -336,12 +336,12 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="/labelingGuide"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
-gallery.show = Tonen
 gallery.filter.by = Filteren op
 gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+gallery.clear.filters = Filters Wissen
 
 route.builder.name = Routebuilder
 route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!
