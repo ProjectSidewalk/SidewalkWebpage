@@ -8,6 +8,7 @@
  */
 function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
     let self = this;
+    let defaultType = "Assorted";
 
     let status = {
         currentLabelType: initialLabelType
@@ -30,6 +31,7 @@ function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
     function labelTypeSelectCallback() {
         let newLabelType = $(this).val();
         let oldLabelType = status.currentLabelType;
+
         // Check if the label type changed. Prevents this code from running on initial page load.
         if (newLabelType !== oldLabelType) {
             setStatus("currentLabelType", newLabelType);
@@ -43,6 +45,16 @@ function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
      */
     function getCurrentLabelType() {
         return status.currentLabelType;
+    }
+
+    /**
+     * Returns to the default selection (All Label Types).
+     */
+    function setToDefault() {
+        uiLabelTypeMenu.select.val(defaultType);
+        setStatus("currentLabelType", defaultType);
+        sg.tracker.push("Filter_LabelType=" + defaultType);
+        sg.cardFilter.update();
     }
 
     /**
@@ -67,6 +79,7 @@ function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
     }
 
     self.getCurrentLabelType = getCurrentLabelType;
+    self.setToDefault = setToDefault;
     self.getStatus = getStatus;
     self.setStatus = setStatus;
 

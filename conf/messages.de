@@ -101,7 +101,21 @@ landing.ml.gif.interactive.visualization.tools = interaktive visualisierungsmeth
 landing.ml.gif.smarter.routing = verbesserte routenplanung
 landing.ml.gif.machine.learning = maschinelles lernen
 landing.ml.gif.outcomes = ergebnisse
+landing.ml.gif.explain.alt = GIF erklärt die Ergebnisse von Crowdsourcing und maschinellem Lernen bei Project Sidewalk
 landing.collaborators.title = Kollaborierende
+landing.collaborators.logo.makeability.alt = Makeability Lab-Logo
+landing.collaborators.logo.uic.alt = Logo des Chicago Institute on Disability and Human Development der University of Illinois
+landing.collaborators.logo.liga.peatonal.alt = Logo der Liga Peatonal
+landing.collaborators.logo.open.columbus.alt = Columbus-Logo öffnen
+landing.collaborators.logo.world.enabled.alt = World Enabled-Logo
+landing.collaborators.logo.city.of.amsterdam.alt = Logo der Stadt Amsterdam
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
+landing.collaborators.logo.people.nudge.alt = People Nudge Logo
+landing.clouds.alt = Weiße Wolken bedecken teilweise das Bild oben, mit Statistiken über den Wolken.
+Landing.skyline1.png.alt = Eine Illustration einer Kreuzung mit Menschen, die über die Straße fahren.
+Landing.skyline2.png.alt = Eine Illustration einer Kreuzung mit Menschen, die über die Straße fahren. Im Hintergrund ist eine Flagge in den Farben der mexikanischen Flagge zu sehen.
+landing.skyline-dc.png.alt = Eine Illustration, die die Skyline von Washington, DC zeigt.
+landing.skyline-seattle.png.alt = Eine Illustration, die die Skyline von Seattle, Washington, zeigt.
 
 footer.about = Über uns
 footer.terms = Nutzungsbedingungen
@@ -323,12 +337,12 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="/labelingGuide"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an
 
 gallery = Galerie
-gallery.show = Anzeigen
 gallery.filter.by = Filtern nach
 gallery.tags = Tags
 gallery.all = Alle Beschriftungskategorien
 gallery.labels.not.found = Keine Treffer. <a href="/explore">Erkundung starten</a>, um mehr Daten beizutragen!
 gallery.cards = Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern
+gallery.clear.filters = Filter löschen
 
 route.builder.name = RouteBuilder
 route.builder.instructions = Klicken Sie auf Straßen, um sie zu Ihrer Route hinzuzufügen, und klicken Sie dann auf "Route speichern". Anschließend können Sie die Probleme mit der Route und der Beschriftung der Barrierefreiheit erkunden oder einen Link für andere teilen, um dieselbe Route zu erkunden!
@@ -339,3 +353,9 @@ route.builder.share = Link zur Route kopieren
 help.rating.1 = Bewertung 1: Passierbar
 help.rating.3 = Bewertung 3: Schwer passierbar
 help.rating.5 = Bewertung 5: Nicht passierbar
+
+footer.logo.nsf.alt = Logo der National Science Foundation
+footer.logo.google.alt = Google-Logo
+footer.logo.sloan.alt = Logo der Alfred P. Sloan Foundation
+footer.logo.pactrans.alt = Logo des Pacific Northwest Transportation Consortium (PacTrans).
+footer.logo.create.alt = Logo des Zentrums für Forschung und Bildung zu barrierefreien Technologien und Erfahrungen (CREATE).

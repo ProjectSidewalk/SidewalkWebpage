@@ -101,7 +101,21 @@ landing.ml.gif.interactive.visualization.tools = 互動式視覺化工具
 landing.ml.gif.smarter.routing = 更智慧的路徑規劃
 landing.ml.gif.machine.learning = 機器學習
 landing.ml.gif.outcomes = 成果
+landing.ml.gif.explain.alt = GIF 解释了 Project Sidewalk 上的众包和机器学习的成果
 landing.collaborators.title = 執行及合作單位
+landing.collaborators.logo.makeability.alt = Makeability 實驗室徽標
+landing.collaborators.logo.uic.alt = 伊利諾伊大學芝加哥殘疾與人類發展研究所徽標
+landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal徽標
+landing.collaborators.logo.open.columbus.alt = 打開哥倫布徽標
+landing.collaborators.logo.world.enabled.alt = 世界啟用徽標
+landing.collaborators.logo.city.of.amsterdam.alt = 阿姆斯特丹市標誌
+landing.collaborators.logo.amsterdam.intelligence.alt = 阿姆斯特丹情報局標誌
+landing.collaborators.logo.people.nudge.alt = 人們輕推標誌
+landing.clouds.alt = 白雲部分覆蓋了上圖，統計數據顯示在雲層頂部。
+landing.skyline1.png.alt = 十字路口的插圖，行人過馬路。
+landing.skyline2.png.alt = 十字路口的插圖，行人過馬路。 背景是一面顯示墨西哥國旗顏色的旗幟。
+landing.skyline-dc.png.alt = 顯示華盛頓特區天際線的插圖。
+landing.skyline-seattle.png.alt = 顯示華盛頓州西雅圖天際線的插圖。
 
 footer.about = 關於我們
 footer.terms = 使用條款
@@ -323,12 +337,12 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
-gallery.show = 顯示項目
 gallery.filter.by = 篩選
 gallery.tags = 標籤
 gallery.all = 所有的標記類型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以蒐集更多的資料！
 gallery.cards = 所有標記依據所選定的過濾器而隨機排序
+gallery.clear.filters = 清除過濾器
 
 route.builder.name = 路線設立工具
 route.builder.instructions = 當要設立自己的路線時，請點擊您想行走的街道以將其加入您的路線，然後點擊“儲存路線”。然後，您可以探索該路線並標記所見到的可及性問題，或是您也可以將此路線的連結分享給其他人，讓他們探索同一個路線！
@@ -339,3 +353,9 @@ route.builder.share = 複製此路線的連結
 help.rating.1 = Rating 1: 能通行
 help.rating.3 = Rating 3: 普通
 help.rating.5 = Rating 5: 無法通行
+
+footer.logo.nsf.alt = 美國國家科學基金會徽標
+footer.logo.google.alt = Google 徽標
+footer.logo.sloan.alt = 阿爾弗雷德·P·斯隆基金會徽標
+footer.logo.pactrans.alt = 太平洋西北運輸聯盟 (PacTrans) 徽標
+footer.logo.create.alt = 無障礙技術和體驗研究與教育中心 (CREATE) 徽標

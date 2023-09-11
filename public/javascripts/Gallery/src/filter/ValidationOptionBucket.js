@@ -66,12 +66,22 @@ function ValidationOptionBucket(initialValidationOptions) {
         return bucket.filter(valOption => valOption.getActive()).map(valOption => valOption.getValidationOption());
     }
 
+    /**
+     * Resets the validation options to the default/initial values.
+     */
+    function setToDefault() {
+        unapplyValidationOptions();
+        bucket[0].apply();
+        bucket[3].apply();
+    }
+
     self.push = push;
     self.render = render;
     self.unapplyValidationOptions = unapplyValidationOptions;
     self.getValidationOptions = getValidationOptions;
     self.getSize = getSize;
     self.getAppliedValidationOptions = getAppliedValidationOptions;
+    self.setToDefault = setToDefault;
 
     _init();
 
