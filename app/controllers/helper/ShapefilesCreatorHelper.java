@@ -109,8 +109,8 @@ public class ShapefilesCreatorHelper {
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer," // Notsure validations
-                        + "userIds:String," // List of User Ids
-                        + "clusterSize:Integer" //Label count
+                        + "clusterSze:Integer," // Number of labels in the cluster
+                        + "userIds:String" // List of User Ids
                 );
 
         /*
@@ -145,8 +145,8 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.agreeCount());
             featureBuilder.add(a.disagreeCount());
             featureBuilder.add(a.notsureCount());
-            featureBuilder.add("[" + a.usersList().mkString(",") + "]");
             featureBuilder.add(a.labelCount());
+            featureBuilder.add("[" + a.usersList().mkString(",") + "]");
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
