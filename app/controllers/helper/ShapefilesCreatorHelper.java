@@ -262,6 +262,7 @@ public class ShapefilesCreatorHelper {
                         "the_geom:LineString:srid=4326," // the geometry attribute: Line type
                         + "streetId:Integer," // StreetId
                         + "osmWayId:Integer," // osmWayId
+                        + "nghborhdId:String," // Region ID
                         + "score:Double," // street score
                         + "auditCount:Integer," // boolean representing whether the street is audited
                         + "sigRamp:Double," // curb ramp significance score
@@ -293,6 +294,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
             featureBuilder.add(s.osmID());
+            featureBuilder.add(s.regionID());
             featureBuilder.add(s.score());
             featureBuilder.add(s.auditCount());
             featureBuilder.add(s.significanceScores()[0]);

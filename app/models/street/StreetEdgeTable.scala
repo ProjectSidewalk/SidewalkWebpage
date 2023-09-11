@@ -17,7 +17,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
-case class StreetEdgeInfo(val street: StreetEdge, val auditCount: Int)
+case class StreetEdgeInfo(val street: StreetEdge, osmId: Int, regionId: Int, val auditCount: Int)
 
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
@@ -64,8 +64,10 @@ object StreetEdgeTable {
     val wayType = r.nextString
     val deleted = r.nextBoolean
     val timestamp = r.nextTimestampOption
+    val osmId = r.nextInt
+    val regionId = r.nextInt
     val auditCount = r.nextInt
-    StreetEdgeInfo(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), auditCount)
+    StreetEdgeInfo(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), osmId, regionId, auditCount)
   })
 
   val db = play.api.db.slick.DB
@@ -367,13 +369,17 @@ object StreetEdgeTable {
         |       street_edge.way_type,
         |       street_edge.deleted,
         |       street_edge.timestamp,
+        |       osm_way_street_edge.osm_way_id,
+        |       street_edge_region.region_id,
         |       SUM(CASE WHEN user_stat.high_quality = TRUE AND audit_task.completed = TRUE THEN 1 ELSE 0 END) AS audit_count
         |FROM street_edge
+        |INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
+        |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
         |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
         |WHERE street_edge.deleted = FALSE
         |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |GROUP BY street_edge.street_edge_id""".stripMargin
+        |GROUP BY street_edge.street_edge_id, osm_way_street_edge.osm_way_id, street_edge_region.region_id""".stripMargin
     )
     selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
   }
