@@ -13,9 +13,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         self._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
             maxZoom: 19,
             minZoom: 10,
-            style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj',
             zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
+        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-light')));
 
         // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);

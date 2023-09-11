@@ -1,6 +1,6 @@
 @import models.user.User
 @import models.audit.AuditTask
-@(title: String, admin: Option[User] = None, task: AuditTask)
+@(title: String, admin: Option[User] = None, task: AuditTask)(implicit lang: Lang)
 
 @main(title) {
     @navbar(admin)
@@ -58,13 +58,25 @@
     <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
     <link href='@routes.Assets.at("javascripts/lib/bootstrap-3.3.5/css/bootstrap-slider.min.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script>
-            $(document).ready(function () {
+        $(document).ready(function () {
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['common'],
+                defaultNS: 'common',
+                lng: '@lang.code',
+                debug: false
+            }, function(err, t) {
                 $.getJSON('/cityMapParams', function(data) {
                     var auditTaskId = @task.auditTaskId;
                     window.admin = AdminTask({auditTaskId: auditTaskId, mapboxApiKey: data.mapbox_api_key});
                 });
             });
+        });
     </script>
 
 

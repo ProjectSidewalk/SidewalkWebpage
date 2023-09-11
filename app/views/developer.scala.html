@@ -492,4 +492,23 @@
 
     <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+
+    <script>
+        $(document).ready(function () {
+            // Gets all translations before loading the example maps.
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['common'],
+                defaultNS: 'common',
+                lng: '@lang.code',
+                debug: false
+            }, function(err, t) {
+                Developer();
+            });
+        });
+    </script>
 }

@@ -33,7 +33,7 @@ function Admin(_, $) {
         zoomControl: true,
         scrollWheelZoom: false,
         mapName: 'admin-landing-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/light-v10'
+        mapStyle: i18next.t('common:map-url-light')
     };
     var mapTabMapParams = {
         popupType: 'none',
@@ -58,7 +58,7 @@ function Admin(_, $) {
         scrollWheelZoom: true,
         zoomControl: true,
         mapName: 'admin-labelmap-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11'
+        mapStyle: i18next.t('common:map-url-streets')
     };
     var streetParams = {
         labelPopup: true,

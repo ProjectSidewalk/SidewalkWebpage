@@ -1,13 +1,13 @@
 var neighborhoodPolygonLayer;
 
-$(document).ready(function () {
+function AccessScoreDemo () {
     $.getJSON('/cityMapParams', function(data) {
         L.mapbox.accessToken = data.mapbox_api_key;
         map = L.mapbox.map('access-score-choropleth', null, {
             maxZoom: 19,
             minZoom: 9,
             zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
 
         // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
         map.setZoom(data.default_zoom);
@@ -55,7 +55,7 @@ $(document).ready(function () {
         "<rect width='10' height='10' x='12' y='10' style='fill:#f1b6da;' />" +
         "<rect width='10' height='10' x='24' y='10' style='fill:#b8e186;' />" +
         "<rect width='10' height='10' x='36' y='10' style='fill:#4dac26;' /></svg>";
-});
+}
 
 // Access score color
 function getColor(d) {

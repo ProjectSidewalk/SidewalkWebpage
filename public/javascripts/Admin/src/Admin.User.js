@@ -24,7 +24,7 @@ function AdminUser(user) {
         zoomControl: true,
         scrollWheelZoom: true,
         mapName: 'admin-user-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11'
+        mapStyle: i18next.t('common:map-url-streets')
     };
     var streetParams = {
         labelPopup: true,

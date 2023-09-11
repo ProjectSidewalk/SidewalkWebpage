@@ -1,5 +1,7 @@
 {
     "measurement-system": "metric",
+    "map-url-streets": "mapbox://styles/projectsidewalk/clmffoi5w016f01rcgkmx5ij7",
+    "map-url-light": "mapbox://styles/projectsidewalk/cllpqzrgl003101r63kq0c2gt",
     "admin-clear-play-cache": "已成功清除快取記憶體",
     "unit-distance-abbreviation": "公里",
     "unit-abbreviation-mission-distance": "公尺",
