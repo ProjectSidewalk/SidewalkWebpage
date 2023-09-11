@@ -56,6 +56,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
         "agree_count" -> agreeCount,
         "disagree_count" -> disagreeCount,
         "notsure_count" -> notsureCount,
+        "cluster_size" -> labelCount,
         "users" -> usersList
       )
     )
@@ -63,7 +64,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
   val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
                                 lng.toString, avgImageCaptureDate, avgLabelDate.toString,
                                 severity.getOrElse("NA").toString, temporary.toString, agreeCount.toString,
-                                disagreeCount.toString, notsureCount.toString, "\"[" + usersList.mkString(",") + "]\"")
+                                disagreeCount.toString, notsureCount.toString, labelCount.toString,
+                                "\"[" + usersList.mkString(",") + "]\"")
 }
 
 case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,

@@ -109,7 +109,8 @@ public class ShapefilesCreatorHelper {
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer," // Notsure validations
-                        + "userIds:String," // List of User Ids
+                        + "clusterSze:Integer," // Number of labels in the cluster
+                        + "userIds:String" // List of User Ids
                 );
 
         /*
@@ -144,6 +145,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.agreeCount());
             featureBuilder.add(a.disagreeCount());
             featureBuilder.add(a.notsureCount());
+            featureBuilder.add(a.labelCount());
             featureBuilder.add("[" + a.usersList().mkString(",") + "]");
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
@@ -260,6 +262,7 @@ public class ShapefilesCreatorHelper {
                         "the_geom:LineString:srid=4326," // the geometry attribute: Line type
                         + "streetId:Integer," // StreetId
                         + "osmWayId:Integer," // osmWayId
+                        + "nghborhdId:String," // Region ID
                         + "score:Double," // street score
                         + "auditCount:Integer," // boolean representing whether the street is audited
                         + "sigRamp:Double," // curb ramp significance score
@@ -291,6 +294,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
             featureBuilder.add(s.osmID());
+            featureBuilder.add(s.regionID());
             featureBuilder.add(s.score());
             featureBuilder.add(s.auditCount());
             featureBuilder.add(s.significanceScores()[0]);
@@ -332,7 +336,7 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:Polygon:srid=4326," // line geometry
                         + "neighborhd:String," // Neighborhood Name
-                        + "regionId:Integer," // Neighborhood Id
+                        + "nghborhdId:Integer," // Neighborhood Id
                         + "coverage:Double," // coverage score
                         + "score:Double," // obstacle score
                         + "sigRamp:Double," // curb ramp significance score
