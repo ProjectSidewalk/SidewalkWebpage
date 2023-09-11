@@ -245,7 +245,6 @@ function AdminGSVLabelView(admin, source) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false,
             source: source
         };
 
