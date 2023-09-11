@@ -101,7 +101,21 @@ landing.ml.gif.interactive.visualization.tools = interactieve visualisatietools
 landing.ml.gif.smarter.routing = slimmere routering
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = resultaten
+landing.ml.gif.explain.alt = GIF met uitleg over de resultaten van crowdsourcing en machine learning op Project Sidewalk
 landing.collaborators.title = Partners
+landing.collaborators.logo.makeability.alt = Makeability Lab-logo
+landing.collaborators.logo.uic.alt = Logo van het Chicago Institute on Disability and Human Development van de Universiteit van Illinois
+landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal-logo
+landing.collaborators.logo.open.columbus.alt = Open het Columbus-logo
+landing.collaborators.logo.world.enabled.alt = Wereld ingeschakeld logo
+landing.collaborators.logo.city.of.amsterdam.alt = Logo gemeente Amsterdam
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence-logo
+landing.collaborators.logo.people.nudge.alt = Mensen duwen logo
+landing.clouds.alt = Witte wolken bedekken de afbeelding hierboven gedeeltelijk, terwijl de statistieken bovenop de wolken worden weergegeven.
+landing.skyline1.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken.
+landing.skyline2.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken. Op de achtergrond staat een vlag met de kleuren van de vlag van Mexico.
+landing.skyline-dc.png.alt = Een illustratie van de skyline van Washington, DC.
+landing.skyline-seattle.png.alt = Een illustratie van de skyline van Seattle, Washington.
 
 footer.about = Over ons
 footer.terms = Gebruiksvoorwaarden
@@ -308,6 +322,7 @@ admin.clear.play.cache = Wis Play cache
 
 leaderboard.overall.title = Algemeen klassement
 leaderboard.weekly.title = Wekelijks Scoreboard
+leaderboard.inter.org.title = Teams klassement
 leaderboard.org.title = {0} Scoreboard
 leaderboard.overall.detail = Leiders worden berekend op basis van hun labels, afstand en nauwkeurigheid
 leaderboard.org.detail = Top 10 algemene bijdragers aan {0}
@@ -321,12 +336,12 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="/labelingGuide"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
-gallery.show = Tonen
 gallery.filter.by = Filteren op
 gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+gallery.clear.filters = Filters Wissen
 
 route.builder.name = Routebuilder
 route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!
@@ -337,3 +352,9 @@ route.builder.share = Kopieer link naar route
 help.rating.1 = Rating 1: Begaanbaar
 help.rating.3 = Rating 3: Neutraal
 help.rating.5 = Rating 5: Niet begaanbaar
+
+footer.logo.nsf.alt = National Science Foundation-logo
+footer.logo.google.alt = Google-logo
+footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
+footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
+footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo
