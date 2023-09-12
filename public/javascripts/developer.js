@@ -1,4 +1,4 @@
-$(document).ready(function () {
+function Developer () {
     var colorMapping = util.misc.getLabelColors();
 
     function getColor(d) {
@@ -17,16 +17,16 @@ $(document).ready(function () {
             maxZoom: 19,
             minZoom: 9,
             zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
         var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
             maxZoom: 19,
             minZoom: 9,
             zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
         var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
             maxZoom: 19,
             minZoom: 9
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
 
         // Use parameters to fill in example URLs.
         var fullBBox = `lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}`;
@@ -135,4 +135,4 @@ $(document).ready(function () {
             }).addTo(mapAccessScoreNeighborhoods);
         });
     });
-});
+}
