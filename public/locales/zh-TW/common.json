@@ -1,5 +1,6 @@
 {
     "measurement-system": "metric",
+    "mapbox-language-code": "zh-Hant",
     "map-url-streets": "mapbox://styles/projectsidewalk/clmffoi5w016f01rcgkmx5ij7",
     "map-url-light": "mapbox://styles/projectsidewalk/cllpqzrgl003101r63kq0c2gt",
     "admin-clear-play-cache": "已成功清除快取記憶體",

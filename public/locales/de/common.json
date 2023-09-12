@@ -1,5 +1,6 @@
 {
     "measurement-system": "metric",
+    "mapbox-language-code": "de",
     "map-url-streets": "mapbox://styles/projectsidewalk/clmffod8k017301rf5y7kdbg3",
     "map-url-light": "mapbox://styles/projectsidewalk/clmff4xfo015h01ra651xfg6p",
     "admin-clear-play-cache": "Play-Cache erfolgreich gelöscht",
