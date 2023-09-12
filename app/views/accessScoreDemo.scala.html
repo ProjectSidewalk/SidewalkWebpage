@@ -39,7 +39,7 @@
                     <td><span id="access-score-curb-ramp-slider-value">100</span></td>
                 </tr>
                 <tr>
-                    <th>No Curb Ramp</th>
+                    <th>@Messages("missing.ramp")</th>
                     <td><input type="range" id="access-score-no-curb-ramp-slider" class="access-score-range-slider" value="100" name="NoCurbRamp"></td>
                     <td><span id="access-score-no-curb-ramp-slider-value">100</span></td>
                 </tr>
@@ -67,6 +67,25 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/accessScoreDemo.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <link href='@routes.Assets.at("stylesheets/accessScoreDemo.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+
+    <script>
+        $(document).ready(function () {
+            // Gets all translations before loading the demo map.
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['common'],
+                defaultNS: 'common',
+                lng: '@lang.code',
+                debug: false
+            }, function(err, t) {
+                AccessScoreDemo();
+            });
+        });
+    </script>
 }

@@ -26,7 +26,7 @@ function Progress (_, $, userRole) {
         scrollWheelZoom: true,
         clickData: true,
         mapName: 'user-dashboard-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11'
+        mapStyle: i18next.t('common:map-url-streets')
     };
     var streetParams = {
         includeLabelCounts: true,
