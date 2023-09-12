@@ -56,7 +56,6 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[Long] and
       (JsPath \ "end_timestamp").read[Long] and
-//      (JsPath \ "is_mobile").read[Boolean] and
       (JsPath \ "source").read[String]
     )(LabelValidationSubmission.apply _)
 
@@ -89,7 +88,6 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[Long] and
       (JsPath \ "end_timestamp").read[Long] and
-//      (JsPath \ "is_mobile").read[Boolean] and
       (JsPath \ "source").read[String]
     )(LabelMapValidationSubmission.apply _)
 

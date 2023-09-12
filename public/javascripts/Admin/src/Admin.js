@@ -68,7 +68,7 @@ function Admin(_, $) {
     };
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView(true, "AdminContributionPage");
+        self.adminGSVLabelView = AdminGSVLabelView(true, "AdminContributionsTab");
     }
 
     function initializeAdminGSVCommentView(){
@@ -251,7 +251,7 @@ function Admin(_, $) {
             // When the audited streets have been rendered and the submitted labels have loaded,
             // the submitted labels can be rendered.
             $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
-                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminLabelMap"), mapData, data2[0])
+                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminMapTab"), mapData, data2[0])
             })
             mapLoaded = true;
         }

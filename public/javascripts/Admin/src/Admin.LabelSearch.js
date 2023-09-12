@@ -3,7 +3,7 @@ function AdminLabelSearch() {
 
 
     function _init() {
-        adminGSVLabelView = AdminGSVLabelView(true, "AdminLabelSearch");
+        adminGSVLabelView = AdminGSVLabelView(true, "AdminLabelSearchTab");
     }
 
     // Prevents the page from refreshing when the enter key is pressed.

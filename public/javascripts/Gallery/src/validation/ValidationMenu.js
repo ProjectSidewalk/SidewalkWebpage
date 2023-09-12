@@ -185,10 +185,10 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         // Log how the user validated (thumbs vs on-card menu) and what option they chose.
         let actionStr;
         let sourceStr;
-        if (onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsExpandedMenuClick', sourceStr = "GalleryExpanded";
-        else if (onExpandedView && !thumbsClick) actionStr = 'Validate_ExpandedMenuClick', sourceStr = "GalleryExpanded";
-        else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = "GalleryCard";
-        else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick', sourceStr = "GalleryCard";
+        if (onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsExpandedMenuClick', sourceStr = "GalleryExpandedThumbs";
+        else if (onExpandedView && !thumbsClick) actionStr = 'Validate_ExpandedMenuClick', sourceStr = "GalleryExpandedImage";
+        else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = "GalleryThumbs";
+        else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick', sourceStr = "GalleryImage";
         actionStr += action;
         sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
 

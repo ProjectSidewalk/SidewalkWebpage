@@ -1,6 +1,7 @@
 function AdminGSVLabelView(admin, source) {
     var self = {};
     self.admin = admin;
+    self.source = source;
 
     var _init = function() {
         self.panoProp = new PanoProperties();
@@ -146,19 +147,19 @@ function AdminGSVLabelView(admin, source) {
         self.agreeButton.click(function() {
             if (self.prevAction !== "Agree") {
                 _disableValidationButtons();
-                _validateLabel("Agree", source);
+                _validateLabel("Agree");
             }
         });
         self.disagreeButton.click(function() {
             if (self.prevAction !== "Disagree") {
                 _disableValidationButtons();
-                _validateLabel("Disagree", source);
+                _validateLabel("Disagree");
             }
         });
         self.notSureButton.click(function() {
             if (self.prevAction !== "NotSure") {
                 _disableValidationButtons();
-                _validateLabel("NotSure", source);
+                _validateLabel("NotSure");
             }
         });
 
@@ -198,7 +199,7 @@ function AdminGSVLabelView(admin, source) {
      * @param action
      * @private
      */
-    function _validateLabel(action, source) {
+    function _validateLabel(action) {
         var validationTimestamp = new Date().getTime();
         var canvasWidth = self.panorama.svHolder.width();
         var canvasHeight = self.panorama.svHolder.height();
@@ -245,7 +246,7 @@ function AdminGSVLabelView(admin, source) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            source: source
+            source: self.source
         };
 
         // Submit the validation via POST request.
