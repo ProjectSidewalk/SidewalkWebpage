@@ -14,7 +14,7 @@ WHERE label_validation.mission_id = mission.mission_id
 ALTER TABLE label_validation DROP COLUMN is_mobile;
 
 # --- !Downs
-ALTER TABLE label_validation ADD is_mobile BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE label_validation ADD is_mobile BOOLEAN;
 
 UPDATE label_validation SET is_mobile = (source = 'ValidateMobile');
 
