@@ -101,7 +101,7 @@
         <div id="landing-choropleth-holder" class="choropleth-holder">
             <div id="landing-choropleth" class="choropleth"></div>
             <div id="landing-legend">
-                <strong style="font-size: 18px">@Messages("landing.choropleth.legend")</strong>
+                <strong style="font-size: 17px">@Messages("landing.choropleth.legend")</strong>
                 <nav class='legend clearfix'>
                     <div style='width:100%;padding:0;'>
                         <span style='background:#03152f;width:9.09%'></span>
@@ -295,7 +295,7 @@
                 clickData: true,
                 scrollWheelZoom: false,
                 mapName: 'landing-choropleth',
-                mapStyle: 'mapbox://styles/mapbox/light-v10'
+                mapStyle: i18next.t('common:map-url-light')
             };
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
