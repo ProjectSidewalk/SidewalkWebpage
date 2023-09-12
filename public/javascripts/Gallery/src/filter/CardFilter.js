@@ -116,6 +116,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
 
         // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
         if (status.currentLabelType !== 'Assorted') {
+            uiCardFilter.clearFilters.show();
             newUrl += `?labelType=${status.currentLabelType}`;
             // Can only have applied tags if there is a specific label type chosen.
             if (currAppliedTags.length > 0) {
@@ -124,10 +125,12 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             firstQueryParam = false;
         }
         if (currSeverities.length > 0) {
+            uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
             firstQueryParam = false;
         }
         if (currValOptions !== 'correct,unvalidated') {
+            uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?validationOptions=${currValOptions}` : `&validationOptions=${currValOptions}`;
         }
         return newUrl;
@@ -262,6 +265,22 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         $('.gallery-filter').prop("disabled", false);
     }
 
+    /**
+     * Clear all filters, setting them to their default state.
+     */
+    function clearFilters() {
+        severities.unapplySeverities();
+        validationOptions.setToDefault();
+        clearCurrentTags();
+        labelTypeMenu.setToDefault();
+    }
+
+    uiCardFilter.clearFilters.on('click', function() {
+        clearFilters();
+        uiCardFilter.clearFilters.hide();
+        update();
+    });
+
     self.update = update;
     self.render = render;
     self.getAppliedTagNames = getAppliedTagNames;
@@ -276,6 +295,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     self.unapplyTags = unapplyTags;
     self.disable = disable;
     self.enable = enable;
+    self.clearFilters = clearFilters;
 
     _init();
     return this;
