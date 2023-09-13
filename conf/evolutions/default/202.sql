@@ -21,7 +21,7 @@ ALTER TABLE label_validation ALTER COLUMN source SET NOT NULL;
 ALTER TABLE label_validation DROP COLUMN is_mobile;
 
 # --- !Downs
-ALTER TABLE label_validation ADD is_mobile BOOLEAN;
+ALTER TABLE label_validation ADD is_mobile BOOLEAN NOT NULL DEFAULT FALSE;
 
 UPDATE label_validation SET is_mobile = (source = 'ValidateMobile');
 
