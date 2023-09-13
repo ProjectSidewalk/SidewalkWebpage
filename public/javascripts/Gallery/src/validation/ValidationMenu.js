@@ -184,10 +184,11 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     function _validateLabel(action, thumbsClick) {
         // Log how the user validated (thumbs vs on-card menu) and what option they chose.
         let actionStr;
-        if (onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsExpandedMenuClick';
-        else if (onExpandedView && !thumbsClick) actionStr = 'Validate_ExpandedMenuClick';
-        else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick';
-        else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick';
+        let sourceStr;
+        if (onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsExpandedMenuClick', sourceStr = "GalleryExpandedThumbs";
+        else if (onExpandedView && !thumbsClick) actionStr = 'Validate_ExpandedMenuClick', sourceStr = "GalleryExpandedImage";
+        else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = "GalleryThumbs";
+        else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick', sourceStr = "GalleryImage";
         actionStr += action;
         sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
 
@@ -200,7 +201,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             canvas_width: gsvImage.width(),
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false
+            source: sourceStr
         };
 
         // Record current POV and canvas X/Y position of the label at the current view. This does not change for the
