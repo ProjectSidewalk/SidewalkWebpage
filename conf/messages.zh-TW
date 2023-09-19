@@ -48,6 +48,45 @@ press.keys = 點擊 "{0}" 鍵
 feedback.title = 有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！
 feedback.submitted = 已送出回饋
 
+city.state = {1}{0}
+
+city.name.newberg-or = 紐伯格
+city.name.washington-dc = 華盛頓
+city.name.seattle-wa = 西雅圖
+city.name.columbus-oh = 哥倫布
+city.name.cdmx = 墨西哥市
+city.name.spgg = 聖佩德羅加爾薩加西亞
+city.name.pittsburgh-pa = 匹茲堡
+city.name.chicago-il = 芝加哥
+city.name.amsterdam = 阿姆斯特丹
+city.name.la-piedad = 拉彼達
+city.name.oradell-nj = 奧拉德爾
+city.name.zurich = 蘇黎世
+city.name.taipei = 臺北市
+city.name.new-taipei-tw = 新北市
+city.name.keelung-tw = 基隆市
+city.name.auckland = 奧克蘭
+city.name.cuenca = 昆卡
+city.name.burnaby = 本拿比
+city.name.teaneck-nj = 提内克
+
+state.name.oregon = 奧勒岡州
+state.name.dc = 特區
+state.name.washington = 華盛頓州
+state.name.ohio = 俄亥俄州
+state.name.pennsylvania = 賓夕法尼亞州
+state.name.illinois = 伊利諾州
+state.name.new-jersey = 紐澤西州
+
+country.name.usa = 美國
+country.name.mexico = 墨西哥
+country.name.netherlands = 荷蘭
+country.name.switzerland = 瑞士
+country.name.taiwan = 台灣
+country.name.new-zealand = 紐西蘭
+country.name.ecuador = 厄瓜多
+country.name.canada = 加拿大
+
 navbar.explore = 探索
 navbar.validate = 檢核
 navbar.howto = 如何標記

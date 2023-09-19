@@ -48,6 +48,20 @@ press.keys = Drücken Sie die Tasten "{0}"
 feedback.title = Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!
 feedback.submitted = Rückmeldung gesendet
 
+city.state = {0}, {1}
+
+city.name.cdmx = Mexiko-Stadt
+city.name.zurich = Zürich
+city.name.taipei = Taipeh
+city.name.new-taipei-tw = Neu-Taipeh
+
+country.name.usa = USA
+country.name.mexico = Mexiko
+country.name.netherlands = Niederlande
+country.name.switzerland = Schweiz
+country.name.new-zealand = Neuseeland
+country.name.canada = Kanada
+
 navbar.explore = Erkunden
 navbar.validate = Valideren
 navbar.howto = Beschriftungsanleitung

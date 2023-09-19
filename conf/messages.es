@@ -48,6 +48,24 @@ press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
 feedback.submitted = Comentarios enviados
 
+city.state = {0}, {1}
+
+city.name.cdmx = Ciudad de México
+city.name.zurich = Zúrich
+city.name.new-taipei-tw = Nuevo Taipei
+
+state.name.oregon = Oregón
+state.name.pennsylvania = Pensilvania
+state.name.new-jersey = Nueva Jersey
+
+country.name.usa = EE.UU.
+country.name.mexico = México
+country.name.netherlands = Holanda
+country.name.switzerland = Suiza
+country.name.taiwan = Taiwán
+country.name.new-zealand = Nueva Zelanda
+country.name.canada = Canadá
+
 navbar.explore = Explorar
 navbar.validate = Validar
 navbar.howto = Cómo etiquetar

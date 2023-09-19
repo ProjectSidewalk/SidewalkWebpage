@@ -48,6 +48,23 @@ press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
 feedback.submitted = Feedback Ingediend
 
+city.state = {0}, {1}
+
+city.name.cdmx = Mexico Stad
+city.name.new-taipei-tw = Nieuw Taipei
+
+state.name.oregon = Oregon
+state.name.washington = Washington
+state.name.ohio = Ohio
+state.name.pennsylvania = Pennsylvania
+state.name.illinois = Illinois
+state.name.new-jersey = New Jersey
+
+country.name.usa = USA
+country.name.netherlands = Nederland
+country.name.switzerland = Zwitserland
+country.name.new-zealand = Nieuw-Zeeland
+
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen

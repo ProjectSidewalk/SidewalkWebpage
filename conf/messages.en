@@ -48,6 +48,15 @@ press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
 feedback.submitted = Feedback Submitted
 
+city.state = {0}, {1}
+
+state.name.oregon = OR
+state.name.washington = WA
+state.name.ohio = OH
+state.name.pennsylvania = PA
+state.name.illinois = IL
+state.name.new-jersey = NJ
+
 navbar.explore = Explore
 navbar.validate = Validate
 navbar.howto = How to Label
