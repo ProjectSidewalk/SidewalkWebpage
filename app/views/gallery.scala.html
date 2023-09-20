@@ -1,6 +1,9 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, Option[String], String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
-@currentCity = @{otherCityURLs.filter(c => c._1 == cityId).head}
+@import models.utils.CityInfo
+@import play.api.Play
+@import play.api.Play.current
+@(title: String, user: Option[User] = None, cityInfo: List[CityInfo], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -38,18 +41,18 @@
                     <span id="city-type-holder">
                         <h4><b>@Messages("navbar.city")</b></h4>
                         <select id="city-select" class="gallery-filter" disabled>
-                            @for((id, stateId, countryId, cityURL, visible) <- otherCityURLs.filter(c => c._5 == "public" || c._1 == cityId)) {
-                                @if(currentCity._3 == "usa" && stateId.isDefined && countryId == "usa") {
-                                    @if(cityId == id) {
-                                        <option value="@cityURL" selected>@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"state.name.${stateId.get}"))</option>
+                            @for(city <- cityInfo.filter(c => c.visibility == "public" || c.cityId == currentCity.cityId)) {
+                                @if(currentCity.countryId == "usa" && city.stateId.isDefined && city.countryId == "usa") {
+                                    @if(currentCity.cityId == city.cityId) {
+                                        <option value="@city.URL" selected>@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"state.name.${city.stateId.get}"))</option>
                                     } else {
-                                        <option value="@cityURL">@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"state.name.${stateId.get}"))</option>
+                                        <option value="@city.URL">@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"state.name.${city.stateId.get}"))</option>
                                     }
                                 } else {
-                                    @if(cityId == id) {
-                                        <option value="@cityURL" selected>@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"country.name.$countryId"))</option>
+                                    @if(currentCity.cityId == city.cityId) {
+                                        <option value="@city.URL" selected>@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"country.name.${city.countryId}"))</option>
                                     } else {
-                                        <option value="@cityURL">@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"country.name.$countryId"))</option>
+                                        <option value="@city.URL">@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"country.name.${city.countryId}"))</option>
                                     }
                                 }
                             }
