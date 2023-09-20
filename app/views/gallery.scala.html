@@ -1,5 +1,6 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String, otherCityURLs: List[(String, Option[String], String, String, String)], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
+@currentCity = @{otherCityURLs.filter(c => c._1 == cityId).head}
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -37,11 +38,19 @@
                     <span id="city-type-holder">
                         <h4><b>@Messages("navbar.city")</b></h4>
                         <select id="city-select" class="gallery-filter" disabled>
-                            @for((id, cityName, cityURL, visible) <- otherCityURLs.filter(c => c._4 == "public" || c._1 == cityId)) {
-                                @if(cityId == id) {
-                                    <option value="@cityURL" selected>@cityName</option>
+                            @for((id, stateId, countryId, cityURL, visible) <- otherCityURLs.filter(c => c._5 == "public" || c._1 == cityId)) {
+                                @if(currentCity._3 == "usa" && stateId.isDefined && countryId == "usa") {
+                                    @if(cityId == id) {
+                                        <option value="@cityURL" selected>@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"state.name.${stateId.get}"))</option>
+                                    } else {
+                                        <option value="@cityURL">@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"state.name.${stateId.get}"))</option>
+                                    }
                                 } else {
-                                    <option value="@cityURL">@cityName</option>
+                                    @if(cityId == id) {
+                                        <option value="@cityURL" selected>@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"country.name.$countryId"))</option>
+                                    } else {
+                                        <option value="@cityURL">@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"country.name.$countryId"))</option>
+                                    }
                                 }
                             }
                         </select>

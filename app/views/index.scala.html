@@ -5,7 +5,8 @@
 @import play.api.Play.current
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, cityURLs: List[(String, Option[String], String, String, String)], auditedDistance: Float)(implicit lang: Lang)
+@currentCity = @{cityURLs.filter(c => c._1 == cityId).head}
 @skylineImg =@{Play.configuration.getString("city-params.skyline-img." + cityId).get}
 
 @main(title) {
@@ -33,9 +34,13 @@
                     <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {
+                    @for((id, stateId, countryId, cityURL, visible) <- Random.shuffle(cityURLs.filter(c => c._5 == "public" && c._1 != currentCity._1)).take(4)) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
+                        @if(currentCity._3 == "usa" && stateId.isDefined && countryId == "usa") {
+                            <a id="@cityName" class="other-city-link" href="@{cityURL}">@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"state.name.${stateId.get}")).replace(" ", " ")</a> &nbsp;
+                        } else {
+                            <a id="@cityName" class="other-city-link" href="@{cityURL}">@Messages(s"city.state", Messages(s"city.name.$id"), Messages(s"country.name.$countryId")).replace(" ", " ")</a> &nbsp;
+                        }
                     }
                     <br>
                     @if(mapathonLink.isDefined) {

@@ -134,7 +134,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
               val mapathonLink: Option[String] = ConfigTable.getMapathonEventLink
               // Get names and URLs for other cities so we can link to them on landing page.
-              val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity = cityStr)
+              val otherCityUrls: List[(String, Option[String], String, String, String)] = Configs.getAllCityInfo()
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgePriorityTable.auditedStreetDistanceUsingPriority * 1.60934.toFloat
@@ -377,7 +377,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         // Get current city.
         val cityStr: String = Play.configuration.getString("city-id").get
         // Get names and URLs for cities to display in Gallery dropdown.
-        val cityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo()
+        val cityUrls: List[(String, Option[String], String, String, String)] = Configs.getAllCityInfo()
         val labelTypes: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
           ("CurbRamp", Messages("curb.ramp")),

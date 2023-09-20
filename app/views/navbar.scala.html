@@ -7,7 +7,7 @@
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @currentCity =@{Play.configuration.getString("city-id").get}
-@cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._4 == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c._1)))}
+@cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._5 == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c._1)))}
 
 @import views.html.bootstrap._
 
@@ -159,12 +159,18 @@
                             <li>
                             @if(cityInfo._1 == currentCity) {
                                 <a id="@cityInfo._1" role="menuitem" class="current-city" href='javascript:void(0);'>
-                                    <b>@cityInfo._2</b>
+                                    <b>@Messages("city.state", Messages(s"city.name.$currentCity"), Messages(s"state.name.${Play.configuration.getString(s"city-params.state-id.$currentCity").get}"))</b>
                                 </a>
                             } else {
-                                <a id="@cityInfo._1" role="menuitem" href='@cityInfo._3'>
-                                @cityInfo._2
-                                </a>
+                                @if(Play.configuration.getString(s"city-params.country-id.$currentCity").get == "usa" && cityInfo._3 == "usa" && cityInfo._2.isDefined) {
+                                    <a id="@cityInfo._1" role="menuitem" href='@cityInfo._4'>
+                                    @Messages("city.state", Messages(s"city.name.${cityInfo._1}"), Messages(s"state.name.${cityInfo._2.get}"))
+                                    </a>
+                                } else {
+                                    <a id="@cityInfo._1" role="menuitem" href='@cityInfo._4'>
+                                    @Messages("city.state", Messages(s"city.name.${cityInfo._1}"), Messages(s"country.name.${cityInfo._3}"))
+                                    </a>
+                                }
                             }
                             </li>
                         }
