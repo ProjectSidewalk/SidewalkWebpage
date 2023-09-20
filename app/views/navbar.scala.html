@@ -159,11 +159,17 @@
                         @for(cityInfo <- cityInfo.sortBy(_.cityId)) {
                             <li>
                             @if(cityInfo.cityId == currentCityId) {
-                                <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
-                                    <b>@Messages("city.state", Messages(s"city.name.$currentCityId"), Messages(s"state.name.${Play.configuration.getString(s"city-params.state-id.$currentCityId").get}"))</b>
-                                </a>
+                                @if(cityInfo.stateId.isDefined && cityInfo.countryId == "usa") {
+                                    <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
+                                        <b>@Messages("city.state", Messages(s"city.name.$currentCityId"), Messages(s"state.name.${cityInfo.stateId.get}"))</b>
+                                    </a>
+                                } else {
+                                    <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
+                                        <b>@Messages("city.state", Messages(s"city.name.$currentCityId"), Messages(s"country.name.${cityInfo.countryId}"))</b>
+                                    </a>
+                                }
                             } else {
-                                @if(Play.configuration.getString(s"city-params.country-id.$currentCityId").get == "usa" && cityInfo.countryId == "usa" && cityInfo.stateId.isDefined) {
+                                @if(currentCity.countryId == "usa" && cityInfo.stateId.isDefined && cityInfo.countryId == "usa") {
                                     <a id="@cityInfo.cityId" role="menuitem" href='@cityInfo.URL'>
                                     @Messages("city.state", Messages(s"city.name.${cityInfo.cityId}"), Messages(s"state.name.${cityInfo.stateId.get}"))
                                     </a>
