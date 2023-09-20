@@ -6,7 +6,7 @@
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
 @import models.utils.CityInfo
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: Option[String], mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
 @currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
 @skylineImg =@{Play.configuration.getString("city-params.skyline-img." + currentCity.cityId).get}
 
@@ -32,7 +32,7 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @cityShortName.getOrElse(Messages(s"city.name.${currentCity.cityId}"))</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
                     @for(city <- Random.shuffle(cityInfo.filter(c => c.visibility == "public" && c.cityId != currentCity.cityId)).take(4)) {
@@ -45,7 +45,7 @@
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
-                        <span class="header-text">@Html(Messages("landing.mapathon", cityShortName, mapathonLink.get))</span>
+                        <span class="header-text">@Html(Messages("landing.mapathon", cityShortName.getOrElse(Messages(s"city.name.${currentCity.cityId}")), mapathonLink.get))</span>
                     }
                 </div>
                 <div class="col-sm-3"></div>
@@ -147,7 +147,7 @@
             @if(ConfigTable.getOpenStatus == "partially") {
                 <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
             } else {
-                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", cityShortName)</span>
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", cityShortName.getOrElse(Messages(s"city.name.${currentCity.cityId}")))</span>
             }
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>

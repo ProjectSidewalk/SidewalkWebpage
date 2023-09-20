@@ -49,7 +49,6 @@ POST    /resetPassword                                       @controllers.ResetP
 
 # City config params
 GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
-GET     /cityShortNameParam                                  @controllers.ConfigController.getCityShortNameParam()
 GET     /cityAPIDemoParams                                   @controllers.ConfigController.getCityAPIDemoParams()
 
 # Admin

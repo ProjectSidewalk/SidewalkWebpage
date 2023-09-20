@@ -35,15 +35,6 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
   }
 
   /**
-   * Get the short version of the current city name.
-   */
-  def getCityShortNameParam() = Action.async { implicit request =>
-    val cityStr: String = Play.configuration.getString("city-id").get
-    val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-    Future.successful(Ok(Json.obj("city_short_name" -> cityShortName)))
-  }
-
-  /**
    * Get all city-specific parameters needed for the API page demos.
    */
   def getCityAPIDemoParams() = Action.async { implicit request =>

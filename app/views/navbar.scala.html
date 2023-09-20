@@ -152,7 +152,7 @@
                 @if(currentCityId != "crowdstudy") {
                     <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
                         <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
-                            @Play.configuration.getString("city-params.city-short-name." + currentCityId).get
+                            @Play.configuration.getString(s"city-params.city-short-name.$currentCityId").getOrElse(Messages(s"city.name.$currentCityId"))
                             <b class="caret"></b>
                         </a>
                         <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
