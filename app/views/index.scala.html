@@ -6,8 +6,13 @@
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
 @import models.utils.CityInfo
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: Option[String], mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, cityShortName: Option[String], mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
 @currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
+@cityFormattedName = @{if (currentCity.countryId == "usa" && currentCity.stateId.isDefined) {
+    Messages(s"city.state", Messages(s"city.name.${currentCity.cityId}"), Messages(s"state.name.${currentCity.stateId.get}"))
+} else {
+    Messages(s"city.state", Messages(s"city.name.${currentCity.cityId}"), Messages(s"country.name.${currentCity.countryId}"))
+}}
 @skylineImg =@{Play.configuration.getString("city-params.skyline-img." + currentCity.cityId).get}
 
 @main(title) {
@@ -164,13 +169,13 @@
         </div>
         <script language="javascript">
             if ("@ConfigTable.getOpenStatus" === "partially" && @("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) >= 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), cityFormattedName)";
             } else if ("@ConfigTable.getOpenStatus" === "partially") {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), cityFormattedName, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else if (@("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) < 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), cityFormattedName, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), cityFormattedName)";
             }
             var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)),1,2.5,{suffix:'%'});
             var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
