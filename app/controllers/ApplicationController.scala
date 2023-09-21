@@ -15,11 +15,11 @@ import models.audit.AuditTaskInteractionTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.TagTable.selectTagsByLabelType
 import models.street.StreetEdgePriorityTable
-import models.utils.Configs
+import models.utils.{CityInfo, Configs}
 import models.attribute.ConfigTable
 import play.api.Play
 import play.api.Play.current
-import play.api.i18n.Messages
+import play.api.i18n.{Lang, Messages}
 import java.util.Calendar
 import play.api.mvc._
 import scala.concurrent.Future
@@ -129,17 +129,15 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               // Get city configs.
               val cityStr: String = Play.configuration.getString("city-id").get
-              val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
-              val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
-              val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
               val mapathonLink: Option[String] = ConfigTable.getMapathonEventLink
               // Get names and URLs for other cities so we can link to them on landing page.
-              val otherCityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo(excludeCity = cityStr)
+              val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value)).getOrElse(request.acceptLanguages.head)
+              val cityUrls: List[CityInfo] = Configs.getAllCityInfo(lang)
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgePriorityTable.auditedStreetDistanceUsingPriority * 1.60934.toFloat
                 else StreetEdgePriorityTable.auditedStreetDistanceUsingPriority
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), mapathonLink, cityUrls, auditedDistance)))
             }
           case None =>
             if(qString.isEmpty){
@@ -374,10 +372,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        // Get current city.
-        val cityStr: String = Play.configuration.getString("city-id").get
         // Get names and URLs for cities to display in Gallery dropdown.
-        val cityUrls: List[(String, String, String, String)] = Configs.getAllCityInfo()
+        val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value)).getOrElse(request.acceptLanguages.head)
+        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
         val labelTypes: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
           ("CurbRamp", Messages("curb.ramp")),
@@ -403,7 +400,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val activityStr: String = s"Visit_Gallery_LabelType=${labType}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityStr, cityUrls, labType, labelTypes, severityList, tagList, valOptions)))
+        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityInfo, labType, labelTypes, severityList, tagList, valOptions)))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
@@ -474,8 +471,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))
         val cityStr: String = Play.configuration.getString("city-id").get
-        val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user), cityShortName)))
+        val cityNameShort: Option[String] = Play.configuration.getString(s"city-params.city-short-name.$cityStr")
+        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user), cityStr, cityNameShort)))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/demo"))
     }

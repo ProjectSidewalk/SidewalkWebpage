@@ -5,7 +5,10 @@
 @import play.api.Play.current
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
+@import models.utils.CityInfo
+@(title: String, user: Option[User] = None, mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
+@skylineImg =@{Play.configuration.getString("city-params.skyline-img." + currentCity.cityId).get}
 
 @main(title) {
     @navbar(user, Some("/"))
@@ -29,16 +32,16 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @currentCity.cityNameShort</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {
+                    @for(city <- Random.shuffle(cityInfo.filter(c => c.visibility == "public" && c.cityId != currentCity.cityId)).take(4)) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
+                        <a id="@city.cityId" class="other-city-link" href="@city.URL">@city.cityNameFormatted.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
-                        <span class="header-text">@Html(Messages("landing.mapathon", cityShortName, mapathonLink.get))</span>
+                        <span class="header-text">@Html(Messages("landing.mapathon", currentCity.cityNameShort, mapathonLink.get))</span>
                     }
                 </div>
                 <div class="col-sm-3"></div>
@@ -100,7 +103,7 @@
         <div id="landing-choropleth-holder" class="choropleth-holder">
             <div id="landing-choropleth" class="choropleth"></div>
             <div id="landing-legend">
-                <strong style="font-size: 18px">@Messages("landing.choropleth.legend")</strong>
+                <strong style="font-size: 17px">@Messages("landing.choropleth.legend")</strong>
                 <nav class='legend clearfix'>
                     <div style='width:100%;padding:0;'>
                         <span style='background:#03152f;width:9.09%'></span>
@@ -125,12 +128,12 @@
     </div>
     <div class="ps-skyline">
         <div class="ps-skyline-container">
-            @if(cityName == "Washington" || cityName == "Seattle") {
-                <img src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
+            @if(currentCity.cityId == "washington-dc" || currentCity.cityId == "seattle-wa") {
+                <img src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
             } else {
-                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + Play.configuration.getString("city-params.skyline-img." + cityId).get)">
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
             }
-            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay">
+            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
         </div>
         <div class="ps-skyline-stats-holder">
             <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
@@ -140,7 +143,7 @@
             @if(ConfigTable.getOpenStatus == "partially") {
                 <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
             } else {
-                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", cityShortName)</span>
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", currentCity.cityNameShort)</span>
             }
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
@@ -157,13 +160,13 @@
         </div>
         <script language="javascript">
             if ("@ConfigTable.getOpenStatus" === "partially" && @("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) >= 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted)";
             } else if ("@ConfigTable.getOpenStatus" === "partially") {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else if (@("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) < 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted)";
             }
             var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)),1,2.5,{suffix:'%'});
             var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
@@ -178,7 +181,7 @@
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
             </div>
             <div class="gif-container">
-                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
+                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
                 <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
                 <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
                 <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
@@ -196,45 +199,57 @@
             <div class="im-centered3" id="collaborators-title">
                 <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
             </div>
+
             <section class="collaborator-images-container">
                 <div class="collaborator-image">
                     <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability_Logo'>
+                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt="@Messages("landing.collaborators.logo.makeability.alt")">
                     </a>
                 </div>
                 <div class="collaborator-image">
                     <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt='UIC_Logo'>
+                        <img src='@routes.Assets.at("assets/uic_logo.png")' alt="@Messages("landing.collaborators.logo.uic.alt")">
                     </a>
                 </div>
-                <div class="collaborator-image">
-                    <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
-                        <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
-                    </a>
-                </div>
-                @if("Columbus" == cityName){
+
+                @if(List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity.cityId)){
+                    <div class="collaborator-image">
+                        <a id="people-nudge-img-link" href="https://www.facebook.com/peoplenudge?mibextid=LQQJ4d">
+                            <img src='@routes.Assets.at("assets/people_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.people.nudge.alt")'>
+                        </a>
+                    </div>
+                } else {
+                    <div class="collaborator-image">
+                        <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
+                            <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
+                        </a>
+                    </div>
+                }
+
+                @if("columbus-oh" == currentCity.cityId){
                     <div class="collaborator-image">
                         <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
-                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
+                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
                         </a>
                     </div>
                 }
             </section>
+
             <section class="collaborator-images-container">
-                @if("Amsterdam" == cityName){
+                @if("amsterdam" == currentCity.cityId){
                     <div class="collaborator-image">
                         <a id="worldenabled-img-link" href="https://worldenabled.org/">
-                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt='World_Enabled_Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
-                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt='City_Of_Amsterdam_Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/city_of_amsterdam.png")' alt="@Messages("landing.collaborators.logo.city.of.amsterdam.alt")">
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
-                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt='Amsterdam_Intelligence_Logo'>
+                            <img src='@routes.Assets.at("assets/amsterdam/amsterdam_intelligence.png")' alt="@Messages("landing.collaborators.logo.amsterdam.intelligence.alt")">
                         </a>
                     </div>
                 }
@@ -294,7 +309,7 @@
                 clickData: true,
                 scrollWheelZoom: false,
                 mapName: 'landing-choropleth',
-                mapStyle: 'mapbox://styles/mapbox/light-v10'
+                mapStyle: i18next.t('common:map-url-light')
             };
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');

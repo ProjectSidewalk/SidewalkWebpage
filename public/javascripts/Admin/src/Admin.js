@@ -33,7 +33,7 @@ function Admin(_, $) {
         zoomControl: true,
         scrollWheelZoom: false,
         mapName: 'admin-landing-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/light-v10'
+        mapStyle: i18next.t('common:map-url-light')
     };
     var mapTabMapParams = {
         popupType: 'none',
@@ -58,7 +58,7 @@ function Admin(_, $) {
         scrollWheelZoom: true,
         zoomControl: true,
         mapName: 'admin-labelmap-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11'
+        mapStyle: i18next.t('common:map-url-streets')
     };
     var streetParams = {
         labelPopup: true,
@@ -68,7 +68,7 @@ function Admin(_, $) {
     };
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView(true);
+        self.adminGSVLabelView = AdminGSVLabelView(true, "AdminContributionsTab");
     }
 
     function initializeAdminGSVCommentView(){
@@ -251,7 +251,7 @@ function Admin(_, $) {
             // When the audited streets have been rendered and the submitted labels have loaded,
             // the submitted labels can be rendered.
             $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
-                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), mapData, data2[0])
+                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminMapTab"), mapData, data2[0])
             })
             mapLoaded = true;
         }

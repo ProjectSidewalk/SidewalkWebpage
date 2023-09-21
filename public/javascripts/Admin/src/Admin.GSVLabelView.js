@@ -1,6 +1,7 @@
-function AdminGSVLabelView(admin) {
+function AdminGSVLabelView(admin, source) {
     var self = {};
     self.admin = admin;
+    self.source = source;
 
     var _init = function() {
         self.panoProp = new PanoProperties();
@@ -245,7 +246,7 @@ function AdminGSVLabelView(admin) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false
+            source: self.source
         };
 
         // Submit the validation via POST request.
@@ -336,7 +337,7 @@ function AdminGSVLabelView(admin) {
             pitch: userPov.pitch,
             zoom: zoom,
             lat: pos.lat(),
-            lng: pos.lng(),
+            lng: pos.lng()
         };
 
         // Submit the comment via POST request.

@@ -209,12 +209,14 @@ function Label(params) {
                 );
             }
 
-            // Draw the label icon.
-            Label.renderLabelIcon(ctx, properties.labelType, properties.currCanvasXY.x, properties.currCanvasXY.y);
+            // Draw the label icon if it's in the visible part of the pano.
+            if (properties.currCanvasXY.x !== null && properties.currCanvasXY.y !== null) {
+                Label.renderLabelIcon(ctx, properties.labelType, properties.currCanvasXY.x, properties.currCanvasXY.y);
 
-            // Only render severity warning if there's a severity option.
-            if (!['Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
-                showSeverityAlert(ctx);
+                // Only render severity warning if there's a severity option.
+                if (!['Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
+                    showSeverityAlert(ctx);
+                }
             }
         }
 

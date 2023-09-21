@@ -24,7 +24,7 @@ function AdminUser(user) {
         zoomControl: true,
         scrollWheelZoom: true,
         mapName: 'admin-user-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11'
+        mapStyle: i18next.t('common:map-url-streets')
     };
     var streetParams = {
         labelPopup: true,
@@ -50,7 +50,7 @@ function AdminUser(user) {
     // When the audited streets have been rendered and the submitted labels have loaded,
     // the submitted labels can be rendered.
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-        InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), InitializeMapLayerContainer(), data2[0])
+        InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminUserDashboard"), InitializeMapLayerContainer(), data2[0])
         setRegionFocus(map, layers)
     })
     

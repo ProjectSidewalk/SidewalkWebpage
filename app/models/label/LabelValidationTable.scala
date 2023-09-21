@@ -25,7 +25,7 @@ case class LabelValidation(labelValidationId: Int,
                            canvasWidth: Int,
                            startTimestamp: java.sql.Timestamp,
                            endTimestamp: java.sql.Timestamp,
-                           isMobile: Boolean)
+                           source: String)
 
 
 /**
@@ -48,10 +48,10 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def canvasWidth = column[Int]("canvas_width", O.NotNull)
   def startTimestamp = column[java.sql.Timestamp]("start_timestamp", O.NotNull)
   def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
-  def isMobile = column[Boolean]("is_mobile", O.NotNull)
+  def source = column[String]("source", O.NotNull)
 
   def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
-    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, isMobile) <>
+    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source) <>
     ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
   def label: ForeignKeyQuery[LabelTable, Label] =
@@ -149,11 +149,11 @@ object LabelValidationTable {
           v <- validationLabels if v.labelId === label.labelId &&v.userId === label.userId
         } yield (
           v.validationResult, v.missionId, v.canvasX, v.canvasY, v.heading, v.pitch, v.zoom,
-          v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.isMobile
+          v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.source
         )
         updateQuery.update((
           label.validationResult, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
-          label.canvasHeight, label.canvasWidth, label.startTimestamp, label.endTimestamp, label.isMobile
+          label.canvasHeight, label.canvasWidth, label.startTimestamp, label.endTimestamp, label.source
         ))
       case None =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.

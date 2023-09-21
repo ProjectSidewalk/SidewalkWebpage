@@ -92,7 +92,7 @@
                 clickData: true,
                 scrollWheelZoom: false,
                 mapName: 'results-choropleth',
-                mapStyle: "mapbox://styles/mapbox/light-v10"
+                mapStyle: i18next.t('common:map-url-light')
             };
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');

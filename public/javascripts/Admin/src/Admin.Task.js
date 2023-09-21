@@ -8,7 +8,7 @@ function AdminTask(params) {
         scrollWheelZoom: false,
         touchZoom: false,
         doubleClickZoom: true
-    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+    }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
 
     (function mapAnimation () {
         var colorScheme = util.misc.getLabelColors();
