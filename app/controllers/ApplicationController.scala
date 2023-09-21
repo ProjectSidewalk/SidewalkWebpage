@@ -129,7 +129,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               // Get city configs.
               val cityStr: String = Play.configuration.getString("city-id").get
-              val cityName: String = Play.configuration.getString(s"city-params.city-name.$cityStr").get
               val cityShortName: Option[String] = Play.configuration.getString(s"city-params.city-short-name.$cityStr")
               val mapathonLink: Option[String] = ConfigTable.getMapathonEventLink
               // Get names and URLs for other cities so we can link to them on landing page.
@@ -138,7 +137,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgePriorityTable.auditedStreetDistanceUsingPriority * 1.60934.toFloat
                 else StreetEdgePriorityTable.auditedStreetDistanceUsingPriority
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, cityShortName, mapathonLink, cityUrls, auditedDistance)))
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityShortName, mapathonLink, cityUrls, auditedDistance)))
             }
           case None =>
             if(qString.isEmpty){

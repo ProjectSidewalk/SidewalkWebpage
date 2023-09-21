@@ -6,7 +6,7 @@
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
 @import models.utils.CityInfo
-@(title: String, user: Option[User] = None, cityName: String, cityShortName: Option[String], mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityShortName: Option[String], mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
 @currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
 @cityFormattedName = @{if (currentCity.countryId == "usa" && currentCity.stateId.isDefined) {
     Messages(s"city.state", Messages(s"city.name.${currentCity.cityId}"), Messages(s"state.name.${currentCity.stateId.get}"))
@@ -43,9 +43,9 @@
                     @for(city <- Random.shuffle(cityInfo.filter(c => c.visibility == "public" && c.cityId != currentCity.cityId)).take(4)) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
                         @if(currentCity.countryId == "usa" && city.stateId.isDefined && city.countryId == "usa") {
-                            <a id="@cityName" class="other-city-link" href="@{city.URL}">@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"state.name.${city.stateId.get}")).replace(" ", " ")</a> &nbsp;
+                            <a id="@{city.cityId}" class="other-city-link" href="@{city.URL}">@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"state.name.${city.stateId.get}")).replace(" ", " ")</a> &nbsp;
                         } else {
-                            <a id="@cityName" class="other-city-link" href="@{city.URL}">@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"country.name.${city.countryId}")).replace(" ", " ")</a> &nbsp;
+                            <a id="@{city.cityId}" class="other-city-link" href="@{city.URL}">@Messages(s"city.state", Messages(s"city.name.${city.cityId}"), Messages(s"country.name.${city.countryId}")).replace(" ", " ")</a> &nbsp;
                         }
                     }
                     <br>
@@ -137,7 +137,7 @@
     </div>
     <div class="ps-skyline">
         <div class="ps-skyline-container">
-            @if(cityName == "Washington" || cityName == "Seattle") {
+            @if(currentCity.cityId == "washington-dc" || currentCity.cityId == "seattle-wa") {
                 <img src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
             } else {
                 <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
