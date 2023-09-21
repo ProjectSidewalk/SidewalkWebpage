@@ -7,7 +7,7 @@
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @currentCityId =@{Play.configuration.getString("city-id").get}
-@cityInfo = @{Configs.getAllCityInfo().filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
+@cityInfo = @{Configs.getAllCityInfo(lang).filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
 @currentCityInfo = @{cityInfo.filter(c => c.cityId == currentCityId).head}
 
 @import views.html.bootstrap._

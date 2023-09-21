@@ -19,7 +19,7 @@ import models.utils.{CityInfo, Configs}
 import models.attribute.ConfigTable
 import play.api.Play
 import play.api.Play.current
-import play.api.i18n.Messages
+import play.api.i18n.{Lang, Messages}
 import java.util.Calendar
 import play.api.mvc._
 import scala.concurrent.Future
@@ -131,7 +131,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val cityStr: String = Play.configuration.getString("city-id").get
               val mapathonLink: Option[String] = ConfigTable.getMapathonEventLink
               // Get names and URLs for other cities so we can link to them on landing page.
-              val cityUrls: List[CityInfo] = Configs.getAllCityInfo()
+              val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value)).getOrElse(request.acceptLanguages.head)
+              val cityUrls: List[CityInfo] = Configs.getAllCityInfo(lang)
               // Get total audited distance. If using metric system, convert from miles to kilometers.
               val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgePriorityTable.auditedStreetDistanceUsingPriority * 1.60934.toFloat
@@ -372,7 +373,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         // Get names and URLs for cities to display in Gallery dropdown.
-        val cityInfo: List[CityInfo] = Configs.getAllCityInfo()
+        val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value)).getOrElse(request.acceptLanguages.head)
+        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
         val labelTypes: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
           ("CurbRamp", Messages("curb.ramp")),

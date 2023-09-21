@@ -3,7 +3,7 @@ package models.utils
 import play.api.Play
 import play.api.Play.current
 import scala.collection.JavaConverters._
-import play.api.i18n.Messages
+import play.api.i18n.{Lang, Messages}
 
 case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String)
 
@@ -11,7 +11,7 @@ object Configs {
   /**
    * Returns list of info for all cities, including formatted names (in current language), URL, visibility.
    */
-  def getAllCityInfo(): List[CityInfo] = {
+  def getAllCityInfo(lang: Lang): List[CityInfo] = {
     val currentCityId: String = Play.configuration.getString("city-id").get
     val currentCountryId: String = Play.configuration.getString(s"city-params.country-id.$currentCityId").get
     val envType: String = Play.configuration.getString("environment-type").get
@@ -25,12 +25,12 @@ object Configs {
       val visibility: String = Play.configuration.getString(s"city-params.status.$cityId").get
 
       // Get the name of the city in frequently used formats in the current language.
-      val cityName: String = Messages(s"city.name.$cityId")
+      val cityName: String = Messages(s"city.name.$cityId")(lang)
       val cityNameShort: String = Play.configuration.getString(s"city-params.city-short-name.$cityId").getOrElse(cityName)
       val cityNameFormatted: String = if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
-        Messages("city.state", Messages(s"city.name.$cityId"), Messages(s"state.name.${stateId.get}"))
+        Messages("city.state", cityName, Messages(s"state.name.${stateId.get}")(lang))(lang)
       else
-        Messages("city.state", Messages(s"city.name.$cityId"), Messages(s"country.name.$countryId"))
+        Messages("city.state", cityName, Messages(s"country.name.$countryId")(lang))(lang)
       CityInfo(cityId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
     }
     cityInfo
