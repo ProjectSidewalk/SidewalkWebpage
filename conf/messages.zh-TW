@@ -108,7 +108,7 @@ navbar.lang.icon.alt = 語言圖示
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
 landing.also.in = 我們也在：
-landing.mapathon = 住在 {0}嗎？ 來參加 < id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
+landing.mapathon = 住在 {0}嗎？ 來參加 <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
 landing.how.you.help = 您可以如何協助
 landing.how.you.help.content = 通過三個簡單的步驟就可以探索您的城市並找出街道上的可及性問題——在您舒適的家中就可進行！
 landing.how.you.help.explore = 探索
