@@ -120,20 +120,17 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
 
     this.start = function (neighborhood) {
         if (!svl.isOnboarding()) {
-            $.getJSON('/cityShortNameParam', function(data) {
-                var cityShortName = data.city_short_name;
-                var title = i18next.t('popup.start-title');
-                var message = i18next.t('popup.start-body',
-                    { neighborhood: neighborhood.getProperty("name"), city: cityShortName });
-                tracker.push('PopUpShow_LetsGetStarted');
+            var title = i18next.t('popup.start-title');
+            var message = i18next.t('popup.start-body',
+                { neighborhood: neighborhood.getProperty("name"), city: svl.cityName });
+            tracker.push('PopUpShow_LetsGetStarted');
 
-                popUpMessage.notify(title, message, self._finishedInstructionToStart);
+            popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
-                initialHeading = mapService.getPov().heading;
-                // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
-                initialPanoId = mapService.getPanoId();
-                lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
-            });
+            initialHeading = mapService.getPov().heading;
+            // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
+            initialPanoId = mapService.getPanoId();
+            lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
         }
     };
 

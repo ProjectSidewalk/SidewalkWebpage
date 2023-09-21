@@ -51,6 +51,7 @@ function Main (params) {
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;
         svl.cityId = params.cityId;
+        svl.cityName = params.cityName;
         if (svl.usingPredictionModel()) {
             svl.predictionModel = new PredictionModel();
         }

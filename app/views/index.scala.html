@@ -5,8 +5,10 @@
 @import play.api.Play.current
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String, String, String)], auditedDistance: Float)(implicit lang: Lang)
-@skylineImg =@{Play.configuration.getString("city-params.skyline-img." + cityId).get}
+@import models.utils.CityInfo
+@(title: String, user: Option[User] = None, mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
+@skylineImg =@{Play.configuration.getString("city-params.skyline-img." + currentCity.cityId).get}
 
 @main(title) {
     @navbar(user, Some("/"))
@@ -30,16 +32,16 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @currentCity.cityNameShort</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((id, cityName, cityURL, visible) <- Random.shuffle(otherCityURLs.filter(c => c._4 == "public")).take(4)) {
+                    @for(city <- Random.shuffle(cityInfo.filter(c => c.visibility == "public" && c.cityId != currentCity.cityId)).take(4)) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
+                        <a id="@city.cityId" class="other-city-link" href="@city.URL">@city.cityNameFormatted.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
-                        <span class="header-text">@Html(Messages("landing.mapathon", cityShortName, mapathonLink.get))</span>
+                        <span class="header-text">@Html(Messages("landing.mapathon", currentCity.cityNameShort, mapathonLink.get))</span>
                     }
                 </div>
                 <div class="col-sm-3"></div>
@@ -126,7 +128,7 @@
     </div>
     <div class="ps-skyline">
         <div class="ps-skyline-container">
-            @if(cityName == "Washington" || cityName == "Seattle") {
+            @if(currentCity.cityId == "washington-dc" || currentCity.cityId == "seattle-wa") {
                 <img src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
             } else {
                 <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + skylineImg)" alt="@Messages(s"landing.${skylineImg}.alt")">
@@ -141,7 +143,7 @@
             @if(ConfigTable.getOpenStatus == "partially") {
                 <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
             } else {
-                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", cityShortName)</span>
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", currentCity.cityNameShort)</span>
             }
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
             <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
@@ -158,13 +160,13 @@
         </div>
         <script language="javascript">
             if ("@ConfigTable.getOpenStatus" === "partially" && @("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) >= 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted)";
             } else if ("@ConfigTable.getOpenStatus" === "partially") {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else if (@("%.0f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)) < 100) {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted, "%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100))";
             } else {
-                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", "%,.0f".format(auditedDistance), currentCity.cityNameFormatted)";
             }
             var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgePriorityTable.streetDistanceCompletionRateUsingPriority * 100)),1,2.5,{suffix:'%'});
             var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
@@ -210,7 +212,7 @@
                     </a>
                 </div>
 
-                @if("taipei" == cityId || "new-taipei-tw" == cityId || "keelung-tw" == cityId){
+                @if(List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity.cityId)){
                     <div class="collaborator-image">
                         <a id="people-nudge-img-link" href="https://www.facebook.com/peoplenudge?mibextid=LQQJ4d">
                             <img src='@routes.Assets.at("assets/people_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.people.nudge.alt")'>
@@ -224,7 +226,7 @@
                     </div>
                 }
 
-                @if("columbus-oh" == cityId){
+                @if("columbus-oh" == currentCity.cityId){
                     <div class="collaborator-image">
                         <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
                             <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
@@ -234,7 +236,7 @@
             </section>
 
             <section class="collaborator-images-container">
-                @if("amsterdam" == cityId){
+                @if("amsterdam" == currentCity.cityId){
                     <div class="collaborator-image">
                         <a id="worldenabled-img-link" href="https://worldenabled.org/">
                             <img src='@routes.Assets.at("assets/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">

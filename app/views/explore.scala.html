@@ -5,10 +5,9 @@
 @import models.amt.AMTAssignmentTable
 @import models.route.UserRoute
 @import views.html.bootstrap._
-@import play.api.Play
-@import play.api.Play.current
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityId: String, cityNameShort: Option[String], tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
+@cityName = @{cityNameShort.getOrElse(Messages(s"city.name.$cityId"))}
 
 @main(title, Some("/explore")) {
     @navbar(user, Some("/explore"))
@@ -366,7 +365,7 @@
                 </div>
                 <div id="neighborhood-stats-status-box" class="status-box">
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
-                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@cityShortName</span>
+                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@cityName</span>
                     <div class="status-row" id="neighborhood-status-row">
                         <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")" align="">
                         <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
@@ -1027,7 +1026,8 @@
             }
 
             mainParam.language = "@lang.code";
-            mainParam.cityId = "@Play.configuration.getString("city-id").get"
+            mainParam.cityId = "@cityId";
+            mainParam.cityName = "@cityName";
 
             svl.main = new Main(mainParam);
         }
