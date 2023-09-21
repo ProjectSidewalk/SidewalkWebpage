@@ -156,7 +156,7 @@
                             <b class="caret"></b>
                         </a>
                         <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
-                        @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId)).reverse) {
+                        @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId))) {
                             <li>
                             @if(cityInfo.cityId == currentCityId) {
                                 <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>

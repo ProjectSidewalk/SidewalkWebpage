@@ -41,7 +41,7 @@
                     <span id="city-type-holder">
                         <h4><b>@Messages("navbar.city")</b></h4>
                         <select id="city-select" class="gallery-filter" disabled>
-                            @for(city <- cityInfo.filter(c => c.visibility == "public" || c.cityId == currentCity.cityId).sortBy(c => (c.countryId, c.cityId)).reverse) {
+                            @for(city <- cityInfo.filter(c => c.visibility == "public" || c.cityId == currentCity.cityId).sortBy(c => (c.countryId, c.cityId))) {
                                 @if(currentCity.cityId == city.cityId) {
                                     <option value="@city.URL" selected>@city.cityNameFormatted</option>
                                 } else {
