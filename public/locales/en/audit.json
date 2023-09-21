@@ -33,7 +33,7 @@
         "redo-rate-attribute-4": "Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. <span class=\"bold\">Let’s click \"3\" to change the severity of the missing curb ramp.</span>",
         "tag-attribute-4": "<span class=\"bold\">Let's add the \"alternate route present\" tag</span> because there is a nearby curb ramp that could be used.",
         "redo-tag-attribute-4": "The \"alternate route present\" tag is the only tag that applies here because there is a nearby curb ramp that could be used. So add <span class=\"bold\">only the \"alternate route present\" tag.</span>",
-        "select-label-type-5": "On the pole you can see a light telling pedestrians that they can cross the street. <span class=\"bold\">Click the \"Pedestrian\" Signal button</span> to label it.",
+        "select-label-type-5": "On the pole you can see a light telling pedestrians that they can cross the street. <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it.",
         "label-attribute-5": "Now let's label it by <span class=\"bold\">clicking beneath the flashing yellow arrow</span>. You can see the light higher up on the pole, but we ask you to add your label at the bottom of the pole because it gives us a more accurate location.",
         "zoom-out": "Now let’s zoom out and look at the next intersection corner. <span class=\"bold\">Click the “Zoom Out” button</span>.",
         "adjust-heading-angle-2": "Look to the left by <span class=\"bold\">grabbing and dragging the Street View image.</span>",
