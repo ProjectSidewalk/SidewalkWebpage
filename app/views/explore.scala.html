@@ -6,8 +6,8 @@
 @import models.route.UserRoute
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityId: String, cityShortName: Option[String], tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
-@cityName = @{cityShortName.getOrElse(Messages(s"city.name.$cityId"))}
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityId: String, cityNameShort: Option[String], tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
+@cityName = @{cityNameShort.getOrElse(Messages(s"city.name.$cityId"))}
 
 @main(title, Some("/explore")) {
     @navbar(user, Some("/explore"))

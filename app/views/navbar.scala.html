@@ -8,7 +8,7 @@
 
 @currentCityId =@{Play.configuration.getString("city-id").get}
 @cityInfo = @{Configs.getAllCityInfo().filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
-@currentCity = @{cityInfo.filter(c => c.cityId == currentCityId).head}
+@currentCityInfo = @{cityInfo.filter(c => c.cityId == currentCityId).head}
 
 @import views.html.bootstrap._
 
@@ -152,32 +152,20 @@
                 @if(currentCityId != "crowdstudy") {
                     <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
                         <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
-                            @Play.configuration.getString(s"city-params.city-short-name.$currentCityId").getOrElse(Messages(s"city.name.$currentCityId"))
+                            @currentCityInfo.cityNameShort
                             <b class="caret"></b>
                         </a>
                         <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
                         @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId)).reverse) {
                             <li>
                             @if(cityInfo.cityId == currentCityId) {
-                                @if(cityInfo.stateId.isDefined && cityInfo.countryId == "usa") {
-                                    <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
-                                        <b>@Messages("city.state", Messages(s"city.name.$currentCityId"), Messages(s"state.name.${cityInfo.stateId.get}"))</b>
-                                    </a>
-                                } else {
-                                    <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
-                                        <b>@Messages("city.state", Messages(s"city.name.$currentCityId"), Messages(s"country.name.${cityInfo.countryId}"))</b>
-                                    </a>
-                                }
+                                <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
+                                    <b>@cityInfo.cityNameFormatted</b>
+                                </a>
                             } else {
-                                @if(currentCity.countryId == "usa" && cityInfo.stateId.isDefined && cityInfo.countryId == "usa") {
-                                    <a id="@cityInfo.cityId" role="menuitem" href='@cityInfo.URL'>
-                                    @Messages("city.state", Messages(s"city.name.${cityInfo.cityId}"), Messages(s"state.name.${cityInfo.stateId.get}"))
-                                    </a>
-                                } else {
-                                    <a id="@cityInfo.cityId" role="menuitem" href='@cityInfo.URL'>
-                                    @Messages("city.state", Messages(s"city.name.${cityInfo.cityId}"), Messages(s"country.name.${cityInfo.countryId}"))
-                                    </a>
-                                }
+                                <a id="@cityInfo.cityId" role="menuitem" href='@cityInfo.URL'>
+                                    @cityInfo.cityNameFormatted
+                                </a>
                             }
                             </li>
                         }
