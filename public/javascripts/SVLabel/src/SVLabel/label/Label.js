@@ -99,7 +99,6 @@ function Label(params) {
         // Create the marker on the minimap.
         if (typeof google !== "undefined" && google && google.maps) {
             var latlng = toLatLng();
-            console.log(latlng);
             googleMarker = Label.createMinimapMarker(properties.labelType, latlng.lat, latlng.lng);
             googleMarker.setMap(svl.map.getMap());
         }

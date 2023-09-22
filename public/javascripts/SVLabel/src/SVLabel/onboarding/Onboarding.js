@@ -112,9 +112,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     /**
      * Draw a label on the onboarding canvas. Only used to draw static labels as examples in the tutorial.
-     * @param x
-     * @param y
-     * @param labelType
+     * @param labelType {string} Label type, used to show correct icon
+     * @param x {number} canvas x-position of the center of the label
+     * @param y {number} canvas y-position of the center of the label
      * @private
      */
     function _drawStaticLabel(labelType, x, y) {
@@ -127,8 +127,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     /**
      * Draw a box on the onboarding canvas.
-     * @param x {number} Starting x coordinate
-     * @param y {number} Starting y coordinate
+     * @param x {number} top-left x coordinate
+     * @param y {number} top-left y coordinate
      * @param width {number} pixel width
      * @param height {number} pixel height
      * @param parameters {object} parameters
@@ -138,24 +138,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             ctx.save();
             ctx.strokeStyle = parameters.strokeStyle;
             ctx.lineWidth = parameters.lineWidth;
-
-            // Draw a box!
             ctx.strokeRect(x, y, width, height);
-            // ctx.beginPath();
-            // ctx.moveTo(x, y);
-            // ctx.lineTo(x + width, y);
-            // ctx.lineTo(x + width, y + height);
-            // ctx.lineTo(x, y + height);
-            // ctx.lineTo(x, y);
-            // ctx.closePath();
-            // ctx.stroke();
             ctx.restore();
         }
         return this;
     }
 
     /**
-     * Draw an arrow on the onboarding canvas
+     * Draw an arrow on the onboarding canvas.
      * @param x1 {number} Starting x coordinate
      * @param y1 {number} Starting y coordinate
      * @param x2 {number} Ending x coordinate
@@ -883,14 +873,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 var pov = mapService.getPov();
                 var canvasX = clickCoordinate.x;
                 var canvasY = clickCoordinate.y;
-                // console.log("canvasXY: " + canvasX + ", " + canvasY);
                 var panoXY = util.panomarker.canvasXYToPanoXY(
                     pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, cameraHeading, svImgWidth, svImgHeight
                 );
-                // console.log("panoXY: " + panoXY.x + ", " + panoXY.y);
                 panoXY.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
                 panoXY.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;
-                // console.log("panoXY: " + panoXY.x + ", " + panoXY.y);
 
                 distance[i] = (imageX - panoXY.x) * (imageX - panoXY.x) + (imageY - panoXY.y) * (imageY - panoXY.y);
                 currentLabelState = state;
