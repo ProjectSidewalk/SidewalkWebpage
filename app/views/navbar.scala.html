@@ -104,7 +104,11 @@
                     }
                 }
                 <li class="active navbar-lnk">
-                    <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                    @if(currentCityInfo.countryId == "taiwan") {
+                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.Assets.at("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
+                    } else {
+                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>
+                    }
                 </li>
                 @if(url.isDefined && url.get == "/explore") {
                     <li class = "active navbar-lnk">
