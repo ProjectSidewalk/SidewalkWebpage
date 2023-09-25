@@ -24,8 +24,10 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 </details>
 
 <details><summary>Windows (WSL2)</summary>
-    
-There are two methods to setup your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
+
+##### First time setup
+
+There are two methods to set up your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
     
 WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/). WSL2 offers faster compile times and is better supported by Docker.
 
@@ -37,45 +39,18 @@ WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the
 1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository. For me, that's `/home/jonf/projects/`.
 1. From your Linux VM shell, run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
 
-##### Starting/Shutting down WSL2 and docker when done working
+##### Starting/Shutting down WSL2 and Docker when you're done working
 
-WSL and Docker can take up lots of memory in the background. You'll see this when you open task manager and see the
-`VmmemWSL` task eating up thousands of MB of memory! If you aren't working on Project Sidewalk, you can shut down WSL 
-and docker to prevent unnecessary memory consumption on your computer. If you follow the steps to shut down WSL and
-docker, make sure to **ALWAYS start WSL and Docker before working on Project Sidewalk!** 
+WSL and Docker can take up lots of memory in the background. If you aren't working on Project Sidewalk, you can shut down Docker and WSL to prevent unnecessary memory consumption on your computer by following the steps below. If you shut them down, you will need to start them back up again before working on Project Sidewalk! 
 
 ###### Shut down Docker/WSL
-1. **Shut down docker.** To shut down docker, simply open the hidden icons button on the toolbar, right-click the docker
-symbol, and shut down docker desktop. This should stop all running containers and terminate docker desktop.
-2. **Shut down WSL.** 
-   To check all of your current distros as well as which distros are running, run: 
-   ```bash
-    wsl -l -v
-   ```
-   To terminate a specific distro, run:
-   ```bash
-   wsl -t <distro_name>
-   ```
-   using one of the distro names from the previous command.
-
-   To terminate all running wsl distros, run:
-   ```bash
-   wsl --shutdown
-   ```
-*Note: The `docker-desktop-data` and `docker-desktop` distros cannot be terminated through wsl. Shutting down docker desktop
-will automatically shut these distros down.*
-
-*Note: if any app is using a distro (i.e. an IDE is running with Project Sidewalk opened) the distro will spin up again.
-Make sure everything using the distro is closed before shutting down.*
+1. **Close any apps using Docker or WSL.** Make sure to shut down Project Sidewalk and any other apps that might be using Docker or WSL. If you don't, WSL will start up again automatically.
+1. **Shut down Docker.** Open the hidden icons button on the toolbar, right-click the Docker symbol, and click "Quit Docker Desktop".
+1. **Shut down WSL.** Run `wsl --shutdown`.
 
 ###### Start Docker/WSL
-1. **Start WSL.** From the terminal, run:
-   ```bash
-   wsl -d <distro_name>
-   ```
-   Starting an IDE using the distro will also automatically boot up the distro.
-2. **Start Docker.** Simply search for Docker Desktop in the start menu and run the app. The `docker-desktop-data` and
-   `docker-desktop` distros will begin running, and you can freely run make dev to begin development.
+1. **Start WSL.** From the terminal, run `wsl -d Ubuntu`. Starting an IDE using WSL will also automatically boot it up.
+2. **Start Docker.** Search for Docker Desktop in the start menu and run the app. You can then freely run `make dev` to begin development.
 
 ##### Transferring files from Windows to Linux VM
 One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.
