@@ -34,7 +34,7 @@ function PinchZoomDetector () {
      */
     function processTouchstart (e) {
         if (e.touches.length >= 2) {
-            prevZoomLevel = svv.panorama.getZoom();
+            prevZoomLevel = svv.panorama.getPov().zoom;
             pinchZooming = true;
             pinchZoomCode = ZOOM_UNKNOWN_CODE;
         }
@@ -45,7 +45,7 @@ function PinchZoomDetector () {
      * @private
      */
     function processZoomChange () {
-        let currentZoom = svv.panorama.getZoom();
+        let currentZoom = svv.panorama.getPov().zoom;
         // Logs interaction only if a user is pinch zooming and current zoom is less than max zoom.
         if (pinchZooming && currentZoom <= 4) {
             let zoomChange = currentZoom - prevZoomLevel;

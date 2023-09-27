@@ -81,13 +81,12 @@ function PanoProperties () {
      * @param {StreetViewPov} targetPov The point-of-view whose coordinates are
      *     requested.
      * @param {StreetViewPov} currentPov POV of the viewport center.
-     * @param {number} zoom The current zoom level.
      * @param {number} canvasWidth of the panorama canvas.
      * @param {number} canvasHeight of the panorama canvas.
      * @return {Object} Top and Left offsets for the given viewport that point to
      *     the desired point-of-view.
      */
-    function povToPixel3d(targetPov, currentPov, zoom, canvasWidth, canvasHeight) {
+    function povToPixel3d(targetPov, currentPov, canvasWidth, canvasHeight) {
 
         // Gather required variables and convert to radians where necessary.
         let width = canvasWidth;
@@ -105,7 +104,7 @@ function PanoProperties () {
         };
 
         let DEG_TO_RAD = Math.PI / 180.0;
-        let fov = _get3dFov(zoom) * DEG_TO_RAD;
+        let fov = _get3dFov(currentPov.zoom) * DEG_TO_RAD;
         let h0 = currentPov.heading * DEG_TO_RAD;
         let p0 = currentPov.pitch * DEG_TO_RAD;
         let h = targetPov.heading * DEG_TO_RAD;
