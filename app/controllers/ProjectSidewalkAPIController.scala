@@ -147,7 +147,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println(header)
       // Write each row in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        writer.println(current.attributesToArray.mkString(","))
+        val rowArr: Array[String] = current.attributesToArray
+        rowArr(6) = "\"" + rowArr(6) + "\""
+        writer.println(rowArr.mkString(","))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
@@ -214,7 +216,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,Cluster Size,User IDs")
       // Write each row in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        writer.println(current.attributesToArray.mkString(","))
+        // Add double quotes around Neighborhood Name in case of comma in name
+        val rowArr: Array[Any] = current.attributesToArray
+        rowArr(4) = "\"" + rowArr(4) + "\""
+        writer.println(rowArr.mkString(","))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
@@ -364,14 +369,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val coordinates: Array[Coordinate] = geom.getCoordinates
       val coordStr: String = "\"[" + coordinates.map(c => "(" + c.x + "," + c.y + ")").mkString(",") + "]\""
       if (region.coverage > 0.0D) {
-        writer.println(region.name + "," + region.regionID + "," + region.score + "," + coordStr + "," +
+        writer.println("\"" + region.name + "\"," + region.regionID + "," + region.score + "," + coordStr + "," +
           region.coverage + "," + region.attributeScores(0) + "," + region.attributeScores(1) + "," +
           region.attributeScores(2) + "," + region.attributeScores(3) + "," + region.significanceScores(0) + "," +
           region.significanceScores(1) + "," + region.significanceScores(2) + "," + region.significanceScores(3) + "," +
           region.avgImageCaptureDate.map(_.toString).getOrElse("NA") + "," +
           region.avgLabelDate.map(_.toString).getOrElse("NA"))
       } else {
-        writer.println(region.name + "," + region.regionID + "," + "NA" + "," + coordStr + ","  + 0.0 + "," + "NA" +
+        writer.println("\"" + region.name + "\"," + region.regionID + "," + "NA" + "," + coordStr + ","  + 0.0 + "," + "NA" +
           "," + "NA" + "," + "NA" + "," + "NA" + "," + region.significanceScores(0) + "," +
           region.significanceScores(1) + "," + region.significanceScores(2) + "," + region.significanceScores(3) + "," +
           "NA" + "," + "NA")
