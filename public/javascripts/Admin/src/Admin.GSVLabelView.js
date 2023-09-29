@@ -1,6 +1,7 @@
-function AdminGSVLabelView(admin) {
+function AdminGSVLabelView(admin, source) {
     var self = {};
     self.admin = admin;
+    self.source = source;
 
     var _init = function() {
         self.panoProp = new PanoProperties();
@@ -211,10 +212,9 @@ function AdminGSVLabelView(admin) {
 
         // This is the POV of the viewport center - this is where the user is looking.
         var userPov = self.panorama.panorama.getPov();
-        var zoom = self.panorama.panorama.getZoom();
 
         // Calculates the center xy coordinates of the kabel on the current viewport.
-        var pixelCoordinates = self.panoProp.povToPixel3d(panomarkerPov, userPov, zoom, canvasWidth, canvasHeight);
+        var pixelCoordinates = self.panoProp.povToPixel3d(panomarkerPov, userPov, canvasWidth, canvasHeight);
 
         // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
         // We add/subtract the radius of the label so that we still record these values when only a fraction of the
@@ -245,7 +245,7 @@ function AdminGSVLabelView(admin) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            is_mobile: false
+            source: self.source
         };
 
         // Submit the validation via POST request.
@@ -321,7 +321,6 @@ function AdminGSVLabelView(admin) {
      */
     function _submitComment(comment) {
         var userPov = self.panorama.panorama.getPov();
-        var zoom = self.panorama.panorama.getZoom();
         var pos = self.panorama.panorama.getPosition();
         var button = document.getElementById("comment-button");
 
@@ -334,9 +333,9 @@ function AdminGSVLabelView(admin) {
             gsv_panorama_id: self.panorama.panoId,
             heading: userPov.heading,
             pitch: userPov.pitch,
-            zoom: zoom,
+            zoom: userPov.zoom,
             lat: pos.lat(),
-            lng: pos.lng(),
+            lng: pos.lng()
         };
 
         // Submit the comment via POST request.

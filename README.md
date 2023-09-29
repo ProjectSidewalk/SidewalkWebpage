@@ -24,8 +24,10 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 </details>
 
 <details><summary>Windows (WSL2)</summary>
-    
-There are two methods to setup your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
+
+##### First time setup
+
+There are two methods to set up your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
     
 WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/). WSL2 offers faster compile times and is better supported by Docker.
 
@@ -33,9 +35,22 @@ WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the
 1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10) using the default Linux distribution (Ubuntu). Open PowerShell in **administrator** mode by right-clicking and selecting "Run as adminstrator" then enter `wsl --install`, which will use **WSL 2** to install **Ubuntu** by default (see [Microsoft's WSL instructions](https://learn.microsoft.com/en-us/windows/wsl/install)). We recommend pinning Ubuntu to your taskbar to open up the shell easily but you can easily find it in the future by searching "Ubuntu" from the Windows Start menu.
 1. Make sure you are also running the latest version of WSL. Again, in PowerShell, run `wsl --update`
 1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
-1. Proceed by clicking **Resources &rarr; WSL Integration** and making sure the "Enable integration with my default WSL distro" is checked. If you have multiple Linux distros, then select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
+1. Proceed by clicking **Resources &rarr; WSL Integration** and making sure that "Enable integration with my default WSL distro" and "Ubuntu" are checked.
 1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository. For me, that's `/home/jonf/projects/`.
 1. From your Linux VM shell, run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
+
+##### Starting/Shutting down WSL2 and Docker when you're done working
+
+WSL and Docker can take up lots of memory in the background. If you aren't working on Project Sidewalk, you can shut down Docker and WSL to prevent unnecessary memory consumption on your computer by following the steps below. If you shut them down, you will need to start them back up again before working on Project Sidewalk! 
+
+###### Shut down Docker/WSL
+1. **Close any apps using Docker or WSL.** Make sure to shut down Project Sidewalk and any other apps that might be using Docker or WSL. If you don't, WSL will start up again automatically.
+1. **Shut down Docker.** Open the hidden icons button on the toolbar, right-click the Docker symbol, and click "Quit Docker Desktop".
+1. **Shut down WSL.** Run `wsl --shutdown`.
+
+###### Start Docker/WSL
+1. **Start WSL.** From the terminal, run `wsl -d Ubuntu`. Starting an IDE using WSL will also automatically boot it up.
+2. **Start Docker.** Search for Docker Desktop in the start menu and run the app. You can then freely run `make dev` to begin development.
 
 ##### Transferring files from Windows to Linux VM
 One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.
@@ -64,9 +79,9 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 1. If your computer has an Apple Silicon (M1 or M2) chip, then you should modify the `platform` line in the `docker-compose.yml`, changing it to `linux/arm64`.
 1. If your computer has less than 16 GB of RAM, I'd recommend modifying `-mem 12288` to `-mem 8192` or lower in the `package.json` file so that you don't fill up your computer's memory.
 1. Modify the `MAPBOX_API_KEY`, `GOOGLE_MAPS_API_KEY`, and `GOOGLE_MAPS_SECRET` lines in the `docker-compose.yml` using the keys and secret you've acquired.
-1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
-1. Modify the `DATABASE_URL` line in the `docker-compose.yml`, replacing "sidewalk" with "sidewalk-\<city-name\>", where the `<city-name>` comes from the city ID you found in the previous step. Note that if a state abbreviation comes after, you'll remove that. So if the `city-id` is "newberg-or", your db URL will contain "sidewalk-newberg". And if your `city-id` is "cdmx" then your URL will contain "sidewalk-cdmx".
-1. Rename the database dump file that you got from Mikey to "sidewalk-\<city-name\>-dump" (same name as prev step) and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`).
+1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city, listed [here](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
+1. Modify the `DATABASE_URL` line in the `docker-compose.yml`, replacing "sidewalk" with the database name from the table [linked above](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
+1. Rename the database dump file that you got from Mikey to "\<database-name\>-dump" (using the name from the prev step) and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`).
 1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container in that same terminal. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
@@ -77,11 +92,11 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run the commands below. In the second command, replace `<city-name>` with the one used above. There is one outlier: `pittsburg` (pittsburgh is missing the 'h', but it's a typo we're stuck with; the typo is only relevant for this one command).
+1. In a separate terminal, run the commands below. In the second command, replace `<database-user>` with the appropriate user from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
 
     ```
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
-    docker exec -it projectsidewalk-db psql -c "CREATE ROLE sidewalk_<city-name> SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
+    docker exec -it projectsidewalk-db psql -c "CREATE ROLE <database-user> SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
     ```
 
 1. Run `make import-dump db=sidewalk-<city-name>` (needs to be the same thing you put in the `DATABASE_URL`) from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
@@ -108,14 +123,15 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     (Server started, use Ctrl+D to stop and go back to the console...)
     ```
 
-1. Head on over to your browser and navigate to `127.0.0.1:9000` (or try localhost:9000). This should display the Project Sidewalk webpage. It might take time to load initially.
+1. Head on over to your browser and navigate to `localhost:9000` (or try `127.0.0.1:9000`). This should display the Project Sidewalk webpage. It might take time to load initially.
 
 ### Setting up another database or city
-1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.
-1. Run `make import-dump db=[db-name]` from the root project directory outside the Docker shell. Using the example from step 1., this would be `make import-dump db=sidewalk-seattle`.
-1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/[db-name]`.
-1. If the database is for a city other than DC, modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
+1. Acquire another database dump, put it in the `db/` directory, and rename it to "\<database-name\>-dump", using the appropriate database name from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
+1. Run `make import-dump db=<db-name>` (using the name from the prev step) from the root project directory outside the Docker shell.
+1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/<db-name>`.
+1. Modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
 1. Rerun `make dev`.
+1. To switch back and forth between databases going forward, you will need to close the Docker shell (if you ran `make dev`, that just means running `exit` in that terminal), update the `DATABASE_URL` and `SIDEWALK_CITY_ID`, and rerun `make dev`.
 
 ### Additional tools
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.

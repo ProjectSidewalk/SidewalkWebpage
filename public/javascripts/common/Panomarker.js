@@ -220,12 +220,11 @@
      * @param {StreetViewPov} targetPov The point-of-view whose coordinates are
      *     requested.
      * @param {StreetViewPov} currentPov POV of the viewport center.
-     * @param {number} zoom The current zoom level.
      * @param {Element} viewport The current viewport containing the panorama.
      * @return {Object} Top and Left offsets for the given viewport that point to
      *     the desired point-of-view.
      */
-    PanoMarker.povToPixel3d = function(targetPov, currentPov, zoom, viewport) {
+    PanoMarker.povToPixel3d = function(targetPov, currentPov, viewport) {
 
         // Gather required variables and convert to radians where necessary
         var width = viewport.offsetWidth;
@@ -237,7 +236,7 @@
         };
 
         var DEG_TO_RAD = Math.PI / 180.0;
-        var fov = PanoMarker.get3dFov(zoom) * DEG_TO_RAD;
+        var fov = PanoMarker.get3dFov(currentPov.zoom) * DEG_TO_RAD;
         var h0 = currentPov.heading * DEG_TO_RAD;
         var p0 = currentPov.pitch * DEG_TO_RAD;
         var h = targetPov.heading * DEG_TO_RAD;
@@ -354,12 +353,11 @@
      * @param {StreetViewPov} targetPov The point-of-view whose coordinates are
      *     requested.
      * @param {StreetViewPov} currentPov POV of the viewport center.
-     * @param {number} zoom The current zoom level.
      * @param {Element} viewport The current viewport containing the panorama.
      * @return {Object} Top and Left offsets for the given viewport that point to
      *     the desired point-of-view.
      */
-    PanoMarker.povToPixel2d = function(targetPov, currentPov, zoom, viewport) {
+    PanoMarker.povToPixel2d = function(targetPov, currentPov, viewport) {
         // Gather required variables
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
@@ -370,7 +368,7 @@
         };
 
         // In the 2D environment, the FOV follows the documented curve.
-        var hfov = 180 / Math.pow(2, zoom);
+        var hfov = 180 / Math.pow(2, currentPov.zoom);
         var vfov = hfov * (height / width);
         var dh = PanoMarker.wrapHeading(targetPov.heading - currentPov.heading);
         var dv = targetPov.pitch - currentPov.pitch;
@@ -496,7 +494,6 @@
         // panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
         var offset = this.povToPixel_(this.position_,
             this.pano_.getPov(),
-            typeof this.pano_.getZoom() !== 'undefined' ? this.pano_.getZoom() : 1,
             this.container_);
         if (this.marker_) {
             if (offset !== null) {

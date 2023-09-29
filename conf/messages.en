@@ -48,6 +48,15 @@ press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
 feedback.submitted = Feedback Submitted
 
+city.state = {0}, {1}
+
+state.name.oregon = OR
+state.name.washington = WA
+state.name.ohio = OH
+state.name.pennsylvania = PA
+state.name.illinois = IL
+state.name.new-jersey = NJ
+
 navbar.explore = Explore
 navbar.validate = Validate
 navbar.howto = How to Label
@@ -81,10 +90,10 @@ landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = You are automatically assigned a neighborhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
-landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the target area in the city!
-landing.stats.content.unfinished.full = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the city!
-landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} kilometers of the target area in {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
-landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometers of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}—that''s {2}% of the target area in the city!
+landing.stats.content.unfinished.full = Users like you have already mapped {0} kilometers of {1}—that''s {2}% of the city!
+landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} kilometers of the target area in {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometers of {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 landing.stats.percent.partial = of target area mapped
 landing.stats.percent.full = of {0} mapped
 landing.stats.distance = kilometers covered
@@ -101,7 +110,21 @@ landing.ml.gif.interactive.visualization.tools = interactive visualization tools
 landing.ml.gif.smarter.routing = smarter routing
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = outcomes
+landing.ml.gif.explain.alt = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
 landing.collaborators.title = Collaborators
+landing.collaborators.logo.makeability.alt = Makeability Lab Logo
+landing.collaborators.logo.uic.alt = University of Illinois Chicago Institute on Disability and Human Development Logo
+landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal Logo
+landing.collaborators.logo.open.columbus.alt = Open Columbus Logo
+landing.collaborators.logo.world.enabled.alt = World Enabled Logo
+landing.collaborators.logo.city.of.amsterdam.alt = City of Amsterdam Logo
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
+landing.collaborators.logo.people.nudge.alt = People Nudge Logo
+landing.clouds.alt = White clouds partially covering the image above, with statistics shown on top of the clouds.
+landing.skyline1.png.alt = An illustration of an intersection with people traveling across the street.
+landing.skyline2.png.alt = An illustration of an intersection with people traveling across the street. A flag showing the colors of the flag of Mexico is in the background.
+landing.skyline-dc.png.alt = An illustration showing the skyline of Washington, DC.
+landing.skyline-seattle.png.alt = An illustration showing the skyline of Seattle, Washington.
 
 footer.about = About Us
 footer.terms = Terms of Use
@@ -323,12 +346,12 @@ leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u
 leaderboard.encouragement.no.org = Want to improve your accuracy? Read our <a id="encouragement-link" href="/labelingGuide"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
 
 gallery = Gallery
-gallery.show = Show
 gallery.filter.by = Filter By
 gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+gallery.clear.filters = Clear Filters
 
 route.builder.name = RouteBuilder
 route.builder.instructions = Click on streets to add them to your route, then click "Save route". Then you can explore the route and label accessibility issues, or you can share a link for others to explore the same route!
@@ -339,3 +362,9 @@ route.builder.share = Copy link to route
 help.rating.1 = Rating 1: Passable
 help.rating.3 = Rating 3: Neutral
 help.rating.5 = Rating 5: Not passable
+
+footer.logo.nsf.alt = National Science Foundation Logo
+footer.logo.google.alt = Google Logo
+footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
+footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
+footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo

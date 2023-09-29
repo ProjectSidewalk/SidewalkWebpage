@@ -149,14 +149,6 @@ function Panorama (label) {
     }
 
     /**
-     * Returns the zoom level of this panorama.
-     * @returns Zoom level from {1.1, 2.1, 3.1}
-     */
-    function getZoom() {
-        return panorama.getZoom();
-    }
-
-    /**
      * Gets a specific property from this Panorama.
      * @param key   Property name.
      * @returns     Value associated with this property or null.
@@ -363,7 +355,6 @@ function Panorama (label) {
     self.getPosition = getPosition;
     self.getProperty = getProperty;
     self.getPov = getPov;
-    self.getZoom = getZoom;
     self.getPanomarker = getPanomarker;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;

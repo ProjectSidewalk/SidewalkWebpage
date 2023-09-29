@@ -220,7 +220,7 @@
                 scrollWheelZoom: true,
                 clickData: true,
                 mapName: 'labelmap-choropleth',
-                mapStyle: 'mapbox://styles/mapbox/streets-v11'
+                mapStyle: i18next.t('common:map-url-streets')
             };
             var streetParams = {
                 labelPopup: true,
@@ -262,7 +262,7 @@
 
             // When streets have rendered and submitted labels have loaded, submitted labels can be rendered.
             $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
-                self.mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(false), InitializeMapLayerContainer(), data2[0]);
+                self.mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(false, "LabelMap"), InitializeMapLayerContainer(), data2[0]);
             });
             window.map = self;
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
