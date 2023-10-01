@@ -147,9 +147,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println(header)
       // Write each row in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        val rowArr: Array[String] = current.attributesToArray
-        rowArr(6) = "\"" + rowArr(6) + "\""
-        writer.println(rowArr.mkString(","))
+        writer.println(current.attributesToArray.mkString(","))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
@@ -216,10 +214,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,Cluster Size,User IDs")
       // Write each row in the CSV.
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        // Add double quotes around Neighborhood Name in case of comma in name
-        val rowArr: Array[Any] = current.attributesToArray
-        rowArr(4) = "\"" + rowArr(4) + "\""
-        writer.println(rowArr.mkString(","))
+        writer.println(current.attributesToArray.mkString(","))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
