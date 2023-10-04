@@ -61,8 +61,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
       )
     )
   }
-  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
-                                lng.toString, avgImageCaptureDate, avgLabelDate.toString,
+  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, "\"" + neighborhoodName + "\"",
+                                lat.toString, lng.toString, avgImageCaptureDate, avgLabelDate.toString,
                                 severity.getOrElse("NA").toString, temporary.toString, agreeCount.toString,
                                 disagreeCount.toString, notsureCount.toString, labelCount.toString,
                                 "\"[" + usersList.mkString(",") + "]\"")
@@ -134,7 +134,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
   }
   val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
                                 attributeTemporary.toString, streetEdgeId.toString, osmStreetId.toString,
-                                neighborhoodName, labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
+                                "\"" + neighborhoodName + "\"", labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
                                 headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
                                 canvasXY._1.toString, canvasXY._2.toString, LabelPointTable.canvasWidth.toString,
