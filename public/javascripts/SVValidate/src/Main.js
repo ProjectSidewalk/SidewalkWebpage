@@ -202,7 +202,7 @@ function Main (param) {
 
         const labelType = param.labelList[0].getAuditProperty('labelType');
 
-        const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
+        const missionStartTutorial = new MissionStartTutorial('validate', labelType, { labelCount: param.mission.labels_validated }, svv, param.language);
     }
 
     // Gets all the text on the validation page for the correct language.
