@@ -257,7 +257,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
                 }
             ]
         },
-        'NoSideWalk': {
+        'NoSidewalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
                 {'nLabels': data.labelCount, 'labelType': i18next.t('common:no-sidewalk')}),
