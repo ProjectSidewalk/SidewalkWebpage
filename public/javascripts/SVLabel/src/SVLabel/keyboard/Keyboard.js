@@ -255,6 +255,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
             }
 
+            if (e.key === 'x') {
+                svl.canvas.saveGSVScreenshot();
+            }
+
             contextMenu.updateRadioButtonImages();
         }
     };

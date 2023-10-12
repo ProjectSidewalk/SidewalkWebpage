@@ -344,6 +344,35 @@ function Canvas(ribbon) {
         return this;
     }
 
+    // Saves a screenshot of the GSV on the server with the name gsv-<panoID>-<timestamp>.jpg.
+    function saveGSVScreenshot() {
+
+        // Saves a screenshot of the GSV to the server with the name gsv-<panoID>-<timestamp>.jpg
+        // Pano ID will help us trace back to the panorama if needed.
+        const d = {
+            'name': 'trial'//'gsv-' + currentPanoState.location + '-' + panorama.getPano() + '-' + new Date().getTime() +'.jpg',
+        };
+
+        // Save a high-res version of the image.
+        html2canvas($('.widget-scene-canvas')[0]).then(canvas => {
+
+            d.dir = 'high-res';
+            // d.b64 = canvas.toDataURL('image/jpeg', 1);
+
+            console.log(d);
+
+            $.ajax({
+                type: "POST",
+                url: "saveImage",
+                data: JSON.stringify(d),
+                contentType: "application/json; charset=UTF-8",
+                success: function(data){
+                    console.log(data);
+                }
+            });
+        });
+    }
+
     _init();
 
     // Put public methods to self and return them.
@@ -363,6 +392,7 @@ function Canvas(ribbon) {
     self.setVisibility = setVisibility;
     self.setOnlyLabelsOnPanoAsVisible = setOnlyLabelsOnPanoAsVisible;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
+    self.saveGSVScreenshot = saveGSVScreenshot;
 
     return self;
 }
