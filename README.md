@@ -24,8 +24,10 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 </details>
 
 <details><summary>Windows (WSL2)</summary>
-    
-There are two methods to setup your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
+
+##### First time setup
+
+There are two methods to set up your Docker dev environment with Windows: with WSL2 and without. We recommend and only support the *WSL2* installation process. 
     
 WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel—see [Docker's official WSL2 overview](https://docs.docker.com/desktop/windows/wsl/). WSL2 offers faster compile times and is better supported by Docker.
 
@@ -36,6 +38,19 @@ WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the
 1. Proceed by clicking **Resources &rarr; WSL Integration** and making sure that "Enable integration with my default WSL distro" and "Ubuntu" are checked.
 1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository. For me, that's `/home/jonf/projects/`.
 1. From your Linux VM shell, run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
+
+##### Starting/Shutting down WSL2 and Docker when you're done working
+
+WSL and Docker can take up lots of memory in the background. If you aren't working on Project Sidewalk, you can shut down Docker and WSL to prevent unnecessary memory consumption on your computer by following the steps below. If you shut them down, you will need to start them back up again before working on Project Sidewalk! 
+
+###### Shut down Docker/WSL
+1. **Close any apps using Docker or WSL.** Make sure to shut down Project Sidewalk and any other apps that might be using Docker or WSL. If you don't, WSL will start up again automatically.
+1. **Shut down Docker.** Open the hidden icons button on the toolbar, right-click the Docker symbol, and click "Quit Docker Desktop".
+1. **Shut down WSL.** Run `wsl --shutdown`.
+
+###### Start Docker/WSL
+1. **Start WSL.** From the terminal, run `wsl -d Ubuntu`. Starting an IDE using WSL will also automatically boot it up.
+2. **Start Docker.** Search for Docker Desktop in the start menu and run the app. You can then freely run `make dev` to begin development.
 
 ##### Transferring files from Windows to Linux VM
 One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.

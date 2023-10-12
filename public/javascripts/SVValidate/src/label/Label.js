@@ -229,11 +229,9 @@ function Label(params) {
 
         // This is the POV of the viewport center - this is where the user is looking.
         let userPov = svv.panorama.getPov();
-        let zoom = svv.panorama.getZoom();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
-        let pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov,
-            zoom, svv.canvasWidth, svv.canvasHeight);
+        let pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov, svv.canvasWidth, svv.canvasHeight);
 
         // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
         // We add/subtract the radius of the label so that we still record these values when only a fraction of the
