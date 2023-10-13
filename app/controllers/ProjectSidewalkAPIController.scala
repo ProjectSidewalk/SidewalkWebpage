@@ -834,14 +834,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    val cityId = Play.configuration.getString("city-id").get
-    val launchDate = Play.configuration.getString(s"city-params.launch-date.$cityId").get
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val sidewalkStatsFile = new java.io.File("project_sidewalk_stats.csv")
       val writer = new java.io.PrintStream(sidewalkStatsFile)
 
       val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
+      writer.println(s"Launch Date, ${stats.launchDate}")
       writer.println(s"KM Explored,${stats.kmExplored}")
       writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
       writer.println(s"Total User Count,${stats.nUsers}")
@@ -866,13 +865,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
       }
 
-      writer.println(s"Launch Date, ${launchDate}")
       writer.close()
       Future.successful(Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete()))
     } else { // In JSON format.
-      Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI(filterLowQuality)) +
-        ("launch_date" -> Json.toJson(launchDate))
-      ))
+      Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI(filterLowQuality))))
     }
   }
 }

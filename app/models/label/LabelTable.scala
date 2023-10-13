@@ -39,7 +39,7 @@ case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanorama
 
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
-case class ProjectSidewalkStats(kmExplored: Float, kmExploreNoOverlap: Float, nUsers: Int, nExplorers: Int,
+case class ProjectSidewalkStats(launchDate: String, kmExplored: Float, kmExploreNoOverlap: Float, nUsers: Int, nExplorers: Int,
                                 nValidators: Int, nRegistered: Int, nAnon: Int, nTurker: Int, nResearcher: Int,
                                 nLabels: Int, severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
                                 accuracyByLabelType: Map[String, LabelAccuracy])
@@ -228,7 +228,8 @@ object LabelTable {
   )
 
   implicit val projectSidewalkStatsConverter = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
-    r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+    r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+    r.nextInt,
     Map(
       "CurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
       "NoCurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
@@ -1100,8 +1101,12 @@ object LabelTable {
       if (filterLowQuality) "user_stat.high_quality"
       else "NOT user_stat.excluded"
 
+    val cityId = Play.configuration.getString("city-id").get
+    val launchDate = Play.configuration.getString(s"city-params.launch-date.$cityId").get
+
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
-      s"""SELECT km_audited.km_audited AS km_audited,
+      s"""SELECT '$launchDate' AS launch_date,
+         |       km_audited.km_audited AS km_audited,
          |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
          |       users.total_users,
          |       users.audit_users,
