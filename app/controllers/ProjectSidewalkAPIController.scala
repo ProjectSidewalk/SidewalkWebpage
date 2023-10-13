@@ -364,14 +364,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val coordinates: Array[Coordinate] = geom.getCoordinates
       val coordStr: String = "\"[" + coordinates.map(c => "(" + c.x + "," + c.y + ")").mkString(",") + "]\""
       if (region.coverage > 0.0D) {
-        writer.println(region.name + "," + region.regionID + "," + region.score + "," + coordStr + "," +
+        writer.println("\"" + region.name + "\"," + region.regionID + "," + region.score + "," + coordStr + "," +
           region.coverage + "," + region.attributeScores(0) + "," + region.attributeScores(1) + "," +
           region.attributeScores(2) + "," + region.attributeScores(3) + "," + region.significanceScores(0) + "," +
           region.significanceScores(1) + "," + region.significanceScores(2) + "," + region.significanceScores(3) + "," +
           region.avgImageCaptureDate.map(_.toString).getOrElse("NA") + "," +
           region.avgLabelDate.map(_.toString).getOrElse("NA"))
       } else {
-        writer.println(region.name + "," + region.regionID + "," + "NA" + "," + coordStr + ","  + 0.0 + "," + "NA" +
+        writer.println("\"" + region.name + "\"," + region.regionID + "," + "NA" + "," + coordStr + ","  + 0.0 + "," + "NA" +
           "," + "NA" + "," + "NA" + "," + "NA" + "," + region.significanceScores(0) + "," +
           region.significanceScores(1) + "," + region.significanceScores(2) + "," + region.significanceScores(3) + "," +
           "NA" + "," + "NA")
