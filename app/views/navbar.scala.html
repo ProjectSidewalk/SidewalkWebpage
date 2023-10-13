@@ -215,7 +215,7 @@
                         @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
                             @if(language != lang.code) {
                                 <li>
-                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@language</a>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
                                 </li>
                             } 
                         }
